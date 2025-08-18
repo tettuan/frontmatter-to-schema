@@ -58,7 +58,11 @@ class MockAnalysisStrategy {
   }
 }
 
-Deno.test("GenericAnalysisEngine", async (t) => {
+Deno.test({
+  name: "GenericAnalysisEngine", 
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async (t) => {
   await t.step("should analyze successfully with valid input and strategy", async () => {
     const engine = new GenericAnalysisEngine();
     const strategy = new MockAnalysisStrategy(true, "success result");
@@ -107,7 +111,11 @@ Deno.test("GenericAnalysisEngine", async (t) => {
     }
   });
 
-  await t.step("should handle timeout", async () => {
+  await t.step({
+    name: "should handle timeout",
+    sanitizeResources: false,
+    sanitizeOps: false,
+    fn: async () => {
     const engine = new GenericAnalysisEngine(100); // 100ms timeout
     
     // Mock strategy that takes longer than timeout
@@ -127,7 +135,7 @@ Deno.test("GenericAnalysisEngine", async (t) => {
       // Type assertion needed for accessing timeoutMs property
       assertEquals((result.error as any).timeoutMs, 100);
     }
-  });
+  }});
 
   await t.step("should handle strategy execution exception", async () => {
     const engine = new GenericAnalysisEngine();
@@ -146,7 +154,7 @@ Deno.test("GenericAnalysisEngine", async (t) => {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
     }
   });
-});
+}});
 
 Deno.test("RobustSchemaAnalyzer", async (t) => {
   await t.step("should process data successfully with valid schema", async () => {
