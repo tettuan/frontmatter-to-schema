@@ -1,0 +1,7 @@
+# Breakdown Configuration
+params:
+  two:
+    directiveType:
+      pattern: "^(build-list|resolve)$"
+    layerType:
+      pattern: "^(command-registry|registered-commands)$"

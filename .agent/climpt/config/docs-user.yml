@@ -1,0 +1,10 @@
+# Breakdown Configuration
+params:
+  two:
+    directiveType:
+      pattern: "^(generate-robust)$"
+    layerType:
+      pattern: "^(instruction-doc)$"
+options:
+  destination:
+    prefix: "drafts/docs/result/yyyy/mm/yyyy-mm-dd-hh-"

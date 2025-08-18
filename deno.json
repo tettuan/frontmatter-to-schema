@@ -1,0 +1,11 @@
+{
+  "name": "@scope/frontmatter-to-schema",
+  "version": "0.1.0",
+  "description": "Convert frontmatter to JSON schema",
+  "license": "MIT",
+  "exports": "./mod.ts",
+  "tasks": {
+    "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
+    "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty"
+  }
+}

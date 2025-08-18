@@ -1,0 +1,208 @@
+# 要求事項
+
+1. マークダウンのフロントマターを抽出し、解析する
+2. 解析した結果をSchemaに基づいてテンプレートフォーマットへ当て込み、書き出す
+3. フロントマターの柔軟性のために、解析は `claude -p` を使う
+
+# 成果物
+
+1. 要求の整理と要件化
+2. 機能要件、非機能要件の分離
+3. ドメイン境界線の設計資料の作成
+4. 実装された解析のスクリプトと堅牢なテスト
+5. 'claude -p' 用のプロンプト2つ
+6. examples/ に実例を使った実行例が存在する
+
+# 解析の手順
+
+まず、プロンプト一覧を作る。(成果A)
+
+成果Aに対し、ループ処理する。全件実施する。
+各ループ内では、プロンプト1つずつを処理する。
+最初にフロントマター部分を抽出する。これはDenoで実施する。(成果B)
+成果Bから、`claude -p` で解析する（成果C）
+成果Cを元に`claude -p`で構造データへ当てこむ（成果D）
+成果Dを全体の解析結果へ統合する（成果E） 成果Eを解析結果として保存する。
+
+## claude -p
+
+以下の2種類を使い分ける。
+
+a. プロンプトとフロントマターと解析結果のSchemaを使って情報を抽出する b.
+抽出した情報を、解析結果のSchemaを使って、解析テンプレートへ当て込む
+
+TypeScript内部へ埋め込む。
+
+## 抽象化レベル
+
+ルール:
+1. 実装に具体的な実例1-実例2のパターンを混入しない
+2. 実例1-実例2のSchema例とテンプレート例が変更されても、アプリケーションコードに影響がない
+3. 実例1-実例2の階層情報が変わっても、アプリケーションコードに影響がない
+4. 上記2と3が、設定あるいは引数で解決できている
+
+# 参照すべき情報
+
+以下は、実際のユースケースに該当する事例である。
+成果物は、ここに挙げた 実例1-実例2 以外のケースにも対応できるように、汎用的に抽象化されたアプリケーションである。
+そのアプリケーションが、以下の実例を使って、実際にSchemaからテンプレートへと当て込むことが出来るか検証する目的で例示する。
+
+なお、実際の使用例としては、 examples/ 配下に作成し、実行可能な形で再現すること。 tests/ がアプリケーションコードを強固にする役割であり、 examples/ が実例を実行して示す役割である。
+
+## 実例1
+### フロントマター解析対象のフォルダ：
+
+`.agent/climpt/prompts`
+
+### 解析結果の保存先：
+
+`.agent/climpt/registry.json`
+
+### 解析結果のSchema：
+
+```json
+{
+  "version": string,           // Registry version (e.g., "1.0.0")
+  "description": string,       // Overall registry description
+  "tools": {
+    // Tool names array - each becomes available as climpt-{name}
+    "availableConfigs": string[],  // ["git", "spec", "test", "code", "docs", "meta"]
+    
+    // Command registry - defines all available C3L commands
+    "commands": [
+      {
+        "c1": string,         // Domain/category (git, spec, test, code, docs, meta)
+        "c2": string,         // Action/directive (create, analyze, execute, etc.)
+        "c3": string,         // Target/layer (refinement-issue, quality-metrics, etc.)
+        "description": string,// Command description
+        "usage": string,      // Usage instructions and examples
+        "options": {          // Available options for this command
+          "input": string[],     // Supported input formats
+          "adaptation": string[], // Processing modes
+          "input_file": boolean[],  // File input support
+          "stdin": boolean[],       // Standard input support
+          "destination": boolean[]  // Output destination support
+        }
+      }
+    ]
+  }
+}
+```
+
+### 解析結果のテンプレート：
+
+```json
+{
+  "version": "1.0.0",
+  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "tools": {
+    "availableConfigs": [
+      "code",
+      "docs",
+      "git",
+      "meta",
+      "spec",
+      "test"
+    ],
+    "commands": [
+      // Git commands
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements documentation",
+        "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": ["MD"],
+          "adaptation": ["default", "detailed"],
+          "input_file": [true],
+          "stdin": [false],
+          "destination": [true]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "analyze",
+        "c3": "commit-history",
+        "description": "Analyze commit history and generate insights"
+      },
+      {
+        "c1": "spec",
+        "c2": "analyze",
+        "c3": "quality-metrics",
+        "description": "Analyze specification quality and completeness"
+      },
+      {
+        "c1": "spec",
+        "c2": "validate",
+        "c3": "requirements",
+        "description": "Validate requirements against standards"
+      },
+      {
+        "c1": "test",
+        "c2": "execute",
+        "c3": "integration-suite",
+        "description": "Execute integration test suite"
+      }
+    ]
+  }
+}
+```
+
+
+## 実例2
+### フロントマター解析対象のフォルダ：
+
+`.agent/drafts/articles`
+
+### 解析結果の保存先：
+
+`.agent/drafts/books.yml`
+
+### 解析結果のSchema：
+
+```
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "books": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "emoji": { "type": "string" },
+          "type": { "type": "string" },
+          "topics": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "published": { "type": "boolean" },
+          "published_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["title", "type", "published"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["books"],
+  "additionalProperties": false
+}
+```
+
+### 解析結果のテンプレート：
+
+```
+books:
+  - title: "記事タイトル"
+    emoji: "📚"
+    type: "tech"
+    topics:
+      - "claudecode"
+      - "codingagents"
+    published: true
+    published_at: "2025-08-01 10:00"
+  # ...他の記事も同様に追加
+```
+
