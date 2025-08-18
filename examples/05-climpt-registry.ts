@@ -9,6 +9,31 @@
 
 import { extract } from "https://deno.land/std@0.208.0/front_matter/yaml.ts";
 
+// Type definitions
+interface RegistryCommand {
+  c1: string;
+  c2: string;
+  c3: string;
+  description: string;
+  usage: string;
+  options: {
+    input: string[];
+    adaptation: string[];
+    input_file: boolean[];
+    stdin: boolean[];
+    destination: boolean[];
+  };
+}
+
+interface RegistryData {
+  version: string;
+  description: string;
+  tools: {
+    availableConfigs: string[];
+    commands: RegistryCommand[];
+  };
+}
+
 // Schema definition for Climpt registry
 const registrySchema = {
   version: "string",
@@ -38,7 +63,7 @@ const registryTemplate = {
   description: "Climpt comprehensive configuration for MCP server and command registry",
   tools: {
     availableConfigs: [] as string[],
-    commands: [] as any[]
+    commands: [] as RegistryCommand[]
   }
 };
 
@@ -60,7 +85,7 @@ class DenoFrontMatterExtractor {
  * Mock Claude API client for demonstration
  */
 class MockClaudeClient {
-  async analyze(prompt: string): Promise<any> {
+  async analyze(prompt: string): Promise<Record<string, unknown>> {
     // In real implementation, this would call Claude API
     // For demo, we'll parse based on the prompt content
     
@@ -126,9 +151,9 @@ class ClimptAnalysisPipeline {
   private extractor = new DenoFrontMatterExtractor();
   private claude = new MockClaudeClient();
   private discovery = new FileSystemDiscovery();
-  private results: any[] = [];
+  private results: RegistryCommand[] = [];
   
-  async process(inputPath: string): Promise<any> {
+  async process(inputPath: string): Promise<RegistryData> {
     console.log("🔍 Discovering prompt files...");
     
     // Check if the directory exists
@@ -168,24 +193,24 @@ class ClimptAnalysisPipeline {
     const mappingPrompt = this.buildMappingPrompt(extracted);
     const mapped = await this.claude.analyze(mappingPrompt);
     
-    if (mapped.commands) {
-      this.results.push(...mapped.commands);
+    if (mapped.commands && Array.isArray(mapped.commands)) {
+      this.results.push(...(mapped.commands as RegistryCommand[]));
     }
   }
   
-  private buildExtractionPrompt(frontMatter: any): string {
+  private buildExtractionPrompt(frontMatter: Record<string, unknown>): string {
     return `Extract structured information from frontmatter:
     ${JSON.stringify(frontMatter)}
     Schema: ${JSON.stringify(registrySchema)}`;
   }
   
-  private buildMappingPrompt(extracted: any): string {
+  private buildMappingPrompt(extracted: Record<string, unknown>): string {
     return `Map the provided extracted data to template:
     Data: ${JSON.stringify(extracted)}
     Template: ${JSON.stringify(registryTemplate)}`;
   }
   
-  private buildRegistry(): any {
+  private buildRegistry(): RegistryData {
     const registry = { ...registryTemplate };
     
     // Extract unique configs
@@ -199,7 +224,7 @@ class ClimptAnalysisPipeline {
     return registry;
   }
   
-  private generateMockRegistry(): any {
+  private generateMockRegistry(): RegistryData {
     // Generate mock data for demonstration
     return {
       version: "1.0.0",

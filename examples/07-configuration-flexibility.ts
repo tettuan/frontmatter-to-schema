@@ -24,7 +24,7 @@ import {
   FrontMatterPipelineFactory,
   type FrontMatterPipelineConfig
 } from "../src/domain/pipeline/generic-pipeline.ts";
-import { FrontMatterContent } from "../src/domain/core/types.ts";
+import type { FrontMatterContent } from "../src/domain/core/types.ts";
 
 console.log("🔧 Configuration Flexibility Example");
 console.log("=====================================\n");
@@ -155,7 +155,7 @@ async function differentStructureExample() {
     await createAlternativeStructure();
 
     // Configuration for different file structure
-    const alternativeConfig = new ClimptConfigurationProvider(
+    const _alternativeConfig = new ClimptConfigurationProvider(
       undefined, // Use default schema
       undefined, // Use default template
       "examples/alternative-prompts/extract.md",
@@ -242,7 +242,7 @@ async function runtimeConfigExample() {
         config.template
       );
 
-      const pipelineConfig: FrontMatterPipelineConfig<any, any> = {
+      const pipelineConfig: FrontMatterPipelineConfig<unknown, unknown> = {
         schema: config.schema,
         template: config.template, 
         prompts,

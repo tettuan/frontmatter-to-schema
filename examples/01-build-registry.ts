@@ -14,7 +14,7 @@
  *   ./examples/01-build-registry.ts
  */
 
-import { extract } from "https://deno.land/std@0.208.0/front_matter/yaml.ts";
+import type { extract } from "https://deno.land/std@0.208.0/front_matter/yaml.ts";
 
 console.log("🚀 Building Climpt Command Registry Example");
 console.log("=" .repeat(50));

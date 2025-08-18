@@ -11,7 +11,7 @@
  */
 
 import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
-import { FrontMatter } from "../src/domain/frontmatter/FrontMatter.ts";
+import type { FrontMatter } from "../src/domain/frontmatter/FrontMatter.ts";
 
 console.log("🔍 Frontmatter Parsing Example");
 console.log("=" .repeat(50));
@@ -81,21 +81,24 @@ if (frontMatter) {
   console.log(`  C2 (Action): ${frontMatter.get("action")}`);
   console.log(`  C3 (Target): ${frontMatter.get("target")}`);
   
-  const config = frontMatter.get("config") as Record<string, any>;
+  const config = frontMatter.get("config") as Record<string, unknown> | undefined;
   if (config) {
     console.log("\n⚙️  Configuration:");
-    console.log(`  Input Formats: ${config.input_formats?.join(", ") || "none"}`);
-    console.log(`  Processing Modes: ${config.processing_modes?.join(", ") || "none"}`);
+    const inputFormats = Array.isArray(config.input_formats) ? config.input_formats.join(", ") : "none";
+    const processingModes = Array.isArray(config.processing_modes) ? config.processing_modes.join(", ") : "none";
+    console.log(`  Input Formats: ${inputFormats}`);
+    console.log(`  Processing Modes: ${processingModes}`);
     
-    if (config.supports) {
+    if (config.supports && typeof config.supports === 'object' && config.supports !== null) {
+      const supports = config.supports as Record<string, unknown>;
       console.log("\n📌 Supports:");
-      console.log(`  File Input: ${config.supports.file_input ? "✓" : "✗"}`);
-      console.log(`  STDIN Input: ${config.supports.stdin_input ? "✓" : "✗"}`);
-      console.log(`  Output Destination: ${config.supports.output_destination ? "✓" : "✗"}`);
+      console.log(`  File Input: ${supports.file_input ? "✓" : "✗"}`);
+      console.log(`  STDIN Input: ${supports.stdin_input ? "✓" : "✗"}`);
+      console.log(`  Output Destination: ${supports.output_destination ? "✓" : "✗"}`);
     }
   }
   
-  const variables = frontMatter.get("variables") as Array<any>;
+  const variables = frontMatter.get("variables") as Array<Record<string, unknown>> | undefined;
   if (variables && variables.length > 0) {
     console.log("\n🔧 Variables:");
     for (const variable of variables) {
@@ -112,11 +115,14 @@ if (frontMatter) {
     c3: frontMatter.get("target") || "unknown",
     description: frontMatter.get("description") || "No description",
     options: {
-      input: config?.input_formats || [],
-      adaptation: config?.processing_modes || ["default"],
-      input_file: config?.supports?.file_input ? [true] : [false],
-      stdin: config?.supports?.stdin_input ? [true] : [false],
-      destination: config?.supports?.output_destination ? [true] : [false],
+      input: Array.isArray(config?.input_formats) ? config.input_formats : [],
+      adaptation: Array.isArray(config?.processing_modes) ? config.processing_modes : ["default"],
+      input_file: (config && typeof config.supports === 'object' && config.supports !== null && 
+        (config.supports as Record<string, unknown>).file_input) ? [true] : [false],
+      stdin: (config && typeof config.supports === 'object' && config.supports !== null && 
+        (config.supports as Record<string, unknown>).stdin_input) ? [true] : [false],
+      destination: (config && typeof config.supports === 'object' && config.supports !== null && 
+        (config.supports as Record<string, unknown>).output_destination) ? [true] : [false],
     }
   };
   
