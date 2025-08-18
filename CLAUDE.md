@@ -11,3 +11,7 @@ schema file.
 
 - Deno Project, use JSR for packages
 - DDD, TDD, Totality, AI-complexity-control
+
+**MUST READ**:
+AI-complexity-control:`docs/development/ai-complexity-control_compact.ja.md`
+Totality: `docs/development/totality.ja.md`
