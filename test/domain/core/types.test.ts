@@ -1,39 +1,40 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
   AnalysisResult,
-  FilePath,
+  ValidFilePath,
   FrontMatterContent,
   SchemaDefinition,
   SourceFile,
 } from "../../../src/domain/core/types.ts";
+import { ResultUtils } from "../../../src/domain/core/result.ts";
 
-Deno.test("FilePath", async (t) => {
+Deno.test("ValidFilePath", async (t) => {
   await t.step("should identify markdown files", () => {
-    const mdPath = new FilePath("/test/file.md");
+    const mdPath = ResultUtils.unwrap(ValidFilePath.create("/test/file.md"));
     assertEquals(mdPath.isMarkdown(), true);
 
-    const txtPath = new FilePath("/test/file.txt");
+    const txtPath = ResultUtils.unwrap(ValidFilePath.create("/test/file.txt"));
     assertEquals(txtPath.isMarkdown(), false);
   });
 
   await t.step("should extract filename", () => {
-    const path = new FilePath("/test/dir/file.md");
+    const path = ResultUtils.unwrap(ValidFilePath.create("/test/dir/file.md"));
     assertEquals(path.filename, "file.md");
   });
 
   await t.step("should extract directory", () => {
-    const path = new FilePath("/test/dir/file.md");
+    const path = ResultUtils.unwrap(ValidFilePath.create("/test/dir/file.md"));
     assertEquals(path.directory, "/test/dir");
   });
 });
 
 Deno.test("FrontMatterContent", async (t) => {
   await t.step("should get values by key", () => {
-    const content = new FrontMatterContent({
+    const content = ResultUtils.unwrap(FrontMatterContent.fromObject({
       title: "Test",
       count: 42,
       tags: ["tag1", "tag2"],
-    });
+    }));
 
     assertEquals(content.get("title"), "Test");
     assertEquals(content.get("count"), 42);
@@ -41,20 +42,20 @@ Deno.test("FrontMatterContent", async (t) => {
   });
 
   await t.step("should check if key exists", () => {
-    const content = new FrontMatterContent({
+    const content = ResultUtils.unwrap(FrontMatterContent.fromObject({
       title: "Test",
-    });
+    }));
 
     assertEquals(content.has("title"), true);
     assertEquals(content.has("missing"), false);
   });
 
   await t.step("should return all keys", () => {
-    const content = new FrontMatterContent({
+    const content = ResultUtils.unwrap(FrontMatterContent.fromObject({
       a: 1,
       b: 2,
       c: 3,
-    });
+    }));
 
     const keys = content.keys();
     assertEquals(keys.length, 3);
@@ -66,28 +67,31 @@ Deno.test("FrontMatterContent", async (t) => {
 
 Deno.test("SchemaDefinition", async (t) => {
   await t.step("should validate schema exists", () => {
-    const schema = new SchemaDefinition({ type: "object" });
-    assertEquals(schema.validate({}), true);
+    const schema = ResultUtils.unwrap(SchemaDefinition.create({ type: "object" }));
+    const validationResult = schema.validate({});
+    assertEquals(validationResult.ok, true);
 
-    const invalidSchema = new SchemaDefinition(null);
-    assertEquals(invalidSchema.validate({}), false);
+    const invalidSchemaResult = SchemaDefinition.create(null);
+    assertEquals(invalidSchemaResult.ok, false);
+    if (!invalidSchemaResult.ok) {
+      assertEquals(invalidSchemaResult.error.kind, "EmptyInput");
+    }
   });
 });
 
 Deno.test("SourceFile", async (t) => {
   await t.step("should detect frontmatter presence", () => {
-    const withFrontMatter = new SourceFile(
-      new FilePath("/test.md"),
-      new FrontMatterContent({ title: "Test" }),
+    const withFrontMatter = ResultUtils.unwrap(SourceFile.create(
+      ResultUtils.unwrap(ValidFilePath.create("/test.md")),
       "# Content",
-    );
+      ResultUtils.unwrap(FrontMatterContent.fromObject({ title: "Test" }))
+    ));
     assertEquals(withFrontMatter.hasFrontMatter(), true);
 
-    const withoutFrontMatter = new SourceFile(
-      new FilePath("/test.md"),
-      null,
-      "# Content",
-    );
+    const withoutFrontMatter = ResultUtils.unwrap(SourceFile.create(
+      ResultUtils.unwrap(ValidFilePath.create("/test.md")),
+      "# Content"
+    ));
     assertEquals(withoutFrontMatter.hasFrontMatter(), false);
   });
 });
@@ -95,7 +99,7 @@ Deno.test("SourceFile", async (t) => {
 Deno.test("AnalysisResult", async (t) => {
   await t.step("should store and retrieve metadata", () => {
     const result = new AnalysisResult(
-      new FilePath("/test.md"),
+      ResultUtils.unwrap(ValidFilePath.create("/test.md")),
       { processed: true },
     );
 
@@ -114,7 +118,7 @@ Deno.test("AnalysisResult", async (t) => {
     ]);
 
     const result = new AnalysisResult(
-      new FilePath("/test.md"),
+      ResultUtils.unwrap(ValidFilePath.create("/test.md")),
       { data: "test" },
       metadata,
     );
