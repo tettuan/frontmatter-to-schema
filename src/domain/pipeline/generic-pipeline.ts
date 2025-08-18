@@ -15,7 +15,7 @@ import {
   type ProcessingResult,
 } from "../core/abstractions.ts";
 import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
-import { FilePath, FrontMatterContent, SourceFile } from "../core/types.ts";
+import { ValidFilePath, FrontMatterContent, SourceFile } from "../core/types.ts";
 
 /**
  * Input for the frontmatter analysis pipeline
@@ -168,11 +168,18 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       try {
         const content = await this.config.fileSystem.readFile(fullPath);
         const frontMatter = this.extractFrontMatter(content);
-        const sourceFile = new SourceFile(
-          new FilePath(fullPath),
-          frontMatter,
-          content,
-        );
+        const pathResult = ValidFilePath.create(fullPath);
+        if (!pathResult.ok) {
+          console.warn(`Invalid path: ${fullPath}`);
+          continue;
+        }
+        
+        const sourceFileResult = SourceFile.create(pathResult.data, content, frontMatter || undefined);
+        if (!sourceFileResult.ok) {
+          console.warn(`Invalid source file: ${sourceFileResult.error.message}`);
+          continue;
+        }
+        const sourceFile = sourceFileResult.data;
         sourceFiles.push(sourceFile);
       } catch (error) {
         console.warn(`Failed to read file ${fullPath}:`, error);
@@ -195,7 +202,8 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       // This is a simplified YAML parser - in practice, use a proper YAML library
       const yamlContent = match[1];
       const data = this.parseSimpleYaml(yamlContent);
-      return new FrontMatterContent(data);
+      const contentResult = FrontMatterContent.fromObject(data);
+      return contentResult.ok ? contentResult.data : null;
     } catch (error) {
       console.warn("Failed to parse frontmatter:", error);
       return null;

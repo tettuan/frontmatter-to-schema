@@ -5,7 +5,7 @@
 import {
   type AnalysisContext,
   AnalysisResult,
-  FilePath,
+  ValidFilePath,
   SchemaDefinition,
   SourceFile,
 } from "../core/types.ts";
@@ -70,8 +70,8 @@ export class AnalysisPipeline<TOutput = unknown> {
 
     // Filter for markdown files if needed
     return this.fileDiscovery.filter(files, (file) => {
-      const path = new FilePath(file);
-      return path.isMarkdown();
+      const pathResult = ValidFilePath.create(file);
+      return pathResult.ok && pathResult.data.isMarkdown();
     });
   }
 
@@ -79,7 +79,11 @@ export class AnalysisPipeline<TOutput = unknown> {
    * Processes a single file through the pipeline
    */
   private async processFile(filePath: string): Promise<AnalysisResult | null> {
-    const path = new FilePath(filePath);
+    const pathResult = ValidFilePath.create(filePath);
+    if (!pathResult.ok) {
+      return null;
+    }
+    const path = pathResult.data;
 
     // Read file content
     const content = await Deno.readTextFile(filePath);
@@ -93,15 +97,29 @@ export class AnalysisPipeline<TOutput = unknown> {
     }
 
     // Create source file
-    const _sourceFile = new SourceFile(path, frontMatter, content);
+    const sourceFileResult = SourceFile.create(path, content, frontMatter || undefined);
+    if (!sourceFileResult.ok) {
+      return null;
+    }
+    const _sourceFile = sourceFileResult.data;
 
     // Prepare context
-    const _context: AnalysisContext = {
-      schema: this.config.output.schema
-        ? new SchemaDefinition(this.config.output.schema)
-        : undefined,
-      template: this.config.output.template,
-      options: {},
+    // Prepare schema
+    const schemaResult = this.config.output.schema 
+      ? SchemaDefinition.create(this.config.output.schema)
+      : null;
+      
+    if (this.config.output.schema && (!schemaResult || !schemaResult.ok)) {
+      return null;
+    }
+
+    const _context: AnalysisContext = (schemaResult?.ok && schemaResult.data) ? {
+      kind: "SchemaAnalysis",
+      schema: schemaResult.data,
+      options: { includeMetadata: true }
+    } : {
+      kind: "BasicExtraction",
+      options: { includeMetadata: true }
     };
 
     // Execute strategies in sequence
