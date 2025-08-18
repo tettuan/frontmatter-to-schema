@@ -7,6 +7,7 @@ usage: climpt-meta list available-commands
 # Available Commands Listing
 
 List all registered Climpt commands with:
+
 - Command name
 - Supported directives
 - Available layers

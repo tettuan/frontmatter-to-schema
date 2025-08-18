@@ -5,7 +5,9 @@
 ### 1.1 コアドメイン
 
 **FrontMatter Analysis Domain（フロントマター解析ドメイン）**
-- 責務: 任意のマークダウンファイルからフロントマターを抽出し、スキーマベースで構造化データへ変換
+
+- 責務:
+  任意のマークダウンファイルからフロントマターを抽出し、スキーマベースで構造化データへ変換
 - 主要概念:
   - FrontMatter: マークダウンファイルのメタデータ
   - Schema: 出力構造の型定義（汎用的）
@@ -14,18 +16,21 @@
 ### 1.2 サポートドメイン
 
 **File Discovery Domain（ファイル探索ドメイン）**
+
 - 責務: 対象ファイルの探索と列挙（任意のディレクトリ構造対応）
 - 主要概念:
   - FilePattern: ファイル探索パターン
   - FileList: 発見されたファイルのコレクション
 
 **AI Analysis Domain（AI解析ドメイン）**
+
 - 責務: Claude APIを使用した柔軟で汎用的な解析
 - 主要概念:
   - AnalysisEngine: 解析エンジンインターフェース
   - AnalysisStrategy: 解析戦略（抽出/マッピング）
 
 **Registry Building Domain（レジストリ構築ドメイン）**
+
 - 責務: 解析結果の統合と任意フォーマットでの保存
 - 主要概念:
   - Registry: 解析結果の集約
@@ -63,16 +68,16 @@
 // 汎用ファイルパス
 class FilePath {
   constructor(readonly value: string) {}
-  
+
   isMarkdown(): boolean {
-    return this.value.endsWith('.md');
+    return this.value.endsWith(".md");
   }
 }
 
 // 汎用フロントマター
 class FrontMatterContent {
   constructor(readonly data: Record<string, unknown>) {}
-  
+
   get(key: string): unknown {
     return this.data[key];
   }
@@ -81,7 +86,7 @@ class FrontMatterContent {
 // 汎用スキーマ定義
 class SchemaDefinition<T = any> {
   constructor(readonly schema: T) {}
-  
+
   validate(data: unknown): boolean {
     // スキーマバリデーションロジック
     return true;
@@ -97,7 +102,7 @@ class SourceFile {
   constructor(
     readonly path: FilePath,
     readonly frontMatter: FrontMatterContent | null,
-    readonly content: string
+    readonly content: string,
   ) {}
 }
 
@@ -106,7 +111,7 @@ class AnalysisResult<T = any> {
   constructor(
     readonly sourceFile: FilePath,
     readonly extractedData: T,
-    readonly metadata: Map<string, unknown>
+    readonly metadata: Map<string, unknown>,
   ) {}
 }
 ```
@@ -117,11 +122,11 @@ class AnalysisResult<T = any> {
 // 汎用レジストリ
 class Registry<T = any> {
   private results = new Map<string, AnalysisResult<T>>();
-  
+
   add(key: string, result: AnalysisResult<T>): void {
     this.results.set(key, result);
   }
-  
+
   transform<U>(transformer: Transformer<T, U>): U {
     return transformer.transform(this.results);
   }
@@ -135,7 +140,7 @@ class Registry<T = any> {
 interface AnalysisEngine {
   analyze<T, U>(
     input: T,
-    strategy: AnalysisStrategy<T, U>
+    strategy: AnalysisStrategy<T, U>,
   ): Promise<U>;
 }
 
@@ -163,38 +168,38 @@ class AnalysisPipeline<T> {
   constructor(
     private extractor: FrontMatterExtractor,
     private engine: AnalysisEngine,
-    private transformer: Transformer<AnalysisResult, T>
+    private transformer: Transformer<AnalysisResult, T>,
   ) {}
-  
+
   async process(files: FilePath[]): Promise<T> {
     const registry = new Registry<AnalysisResult>();
-    
+
     for (const file of files) {
       // 1. ファイル読み込み
       const content = await this.readFile(file);
-      
+
       // 2. フロントマター抽出
       const frontMatter = this.extractor.extract(content);
-      
+
       // 3. AI解析（戦略パターン）
       const extractionStrategy = new ExtractionStrategy();
       const extracted = await this.engine.analyze(
         frontMatter,
-        extractionStrategy
+        extractionStrategy,
       );
-      
+
       // 4. マッピング（戦略パターン）
       const mappingStrategy = new MappingStrategy();
       const mapped = await this.engine.analyze(
         extracted,
-        mappingStrategy
+        mappingStrategy,
       );
-      
+
       // 5. レジストリへ追加
       const result = new AnalysisResult(file, mapped, new Map());
       registry.add(file.value, result);
     }
-    
+
     // 6. 変換して出力
     return this.transformer.transform(registry);
   }
@@ -204,13 +209,14 @@ class AnalysisPipeline<T> {
 ## 6. Claude APIプロンプト設計（汎用的）
 
 ### 6.1 情報抽出プロンプト（汎用）
+
 ```typescript
 class ExtractionPrompt {
   constructor(
     private schema: SchemaDefinition,
-    private context: string = ""
+    private context: string = "",
   ) {}
-  
+
   generate(frontMatter: FrontMatterContent): string {
     return `
       Given the following frontmatter data and schema,
@@ -227,13 +233,14 @@ class ExtractionPrompt {
 ```
 
 ### 6.2 テンプレートマッピングプロンプト（汎用）
+
 ```typescript
 class MappingPrompt {
   constructor(
     private template: any,
-    private rules: MappingRules = {}
+    private rules: MappingRules = {},
   ) {}
-  
+
   generate(data: any): string {
     return `
       Map the following data to the template structure:
@@ -251,29 +258,31 @@ class MappingPrompt {
 ## 7. 拡張ポイント
 
 ### 7.1 プラガブルコンポーネント
+
 - **Extractor**: Deno標準、gray-matter、custom実装
 - **AnalysisEngine**: Claude API、OpenAI API、ローカル処理
 - **Transformer**: JSON、YAML、XML、Custom形式
 - **FileDiscovery**: glob、regex、custom patterns
 
 ### 7.2 設定駆動
+
 ```typescript
 interface AnalysisConfig {
   // 入力設定
   input: {
     patterns: string[];
-    extractor: 'deno' | 'gray-matter' | 'custom';
+    extractor: "deno" | "gray-matter" | "custom";
   };
-  
+
   // 処理設定
   processing: {
-    engine: 'claude' | 'openai' | 'local';
+    engine: "claude" | "openai" | "local";
     strategies: AnalysisStrategy[];
   };
-  
+
   // 出力設定
   output: {
-    format: 'json' | 'yaml' | 'custom';
+    format: "json" | "yaml" | "custom";
     schema: SchemaDefinition;
     template: any;
   };

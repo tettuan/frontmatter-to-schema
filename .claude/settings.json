@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"decision\": \"block\", \"reason\": \"create 200 - 300 letters current situation and \\\"things to be done\\\" message. then, run [climpt-meta resolve registered-commands <<<\\\"created_message\\\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)\"}'"
+            "command": "if scripts/check-github-status.sh; then exit_status=$?; else exit_status=$?; fi; if [ $exit_status -eq 2 ]; then echo '{\"decision\": \"block\", \"reason\": \"Issues and PRs are still open. Create 200 - 300 letters current situation and \\\"things to be done\\\" message. then, run [climpt-meta resolve registered-commands <<<\\\"created_message\\\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)\"}'; fi"
           }
         ]
       }

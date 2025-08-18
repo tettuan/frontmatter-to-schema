@@ -4,7 +4,7 @@
   "tools": {
     "availableConfigs": [
       "build",
-      "design", 
+      "design",
       "docs",
       "git",
       "meta",
@@ -14,7 +14,7 @@
     "commands": [
       {
         "c1": "build",
-        "c2": "robust", 
+        "c2": "robust",
         "c3": "test",
         "description": "Build robust test infrastructure",
         "usage": "climpt-build robust test -f test_spec.md",
@@ -29,7 +29,7 @@
       {
         "c1": "build",
         "c2": "robust",
-        "c3": "code", 
+        "c3": "code",
         "description": "Build robust code implementation",
         "usage": "climpt-build robust code -f requirements.md",
         "options": {

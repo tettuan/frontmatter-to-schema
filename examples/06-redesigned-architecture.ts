@@ -2,13 +2,12 @@
 
 /**
  * Example demonstrating the redesigned high-abstraction frontmatter analysis system
- * 
+ *
  * This example showcases the new architecture's flexibility and extensibility,
  * comparing it with the original implementation.
  */
 
 import { ClimptPipelineFactory } from "../src/application/climpt/climpt-adapter.ts";
-import type { ClimptRegistrySchema } from "../src/application/climpt/climpt-adapter.ts";
 
 console.log("🏗️  Redesigned Architecture Example");
 console.log("=====================================\n");
@@ -23,25 +22,26 @@ async function basicUsageExample() {
   try {
     // Create pipeline with default Climpt configuration
     const pipeline = await ClimptPipelineFactory.createDefault();
-    
+
     // Process a sample directory (create sample data if needed)
     const sampleDir = "examples/sample-prompts";
     await ensureSamplePrompts(sampleDir);
-    
+
     // Process and generate registry
     const registry = await pipeline.processAndSave(
       sampleDir,
-      "examples/output/redesigned-registry.json"
+      "examples/output/redesigned-registry.json",
     );
-    
+
     console.log("✅ Basic example completed successfully!");
     console.log(`   Generated ${registry.tools.commands.length} commands`);
-    console.log(`   Available configs: ${registry.tools.availableConfigs.join(", ")}`);
-    
+    console.log(
+      `   Available configs: ${registry.tools.availableConfigs.join(", ")}`,
+    );
   } catch (error) {
     console.error("❌ Basic example failed:", error);
   }
-  
+
   console.log("");
 }
 
@@ -53,32 +53,38 @@ async function advancedUsageExample() {
   console.log("-".repeat(60));
 
   try {
-    // Create pipeline with default configuration  
+    // Create pipeline with default configuration
     const pipeline = await ClimptPipelineFactory.createDefault();
-    
+
     // Add custom hooks for extended functionality
     pipeline.setHooks({
       beforeProcess: async (input) => {
         console.log(`🔄 Pre-processing: ${input.sourceDirectory}`);
         // Add custom pre-processing logic here
-        return input;
+        return await Promise.resolve(input);
       },
-      
+
       afterProcess: async (output) => {
         console.log(`📊 Post-processing: ${output.results.length} results`);
-        
+
         // Example: Add custom metadata analysis
-        const successRate = (output.summary.successfulFiles / output.summary.totalFiles) * 100;
+        const successRate =
+          (output.summary.successfulFiles / output.summary.totalFiles) * 100;
         console.log(`   Success rate: ${successRate.toFixed(1)}%`);
-        
-        return output;
+
+        return await Promise.resolve(output);
       },
-      
+
       onError: async (error, input) => {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`⚠️  Pipeline error for ${input.sourceDirectory}: ${errorMessage}`);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : String(error);
+        console.error(
+          `⚠️  Pipeline error for ${input.sourceDirectory}: ${errorMessage}`,
+        );
         // Add custom error handling/reporting here
-      }
+        return await Promise.resolve();
+      },
     });
 
     // Process with advanced options
@@ -88,17 +94,18 @@ async function advancedUsageExample() {
       {
         includeMetadata: true,
         validateResults: true,
-        customAnalysis: true
-      }
+        customAnalysis: true,
+      },
     );
-    
+
     console.log("✅ Advanced example completed!");
-    console.log(`   Generated registry with ${registry.tools.commands.length} commands`);
-    
+    console.log(
+      `   Generated registry with ${registry.tools.commands.length} commands`,
+    );
   } catch (error) {
     console.error("❌ Advanced example failed:", error);
   }
-  
+
   console.log("");
 }
 
@@ -126,29 +133,32 @@ async function extensibilityExample() {
 
   // Demonstrate multiple use cases with the same core engine
   console.log("🎯 Multiple Use Cases Demo:");
-  
+
   try {
     // Use case 1: Standard Climpt registry
     const climptPipeline = await ClimptPipelineFactory.createDefault();
     const climptResult = await climptPipeline.processAndSave(
       "examples/sample-prompts",
-      "examples/output/climpt-use-case.json"
+      "examples/output/climpt-use-case.json",
     );
-    
-    console.log(`   📦 Climpt registry: ${climptResult.tools.commands.length} commands`);
-    
+
+    console.log(
+      `   📦 Climpt registry: ${climptResult.tools.commands.length} commands`,
+    );
+
     // Future use cases could easily be added:
     // - Documentation generator
-    // - API specification builder  
+    // - API specification builder
     // - Test case generator
     // - Configuration validator
-    
-    console.log("   🔮 Future use cases: Docs, API specs, Tests, Config validation");
-    
+
+    console.log(
+      "   🔮 Future use cases: Docs, API specs, Tests, Config validation",
+    );
   } catch (error) {
     console.error("❌ Extensibility demo failed:", error);
   }
-  
+
   console.log("");
 }
 
@@ -161,35 +171,38 @@ async function performanceExample() {
 
   try {
     const startTime = Date.now();
-    
+
     const pipeline = await ClimptPipelineFactory.createDefault();
-    
+
     // Process multiple directories in parallel (if they existed)
     const results = await Promise.allSettled([
       pipeline.processAndSave(
         "examples/sample-prompts",
-        "examples/output/performance-test-1.json"
-      )
+        "examples/output/performance-test-1.json",
+      ),
     ]);
-    
+
     const endTime = Date.now();
     const processingTime = endTime - startTime;
-    
+
     console.log(`⏱️  Processing completed in ${processingTime}ms`);
-    
+
     // Analyze results
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        console.log(`   ✅ Task ${index + 1}: Success - ${result.value.tools.commands.length} commands`);
+      if (result.status === "fulfilled") {
+        console.log(
+          `   ✅ Task ${
+            index + 1
+          }: Success - ${result.value.tools.commands.length} commands`,
+        );
       } else {
         console.log(`   ❌ Task ${index + 1}: Failed - ${result.reason}`);
       }
     });
-    
   } catch (error) {
     console.error("❌ Performance example failed:", error);
   }
-  
+
   console.log("");
 }
 
@@ -199,7 +212,7 @@ async function performanceExample() {
 async function ensureSamplePrompts(dir: string) {
   try {
     await Deno.mkdir(dir, { recursive: true });
-    
+
     // Sample prompt 1: Git command
     const gitPrompt = `---
 c1: git
@@ -246,9 +259,8 @@ This prompt executes integration test suites with comprehensive coverage.
 
     await Promise.all([
       Deno.writeTextFile(`${dir}/git-create-refinement.md`, gitPrompt),
-      Deno.writeTextFile(`${dir}/test-execute-integration.md`, testPrompt)
+      Deno.writeTextFile(`${dir}/test-execute-integration.md`, testPrompt),
     ]);
-    
   } catch (error) {
     console.warn("Warning: Could not create sample prompts:", error);
   }
@@ -261,17 +273,17 @@ async function main() {
   console.log("Starting redesigned architecture examples...\n");
 
   await basicUsageExample();
-  await advancedUsageExample();  
+  await advancedUsageExample();
   await extensibilityExample();
   await performanceExample();
 
   console.log("🎉 All examples completed!");
   console.log("\n📁 Generated files:");
   console.log("   - examples/output/redesigned-registry.json");
-  console.log("   - examples/output/advanced-registry.json"); 
+  console.log("   - examples/output/advanced-registry.json");
   console.log("   - examples/output/climpt-use-case.json");
   console.log("   - examples/output/performance-test-1.json");
-  
+
   console.log("\n💡 Key improvements demonstrated:");
   console.log("   ✅ Higher abstraction level");
   console.log("   ✅ Schema-driven configuration");

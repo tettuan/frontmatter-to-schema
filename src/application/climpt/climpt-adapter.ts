@@ -1,28 +1,27 @@
 /**
  * Climpt-specific adapter for the generic frontmatter analysis system
- * 
+ *
  * This module provides adapters and configurations specifically for the Climpt
  * command registry use case, implementing the required interfaces with Climpt-specific logic.
  */
 
 import type {
+  ConfigurationProvider,
   ExternalAnalysisService,
   FileSystemProvider,
-  ConfigurationProvider,
-  PromptConfiguration
+  PromptConfiguration,
 } from "../../domain/core/abstractions.ts";
 import {
   FrontMatterAnalysisPipeline,
-  FrontMatterPipelineFactory,
-  type FrontMatterPipelineConfig,
   type FrontMatterInput,
-  type FrontMatterOutput
+  type FrontMatterOutput,
+  type FrontMatterPipelineConfig,
+  FrontMatterPipelineFactory,
 } from "../../domain/pipeline/generic-pipeline.ts";
 import {
   SchemaAnalysisFactory,
-  type SchemaAnalysisProcessor
+  type SchemaAnalysisProcessor as _SchemaAnalysisProcessor,
 } from "../../domain/analysis/schema-driven.ts";
-import type { FrontMatterContent } from "../../domain/core/types.ts";
 
 /**
  * Climpt command registry schema definition
@@ -40,9 +39,9 @@ export interface ClimptRegistrySchema {
  * Climpt command structure
  */
 export interface ClimptCommand {
-  c1: string;  // Domain/category
-  c2: string;  // Action/directive
-  c3: string;  // Target/layer
+  c1: string; // Domain/category
+  c2: string; // Action/directive
+  c3: string; // Target/layer
   description: string;
   usage?: string;
   options?: {
@@ -58,10 +57,13 @@ export interface ClimptCommand {
  * Claude CLI service adapter
  */
 export class ClaudeCLIService implements ExternalAnalysisService {
-  async analyze(prompt: string, context?: Record<string, unknown>): Promise<unknown> {
+  async analyze(
+    prompt: string,
+    _context?: Record<string, unknown>,
+  ): Promise<unknown> {
     // Create temporary file for the prompt
     const tempFile = await Deno.makeTempFile({ suffix: ".txt" });
-    
+
     try {
       await Deno.writeTextFile(tempFile, prompt);
 
@@ -80,7 +82,7 @@ export class ClaudeCLIService implements ExternalAnalysisService {
       }
 
       const output = new TextDecoder().decode(stdout);
-      
+
       // Try to parse as JSON, fallback to raw text
       try {
         return JSON.parse(output);
@@ -108,27 +110,27 @@ export class DenoFileSystemProvider implements FileSystemProvider {
 
   async writeFile(path: string, content: string): Promise<void> {
     // Ensure directory exists
-    const dir = path.split('/').slice(0, -1).join('/');
+    const dir = path.split("/").slice(0, -1).join("/");
     if (dir) {
       await Deno.mkdir(dir, { recursive: true });
     }
-    
+
     await Deno.writeTextFile(path, content);
   }
 
   async readDirectory(path: string): Promise<string[]> {
     const files: string[] = [];
-    
+
     try {
       for await (const dirEntry of Deno.readDir(path)) {
-        if (dirEntry.isFile && dirEntry.name.endsWith('.md')) {
+        if (dirEntry.isFile && dirEntry.name.endsWith(".md")) {
           files.push(dirEntry.name);
         }
       }
     } catch (error) {
       throw new Error(`Failed to read directory ${path}: ${error}`);
     }
-    
+
     return files;
   }
 
@@ -145,12 +147,14 @@ export class DenoFileSystemProvider implements FileSystemProvider {
 /**
  * Climpt configuration provider
  */
-export class ClimptConfigurationProvider implements ConfigurationProvider<ClimptRegistrySchema> {
+export class ClimptConfigurationProvider
+  implements ConfigurationProvider<ClimptRegistrySchema> {
   constructor(
     private readonly schemaPath?: string,
     private readonly templatePath?: string,
-    private readonly extractPromptPath = "scripts/prompts/extract_frontmatter.md",
-    private readonly mapPromptPath = "scripts/prompts/map_to_schema.md"
+    private readonly extractPromptPath =
+      "scripts/prompts/extract_frontmatter.md",
+    private readonly mapPromptPath = "scripts/prompts/map_to_schema.md",
   ) {}
 
   async getSchema(): Promise<ClimptRegistrySchema> {
@@ -158,7 +162,7 @@ export class ClimptConfigurationProvider implements ConfigurationProvider<Climpt
       const content = await Deno.readTextFile(this.schemaPath);
       return JSON.parse(content);
     }
-    
+
     // Return default Climpt schema
     return this.getDefaultSchema();
   }
@@ -168,7 +172,7 @@ export class ClimptConfigurationProvider implements ConfigurationProvider<Climpt
       const content = await Deno.readTextFile(this.templatePath);
       return JSON.parse(content);
     }
-    
+
     // Return default Climpt template
     return this.getDefaultTemplate();
   }
@@ -176,24 +180,24 @@ export class ClimptConfigurationProvider implements ConfigurationProvider<Climpt
   async getPrompts(): Promise<PromptConfiguration> {
     const [extractionPrompt, mappingPrompt] = await Promise.all([
       Deno.readTextFile(this.extractPromptPath),
-      Deno.readTextFile(this.mapPromptPath)
+      Deno.readTextFile(this.mapPromptPath),
     ]);
 
     return {
       extractionPrompt,
-      mappingPrompt
+      mappingPrompt,
     };
   }
 
   private getDefaultSchema(): ClimptRegistrySchema {
     return {
       version: "string",
-      description: "string", 
+      description: "string",
       tools: {
         availableConfigs: ["string[]"],
         commands: [{
           c1: "string (domain/category)",
-          c2: "string (action/directive)", 
+          c2: "string (action/directive)",
           c3: "string (target/layer)",
           description: "string",
           usage: "string (optional)",
@@ -202,21 +206,22 @@ export class ClimptConfigurationProvider implements ConfigurationProvider<Climpt
             adaptation: ["default"],
             input_file: [false],
             stdin: [false],
-            destination: [false]
-          }
-        }]
-      }
+            destination: [false],
+          },
+        }],
+      },
     };
   }
 
   private getDefaultTemplate(): ClimptRegistrySchema {
     return {
       version: "1.0.0",
-      description: "Climpt comprehensive configuration for MCP server and command registry",
+      description:
+        "Climpt comprehensive configuration for MCP server and command registry",
       tools: {
         availableConfigs: ["code", "docs", "git", "meta", "spec", "test"],
-        commands: []
-      }
+        commands: [],
+      },
     };
   }
 }
@@ -224,41 +229,50 @@ export class ClimptConfigurationProvider implements ConfigurationProvider<Climpt
 /**
  * Climpt-specific pipeline that extends the generic pipeline with additional functionality
  */
-export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<ClimptRegistrySchema, ClimptRegistrySchema> {
+export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<
+  ClimptRegistrySchema,
+  ClimptRegistrySchema
+> {
   async processAndSave(
     promptsDir: string,
     outputPath: string,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
   ): Promise<ClimptRegistrySchema> {
     const input: FrontMatterInput = {
       sourceDirectory: promptsDir,
       filePattern: /\.md$/,
-      options
+      options,
     };
 
     const output = await this.process(input);
-    
+
     // Aggregate all successful results into a single registry
     const aggregatedRegistry = this.aggregateResults(output);
-    
+
     // Save to file
     const fileSystem = new DenoFileSystemProvider();
-    await fileSystem.writeFile(outputPath, JSON.stringify(aggregatedRegistry, null, 2));
-    
+    await fileSystem.writeFile(
+      outputPath,
+      JSON.stringify(aggregatedRegistry, null, 2),
+    );
+
     // Log summary
     this.logProcessingSummary(output.summary);
-    
+
     return aggregatedRegistry;
   }
 
-  private aggregateResults(output: FrontMatterOutput<ClimptRegistrySchema>): ClimptRegistrySchema {
+  private aggregateResults(
+    output: FrontMatterOutput<ClimptRegistrySchema>,
+  ): ClimptRegistrySchema {
     const baseRegistry: ClimptRegistrySchema = {
       version: "1.0.0",
-      description: "Climpt comprehensive configuration for MCP server and command registry",
+      description:
+        "Climpt comprehensive configuration for MCP server and command registry",
       tools: {
         availableConfigs: ["code", "docs", "git", "meta", "spec", "test"],
-        commands: []
-      }
+        commands: [],
+      },
     };
 
     const allCommands: ClimptCommand[] = [];
@@ -268,10 +282,12 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<ClimptRe
       if (result.isValid && result.data.tools?.commands) {
         // Add commands
         allCommands.push(...result.data.tools.commands);
-        
+
         // Merge available configs
         if (result.data.tools.availableConfigs) {
-          result.data.tools.availableConfigs.forEach(config => configsSet.add(config));
+          result.data.tools.availableConfigs.forEach((config) =>
+            configsSet.add(config)
+          );
         }
       }
     }
@@ -280,8 +296,8 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<ClimptRe
       ...baseRegistry,
       tools: {
         availableConfigs: Array.from(configsSet).sort(),
-        commands: this.deduplicateCommands(allCommands)
-      }
+        commands: this.deduplicateCommands(allCommands),
+      },
     };
   }
 
@@ -297,21 +313,30 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<ClimptRe
       }
     }
 
-    return deduplicated.sort((a, b) => 
-      a.c1.localeCompare(b.c1) || a.c2.localeCompare(b.c2) || a.c3.localeCompare(b.c3)
+    return deduplicated.sort((a, b) =>
+      a.c1.localeCompare(b.c1) || a.c2.localeCompare(b.c2) ||
+      a.c3.localeCompare(b.c3)
     );
   }
 
-  private logProcessingSummary(summary: any): void {
+  private logProcessingSummary(summary: unknown): void {
+    const summaryObj = summary as {
+      totalFiles?: number;
+      processedFiles?: number;
+      successfulFiles?: number;
+      failedFiles?: number;
+      errors?: string[];
+    };
+
     console.log(`\n📊 Processing Summary:`);
-    console.log(`  Total files: ${summary.totalFiles}`);
-    console.log(`  Processed: ${summary.processedFiles}`);
-    console.log(`  Successful: ${summary.successfulFiles}`);
-    console.log(`  Failed: ${summary.failedFiles}`);
-    
-    if (summary.errors.length > 0) {
+    console.log(`  Total files: ${summaryObj.totalFiles ?? "N/A"}`);
+    console.log(`  Processed: ${summaryObj.processedFiles ?? "N/A"}`);
+    console.log(`  Successful: ${summaryObj.successfulFiles ?? "N/A"}`);
+    console.log(`  Failed: ${summaryObj.failedFiles ?? "N/A"}`);
+
+    if (summaryObj.errors && summaryObj.errors.length > 0) {
       console.log(`\n❌ Errors:`);
-      summary.errors.forEach((error: string) => console.log(`  - ${error}`));
+      summaryObj.errors.forEach((error: string) => console.log(`  - ${error}`));
     }
   }
 }
@@ -324,7 +349,7 @@ export class ClimptPipelineFactory {
     schemaPath?: string,
     templatePath?: string,
     extractPromptPath?: string,
-    mapPromptPath?: string
+    mapPromptPath?: string,
   ): Promise<ClimptAnalysisPipeline> {
     // Initialize services and providers
     const claudeService = new ClaudeCLIService();
@@ -333,14 +358,14 @@ export class ClimptPipelineFactory {
       schemaPath,
       templatePath,
       extractPromptPath,
-      mapPromptPath
+      mapPromptPath,
     );
 
     // Load configuration
     const [schema, template, prompts] = await Promise.all([
       configProvider.getSchema(),
-      configProvider.getTemplate(), 
-      configProvider.getPrompts()
+      configProvider.getTemplate(),
+      configProvider.getPrompts(),
     ]);
 
     // Create analysis processor
@@ -348,16 +373,19 @@ export class ClimptPipelineFactory {
       claudeService,
       prompts,
       schema,
-      template
+      template,
     );
 
     // Create pipeline configuration
-    const config: FrontMatterPipelineConfig<ClimptRegistrySchema, ClimptRegistrySchema> = {
+    const config: FrontMatterPipelineConfig<
+      ClimptRegistrySchema,
+      ClimptRegistrySchema
+    > = {
       schema,
       template,
       prompts,
       fileSystem,
-      analysisProcessor
+      analysisProcessor,
     };
 
     // Create and return pipeline
@@ -366,6 +394,6 @@ export class ClimptPipelineFactory {
   }
 
   static async createDefault(): Promise<ClimptAnalysisPipeline> {
-    return this.create();
+    return await this.create();
   }
 }

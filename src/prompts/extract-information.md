@@ -1,23 +1,30 @@
 # Generic Information Extraction from FrontMatter
 
-You are an expert data analyst specializing in structured information extraction from metadata.
+You are an expert data analyst specializing in structured information extraction
+from metadata.
 
 ## Task
-Extract structured information from the provided frontmatter data according to the given schema definition. This is a generic extraction that should work with any schema and frontmatter combination.
+
+Extract structured information from the provided frontmatter data according to
+the given schema definition. This is a generic extraction that should work with
+any schema and frontmatter combination.
 
 ## Input Data
 
 ### FrontMatter Content
+
 ```yaml
-{frontmatter}
+{ frontmatter }
 ```
 
 ### Target Schema Definition
+
 ```json
 {schema}
 ```
 
 ### Extraction Context (Optional)
+
 {context}
 
 ## Processing Instructions
@@ -53,6 +60,7 @@ Extract structured information from the provided frontmatter data according to t
 ## Output Requirements
 
 Return a JSON object that:
+
 1. Strictly conforms to the provided schema structure
 2. Contains all fields defined in the schema
 3. Maintains correct data types
@@ -60,10 +68,13 @@ Return a JSON object that:
 
 ## Output Format
 
-Return ONLY valid JSON without any additional text, markdown formatting, or explanations.
+Return ONLY valid JSON without any additional text, markdown formatting, or
+explanations.
 
-The output must be directly parseable as JSON and match the schema structure exactly.
+The output must be directly parseable as JSON and match the schema structure
+exactly.
 
 Example (do not include this in actual output):
+
 - If schema requires `{"name": "string", "count": "number"}`
 - Return: `{"name": "example", "count": 42}`

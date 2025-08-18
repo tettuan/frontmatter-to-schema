@@ -2,7 +2,11 @@
  * Core domain interfaces for pluggable components
  */
 
-import type { FrontMatterContent, AnalysisContext, AnalysisResult } from './types.ts';
+import type {
+  AnalysisContext,
+  AnalysisResult,
+  FrontMatterContent,
+} from "./types.ts";
 
 /**
  * Interface for frontmatter extraction
@@ -12,7 +16,7 @@ export interface FrontMatterExtractor {
    * Extracts frontmatter from markdown content
    */
   extract(content: string): Promise<FrontMatterContent | null>;
-  
+
   /**
    * Checks if content has frontmatter
    */
@@ -27,7 +31,7 @@ export interface AnalysisStrategy<TInput = unknown, TOutput = unknown> {
    * Strategy name for identification
    */
   readonly name: string;
-  
+
   /**
    * Executes the analysis strategy
    */
@@ -43,7 +47,7 @@ export interface AnalysisEngine {
    */
   analyze<TInput, TOutput>(
     input: TInput,
-    strategy: AnalysisStrategy<TInput, TOutput>
+    strategy: AnalysisStrategy<TInput, TOutput>,
   ): Promise<TOutput>;
 }
 
@@ -65,7 +69,7 @@ export interface FileDiscovery {
    * Discovers files matching patterns
    */
   discover(patterns: string[]): Promise<string[]>;
-  
+
   /**
    * Filters discovered files
    */
@@ -80,12 +84,12 @@ export interface OutputFormatter<T = unknown> {
    * Format name (json, yaml, xml, etc.)
    */
   readonly formatName: string;
-  
+
   /**
    * Formats data to string
    */
   format(data: T): string;
-  
+
   /**
    * Parses string back to data
    */

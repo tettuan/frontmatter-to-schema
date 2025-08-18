@@ -2,8 +2,8 @@
  * Generic registry for managing analysis results
  */
 
-import type { AnalysisResult } from './types.ts';
-import type { Transformer } from './interfaces.ts';
+import type { AnalysisResult } from "./types.ts";
+import type { Transformer } from "./interfaces.ts";
 
 /**
  * Registry aggregates analysis results and provides transformation capabilities
@@ -64,7 +64,7 @@ export class Registry<T = unknown> {
    * Transforms the registry using a transformer
    */
   transform<U>(transformer: Transformer<T, U>): U {
-    return transformer.transform(this.results);
+    return transformer.transform(this.results as Map<string, AnalysisResult<T>>);
   }
 
   /**
@@ -92,7 +92,9 @@ export class Registry<T = unknown> {
   /**
    * Maps results to a new type
    */
-  map<U>(mapper: (result: AnalysisResult<T>) => AnalysisResult<U>): Registry<U> {
+  map<U>(
+    mapper: (result: AnalysisResult<T>) => AnalysisResult<U>,
+  ): Registry<U> {
     const mapped = new Registry<U>();
     for (const [key, result] of this.results) {
       mapped.add(key, mapper(result));
@@ -117,7 +119,7 @@ export class Registry<T = unknown> {
   toArray(): Array<{ key: string; result: AnalysisResult<T> }> {
     return Array.from(this.results.entries()).map(([key, result]) => ({
       key,
-      result
+      result,
     }));
   }
 }
