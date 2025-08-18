@@ -87,14 +87,14 @@ const createCommandTemplate = () => ({
 async function processMarkdownFile(
   filePath: string,
   markdownContent: string,
-  schema: any,
-  template: any
+  schema: Record<string, unknown>,
+  template: Record<string, unknown>
 ): Promise<{
   sourceFile: SourceFile | null;
   extractedContent: FrontMatterContent | null;
-  schemaValidated: any;
-  templateMapped: any;
-  analysisResult: AnalysisResult<any> | null;
+  schemaValidated: Record<string, unknown> | null;
+  templateMapped: Record<string, unknown> | null;
+  analysisResult: AnalysisResult<Record<string, unknown>> | null;
 }> {
   // Step 1: Create ValidFilePath
   const pathResult = ValidFilePath.createMarkdown(filePath);
@@ -153,7 +153,7 @@ async function processMarkdownFile(
   // Step 6: Template mapping
   const templateContext: AnalysisContext = {
     kind: "TemplateMapping",
-    template,
+    template: template as { structure: Record<string, unknown> },
     schema: schemaResult.data
   };
   
@@ -179,9 +179,9 @@ async function processMarkdownFile(
   return {
     sourceFile: sourceFileResult.data,
     extractedContent: extractionResult.data,
-    schemaValidated: schemaValidationResult.ok ? schemaValidationResult.data : null,
-    templateMapped: templateMappingResult.ok ? templateMappingResult.data : null,
-    analysisResult
+    schemaValidated: schemaValidationResult.ok ? schemaValidationResult.data as Record<string, unknown> : null,
+    templateMapped: templateMappingResult.ok ? templateMappingResult.data as Record<string, unknown> : null,
+    analysisResult: analysisResult as AnalysisResult<Record<string, unknown>> | null
   };
 }
 
@@ -269,8 +269,14 @@ Validate configuration.`
 
     const schema = createCommandSchema();
     const template = createCommandTemplate();
-    const registry = new Registry<any>();
-    const results: any[] = [];
+    const registry = new Registry<Record<string, unknown>>();
+    const results: Array<{
+      sourceFile: SourceFile | null;
+      extractedContent: FrontMatterContent | null;
+      schemaValidated: Record<string, unknown> | null;
+      templateMapped: Record<string, unknown> | null;
+      analysisResult: AnalysisResult<Record<string, unknown>> | null;
+    }> = [];
 
     // Process all files
     for (const file of testFiles) {
@@ -288,18 +294,18 @@ Validate configuration.`
 
     // Verify individual results
     const gitResult = results[0];
-    assertEquals(gitResult.templateMapped.c1, "git");
-    assertEquals(gitResult.templateMapped.c2, "create");
+    assertEquals(gitResult.templateMapped?.c1, "git");
+    assertEquals(gitResult.templateMapped?.c2, "create");
 
     const specResult = results[1];
-    assertEquals(specResult.templateMapped.c1, "spec");
-    assertEquals(specResult.templateMapped.c2, "analyze");
-    assertEquals(specResult.templateMapped.complexity, "high");
+    assertEquals(specResult.templateMapped?.c1, "spec");
+    assertEquals(specResult.templateMapped?.c2, "analyze");
+    assertEquals(specResult.templateMapped?.complexity, "high");
 
     const buildResult = results[2];
-    assertEquals(buildResult.templateMapped.c1, "build");
-    assertEquals(buildResult.templateMapped.c2, "validate");
-    assertEquals(buildResult.templateMapped.active, false);
+    assertEquals(buildResult.templateMapped?.c1, "build");
+    assertEquals(buildResult.templateMapped?.c2, "validate");
+    assertEquals(buildResult.templateMapped?.active, false);
 
     // Verify registry operations
     const allResults = registry.values();
@@ -478,8 +484,8 @@ priority: urgent
     assertEquals(result.templateMapped?.priority, "urgent");
 
     // Verify metadata preservation from template
-    assertEquals(result.templateMapped?.metadata?.reviewConfig?.requiresReview, true);
-    assertEquals(result.templateMapped?.metadata?.labelConfig?.allowCustom, true);
+    assertEquals((result.templateMapped as any)?.metadata?.reviewConfig?.requiresReview, true);
+    assertEquals((result.templateMapped as any)?.metadata?.labelConfig?.allowCustom, true);
   });
 
   await t.step("should measure performance with large dataset", async () => {

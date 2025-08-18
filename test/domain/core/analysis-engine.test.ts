@@ -12,7 +12,7 @@ import {
   type AnalysisContext,
   FrontMatterContent,
   SchemaDefinition,
-  type ValidFilePath,
+  // ValidFilePath is imported but not used in this test file
 } from "../../../src/domain/core/types.ts";
 import { type Result, type AnalysisError, createDomainError } from "../../../src/domain/core/result.ts";
 
@@ -33,17 +33,17 @@ const createTestSchemaDefinition = (schema: unknown) => {
 class MockAnalysisStrategy {
   readonly name = "MockAnalysisStrategy";
   private shouldSucceed: boolean;
-  private resultData: any;
+  private resultData: unknown;
 
-  constructor(shouldSucceed = true, resultData = "mock result") {
+  constructor(shouldSucceed = true, resultData: unknown = "mock result") {
     this.shouldSucceed = shouldSucceed;
     this.resultData = resultData;
   }
 
-  async execute(
-    input: any,
-    context: AnalysisContext,
-  ): Promise<Result<any, any>> {
+  execute(
+    input: unknown,
+    _context: AnalysisContext,
+  ): Promise<Result<unknown, unknown>> {
     if (this.shouldSucceed) {
       return { ok: true, data: this.resultData };
     }
@@ -121,7 +121,7 @@ Deno.test({
     // Mock strategy that takes longer than timeout
     const slowStrategy = {
       name: "SlowStrategy",
-      async execute(_input: any, _context: any): Promise<Result<string, AnalysisError & { message: string }>> {
+      async execute(_input: unknown, _context: unknown): Promise<Result<string, AnalysisError & { message: string }>> {
         await new Promise(resolve => setTimeout(resolve, 200));
         return { ok: true, data: "should timeout" };
       }
@@ -133,7 +133,7 @@ Deno.test({
     if (!result.ok) {
       assertEquals(result.error.kind, "AnalysisTimeout");
       // Type assertion needed for accessing timeoutMs property
-      assertEquals((result.error as any).timeoutMs, 100);
+      assertEquals((result.error as { timeoutMs: number }).timeoutMs, 100);
     }
   }});
 
