@@ -379,7 +379,7 @@ export class FrontMatterExtractionStrategy
     _context: AnalysisContext,
   ): Promise<Result<FrontMatterContent, AnalysisError & { message: string }>> {
     // Extract frontmatter from markdown content
-    const frontMatterMatch = input.match(/^---\n([\s\S]*?)\n---/);
+    const frontMatterMatch = input.match(/^---\s*([\s\S]*?)\s*---/);
 
     if (!frontMatterMatch) {
       return {
@@ -392,7 +392,27 @@ export class FrontMatterExtractionStrategy
       };
     }
 
-    const yamlResult = FrontMatterContent.fromYaml(frontMatterMatch[1]);
+    const yamlContent = frontMatterMatch[1];
+    
+    // Handle empty frontmatter case - create empty FrontMatterContent
+    if (!yamlContent || yamlContent.trim().length === 0) {
+      const emptyResult = FrontMatterContent.fromObject({});
+      if (!emptyResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ExtractionStrategyFailed",
+            strategy: this.name,
+            input: yamlContent,
+          }),
+        };
+      }
+      // Ensure async consistency
+      await Promise.resolve();
+      return emptyResult;
+    }
+
+    const yamlResult = FrontMatterContent.fromYaml(yamlContent);
     
     // Map ValidationError to AnalysisError
     if (!yamlResult.ok) {
@@ -401,7 +421,7 @@ export class FrontMatterExtractionStrategy
         error: createDomainError({
           kind: "ExtractionStrategyFailed",
           strategy: this.name,
-          input: frontMatterMatch[1],
+          input: yamlContent,
         }),
       };
     }

@@ -330,7 +330,7 @@ Validate configuration.`
         name: "Invalid file path",
         path: "/test/commands/invalid.txt", // Not .md
         content: createSampleMarkdown(),
-        expectedError: "FileExtensionMismatch"
+        expectedError: "must have one of these extensions"
       },
       {
         name: "No frontmatter",
