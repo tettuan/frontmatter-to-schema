@@ -447,7 +447,7 @@ No frontmatter here.`;
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
-      assertEquals(result.error.strategy, "FrontMatterExtractionStrategy");
+      assertEquals((result.error as any).strategy, "FrontMatterExtractionStrategy");
     }
   });
 
@@ -488,7 +488,7 @@ title Test Document (missing colon)
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
       // Should truncate input in error
-      assertEquals(result.error.input.length, 103); // 100 + "..."
+      assertEquals((result.error as any).input.length, 103); // 100 + "..."
     }
   });
 });
@@ -565,9 +565,10 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     
     assertEquals(schemaResult.ok, true);
     if (schemaResult.ok) {
-      assertEquals(schemaResult.data.title, "Integration Test");
-      assertEquals(schemaResult.data.author, "Test Author");
-      assertEquals(schemaResult.data.version, 1);
+      const data = schemaResult.data as any;
+      assertEquals(data.title, "Integration Test");
+      assertEquals(data.author, "Test Author");
+      assertEquals(data.version, 1);
     }
     
     // Test TemplateMapping workflow
