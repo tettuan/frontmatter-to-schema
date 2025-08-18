@@ -1,0 +1,10 @@
+# Breakdown Configuration
+params:
+  two:
+    directiveType:
+      pattern: "^(architecture|domain|batch|repository)$"
+    layerType:
+      pattern: "^(db|api|fetch|crawling|boundary|architecture|flow)$"
+options:
+  destination:
+    prefix: "drafts/design/result/yyyy/yyyy-mm-dd-hh-"

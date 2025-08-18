@@ -1,0 +1,7 @@
+# Breakdown Configuration
+params:
+  two:
+    directiveType:
+      pattern: "^(feature|db|robust)$"
+    layerType:
+      pattern: "^(api|batch|schema|repository|test)$"
