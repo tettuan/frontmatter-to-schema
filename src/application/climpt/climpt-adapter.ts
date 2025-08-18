@@ -20,9 +20,9 @@ import {
 } from "../../domain/pipeline/generic-pipeline.ts";
 import {
   SchemaAnalysisFactory,
-  SchemaAnalysisProcessor
+  type SchemaAnalysisProcessor
 } from "../../domain/analysis/schema-driven.ts";
-import { FrontMatterContent } from "../../domain/core/types.ts";
+import type { FrontMatterContent } from "../../domain/core/types.ts";
 
 /**
  * Climpt command registry schema definition
