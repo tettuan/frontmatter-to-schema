@@ -165,70 +165,87 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
 };
 
 // Result utility functions for common operations
-export namespace ResultUtils {
-  // Map over successful results
-  export const map = <T, U, E>(
-    result: Result<T, E>,
-    mapper: (data: T) => U,
-  ): Result<U, E> => {
-    if (result.ok) {
-      return { ok: true, data: mapper(result.data) };
-    }
-    return result;
-  };
 
-  // FlatMap for chaining Result-returning operations
-  export const flatMap = <T, U, E>(
-    result: Result<T, E>,
-    mapper: (data: T) => Result<U, E>,
-  ): Result<U, E> => {
-    if (result.ok) {
-      return mapper(result.data);
-    }
-    return result;
-  };
+// Map over successful results
+export const mapResult = <T, U, E>(
+  result: Result<T, E>,
+  mapper: (data: T) => U,
+): Result<U, E> => {
+  if (result.ok) {
+    return { ok: true, data: mapper(result.data) };
+  }
+  return result;
+};
 
-  // Handle errors and provide fallback values
-  export const mapError = <T, E1 extends { message: string }, E2 extends { message: string }>(
-    result: Result<T, E1>,
-    errorMapper: (error: E1) => E2,
-  ): Result<T, E2> => {
-    if (result.ok) {
+// FlatMap for chaining Result-returning operations
+export const flatMapResult = <T, U, E>(
+  result: Result<T, E>,
+  mapper: (data: T) => Result<U, E>,
+): Result<U, E> => {
+  if (result.ok) {
+    return mapper(result.data);
+  }
+  return result;
+};
+
+// Handle errors and provide fallback values
+export const mapErrorResult = <T, E1 extends { message: string }, E2 extends { message: string }>(
+  result: Result<T, E1>,
+  errorMapper: (error: E1) => E2,
+): Result<T, E2> => {
+  if (result.ok) {
+    return result;
+  }
+  return { ok: false, error: errorMapper(result.error) };
+};
+
+// Combine multiple Results into one
+export const combineResults = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
+  const data: T[] = [];
+  
+  for (const result of results) {
+    if (!result.ok) {
       return result;
     }
-    return { ok: false, error: errorMapper(result.error) };
-  };
+    data.push(result.data);
+  }
+  
+  return { ok: true, data };
+};
 
-  // Combine multiple Results into one
-  export const combine = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
-    const data: T[] = [];
-    
-    for (const result of results) {
-      if (!result.ok) {
-        return result;
-      }
-      data.push(result.data);
-    }
-    
-    return { ok: true, data };
-  };
+// Get data or throw error (for migration from partial functions)
+export const unwrapResult = <T, E>(result: Result<T, E>): T => {
+  if (result.ok) {
+    return result.data;
+  }
+  throw new Error(result.error.message);
+};
 
-  // Get data or throw error (for migration from partial functions)
-  export const unwrap = <T, E>(result: Result<T, E>): T => {
-    if (result.ok) {
-      return result.data;
-    }
-    throw new Error(result.error.message);
-  };
+// Get data or provide default value
+export const unwrapOrResult = <T, E>(result: Result<T, E>, defaultValue: T): T => {
+  if (result.ok) {
+    return result.data;
+  }
+  return defaultValue;
+};
 
-  // Get data or provide default value
-  export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
-    if (result.ok) {
-      return result.data;
-    }
-    return defaultValue;
-  };
-}
+// Legacy ResultUtils for backward compatibility
+export const ResultUtils = {
+  unwrap: unwrapResult,
+  map: mapResult,
+  flatMap: flatMapResult,
+  mapError: mapErrorResult,
+  combine: combineResults,
+  unwrapOr: unwrapOrResult,
+  
+  // Additional legacy functions
+  chain: <T, U, E>(
+    result: Result<T, E>,
+    fn: (data: T) => Result<U, E>,
+  ): Result<U, E> => flatMapResult(result, fn),
+  
+  all: <T, E>(results: Result<T, E>[]): Result<T[], E> => combineResults(results),
+};
 
 // Type guard for checking success
 export const isSuccess = <T, E>(result: Result<T, E>): result is { ok: true; data: T } => {

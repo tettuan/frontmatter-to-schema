@@ -3,7 +3,7 @@
  * Enhanced with Totality principles: Smart Constructors and Result types
  */
 
-import { Result, ValidationError, createDomainError } from "./result.ts";
+import { type Result, type ValidationError, createDomainError } from "./result.ts";
 
 /**
  * Validated file path with Smart Constructor
@@ -120,7 +120,7 @@ export class FrontMatterContent {
         let value: unknown = valueStr;
         if (valueStr.toLowerCase() === 'true') value = true;
         else if (valueStr.toLowerCase() === 'false') value = false;
-        else if (/^\d+$/.test(valueStr)) value = parseInt(valueStr, 10);
+        else if (/^-?\d+$/.test(valueStr)) value = parseInt(valueStr, 10);
         else if (valueStr.startsWith('"') && valueStr.endsWith('"')) {
           value = valueStr.slice(1, -1);
         }
@@ -382,28 +382,34 @@ export interface TemplateDefinition {
 /**
  * Helper functions for AnalysisContext type guards
  */
-export namespace AnalysisContextGuards {
-  export const isSchemaAnalysis = (
-    context: AnalysisContext
-  ): context is Extract<AnalysisContext, { kind: "SchemaAnalysis" }> => {
-    return context.kind === "SchemaAnalysis";
-  };
+export const isSchemaAnalysis = (
+  context: AnalysisContext
+): context is Extract<AnalysisContext, { kind: "SchemaAnalysis" }> => {
+  return context.kind === "SchemaAnalysis";
+};
 
-  export const isTemplateMapping = (
-    context: AnalysisContext
-  ): context is Extract<AnalysisContext, { kind: "TemplateMapping" }> => {
-    return context.kind === "TemplateMapping";
-  };
+export const isTemplateMapping = (
+  context: AnalysisContext
+): context is Extract<AnalysisContext, { kind: "TemplateMapping" }> => {
+  return context.kind === "TemplateMapping";
+};
 
-  export const isValidationOnly = (
-    context: AnalysisContext
-  ): context is Extract<AnalysisContext, { kind: "ValidationOnly" }> => {
-    return context.kind === "ValidationOnly";
-  };
+export const isValidationOnly = (
+  context: AnalysisContext
+): context is Extract<AnalysisContext, { kind: "ValidationOnly" }> => {
+  return context.kind === "ValidationOnly";
+};
 
-  export const isBasicExtraction = (
-    context: AnalysisContext
-  ): context is Extract<AnalysisContext, { kind: "BasicExtraction" }> => {
-    return context.kind === "BasicExtraction";
-  };
-}
+export const isBasicExtraction = (
+  context: AnalysisContext
+): context is Extract<AnalysisContext, { kind: "BasicExtraction" }> => {
+  return context.kind === "BasicExtraction";
+};
+
+// Legacy AnalysisContextGuards for backward compatibility
+export const AnalysisContextGuards = {
+  isSchemaAnalysis,
+  isTemplateMapping,
+  isValidationOnly,
+  isBasicExtraction,
+};
