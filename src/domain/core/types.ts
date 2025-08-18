@@ -9,17 +9,17 @@ export class FilePath {
   constructor(readonly value: string) {}
 
   isMarkdown(): boolean {
-    return this.value.endsWith('.md');
+    return this.value.endsWith(".md");
   }
 
   get filename(): string {
-    return this.value.split('/').pop() || '';
+    return this.value.split("/").pop() || "";
   }
 
   get directory(): string {
-    const parts = this.value.split('/');
+    const parts = this.value.split("/");
     parts.pop();
-    return parts.join('/');
+    return parts.join("/");
   }
 }
 
@@ -45,12 +45,12 @@ export class FrontMatterContent {
 /**
  * Generic schema definition for validation and typing
  */
-export class SchemaDefinition<T = any> {
+export class SchemaDefinition<T = unknown> {
   constructor(readonly schema: T) {}
 
-  validate(data: unknown): boolean {
+  validate(_data: unknown): boolean {
     // Basic validation - can be extended with JSON Schema, Zod, etc.
-    if (!this.schema || typeof this.schema !== 'object') {
+    if (!this.schema || typeof this.schema !== "object") {
       return false;
     }
     return true;
@@ -64,7 +64,7 @@ export class SourceFile {
   constructor(
     readonly path: FilePath,
     readonly frontMatter: FrontMatterContent | null,
-    readonly content: string
+    readonly content: string,
   ) {}
 
   hasFrontMatter(): boolean {
@@ -75,11 +75,11 @@ export class SourceFile {
 /**
  * Generic analysis result container
  */
-export class AnalysisResult<T = any> {
+export class AnalysisResult<T = unknown> {
   constructor(
     readonly sourceFile: FilePath,
     readonly extractedData: T,
-    readonly metadata: Map<string, unknown> = new Map()
+    readonly metadata: Map<string, unknown> = new Map(),
   ) {}
 
   addMetadata(key: string, value: unknown): void {
@@ -96,6 +96,6 @@ export class AnalysisResult<T = any> {
  */
 export interface AnalysisContext {
   schema?: SchemaDefinition;
-  template?: any;
+  template?: unknown;
   options?: Record<string, unknown>;
 }

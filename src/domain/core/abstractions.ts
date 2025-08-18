@@ -1,6 +1,6 @@
 /**
  * Core abstractions for the generic frontmatter analysis system
- * 
+ *
  * This module provides high-level interfaces and abstract classes that define
  * the system's architecture and enable schema-driven, template-based analysis.
  */
@@ -16,7 +16,11 @@ export interface Pipeline<TInput, TOutput> {
  * Schema-based analyzer that uses external schema definitions to analyze data
  */
 export interface SchemaBasedAnalyzer<TSchema, TResult> {
-  analyze(data: unknown, schema: TSchema, context?: AnalysisContext): Promise<TResult>;
+  analyze(
+    data: unknown,
+    schema: TSchema,
+    context?: AnalysisContext,
+  ): Promise<TResult>;
 }
 
 /**
@@ -85,7 +89,8 @@ export interface ProcessingResult<T> {
 /**
  * Abstract base class for implementing pipelines with common functionality
  */
-export abstract class AbstractPipeline<TInput, TOutput> implements Pipeline<TInput, TOutput> {
+export abstract class AbstractPipeline<TInput, TOutput>
+  implements Pipeline<TInput, TOutput> {
   protected readonly context: AnalysisContext;
 
   constructor(context: AnalysisContext = {}) {
@@ -105,13 +110,13 @@ export abstract class AbstractPipeline<TInput, TOutput> implements Pipeline<TInp
   protected createProcessingResult<T>(
     data: T,
     isValid: boolean = true,
-    errors: string[] = []
+    errors: string[] = [],
   ): ProcessingResult<T> {
     return {
       data,
       metadata: new Map(this.context.metadata),
       isValid,
-      errors
+      errors,
     };
   }
 }
@@ -119,7 +124,10 @@ export abstract class AbstractPipeline<TInput, TOutput> implements Pipeline<TInp
 /**
  * Factory pattern for creating configured analysis pipelines
  */
-export abstract class PipelineFactory<TConfig, TPipeline extends Pipeline<any, any>> {
+export abstract class PipelineFactory<
+  TConfig,
+  TPipeline extends Pipeline<unknown, unknown>,
+> {
   constructor(protected readonly config: TConfig) {}
 
   abstract createPipeline(): TPipeline;
@@ -138,7 +146,8 @@ export interface PipelineHooks<TInput, TOutput> {
 /**
  * Extensible pipeline that supports hooks and middleware
  */
-export abstract class ExtensiblePipeline<TInput, TOutput> extends AbstractPipeline<TInput, TOutput> {
+export abstract class ExtensiblePipeline<TInput, TOutput>
+  extends AbstractPipeline<TInput, TOutput> {
   private hooks: PipelineHooks<TInput, TOutput> = {};
 
   setHooks(hooks: PipelineHooks<TInput, TOutput>): void {
@@ -147,13 +156,15 @@ export abstract class ExtensiblePipeline<TInput, TOutput> extends AbstractPipeli
 
   async process(input: TInput): Promise<TOutput> {
     try {
-      const processedInput = this.hooks.beforeProcess ? 
-        await this.hooks.beforeProcess(input) : input;
-      
+      const processedInput = this.hooks.beforeProcess
+        ? await this.hooks.beforeProcess(input)
+        : input;
+
       const result = await this.processInternal(processedInput);
-      
-      return this.hooks.afterProcess ? 
-        await this.hooks.afterProcess(result) : result;
+
+      return this.hooks.afterProcess
+        ? await this.hooks.afterProcess(result)
+        : result;
     } catch (error) {
       if (this.hooks.onError) {
         await this.hooks.onError(error as Error, input);
