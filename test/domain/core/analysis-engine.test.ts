@@ -143,8 +143,8 @@ Deno.test({
     
     const throwingStrategy: AnalysisStrategy<unknown, unknown> = {
       name: "ThrowingStrategy",
-      async execute(_input: unknown, _context: unknown): Promise<Result<unknown, AnalysisError & { message: string }>> {
-        throw new Error("Strategy execution failed");
+      execute(_input: unknown, _context: unknown): Promise<Result<unknown, AnalysisError & { message: string }>> {
+        return Promise.reject(new Error("Strategy execution failed"));
       }
     };
     
@@ -163,7 +163,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
     const data = createTestFrontMatterContent({ title: "Test", count: 42 });
     const schema = createTestSchemaDefinition({ type: "object" });
     
-    const result = await analyzer.process(data, schema);
+    const result = await analyzer.process(data, schema as SchemaDefinition<Record<string, unknown>>);
     
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -187,7 +187,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
       }
     })({ type: "object" });
     
-    const result = await analyzer.process(data, invalidSchema as SchemaDefinition);
+    const result = await analyzer.process(data, invalidSchema as SchemaDefinition<Record<string, unknown>>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -224,7 +224,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
     const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
-    const result = mapper.map(null, template);
+    const result = mapper.map(null as unknown as Record<string, unknown>, template);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -236,7 +236,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
     const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
-    const result = mapper.map(undefined, template);
+    const result = mapper.map(undefined as unknown as Record<string, unknown>, template);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -248,7 +248,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
     const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
-    const result = mapper.map("primitive value", template);
+    const result = mapper.map("primitive value" as unknown as Record<string, unknown>, template);
     
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -372,9 +372,10 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     if (result.ok) {
       assertEquals((result.data as Record<string, unknown>).title, "Test");
       assertEquals((result.data as Record<string, unknown>).author, "John");
-      assertEquals((result.data as Record<string, unknown>).extractionMetadata.keyCount, 2);
-      assertEquals((result.data as Record<string, unknown>).extractionMetadata.includeMetadata, true);
-      assertEquals(typeof (result.data as Record<string, unknown>).extractionMetadata.extractedAt, "string");
+      const metadata = (result.data as Record<string, unknown>).extractionMetadata as Record<string, unknown>;
+      assertEquals(metadata.keyCount, 2);
+      assertEquals(metadata.includeMetadata, true);
+      assertEquals(typeof metadata.extractedAt, "string");
     }
   });
 
@@ -395,7 +396,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).extractionMetadata.includeMetadata, false);
+      const metadata = (result.data as Record<string, unknown>).extractionMetadata as Record<string, unknown>;
+      assertEquals(metadata.includeMetadata, false);
     }
   });
 });
@@ -435,8 +437,9 @@ author: John Doe
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).get("title"), "Test Document");
-      assertEquals((result.data as Record<string, unknown>).get("author"), "John Doe");
+      const frontMatter = result.data as unknown as { get: (key: string) => unknown };
+      assertEquals(frontMatter.get("title"), "Test Document");
+      assertEquals(frontMatter.get("author"), "John Doe");
     }
   });
 
@@ -478,7 +481,8 @@ title Test Document (missing colon)
     assertEquals(result.ok, true); // Our simple parser should still work
     if (result.ok) {
       // The line without colon should be ignored
-      assertEquals((result.data as Record<string, unknown>).size(), 0);
+      const frontMatter = result.data as unknown as { size: () => number };
+      assertEquals(frontMatter.size(), 0);
     }
   });
 
@@ -497,7 +501,8 @@ title Test Document (missing colon)
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
       // Should truncate input in error
-      assertEquals((result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number }).input.length, 103); // 100 + "..."
+      const errorWithInput = result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number };
+      assertEquals(errorWithInput.input?.length, 103); // 100 + "..."
     }
   });
 });
@@ -641,8 +646,9 @@ This is the markdown content.`;
       if (processResult.ok) {
         const data = processResult.data as Record<string, unknown>;
         assertEquals(data.title, "E2E Test");
-        assertEquals(data.extractionMetadata.keyCount, 4); // title, description, tags, published
-        assertEquals(typeof data.extractionMetadata.extractedAt, "string");
+        const metadata = data.extractionMetadata as Record<string, unknown>;
+        assertEquals(metadata.keyCount, 4); // title, description, tags, published
+        assertEquals(typeof metadata.extractedAt, "string");
       }
     }
   });

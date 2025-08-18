@@ -6,7 +6,7 @@ import {
   SourceFile,
   AnalysisResult,
 } from "../../../src/domain/core/types.ts";
-import { type ValidationError } from "../../../src/domain/core/result.ts";
+import type { ValidationError } from "../../../src/domain/core/result.ts";
 
 Deno.test("ValidFilePath Smart Constructor", async (t) => {
   await t.step("should create valid file path successfully", () => {
@@ -278,7 +278,7 @@ zero: 0`;
   });
 
   await t.step("should reject non-object input for fromObject", () => {
-    const result = FrontMatterContent.fromObject("not an object" as Record<string, unknown>);
+    const result = FrontMatterContent.fromObject("not an object" as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -287,7 +287,7 @@ zero: 0`;
   });
 
   await t.step("should reject array input for fromObject", () => {
-    const result = FrontMatterContent.fromObject([1, 2, 3] as Record<string, unknown>);
+    const result = FrontMatterContent.fromObject([1, 2, 3] as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -296,7 +296,7 @@ zero: 0`;
   });
 
   await t.step("should reject null input for fromObject", () => {
-    const result = FrontMatterContent.fromObject(null as Record<string, unknown>);
+    const result = FrontMatterContent.fromObject(null as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -367,7 +367,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject null schema", () => {
-    const result = SchemaDefinition.create(null as Record<string, unknown>);
+    const result = SchemaDefinition.create(null as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -376,7 +376,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject undefined schema", () => {
-    const result = SchemaDefinition.create(undefined as Record<string, unknown>);
+    const result = SchemaDefinition.create(undefined as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -385,7 +385,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject non-object schema", () => {
-    const result = SchemaDefinition.create("not an object" as Record<string, unknown>);
+    const result = SchemaDefinition.create("not an object" as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -394,7 +394,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject array schema", () => {
-    const result = SchemaDefinition.create([1, 2, 3] as Record<string, unknown>);
+    const result = SchemaDefinition.create([1, 2, 3] as unknown as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -506,7 +506,7 @@ Deno.test("SourceFile Smart Constructor", async (t) => {
     const pathResult = ValidFilePath.create("/test.md");
     
     if (pathResult.ok) {
-      const sourceFileResult = SourceFile.create(pathResult.data, null as Record<string, unknown>);
+      const sourceFileResult = SourceFile.create(pathResult.data, null as unknown as string);
       
       assertEquals(sourceFileResult.ok, false);
       if (!sourceFileResult.ok) {

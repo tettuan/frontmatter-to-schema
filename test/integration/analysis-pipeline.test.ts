@@ -484,8 +484,9 @@ priority: urgent
     assertEquals(result.templateMapped?.priority, "urgent");
 
     // Verify metadata preservation from template
-    assertEquals((result.templateMapped as Record<string, unknown>)?.metadata?.reviewConfig?.requiresReview, true);
-    assertEquals((result.templateMapped as Record<string, unknown>)?.metadata?.labelConfig?.allowCustom, true);
+    const metadata = (result.templateMapped as Record<string, unknown>)?.metadata as Record<string, unknown>;
+    assertEquals((metadata?.reviewConfig as Record<string, unknown>)?.requiresReview, true);
+    assertEquals((metadata?.labelConfig as Record<string, unknown>)?.allowCustom, true);
   });
 
   await t.step("should measure performance with large dataset", async () => {
