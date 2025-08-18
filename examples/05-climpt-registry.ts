@@ -37,8 +37,8 @@ const registryTemplate = {
   version: "1.0.0",
   description: "Climpt comprehensive configuration for MCP server and command registry",
   tools: {
-    availableConfigs: [],
-    commands: []
+    availableConfigs: [] as string[],
+    commands: [] as any[]
   }
 };
 

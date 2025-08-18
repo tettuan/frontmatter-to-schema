@@ -55,7 +55,11 @@ export class AnalysisPipeline<TOutput = any> {
     }
     
     // 3. Transform and return results
-    return this.transformer.transform(registry.toArray().map(item => item.result));
+    const resultMap = new Map<string, AnalysisResult<any>>();
+    registry.toArray().forEach((item, index) => {
+      resultMap.set(index.toString(), item.result);
+    });
+    return this.transformer.transform(resultMap);
   }
 
   /**
