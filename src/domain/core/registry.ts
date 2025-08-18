@@ -64,7 +64,7 @@ export class Registry<T = unknown> {
    * Transforms the registry using a transformer
    */
   transform<U>(transformer: Transformer<T, U>): U {
-    return transformer.transform(this.results);
+    return transformer.transform(this.results as Map<string, AnalysisResult<T>>);
   }
 
   /**

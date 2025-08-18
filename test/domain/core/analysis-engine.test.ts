@@ -587,10 +587,11 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     
     assertEquals(templateResult.ok, true);
     if (templateResult.ok) {
-      assertEquals(templateResult.data.title, "Integration Test");
-      assertEquals(templateResult.data.name, "processed_document");
-      assertEquals(templateResult.data.category, "test");
-      assertEquals(templateResult.data.processed, true);
+      const data = templateResult.data as any;
+      assertEquals(data.title, "Integration Test");
+      assertEquals(data.name, "processed_document");
+      assertEquals(data.category, "test");
+      assertEquals(data.processed, true);
     }
   });
 
@@ -628,9 +629,10 @@ This is the markdown content.`;
       
       assertEquals(processResult.ok, true);
       if (processResult.ok) {
-        assertEquals(processResult.data.title, "E2E Test");
-        assertEquals(processResult.data.extractionMetadata.keyCount, 4); // title, description, tags, published
-        assertEquals(typeof processResult.data.extractionMetadata.extractedAt, "string");
+        const data = processResult.data as any;
+        assertEquals(data.title, "E2E Test");
+        assertEquals(data.extractionMetadata.keyCount, 4); // title, description, tags, published
+        assertEquals(typeof data.extractionMetadata.extractedAt, "string");
       }
     }
   });

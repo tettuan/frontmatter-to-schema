@@ -18,6 +18,7 @@ import {
   AnalysisResult,
   type AnalysisContext,
 } from "../../src/domain/core/types.ts";
+import { Registry } from "../../src/domain/core/registry.ts";
 
 // Test Data Builders following Builder pattern for robust test data creation
 export class TestDataBuilder {
@@ -280,12 +281,24 @@ export class TestContextFactory {
   }
 }
 
+// Sample frontmatter type definition
+interface SampleFrontMatter {
+  version: number;
+  active: boolean;
+  domain: string;
+  action: string;
+  target: string;
+  description: string;
+  complexity: string;
+  tags: string[];
+}
+
 // Sample Data Generators for consistent testing
 export class SampleDataGenerator {
   /**
    * Generates sample frontmatter data for different domains
    */
-  static frontMatter(domain: "git" | "spec" | "build" | "test" | "docs" = "git") {
+  static frontMatter(domain: "git" | "spec" | "build" | "test" | "docs" = "git"): SampleFrontMatter {
     const baseData = {
       version: 1.0,
       active: true,
@@ -349,7 +362,15 @@ export class SampleDataGenerator {
         };
         
       default:
-        return baseData;
+        return {
+          ...baseData,
+          domain: "unknown",
+          action: "unknown",
+          target: "unknown", 
+          description: "Unknown command type",
+          complexity: "unknown",
+          tags: ["unknown"]
+        };
     }
   }
 
@@ -569,8 +590,8 @@ export class TestCleanup {
   /**
    * Creates a temporary test registry that auto-cleans
    */
-  static createTempRegistry<T>(): import("../../src/domain/core/registry.ts").Registry<T> {
-    const registry = new (await import("../../src/domain/core/registry.ts")).Registry<T>();
+  static createTempRegistry<T>(): Registry<T> {
+    const registry = new Registry<T>();
     
     this.register(() => {
       registry.clear();
