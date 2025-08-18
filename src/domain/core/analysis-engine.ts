@@ -216,36 +216,40 @@ export class RobustTemplateMapper<TSource, TTarget>
     // Start with template structure as base
     const result = { ...template.structure };
 
-    // If source is an object, apply mapping rules or merge directly
-    if (typeof source === "object" && source !== null) {
-      const sourceObj = source as Record<string, unknown>;
+    // Handle FrontMatterContent instances by extracting their data
+    let sourceObj: Record<string, unknown>;
+    if (source && typeof source === "object" && "data" in source && "get" in source) {
+      // This is a FrontMatterContent instance
+      sourceObj = (source as any).data;
+    } else if (typeof source === "object" && source !== null) {
+      sourceObj = source as Record<string, unknown>;
+    } else {
+      return result as TTarget;
+    }
       
-      // Apply mapping rules if they exist
-      if (template.mappingRules) {
-        for (const [targetKey, sourceKey] of Object.entries(template.mappingRules)) {
-          const sourceKeyStr = sourceKey as string;
-          if (sourceKeyStr in sourceObj) {
-            // Support dot notation for nested properties (simplified)
-            if (targetKey.includes('.')) {
-              // For now, just set direct properties
-              const keys = targetKey.split('.');
-              if (keys.length === 2) {
-                if (!result[keys[0]]) result[keys[0]] = {};
-                (result[keys[0]] as any)[keys[1]] = sourceObj[sourceKeyStr];
-              }
-            } else {
-              result[targetKey] = sourceObj[sourceKeyStr];
+    // Apply mapping rules if they exist
+    if (template.mappingRules) {
+      for (const [targetKey, sourceKey] of Object.entries(template.mappingRules)) {
+        const sourceKeyStr = sourceKey as string;
+        if (sourceKeyStr in sourceObj) {
+          // Support dot notation for nested properties (simplified)
+          if (targetKey.includes('.')) {
+            // For now, just set direct properties
+            const keys = targetKey.split('.');
+            if (keys.length === 2) {
+              if (!result[keys[0]]) result[keys[0]] = {};
+              (result[keys[0]] as any)[keys[1]] = sourceObj[sourceKeyStr];
             }
+          } else {
+            result[targetKey] = sourceObj[sourceKeyStr];
           }
         }
       }
-      
-      // Merge any remaining properties from source that don't conflict with template
-      for (const [key, value] of Object.entries(sourceObj)) {
-        if (!(key in result)) {
-          result[key] = value;
-        }
-      }
+    }
+    
+    // Merge any remaining properties from source, overriding template defaults
+    for (const [key, value] of Object.entries(sourceObj)) {
+      result[key] = value;
     }
 
     return result as TTarget;

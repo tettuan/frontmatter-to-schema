@@ -114,13 +114,37 @@ export class FrontMatterContent {
         if (colonIndex === -1) continue;
         
         const key = trimmed.slice(0, colonIndex).trim();
-        const valueStr = trimmed.slice(colonIndex + 1).trim();
+        let valueStr = trimmed.slice(colonIndex + 1).trim();
+        
+        // Remove inline comments (everything after # that isn't within quotes)
+        const hashIndex = valueStr.indexOf('#');
+        if (hashIndex !== -1) {
+          // Check if the # is inside quotes
+          const beforeHash = valueStr.slice(0, hashIndex);
+          const quoteCount = (beforeHash.match(/"/g) || []).length;
+          if (quoteCount % 2 === 0) {
+            // Even number of quotes means # is outside of quotes
+            valueStr = valueStr.slice(0, hashIndex).trim();
+          }
+        }
         
         // Parse basic types
         let value: unknown = valueStr;
         if (valueStr.toLowerCase() === 'true') value = true;
         else if (valueStr.toLowerCase() === 'false') value = false;
-        else if (/^-?\d+$/.test(valueStr)) value = parseInt(valueStr, 10);
+        else if (/^-?\d+\.?\d*$/.test(valueStr)) {
+          // Handle both integers and decimals
+          value = valueStr.includes('.') ? parseFloat(valueStr) : parseInt(valueStr, 10);
+        }
+        else if (valueStr.startsWith('[') && valueStr.endsWith(']')) {
+          // Handle arrays like ["alice", "bob", "charlie"]
+          try {
+            value = JSON.parse(valueStr);
+          } catch {
+            // Fallback to string if JSON parsing fails
+            value = valueStr;
+          }
+        }
         else if (valueStr.startsWith('"') && valueStr.endsWith('"')) {
           value = valueStr.slice(1, -1);
         }
