@@ -14,7 +14,7 @@ import {
   SchemaDefinition,
   ValidFilePath,
 } from "../../../src/domain/core/types.ts";
-import { type Result, createDomainError } from "../../../src/domain/core/result.ts";
+import { type Result, type AnalysisError, createDomainError } from "../../../src/domain/core/result.ts";
 
 // Test helper functions
 const createTestFrontMatterContent = (data: Record<string, unknown>) => {

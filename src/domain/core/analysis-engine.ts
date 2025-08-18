@@ -90,7 +90,7 @@ export class GenericAnalysisEngine implements AnalysisEngine {
 
     try {
       // Timeout handling for robust operation
-      let timeoutId: number;
+      let timeoutId: number | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => reject(new Error("Analysis timeout")), this.timeout);
       });
@@ -103,7 +103,9 @@ export class GenericAnalysisEngine implements AnalysisEngine {
       const result = await Promise.race([analysisPromise, timeoutPromise]);
       
       // Clear timeout if analysis completes first
-      clearTimeout(timeoutId);
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === "Analysis timeout") {
@@ -221,17 +223,18 @@ export class RobustTemplateMapper<TSource, TTarget>
       // Apply mapping rules if they exist
       if (template.mappingRules) {
         for (const [targetKey, sourceKey] of Object.entries(template.mappingRules)) {
-          if (sourceKey in sourceObj) {
+          const sourceKeyStr = sourceKey as string;
+          if (sourceKeyStr in sourceObj) {
             // Support dot notation for nested properties (simplified)
             if (targetKey.includes('.')) {
               // For now, just set direct properties
               const keys = targetKey.split('.');
               if (keys.length === 2) {
                 if (!result[keys[0]]) result[keys[0]] = {};
-                (result[keys[0]] as any)[keys[1]] = sourceObj[sourceKey];
+                (result[keys[0]] as any)[keys[1]] = sourceObj[sourceKeyStr];
               }
             } else {
-              result[targetKey] = sourceObj[sourceKey];
+              result[targetKey] = sourceObj[sourceKeyStr];
             }
           }
         }
