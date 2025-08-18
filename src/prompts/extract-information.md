@@ -1,64 +1,69 @@
-# Frontmatter Information Extraction
+# Generic Information Extraction from FrontMatter
 
-You are tasked with extracting structured information from a YAML frontmatter to
-identify C3L (Command-Category-Layer) commands for the Climpt registry.
+You are an expert data analyst specializing in structured information extraction from metadata.
+
+## Task
+Extract structured information from the provided frontmatter data according to the given schema definition. This is a generic extraction that should work with any schema and frontmatter combination.
 
 ## Input Data
 
-### Frontmatter Content:
+### FrontMatter Content
+```yaml
+{frontmatter}
+```
 
-{{frontmatter}}
+### Target Schema Definition
+```json
+{schema}
+```
 
-### Target Schema Definition:
+### Extraction Context (Optional)
+{context}
 
-{{schema}}
+## Processing Instructions
 
-## Task
+1. **Schema Analysis**
+   - Identify all required fields in the schema
+   - Note data types for each field
+   - Understand nested structures and arrays
 
-Analyze the frontmatter and extract information that maps to the C3L command
-structure:
+2. **FrontMatter Mapping**
+   - Map frontmatter fields to schema fields
+   - Look for semantic matches even if field names differ
+   - Handle nested data structures appropriately
 
-- **c1**: The domain/category (e.g., git, spec, test, code, docs, meta)
-- **c2**: The action/directive (e.g., create, analyze, execute, validate)
-- **c3**: The target/layer (e.g., refinement-issue, quality-metrics,
-  integration-suite)
+3. **Data Transformation**
+   - Convert data types as needed (string to number, etc.)
+   - Parse complex fields (comma-separated to array, etc.)
+   - Apply any context-specific rules
 
-## Extraction Rules
+4. **Missing Data Handling**
+   - Use sensible defaults for missing optional fields
+   - For required fields, attempt to infer from other data
+   - Mark clearly if required data cannot be determined
 
-1. Look for explicit command definitions in the frontmatter
-2. Identify the domain from tags, categories, or explicit domain fields
-3. Extract actions from verbs in titles, descriptions, or action fields
-4. Determine targets from object references, file types, or target fields
-5. Parse any usage examples or documentation
-6. Identify supported options (input formats, modes, flags)
+## Extraction Strategy
+
+- **Direct Mapping**: If field names match exactly
+- **Semantic Mapping**: If field meanings align (e.g., "title" → "name")
+- **Computed Fields**: Derive from multiple source fields
+- **Pattern Matching**: Extract from text fields using patterns
+- **Contextual Inference**: Use domain knowledge when provided
+
+## Output Requirements
+
+Return a JSON object that:
+1. Strictly conforms to the provided schema structure
+2. Contains all fields defined in the schema
+3. Maintains correct data types
+4. Preserves the semantic meaning of the original data
 
 ## Output Format
 
-Return a JSON array of extracted command information:
+Return ONLY valid JSON without any additional text, markdown formatting, or explanations.
 
-```json
-[
-  {
-    "c1": "domain",
-    "c2": "action",
-    "c3": "target",
-    "description": "extracted or inferred description",
-    "usage": "usage information if available",
-    "options": {
-      "input": ["format1", "format2"],
-      "adaptation": ["mode1", "mode2"],
-      "input_file": [true/false],
-      "stdin": [true/false],
-      "destination": [true/false]
-    }
-  }
-]
-```
+The output must be directly parseable as JSON and match the schema structure exactly.
 
-## Important Notes
-
-- If multiple commands are detected, return all of them
-- If no clear command structure is found, return an empty array
-- Infer missing information from context when possible
-- Preserve original descriptions and usage text when available
-- Options are optional and should only be included if explicitly mentioned
+Example (do not include this in actual output):
+- If schema requires `{"name": "string", "count": "number"}`
+- Return: `{"name": "example", "count": 42}`

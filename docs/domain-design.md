@@ -1,117 +1,292 @@
-# ドメイン設計書
+# ドメイン設計書 - 汎用フロントマター解析システム
 
 ## 1. ドメイン境界の定義
 
 ### 1.1 コアドメイン
 
-**Registry Domain（レジストリドメイン）**
-
-- 責任：C3Lコマンドレジストリの構築と管理
-- 主要概念：
-  - Registry: コマンドレジストリ全体
-  - Command: 個別のC3Lコマンド定義
-  - Schema: レジストリのスキーマ定義
+**FrontMatter Analysis Domain（フロントマター解析ドメイン）**
+- 責務: 任意のマークダウンファイルからフロントマターを抽出し、スキーマベースで構造化データへ変換
+- 主要概念:
+  - FrontMatter: マークダウンファイルのメタデータ
+  - Schema: 出力構造の型定義（汎用的）
+  - Template: スキーマに基づく出力フォーマット（汎用的）
 
 ### 1.2 サポートドメイン
 
-**Prompt Domain（プロンプトドメイン）**
+**File Discovery Domain（ファイル探索ドメイン）**
+- 責務: 対象ファイルの探索と列挙（任意のディレクトリ構造対応）
+- 主要概念:
+  - FilePattern: ファイル探索パターン
+  - FileList: 発見されたファイルのコレクション
 
-- 責任：プロンプトファイルの管理と探索
-- 主要概念：
-  - PromptFile: プロンプトファイル
-  - PromptList: プロンプトファイルのコレクション
+**AI Analysis Domain（AI解析ドメイン）**
+- 責務: Claude APIを使用した柔軟で汎用的な解析
+- 主要概念:
+  - AnalysisEngine: 解析エンジンインターフェース
+  - AnalysisStrategy: 解析戦略（抽出/マッピング）
 
-**FrontMatter Domain（フロントマタードメイン）**
+**Registry Building Domain（レジストリ構築ドメイン）**
+- 責務: 解析結果の統合と任意フォーマットでの保存
+- 主要概念:
+  - Registry: 解析結果の集約
+  - OutputFormatter: 出力フォーマッター（JSON/YAML/etc）
 
-- 責任：フロントマターの抽出と解析
-- 主要概念：
-  - FrontMatter: フロントマターデータ
-  - Extractor: フロントマター抽出器
-
-**Analysis Domain（解析ドメイン）**
-
-- 責任：Claude APIを使用した情報解析
-- 主要概念：
-  - Analyzer: 解析エンジン
-  - AnalysisResult: 解析結果
-
-## 2. アーキテクチャ設計
-
-### 2.1 レイヤー構造
+## 2. レイヤードアーキテクチャ（抽象化重視）
 
 ```
-Application Layer
-├── CLI/Scripts
-└── Use Cases
-
-Domain Layer
-├── Registry Domain
-├── Prompt Domain
-├── FrontMatter Domain
-└── Analysis Domain
-
-Infrastructure Layer
-├── File System
-├── Claude API Client
-└── JSON Serializer
+┌─────────────────────────────────────┐
+│      Application Layer              │
+│  - Generic UseCases                 │
+│  - Configurable Services            │
+└─────────────────────────────────────┘
+        ↓ (依存性注入)
+┌─────────────────────────────────────┐
+│      Domain Layer                   │
+│  - Abstract Models                  │
+│  - Generic Processors               │
+│  - Strategy Interfaces              │
+└─────────────────────────────────────┘
+        ↓ (インターフェース)
+┌─────────────────────────────────────┐
+│    Infrastructure Layer             │
+│  - Pluggable Implementations        │
+│  - External API Adapters            │
+│  - Format Converters                │
+└─────────────────────────────────────┘
 ```
 
-### 2.2 モジュール構成
+## 3. 汎用ドメインモデル
 
-```
-src/
-├── domain/
-│   ├── registry/
-│   │   ├── Registry.ts
-│   │   ├── Command.ts
-│   │   └── Schema.ts
-│   ├── prompt/
-│   │   ├── PromptFile.ts
-│   │   └── PromptList.ts
-│   ├── frontmatter/
-│   │   ├── FrontMatter.ts
-│   │   └── Extractor.ts
-│   └── analysis/
-│       ├── Analyzer.ts
-│       └── AnalysisResult.ts
-├── application/
-│   ├── usecases/
-│   │   ├── BuildRegistryUseCase.ts
-│   │   ├── ExtractFrontMatterUseCase.ts
-│   │   └── AnalyzePromptUseCase.ts
-│   └── services/
-│       └── RegistryBuilder.ts
-├── infrastructure/
-│   ├── filesystem/
-│   │   ├── FileReader.ts
-│   │   └── FileWriter.ts
-│   ├── claude/
-│   │   └── ClaudeApiClient.ts
-│   └── serialization/
-│       └── JsonSerializer.ts
-└── interfaces/
-    └── cli/
-        └── main.ts
+### 3.1 値オブジェクト（汎用的）
+
+```typescript
+// 汎用ファイルパス
+class FilePath {
+  constructor(readonly value: string) {}
+  
+  isMarkdown(): boolean {
+    return this.value.endsWith('.md');
+  }
+}
+
+// 汎用フロントマター
+class FrontMatterContent {
+  constructor(readonly data: Record<string, unknown>) {}
+  
+  get(key: string): unknown {
+    return this.data[key];
+  }
+}
+
+// 汎用スキーマ定義
+class SchemaDefinition<T = any> {
+  constructor(readonly schema: T) {}
+  
+  validate(data: unknown): boolean {
+    // スキーマバリデーションロジック
+    return true;
+  }
+}
 ```
 
-### 2.3 データフロー
+### 3.2 エンティティ（汎用的）
 
-1. PromptList生成（Prompt Domain）
-2. FrontMatter抽出（FrontMatter Domain）
-3. 情報解析（Analysis Domain + Claude API）
-4. Registry構築（Registry Domain）
-5. JSON出力（Infrastructure）
+```typescript
+// 汎用ソースファイル
+class SourceFile {
+  constructor(
+    readonly path: FilePath,
+    readonly frontMatter: FrontMatterContent | null,
+    readonly content: string
+  ) {}
+}
 
-## 3. 設計原則
+// 汎用解析結果
+class AnalysisResult<T = any> {
+  constructor(
+    readonly sourceFile: FilePath,
+    readonly extractedData: T,
+    readonly metadata: Map<string, unknown>
+  ) {}
+}
+```
 
-### 3.1 DDD原則
+### 3.3 集約（汎用的）
 
-- 各ドメインは独立した境界を持つ
-- ドメインロジックはドメイン層に集約
-- インフラストラクチャへの依存を反転
+```typescript
+// 汎用レジストリ
+class Registry<T = any> {
+  private results = new Map<string, AnalysisResult<T>>();
+  
+  add(key: string, result: AnalysisResult<T>): void {
+    this.results.set(key, result);
+  }
+  
+  transform<U>(transformer: Transformer<T, U>): U {
+    return transformer.transform(this.results);
+  }
+}
+```
 
-### 3.2 SOLID原則
+## 4. 抽象化されたドメインサービス
 
-- 単一責任の原則：各クラスは単一の責任を持つ
-- 開放閉鎖の原則：拡張に開かれ、修正に閉じる
-- 依存性逆転の原則：抽象に依存し、具象に依存しない
+```typescript
+// 汎用解析エンジンインターフェース
+interface AnalysisEngine {
+  analyze<T, U>(
+    input: T,
+    strategy: AnalysisStrategy<T, U>
+  ): Promise<U>;
+}
+
+// 解析戦略インターフェース
+interface AnalysisStrategy<T, U> {
+  execute(input: T, context: AnalysisContext): Promise<U>;
+}
+
+// フロントマター抽出器インターフェース
+interface FrontMatterExtractor {
+  extract(content: string): FrontMatterContent | null;
+}
+
+// 汎用トランスフォーマー
+interface Transformer<T, U> {
+  transform(data: Map<string, T>): U;
+}
+```
+
+## 5. 処理フロー（汎用化）
+
+```typescript
+// 汎用処理パイプライン
+class AnalysisPipeline<T> {
+  constructor(
+    private extractor: FrontMatterExtractor,
+    private engine: AnalysisEngine,
+    private transformer: Transformer<AnalysisResult, T>
+  ) {}
+  
+  async process(files: FilePath[]): Promise<T> {
+    const registry = new Registry<AnalysisResult>();
+    
+    for (const file of files) {
+      // 1. ファイル読み込み
+      const content = await this.readFile(file);
+      
+      // 2. フロントマター抽出
+      const frontMatter = this.extractor.extract(content);
+      
+      // 3. AI解析（戦略パターン）
+      const extractionStrategy = new ExtractionStrategy();
+      const extracted = await this.engine.analyze(
+        frontMatter,
+        extractionStrategy
+      );
+      
+      // 4. マッピング（戦略パターン）
+      const mappingStrategy = new MappingStrategy();
+      const mapped = await this.engine.analyze(
+        extracted,
+        mappingStrategy
+      );
+      
+      // 5. レジストリへ追加
+      const result = new AnalysisResult(file, mapped, new Map());
+      registry.add(file.value, result);
+    }
+    
+    // 6. 変換して出力
+    return this.transformer.transform(registry);
+  }
+}
+```
+
+## 6. Claude APIプロンプト設計（汎用的）
+
+### 6.1 情報抽出プロンプト（汎用）
+```typescript
+class ExtractionPrompt {
+  constructor(
+    private schema: SchemaDefinition,
+    private context: string = ""
+  ) {}
+  
+  generate(frontMatter: FrontMatterContent): string {
+    return `
+      Given the following frontmatter data and schema,
+      extract structured information:
+      
+      FrontMatter: ${JSON.stringify(frontMatter.data)}
+      Schema: ${JSON.stringify(this.schema.schema)}
+      Context: ${this.context}
+      
+      Return extracted data matching the schema.
+    `;
+  }
+}
+```
+
+### 6.2 テンプレートマッピングプロンプト（汎用）
+```typescript
+class MappingPrompt {
+  constructor(
+    private template: any,
+    private rules: MappingRules = {}
+  ) {}
+  
+  generate(data: any): string {
+    return `
+      Map the following data to the template structure:
+      
+      Data: ${JSON.stringify(data)}
+      Template: ${JSON.stringify(this.template)}
+      Rules: ${JSON.stringify(this.rules)}
+      
+      Return the filled template.
+    `;
+  }
+}
+```
+
+## 7. 拡張ポイント
+
+### 7.1 プラガブルコンポーネント
+- **Extractor**: Deno標準、gray-matter、custom実装
+- **AnalysisEngine**: Claude API、OpenAI API、ローカル処理
+- **Transformer**: JSON、YAML、XML、Custom形式
+- **FileDiscovery**: glob、regex、custom patterns
+
+### 7.2 設定駆動
+```typescript
+interface AnalysisConfig {
+  // 入力設定
+  input: {
+    patterns: string[];
+    extractor: 'deno' | 'gray-matter' | 'custom';
+  };
+  
+  // 処理設定
+  processing: {
+    engine: 'claude' | 'openai' | 'local';
+    strategies: AnalysisStrategy[];
+  };
+  
+  // 出力設定
+  output: {
+    format: 'json' | 'yaml' | 'custom';
+    schema: SchemaDefinition;
+    template: any;
+  };
+}
+```
+
+## 8. ユビキタス言語（汎用版）
+
+- **Source**: 入力となる任意のマークダウンファイル
+- **FrontMatter**: ファイルのメタデータ部分（汎用）
+- **Schema**: データ構造の定義（カスタマイズ可能）
+- **Template**: 出力フォーマットの雛形（カスタマイズ可能）
+- **Registry**: 解析結果の汎用コンテナ
+- **Pipeline**: 処理の流れ（設定可能）
+- **Strategy**: 解析方法（差し替え可能）
+- **Transformer**: データ変換器（プラガブル）

@@ -1,0 +1,131 @@
+{
+  "version": "1.0.0",
+  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "tools": {
+    "availableConfigs": [
+      "git"
+    ],
+    "commands": [
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "MD"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "MD"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "MD"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "MD"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "MD"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      }
+    ]
+  }
+}

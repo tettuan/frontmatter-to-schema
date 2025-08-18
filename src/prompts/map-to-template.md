@@ -1,84 +1,89 @@
-# Map Extracted Information to Registry Schema
+# Generic Template Mapping
 
-You are tasked with mapping extracted command information to the formal Climpt
-registry schema format.
+You are an expert in data transformation and template mapping.
+
+## Task
+Map the provided extracted data to the given template structure, creating a properly formatted output that combines multiple data sources into the final structure.
 
 ## Input Data
 
-### Extracted Information:
+### Extracted Data
+```json
+{extracted_data}
+```
 
-{{extracted}}
+### Target Template
+```json
+{template}
+```
 
-### Original Frontmatter:
+### Mapping Rules (Optional)
+```json
+{mapping_rules}
+```
 
-{{frontmatter}}
+## Processing Instructions
 
-### Target Schema:
+1. **Template Analysis**
+   - Identify all placeholders in the template
+   - Understand the hierarchical structure
+   - Note any arrays or nested objects
 
-{{schema}}
+2. **Data Mapping**
+   - Fill template placeholders with extracted data
+   - Handle arrays by creating multiple entries as needed
+   - Preserve template structure exactly
 
-## Task
+3. **Aggregation Rules**
+   - When multiple data items map to arrays, include all
+   - Merge data from different sources when specified
+   - Maintain uniqueness where required
 
-Transform the extracted command information into the exact registry schema
-format. Ensure all commands are properly structured with required fields and
-valid option configurations.
+4. **Transformation Rules**
+   - Apply any specified transformations
+   - Format data according to template requirements
+   - Handle data type conversions
 
-## Mapping Rules
+## Mapping Strategies
 
-1. **Required Fields**: Every command must have c1, c2, c3, and description
-2. **Optional Fields**: usage and options are optional but should be included
-   when available
-3. **Validation**:
-   - c1 should be one of: git, spec, test, code, docs, meta (or other valid
-     domains)
-   - c2 should be a clear action verb
-   - c3 should identify the specific target or layer
-4. **Options Structure**:
-   - input: Array of supported input formats (e.g., ["MD", "JSON", "YAML"])
-   - adaptation: Array of processing modes (e.g., ["default", "detailed",
-     "minimal"])
-   - input_file: Array with single boolean indicating file input support
-   - stdin: Array with single boolean indicating standard input support
-   - destination: Array with single boolean indicating output destination
-     support
+- **Direct Replacement**: Replace template placeholders with data values
+- **Array Population**: Fill array templates with multiple data items
+- **Nested Mapping**: Recursively map nested structures
+- **Conditional Inclusion**: Include optional sections based on data availability
+- **Data Aggregation**: Combine multiple data sources into single fields
+
+## Special Handling
+
+### For Arrays
+- If template has an array, populate with all matching data items
+- Maintain order if specified in rules
+- Remove duplicates if uniqueness is required
+
+### For Nested Objects
+- Recursively apply mapping to nested structures
+- Preserve hierarchical relationships
+- Handle missing nested data gracefully
+
+### For Missing Data
+- Keep template defaults if provided
+- Use empty values appropriate to data type
+- Omit optional fields if no data available
+
+## Output Requirements
+
+Return a JSON object that:
+1. Exactly matches the template structure
+2. Contains all mapped data from the extraction
+3. Preserves data types as defined in template
+4. Maintains semantic correctness
 
 ## Output Format
 
-Return a JSON object containing the properly formatted commands:
+Return ONLY valid JSON without any additional text, markdown formatting, or explanations.
 
-```json
-{
-  "commands": [
-    {
-      "c1": "domain",
-      "c2": "action",
-      "c3": "target",
-      "description": "Clear description of the command",
-      "usage": "Usage instructions with examples",
-      "options": {
-        "input": ["format1", "format2"],
-        "adaptation": ["mode1", "mode2"],
-        "input_file": [true],
-        "stdin": [false],
-        "destination": [true]
-      }
-    }
-  ]
-}
-```
+The output must be directly parseable as JSON and match the template structure exactly.
 
-## Processing Guidelines
-
-1. Preserve the semantic meaning from the extracted information
-2. Ensure descriptions are clear and concise
-3. Format usage text to be helpful and include examples when possible
-4. Only include options that were explicitly identified or strongly implied
-5. Maintain consistency in naming conventions across similar commands
-6. If no valid commands can be mapped, return: `{"commands": []}`
-
-## Quality Checks
-
-- Verify all required fields are present
-- Ensure c1/c2/c3 follow naming conventions (lowercase, hyphen-separated)
-- Check that boolean arrays in options contain exactly one value
-- Validate that descriptions provide value to users
+Note: 
+- Arrays should contain all relevant items
+- Nested objects should be fully populated
+- The final structure should be complete and valid
