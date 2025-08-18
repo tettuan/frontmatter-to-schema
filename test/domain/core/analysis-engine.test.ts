@@ -12,7 +12,7 @@ import {
   type AnalysisContext,
   FrontMatterContent,
   SchemaDefinition,
-  ValidFilePath,
+  type ValidFilePath,
 } from "../../../src/domain/core/types.ts";
 import { type Result, type AnalysisError, createDomainError } from "../../../src/domain/core/result.ts";
 

@@ -1,7 +1,7 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
   type Result,
-  type DomainError,
+  type DomainError as _DomainError,
   type ValidationError,
   createDomainError,
   getDefaultErrorMessage,
@@ -137,7 +137,7 @@ Deno.test("Result utility functions", async (t) => {
 
   await t.step("mapErrorResult should transform error", () => {
     const result = createErrorResult<number>({ kind: "EmptyInput" });
-    const mapped = mapErrorResult(result, (error) => createDomainError({ kind: "InvalidFormat", input: "transformed", expectedFormat: "test" }));
+    const mapped = mapErrorResult(result, (_error) => createDomainError({ kind: "InvalidFormat", input: "transformed", expectedFormat: "test" }));
     
     assertEquals(mapped.ok, false);
     if (!mapped.ok) {
@@ -147,7 +147,7 @@ Deno.test("Result utility functions", async (t) => {
 
   await t.step("mapErrorResult should preserve success", () => {
     const result = createSuccessResult(42);
-    const mapped = mapErrorResult(result, (error) => createDomainError({ kind: "InvalidFormat", input: "transformed", expectedFormat: "test" }));
+    const mapped = mapErrorResult(result, (_error) => createDomainError({ kind: "InvalidFormat", input: "transformed", expectedFormat: "test" }));
     
     assertEquals(mapped.ok, true);
     if (mapped.ok) {
@@ -349,7 +349,7 @@ Deno.test("Error handling edge cases", async (t) => {
     
     const complex = flatMapResult(
       mapResult(result, (x) => x * 2),
-      (x) => flatMapResult(
+      (_x) => flatMapResult(
         createErrorResult<number>({ kind: "InvalidFormat", input: "test", expectedFormat: "number" }),
         (y) => createSuccessResult(y.toString())
       )

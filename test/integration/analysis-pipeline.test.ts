@@ -1,13 +1,13 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  GenericAnalysisEngine,
+  type GenericAnalysisEngine,
   AnalysisEngineFactory,
   FrontMatterExtractionStrategy,
-  SchemaMappingStrategy,
+  type SchemaMappingStrategy,
 } from "../../src/domain/core/analysis-engine.ts";
 import {
   ValidFilePath,
-  FrontMatterContent,
+  type FrontMatterContent,
   SchemaDefinition,
   SourceFile,
   type AnalysisContext,

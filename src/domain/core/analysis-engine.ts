@@ -220,7 +220,7 @@ export class RobustTemplateMapper<TSource, TTarget>
     let sourceObj: Record<string, unknown>;
     if (source && typeof source === "object" && "data" in source && "get" in source) {
       // This is a FrontMatterContent instance
-      sourceObj = (source as any).data;
+      sourceObj = (source as { data: Record<string, unknown> }).data;
     } else if (typeof source === "object" && source !== null) {
       sourceObj = source as Record<string, unknown>;
     } else {
@@ -238,7 +238,7 @@ export class RobustTemplateMapper<TSource, TTarget>
             const keys = targetKey.split('.');
             if (keys.length === 2) {
               if (!result[keys[0]]) result[keys[0]] = {};
-              (result[keys[0]] as any)[keys[1]] = sourceObj[sourceKeyStr];
+              (result[keys[0]] as Record<string, unknown>)[keys[1]] = sourceObj[sourceKeyStr];
             }
           } else {
             result[targetKey] = sourceObj[sourceKeyStr];
