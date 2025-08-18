@@ -7,6 +7,7 @@ import {
   AnalysisEngineFactory,
   FrontMatterExtractionStrategy,
   SchemaMappingStrategy,
+  type AnalysisStrategy,
 } from "../../../src/domain/core/analysis-engine.ts";
 import {
   type AnalysisContext,
@@ -45,16 +46,16 @@ class MockAnalysisStrategy {
     _context: AnalysisContext,
   ): Promise<Result<unknown, unknown>> {
     if (this.shouldSucceed) {
-      return { ok: true, data: this.resultData };
+      return Promise.resolve({ ok: true, data: this.resultData });
     }
-    return {
+    return Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: "ExtractionStrategyFailed",
         strategy: this.name,
         input,
       }),
-    };
+    });
   }
 }
 
@@ -67,7 +68,7 @@ Deno.test({
     const engine = new GenericAnalysisEngine();
     const strategy = new MockAnalysisStrategy(true, "success result");
     
-    const result = await engine.analyze("test input", strategy);
+    const result = await engine.analyze("test input", strategy as AnalysisStrategy<unknown, unknown>);
     
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -79,7 +80,7 @@ Deno.test({
     const engine = new GenericAnalysisEngine();
     const strategy = new MockAnalysisStrategy(true, "should not reach");
     
-    const result = await engine.analyze(null, strategy);
+    const result = await engine.analyze(null, strategy as AnalysisStrategy<unknown, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -91,7 +92,7 @@ Deno.test({
     const engine = new GenericAnalysisEngine();
     const strategy = new MockAnalysisStrategy(true, "should not reach");
     
-    const result = await engine.analyze(undefined, strategy);
+    const result = await engine.analyze(undefined, strategy as AnalysisStrategy<unknown, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -103,7 +104,7 @@ Deno.test({
     const engine = new GenericAnalysisEngine();
     const strategy = new MockAnalysisStrategy(false);
     
-    const result = await engine.analyze("test input", strategy);
+    const result = await engine.analyze("test input", strategy as AnalysisStrategy<unknown, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -119,7 +120,7 @@ Deno.test({
     const engine = new GenericAnalysisEngine(100); // 100ms timeout
     
     // Mock strategy that takes longer than timeout
-    const slowStrategy = {
+    const slowStrategy: AnalysisStrategy<unknown, string> = {
       name: "SlowStrategy",
       async execute(_input: unknown, _context: unknown): Promise<Result<string, AnalysisError & { message: string }>> {
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -140,9 +141,9 @@ Deno.test({
   await t.step("should handle strategy execution exception", async () => {
     const engine = new GenericAnalysisEngine();
     
-    const throwingStrategy = {
+    const throwingStrategy: AnalysisStrategy<unknown, unknown> = {
       name: "ThrowingStrategy",
-      async execute(_input: any, _context: any): Promise<any> {
+      async execute(_input: unknown, _context: unknown): Promise<Result<unknown, AnalysisError & { message: string }>> {
         throw new Error("Strategy execution failed");
       }
     };
@@ -158,7 +159,7 @@ Deno.test({
 
 Deno.test("RobustSchemaAnalyzer", async (t) => {
   await t.step("should process data successfully with valid schema", async () => {
-    const analyzer = new RobustSchemaAnalyzer<any, any>();
+    const analyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
     const data = createTestFrontMatterContent({ title: "Test", count: 42 });
     const schema = createTestSchemaDefinition({ type: "object" });
     
@@ -166,18 +167,18 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).count, 42);
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).count, 42);
     }
   });
 
   await t.step("should fail when schema validation fails", async () => {
-    const analyzer = new RobustSchemaAnalyzer<any, any>();
+    const analyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
     const data = createTestFrontMatterContent({ title: "Test" });
     
     // Create a schema that will fail validation (simulate validation failure)
     const invalidSchema = new (class {
-      constructor(public schema: any) {}
+      constructor(public schema: Record<string, unknown>) {}
       validate(_data: unknown) {
         return {
           ok: false,
@@ -186,7 +187,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
       }
     })({ type: "object" });
     
-    const result = await analyzer.process(data, invalidSchema as any);
+    const result = await analyzer.process(data, invalidSchema as SchemaDefinition);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -197,7 +198,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
 
 Deno.test("RobustTemplateMapper", async (t) => {
   await t.step("should map source to template successfully", () => {
-    const mapper = new RobustTemplateMapper<any, any>();
+    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const source = { title: "Test", count: 42 };
     const template = {
       structure: { 
@@ -212,15 +213,15 @@ Deno.test("RobustTemplateMapper", async (t) => {
     assertEquals(result.ok, true);
     if (result.ok) {
       // Should merge source with template structure
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).count, 42);
-      assertEquals((result.data as any).name, "default");
-      assertEquals((result.data as any).category, "test");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).count, 42);
+      assertEquals((result.data as Record<string, unknown>).name, "default");
+      assertEquals((result.data as Record<string, unknown>).category, "test");
     }
   });
 
   await t.step("should reject null source", () => {
-    const mapper = new RobustTemplateMapper<any, any>();
+    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
     const result = mapper.map(null, template);
@@ -232,7 +233,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
   });
 
   await t.step("should reject undefined source", () => {
-    const mapper = new RobustTemplateMapper<any, any>();
+    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
     const result = mapper.map(undefined, template);
@@ -244,22 +245,22 @@ Deno.test("RobustTemplateMapper", async (t) => {
   });
 
   await t.step("should handle non-object source", () => {
-    const mapper = new RobustTemplateMapper<any, any>();
+    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
     const template = { structure: { name: "default" } };
     
     const result = mapper.map("primitive value", template);
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).name, "default");
+      assertEquals((result.data as Record<string, unknown>).name, "default");
     }
   });
 });
 
 Deno.test("ContextualAnalysisProcessor", async (t) => {
   const mockEngine = new GenericAnalysisEngine();
-  const mockSchemaAnalyzer = new RobustSchemaAnalyzer<any, any>();
-  const mockTemplateMapper = new RobustTemplateMapper<any, any>();
+  const mockSchemaAnalyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
+  const mockTemplateMapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
   
   await t.step("should process SchemaAnalysis context", async () => {
     const processor = new ContextualAnalysisProcessor(
@@ -280,7 +281,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
     }
   });
 
@@ -301,8 +302,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).name, "default");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).name, "default");
     }
   });
 
@@ -325,8 +326,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).name, "default");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).name, "default");
     }
   });
 
@@ -348,7 +349,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
     }
   });
 
@@ -369,11 +370,11 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).author, "John");
-      assertEquals((result.data as any).extractionMetadata.keyCount, 2);
-      assertEquals((result.data as any).extractionMetadata.includeMetadata, true);
-      assertEquals(typeof (result.data as any).extractionMetadata.extractedAt, "string");
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).author, "John");
+      assertEquals((result.data as Record<string, unknown>).extractionMetadata.keyCount, 2);
+      assertEquals((result.data as Record<string, unknown>).extractionMetadata.includeMetadata, true);
+      assertEquals(typeof (result.data as Record<string, unknown>).extractionMetadata.extractedAt, "string");
     }
   });
 
@@ -394,7 +395,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).extractionMetadata.includeMetadata, false);
+      assertEquals((result.data as Record<string, unknown>).extractionMetadata.includeMetadata, false);
     }
   });
 });
@@ -434,8 +435,8 @@ author: John Doe
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).get("title"), "Test Document");
-      assertEquals((result.data as any).get("author"), "John Doe");
+      assertEquals((result.data as Record<string, unknown>).get("title"), "Test Document");
+      assertEquals((result.data as Record<string, unknown>).get("author"), "John Doe");
     }
   });
 
@@ -455,7 +456,7 @@ No frontmatter here.`;
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
-      assertEquals((result.error as any).strategy, "FrontMatterExtractionStrategy");
+      assertEquals((result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number }).strategy, "FrontMatterExtractionStrategy");
     }
   });
 
@@ -477,7 +478,7 @@ title Test Document (missing colon)
     assertEquals(result.ok, true); // Our simple parser should still work
     if (result.ok) {
       // The line without colon should be ignored
-      assertEquals((result.data as any).size(), 0);
+      assertEquals((result.data as Record<string, unknown>).size(), 0);
     }
   });
 
@@ -496,7 +497,7 @@ title Test Document (missing colon)
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
       // Should truncate input in error
-      assertEquals((result.error as any).input.length, 103); // 100 + "..."
+      assertEquals((result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number }).input.length, 103); // 100 + "..."
     }
   });
 });
@@ -517,8 +518,8 @@ Deno.test("SchemaMappingStrategy", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data as any).title, "Test");
-      assertEquals((result.data as any).count, 42);
+      assertEquals((result.data as Record<string, unknown>).title, "Test");
+      assertEquals((result.data as Record<string, unknown>).count, 42);
     }
   });
 
@@ -544,7 +545,7 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 Deno.test("Integration: Complete Analysis Workflow", async (t) => {
   await t.step("should perform complete analysis workflow", async () => {
     // Create components
-    const { engine, processor } = AnalysisEngineFactory.createDefault();
+    const { engine: _engine, processor } = AnalysisEngineFactory.createDefault();
     
     // Create test data
     const data = createTestFrontMatterContent({
@@ -573,7 +574,7 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     
     assertEquals(schemaResult.ok, true);
     if (schemaResult.ok) {
-      const data = schemaResult.data as any;
+      const data = schemaResult.data as Record<string, unknown>;
       assertEquals(data.title, "Integration Test");
       assertEquals(data.author, "Test Author");
       assertEquals(data.version, 1);
@@ -596,7 +597,7 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     
     assertEquals(templateResult.ok, true);
     if (templateResult.ok) {
-      const data = templateResult.data as any;
+      const data = templateResult.data as Record<string, unknown>;
       assertEquals(data.title, "Integration Test");
       assertEquals(data.name, "processed_document");
       assertEquals(data.category, "test");
@@ -638,7 +639,7 @@ This is the markdown content.`;
       
       assertEquals(processResult.ok, true);
       if (processResult.ok) {
-        const data = processResult.data as any;
+        const data = processResult.data as Record<string, unknown>;
         assertEquals(data.title, "E2E Test");
         assertEquals(data.extractionMetadata.keyCount, 4); // title, description, tags, published
         assertEquals(typeof data.extractionMetadata.extractedAt, "string");

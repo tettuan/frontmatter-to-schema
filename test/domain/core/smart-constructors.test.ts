@@ -6,6 +6,7 @@ import {
   SourceFile,
   AnalysisResult,
 } from "../../../src/domain/core/types.ts";
+import { type ValidationError } from "../../../src/domain/core/result.ts";
 
 Deno.test("ValidFilePath Smart Constructor", async (t) => {
   await t.step("should create valid file path successfully", () => {
@@ -43,7 +44,7 @@ Deno.test("ValidFilePath Smart Constructor", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "TooLong");
-      assertEquals((result.error as any).maxLength, 512);
+      assertEquals((result.error as ValidationError & { maxLength?: number; path?: string; expected?: string[] }).maxLength, 512);
     }
   });
 
@@ -98,8 +99,8 @@ Deno.test("ValidFilePath Smart Constructor", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "FileExtensionMismatch");
-      assertEquals((result.error as any).path, "/path/to/file.txt");
-      assertEquals((result.error as any).expected, [".md"]);
+      assertEquals((result.error as ValidationError & { maxLength?: number; path?: string; expected?: string[] }).path, "/path/to/file.txt");
+      assertEquals((result.error as ValidationError & { maxLength?: number; path?: string; expected?: string[] }).expected, [".md"]);
     }
   });
 
@@ -277,7 +278,7 @@ zero: 0`;
   });
 
   await t.step("should reject non-object input for fromObject", () => {
-    const result = FrontMatterContent.fromObject("not an object" as any);
+    const result = FrontMatterContent.fromObject("not an object" as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -286,7 +287,7 @@ zero: 0`;
   });
 
   await t.step("should reject array input for fromObject", () => {
-    const result = FrontMatterContent.fromObject([1, 2, 3] as any);
+    const result = FrontMatterContent.fromObject([1, 2, 3] as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -295,7 +296,7 @@ zero: 0`;
   });
 
   await t.step("should reject null input for fromObject", () => {
-    const result = FrontMatterContent.fromObject(null as any);
+    const result = FrontMatterContent.fromObject(null as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -366,7 +367,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject null schema", () => {
-    const result = SchemaDefinition.create(null as any);
+    const result = SchemaDefinition.create(null as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -375,7 +376,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject undefined schema", () => {
-    const result = SchemaDefinition.create(undefined as any);
+    const result = SchemaDefinition.create(undefined as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -384,7 +385,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject non-object schema", () => {
-    const result = SchemaDefinition.create("not an object" as any);
+    const result = SchemaDefinition.create("not an object" as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -393,7 +394,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   });
 
   await t.step("should reject array schema", () => {
-    const result = SchemaDefinition.create([1, 2, 3] as any);
+    const result = SchemaDefinition.create([1, 2, 3] as Record<string, unknown>);
     
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -407,7 +408,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
     
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals((result.data.schema as any).type, "object");
+      assertEquals((result.data.schema as Record<string, unknown>).type, "object");
     }
   });
 
@@ -505,7 +506,7 @@ Deno.test("SourceFile Smart Constructor", async (t) => {
     const pathResult = ValidFilePath.create("/test.md");
     
     if (pathResult.ok) {
-      const sourceFileResult = SourceFile.create(pathResult.data, null as any);
+      const sourceFileResult = SourceFile.create(pathResult.data, null as Record<string, unknown>);
       
       assertEquals(sourceFileResult.ok, false);
       if (!sourceFileResult.ok) {

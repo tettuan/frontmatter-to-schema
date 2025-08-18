@@ -133,7 +133,7 @@ export class ResultAssertions {
     if (!result.ok) {
       if (expectedErrorKind && 'kind' in result.error) {
         assertEquals(
-          (result.error as any).kind,
+          (result.error as ValidationError & { kind: string }).kind,
           expectedErrorKind,
           `Expected error kind to be ${expectedErrorKind}`
         );
@@ -147,7 +147,7 @@ export class ResultAssertions {
    * Asserts that a ValidationError has the expected kind
    */
   static assertValidationError(
-    result: Result<any, ValidationError & { message: string }>,
+    result: Result<unknown, ValidationError & { message: string }>,
     expectedKind: ValidationError["kind"],
     message?: string
   ): ValidationError & { message: string } {
@@ -160,7 +160,7 @@ export class ResultAssertions {
    * Asserts that an AnalysisError has the expected kind
    */
   static assertAnalysisError(
-    result: Result<any, AnalysisError & { message: string }>,
+    result: Result<unknown, AnalysisError & { message: string }>,
     expectedKind: AnalysisError["kind"],
     message?: string
   ): AnalysisError & { message: string } {
@@ -191,22 +191,22 @@ export class MockAnalysisStrategy<TInput, TOutput> {
     this.errorKind = options.errorKind || "ExtractionStrategyFailed";
   }
 
-  async execute(
+  execute(
     input: TInput,
     _context: AnalysisContext,
   ): Promise<Result<TOutput, AnalysisError & { message: string }>> {
     if (this.shouldSucceed && this.resultData !== undefined) {
-      return { ok: true, data: this.resultData };
+      return Promise.resolve({ ok: true, data: this.resultData });
     }
     
-    return {
+    return Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: this.errorKind,
         strategy: this.name,
         input,
-      } as any),
-    };
+      } as AnalysisError),
+    });
   }
 
   // Helper methods for test control
@@ -254,7 +254,7 @@ export class TestContextFactory {
     };
     
     if (schema) {
-      (context as any).schema = schema;
+      (context as AnalysisContext & { schema?: SchemaDefinition }).schema = schema;
     }
     
     return context;

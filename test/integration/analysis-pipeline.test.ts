@@ -318,7 +318,7 @@ Validate configuration.`
     // Test mapping - create simple derived registry
     const commandSummaries: string[] = [];
     for (const result of registry.values()) {
-      const data = result.extractedData as any;
+      const data = result.extractedData as Record<string, unknown>;
       commandSummaries.push(`${data.c1}-${data.c2}-${data.c3}`);
     }
 
@@ -484,14 +484,20 @@ priority: urgent
     assertEquals(result.templateMapped?.priority, "urgent");
 
     // Verify metadata preservation from template
-    assertEquals((result.templateMapped as any)?.metadata?.reviewConfig?.requiresReview, true);
-    assertEquals((result.templateMapped as any)?.metadata?.labelConfig?.allowCustom, true);
+    assertEquals((result.templateMapped as Record<string, unknown>)?.metadata?.reviewConfig?.requiresReview, true);
+    assertEquals((result.templateMapped as Record<string, unknown>)?.metadata?.labelConfig?.allowCustom, true);
   });
 
   await t.step("should measure performance with large dataset", async () => {
     const startTime = performance.now();
     const fileCount = 50;
-    const results: any[] = [];
+    const results: Array<{
+      sourceFile: SourceFile | null;
+      extractedContent: FrontMatterContent | null;
+      schemaValidated: Record<string, unknown> | null;
+      templateMapped: Record<string, unknown> | null;
+      analysisResult: AnalysisResult<Record<string, unknown>> | null;
+    }> = [];
     const schema = createCommandSchema();
     const template = createCommandTemplate();
 
@@ -537,9 +543,9 @@ This is test file number ${i} for performance benchmarking.`;
 
     // Verify all results are valid
     results.forEach((result, index) => {
-      assertEquals(result.templateMapped.c1, "test");
-      assertEquals(result.templateMapped.c2, "benchmark");
-      assertEquals(result.templateMapped.c3, `performance-${index}`);
+      assertEquals(result.templateMapped?.c1, "test");
+      assertEquals(result.templateMapped?.c2, "benchmark");
+      assertEquals(result.templateMapped?.c3, `performance-${index}`);
     });
   });
 });
