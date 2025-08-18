@@ -9,6 +9,7 @@ usage: climpt-git create refinement-issue -f requirements.md
 Based on the provided requirements: {input_text_file}
 
 Create a refinement issue with the following structure:
+
 - Issue title
 - Description
 - Acceptance criteria

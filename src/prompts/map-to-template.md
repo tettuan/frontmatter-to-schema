@@ -3,21 +3,27 @@
 You are an expert in data transformation and template mapping.
 
 ## Task
-Map the provided extracted data to the given template structure, creating a properly formatted output that combines multiple data sources into the final structure.
+
+Map the provided extracted data to the given template structure, creating a
+properly formatted output that combines multiple data sources into the final
+structure.
 
 ## Input Data
 
 ### Extracted Data
+
 ```json
 {extracted_data}
 ```
 
 ### Target Template
+
 ```json
 {template}
 ```
 
 ### Mapping Rules (Optional)
+
 ```json
 {mapping_rules}
 ```
@@ -49,22 +55,26 @@ Map the provided extracted data to the given template structure, creating a prop
 - **Direct Replacement**: Replace template placeholders with data values
 - **Array Population**: Fill array templates with multiple data items
 - **Nested Mapping**: Recursively map nested structures
-- **Conditional Inclusion**: Include optional sections based on data availability
+- **Conditional Inclusion**: Include optional sections based on data
+  availability
 - **Data Aggregation**: Combine multiple data sources into single fields
 
 ## Special Handling
 
 ### For Arrays
+
 - If template has an array, populate with all matching data items
 - Maintain order if specified in rules
 - Remove duplicates if uniqueness is required
 
 ### For Nested Objects
+
 - Recursively apply mapping to nested structures
 - Preserve hierarchical relationships
 - Handle missing nested data gracefully
 
 ### For Missing Data
+
 - Keep template defaults if provided
 - Use empty values appropriate to data type
 - Omit optional fields if no data available
@@ -72,6 +82,7 @@ Map the provided extracted data to the given template structure, creating a prop
 ## Output Requirements
 
 Return a JSON object that:
+
 1. Exactly matches the template structure
 2. Contains all mapped data from the extraction
 3. Preserves data types as defined in template
@@ -79,11 +90,14 @@ Return a JSON object that:
 
 ## Output Format
 
-Return ONLY valid JSON without any additional text, markdown formatting, or explanations.
+Return ONLY valid JSON without any additional text, markdown formatting, or
+explanations.
 
-The output must be directly parseable as JSON and match the template structure exactly.
+The output must be directly parseable as JSON and match the template structure
+exactly.
 
-Note: 
+Note:
+
 - Arrays should contain all relevant items
 - Nested objects should be fully populated
 - The final structure should be complete and valid
