@@ -2,13 +2,13 @@
  * Generic registry for managing analysis results
  */
 
-import { AnalysisResult } from './types.ts';
-import { Transformer } from './interfaces.ts';
+import type { AnalysisResult } from './types.ts';
+import type { Transformer } from './interfaces.ts';
 
 /**
  * Registry aggregates analysis results and provides transformation capabilities
  */
-export class Registry<T = any> {
+export class Registry<T = unknown> {
   private results = new Map<string, AnalysisResult<T>>();
 
   /**

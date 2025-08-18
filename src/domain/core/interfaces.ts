@@ -2,7 +2,7 @@
  * Core domain interfaces for pluggable components
  */
 
-import { FrontMatterContent, AnalysisContext, AnalysisResult } from './types.ts';
+import type { FrontMatterContent, AnalysisContext, AnalysisResult } from './types.ts';
 
 /**
  * Interface for frontmatter extraction
@@ -22,7 +22,7 @@ export interface FrontMatterExtractor {
 /**
  * Generic analysis strategy interface
  */
-export interface AnalysisStrategy<TInput = any, TOutput = any> {
+export interface AnalysisStrategy<TInput = unknown, TOutput = unknown> {
   /**
    * Strategy name for identification
    */
@@ -50,7 +50,7 @@ export interface AnalysisEngine {
 /**
  * Transformer for converting analysis results to output format
  */
-export interface Transformer<TInput = any, TOutput = any> {
+export interface Transformer<TInput = unknown, TOutput = unknown> {
   /**
    * Transforms analysis results to desired output format
    */
@@ -75,7 +75,7 @@ export interface FileDiscovery {
 /**
  * Output formatter for different serialization formats
  */
-export interface OutputFormatter<T = any> {
+export interface OutputFormatter<T = unknown> {
   /**
    * Format name (json, yaml, xml, etc.)
    */
@@ -106,8 +106,8 @@ export interface PipelineConfig {
   };
   output: {
     format: string;
-    schema?: any;
-    template?: any;
+    schema?: unknown;
+    template?: unknown;
     destination: string;
   };
 }
