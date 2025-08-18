@@ -112,11 +112,12 @@ console.log(`Available Configs: ${registry.tools.availableConfigs.join(", ")}`);
 
 console.log("\n🎯 Commands Overview:");
 for (const cmd of registry.tools.commands) {
-  console.log(`\n  ${cmd.name}:`);
+  console.log(`\n  ${cmd.c1}-${cmd.c2}-${cmd.c3}:`);
   console.log(`    Description: ${cmd.description}`);
-  if (cmd.inputSchema?.properties) {
-    const props = Object.keys(cmd.inputSchema.properties);
-    console.log(`    Parameters: ${props.join(", ")}`);
+  console.log(`    Usage: ${cmd.usage}`);
+  if (cmd.options) {
+    console.log(`    Input Types: ${cmd.options.input.join(", ")}`);
+    console.log(`    Adaptations: ${cmd.options.adaptation.join(", ")}`);
   }
 }
 

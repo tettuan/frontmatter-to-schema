@@ -146,6 +146,6 @@ try {
   console.log(report.substring(0, 500) + "...");
   
 } catch (error) {
-  console.error("❌ Error:", error.message);
+  console.error("❌ Error:", error instanceof Error ? error.message : String(error));
   Deno.exit(1);
 }

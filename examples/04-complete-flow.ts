@@ -73,25 +73,24 @@ async function extractFrontmatter(files: string[]): Promise<Map<string, MappedEn
     const usage = (frontMatter.get("usage") as string) || 
                   `Execute: climpt-${command} ${directive} ${layer}`;
     
+    // Check for variables in content
+    const hasInputFile = content.includes("{input_text_file}");
+    const hasStdin = content.includes("{input_text}");
+    const hasDestination = content.includes("{destination_path}");
+    
     const cmd: MappedEntry = {
       c1: command,
       c2: directive,
       c3: layer,
       description: description,
       usage: usage,
-    };
-    
-    // Always include options for valid structure
-    const hasInputFile = content.includes("{input_text_file}");
-    const hasStdin = content.includes("{input_text}");
-    const hasDestination = content.includes("{destination_path}");
-    
-    cmd.options = {
-      input: ["default"],
-      adaptation: ["default"],
-      input_file: [hasInputFile],
-      stdin: [hasStdin],
-      destination: [hasDestination],
+      options: {
+        input: ["default"],
+        adaptation: ["default"],
+        input_file: [hasInputFile],
+        stdin: [hasStdin],
+        destination: [hasDestination],
+      },
     };
     
     const key = `${command}/${directive}/${layer}`;
@@ -182,7 +181,7 @@ async function main() {
     }
     
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
+    console.error("\n❌ Error:", error instanceof Error ? error.message : String(error));
     Deno.exit(1);
   }
 }

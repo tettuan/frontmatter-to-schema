@@ -33,10 +33,18 @@ a. プロンプトとフロントマターと解析結果のSchemaを使って�
 
 TypeScript内部へ埋め込む。
 
+## 抽象化レベル
+
+ルール:
+1. 実装に具体的な実例1-実例2のパターンを混入しない
+2. 実例1-実例2のSchema例とテンプレート例が変更されても、アプリケーションコードに影響がない
+3. 実例1-実例2の階層情報が変わっても、アプリケーションコードに影響がない
+4. 上記2と3が、設定あるいは引数で解決できている
+
 # 参照すべき情報
 
 以下は、実際のユースケースに該当する事例である。
-成果物は、ここに挙げた 実例1 以外のケースにも対応できるように、汎用的に抽象化されたアプリケーションである。
+成果物は、ここに挙げた 実例1-実例2 以外のケースにも対応できるように、汎用的に抽象化されたアプリケーションである。
 そのアプリケーションが、以下の実例を使って、実際にSchemaからテンプレートへと当て込むことが出来るか検証する目的で例示する。
 
 なお、実際の使用例としては、 examples/ 配下に作成し、実行可能な形で再現すること。 tests/ がアプリケーションコードを強固にする役割であり、 examples/ が実例を実行して示す役割である。
@@ -140,3 +148,61 @@ TypeScript内部へ埋め込む。
   }
 }
 ```
+
+
+## 実例2
+### フロントマター解析対象のフォルダ：
+
+`.agent/drafts/articles`
+
+### 解析結果の保存先：
+
+`.agent/drafts/books.yml`
+
+### 解析結果のSchema：
+
+```
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "books": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "emoji": { "type": "string" },
+          "type": { "type": "string" },
+          "topics": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "published": { "type": "boolean" },
+          "published_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["title", "type", "published"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["books"],
+  "additionalProperties": false
+}
+```
+
+### 解析結果のテンプレート：
+
+```
+books:
+  - title: "記事タイトル"
+    emoji: "📚"
+    type: "tech"
+    topics:
+      - "claudecode"
+      - "codingagents"
+    published: true
+    published_at: "2025-08-01 10:00"
+  # ...他の記事も同様に追加
+```
+
