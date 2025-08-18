@@ -2,10 +2,10 @@
 
 /**
  * Example: Create MCP Registry
- * 
+ *
  * This example demonstrates how to create a complete MCP registry
  * with multiple commands and configurations.
- * 
+ *
  * Usage:
  *   deno run --allow-read --allow-write examples/03-create-registry.ts
  */
@@ -14,7 +14,7 @@ import { RegistryBuilder } from "../src/registry-builder.ts";
 import type { MappedEntry } from "../src/types.ts";
 
 console.log("🏗️  Creating MCP Registry Example");
-console.log("=" .repeat(50));
+console.log("=".repeat(50));
 
 // Create builder instance
 const builder = new RegistryBuilder();
@@ -26,7 +26,8 @@ const commands: MappedEntry[] = [
     c2: "robust",
     c3: "api",
     description: "Build a robust API with best practices",
-    usage: "Create production-ready API endpoints\nExample: climpt-build robust api -f spec.md",
+    usage:
+      "Create production-ready API endpoints\nExample: climpt-build robust api -f spec.md",
     options: {
       input: ["MD", "YAML", "JSON"],
       adaptation: ["default", "minimal", "comprehensive"],
@@ -40,7 +41,8 @@ const commands: MappedEntry[] = [
     c2: "generate",
     c3: "unit",
     description: "Generate comprehensive unit tests",
-    usage: "Auto-generate unit tests for your code\nExample: climpt-test generate unit -f src/",
+    usage:
+      "Auto-generate unit tests for your code\nExample: climpt-test generate unit -f src/",
     options: {
       input: ["TS", "JS"],
       adaptation: ["default", "strict"],
@@ -54,7 +56,8 @@ const commands: MappedEntry[] = [
     c2: "create",
     c3: "api",
     description: "Generate API documentation",
-    usage: "Create OpenAPI/Swagger documentation\nExample: climpt-docs create api -o docs/api.md",
+    usage:
+      "Create OpenAPI/Swagger documentation\nExample: climpt-docs create api -o docs/api.md",
     options: {
       input: ["default"],
       adaptation: ["default", "detailed"],
@@ -68,7 +71,8 @@ const commands: MappedEntry[] = [
     c2: "code",
     c3: "quality",
     description: "Analyze code quality and patterns",
-    usage: "Perform static analysis and pattern detection\nExample: climpt-analyze code quality",
+    usage:
+      "Perform static analysis and pattern detection\nExample: climpt-analyze code quality",
     options: {
       input: ["default"],
       adaptation: ["default"],
