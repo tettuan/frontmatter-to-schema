@@ -14,7 +14,7 @@ import {
   type AnalysisContext,
   type ProcessingResult
 } from "../core/abstractions.ts";
-import { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
+import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
 import { FrontMatterContent, SourceFile, FilePath } from "../core/types.ts";
 
 /**

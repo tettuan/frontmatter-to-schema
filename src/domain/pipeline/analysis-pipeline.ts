@@ -6,10 +6,10 @@ import {
   FilePath,
   SourceFile,
   AnalysisResult,
-  AnalysisContext,
+  type AnalysisContext,
   SchemaDefinition
 } from '../core/types.ts';
-import {
+import type {
   FrontMatterExtractor,
   AnalysisEngine,
   AnalysisStrategy,
@@ -22,13 +22,13 @@ import { Registry } from '../core/registry.ts';
 /**
  * Generic analysis pipeline that orchestrates the entire process
  */
-export class AnalysisPipeline<TOutput = any> {
+export class AnalysisPipeline<TOutput = unknown> {
   constructor(
     private readonly config: PipelineConfig,
     private readonly fileDiscovery: FileDiscovery,
     private readonly extractor: FrontMatterExtractor,
     private readonly engine: AnalysisEngine,
-    private readonly transformer: Transformer<any, TOutput>,
+    private readonly transformer: Transformer<unknown, TOutput>,
     private readonly strategies: Map<string, AnalysisStrategy>
   ) {}
 
@@ -55,7 +55,7 @@ export class AnalysisPipeline<TOutput = any> {
     }
     
     // 3. Transform and return results
-    const resultMap = new Map<string, AnalysisResult<any>>();
+    const resultMap = new Map<string, AnalysisResult<unknown>>();
     registry.toArray().forEach((item, index) => {
       resultMap.set(index.toString(), item.result);
     });
@@ -105,7 +105,7 @@ export class AnalysisPipeline<TOutput = any> {
     };
     
     // Execute strategies in sequence
-    let data: any = frontMatter.data;
+    let data: unknown = frontMatter.data;
     
     for (const strategyName of this.config.processing.strategies) {
       const strategy = this.strategies.get(strategyName);
@@ -219,7 +219,7 @@ export class PipelineBuilder<TOutput = any> {
     return this;
   }
 
-  withOutputSchema(schema: any): this {
+  withOutputSchema(schema: unknown): this {
     if (!this.config.output) {
       this.config.output = { format: 'json', destination: '' };
     }
@@ -227,7 +227,7 @@ export class PipelineBuilder<TOutput = any> {
     return this;
   }
 
-  withOutputTemplate(template: any): this {
+  withOutputTemplate(template: unknown): this {
     if (!this.config.output) {
       this.config.output = { format: 'json', destination: '' };
     }
