@@ -1,6 +1,6 @@
-import { Result } from "../domain/shared/result.ts";
+import type { Result } from "../domain/shared/result.ts";
 import {
-  ConfigurationError,
+  type ConfigurationError,
   createConfigurationError,
 } from "../domain/shared/errors.ts";
 

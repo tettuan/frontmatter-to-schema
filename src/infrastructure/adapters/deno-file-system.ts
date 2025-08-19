@@ -1,6 +1,6 @@
-import { Result } from "../../domain/shared/result.ts";
-import { createIOError, IOError } from "../../domain/shared/errors.ts";
-import { FileSystemPort, FileInfo } from "../ports/file-system.ts";
+import type { Result } from "../../domain/shared/result.ts";
+import { createIOError, type IOError } from "../../domain/shared/errors.ts";
+import type { FileSystemPort, FileInfo } from "../ports/file-system.ts";
 import { walk } from "jsr:@std/fs/walk";
 import { ensureDir } from "jsr:@std/fs/ensure-dir";
 

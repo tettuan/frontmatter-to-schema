@@ -1,7 +1,7 @@
 // Domain service interfaces
 
-import { Result, ProcessingError, ValidationError, IOError } from "../shared/types.ts";
-import {
+import type { Result, ProcessingError, ValidationError, IOError } from "../shared/types.ts";
+import type {
   Document,
   FrontMatter,
   Schema,
@@ -11,7 +11,7 @@ import {
   AnalysisResult,
   AggregatedResult,
 } from "../models/entities.ts";
-import {
+import type {
   DocumentPath,
   ConfigPath,
   OutputPath,

@@ -1,5 +1,5 @@
-import { Result, isOk, isError } from "../domain/shared/result.ts";
-import { DomainError, ValidationError } from "../domain/shared/errors.ts";
+import { type Result, isOk, type isError } from "../domain/shared/result.ts";
+import type { DomainError, ValidationError } from "../domain/shared/errors.ts";
 import {
   Document,
   DocumentPath,
@@ -18,12 +18,12 @@ import {
   ExtractedData,
   BatchTransformationResult,
 } from "../domain/models/transformation.ts";
-import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
-import { SchemaValidator } from "../domain/services/schema-validator.ts";
-import { TemplateMapper } from "../domain/services/template-mapper.ts";
-import { FileSystemPort } from "../infrastructure/ports/file-system.ts";
-import { AIAnalyzerPort } from "../infrastructure/ports/ai-analyzer.ts";
-import { ApplicationConfiguration } from "./configuration.ts";
+import type { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
+import type { SchemaValidator } from "../domain/services/schema-validator.ts";
+import type { TemplateMapper } from "../domain/services/template-mapper.ts";
+import type { FileSystemPort } from "../infrastructure/ports/file-system.ts";
+import type { AIAnalyzerPort } from "../infrastructure/ports/ai-analyzer.ts";
+import type { ApplicationConfiguration } from "./configuration.ts";
 
 export class DocumentProcessor {
   constructor(

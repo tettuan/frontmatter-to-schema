@@ -1,8 +1,8 @@
-import { Result } from "../shared/result.ts";
-import { ValidationError } from "../shared/errors.ts";
-import { Document } from "./document.ts";
-import { Schema } from "./schema.ts";
-import { Template } from "./template.ts";
+import type { Result } from "../shared/result.ts";
+import type { ValidationError } from "../shared/errors.ts";
+import type { Document } from "./document.ts";
+import type { Schema } from "./schema.ts";
+import type { Template } from "./template.ts";
 
 export class ExtractedData {
   private constructor(

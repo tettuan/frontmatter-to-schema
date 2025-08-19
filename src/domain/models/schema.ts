@@ -1,5 +1,5 @@
-import { Result } from "../shared/result.ts";
-import { ValidationError } from "../shared/errors.ts";
+import type { Result } from "../shared/result.ts";
+import type { ValidationError } from "../shared/errors.ts";
 
 export type SchemaFormat = "json" | "yaml" | "custom";
 

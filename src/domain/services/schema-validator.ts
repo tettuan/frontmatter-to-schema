@@ -1,6 +1,6 @@
-import { Result } from "../shared/result.ts";
-import { ValidationError, createValidationError } from "../shared/errors.ts";
-import { Schema } from "../models/schema.ts";
+import type { Result } from "../shared/result.ts";
+import { type ValidationError, createValidationError } from "../shared/errors.ts";
+import type { Schema } from "../models/schema.ts";
 
 export interface ValidationResult {
   isValid: boolean;

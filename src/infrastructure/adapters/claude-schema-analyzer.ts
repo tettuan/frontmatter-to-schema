@@ -1,17 +1,17 @@
 // Claude AI-based schema analyzer implementation
 
 import {
-  Result,
-  ProcessingError,
-  AIError,
+  type Result,
+  type ProcessingError,
+  type AIError,
   createError,
 } from "../../domain/shared/types.ts";
 import {
-  FrontMatter,
-  Schema,
+  type FrontMatter,
+  type Schema,
   ExtractedData,
 } from "../../domain/models/entities.ts";
-import {
+import type {
   SchemaAnalyzer,
   AnalysisConfiguration,
 } from "../../domain/services/interfaces.ts";

@@ -1,6 +1,6 @@
-import { Result } from "../shared/result.ts";
-import { ValidationError, createValidationError } from "../shared/errors.ts";
-import { Template, TemplateFormat } from "../models/template.ts";
+import type { Result } from "../shared/result.ts";
+import { type ValidationError, createValidationError } from "../shared/errors.ts";
+import type { Template, TemplateFormat } from "../models/template.ts";
 
 export class TemplateMapper {
   map(

@@ -1,12 +1,12 @@
 // Deno-based document repository implementation
 
 import { walk } from "jsr:@std/fs@1.0.8/walk";
-import { extract } from "jsr:@std/front-matter@1.0.5";
+import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import {
-  Result,
-  IOError,
+  type Result,
+  type IOError,
   createError,
-  wrapAsync,
+  type wrapAsync,
 } from "../../domain/shared/types.ts";
 import {
   Document,
@@ -17,7 +17,7 @@ import {
   FrontMatterContent,
   DocumentContent,
 } from "../../domain/models/value-objects.ts";
-import { DocumentRepository } from "../../domain/services/interfaces.ts";
+import type { DocumentRepository } from "../../domain/services/interfaces.ts";
 
 export class DenoDocumentRepository implements DocumentRepository {
   async findAll(path: DocumentPath): Promise<Result<Document[], IOError & { message: string }>> {

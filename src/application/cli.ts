@@ -1,7 +1,7 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
-import { Result, isError } from "../domain/shared/result.ts";
-import { DomainError, errorToString } from "../domain/shared/errors.ts";
-import { ApplicationConfiguration, ConfigurationValidator } from "./configuration.ts";
+import { type Result, isError } from "../domain/shared/result.ts";
+import { type DomainError, errorToString } from "../domain/shared/errors.ts";
+import { type ApplicationConfiguration, ConfigurationValidator } from "./configuration.ts";
 import { DocumentProcessor } from "./document-processor.ts";
 import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";

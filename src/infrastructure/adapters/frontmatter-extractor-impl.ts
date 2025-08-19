@@ -1,19 +1,19 @@
 // FrontMatter extractor implementation
 
-import { extract } from "jsr:@std/front-matter@1.0.5";
+import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import {
-  Result,
-  ProcessingError,
+  type Result,
+  type ProcessingError,
   createError,
 } from "../../domain/shared/types.ts";
 import {
-  Document,
+  type Document,
   FrontMatter,
 } from "../../domain/models/entities.ts";
 import {
   FrontMatterContent,
 } from "../../domain/models/value-objects.ts";
-import { FrontMatterExtractor } from "../../domain/services/interfaces.ts";
+import type { FrontMatterExtractor } from "../../domain/services/interfaces.ts";
 
 export class FrontMatterExtractorImpl implements FrontMatterExtractor {
   extract(document: Document): Result<FrontMatter | null, ProcessingError & { message: string }> {

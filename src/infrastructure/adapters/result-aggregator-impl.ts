@@ -1,15 +1,15 @@
 // Result aggregator implementation
 
 import {
-  Result,
-  ProcessingError,
+  type Result,
+  type ProcessingError,
   createError,
 } from "../../domain/shared/types.ts";
 import {
-  AnalysisResult,
+  type AnalysisResult,
   AggregatedResult,
 } from "../../domain/models/entities.ts";
-import { ResultAggregator } from "../../domain/services/interfaces.ts";
+import type { ResultAggregator } from "../../domain/services/interfaces.ts";
 
 export class ResultAggregatorImpl implements ResultAggregator {
   constructor(

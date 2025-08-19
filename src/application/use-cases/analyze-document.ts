@@ -1,21 +1,21 @@
 // Analyze single document use case
 
 import {
-  Result,
-  ProcessingError,
+  type Result,
+  type ProcessingError,
   createError,
   isError,
 } from "../../domain/shared/types.ts";
 import {
-  Document,
-  Schema,
-  Template,
+  type Document,
+  type Schema,
+  type Template,
   AnalysisResult,
 } from "../../domain/models/entities.ts";
-import {
+import type {
   DocumentPath,
 } from "../../domain/models/value-objects.ts";
-import {
+import type {
   DocumentRepository,
   SchemaRepository,
   TemplateRepository,

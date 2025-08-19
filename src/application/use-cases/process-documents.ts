@@ -1,27 +1,27 @@
 // Process documents use case - orchestrates the entire document processing pipeline
 
 import {
-  Result,
-  ProcessingError,
+  type Result,
+  type ProcessingError,
   createError,
   isOk,
   isError,
 } from "../../domain/shared/types.ts";
 import {
-  Document,
-  FrontMatter,
-  Schema,
-  Template,
-  ExtractedData,
-  MappedData,
+  type Document,
+  type FrontMatter,
+  type Schema,
+  type Template,
+  type ExtractedData,
+  type MappedData,
   AnalysisResult,
-  AggregatedResult,
+  type AggregatedResult,
 } from "../../domain/models/entities.ts";
 import {
-  DocumentPath,
+  type DocumentPath,
   ProcessingOptions,
 } from "../../domain/models/value-objects.ts";
-import {
+import type {
   DocumentRepository,
   SchemaRepository,
   TemplateRepository,

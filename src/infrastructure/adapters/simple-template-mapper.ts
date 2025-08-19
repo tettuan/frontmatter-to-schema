@@ -1,16 +1,16 @@
 // Simple template mapper implementation
 
 import {
-  Result,
-  ProcessingError,
+  type Result,
+  type ProcessingError,
   createError,
 } from "../../domain/shared/types.ts";
 import {
-  ExtractedData,
+  type ExtractedData,
   MappedData,
-  Template,
+  type Template,
 } from "../../domain/models/entities.ts";
-import { TemplateMapper } from "../../domain/services/interfaces.ts";
+import type { TemplateMapper } from "../../domain/services/interfaces.ts";
 
 export class SimpleTemplateMapper implements TemplateMapper {
   map(

@@ -1,7 +1,7 @@
 // Domain entities following DDD principles
 
-import { Result, ValidationError, createError } from "../shared/types.ts";
-import {
+import { type Result, type ValidationError, createError } from "../shared/types.ts";
+import type {
   DocumentPath,
   FrontMatterContent,
   DocumentContent,
@@ -416,7 +416,7 @@ export class AggregatedResult {
     
     lines.push(`${spaces}-`);
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === "object" && !Array.isArray(value)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
         lines.push(`${spaces}  ${key}:`);
         for (const [k, v] of Object.entries(value)) {
           lines.push(`${spaces}    ${k}: ${JSON.stringify(v)}`);
@@ -434,3 +434,6 @@ export class AggregatedResult {
     return lines.join("\n");
   }
 }
+
+// Re-export value objects needed by infrastructure
+export { SchemaVersion } from './value-objects.ts';

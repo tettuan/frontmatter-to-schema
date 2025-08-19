@@ -1,9 +1,9 @@
 // Configuration loader implementation
 
 import {
-  Result,
-  IOError,
-  ValidationError,
+  type Result,
+  type IOError,
+  type ValidationError,
   createError,
 } from "../../domain/shared/types.ts";
 import {
@@ -23,7 +23,7 @@ import {
   TemplateFormat,
   MappingRule,
 } from "../../domain/models/value-objects.ts";
-import {
+import type {
   ConfigurationRepository,
   SchemaRepository,
   TemplateRepository,
@@ -31,9 +31,9 @@ import {
   ProcessingConfiguration,
   AnalysisConfiguration,
 } from "../../domain/services/interfaces.ts";
-import { AggregatedResult, AnalysisResult } from "../../domain/models/entities.ts";
+import type { AggregatedResult, AnalysisResult } from "../../domain/models/entities.ts";
 
-export class ConfigurationLoader implements ConfigurationRepository, SchemaRepository, TemplateRepository, ResultRepository {
+export class ConfigurationLoader implements ConfigurationRepository, SchemaRepository, ResultRepository {
   async loadProcessingConfig(
     path: ConfigPath
   ): Promise<Result<ProcessingConfiguration, IOError & { message: string }>> {
@@ -130,8 +130,9 @@ export class ConfigurationLoader implements ConfigurationRepository, SchemaRepos
       const content = await Deno.readTextFile(configPath);
       const config = JSON.parse(content);
 
+      const promptsPathResult = config.promptsPath ? ConfigPath.create(config.promptsPath) : null;
       const analysisConfig: AnalysisConfiguration = {
-        promptsPath: config.promptsPath ? ConfigPath.create(config.promptsPath).data : undefined,
+        promptsPath: promptsPathResult && promptsPathResult.ok ? promptsPathResult.data : undefined,
         extractionPrompt: config.extractionPrompt,
         mappingPrompt: config.mappingPrompt,
         aiProvider: config.aiProvider || "claude",

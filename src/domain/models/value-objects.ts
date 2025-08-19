@@ -1,6 +1,6 @@
 // Value objects with smart constructors following totality principle
 
-import { Result, ValidationError, createError } from "../shared/types.ts";
+import { type Result, type ValidationError, createError } from "../shared/types.ts";
 
 // Document-related value objects
 export class DocumentPath {

@@ -8,7 +8,7 @@ import {
   DocumentPath,
   OutputPath,
 } from "./domain/models/value-objects.ts";
-import {
+import type {
   ProcessingConfiguration,
   AnalysisConfiguration,
 } from "./domain/services/interfaces.ts";
