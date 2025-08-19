@@ -7,13 +7,13 @@ set -e
 
 # Check if gh command is available
 if ! command -v gh &> /dev/null; then
-    echo "Error: gh command not found. Please install GitHub CLI." >&2
+    # echo "Error: gh command not found. Please install GitHub CLI." >&2
     exit 2
 fi
 
 # Check if authenticated with gh
 if ! gh auth status &> /dev/null; then
-    echo "Error: Not authenticated with GitHub CLI. Please run 'gh auth login'." >&2
+    # echo "Error: Not authenticated with GitHub CLI. Please run 'gh auth login'." >&2
     exit 2
 fi
 
@@ -29,6 +29,6 @@ if [ "$pr_count" -eq 0 ] && [ "$issue_count" -eq 0 ]; then
     exit 0
 else
     # Issues exist - output hook message
-    echo '{"decision": "block", "reason": "create 200 - 300 letters current situation and \"things to be done\" message. then, run [climpt-meta resolve registered-commands <<<\"created_message\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)"}'
+    # echo '{"decision": "block", "reason": "create 200 - 300 letters current situation and \"things to be done\" message. then, run [climpt-meta resolve registered-commands <<<\"created_message\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)"}'
     exit 2
 fi
