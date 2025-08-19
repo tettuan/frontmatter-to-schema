@@ -14,5 +14,5 @@ schema file.
 
 **MUST READ**:
 AI-complexity-control:`docs/development/ai-complexity-control_compact.ja.md`
-Totality: `docs/development/totality.ja.md`
-Prohibit-Hardcoding: `prohibit-hardcoding.ja.md`
+Totality: `docs/development/totality.ja.md` Prohibit-Hardcoding:
+`prohibit-hardcoding.ja.md`

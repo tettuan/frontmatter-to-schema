@@ -3,6 +3,7 @@
 ## Core Development Commands
 
 ### Testing
+
 ```bash
 # Run all tests
 ./run-tests.sh
@@ -16,6 +17,7 @@ deno test --coverage
 ```
 
 ### Main Application Execution
+
 ```bash
 # Original pipeline
 deno run --allow-read --allow-write --allow-run src/main.ts .agent/climpt/prompts
@@ -28,6 +30,7 @@ deno run --allow-read --allow-write --allow-run src/main-redesigned.ts .agent/cl
 ```
 
 ### CI/CD Tasks
+
 ```bash
 # Standard CI pipeline
 deno task ci
@@ -39,6 +42,7 @@ deno task ci:dirty
 ## File and Directory Operations (Darwin/macOS)
 
 ### Basic Commands
+
 ```bash
 # List directory contents
 ls -la [directory]
@@ -60,6 +64,7 @@ rm -rf [path]
 ```
 
 ### Search and Analysis
+
 ```bash
 # Find files by pattern
 find [directory] -name "*.md" -type f
@@ -77,6 +82,7 @@ stat [file]
 ```
 
 ## Git Commands
+
 ```bash
 # Check repository status
 git status
@@ -110,6 +116,7 @@ git diff --cached
 ## Deno-Specific Commands
 
 ### Development
+
 ```bash
 # Format code
 deno fmt
@@ -128,6 +135,7 @@ deno cache --reload [file.ts]
 ```
 
 ### Permissions
+
 ```bash
 # Common permission combinations
 --allow-read          # Read file system
@@ -143,6 +151,7 @@ deno cache --reload [file.ts]
 ## Claude AI Integration
 
 ### Claude CLI Commands
+
 ```bash
 # Analyze with prompt file
 claude -p [prompt-file.md] < [input-file]
@@ -160,6 +169,7 @@ claude -p scripts/prompts/map_to_schema.md < [analysis-result]
 ## Project-Specific Utilities
 
 ### Example Execution
+
 ```bash
 # Run examples (if available)
 cd examples/
@@ -170,6 +180,7 @@ cat .agent/climpt/registry.json | json_pp  # Pretty print JSON
 ```
 
 ### Schema Validation
+
 ```bash
 # Validate JSON schema (if schema validator is available)
 ajv validate -s [schema.json] -d [data.json]
@@ -179,6 +190,7 @@ cat [data.json] | jq '.' # Validate JSON syntax
 ```
 
 ### Development Workflow
+
 ```bash
 # 1. Make changes
 # 2. Run tests
@@ -197,6 +209,7 @@ git add . && git commit -m "description"
 ## Troubleshooting Commands
 
 ### File Permission Issues
+
 ```bash
 # Check file permissions
 ls -la [file]
@@ -207,6 +220,7 @@ chmod 644 [file]       # Read/write for owner, read for others
 ```
 
 ### Debugging
+
 ```bash
 # Verbose output
 deno run --allow-all --log-level=debug [file.ts]
@@ -223,6 +237,7 @@ which claude
 ```
 
 ### Network and Environment
+
 ```bash
 # Check environment variables
 env | grep -i claude
