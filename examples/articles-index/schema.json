@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "books": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "emoji": { "type": "string" },
+          "type": { "type": "string" },
+          "topics": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "published": { "type": "boolean" },
+          "published_at": { 
+            "type": "string", 
+            "format": "date-time" 
+          }
+        },
+        "required": ["title", "type", "published"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["books"],
+  "additionalProperties": false
+}

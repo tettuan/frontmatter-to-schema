@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "version": { 
+      "type": "string",
+      "description": "Registry version (e.g., '1.0.0')"
+    },
+    "description": { 
+      "type": "string",
+      "description": "Overall registry description"
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tool names array - each becomes available as climpt-{name}"
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry - defines all available C3L commands",
+          "items": {
+            "type": "object",
+            "properties": {
+              "c1": { 
+                "type": "string",
+                "description": "Domain/category (git, spec, test, code, docs, meta)"
+              },
+              "c2": { 
+                "type": "string",
+                "description": "Action/directive (create, analyze, execute, etc.)"
+              },
+              "c3": { 
+                "type": "string",
+                "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
+              },
+              "description": { 
+                "type": "string",
+                "description": "Command description"
+              },
+              "usage": { 
+                "type": "string",
+                "description": "Usage instructions and examples"
+              },
+              "options": {
+                "type": "object",
+                "description": "Available options for this command",
+                "properties": {
+                  "input": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Supported input formats"
+                  },
+                  "adaptation": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Processing modes"
+                  },
+                  "input_file": {
+                    "type": "array",
+                    "items": { "type": "boolean" },
+                    "description": "File input support"
+                  },
+                  "stdin": {
+                    "type": "array",
+                    "items": { "type": "boolean" },
+                    "description": "Standard input support"
+                  },
+                  "destination": {
+                    "type": "array",
+                    "items": { "type": "boolean" },
+                    "description": "Output destination support"
+                  }
+                }
+              }
+            },
+            "required": ["c1", "c2", "c3", "description"]
+          }
+        }
+      },
+      "required": ["availableConfigs", "commands"]
+    }
+  },
+  "required": ["version", "description", "tools"]
+}
