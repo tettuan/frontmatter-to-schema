@@ -2,21 +2,18 @@
 
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import {
-  type Result,
-  type ProcessingError,
   createError,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
-import {
-  type Document,
-  FrontMatter,
-} from "../../domain/models/entities.ts";
-import {
-  FrontMatterContent,
-} from "../../domain/models/value-objects.ts";
+import { type Document, FrontMatter } from "../../domain/models/entities.ts";
+import { FrontMatterContent } from "../../domain/models/value-objects.ts";
 import type { FrontMatterExtractor } from "../../domain/services/interfaces.ts";
 
 export class FrontMatterExtractorImpl implements FrontMatterExtractor {
-  extract(document: Document): Result<FrontMatter | null, ProcessingError & { message: string }> {
+  extract(
+    document: Document,
+  ): Result<FrontMatter | null, ProcessingError & { message: string }> {
     // If document already has frontmatter, return it
     if (document.hasFrontMatter()) {
       return { ok: true, data: document.getFrontMatter() };
@@ -26,22 +23,27 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
       const content = document.getContent().getValue();
       const extracted = extract(content);
 
-      if (!extracted.frontMatter || Object.keys(extracted.frontMatter).length === 0) {
+      if (
+        !extracted.frontMatter ||
+        Object.keys(extracted.frontMatter).length === 0
+      ) {
         return { ok: true, data: null };
       }
 
       // Convert frontmatter to JSON string
       const frontMatterStr = JSON.stringify(extracted.frontMatter);
-      const frontMatterContentResult = FrontMatterContent.create(frontMatterStr);
-      
+      const frontMatterContentResult = FrontMatterContent.create(
+        frontMatterStr,
+      );
+
       if (!frontMatterContentResult.ok) {
         return {
           ok: false,
           error: createError({
             kind: "ExtractionFailed",
             document: document.getPath().getValue(),
-            reason: "Invalid frontmatter content"
-          })
+            reason: "Invalid frontmatter content",
+          }),
         };
       }
 
@@ -51,7 +53,7 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
 
       const frontMatter = FrontMatter.create(
         frontMatterContentResult.data,
-        rawFrontMatter
+        rawFrontMatter,
       );
 
       return { ok: true, data: frontMatter };
@@ -61,8 +63,8 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
         error: createError({
           kind: "ExtractionFailed",
           document: document.getPath().getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }

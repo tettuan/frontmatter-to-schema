@@ -1,37 +1,37 @@
 // Claude AI-based schema analyzer implementation
 
 import {
-  type Result,
-  type ProcessingError,
   type AIError,
   createError,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
 import {
+  ExtractedData,
   type FrontMatter,
   type Schema,
-  ExtractedData,
 } from "../../domain/models/entities.ts";
 import type {
-  SchemaAnalyzer,
   AnalysisConfiguration,
+  SchemaAnalyzer,
 } from "../../domain/services/interfaces.ts";
 
 export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
   constructor(
     private readonly config: AnalysisConfiguration,
     private readonly extractionPromptTemplate: string,
-    private readonly mappingPromptTemplate: string
+    private readonly mappingPromptTemplate: string,
   ) {}
 
   async analyze(
     frontMatter: FrontMatter,
-    schema: Schema
+    schema: Schema,
   ): Promise<Result<ExtractedData, ProcessingError & { message: string }>> {
     try {
       // Prepare extraction prompt
       const extractionPrompt = this.prepareExtractionPrompt(
         frontMatter.getRaw(),
-        schema.getDefinition().getValue()
+        schema.getDefinition().getValue(),
       );
 
       // Call Claude API for extraction
@@ -42,8 +42,8 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           error: createError({
             kind: "AnalysisFailed",
             document: "unknown",
-            reason: extractionResult.error.message
-          })
+            reason: extractionResult.error.message,
+          }),
         };
       }
 
@@ -55,15 +55,15 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           error: createError({
             kind: "AnalysisFailed",
             document: "unknown",
-            reason: "Failed to parse extraction result"
-          })
+            reason: "Failed to parse extraction result",
+          }),
         };
       }
 
       // Prepare mapping prompt
       const mappingPrompt = this.prepareMappingPrompt(
         extractedData,
-        schema.getDefinition().getValue()
+        schema.getDefinition().getValue(),
       );
 
       // Call Claude API for mapping
@@ -74,8 +74,8 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           error: createError({
             kind: "AnalysisFailed",
             document: "unknown",
-            reason: mappingResult.error.message
-          })
+            reason: mappingResult.error.message,
+          }),
         };
       }
 
@@ -87,8 +87,8 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           error: createError({
             kind: "AnalysisFailed",
             document: "unknown",
-            reason: "Failed to parse mapping result"
-          })
+            reason: "Failed to parse mapping result",
+          }),
         };
       }
 
@@ -99,25 +99,33 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         error: createError({
           kind: "AnalysisFailed",
           document: "unknown",
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
-  private prepareExtractionPrompt(frontMatter: string, schema: unknown): string {
+  private prepareExtractionPrompt(
+    frontMatter: string,
+    schema: unknown,
+  ): string {
     return this.extractionPromptTemplate
       .replace("{{FRONTMATTER}}", frontMatter)
       .replace("{{SCHEMA}}", JSON.stringify(schema, null, 2));
   }
 
-  private prepareMappingPrompt(extractedData: unknown, schema: unknown): string {
+  private prepareMappingPrompt(
+    extractedData: unknown,
+    schema: unknown,
+  ): string {
     return this.mappingPromptTemplate
       .replace("{{EXTRACTED_DATA}}", JSON.stringify(extractedData, null, 2))
       .replace("{{SCHEMA}}", JSON.stringify(schema, null, 2));
   }
 
-  private async callClaudeAPI(prompt: string): Promise<Result<string, AIError & { message: string }>> {
+  private async callClaudeAPI(
+    prompt: string,
+  ): Promise<Result<string, AIError & { message: string }>> {
     // Check prompt length
     if (prompt.length > 100000) {
       return {
@@ -125,8 +133,8 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         error: createError({
           kind: "PromptTooLong",
           length: prompt.length,
-          maxLength: 100000
-        })
+          maxLength: 100000,
+        }),
       };
     }
 
@@ -142,7 +150,7 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       });
 
       const { code, stdout, stderr } = await command.output();
-      
+
       // Clean up temp file
       await Deno.remove(tempFile);
 
@@ -153,8 +161,8 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           error: createError({
             kind: "APIError",
             message: errorMsg || "Claude command failed",
-            code: code.toString()
-          })
+            code: code.toString(),
+          }),
         };
       }
 
@@ -165,13 +173,15 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         ok: false,
         error: createError({
           kind: "APIError",
-          message: error instanceof Error ? error.message : "Unknown error"
-        })
+          message: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
-  private parseExtractionResult(response: string): Record<string, unknown> | null {
+  private parseExtractionResult(
+    response: string,
+  ): Record<string, unknown> | null {
     try {
       // Try to extract JSON from response
       const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
@@ -185,7 +195,7 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       // Try to extract key-value pairs
       const result: Record<string, unknown> = {};
       const lines = response.split("\n");
-      
+
       for (const line of lines) {
         const match = line.match(/^(.+?):\s*(.+)$/);
         if (match) {
@@ -210,11 +220,11 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       // Check for boolean
       if (value === "true") return true;
       if (value === "false") return false;
-      
+
       // Check for number
       const num = Number(value);
       if (!isNaN(num)) return num;
-      
+
       // Return as string
       return value;
     }

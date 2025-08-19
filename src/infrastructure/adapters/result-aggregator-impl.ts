@@ -1,23 +1,23 @@
 // Result aggregator implementation
 
 import {
-  type Result,
-  type ProcessingError,
   createError,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
 import {
-  type AnalysisResult,
   AggregatedResult,
+  type AnalysisResult,
 } from "../../domain/models/entities.ts";
 import type { ResultAggregator } from "../../domain/services/interfaces.ts";
 
 export class ResultAggregatorImpl implements ResultAggregator {
   constructor(
-    private readonly format: "json" | "yaml" = "json"
+    private readonly format: "json" | "yaml" = "json",
   ) {}
 
   aggregate(
-    results: AnalysisResult[]
+    results: AnalysisResult[],
   ): Result<AggregatedResult, ProcessingError & { message: string }> {
     try {
       if (results.length === 0) {
@@ -25,8 +25,8 @@ export class ResultAggregatorImpl implements ResultAggregator {
           ok: false,
           error: createError({
             kind: "AggregationFailed",
-            reason: "No results to aggregate"
-          })
+            reason: "No results to aggregate",
+          }),
         };
       }
 
@@ -37,8 +37,8 @@ export class ResultAggregatorImpl implements ResultAggregator {
         ok: false,
         error: createError({
           kind: "AggregationFailed",
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
