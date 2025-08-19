@@ -1,7 +1,10 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
-import { type Result, isError } from "../domain/shared/result.ts";
+import { isError, type Result } from "../domain/shared/result.ts";
 import { type DomainError, errorToString } from "../domain/shared/errors.ts";
-import { type ApplicationConfiguration, ConfigurationValidator } from "./configuration.ts";
+import {
+  type ApplicationConfiguration,
+  ConfigurationValidator,
+} from "./configuration.ts";
 import { DocumentProcessor } from "./document-processor.ts";
 import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
@@ -51,7 +54,9 @@ export class CLI {
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
     if (isError(configResult)) {
-      console.error(`❌ Configuration error: ${errorToString(configResult.error)}`);
+      console.error(
+        `❌ Configuration error: ${errorToString(configResult.error)}`,
+      );
       Deno.exit(1);
     }
 
@@ -82,7 +87,11 @@ export class CLI {
     if (batchResult.hasErrors()) {
       console.log("\n⚠️  Errors:");
       for (const error of batchResult.getErrors()) {
-        console.log(`  - ${error.document.getPath().getValue()}: ${errorToString(error.error)}`);
+        console.log(
+          `  - ${error.document.getPath().getValue()}: ${
+            errorToString(error.error)
+          }`,
+        );
       }
     }
 
@@ -156,9 +165,11 @@ export class CLI {
 
       config.template = {
         definition: fileResult.data,
-        format: templatePath.endsWith(".json") ? "json" :
-                templatePath.endsWith(".yaml") || templatePath.endsWith(".yml") ? "yaml" :
-                "custom",
+        format: templatePath.endsWith(".json")
+          ? "json"
+          : templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+          ? "yaml"
+          : "custom",
       };
     }
 
@@ -167,9 +178,11 @@ export class CLI {
       const outputPath = args.output as string;
       config.output = {
         path: outputPath,
-        format: outputPath.endsWith(".json") ? "json" :
-                outputPath.endsWith(".yaml") || outputPath.endsWith(".yml") ? "yaml" :
-                "markdown",
+        format: outputPath.endsWith(".json")
+          ? "json"
+          : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
+          ? "yaml"
+          : "markdown",
       };
     }
 
