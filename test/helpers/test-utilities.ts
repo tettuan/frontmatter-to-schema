@@ -5,18 +5,18 @@
 
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  type Result,
-  type ValidationError,
   type AnalysisError,
   createDomainError,
+  type Result,
+  type ValidationError,
 } from "../../src/domain/core/result.ts";
 import {
-  ValidFilePath,
+  type AnalysisContext,
+  AnalysisResult,
   FrontMatterContent,
   SchemaDefinition,
   SourceFile,
-  AnalysisResult,
-  type AnalysisContext,
+  ValidFilePath,
 } from "../../src/domain/core/types.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 
@@ -28,7 +28,9 @@ export class TestDataBuilder {
   static validFilePath(path = "/test/sample.md"): ValidFilePath {
     const result = ValidFilePath.create(path);
     if (!result.ok) {
-      throw new Error(`Failed to create test ValidFilePath: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test ValidFilePath: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -39,7 +41,9 @@ export class TestDataBuilder {
   static markdownFilePath(path = "/test/sample.md"): ValidFilePath {
     const result = ValidFilePath.createMarkdown(path);
     if (!result.ok) {
-      throw new Error(`Failed to create test markdown ValidFilePath: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test markdown ValidFilePath: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -47,10 +51,14 @@ export class TestDataBuilder {
   /**
    * Creates FrontMatterContent from object for testing
    */
-  static frontMatterContent(data: Record<string, unknown> = { title: "Test" }): FrontMatterContent {
+  static frontMatterContent(
+    data: Record<string, unknown> = { title: "Test" },
+  ): FrontMatterContent {
     const result = FrontMatterContent.fromObject(data);
     if (!result.ok) {
-      throw new Error(`Failed to create test FrontMatterContent: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test FrontMatterContent: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -61,7 +69,9 @@ export class TestDataBuilder {
   static frontMatterFromYaml(yaml: string): FrontMatterContent {
     const result = FrontMatterContent.fromYaml(yaml);
     if (!result.ok) {
-      throw new Error(`Failed to create test FrontMatterContent from YAML: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test FrontMatterContent from YAML: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -69,10 +79,14 @@ export class TestDataBuilder {
   /**
    * Creates SchemaDefinition for testing
    */
-  static schemaDefinition(schema: unknown = { type: "object" }): SchemaDefinition {
+  static schemaDefinition(
+    schema: unknown = { type: "object" },
+  ): SchemaDefinition {
     const result = SchemaDefinition.create(schema);
     if (!result.ok) {
-      throw new Error(`Failed to create test SchemaDefinition: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test SchemaDefinition: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -83,14 +97,18 @@ export class TestDataBuilder {
   static sourceFile(
     path = "/test/sample.md",
     content = "# Test Content",
-    frontMatter?: Record<string, unknown>
+    frontMatter?: Record<string, unknown>,
   ): SourceFile {
     const validPath = this.validFilePath(path);
-    const frontMatterContent = frontMatter ? this.frontMatterContent(frontMatter) : undefined;
-    
+    const frontMatterContent = frontMatter
+      ? this.frontMatterContent(frontMatter)
+      : undefined;
+
     const result = SourceFile.create(validPath, content, frontMatterContent);
     if (!result.ok) {
-      throw new Error(`Failed to create test SourceFile: ${result.error.message}`);
+      throw new Error(
+        `Failed to create test SourceFile: ${result.error.message}`,
+      );
     }
     return result.data;
   }
@@ -101,7 +119,7 @@ export class TestDataBuilder {
   static analysisResult<T>(
     path = "/test/sample.md",
     extractedData: T = { title: "Test" } as T,
-    metadata?: Map<string, unknown>
+    metadata?: Map<string, unknown>,
   ): AnalysisResult<T> {
     const validPath = this.validFilePath(path);
     return new AnalysisResult(validPath, extractedData, metadata);
@@ -114,7 +132,11 @@ export class ResultAssertions {
    * Asserts that a Result is successful and returns the data
    */
   static assertSuccess<T, E>(result: Result<T, E>, message?: string): T {
-    assertEquals(result.ok, true, message || "Expected result to be successful");
+    assertEquals(
+      result.ok,
+      true,
+      message || "Expected result to be successful",
+    );
     if (result.ok) {
       return result.data;
     }
@@ -127,15 +149,15 @@ export class ResultAssertions {
   static assertError<T, E extends { message: string }>(
     result: Result<T, E>,
     expectedErrorKind?: string,
-    message?: string
+    message?: string,
   ): E {
     assertEquals(result.ok, false, message || "Expected result to be an error");
     if (!result.ok) {
-      if (expectedErrorKind && 'kind' in result.error) {
+      if (expectedErrorKind && "kind" in result.error) {
         assertEquals(
           (result.error as ValidationError & { kind: string }).kind,
           expectedErrorKind,
-          `Expected error kind to be ${expectedErrorKind}`
+          `Expected error kind to be ${expectedErrorKind}`,
         );
       }
       return result.error;
@@ -149,10 +171,14 @@ export class ResultAssertions {
   static assertValidationError(
     result: Result<unknown, ValidationError & { message: string }>,
     expectedKind: ValidationError["kind"],
-    message?: string
+    message?: string,
   ): ValidationError & { message: string } {
     const error = this.assertError(result, expectedKind, message);
-    assertEquals(error.kind, expectedKind, `Expected validation error kind to be ${expectedKind}`);
+    assertEquals(
+      error.kind,
+      expectedKind,
+      `Expected validation error kind to be ${expectedKind}`,
+    );
     return error;
   }
 
@@ -162,10 +188,14 @@ export class ResultAssertions {
   static assertAnalysisError(
     result: Result<unknown, AnalysisError & { message: string }>,
     expectedKind: AnalysisError["kind"],
-    message?: string
+    message?: string,
   ): AnalysisError & { message: string } {
     const error = this.assertError(result, expectedKind, message);
-    assertEquals(error.kind, expectedKind, `Expected analysis error kind to be ${expectedKind}`);
+    assertEquals(
+      error.kind,
+      expectedKind,
+      `Expected analysis error kind to be ${expectedKind}`,
+    );
     return error;
   }
 }
@@ -183,7 +213,7 @@ export class MockAnalysisStrategy<TInput, TOutput> {
       shouldSucceed?: boolean;
       resultData?: TOutput;
       errorKind?: AnalysisError["kind"];
-    } = {}
+    } = {},
   ) {
     this.name = name;
     this.shouldSucceed = options.shouldSucceed ?? true;
@@ -198,7 +228,7 @@ export class MockAnalysisStrategy<TInput, TOutput> {
     if (this.shouldSucceed && this.resultData !== undefined) {
       return Promise.resolve({ ok: true, data: this.resultData });
     }
-    
+
     return Promise.resolve({
       ok: false,
       error: createDomainError({
@@ -232,12 +262,12 @@ export class TestContextFactory {
    */
   static schemaAnalysis(
     schema?: SchemaDefinition,
-    options = { includeMetadata: true }
+    options = { includeMetadata: true },
   ): AnalysisContext {
     return {
       kind: "SchemaAnalysis",
       schema: schema || TestDataBuilder.schemaDefinition(),
-      options
+      options,
     };
   }
 
@@ -246,17 +276,18 @@ export class TestContextFactory {
    */
   static templateMapping(
     template = { structure: { name: "test" } },
-    schema?: SchemaDefinition
+    schema?: SchemaDefinition,
   ): AnalysisContext {
     const context: AnalysisContext = {
       kind: "TemplateMapping",
-      template
+      template,
     };
-    
+
     if (schema) {
-      (context as AnalysisContext & { schema?: SchemaDefinition }).schema = schema;
+      (context as AnalysisContext & { schema?: SchemaDefinition }).schema =
+        schema;
     }
-    
+
     return context;
   }
 
@@ -266,7 +297,7 @@ export class TestContextFactory {
   static validationOnly(schema?: SchemaDefinition): AnalysisContext {
     return {
       kind: "ValidationOnly",
-      schema: schema || TestDataBuilder.schemaDefinition()
+      schema: schema || TestDataBuilder.schemaDefinition(),
     };
   }
 
@@ -276,7 +307,7 @@ export class TestContextFactory {
   static basicExtraction(options = { includeMetadata: true }): AnalysisContext {
     return {
       kind: "BasicExtraction",
-      options
+      options,
     };
   }
 }
@@ -298,11 +329,13 @@ export class SampleDataGenerator {
   /**
    * Generates sample frontmatter data for different domains
    */
-  static frontMatter(domain: "git" | "spec" | "build" | "test" | "docs" = "git"): SampleFrontMatter {
+  static frontMatter(
+    domain: "git" | "spec" | "build" | "test" | "docs" = "git",
+  ): SampleFrontMatter {
     const baseData = {
       version: 1.0,
       active: true,
-      tags: ["test"]
+      tags: ["test"],
     };
 
     switch (domain) {
@@ -314,9 +347,9 @@ export class SampleDataGenerator {
           target: "pull-request",
           description: "Create a pull request for code review",
           complexity: "medium",
-          tags: ["git", "collaboration", "review"]
+          tags: ["git", "collaboration", "review"],
         };
-        
+
       case "spec":
         return {
           ...baseData,
@@ -325,9 +358,9 @@ export class SampleDataGenerator {
           target: "requirements",
           description: "Analyze project requirements and dependencies",
           complexity: "high",
-          tags: ["spec", "analysis", "requirements"]
+          tags: ["spec", "analysis", "requirements"],
         };
-        
+
       case "build":
         return {
           ...baseData,
@@ -336,9 +369,9 @@ export class SampleDataGenerator {
           target: "config",
           description: "Validate build configuration files",
           complexity: "low",
-          tags: ["build", "validation", "config"]
+          tags: ["build", "validation", "config"],
         };
-        
+
       case "test":
         return {
           ...baseData,
@@ -347,9 +380,9 @@ export class SampleDataGenerator {
           target: "unit-tests",
           description: "Run unit tests for the project",
           complexity: "medium",
-          tags: ["test", "unit", "validation"]
+          tags: ["test", "unit", "validation"],
         };
-        
+
       case "docs":
         return {
           ...baseData,
@@ -358,18 +391,18 @@ export class SampleDataGenerator {
           target: "api-docs",
           description: "Generate API documentation from code",
           complexity: "low",
-          tags: ["docs", "api", "generation"]
+          tags: ["docs", "api", "generation"],
         };
-        
+
       default:
         return {
           ...baseData,
           domain: "unknown",
           action: "unknown",
-          target: "unknown", 
+          target: "unknown",
           description: "Unknown command type",
           complexity: "unknown",
-          tags: ["unknown"]
+          tags: ["unknown"],
         };
     }
   }
@@ -377,11 +410,13 @@ export class SampleDataGenerator {
   /**
    * Generates sample markdown content with frontmatter
    */
-  static markdownWithFrontMatter(domain: "git" | "spec" | "build" | "test" | "docs" = "git"): string {
+  static markdownWithFrontMatter(
+    domain: "git" | "spec" | "build" | "test" | "docs" = "git",
+  ): string {
     const frontMatter = this.frontMatter(domain);
     const yamlLines = Object.entries(frontMatter).map(([key, value]) => {
       if (Array.isArray(value)) {
-        return `${key}: [${value.map(v => `"${v}"`).join(", ")}]`;
+        return `${key}: [${value.map((v) => `"${v}"`).join(", ")}]`;
       } else if (typeof value === "string") {
         return `${key}: "${value}"`;
       } else {
@@ -393,7 +428,9 @@ export class SampleDataGenerator {
 ${yamlLines.join("\n")}
 ---
 
-# ${frontMatter.domain.charAt(0).toUpperCase() + frontMatter.domain.slice(1)} ${frontMatter.action.charAt(0).toUpperCase() + frontMatter.action.slice(1)} Command
+# ${frontMatter.domain.charAt(0).toUpperCase() + frontMatter.domain.slice(1)} ${
+      frontMatter.action.charAt(0).toUpperCase() + frontMatter.action.slice(1)
+    } Command
 
 ${frontMatter.description}
 
@@ -430,28 +467,36 @@ climpt-${frontMatter.domain} ${frontMatter.action} ${frontMatter.target} --verbo
     return {
       type: "object",
       properties: {
-        domain: { 
-          type: "string", 
-          enum: ["git", "spec", "build", "test", "docs"] 
+        domain: {
+          type: "string",
+          enum: ["git", "spec", "build", "test", "docs"],
         },
-        action: { 
-          type: "string", 
-          enum: ["create", "update", "delete", "analyze", "validate", "run", "generate"] 
+        action: {
+          type: "string",
+          enum: [
+            "create",
+            "update",
+            "delete",
+            "analyze",
+            "validate",
+            "run",
+            "generate",
+          ],
         },
         target: { type: "string" },
         description: { type: "string" },
-        complexity: { 
-          type: "string", 
-          enum: ["low", "medium", "high"] 
+        complexity: {
+          type: "string",
+          enum: ["low", "medium", "high"],
         },
-        tags: { 
-          type: "array", 
-          items: { type: "string" } 
+        tags: {
+          type: "array",
+          items: { type: "string" },
         },
         version: { type: "number" },
-        active: { type: "boolean" }
+        active: { type: "boolean" },
       },
-      required: ["domain", "action", "target", "description"]
+      required: ["domain", "action", "target", "description"],
     };
   }
 
@@ -470,14 +515,14 @@ climpt-${frontMatter.domain} ${frontMatter.action} ${frontMatter.target} --verbo
           version: "1.0",
           active: true,
           tags: [],
-          processedAt: new Date().toISOString()
-        }
+          processedAt: new Date().toISOString(),
+        },
       },
       mappingRules: {
         c1: "domain",
         c2: "action",
-        c3: "target"
-      }
+        c3: "target",
+      },
     };
   }
 }
@@ -489,15 +534,15 @@ export class PerformanceTestUtils {
    */
   static async measureTime<T>(
     fn: () => Promise<T>,
-    description = "Operation"
+    description = "Operation",
   ): Promise<{ result: T; duration: number; throughput?: number }> {
     const startTime = performance.now();
     const result = await fn();
     const endTime = performance.now();
     const duration = endTime - startTime;
-    
+
     console.log(`${description}: ${duration.toFixed(2)}ms`);
-    
+
     return { result, duration };
   }
 
@@ -507,7 +552,7 @@ export class PerformanceTestUtils {
   static async benchmarkFunction<T>(
     fn: () => Promise<T>,
     iterations = 100,
-    description = "Benchmark"
+    description = "Benchmark",
   ): Promise<{
     results: T[];
     totalTime: number;
@@ -518,35 +563,37 @@ export class PerformanceTestUtils {
   }> {
     const times: number[] = [];
     const results: T[] = [];
-    
-    console.log(`Running ${description} benchmark with ${iterations} iterations...`);
-    
+
+    console.log(
+      `Running ${description} benchmark with ${iterations} iterations...`,
+    );
+
     for (let i = 0; i < iterations; i++) {
       const { result, duration } = await this.measureTime(fn, "");
       times.push(duration);
       results.push(result);
     }
-    
+
     const totalTime = times.reduce((sum, time) => sum + time, 0);
     const averageTime = totalTime / iterations;
     const minTime = Math.min(...times);
     const maxTime = Math.max(...times);
     const throughput = 1000 / averageTime; // operations per second
-    
+
     console.log(`${description} Results:`);
     console.log(`  Total time: ${totalTime.toFixed(2)}ms`);
     console.log(`  Average time: ${averageTime.toFixed(2)}ms`);
     console.log(`  Min time: ${minTime.toFixed(2)}ms`);
     console.log(`  Max time: ${maxTime.toFixed(2)}ms`);
     console.log(`  Throughput: ${throughput.toFixed(2)} ops/sec`);
-    
+
     return {
       results,
       totalTime,
       averageTime,
       minTime,
       maxTime,
-      throughput
+      throughput,
     };
   }
 
@@ -556,12 +603,14 @@ export class PerformanceTestUtils {
   static assertPerformance(
     actualTime: number,
     maxTime: number,
-    description = "Operation"
+    description = "Operation",
   ): void {
     assertEquals(
       actualTime <= maxTime,
       true,
-      `${description} took ${actualTime.toFixed(2)}ms, which exceeds the maximum of ${maxTime}ms`
+      `${description} took ${
+        actualTime.toFixed(2)
+      }ms, which exceeds the maximum of ${maxTime}ms`,
     );
   }
 }
@@ -592,11 +641,11 @@ export class TestCleanup {
    */
   static createTempRegistry<T>(): Registry<T> {
     const registry = new Registry<T>();
-    
+
     this.register(() => {
       registry.clear();
     });
-    
+
     return registry;
   }
 }

@@ -19,10 +19,10 @@ This is the body of the document.`;
 
     const result = extractor.extract(content);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       const { frontMatter, body } = result.data;
-      
+
       // Check frontmatter exists
       assertEquals(frontMatter !== null, true);
       if (frontMatter) {
@@ -32,7 +32,7 @@ This is the body of the document.`;
         assertEquals(parsed.published, true);
         assertEquals(Array.isArray(parsed.tags), true);
       }
-      
+
       // Check body
       assertEquals(body.getContent().startsWith("# Main Content"), true);
     }
@@ -45,7 +45,7 @@ Just regular markdown content.`;
 
     const result = extractor.extract(content);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       const { frontMatter, body } = result.data;
       assertEquals(frontMatter, null);
@@ -68,7 +68,7 @@ Body content`;
 
     const result = extractor.extract(content);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       const { frontMatter } = result.data;
       if (frontMatter) {
@@ -92,7 +92,7 @@ Body content`;
 
     const result = extractor.extract(content);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       const { frontMatter, body } = result.data;
       assertEquals(frontMatter !== null, true);

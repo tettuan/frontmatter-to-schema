@@ -1,13 +1,13 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
+  AnalysisEngineFactory,
+  type AnalysisStrategy,
+  ContextualAnalysisProcessor,
+  FrontMatterExtractionStrategy,
   GenericAnalysisEngine,
   RobustSchemaAnalyzer,
   RobustTemplateMapper,
-  ContextualAnalysisProcessor,
-  AnalysisEngineFactory,
-  FrontMatterExtractionStrategy,
   SchemaMappingStrategy,
-  type AnalysisStrategy,
 } from "../../../src/domain/core/analysis-engine.ts";
 import {
   type AnalysisContext,
@@ -15,7 +15,11 @@ import {
   SchemaDefinition,
   // ValidFilePath is imported but not used in this test file
 } from "../../../src/domain/core/types.ts";
-import { type Result, type AnalysisError, createDomainError } from "../../../src/domain/core/result.ts";
+import {
+  type AnalysisError,
+  createDomainError,
+  type Result,
+} from "../../../src/domain/core/result.ts";
 
 // Test helper functions
 const createTestFrontMatterContent = (data: Record<string, unknown>) => {
@@ -60,135 +64,173 @@ class MockAnalysisStrategy {
 }
 
 Deno.test({
-  name: "GenericAnalysisEngine", 
+  name: "GenericAnalysisEngine",
   sanitizeResources: false,
   sanitizeOps: false,
   fn: async (t) => {
-  await t.step("should analyze successfully with valid input and strategy", async () => {
-    const engine = new GenericAnalysisEngine();
-    const strategy = new MockAnalysisStrategy(true, "success result");
-    
-    const result = await engine.analyze("test input", strategy as AnalysisStrategy<unknown, unknown>);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, "success result");
-    }
-  });
+    await t.step(
+      "should analyze successfully with valid input and strategy",
+      async () => {
+        const engine = new GenericAnalysisEngine();
+        const strategy = new MockAnalysisStrategy(true, "success result");
 
-  await t.step("should reject null input", async () => {
-    const engine = new GenericAnalysisEngine();
-    const strategy = new MockAnalysisStrategy(true, "should not reach");
-    
-    const result = await engine.analyze(null, strategy as AnalysisStrategy<unknown, unknown>);
-    
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "ExtractionStrategyFailed");
-    }
-  });
+        const result = await engine.analyze(
+          "test input",
+          strategy as AnalysisStrategy<unknown, unknown>,
+        );
 
-  await t.step("should reject undefined input", async () => {
-    const engine = new GenericAnalysisEngine();
-    const strategy = new MockAnalysisStrategy(true, "should not reach");
-    
-    const result = await engine.analyze(undefined, strategy as AnalysisStrategy<unknown, unknown>);
-    
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "ExtractionStrategyFailed");
-    }
-  });
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          assertEquals(result.data, "success result");
+        }
+      },
+    );
 
-  await t.step("should propagate strategy execution error", async () => {
-    const engine = new GenericAnalysisEngine();
-    const strategy = new MockAnalysisStrategy(false);
-    
-    const result = await engine.analyze("test input", strategy as AnalysisStrategy<unknown, unknown>);
-    
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "ExtractionStrategyFailed");
-    }
-  });
+    await t.step("should reject null input", async () => {
+      const engine = new GenericAnalysisEngine();
+      const strategy = new MockAnalysisStrategy(true, "should not reach");
 
-  await t.step({
-    name: "should handle timeout",
-    sanitizeResources: false,
-    sanitizeOps: false,
-    fn: async () => {
-    const engine = new GenericAnalysisEngine(100); // 100ms timeout
-    
-    // Mock strategy that takes longer than timeout
-    const slowStrategy: AnalysisStrategy<unknown, string> = {
-      name: "SlowStrategy",
-      async execute(_input: unknown, _context: unknown): Promise<Result<string, AnalysisError & { message: string }>> {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return { ok: true, data: "should timeout" };
+      const result = await engine.analyze(
+        null,
+        strategy as AnalysisStrategy<unknown, unknown>,
+      );
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "ExtractionStrategyFailed");
       }
-    };
-    
-    const result = await engine.analyze("test input", slowStrategy);
-    
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "AnalysisTimeout");
-      // Type assertion needed for accessing timeoutMs property
-      assertEquals((result.error as { timeoutMs: number }).timeoutMs, 100);
-    }
-  }});
+    });
 
-  await t.step("should handle strategy execution exception", async () => {
-    const engine = new GenericAnalysisEngine();
-    
-    const throwingStrategy: AnalysisStrategy<unknown, unknown> = {
-      name: "ThrowingStrategy",
-      execute(_input: unknown, _context: unknown): Promise<Result<unknown, AnalysisError & { message: string }>> {
-        return Promise.reject(new Error("Strategy execution failed"));
+    await t.step("should reject undefined input", async () => {
+      const engine = new GenericAnalysisEngine();
+      const strategy = new MockAnalysisStrategy(true, "should not reach");
+
+      const result = await engine.analyze(
+        undefined,
+        strategy as AnalysisStrategy<unknown, unknown>,
+      );
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "ExtractionStrategyFailed");
       }
-    };
-    
-    const result = await engine.analyze("test input", throwingStrategy);
-    
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "ExtractionStrategyFailed");
-    }
-  });
-}});
+    });
+
+    await t.step("should propagate strategy execution error", async () => {
+      const engine = new GenericAnalysisEngine();
+      const strategy = new MockAnalysisStrategy(false);
+
+      const result = await engine.analyze(
+        "test input",
+        strategy as AnalysisStrategy<unknown, unknown>,
+      );
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "ExtractionStrategyFailed");
+      }
+    });
+
+    await t.step({
+      name: "should handle timeout",
+      sanitizeResources: false,
+      sanitizeOps: false,
+      fn: async () => {
+        const engine = new GenericAnalysisEngine(100); // 100ms timeout
+
+        // Mock strategy that takes longer than timeout
+        const slowStrategy: AnalysisStrategy<unknown, string> = {
+          name: "SlowStrategy",
+          async execute(
+            _input: unknown,
+            _context: unknown,
+          ): Promise<Result<string, AnalysisError & { message: string }>> {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            return { ok: true, data: "should timeout" };
+          },
+        };
+
+        const result = await engine.analyze("test input", slowStrategy);
+
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "AnalysisTimeout");
+          // Type assertion needed for accessing timeoutMs property
+          assertEquals((result.error as { timeoutMs: number }).timeoutMs, 100);
+        }
+      },
+    });
+
+    await t.step("should handle strategy execution exception", async () => {
+      const engine = new GenericAnalysisEngine();
+
+      const throwingStrategy: AnalysisStrategy<unknown, unknown> = {
+        name: "ThrowingStrategy",
+        execute(
+          _input: unknown,
+          _context: unknown,
+        ): Promise<Result<unknown, AnalysisError & { message: string }>> {
+          return Promise.reject(new Error("Strategy execution failed"));
+        },
+      };
+
+      const result = await engine.analyze("test input", throwingStrategy);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "ExtractionStrategyFailed");
+      }
+    });
+  },
+});
 
 Deno.test("RobustSchemaAnalyzer", async (t) => {
-  await t.step("should process data successfully with valid schema", async () => {
-    const analyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
-    const data = createTestFrontMatterContent({ title: "Test", count: 42 });
-    const schema = createTestSchemaDefinition({ type: "object" });
-    
-    const result = await analyzer.process(data, schema as SchemaDefinition<Record<string, unknown>>);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).title, "Test");
-      assertEquals((result.data as Record<string, unknown>).count, 42);
-    }
-  });
+  await t.step(
+    "should process data successfully with valid schema",
+    async () => {
+      const analyzer = new RobustSchemaAnalyzer<
+        Record<string, unknown>,
+        Record<string, unknown>
+      >();
+      const data = createTestFrontMatterContent({ title: "Test", count: 42 });
+      const schema = createTestSchemaDefinition({ type: "object" });
+
+      const result = await analyzer.process(
+        data,
+        schema as SchemaDefinition<Record<string, unknown>>,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals((result.data as Record<string, unknown>).title, "Test");
+        assertEquals((result.data as Record<string, unknown>).count, 42);
+      }
+    },
+  );
 
   await t.step("should fail when schema validation fails", async () => {
-    const analyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
+    const analyzer = new RobustSchemaAnalyzer<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
     const data = createTestFrontMatterContent({ title: "Test" });
-    
+
     // Create a schema that will fail validation (simulate validation failure)
     const invalidSchema = new (class {
       constructor(public schema: Record<string, unknown>) {}
       validate(_data: unknown) {
         return {
           ok: false,
-          error: createDomainError({ kind: "EmptyInput" })
+          error: createDomainError({ kind: "EmptyInput" }),
         };
       }
     })({ type: "object" });
-    
-    const result = await analyzer.process(data, invalidSchema as SchemaDefinition<Record<string, unknown>>);
-    
+
+    const result = await analyzer.process(
+      data,
+      invalidSchema as SchemaDefinition<Record<string, unknown>>,
+    );
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "SchemaValidationFailed");
@@ -198,18 +240,21 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
 
 Deno.test("RobustTemplateMapper", async (t) => {
   await t.step("should map source to template successfully", () => {
-    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
+    const mapper = new RobustTemplateMapper<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
     const source = { title: "Test", count: 42 };
     const template = {
-      structure: { 
+      structure: {
         name: "default",
         value: "default_value",
-        category: "test"
-      }
+        category: "test",
+      },
     };
-    
+
     const result = mapper.map(source, template);
-    
+
     assertEquals(result.ok, true);
     if (result.ok) {
       // Should merge source with template structure
@@ -221,11 +266,17 @@ Deno.test("RobustTemplateMapper", async (t) => {
   });
 
   await t.step("should reject null source", () => {
-    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
+    const mapper = new RobustTemplateMapper<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
     const template = { structure: { name: "default" } };
-    
-    const result = mapper.map(null as unknown as Record<string, unknown>, template);
-    
+
+    const result = mapper.map(
+      null as unknown as Record<string, unknown>,
+      template,
+    );
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -233,11 +284,17 @@ Deno.test("RobustTemplateMapper", async (t) => {
   });
 
   await t.step("should reject undefined source", () => {
-    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
+    const mapper = new RobustTemplateMapper<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
     const template = { structure: { name: "default" } };
-    
-    const result = mapper.map(undefined as unknown as Record<string, unknown>, template);
-    
+
+    const result = mapper.map(
+      undefined as unknown as Record<string, unknown>,
+      template,
+    );
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -245,11 +302,17 @@ Deno.test("RobustTemplateMapper", async (t) => {
   });
 
   await t.step("should handle non-object source", () => {
-    const mapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
+    const mapper = new RobustTemplateMapper<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >();
     const template = { structure: { name: "default" } };
-    
-    const result = mapper.map("primitive value" as unknown as Record<string, unknown>, template);
-    
+
+    const result = mapper.map(
+      "primitive value" as unknown as Record<string, unknown>,
+      template,
+    );
+
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals((result.data as Record<string, unknown>).name, "default");
@@ -259,77 +322,89 @@ Deno.test("RobustTemplateMapper", async (t) => {
 
 Deno.test("ContextualAnalysisProcessor", async (t) => {
   const mockEngine = new GenericAnalysisEngine();
-  const mockSchemaAnalyzer = new RobustSchemaAnalyzer<Record<string, unknown>, Record<string, unknown>>();
-  const mockTemplateMapper = new RobustTemplateMapper<Record<string, unknown>, Record<string, unknown>>();
-  
+  const mockSchemaAnalyzer = new RobustSchemaAnalyzer<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >();
+  const mockTemplateMapper = new RobustTemplateMapper<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >();
+
   await t.step("should process SchemaAnalysis context", async () => {
     const processor = new ContextualAnalysisProcessor(
       mockEngine,
       mockSchemaAnalyzer,
       mockTemplateMapper,
     );
-    
+
     const data = createTestFrontMatterContent({ title: "Test" });
     const schema = createTestSchemaDefinition({ type: "object" });
     const context: AnalysisContext = {
       kind: "SchemaAnalysis",
       schema,
-      options: { includeMetadata: true }
+      options: { includeMetadata: true },
     };
-    
+
     const result = await processor.processWithContext(data, context);
-    
+
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals((result.data as Record<string, unknown>).title, "Test");
     }
   });
 
-  await t.step("should process TemplateMapping context without schema", async () => {
-    const processor = new ContextualAnalysisProcessor(
-      mockEngine,
-      mockSchemaAnalyzer,
-      mockTemplateMapper,
-    );
-    
-    const data = createTestFrontMatterContent({ title: "Test" });
-    const context: AnalysisContext = {
-      kind: "TemplateMapping",
-      template: { structure: { name: "default" } }
-    };
-    
-    const result = await processor.processWithContext(data, context);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).title, "Test");
-      assertEquals((result.data as Record<string, unknown>).name, "default");
-    }
-  });
+  await t.step(
+    "should process TemplateMapping context without schema",
+    async () => {
+      const processor = new ContextualAnalysisProcessor(
+        mockEngine,
+        mockSchemaAnalyzer,
+        mockTemplateMapper,
+      );
 
-  await t.step("should process TemplateMapping context with schema", async () => {
-    const processor = new ContextualAnalysisProcessor(
-      mockEngine,
-      mockSchemaAnalyzer,
-      mockTemplateMapper,
-    );
-    
-    const data = createTestFrontMatterContent({ title: "Test" });
-    const schema = createTestSchemaDefinition({ type: "object" });
-    const context: AnalysisContext = {
-      kind: "TemplateMapping",
-      template: { structure: { name: "default" } },
-      schema
-    };
-    
-    const result = await processor.processWithContext(data, context);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).title, "Test");
-      assertEquals((result.data as Record<string, unknown>).name, "default");
-    }
-  });
+      const data = createTestFrontMatterContent({ title: "Test" });
+      const context: AnalysisContext = {
+        kind: "TemplateMapping",
+        template: { structure: { name: "default" } },
+      };
+
+      const result = await processor.processWithContext(data, context);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals((result.data as Record<string, unknown>).title, "Test");
+        assertEquals((result.data as Record<string, unknown>).name, "default");
+      }
+    },
+  );
+
+  await t.step(
+    "should process TemplateMapping context with schema",
+    async () => {
+      const processor = new ContextualAnalysisProcessor(
+        mockEngine,
+        mockSchemaAnalyzer,
+        mockTemplateMapper,
+      );
+
+      const data = createTestFrontMatterContent({ title: "Test" });
+      const schema = createTestSchemaDefinition({ type: "object" });
+      const context: AnalysisContext = {
+        kind: "TemplateMapping",
+        template: { structure: { name: "default" } },
+        schema,
+      };
+
+      const result = await processor.processWithContext(data, context);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals((result.data as Record<string, unknown>).title, "Test");
+        assertEquals((result.data as Record<string, unknown>).name, "default");
+      }
+    },
+  );
 
   await t.step("should process ValidationOnly context", async () => {
     const processor = new ContextualAnalysisProcessor(
@@ -337,16 +412,16 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       mockSchemaAnalyzer,
       mockTemplateMapper,
     );
-    
+
     const data = createTestFrontMatterContent({ title: "Test" });
     const schema = createTestSchemaDefinition({ type: "object" });
     const context: AnalysisContext = {
       kind: "ValidationOnly",
-      schema
+      schema,
     };
-    
+
     const result = await processor.processWithContext(data, context);
-    
+
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals((result.data as Record<string, unknown>).title, "Test");
@@ -359,60 +434,68 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       mockSchemaAnalyzer,
       mockTemplateMapper,
     );
-    
-    const data = createTestFrontMatterContent({ title: "Test", author: "John" });
+
+    const data = createTestFrontMatterContent({
+      title: "Test",
+      author: "John",
+    });
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: { includeMetadata: true }
+      options: { includeMetadata: true },
     };
-    
+
     const result = await processor.processWithContext(data, context);
-    
+
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals((result.data as Record<string, unknown>).title, "Test");
       assertEquals((result.data as Record<string, unknown>).author, "John");
-      const metadata = (result.data as Record<string, unknown>).extractionMetadata as Record<string, unknown>;
+      const metadata = (result.data as Record<string, unknown>)
+        .extractionMetadata as Record<string, unknown>;
       assertEquals(metadata.keyCount, 2);
       assertEquals(metadata.includeMetadata, true);
       assertEquals(typeof metadata.extractedAt, "string");
     }
   });
 
-  await t.step("should handle BasicExtraction context without includeMetadata", async () => {
-    const processor = new ContextualAnalysisProcessor(
-      mockEngine,
-      mockSchemaAnalyzer,
-      mockTemplateMapper,
-    );
-    
-    const data = createTestFrontMatterContent({ title: "Test" });
-    const context: AnalysisContext = {
-      kind: "BasicExtraction",
-      options: {}
-    };
-    
-    const result = await processor.processWithContext(data, context);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      const metadata = (result.data as Record<string, unknown>).extractionMetadata as Record<string, unknown>;
-      assertEquals(metadata.includeMetadata, false);
-    }
-  });
+  await t.step(
+    "should handle BasicExtraction context without includeMetadata",
+    async () => {
+      const processor = new ContextualAnalysisProcessor(
+        mockEngine,
+        mockSchemaAnalyzer,
+        mockTemplateMapper,
+      );
+
+      const data = createTestFrontMatterContent({ title: "Test" });
+      const context: AnalysisContext = {
+        kind: "BasicExtraction",
+        options: {},
+      };
+
+      const result = await processor.processWithContext(data, context);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const metadata = (result.data as Record<string, unknown>)
+          .extractionMetadata as Record<string, unknown>;
+        assertEquals(metadata.includeMetadata, false);
+      }
+    },
+  );
 });
 
 Deno.test("AnalysisEngineFactory", async (t) => {
   await t.step("should create default components", () => {
     const { engine, processor } = AnalysisEngineFactory.createDefault();
-    
+
     assertEquals(engine instanceof GenericAnalysisEngine, true);
     assertEquals(processor instanceof ContextualAnalysisProcessor, true);
   });
 
   await t.step("should create components with custom timeout", () => {
     const { engine, processor } = AnalysisEngineFactory.createWithTimeout(5000);
-    
+
     assertEquals(engine instanceof GenericAnalysisEngine, true);
     assertEquals(processor instanceof ContextualAnalysisProcessor, true);
   });
@@ -427,17 +510,19 @@ author: John Doe
 ---
 
 # Content`;
-    
+
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: {}
+      options: {},
     };
-    
+
     const result = await strategy.execute(markdown, context);
-    
+
     assertEquals(result.ok, true);
     if (result.ok) {
-      const frontMatter = result.data as unknown as { get: (key: string) => unknown };
+      const frontMatter = result.data as unknown as {
+        get: (key: string) => unknown;
+      };
       assertEquals(frontMatter.get("title"), "Test Document");
       assertEquals(frontMatter.get("author"), "John Doe");
     }
@@ -448,18 +533,25 @@ author: John Doe
     const markdown = `# Just a regular markdown file
 
 No frontmatter here.`;
-    
+
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: {}
+      options: {},
     };
-    
+
     const result = await strategy.execute(markdown, context);
-    
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
-      assertEquals((result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number }).strategy, "FrontMatterExtractionStrategy");
+      assertEquals(
+        (result.error as AnalysisError & {
+          strategy?: string;
+          input?: string;
+          timeoutMs?: number;
+        }).strategy,
+        "FrontMatterExtractionStrategy",
+      );
     }
   });
 
@@ -470,14 +562,14 @@ title Test Document (missing colon)
 ---
 
 # Content`;
-    
+
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: {}
+      options: {},
     };
-    
+
     const result = await strategy.execute(markdown, context);
-    
+
     assertEquals(result.ok, true); // Our simple parser should still work
     if (result.ok) {
       // The line without colon should be ignored
@@ -489,57 +581,64 @@ title Test Document (missing colon)
   await t.step("should truncate long input in error message", async () => {
     const strategy = new FrontMatterExtractionStrategy();
     const longMarkdown = "a".repeat(200); // Long content without frontmatter
-    
+
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: {}
+      options: {},
     };
-    
+
     const result = await strategy.execute(longMarkdown, context);
-    
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "ExtractionStrategyFailed");
       // Should truncate input in error
-      const errorWithInput = result.error as AnalysisError & { strategy?: string; input?: string; timeoutMs?: number };
+      const errorWithInput = result.error as AnalysisError & {
+        strategy?: string;
+        input?: string;
+        timeoutMs?: number;
+      };
       assertEquals(errorWithInput.input?.length, 103); // 100 + "..."
     }
   });
 });
 
 Deno.test("SchemaMappingStrategy", async (t) => {
-  await t.step("should map frontmatter content with valid schema context", async () => {
-    const schema = createTestSchemaDefinition({ type: "object" });
-    const strategy = new SchemaMappingStrategy(schema);
-    const data = createTestFrontMatterContent({ title: "Test", count: 42 });
-    
-    const context: AnalysisContext = {
-      kind: "SchemaAnalysis",
-      schema,
-      options: {}
-    };
-    
-    const result = await strategy.execute(data, context);
-    
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals((result.data as Record<string, unknown>).title, "Test");
-      assertEquals((result.data as Record<string, unknown>).count, 42);
-    }
-  });
+  await t.step(
+    "should map frontmatter content with valid schema context",
+    async () => {
+      const schema = createTestSchemaDefinition({ type: "object" });
+      const strategy = new SchemaMappingStrategy(schema);
+      const data = createTestFrontMatterContent({ title: "Test", count: 42 });
+
+      const context: AnalysisContext = {
+        kind: "SchemaAnalysis",
+        schema,
+        options: {},
+      };
+
+      const result = await strategy.execute(data, context);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals((result.data as Record<string, unknown>).title, "Test");
+        assertEquals((result.data as Record<string, unknown>).count, 42);
+      }
+    },
+  );
 
   await t.step("should fail with invalid analysis context", async () => {
     const schema = createTestSchemaDefinition({ type: "object" });
     const strategy = new SchemaMappingStrategy(schema);
     const data = createTestFrontMatterContent({ title: "Test" });
-    
+
     const context: AnalysisContext = {
       kind: "BasicExtraction",
-      options: {}
+      options: {},
     };
-    
+
     const result = await strategy.execute(data, context);
-    
+
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "InvalidAnalysisContext");
@@ -550,33 +649,37 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 Deno.test("Integration: Complete Analysis Workflow", async (t) => {
   await t.step("should perform complete analysis workflow", async () => {
     // Create components
-    const { engine: _engine, processor } = AnalysisEngineFactory.createDefault();
-    
+    const { engine: _engine, processor } = AnalysisEngineFactory
+      .createDefault();
+
     // Create test data
     const data = createTestFrontMatterContent({
       title: "Integration Test",
       author: "Test Author",
-      version: 1
+      version: 1,
     });
-    
+
     const schema = createTestSchemaDefinition({
       type: "object",
       properties: {
         title: { type: "string" },
         author: { type: "string" },
-        version: { type: "number" }
-      }
+        version: { type: "number" },
+      },
     });
-    
+
     // Test SchemaAnalysis workflow
     const schemaContext: AnalysisContext = {
       kind: "SchemaAnalysis",
       schema,
-      options: { includeMetadata: true, validateResults: true }
+      options: { includeMetadata: true, validateResults: true },
     };
-    
-    const schemaResult = await processor.processWithContext(data, schemaContext);
-    
+
+    const schemaResult = await processor.processWithContext(
+      data,
+      schemaContext,
+    );
+
     assertEquals(schemaResult.ok, true);
     if (schemaResult.ok) {
       const data = schemaResult.data as Record<string, unknown>;
@@ -584,7 +687,7 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
       assertEquals(data.author, "Test Author");
       assertEquals(data.version, 1);
     }
-    
+
     // Test TemplateMapping workflow
     const templateContext: AnalysisContext = {
       kind: "TemplateMapping",
@@ -592,14 +695,17 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
         structure: {
           name: "processed_document",
           category: "test",
-          processed: true
-        }
+          processed: true,
+        },
       },
-      schema
+      schema,
     };
-    
-    const templateResult = await processor.processWithContext(data, templateContext);
-    
+
+    const templateResult = await processor.processWithContext(
+      data,
+      templateContext,
+    );
+
     assertEquals(templateResult.ok, true);
     if (templateResult.ok) {
       const data = templateResult.data as Record<string, unknown>;
@@ -610,9 +716,11 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     }
   });
 
-  await t.step("should handle end-to-end FrontMatter extraction workflow", async () => {
-    const strategy = new FrontMatterExtractionStrategy();
-    const markdown = `---
+  await t.step(
+    "should handle end-to-end FrontMatter extraction workflow",
+    async () => {
+      const strategy = new FrontMatterExtractionStrategy();
+      const markdown = `---
 title: E2E Test
 description: End-to-end testing
 tags: ["test", "integration"]
@@ -622,34 +730,41 @@ published: true
 # Test Content
 
 This is the markdown content.`;
-    
-    const context: AnalysisContext = {
-      kind: "BasicExtraction",
-      options: { includeMetadata: true }
-    };
-    
-    // Extract frontmatter
-    const extractionResult = await strategy.execute(markdown, context);
-    
-    assertEquals(extractionResult.ok, true);
-    if (extractionResult.ok) {
-      // Verify extraction
-      assertEquals(extractionResult.data.get("title"), "E2E Test");
-      assertEquals(extractionResult.data.get("description"), "End-to-end testing");
-      assertEquals(extractionResult.data.get("published"), true);
-      
-      // Process with ContextualAnalysisProcessor
-      const { processor } = AnalysisEngineFactory.createDefault();
-      const processResult = await processor.processWithContext(extractionResult.data, context);
-      
-      assertEquals(processResult.ok, true);
-      if (processResult.ok) {
-        const data = processResult.data as Record<string, unknown>;
-        assertEquals(data.title, "E2E Test");
-        const metadata = data.extractionMetadata as Record<string, unknown>;
-        assertEquals(metadata.keyCount, 4); // title, description, tags, published
-        assertEquals(typeof metadata.extractedAt, "string");
+
+      const context: AnalysisContext = {
+        kind: "BasicExtraction",
+        options: { includeMetadata: true },
+      };
+
+      // Extract frontmatter
+      const extractionResult = await strategy.execute(markdown, context);
+
+      assertEquals(extractionResult.ok, true);
+      if (extractionResult.ok) {
+        // Verify extraction
+        assertEquals(extractionResult.data.get("title"), "E2E Test");
+        assertEquals(
+          extractionResult.data.get("description"),
+          "End-to-end testing",
+        );
+        assertEquals(extractionResult.data.get("published"), true);
+
+        // Process with ContextualAnalysisProcessor
+        const { processor } = AnalysisEngineFactory.createDefault();
+        const processResult = await processor.processWithContext(
+          extractionResult.data,
+          context,
+        );
+
+        assertEquals(processResult.ok, true);
+        if (processResult.ok) {
+          const data = processResult.data as Record<string, unknown>;
+          assertEquals(data.title, "E2E Test");
+          const metadata = data.extractionMetadata as Record<string, unknown>;
+          assertEquals(metadata.keyCount, 4); // title, description, tags, published
+          assertEquals(typeof metadata.extractedAt, "string");
+        }
       }
-    }
-  });
+    },
+  );
 });

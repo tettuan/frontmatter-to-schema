@@ -1,6 +1,9 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { Registry } from "../../../src/domain/core/registry.ts";
-import { AnalysisResult, ValidFilePath } from "../../../src/domain/core/types.ts";
+import {
+  AnalysisResult,
+  ValidFilePath,
+} from "../../../src/domain/core/types.ts";
 import { ResultUtils } from "../../../src/domain/core/result.ts";
 
 Deno.test("Registry", async (t) => {
@@ -21,9 +24,18 @@ Deno.test("Registry", async (t) => {
   await t.step("should return all keys and values", () => {
     const registry = new Registry<number>();
 
-    registry.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1));
-    registry.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2));
-    registry.add("c", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 3));
+    registry.add(
+      "a",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1),
+    );
+    registry.add(
+      "b",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2),
+    );
+    registry.add(
+      "c",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 3),
+    );
 
     const keys = registry.keys();
     assertEquals(keys.length, 3);
@@ -37,9 +49,18 @@ Deno.test("Registry", async (t) => {
   await t.step("should filter results", () => {
     const registry = new Registry<number>();
 
-    registry.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10));
-    registry.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20));
-    registry.add("c", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 30));
+    registry.add(
+      "a",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10),
+    );
+    registry.add(
+      "b",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20),
+    );
+    registry.add(
+      "c",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 30),
+    );
 
     const filtered = registry.filter((result) => result.extractedData > 15);
 
@@ -52,8 +73,14 @@ Deno.test("Registry", async (t) => {
   await t.step("should map results", () => {
     const registry = new Registry<number>();
 
-    registry.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10));
-    registry.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20));
+    registry.add(
+      "a",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10),
+    );
+    registry.add(
+      "b",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20),
+    );
 
     const mapped = registry.map((result) =>
       new AnalysisResult(
@@ -70,9 +97,27 @@ Deno.test("Registry", async (t) => {
     const registry1 = new Registry<string>();
     const registry2 = new Registry<string>();
 
-    registry1.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), "data1"));
-    registry2.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), "data2"));
-    registry2.add("c", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), "data3"));
+    registry1.add(
+      "a",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        "data1",
+      ),
+    );
+    registry2.add(
+      "b",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        "data2",
+      ),
+    );
+    registry2.add(
+      "c",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/c.md")),
+        "data3",
+      ),
+    );
 
     registry1.merge(registry2);
 
@@ -85,8 +130,20 @@ Deno.test("Registry", async (t) => {
   await t.step("should convert to object", () => {
     const registry = new Registry<string>();
 
-    registry.add("key1", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), "value1"));
-    registry.add("key2", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), "value2"));
+    registry.add(
+      "key1",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        "value1",
+      ),
+    );
+    registry.add(
+      "key2",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        "value2",
+      ),
+    );
 
     const obj = registry.toObject();
 
@@ -97,8 +154,14 @@ Deno.test("Registry", async (t) => {
   await t.step("should convert to array", () => {
     const registry = new Registry<number>();
 
-    registry.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1));
-    registry.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2));
+    registry.add(
+      "a",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1),
+    );
+    registry.add(
+      "b",
+      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2),
+    );
 
     const arr = registry.toArray();
 
@@ -112,8 +175,20 @@ Deno.test("Registry", async (t) => {
   await t.step("should clear all results", () => {
     const registry = new Registry();
 
-    registry.add("a", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), "data"));
-    registry.add("b", new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), "data"));
+    registry.add(
+      "a",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        "data",
+      ),
+    );
+    registry.add(
+      "b",
+      new AnalysisResult(
+        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        "data",
+      ),
+    );
 
     assertEquals(registry.size(), 2);
 

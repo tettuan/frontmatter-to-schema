@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert";
 import { SchemaValidator } from "../../../src/domain/services/schema-validator.ts";
 import { Schema, SchemaDefinition } from "../../../src/domain/models/schema.ts";
-import { isOk, isError } from "../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../src/domain/shared/result.ts";
 
 Deno.test("SchemaValidator", async (t) => {
   const validator = new SchemaValidator();

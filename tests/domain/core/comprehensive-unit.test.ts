@@ -114,12 +114,16 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
         assertEquals(result.error.kind, expectedError);
       }
     }
-    
+
     // Arrays are technically objects in JS, so they pass the current validation
     // This is actually a bug in SchemaDefinition that should be fixed
     const arrayResult = SchemaDefinition.create([], "1.0.0");
     // Currently this passes, but it shouldn't - documenting the behavior
-    assertEquals(isOk(arrayResult), true, "Arrays currently pass validation (bug)");
+    assertEquals(
+      isOk(arrayResult),
+      true,
+      "Arrays currently pass validation (bug)",
+    );
   });
 
   await t.step("Complex Nested Schema", () => {
@@ -298,7 +302,7 @@ Deno.test("DDD Core - TemplateFormat Value Object", async (t) => {
       name: "{{name}}",
       items: "{{#each items}}{{.}}{{/each}}",
     });
-    
+
     const result = TemplateFormat.create("json", template);
     assertEquals(isOk(result), true);
     if (isOk(result)) {
@@ -546,7 +550,7 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
   await t.step("Result Mapping", () => {
     const result: Result<number, Error> = { ok: true, data: 42 };
     const mapped = mapResult(result, (n) => n * 2);
-    
+
     assertEquals(isOk(mapped), true);
     if (isOk(mapped)) {
       assertEquals(mapped.data, 84);
@@ -555,12 +559,14 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
 
   await t.step("Result FlatMapping", () => {
     const result: Result<number, Error> = { ok: true, data: 10 };
-    const flatMapped = flatMapResult(result, (n) => 
-      n > 5 
-        ? { ok: true, data: n * 2 }
-        : { ok: false, error: createError({ kind: "OutOfRange" }) }
+    const flatMapped = flatMapResult(
+      result,
+      (n) =>
+        n > 5
+          ? { ok: true, data: n * 2 }
+          : { ok: false, error: createError({ kind: "OutOfRange" }) },
     );
-    
+
     assertEquals(isOk(flatMapped), true);
     if (isOk(flatMapped)) {
       assertEquals(flatMapped.data, 20);
@@ -569,12 +575,14 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
 
   await t.step("Error Propagation in FlatMap", () => {
     const result: Result<number, Error> = { ok: true, data: 3 };
-    const flatMapped = flatMapResult(result, (n) => 
-      n > 5 
-        ? { ok: true, data: n * 2 }
-        : { ok: false, error: createError({ kind: "OutOfRange" }) }
+    const flatMapped = flatMapResult(
+      result,
+      (n) =>
+        n > 5
+          ? { ok: true, data: n * 2 }
+          : { ok: false, error: createError({ kind: "OutOfRange" }) },
     );
-    
+
     assertEquals(isError(flatMapped), true);
     if (isError(flatMapped)) {
       assertEquals(flatMapped.error.kind, "OutOfRange");
@@ -584,7 +592,7 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
   await t.step("Map Error Result", () => {
     const error = createError({ kind: "ValidationError", message: "test" });
     const result: Result<number, typeof error> = { ok: false, error };
-    
+
     const mapped = mapResult(result, (n: number) => n * 2);
     assertEquals(isError(mapped), true);
     if (isError(mapped)) {
@@ -600,10 +608,11 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
 Deno.test("DDD Core - Error Propagation", async (t) => {
   await t.step("Chained Error Propagation", () => {
     const result = DocumentPath.create("");
-    const chained = flatMapResult(result, (path) => 
-      ConfigPath.create(path.getValue())
+    const chained = flatMapResult(
+      result,
+      (path) => ConfigPath.create(path.getValue()),
     );
-    
+
     assertEquals(isError(chained), true);
     if (isError(chained)) {
       assertEquals(chained.error.kind, "EmptyInput");
@@ -616,8 +625,8 @@ Deno.test("DDD Core - Error Propagation", async (t) => {
       DocumentPath.create("invalid.txt"),
       ConfigPath.create("no-extension"),
     ];
-    
-    const errorCount = invalidCases.filter(r => !r.ok).length;
+
+    const errorCount = invalidCases.filter((r) => !r.ok).length;
     assertEquals(errorCount, 3);
   });
 });
@@ -632,7 +641,7 @@ Deno.test("DDD Core - Performance Boundaries", async (t) => {
       type: "object",
       properties: {},
     };
-    
+
     // Generate 100 properties
     for (let i = 0; i < 100; i++) {
       (largeSchema.properties as Record<string, unknown>)[`field_${i}`] = {
@@ -640,11 +649,11 @@ Deno.test("DDD Core - Performance Boundaries", async (t) => {
         description: `Field number ${i}`,
       };
     }
-    
+
     const start = performance.now();
     const result = SchemaDefinition.create(largeSchema, "1.0.0");
     const elapsed = performance.now() - start;
-    
+
     assertEquals(isOk(result), true);
     // Should complete in reasonable time
     assertEquals(elapsed < 100, true, `Schema creation took ${elapsed}ms`);
@@ -655,13 +664,14 @@ Deno.test("DDD Core - Performance Boundaries", async (t) => {
     for (let i = 0; i < 50; i++) {
       rules.push(MappingRule.create(`source.field${i}`, `target.field${i}`));
     }
-    
+
     const allValid = rules.every(isOk);
     assertEquals(allValid, true);
   });
 
   await t.step("Long Path Strings", () => {
-    const longPath = "/very/long/path/to/deep/nested/directory/structure/with/many/levels/document.md";
+    const longPath =
+      "/very/long/path/to/deep/nested/directory/structure/with/many/levels/document.md";
     const result = DocumentPath.create(longPath);
     assertEquals(isOk(result), true);
     if (isOk(result)) {
@@ -681,35 +691,37 @@ Deno.test("DDD Core - Complex Value Object Interactions", async (t) => {
     const configPath = ConfigPath.create("config/app.json");
     const schemaPath = ConfigPath.create("schemas/main.yaml");
     const outputPath = OutputPath.create("output/results.json");
-    
+
     // Create processing options
     const options = ProcessingOptions.create({
       parallel: true,
       maxConcurrency: 10,
       continueOnError: false,
     });
-    
+
     // Verify all created successfully
     assertEquals(isOk(configPath), true);
     assertEquals(isOk(schemaPath), true);
     assertEquals(isOk(outputPath), true);
     assertEquals(isOk(options), true);
-    
-    if (isOk(configPath) && isOk(schemaPath) && isOk(outputPath) && isOk(options)) {
+
+    if (
+      isOk(configPath) && isOk(schemaPath) && isOk(outputPath) && isOk(options)
+    ) {
       // Test path resolution
       const resolvedConfig = configPath.data.resolve("/project");
       const resolvedSchema = schemaPath.data.resolve("/project");
-      
+
       assertEquals(resolvedConfig, "/project/config/app.json");
       assertEquals(resolvedSchema, "/project/schemas/main.yaml");
-      
+
       // Test output path modification
       const jsonOutput = outputPath.data.withExtension("json");
       const yamlOutput = outputPath.data.withExtension("yaml");
-      
+
       assertEquals(jsonOutput.getValue(), "output/results.json");
       assertEquals(yamlOutput.getValue(), "output/results.yaml");
-      
+
       // Test processing options
       assertEquals(options.data.isParallel(), true);
       assertEquals(options.data.getMaxConcurrency(), 10);
@@ -727,14 +739,17 @@ Deno.test("DDD Core - Complex Value Object Interactions", async (t) => {
       },
       required: ["title", "author"],
     }, "1.0.0");
-    
+
     // Create corresponding template
-    const templateResult = TemplateFormat.create("json", JSON.stringify({
-      documentTitle: "{{title}}",
-      writtenBy: "{{author}}",
-      publishedOn: "{{date}}",
-    }));
-    
+    const templateResult = TemplateFormat.create(
+      "json",
+      JSON.stringify({
+        documentTitle: "{{title}}",
+        writtenBy: "{{author}}",
+        publishedOn: "{{date}}",
+      }),
+    );
+
     // Create mapping rules for transformation
     const mappingRules = [
       MappingRule.create("title", "documentTitle"),
@@ -744,12 +759,12 @@ Deno.test("DDD Core - Complex Value Object Interactions", async (t) => {
         return value ? new Date(String(value)).toISOString() : null;
       }),
     ];
-    
+
     // Verify all components work together
     assertEquals(isOk(schemaResult), true);
     assertEquals(isOk(templateResult), true);
     assertEquals(mappingRules.every(isOk), true);
-    
+
     if (isOk(schemaResult) && isOk(templateResult)) {
       assertEquals(schemaResult.data.getVersion(), "1.0.0");
       assertEquals(templateResult.data.getFormat(), "json");
