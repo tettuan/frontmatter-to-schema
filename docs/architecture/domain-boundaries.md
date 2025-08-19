@@ -2,7 +2,8 @@
 
 ## Core Principles
 
-1. **Schema-Driven Processing**: All transformations are driven by external schemas
+1. **Schema-Driven Processing**: All transformations are driven by external
+   schemas
 2. **Template-Based Output**: All outputs are generated from external templates
 3. **Complete Abstraction**: No specific use case logic in core domain
 4. **Configuration-Based**: All specifics are provided via configuration
@@ -10,7 +11,9 @@
 ## Domain Boundaries
 
 ### 1. Core Domain
-**Responsibility**: Pure business logic for markdown processing and transformation
+
+**Responsibility**: Pure business logic for markdown processing and
+transformation
 
 - **Entities**:
   - `Document`: Represents a markdown file with frontmatter
@@ -30,6 +33,7 @@
   - `TemplateMapper`: Maps data to template format
 
 ### 2. Application Layer
+
 **Responsibility**: Orchestration and use case implementation
 
 - **Use Cases**:
@@ -43,6 +47,7 @@
   - `ConfigurationLoader`: Loads and validates configuration
 
 ### 3. Infrastructure Layer
+
 **Responsibility**: External system integration
 
 - **Adapters**:
@@ -57,6 +62,7 @@
   - `TemplateRepository`: Template storage
 
 ### 4. Presentation Layer
+
 **Responsibility**: User interaction
 
 - **CLI**:
@@ -81,34 +87,34 @@
 interface ProcessingConfiguration {
   // Input configuration
   input: {
-    path: string;           // Path to markdown files
-    pattern?: string;       // File pattern to match
+    path: string; // Path to markdown files
+    pattern?: string; // File pattern to match
   };
-  
+
   // Schema configuration
   schema: {
-    definition: object;     // JSON Schema or other schema format
-    format: 'json' | 'yaml' | 'custom';
+    definition: object; // JSON Schema or other schema format
+    format: "json" | "yaml" | "custom";
   };
-  
+
   // Template configuration
   template: {
-    definition: string;     // Template definition
-    format: 'json' | 'yaml' | 'handlebars' | 'custom';
+    definition: string; // Template definition
+    format: "json" | "yaml" | "handlebars" | "custom";
   };
-  
+
   // Output configuration
   output: {
-    path: string;           // Output file path
-    format: 'json' | 'yaml' | 'markdown';
+    path: string; // Output file path
+    format: "json" | "yaml" | "markdown";
   };
-  
+
   // Processing configuration
   processing: {
-    extractionPrompt?: string;  // Claude prompt for extraction
-    mappingPrompt?: string;      // Claude prompt for mapping
-    parallel?: boolean;          // Process in parallel
-    continueOnError?: boolean;   // Continue if individual file fails
+    extractionPrompt?: string; // Claude prompt for extraction
+    mappingPrompt?: string; // Claude prompt for mapping
+    parallel?: boolean; // Process in parallel
+    continueOnError?: boolean; // Continue if individual file fails
   };
 }
 ```

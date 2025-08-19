@@ -31,32 +31,32 @@
 ```typescript
 // Document Entity
 class Document {
-  readonly id: DocumentId
-  readonly path: DocumentPath
-  readonly frontMatter: FrontMatter
-  readonly content: DocumentContent
+  readonly id: DocumentId;
+  readonly path: DocumentPath;
+  readonly frontMatter: FrontMatter;
+  readonly content: DocumentContent;
 }
 
 // Schema Entity
 class Schema {
-  readonly id: SchemaId
-  readonly definition: SchemaDefinition
-  readonly version: SchemaVersion
+  readonly id: SchemaId;
+  readonly definition: SchemaDefinition;
+  readonly version: SchemaVersion;
 }
 
 // Template Entity
 class Template {
-  readonly id: TemplateId
-  readonly format: TemplateFormat
-  readonly mappingRules: MappingRule[]
+  readonly id: TemplateId;
+  readonly format: TemplateFormat;
+  readonly mappingRules: MappingRule[];
 }
 
 // AnalysisResult Entity
 class AnalysisResult {
-  readonly id: AnalysisId
-  readonly document: Document
-  readonly extractedData: ExtractedData
-  readonly mappedData: MappedData
+  readonly id: AnalysisId;
+  readonly document: Document;
+  readonly extractedData: ExtractedData;
+  readonly mappedData: MappedData;
 }
 ```
 
@@ -64,39 +64,47 @@ class AnalysisResult {
 
 ```typescript
 // Paths and Locations
-class DocumentPath { /* Smart constructor with validation */ }
-class ConfigPath { /* Smart constructor with validation */ }
-class OutputPath { /* Smart constructor with validation */ }
+class DocumentPath {/* Smart constructor with validation */}
+class ConfigPath {/* Smart constructor with validation */}
+class OutputPath {/* Smart constructor with validation */}
 
 // Content Types
-class FrontMatterContent { /* Validated frontmatter */ }
-class DocumentContent { /* Document body content */ }
-class SchemaDefinition { /* JSON Schema or similar */ }
-class TemplateFormat { /* Template structure */ }
+class FrontMatterContent {/* Validated frontmatter */}
+class DocumentContent {/* Document body content */}
+class SchemaDefinition {/* JSON Schema or similar */}
+class TemplateFormat {/* Template structure */}
 
 // Rules and Configurations
-class ValidationRule { /* Schema validation rules */ }
-class MappingRule { /* Data transformation rules */ }
-class ProcessingOptions { /* Runtime options */ }
+class ValidationRule {/* Schema validation rules */}
+class MappingRule {/* Data transformation rules */}
+class ProcessingOptions {/* Runtime options */}
 ```
 
 ### Domain Services
 
 ```typescript
 interface FrontMatterExtractor {
-  extract(document: Document): Result<FrontMatter, ExtractionError>
+  extract(document: Document): Result<FrontMatter, ExtractionError>;
 }
 
 interface SchemaAnalyzer {
-  analyze(frontMatter: FrontMatter, schema: Schema): Result<ExtractedData, AnalysisError>
+  analyze(
+    frontMatter: FrontMatter,
+    schema: Schema,
+  ): Result<ExtractedData, AnalysisError>;
 }
 
 interface TemplateMapper {
-  map(data: ExtractedData, template: Template): Result<MappedData, MappingError>
+  map(
+    data: ExtractedData,
+    template: Template,
+  ): Result<MappedData, MappingError>;
 }
 
 interface ResultAggregator {
-  aggregate(results: AnalysisResult[]): Result<AggregatedResult, AggregationError>
+  aggregate(
+    results: AnalysisResult[],
+  ): Result<AggregatedResult, AggregationError>;
 }
 ```
 
@@ -104,22 +112,25 @@ interface ResultAggregator {
 
 ```typescript
 interface DocumentRepository {
-  findAll(path: DocumentPath): Result<Document[], RepositoryError>
-  findByPattern(pattern: string): Result<Document[], RepositoryError>
+  findAll(path: DocumentPath): Result<Document[], RepositoryError>;
+  findByPattern(pattern: string): Result<Document[], RepositoryError>;
 }
 
 interface SchemaRepository {
-  load(path: ConfigPath): Result<Schema, RepositoryError>
-  validate(schema: Schema): Result<void, ValidationError>
+  load(path: ConfigPath): Result<Schema, RepositoryError>;
+  validate(schema: Schema): Result<void, ValidationError>;
 }
 
 interface TemplateRepository {
-  load(path: ConfigPath): Result<Template, RepositoryError>
-  validate(template: Template): Result<void, ValidationError>
+  load(path: ConfigPath): Result<Template, RepositoryError>;
+  validate(template: Template): Result<void, ValidationError>;
 }
 
 interface ResultRepository {
-  save(result: AggregatedResult, path: OutputPath): Result<void, RepositoryError>
+  save(
+    result: AggregatedResult,
+    path: OutputPath,
+  ): Result<void, RepositoryError>;
 }
 ```
 
@@ -129,15 +140,21 @@ interface ResultRepository {
 
 ```typescript
 class ProcessDocumentsUseCase {
-  execute(config: ProcessingConfig): Result<ProcessingResult, ProcessingError>
+  execute(config: ProcessingConfig): Result<ProcessingResult, ProcessingError>;
 }
 
 class AnalyzeDocumentUseCase {
-  execute(document: Document, config: AnalysisConfig): Result<AnalysisResult, AnalysisError>
+  execute(
+    document: Document,
+    config: AnalysisConfig,
+  ): Result<AnalysisResult, AnalysisError>;
 }
 
 class GenerateIndexUseCase {
-  execute(results: AnalysisResult[], template: Template): Result<Index, GenerationError>
+  execute(
+    results: AnalysisResult[],
+    template: Template,
+  ): Result<Index, GenerationError>;
 }
 ```
 
@@ -145,12 +162,12 @@ class GenerateIndexUseCase {
 
 ```typescript
 class DocumentProcessor {
-  process(config: ProcessingConfig): Result<ProcessingResult, ProcessingError>
+  process(config: ProcessingConfig): Result<ProcessingResult, ProcessingError>;
 }
 
 class ConfigurationManager {
-  load(path: ConfigPath): Result<Configuration, ConfigError>
-  validate(config: Configuration): Result<void, ValidationError>
+  load(path: ConfigPath): Result<Configuration, ConfigError>;
+  validate(config: Configuration): Result<void, ValidationError>;
 }
 ```
 
@@ -179,17 +196,20 @@ class HandlebarsTemplateAdapter implements TemplateMapper {
 
 ```typescript
 interface FileSystem {
-  read(path: string): Promise<Result<string, IOError>>
-  write(path: string, content: string): Promise<Result<void, IOError>>
-  list(path: string): Promise<Result<string[], IOError>>
+  read(path: string): Promise<Result<string, IOError>>;
+  write(path: string, content: string): Promise<Result<void, IOError>>;
+  list(path: string): Promise<Result<string[], IOError>>;
 }
 
 interface AIAnalyzer {
-  analyze(prompt: string, content: string): Promise<Result<string, AnalysisError>>
+  analyze(
+    prompt: string,
+    content: string,
+  ): Promise<Result<string, AnalysisError>>;
 }
 
 interface TemplateEngine {
-  render(template: string, data: unknown): Result<string, RenderError>
+  render(template: string, data: unknown): Result<string, RenderError>;
 }
 ```
 
@@ -207,8 +227,10 @@ Main (Composition Root)
 
 ## Key Design Principles
 
-1. **Hexagonal Architecture**: Core domain is independent of external dependencies
-2. **Dependency Inversion**: Adapters depend on domain interfaces, not vice versa
+1. **Hexagonal Architecture**: Core domain is independent of external
+   dependencies
+2. **Dependency Inversion**: Adapters depend on domain interfaces, not vice
+   versa
 3. **Result Types**: All operations return Result<T, E> for totality
 4. **Smart Constructors**: Value objects validate at construction time
 5. **Immutability**: All domain objects are immutable
