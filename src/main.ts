@@ -9,8 +9,8 @@ import {
   OutputPath,
 } from "./domain/models/value-objects.ts";
 import type {
-  ProcessingConfiguration,
   AnalysisConfiguration,
+  ProcessingConfiguration,
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
@@ -24,15 +24,22 @@ import {
 } from "./infrastructure/adapters/configuration-loader.ts";
 
 // Load prompt templates
-async function loadPromptTemplates(): Promise<{ extraction: string; mapping: string }> {
+async function loadPromptTemplates(): Promise<
+  { extraction: string; mapping: string }
+> {
   try {
-    const extraction = await Deno.readTextFile("src/infrastructure/prompts/extract-information.md");
-    const mapping = await Deno.readTextFile("src/infrastructure/prompts/map-to-template.md");
+    const extraction = await Deno.readTextFile(
+      "src/infrastructure/prompts/extract-information.md",
+    );
+    const mapping = await Deno.readTextFile(
+      "src/infrastructure/prompts/map-to-template.md",
+    );
     return { extraction, mapping };
   } catch {
     // Fallback to embedded prompts
     return {
-      extraction: `Extract information from the following frontmatter according to the schema.
+      extraction:
+        `Extract information from the following frontmatter according to the schema.
 FrontMatter: {{FRONTMATTER}}
 Schema: {{SCHEMA}}
 Return ONLY a JSON object with the extracted data.`,
@@ -95,7 +102,9 @@ Examples:
     const documentRepo = new DenoDocumentRepository();
     const frontMatterExtractor = new FrontMatterExtractorImpl();
     const templateMapper = new SimpleTemplateMapper();
-    const resultAggregator = new ResultAggregatorImpl(args.format as "json" | "yaml");
+    const resultAggregator = new ResultAggregatorImpl(
+      args.format as "json" | "yaml",
+    );
 
     // Load configuration
     let processingConfig: ProcessingConfiguration;
@@ -109,7 +118,9 @@ Examples:
         Deno.exit(1);
       }
 
-      const configResult = await configLoader.loadProcessingConfig(configPathResult.data);
+      const configResult = await configLoader.loadProcessingConfig(
+        configPathResult.data,
+      );
       if (!configResult.ok) {
         console.error("Error loading config:", configResult.error.message);
         Deno.exit(1);
@@ -117,7 +128,9 @@ Examples:
       processingConfig = configResult.data;
 
       // Try to load analysis config
-      const analysisResult = await configLoader.loadAnalysisConfig(configPathResult.data);
+      const analysisResult = await configLoader.loadAnalysisConfig(
+        configPathResult.data,
+      );
       if (analysisResult.ok) {
         analysisConfig = analysisResult.data;
       } else {
@@ -131,10 +144,15 @@ Examples:
       // Build config from command line args
       const documentsPathResult = DocumentPath.create(args.documents || ".");
       const schemaPathResult = ConfigPath.create(args.schema || "schema.json");
-      const templatePathResult = ConfigPath.create(args.template || "template.json");
+      const templatePathResult = ConfigPath.create(
+        args.template || "template.json",
+      );
       const outputPathResult = OutputPath.create(args.output || "output.json");
 
-      if (!documentsPathResult.ok || !schemaPathResult.ok || !templatePathResult.ok || !outputPathResult.ok) {
+      if (
+        !documentsPathResult.ok || !schemaPathResult.ok ||
+        !templatePathResult.ok || !outputPathResult.ok
+      ) {
         console.error("Error: Invalid path arguments");
         Deno.exit(1);
       }
@@ -163,7 +181,7 @@ Examples:
     const schemaAnalyzer = new ClaudeSchemaAnalyzer(
       analysisConfig,
       prompts.extraction,
-      prompts.mapping
+      prompts.mapping,
     );
 
     // Create use case
@@ -175,7 +193,7 @@ Examples:
       frontMatterExtractor,
       schemaAnalyzer,
       templateMapper,
-      resultAggregator
+      resultAggregator,
     );
 
     // Execute processing
@@ -186,7 +204,9 @@ Examples:
     console.log(`💾 Output: ${processingConfig.outputPath.getValue()}`);
     console.log(`⚙️  Options:`, processingConfig.options);
 
-    const result = await processDocumentsUseCase.execute({ config: processingConfig });
+    const result = await processDocumentsUseCase.execute({
+      config: processingConfig,
+    });
 
     if (result.ok) {
       console.log("\n✅ Processing completed successfully!");
