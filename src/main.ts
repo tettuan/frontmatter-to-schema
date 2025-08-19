@@ -1,158 +1,215 @@
-#!/usr/bin/env deno run --allow-read --allow-write --allow-run
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-run
 
+// Main composition root - wires up all dependencies
+
+import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import {
-  discoverPromptFiles,
-  extractFrontmatter,
-  findTemplateVariables,
-} from "./file-discovery.ts";
-import { ClaudeClient } from "./claude-client.ts";
-import { RegistryBuilder } from "./registry-builder.ts";
-import type { AnalysisResult, MappedEntry } from "./types.ts";
+  ConfigPath,
+  DocumentPath,
+  OutputPath,
+} from "./domain/models/value-objects.ts";
+import {
+  ProcessingConfiguration,
+  AnalysisConfiguration,
+} from "./domain/services/interfaces.ts";
+import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
+import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
+import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
+import { SimpleTemplateMapper } from "./infrastructure/adapters/simple-template-mapper.ts";
+import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
+import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
+import {
+  ConfigurationLoader,
+  TemplateLoader,
+} from "./infrastructure/adapters/configuration-loader.ts";
 
-/**
- * Main analysis pipeline
- */
-export class AnalysisPipeline {
-  private claudeClient: ClaudeClient;
-  private registryBuilder: RegistryBuilder;
-
-  constructor() {
-    this.claudeClient = new ClaudeClient();
-    this.registryBuilder = new RegistryBuilder();
-  }
-
-  /**
-   * Runs the complete analysis pipeline
-   */
-  async run(
-    promptsDir: string,
-    extractPromptPath: string,
-    mapPromptPath: string,
-    outputPath: string,
-  ): Promise<void> {
-    console.log("🔍 Discovering prompt files...");
-    const promptFiles = await discoverPromptFiles(promptsDir);
-    console.log(`Found ${promptFiles.length} prompt files`);
-
-    let processedCount = 0;
-    let errorCount = 0;
-
-    for (const promptFile of promptFiles) {
-      try {
-        console.log(`📝 Processing: ${promptFile.path}`);
-
-        // Extract frontmatter and template variables for future use
-        const { frontmatter: _frontmatter, body: _body } = extractFrontmatter(
-          promptFile.content,
-        );
-        const _templateVariables = findTemplateVariables(promptFile.content);
-
-        console.log(`  🤖 Analyzing with Claude...`);
-
-        // Step 1: Analyze frontmatter with Claude
-        const analysisResult: AnalysisResult = await this.claudeClient
-          .analyzeFrontmatter(
-            promptFile.path,
-            promptFile.content,
-            extractPromptPath,
-          );
-
-        console.log(`  🗺️  Mapping to schema...`);
-
-        // Step 2: Map to schema with Claude
-        const mappedEntry: MappedEntry = await this.claudeClient.mapToSchema(
-          analysisResult,
-          mapPromptPath,
-        );
-
-        // Step 3: Add to registry
-        this.registryBuilder.addEntry(mappedEntry);
-
-        processedCount++;
-        console.log(`  ✅ Completed (${processedCount}/${promptFiles.length})`);
-      } catch (error) {
-        errorCount++;
-        console.error(
-          `  ❌ Error processing ${promptFile.path}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-
-        // Continue processing other files even if one fails
-        continue;
-      }
-    }
-
-    console.log(`\n📊 Processing Summary:`);
-    console.log(`  Total files: ${promptFiles.length}`);
-    console.log(`  Processed: ${processedCount}`);
-    console.log(`  Errors: ${errorCount}`);
-
-    // Validate registry
-    console.log(`\n🔍 Validating registry...`);
-    const validation = this.registryBuilder.validate();
-
-    if (!validation.isValid) {
-      console.error(`❌ Registry validation failed:`);
-      validation.errors.forEach((error) => console.error(`  - ${error}`));
-      throw new Error("Registry validation failed");
-    }
-
-    console.log(`✅ Registry validation passed`);
-
-    // Write registry to file
-    console.log(`\n💾 Writing registry to ${outputPath}...`);
-    await this.registryBuilder.writeToFile(outputPath);
-
-    console.log(`🎉 Registry generation completed!`);
-    console.log(`  📄 Output: ${outputPath}`);
-    console.log(`  📦 Commands: ${this.registryBuilder.getEntryCount()}`);
+// Load prompt templates
+async function loadPromptTemplates(): Promise<{ extraction: string; mapping: string }> {
+  try {
+    const extraction = await Deno.readTextFile("src/infrastructure/prompts/extract-information.md");
+    const mapping = await Deno.readTextFile("src/infrastructure/prompts/map-to-template.md");
+    return { extraction, mapping };
+  } catch {
+    // Fallback to embedded prompts
+    return {
+      extraction: `Extract information from the following frontmatter according to the schema.
+FrontMatter: {{FRONTMATTER}}
+Schema: {{SCHEMA}}
+Return ONLY a JSON object with the extracted data.`,
+      mapping: `Map the extracted data to the template structure.
+Data: {{EXTRACTED_DATA}}
+Schema: {{SCHEMA}}
+Return ONLY a JSON object with the mapped data.`,
+    };
   }
 }
 
-/**
- * CLI entry point
- */
 async function main() {
-  const args = Deno.args;
+  const args = parseArgs(Deno.args, {
+    string: ["config", "documents", "schema", "template", "output", "format"],
+    boolean: ["help", "parallel", "continue-on-error"],
+    default: {
+      config: "config.json",
+      format: "json",
+      parallel: true,
+      "continue-on-error": false,
+    },
+  });
 
-  if (args.length < 1) {
-    console.error(
-      "Usage: deno run --allow-read --allow-write --allow-run main.ts [prompts-dir]",
-    );
-    console.error(
-      "Example: deno run --allow-read --allow-write --allow-run main.ts .agent/climpt/prompts",
-    );
-    Deno.exit(1);
+  if (args.help) {
+    console.log(`
+Frontmatter to Schema - Extract and transform markdown frontmatter using AI
+
+Usage:
+  deno run --allow-all src/main.ts [options]
+
+Options:
+  --config <path>         Configuration file path (default: config.json)
+  --documents <path>      Documents directory path
+  --schema <path>         Schema file path
+  --template <path>       Template file path
+  --output <path>         Output file path
+  --format <json|yaml>    Output format (default: json)
+  --parallel              Process documents in parallel (default: true)
+  --continue-on-error     Continue processing on errors (default: false)
+  --help                  Show this help message
+
+Examples:
+  # Use configuration file
+  deno run --allow-all src/main.ts --config examples/climpt-registry/config.json
+
+  # Specify paths directly
+  deno run --allow-all src/main.ts \\
+    --documents .agent/climpt/prompts \\
+    --schema examples/climpt-registry/schema.json \\
+    --template examples/climpt-registry/template.json \\
+    --output .agent/climpt/registry.json
+`);
+    Deno.exit(0);
   }
-
-  const promptsDir = args[0];
-  const extractPromptPath = "scripts/prompts/extract_frontmatter.md";
-  const mapPromptPath = "scripts/prompts/map_to_schema.md";
-  const outputPath = ".agent/climpt/registry.json";
 
   try {
-    // Check if required files exist
-    await Deno.stat(promptsDir);
-    await Deno.stat(extractPromptPath);
-    await Deno.stat(mapPromptPath);
+    // Initialize repositories and adapters
+    const configLoader = new ConfigurationLoader();
+    const templateLoader = new TemplateLoader();
+    const documentRepo = new DenoDocumentRepository();
+    const frontMatterExtractor = new FrontMatterExtractorImpl();
+    const templateMapper = new SimpleTemplateMapper();
+    const resultAggregator = new ResultAggregatorImpl(args.format as "json" | "yaml");
 
-    const pipeline = new AnalysisPipeline();
-    await pipeline.run(
-      promptsDir,
-      extractPromptPath,
-      mapPromptPath,
-      outputPath,
+    // Load configuration
+    let processingConfig: ProcessingConfiguration;
+    let analysisConfig: AnalysisConfiguration;
+
+    if (args.config && !args.documents) {
+      // Load from config file
+      const configPathResult = ConfigPath.create(args.config);
+      if (!configPathResult.ok) {
+        console.error("Error:", configPathResult.error.message);
+        Deno.exit(1);
+      }
+
+      const configResult = await configLoader.loadProcessingConfig(configPathResult.data);
+      if (!configResult.ok) {
+        console.error("Error loading config:", configResult.error.message);
+        Deno.exit(1);
+      }
+      processingConfig = configResult.data;
+
+      // Try to load analysis config
+      const analysisResult = await configLoader.loadAnalysisConfig(configPathResult.data);
+      if (analysisResult.ok) {
+        analysisConfig = analysisResult.data;
+      } else {
+        // Use defaults
+        analysisConfig = {
+          aiProvider: "claude",
+          aiConfig: {},
+        };
+      }
+    } else {
+      // Build config from command line args
+      const documentsPathResult = DocumentPath.create(args.documents || ".");
+      const schemaPathResult = ConfigPath.create(args.schema || "schema.json");
+      const templatePathResult = ConfigPath.create(args.template || "template.json");
+      const outputPathResult = OutputPath.create(args.output || "output.json");
+
+      if (!documentsPathResult.ok || !schemaPathResult.ok || !templatePathResult.ok || !outputPathResult.ok) {
+        console.error("Error: Invalid path arguments");
+        Deno.exit(1);
+      }
+
+      processingConfig = {
+        documentsPath: documentsPathResult.data,
+        schemaPath: schemaPathResult.data,
+        templatePath: templatePathResult.data,
+        outputPath: outputPathResult.data,
+        options: {
+          parallel: args.parallel,
+          continueOnError: args["continue-on-error"],
+        },
+      };
+
+      analysisConfig = {
+        aiProvider: "claude",
+        aiConfig: {},
+      };
+    }
+
+    // Load prompt templates
+    const prompts = await loadPromptTemplates();
+
+    // Initialize schema analyzer
+    const schemaAnalyzer = new ClaudeSchemaAnalyzer(
+      analysisConfig,
+      prompts.extraction,
+      prompts.mapping
     );
+
+    // Create use case
+    const processDocumentsUseCase = new ProcessDocumentsUseCase(
+      documentRepo,
+      configLoader,
+      templateLoader,
+      configLoader,
+      frontMatterExtractor,
+      schemaAnalyzer,
+      templateMapper,
+      resultAggregator
+    );
+
+    // Execute processing
+    console.log("🚀 Starting document processing...");
+    console.log(`📁 Documents: ${processingConfig.documentsPath.getValue()}`);
+    console.log(`📋 Schema: ${processingConfig.schemaPath.getValue()}`);
+    console.log(`📝 Template: ${processingConfig.templatePath.getValue()}`);
+    console.log(`💾 Output: ${processingConfig.outputPath.getValue()}`);
+    console.log(`⚙️  Options:`, processingConfig.options);
+
+    const result = await processDocumentsUseCase.execute({ config: processingConfig });
+
+    if (result.ok) {
+      console.log("\n✅ Processing completed successfully!");
+      console.log(`📊 Processed: ${result.data.processedCount} documents`);
+      console.log(`❌ Failed: ${result.data.failedCount} documents`);
+      console.log(`💾 Output saved to: ${result.data.outputPath}`);
+
+      if (result.data.errors.length > 0) {
+        console.log("\n⚠️  Errors encountered:");
+        for (const error of result.data.errors) {
+          console.log(`  - ${error.document}: ${error.error}`);
+        }
+      }
+    } else {
+      console.error("\n❌ Processing failed:", result.error.message);
+      Deno.exit(1);
+    }
   } catch (error) {
-    console.error(
-      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    console.error("Fatal error:", error);
     Deno.exit(1);
   }
 }
 
-// Run if called directly
 if (import.meta.main) {
-  await main();
+  main();
 }
