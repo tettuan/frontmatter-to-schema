@@ -111,7 +111,9 @@ export function errorToString(error: DomainError): string {
         : `Processing error: ${error.message}`;
     case "IOError":
       return error.path
-        ? `IO error (${error.operation || "unknown"}) at '${error.path}': ${error.message}`
+        ? `IO error (${
+          error.operation || "unknown"
+        }) at '${error.path}': ${error.message}`
         : `IO error: ${error.message}`;
     case "APIError":
       return error.statusCode

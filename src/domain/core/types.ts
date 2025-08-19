@@ -3,7 +3,11 @@
  * Enhanced with Totality principles: Smart Constructors and Result types
  */
 
-import { type Result, type ValidationError, createDomainError } from "./result.ts";
+import {
+  createDomainError,
+  type Result,
+  type ValidationError,
+} from "./result.ts";
 
 /**
  * Validated file path with Smart Constructor
@@ -12,59 +16,66 @@ import { type Result, type ValidationError, createDomainError } from "./result.t
 export class ValidFilePath {
   private constructor(readonly value: string) {}
 
-  static create(path: string): Result<ValidFilePath, ValidationError & { message: string }> {
+  static create(
+    path: string,
+  ): Result<ValidFilePath, ValidationError & { message: string }> {
     // Input validation
     if (!path || path.trim().length === 0) {
-      return { 
-        ok: false, 
-        error: createDomainError({ kind: "EmptyInput" })
+      return {
+        ok: false,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
 
     const cleanPath = path.trim();
-    
+
     // Path length validation
     if (cleanPath.length > 512) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "TooLong", 
-          value: cleanPath, 
-          maxLength: 512 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "TooLong",
+          value: cleanPath,
+          maxLength: 512,
+        }),
       };
     }
 
     // Basic path validation - no null bytes or invalid characters
-    if (cleanPath.includes('\0') || cleanPath.includes('\r') || cleanPath.includes('\n')) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: cleanPath, 
-          expectedFormat: "valid file path without control characters" 
-        })
+    if (
+      cleanPath.includes("\0") || cleanPath.includes("\r") ||
+      cleanPath.includes("\n")
+    ) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: cleanPath,
+          expectedFormat: "valid file path without control characters",
+        }),
       };
     }
 
     return { ok: true, data: new ValidFilePath(cleanPath) };
   }
 
-  static createMarkdown(path: string): Result<ValidFilePath, ValidationError & { message: string }> {
+  static createMarkdown(
+    path: string,
+  ): Result<ValidFilePath, ValidationError & { message: string }> {
     const baseResult = ValidFilePath.create(path);
-    
+
     if (!baseResult.ok) {
       return baseResult;
     }
 
     if (!baseResult.data.isMarkdown()) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "FileExtensionMismatch", 
-          path: baseResult.data.value, 
-          expected: [".md"] 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "FileExtensionMismatch",
+          path: baseResult.data.value,
+          expected: [".md"],
+        }),
       };
     }
 
@@ -93,31 +104,33 @@ export class ValidFilePath {
 export class FrontMatterContent {
   private constructor(readonly data: Record<string, unknown>) {}
 
-  static fromYaml(yamlContent: string): Result<FrontMatterContent, ValidationError & { message: string }> {
+  static fromYaml(
+    yamlContent: string,
+  ): Result<FrontMatterContent, ValidationError & { message: string }> {
     if (!yamlContent || yamlContent.trim().length === 0) {
-      return { 
-        ok: false, 
-        error: createDomainError({ kind: "EmptyInput" })
+      return {
+        ok: false,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
 
     try {
       // Simple YAML parsing for frontmatter - basic key-value pairs
       const data: Record<string, unknown> = {};
-      const lines = yamlContent.trim().split('\n');
-      
+      const lines = yamlContent.trim().split("\n");
+
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-        
-        const colonIndex = trimmed.indexOf(':');
+        if (!trimmed || trimmed.startsWith("#")) continue;
+
+        const colonIndex = trimmed.indexOf(":");
         if (colonIndex === -1) continue;
-        
+
         const key = trimmed.slice(0, colonIndex).trim();
         let valueStr = trimmed.slice(colonIndex + 1).trim();
-        
+
         // Remove inline comments (everything after # that isn't within quotes)
-        const hashIndex = valueStr.indexOf('#');
+        const hashIndex = valueStr.indexOf("#");
         if (hashIndex !== -1) {
           // Check if the # is inside quotes
           const beforeHash = valueStr.slice(0, hashIndex);
@@ -127,16 +140,17 @@ export class FrontMatterContent {
             valueStr = valueStr.slice(0, hashIndex).trim();
           }
         }
-        
+
         // Parse basic types
         let value: unknown = valueStr;
-        if (valueStr.toLowerCase() === 'true') value = true;
-        else if (valueStr.toLowerCase() === 'false') value = false;
+        if (valueStr.toLowerCase() === "true") value = true;
+        else if (valueStr.toLowerCase() === "false") value = false;
         else if (/^-?\d+\.?\d*$/.test(valueStr)) {
           // Handle both integers and decimals
-          value = valueStr.includes('.') ? parseFloat(valueStr) : parseInt(valueStr, 10);
-        }
-        else if (valueStr.startsWith('[') && valueStr.endsWith(']')) {
+          value = valueStr.includes(".")
+            ? parseFloat(valueStr)
+            : parseInt(valueStr, 10);
+        } else if (valueStr.startsWith("[") && valueStr.endsWith("]")) {
           // Handle arrays like ["alice", "bob", "charlie"]
           try {
             value = JSON.parse(valueStr);
@@ -144,36 +158,37 @@ export class FrontMatterContent {
             // Fallback to string if JSON parsing fails
             value = valueStr;
           }
-        }
-        else if (valueStr.startsWith('"') && valueStr.endsWith('"')) {
+        } else if (valueStr.startsWith('"') && valueStr.endsWith('"')) {
           value = valueStr.slice(1, -1);
         }
-        
+
         data[key] = value;
       }
 
       return { ok: true, data: new FrontMatterContent(data) };
     } catch (error) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "ParseError", 
-          input: yamlContent, 
-          details: error instanceof Error ? error.message : String(error)
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "ParseError",
+          input: yamlContent,
+          details: error instanceof Error ? error.message : String(error),
+        }),
       };
     }
   }
 
-  static fromObject(obj: Record<string, unknown>): Result<FrontMatterContent, ValidationError & { message: string }> {
+  static fromObject(
+    obj: Record<string, unknown>,
+  ): Result<FrontMatterContent, ValidationError & { message: string }> {
     if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: String(obj), 
-          expectedFormat: "object" 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(obj),
+          expectedFormat: "object",
+        }),
       };
     }
 
@@ -184,7 +199,10 @@ export class FrontMatterContent {
     return this.data[key];
   }
 
-  getTyped<T>(key: string, validator: (value: unknown) => value is T): T | undefined {
+  getTyped<T>(
+    key: string,
+    validator: (value: unknown) => value is T,
+  ): T | undefined {
     const value = this.data[key];
     return validator(value) ? value : undefined;
   }
@@ -209,34 +227,38 @@ export class FrontMatterContent {
 export class SchemaDefinition<T = unknown> {
   private constructor(readonly schema: T) {}
 
-  static create<T>(schema: T): Result<SchemaDefinition<T>, ValidationError & { message: string }> {
+  static create<T>(
+    schema: T,
+  ): Result<SchemaDefinition<T>, ValidationError & { message: string }> {
     if (!schema) {
-      return { 
-        ok: false, 
-        error: createDomainError({ kind: "EmptyInput" })
+      return {
+        ok: false,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
 
     // Basic schema structure validation
     if (typeof schema !== "object" || Array.isArray(schema)) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: String(schema), 
-          expectedFormat: "object schema" 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(schema),
+          expectedFormat: "object schema",
+        }),
       };
     }
 
     return { ok: true, data: new SchemaDefinition(schema) };
   }
 
-  static fromJsonString<T = unknown>(jsonSchema: string): Result<SchemaDefinition<T>, ValidationError & { message: string }> {
+  static fromJsonString<T = unknown>(
+    jsonSchema: string,
+  ): Result<SchemaDefinition<T>, ValidationError & { message: string }> {
     if (!jsonSchema || jsonSchema.trim().length === 0) {
-      return { 
-        ok: false, 
-        error: createDomainError({ kind: "EmptyInput" })
+      return {
+        ok: false,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
 
@@ -244,35 +266,37 @@ export class SchemaDefinition<T = unknown> {
       const parsed = JSON.parse(jsonSchema.trim());
       return SchemaDefinition.create<T>(parsed);
     } catch (error) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "ParseError", 
-          input: jsonSchema, 
-          details: error instanceof Error ? error.message : String(error)
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "ParseError",
+          input: jsonSchema,
+          details: error instanceof Error ? error.message : String(error),
+        }),
       };
     }
   }
 
-  validate(data: unknown): Result<boolean, ValidationError & { message: string }> {
+  validate(
+    data: unknown,
+  ): Result<boolean, ValidationError & { message: string }> {
     // Basic validation - can be extended with JSON Schema, Zod, etc.
     if (!this.schema || typeof this.schema !== "object") {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: String(this.schema), 
-          expectedFormat: "valid schema object" 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(this.schema),
+          expectedFormat: "valid schema object",
+        }),
       };
     }
 
     // For now, basic existence check - can be enhanced with actual schema validation
     if (data === null || data === undefined) {
-      return { 
-        ok: false, 
-        error: createDomainError({ kind: "EmptyInput" })
+      return {
+        ok: false,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
 
@@ -294,22 +318,22 @@ export class SourceFile {
   static create(
     path: ValidFilePath,
     content: string,
-    frontMatter?: FrontMatterContent
+    frontMatter?: FrontMatterContent,
   ): Result<SourceFile, ValidationError & { message: string }> {
     if (!content && content !== "") {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: String(content), 
-          expectedFormat: "string content" 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(content),
+          expectedFormat: "string content",
+        }),
       };
     }
 
-    return { 
-      ok: true, 
-      data: new SourceFile(path, frontMatter || null, content) 
+    return {
+      ok: true,
+      data: new SourceFile(path, frontMatter || null, content),
     };
   }
 
@@ -317,15 +341,18 @@ export class SourceFile {
     return this.frontMatter !== null;
   }
 
-  extractFrontMatter(): Result<FrontMatterContent, ValidationError & { message: string }> {
+  extractFrontMatter(): Result<
+    FrontMatterContent,
+    ValidationError & { message: string }
+  > {
     if (!this.frontMatter) {
-      return { 
-        ok: false, 
-        error: createDomainError({ 
-          kind: "InvalidFormat", 
-          input: this.content, 
-          expectedFormat: "content with frontmatter" 
-        })
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: this.content,
+          expectedFormat: "content with frontmatter",
+        }),
       };
     }
 
@@ -355,7 +382,10 @@ export class AnalysisResult<T = unknown> {
     return this.metadata.has(key);
   }
 
-  getTypedMetadata<T>(key: string, validator: (value: unknown) => value is T): T | undefined {
+  getTypedMetadata<T>(
+    key: string,
+    validator: (value: unknown) => value is T,
+  ): T | undefined {
     const value = this.metadata.get(key);
     return validator(value) ? value : undefined;
   }
@@ -365,25 +395,25 @@ export class AnalysisResult<T = unknown> {
  * Discriminated Union for Analysis Context - replaces optional properties
  * Following Totality principles to eliminate partial functions
  */
-export type AnalysisContext = 
-  | { 
-      kind: "SchemaAnalysis"; 
-      schema: SchemaDefinition; 
-      options: AnalysisOptions 
-    }
-  | { 
-      kind: "TemplateMapping"; 
-      template: TemplateDefinition; 
-      schema?: SchemaDefinition 
-    }
-  | { 
-      kind: "ValidationOnly"; 
-      schema: SchemaDefinition 
-    }
-  | { 
-      kind: "BasicExtraction"; 
-      options: AnalysisOptions 
-    };
+export type AnalysisContext =
+  | {
+    kind: "SchemaAnalysis";
+    schema: SchemaDefinition;
+    options: AnalysisOptions;
+  }
+  | {
+    kind: "TemplateMapping";
+    template: TemplateDefinition;
+    schema?: SchemaDefinition;
+  }
+  | {
+    kind: "ValidationOnly";
+    schema: SchemaDefinition;
+  }
+  | {
+    kind: "BasicExtraction";
+    options: AnalysisOptions;
+  };
 
 /**
  * Analysis options for configuration
@@ -407,25 +437,25 @@ export interface TemplateDefinition {
  * Helper functions for AnalysisContext type guards
  */
 export const isSchemaAnalysis = (
-  context: AnalysisContext
+  context: AnalysisContext,
 ): context is Extract<AnalysisContext, { kind: "SchemaAnalysis" }> => {
   return context.kind === "SchemaAnalysis";
 };
 
 export const isTemplateMapping = (
-  context: AnalysisContext
+  context: AnalysisContext,
 ): context is Extract<AnalysisContext, { kind: "TemplateMapping" }> => {
   return context.kind === "TemplateMapping";
 };
 
 export const isValidationOnly = (
-  context: AnalysisContext
+  context: AnalysisContext,
 ): context is Extract<AnalysisContext, { kind: "ValidationOnly" }> => {
   return context.kind === "ValidationOnly";
 };
 
 export const isBasicExtraction = (
-  context: AnalysisContext
+  context: AnalysisContext,
 ): context is Extract<AnalysisContext, { kind: "BasicExtraction" }> => {
   return context.kind === "BasicExtraction";
 };

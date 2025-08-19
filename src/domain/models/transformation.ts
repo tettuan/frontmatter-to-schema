@@ -106,7 +106,9 @@ export class TransformationResult {
 export class BatchTransformationResult {
   private constructor(
     private readonly results: TransformationResult[],
-    private readonly errors: Array<{ document: Document; error: ValidationError }>,
+    private readonly errors: Array<
+      { document: Document; error: ValidationError }
+    >,
   ) {}
 
   static create(

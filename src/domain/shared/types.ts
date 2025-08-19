@@ -1,6 +1,6 @@
 // Core domain types following totality principle
 
-export type Result<T, E> = 
+export type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
 
@@ -35,41 +35,51 @@ export type AIError =
 // Error creation helpers
 export function createError<E extends { kind: string }>(
   error: E,
-  message?: string
+  message?: string,
 ): E & { message: string } {
   return {
     ...error,
-    message: message ?? getDefaultMessage(error)
+    message: message ?? getDefaultMessage(error),
   };
 }
 
-function getDefaultMessage(error: { kind: string }): string {
+function getDefaultMessage(
+  error: { kind: string; [key: string]: unknown },
+): string {
   switch (error.kind) {
     case "EmptyInput":
       return "Input cannot be empty";
     case "InvalidFormat":
-      return `Invalid format, expected ${(error as any).format}, got: ${(error as any).input}`;
+      return `Invalid format, expected ${error["format"]}, got: ${
+        error["input"]
+      }`;
     case "PatternMismatch":
-      return `Input does not match pattern ${(error as any).pattern}: ${(error as any).input}`;
+      return `Input does not match pattern ${error["pattern"]}: ${
+        error["input"]
+      }`;
     case "OutOfRange":
-      return `Value ${(error as any).value} is out of range`;
+      return `Value ${error["value"]} is out of range`;
     case "InvalidPath":
-      return `Invalid path: ${(error as any).path} - ${(error as any).reason}`;
+      return `Invalid path: ${error["path"]} - ${error["reason"]}`;
     case "FileNotFound":
-      return `File not found: ${(error as any).path}`;
+      return `File not found: ${error["path"]}`;
     case "PermissionDenied":
-      return `Permission denied: ${(error as any).path}`;
+      return `Permission denied: ${error["path"]}`;
     default:
       return `Error: ${error.kind}`;
   }
 }
 
 // Result combinators
-export function isOk<T, E>(result: Result<T, E>): result is { ok: true; data: T } {
+export function isOk<T, E>(
+  result: Result<T, E>,
+): result is { ok: true; data: T } {
   return result.ok;
 }
 
-export function isError<T, E>(result: Result<T, E>): result is { ok: false; error: E } {
+export function isError<T, E>(
+  result: Result<T, E>,
+): result is { ok: false; error: E } {
   return !result.ok;
 }
 
@@ -79,21 +89,21 @@ export function unwrapOr<T, E>(result: Result<T, E>, defaultValue: T): T {
 
 export function mapResult<T, U, E>(
   result: Result<T, E>,
-  fn: (value: T) => U
+  fn: (value: T) => U,
 ): Result<U, E> {
   return result.ok ? { ok: true, data: fn(result.data) } : result;
 }
 
 export function flatMapResult<T, U, E>(
   result: Result<T, E>,
-  fn: (value: T) => Result<U, E>
+  fn: (value: T) => Result<U, E>,
 ): Result<U, E> {
   return result.ok ? fn(result.data) : result;
 }
 
 export async function wrapAsync<T, E>(
   promise: Promise<T>,
-  errorMapper: (error: unknown) => E
+  errorMapper: (error: unknown) => E,
 ): Promise<Result<T, E>> {
   try {
     const data = await promise;

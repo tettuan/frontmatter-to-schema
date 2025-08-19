@@ -4,14 +4,14 @@
  */
 
 // Core Result type - foundation for all domain operations
-export type Result<T, E> = 
+export type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E & { message: string } };
 
 // Comprehensive domain error types following the new architecture
-export type DomainError = 
+export type DomainError =
   | ValidationError
-  | AnalysisError  
+  | AnalysisError
   | PipelineError
   | FileSystemError
   | ExternalServiceError;
@@ -83,11 +83,15 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
     case "InvalidFormat":
       return `Invalid format: expected ${error.expectedFormat}, got "${error.input}"`;
     case "OutOfRange":
-      return `Value ${error.value} is out of range ${error.min ?? "?"}-${error.max ?? "?"}`;
+      return `Value ${error.value} is out of range ${error.min ?? "?"}-${
+        error.max ?? "?"
+      }`;
     case "PatternMismatch":
       return `Value "${error.value}" does not match pattern ${error.pattern}`;
     case "ParseError":
-      return `Cannot parse "${error.input}"${error.details ? `: ${error.details}` : ""}`;
+      return `Cannot parse "${error.input}"${
+        error.details ? `: ${error.details}` : ""
+      }`;
     case "TooLong":
       return `Value "${error.value}" exceeds maximum length of ${error.maxLength}`;
     case "TooShort":
@@ -95,17 +99,23 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
     case "InvalidRegex":
       return `Invalid regex pattern: ${error.pattern}`;
     case "FileExtensionMismatch":
-      return `File "${error.path}" must have one of these extensions: ${error.expected.join(", ")}`;
+      return `File "${error.path}" must have one of these extensions: ${
+        error.expected.join(", ")
+      }`;
 
     // Analysis errors
     case "SchemaValidationFailed":
       return `Schema validation failed for data: ${JSON.stringify(error.data)}`;
     case "TemplateMappingFailed":
-      return `Failed to map source to template: ${JSON.stringify(error.source)}`;
+      return `Failed to map source to template: ${
+        JSON.stringify(error.source)
+      }`;
     case "ExtractionStrategyFailed":
       return `Extraction strategy "${error.strategy}" failed`;
     case "AIServiceError":
-      return `AI service "${error.service}" error${error.statusCode ? ` (${error.statusCode})` : ""}`;
+      return `AI service "${error.service}" error${
+        error.statusCode ? ` (${error.statusCode})` : ""
+      }`;
     case "InvalidAnalysisContext":
       return `Invalid analysis context: ${JSON.stringify(error.context)}`;
     case "AnalysisTimeout":
@@ -115,10 +125,13 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
 
     // Pipeline errors
     case "FileDiscoveryFailed":
-      return `Failed to discover files in directory: ${error.directory}${error.pattern ? ` (pattern: ${error.pattern})` : ""}`;
+      return `Failed to discover files in directory: ${error.directory}${
+        error.pattern ? ` (pattern: ${error.pattern})` : ""
+      }`;
     case "ProcessingStageError":
       return `Error in processing stage "${error.stage}": ${
-        typeof error.error === "object" && error.error !== null && "message" in error.error
+        typeof error.error === "object" && error.error !== null &&
+          "message" in error.error
           ? (error.error as { message: string }).message
           : "Unknown error"
       }`;
@@ -139,25 +152,37 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
     case "DirectoryNotFound":
       return `Directory not found: ${error.path}`;
     case "WriteError":
-      return `Failed to write to ${error.path}${error.details ? `: ${error.details}` : ""}`;
+      return `Failed to write to ${error.path}${
+        error.details ? `: ${error.details}` : ""
+      }`;
     case "ReadError":
-      return `Failed to read from ${error.path}${error.details ? `: ${error.details}` : ""}`;
+      return `Failed to read from ${error.path}${
+        error.details ? `: ${error.details}` : ""
+      }`;
     case "InvalidPath":
       return `Invalid file path: ${error.path}`;
 
     // External service errors
     case "NetworkError":
-      return `Network error${error.url ? ` for ${error.url}` : ""}${error.details ? `: ${error.details}` : ""}`;
+      return `Network error${error.url ? ` for ${error.url}` : ""}${
+        error.details ? `: ${error.details}` : ""
+      }`;
     case "AuthenticationError":
       return `Authentication failed for service: ${error.service}`;
     case "RateLimitExceeded":
-      return `Rate limit exceeded for ${error.service}${error.retryAfter ? `, retry after ${error.retryAfter}s` : ""}`;
+      return `Rate limit exceeded for ${error.service}${
+        error.retryAfter ? `, retry after ${error.retryAfter}s` : ""
+      }`;
     case "ServiceUnavailable":
       return `Service unavailable: ${error.service}`;
     case "InvalidResponse":
-      return `Invalid response from ${error.service}: ${JSON.stringify(error.response)}`;
+      return `Invalid response from ${error.service}: ${
+        JSON.stringify(error.response)
+      }`;
     case "ConfigurationMissing":
-      return `Missing configuration for ${error.service}: ${error.requiredConfig.join(", ")}`;
+      return `Missing configuration for ${error.service}: ${
+        error.requiredConfig.join(", ")
+      }`;
 
     default:
       return "Unknown error occurred";
@@ -189,7 +214,11 @@ export const flatMapResult = <T, U, E>(
 };
 
 // Handle errors and provide fallback values
-export const mapErrorResult = <T, E1 extends { message: string }, E2 extends { message: string }>(
+export const mapErrorResult = <
+  T,
+  E1 extends { message: string },
+  E2 extends { message: string },
+>(
   result: Result<T, E1>,
   errorMapper: (error: E1) => E2,
 ): Result<T, E2> => {
@@ -200,16 +229,18 @@ export const mapErrorResult = <T, E1 extends { message: string }, E2 extends { m
 };
 
 // Combine multiple Results into one
-export const combineResults = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
+export const combineResults = <T, E>(
+  results: Result<T, E>[],
+): Result<T[], E> => {
   const data: T[] = [];
-  
+
   for (const result of results) {
     if (!result.ok) {
       return result;
     }
     data.push(result.data);
   }
-  
+
   return { ok: true, data };
 };
 
@@ -222,7 +253,10 @@ export const unwrapResult = <T, E>(result: Result<T, E>): T => {
 };
 
 // Get data or provide default value
-export const unwrapOrResult = <T, E>(result: Result<T, E>, defaultValue: T): T => {
+export const unwrapOrResult = <T, E>(
+  result: Result<T, E>,
+  defaultValue: T,
+): T => {
   if (result.ok) {
     return result.data;
   }
@@ -237,24 +271,27 @@ export const ResultUtils = {
   mapError: mapErrorResult,
   combine: combineResults,
   unwrapOr: unwrapOrResult,
-  
+
   // Additional legacy functions
   chain: <T, U, E>(
     result: Result<T, E>,
     fn: (data: T) => Result<U, E>,
   ): Result<U, E> => flatMapResult(result, fn),
-  
-  all: <T, E>(results: Result<T, E>[]): Result<T[], E> => combineResults(results),
+
+  all: <T, E>(results: Result<T, E>[]): Result<T[], E> =>
+    combineResults(results),
 };
 
 // Type guard for checking success
-export const isSuccess = <T, E>(result: Result<T, E>): result is { ok: true; data: T } => {
+export const isSuccess = <T, E>(
+  result: Result<T, E>,
+): result is { ok: true; data: T } => {
   return result.ok;
 };
 
 // Type guard for checking failure
 export const isFailure = <T, E extends { message: string }>(
-  result: Result<T, E>
+  result: Result<T, E>,
 ): result is { ok: false; error: E } => {
   return !result.ok;
 };

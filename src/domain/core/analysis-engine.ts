@@ -3,11 +3,15 @@
  * Implements the central analysis pipeline following Schema-driven Analysis pattern
  */
 
-import { type Result, type AnalysisError, createDomainError } from "./result.ts";
+import {
+  type AnalysisError,
+  createDomainError,
+  type Result,
+} from "./result.ts";
 import {
   type AnalysisContext,
-  isSchemaAnalysis,
   FrontMatterContent,
+  isSchemaAnalysis,
   type SchemaDefinition,
   type TemplateDefinition,
 } from "./types.ts";
@@ -92,7 +96,10 @@ export class GenericAnalysisEngine implements AnalysisEngine {
       // Timeout handling for robust operation
       let timeoutId: number | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error("Analysis timeout")), this.timeout);
+        timeoutId = setTimeout(
+          () => reject(new Error("Analysis timeout")),
+          this.timeout,
+        );
       });
 
       const analysisPromise = strategy.execute(input, {
@@ -101,7 +108,7 @@ export class GenericAnalysisEngine implements AnalysisEngine {
       });
 
       const result = await Promise.race([analysisPromise, timeoutPromise]);
-      
+
       // Clear timeout if analysis completes first
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId);
@@ -218,7 +225,10 @@ export class RobustTemplateMapper<TSource, TTarget>
 
     // Handle FrontMatterContent instances by extracting their data
     let sourceObj: Record<string, unknown>;
-    if (source && typeof source === "object" && "data" in source && "get" in source) {
+    if (
+      source && typeof source === "object" && "data" in source &&
+      "get" in source
+    ) {
       // This is a FrontMatterContent instance
       sourceObj = (source as { data: Record<string, unknown> }).data;
     } else if (typeof source === "object" && source !== null) {
@@ -226,19 +236,22 @@ export class RobustTemplateMapper<TSource, TTarget>
     } else {
       return result as TTarget;
     }
-      
+
     // Apply mapping rules if they exist
     if (template.mappingRules) {
-      for (const [targetKey, sourceKey] of Object.entries(template.mappingRules)) {
+      for (
+        const [targetKey, sourceKey] of Object.entries(template.mappingRules)
+      ) {
         const sourceKeyStr = sourceKey as string;
         if (sourceKeyStr in sourceObj) {
           // Support dot notation for nested properties (simplified)
-          if (targetKey.includes('.')) {
+          if (targetKey.includes(".")) {
             // For now, just set direct properties
-            const keys = targetKey.split('.');
+            const keys = targetKey.split(".");
             if (keys.length === 2) {
               if (!result[keys[0]]) result[keys[0]] = {};
-              (result[keys[0]] as Record<string, unknown>)[keys[1]] = sourceObj[sourceKeyStr];
+              (result[keys[0]] as Record<string, unknown>)[keys[1]] =
+                sourceObj[sourceKeyStr];
             }
           } else {
             result[targetKey] = sourceObj[sourceKeyStr];
@@ -246,7 +259,7 @@ export class RobustTemplateMapper<TSource, TTarget>
         }
       }
     }
-    
+
     // Merge any remaining properties from source, overriding template defaults
     for (const [key, value] of Object.entries(sourceObj)) {
       result[key] = value;
@@ -393,7 +406,7 @@ export class FrontMatterExtractionStrategy
     }
 
     const yamlContent = frontMatterMatch[1];
-    
+
     // Handle empty frontmatter case - create empty FrontMatterContent
     if (!yamlContent || yamlContent.trim().length === 0) {
       const emptyResult = FrontMatterContent.fromObject({});
@@ -413,7 +426,7 @@ export class FrontMatterExtractionStrategy
     }
 
     const yamlResult = FrontMatterContent.fromYaml(yamlContent);
-    
+
     // Map ValidationError to AnalysisError
     if (!yamlResult.ok) {
       return {
