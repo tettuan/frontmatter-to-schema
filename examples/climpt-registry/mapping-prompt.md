@@ -12,8 +12,9 @@ Map the extracted command data to the registry schema format.
 ## Schema Requirements
 
 The output must match this schema structure:
+
 - c1: string (required) - Domain/category
-- c2: string (required) - Action/directive  
+- c2: string (required) - Action/directive
 - c3: string (required) - Target/layer
 - description: string (required) - Command description
 - usage: string (optional) - Usage instructions
