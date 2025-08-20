@@ -18,7 +18,7 @@ export type DomainError =
 
 // Validation errors - for Smart Constructors and input validation
 export type ValidationError =
-  | { kind: "EmptyInput" }
+  | { kind: "EmptyInput"; field?: string }
   | { kind: "InvalidFormat"; input: string; expectedFormat: string }
   | { kind: "OutOfRange"; value: unknown; min?: number; max?: number }
   | { kind: "PatternMismatch"; value: string; pattern: string }
@@ -26,7 +26,11 @@ export type ValidationError =
   | { kind: "TooLong"; value: string; maxLength: number }
   | { kind: "TooShort"; value: string; minLength: number }
   | { kind: "InvalidRegex"; pattern: string }
-  | { kind: "FileExtensionMismatch"; path: string; expected: string[] };
+  | { kind: "FileExtensionMismatch"; path: string; expected: string[] }
+  | { kind: "NotFound"; resource: string; name?: string; key?: string }
+  | { kind: "NotConfigured"; component: string }
+  | { kind: "AlreadyExecuted"; pipeline: string }
+  | { kind: "InvalidState"; expected: string; actual: string };
 
 // Analysis domain specific errors
 export type AnalysisError =
@@ -79,7 +83,9 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
   switch (error.kind) {
     // Validation errors
     case "EmptyInput":
-      return "Input cannot be empty";
+      return `Input cannot be empty${
+        error.field ? ` (field: ${error.field})` : ""
+      }`;
     case "InvalidFormat":
       return `Invalid format: expected ${error.expectedFormat}, got "${error.input}"`;
     case "OutOfRange":
@@ -102,6 +108,16 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `File "${error.path}" must have one of these extensions: ${
         error.expected.join(", ")
       }`;
+    case "NotFound":
+      return `${error.resource} not found${
+        error.name ? `: ${error.name}` : ""
+      }${error.key ? ` (key: ${error.key})` : ""}`;
+    case "NotConfigured":
+      return `Component not configured: ${error.component}`;
+    case "AlreadyExecuted":
+      return `Pipeline ${error.pipeline} has already been executed`;
+    case "InvalidState":
+      return `Invalid state: expected ${error.expected}, got ${error.actual}`;
 
     // Analysis errors
     case "SchemaValidationFailed":
