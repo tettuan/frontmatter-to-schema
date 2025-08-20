@@ -11,7 +11,7 @@
  */
 
 import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
-import { RegistryBuilder } from "../src/registry-builder.ts";
+import { RegistryAggregator } from "../src/registry-aggregator.ts";
 import type { MappedEntry } from "../src/types.ts";
 
 console.log("🎯 Complete Registry Building Flow");
@@ -104,22 +104,22 @@ async function extractFrontmatter(
 }
 
 // Step 3: Build registry
-function buildRegistry(commands: Map<string, MappedEntry>): RegistryBuilder {
+function buildRegistry(commands: Map<string, MappedEntry>): RegistryAggregator {
   console.log("\n🏗️  Step 3: Building registry...");
-  const builder = new RegistryBuilder();
+  const aggregator = new RegistryAggregator();
 
   for (const [_, command] of commands) {
-    builder.addEntry(command);
+    aggregator.addEntry(command);
   }
 
   console.log(`  ✓ Added ${commands.size} commands to registry`);
-  return builder;
+  return aggregator;
 }
 
 // Step 4: Validate registry
-function validateRegistry(builder: RegistryBuilder): boolean {
+function validateRegistry(aggregator: RegistryAggregator): boolean {
   console.log("\n✅ Step 4: Validating registry...");
-  const validation = builder.validate();
+  const validation = aggregator.validate();
 
   if (validation.isValid) {
     console.log("  ✓ Validation passed!");
@@ -134,18 +134,18 @@ function validateRegistry(builder: RegistryBuilder): boolean {
 }
 
 // Step 5: Generate output
-async function generateOutput(builder: RegistryBuilder) {
+async function generateOutput(aggregator: RegistryAggregator) {
   console.log("\n💾 Step 5: Generating output...");
 
   // Ensure output directory exists
   await Deno.mkdir("examples/output", { recursive: true });
 
   // Save registry
-  await builder.writeToFile(OUTPUT_PATH);
+  await aggregator.writeToFile(OUTPUT_PATH);
   console.log(`  ✓ Registry saved to: ${OUTPUT_PATH}`);
 
   // Generate summary
-  const registry = builder.build();
+  const registry = aggregator.build();
   console.log("\n📊 Registry Summary:");
   console.log("-".repeat(50));
   console.log(`  Version: ${registry.version}`);

@@ -10,14 +10,14 @@
  *   deno run --allow-read --allow-write examples/03-create-registry.ts
  */
 
-import { RegistryBuilder } from "../src/registry-builder.ts";
+import { RegistryAggregator } from "../src/registry-aggregator.ts";
 import type { MappedEntry } from "../src/types.ts";
 
 console.log("🏗️  Creating MCP Registry Example");
 console.log("=".repeat(50));
 
 // Create builder instance
-const builder = new RegistryBuilder();
+const aggregator = new RegistryAggregator();
 
 // Define sample commands
 const commands: MappedEntry[] = [
@@ -87,13 +87,13 @@ console.log("\n📝 Adding commands to registry...");
 
 // Add all commands
 for (const command of commands) {
-  builder.addEntry(command);
+  aggregator.addEntry(command);
   console.log(`  ✓ Added: ${command.c1}/${command.c2}/${command.c3}`);
 }
 
 // Validate registry
 console.log("\n🔍 Validating registry...");
-const validation = builder.validate();
+const validation = aggregator.validate();
 
 if (validation.isValid) {
   console.log("✅ Registry validation passed!");
@@ -105,7 +105,7 @@ if (validation.isValid) {
 }
 
 // Build the registry
-const registry = builder.build();
+const registry = aggregator.build();
 
 // Display registry info
 console.log("\n📊 Registry Summary:");
@@ -128,7 +128,7 @@ for (const cmd of registry.tools.commands) {
 // Save to file
 const outputPath = "examples/output/sample-registry.json";
 await Deno.mkdir("examples/output", { recursive: true });
-await builder.writeToFile(outputPath);
+await aggregator.writeToFile(outputPath);
 
 console.log(`\n💾 Registry saved to: ${outputPath}`);
 

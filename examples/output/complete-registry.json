@@ -8,7 +8,8 @@
       "docs",
       "git",
       "meta",
-      "refactor"
+      "refactor",
+      "spec"
     ],
     "commands": [
       {
@@ -56,6 +57,54 @@
           ],
           "destination": [
             true
+          ]
+        }
+      },
+      {
+        "c1": "spec",
+        "c2": "analyze",
+        "c3": "quality-metrics",
+        "description": "Analyze specification quality and completeness metrics",
+        "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "list",
+        "c3": "available-commands",
+        "description": "List all available Climpt commands and their options",
+        "usage": "climpt-meta list available-commands",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
           ]
         }
       },
@@ -277,6 +326,30 @@
       },
       {
         "c1": "git",
+        "c2": "analyze",
+        "c3": "commit-history",
+        "description": "Analyze git commit history and generate insights",
+        "usage": "echo \"main..feature\" | climpt-git analyze commit-history",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
+      },
+      {
+        "c1": "git",
         "c2": "merge-up",
         "c3": "base-branch",
         "description": "作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。",
@@ -296,6 +369,30 @@
           ],
           "destination": [
             false
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements documentation",
+        "usage": "climpt-git create refinement-issue -f requirements.md",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "input_file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
           ]
         }
       },

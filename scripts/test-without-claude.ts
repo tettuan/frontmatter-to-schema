@@ -3,7 +3,7 @@
 import { FileReader } from "../src/infrastructure/filesystem/FileReader.ts";
 import { FileWriter } from "../src/infrastructure/filesystem/FileWriter.ts";
 import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
-import { RegistryBuilder } from "../src/application/services/RegistryBuilder.ts";
+import { RegistryAggregator } from "../src/application/services/RegistryAggregator.ts";
 import { AnalysisResult } from "../src/domain/analysis/AnalysisResult.ts";
 import type { Command } from "../src/domain/registry/types.ts";
 
@@ -20,7 +20,7 @@ async function testWithoutClaude() {
   const promptList = await fileReader.readDirectory(PROMPTS_PATH);
   console.log(`Found ${promptList.count} prompt files`);
 
-  const builder = new RegistryBuilder();
+  const aggregator = new RegistryAggregator();
 
   for (const promptFile of promptList.getAll()) {
     console.log(`Processing: ${promptFile.filename}`);
@@ -55,13 +55,13 @@ async function testWithoutClaude() {
     }
 
     const result = new AnalysisResult(promptFile.path, [mockCommand]);
-    builder.addAnalysisResult(result);
+    aggregator.addAnalysisResult(result);
     console.log(
       `  Extracted command: ${mockCommand.c1}/${mockCommand.c2}/${mockCommand.c3}`,
     );
   }
 
-  const registry = builder.build();
+  const registry = aggregator.build();
   await fileWriter.writeJson(OUTPUT_PATH, registry);
 
   console.log("\n✅ Test registry build completed!");
