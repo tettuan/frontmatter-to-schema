@@ -1,4 +1,12 @@
-// Value objects with smart constructors following totality principle
+/**
+ * Value Objects implementing Domain-Driven Design patterns
+ *
+ * These value objects follow the Totality principle:
+ * - Smart constructors ensure only valid instances can be created
+ * - All functions are total (no exceptions, use Result types)
+ * - Immutable after creation
+ * - Self-validating with business rules embedded
+ */
 
 import {
   createError,
@@ -6,10 +14,29 @@ import {
   type ValidationError,
 } from "../shared/types.ts";
 
-// Document-related value objects
+/**
+ * Represents a path to a Markdown document
+ *
+ * Business Rules:
+ * - Path must not be empty
+ * - Must end with .md or .markdown extension
+ * - Immutable after creation
+ *
+ * @example
+ * const result = DocumentPath.create("docs/readme.md");
+ * if (result.ok) {
+ *   console.log(result.data.getValue()); // "docs/readme.md"
+ * }
+ */
 export class DocumentPath {
   private constructor(private readonly value: string) {}
 
+  /**
+   * Creates a validated DocumentPath instance
+   *
+   * @param path - The file path to validate
+   * @returns Result containing either a valid DocumentPath or validation error
+   */
   static create(
     path: string,
   ): Result<DocumentPath, ValidationError & { message: string }> {
@@ -32,15 +59,26 @@ export class DocumentPath {
     return { ok: true, data: new DocumentPath(trimmedPath) };
   }
 
+  /**
+   * Gets the raw path value
+   */
   getValue(): string {
     return this.value;
   }
 
+  /**
+   * Extracts the directory portion of the path
+   * @returns Directory path or "." if no directory
+   */
   getDirectory(): string {
     const lastSlash = this.value.lastIndexOf("/");
     return lastSlash > 0 ? this.value.substring(0, lastSlash) : ".";
   }
 
+  /**
+   * Extracts the filename portion of the path
+   * @returns Filename including extension
+   */
   getFilename(): string {
     const lastSlash = this.value.lastIndexOf("/");
     return lastSlash >= 0 ? this.value.substring(lastSlash + 1) : this.value;

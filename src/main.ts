@@ -1,6 +1,19 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-run
 
-// Main composition root - wires up all dependencies
+/**
+ * Main Application Entry Point - Composition Root
+ *
+ * This file implements the Dependency Injection pattern, wiring up all
+ * dependencies at the application's entry point. It supports two modes:
+ *
+ * 1. Modern DDD mode: Schema-driven document processing with runtime injection
+ * 2. Legacy mode: BuildRegistry for backward compatibility (--build-registry flag)
+ *
+ * Architecture follows Domain-Driven Design with clear separation:
+ * - Domain layer: Business logic and rules
+ * - Application layer: Use cases and orchestration
+ * - Infrastructure layer: External adapters and implementations
+ */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import {
@@ -23,14 +36,24 @@ import {
   TemplateLoader,
 } from "./infrastructure/adapters/configuration-loader.ts";
 
-// Legacy imports for BuildRegistryUseCase
+/**
+ * Legacy imports maintained for backward compatibility
+ * These will be deprecated in future versions
+ */
 import { FileReader } from "./infrastructure/filesystem/FileReader.ts";
 import { FileWriter } from "./infrastructure/filesystem/FileWriter.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
 import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
 import { BuildRegistryUseCase } from "./application/usecases/BuildRegistryUseCase.ts";
 
-// Load prompt templates
+/**
+ * Loads AI prompt templates for schema extraction and mapping
+ *
+ * Attempts to load from filesystem first, falls back to embedded defaults
+ * if files are not found. This supports both development and production modes.
+ *
+ * @returns Object containing extraction and mapping prompt templates
+ */
 async function loadPromptTemplates(): Promise<
   { extraction: string; mapping: string }
 > {
@@ -58,7 +81,15 @@ Return ONLY a JSON object with the mapped data.`,
   }
 }
 
-// Legacy function for BuildRegistryUseCase
+/**
+ * Legacy registry builder for Climpt tool integration
+ *
+ * Processes markdown files with frontmatter to generate a registry.json
+ * file for MCP server configuration. This function is maintained for
+ * backward compatibility with existing workflows.
+ *
+ * @deprecated Will be replaced by the modern schema-driven approach
+ */
 async function runBuildRegistry() {
   const PROMPTS_PATH = ".agent/climpt/prompts";
   const OUTPUT_PATH = ".agent/climpt/registry.json";
@@ -96,6 +127,19 @@ async function runBuildRegistry() {
   }
 }
 
+/**
+ * Main application function
+ *
+ * Handles command-line argument parsing and routes to appropriate
+ * processing mode based on user input. Implements the following workflow:
+ *
+ * 1. Parse command-line arguments
+ * 2. Display help if requested
+ * 3. Route to legacy mode if --build-registry flag is present
+ * 4. Otherwise, execute modern schema-driven processing
+ *
+ * The function ensures proper error handling and clean exit codes.
+ */
 async function main() {
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],

@@ -1,4 +1,14 @@
-// Domain service interfaces
+/**
+ * Domain Service Interfaces
+ *
+ * These interfaces define the contracts for domain services following DDD principles.
+ * They are part of the domain layer and represent business capabilities.
+ *
+ * Key principles:
+ * - All methods return Result types (Totality principle)
+ * - Interfaces are schema-agnostic where possible
+ * - Clear separation between domain logic and infrastructure concerns
+ */
 
 import type {
   IOError,
@@ -22,13 +32,30 @@ import type {
   OutputPath,
 } from "../models/value-objects.ts";
 
-// Core domain services
+/**
+ * Core Domain Services
+ * These services encapsulate domain logic that doesn't naturally fit within entities
+ */
+
+/**
+ * Extracts frontmatter metadata from markdown documents
+ *
+ * Responsible for parsing YAML/TOML frontmatter from document content.
+ * Returns null if no frontmatter is present (which is a valid state).
+ */
 export interface FrontMatterExtractor {
   extract(
     document: Document,
   ): Result<FrontMatter | null, ProcessingError & { message: string }>;
 }
 
+/**
+ * Analyzes frontmatter against a schema definition
+ *
+ * This is a key injection point for schema variability.
+ * The schema is provided at runtime, allowing different schemas
+ * to be used with the same application instance.
+ */
 export interface SchemaAnalyzer {
   analyze(
     frontMatter: FrontMatter,
@@ -36,6 +63,12 @@ export interface SchemaAnalyzer {
   ): Promise<Result<ExtractedData, ProcessingError & { message: string }>>;
 }
 
+/**
+ * Maps extracted data to a template structure
+ *
+ * Transforms schema-validated data into the desired output format.
+ * The template is injected at runtime for maximum flexibility.
+ */
 export interface TemplateMapper {
   map(
     data: ExtractedData,
@@ -43,13 +76,29 @@ export interface TemplateMapper {
   ): Result<MappedData, ProcessingError & { message: string }>;
 }
 
+/**
+ * Aggregates multiple analysis results into a final output
+ *
+ * Combines results from processing multiple documents into
+ * a single cohesive output structure.
+ */
 export interface ResultAggregator {
   aggregate(
     results: AnalysisResult[],
   ): Result<AggregatedResult, ProcessingError & { message: string }>;
 }
 
-// Repository interfaces
+/**
+ * Repository Interfaces
+ *
+ * These interfaces define contracts for data access, following the
+ * Repository pattern from DDD. They abstract infrastructure concerns
+ * from the domain layer.
+ */
+
+/**
+ * Repository for accessing markdown documents
+ */
 export interface DocumentRepository {
   findAll(
     path: DocumentPath,
