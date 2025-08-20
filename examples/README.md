@@ -1,111 +1,190 @@
-# Frontmatter to Schema Examples
+# Frontmatter to Schema CLI Examples
 
-This directory contains executable examples demonstrating how to use the
-frontmatter-to-schema system.
+This directory contains examples demonstrating how to use the frontmatter-to-schema CLI tool.
 
-## 🚀 Running Examples
+## 🚀 Quick Start
 
-All examples can be run directly from the terminal:
+The CLI tool processes markdown files with frontmatter and transforms them according to schemas and templates:
 
 ```bash
-# Run specific example
-deno run --allow-read --allow-write examples/01-build-registry.ts
+# Basic usage
+frontmatter-to-schema <directory> --schema=<file> --template=<file> --destination=<dir>
 
-# Or make executable and run
-chmod +x examples/*.ts
-./examples/01-build-registry.ts
+# Example
+frontmatter-to-schema examples/sample-docs \
+  --schema=examples/articles-index/schema.json \
+  --template=examples/articles-index/template.yaml \
+  --destination=examples/output
 ```
 
-## 📚 Available Examples
+## 📚 CLI Examples
 
-### 01-build-registry.ts
+### 01-cli-basic.sh
 
-Builds a command registry by scanning climpt prompt files.
+Basic CLI usage examples demonstrating common use cases.
 
 **Features:**
-
-- Scans `.agent/climpt/prompts/` directory
-- Extracts command structure from file paths
-- Detects available options from file content
-- Generates markdown report
+- Process with configuration file
+- Process articles with YAML template
+- Display help information
 
 **Usage:**
-
 ```bash
-deno run --allow-read --allow-write examples/01-build-registry.ts
+chmod +x examples/01-cli-basic.sh
+./examples/01-cli-basic.sh
 ```
-
-**Output:** `examples/output/command-registry.md`
 
 ---
 
-### 02-parse-frontmatter.ts
+### 02-cli-advanced.sh
 
-Demonstrates frontmatter extraction and parsing from markdown files.
+Advanced CLI usage patterns including batch processing and error handling.
 
 **Features:**
-
-- Parses YAML frontmatter from markdown
-- Extracts command metadata
-- Shows configuration options
-- Generates command structure
+- Process multiple directories
+- Custom output formats
+- Error handling strategies
+- Batch processing with validation
 
 **Usage:**
+```bash
+chmod +x examples/02-cli-advanced.sh
+./examples/02-cli-advanced.sh
+```
+
+---
+
+### 03-cli-programmatic.ts
+
+Demonstrates programmatic usage of the CLI from TypeScript/JavaScript.
+
+**Features:**
+- Execute CLI from TypeScript
+- Process multiple configurations
+- Handle errors programmatically
+- Generate summary reports
+
+**Usage:**
+```bash
+deno run --allow-read --allow-write --allow-run examples/03-cli-programmatic.ts
+```
+
+## 📂 Legacy Examples (Programmatic API)
+
+The following examples demonstrate direct API usage (without CLI):
+
+### 01-build-registry.ts
+Builds a command registry by scanning climpt prompt files.
+
+```bash
+deno run --allow-read --allow-write examples/01-build-registry.ts
+```
+
+### 02-parse-frontmatter.ts
+Demonstrates frontmatter extraction and parsing from markdown files.
 
 ```bash
 deno run --allow-read examples/02-parse-frontmatter.ts
 ```
 
-**Output:** Console output showing parsed data
-
----
-
 ### 03-create-registry.ts
-
 Creates a complete MCP registry with sample commands.
-
-**Features:**
-
-- Uses RegistryAggregator to create registry
-- Adds multiple command entries
-- Validates registry structure
-- Saves to JSON file
-
-**Usage:**
 
 ```bash
 deno run --allow-read --allow-write examples/03-create-registry.ts
 ```
 
-**Output:** `examples/output/sample-registry.json`
+### 04-complete-flow.ts
+Demonstrates the complete document processing pipeline.
 
-## 📁 Output Directory
+```bash
+deno run --allow-read --allow-write --allow-env --allow-run examples/04-complete-flow.ts
+```
 
-Generated files are saved to `examples/output/`:
+### 05-climpt-registry.ts
+Processes climpt prompts to generate registry.
 
-- `command-registry.md` - Command registry report
-- `sample-registry.json` - MCP registry file
+```bash
+deno run --allow-read --allow-write --allow-env --allow-run examples/05-climpt-registry.ts
+```
+
+### 06-redesigned-architecture.ts
+Demonstrates the redesigned DDD architecture.
+
+```bash
+deno run --allow-read --allow-write --allow-env --allow-run examples/06-redesigned-architecture.ts
+```
+
+### 07-configuration-flexibility.ts
+Shows configuration flexibility and schema variability.
+
+```bash
+deno run --allow-read --allow-write --allow-env --allow-run examples/07-configuration-flexibility.ts
+```
+
+## 📁 Sample Data
+
+### Input Directories
+- `sample-docs/` - Sample markdown documents
+- `alternative-structure/` - Alternative command structure
+- `.agent/climpt/prompts/` - Climpt prompt files
+
+### Configuration Files
+- `climpt-registry/` - Climpt registry configuration
+  - `schema.json` - JSON schema for validation
+  - `template.json` - Output template
+  - `config.json` - Processing configuration
+- `articles-index/` - Articles indexing configuration
+  - `schema.json` - Article schema
+  - `template.yaml` - YAML output template
+
+### Output Directory
+- `output/` - Generated files from examples
+  - `*.json` - JSON output files
+  - `*.yaml` - YAML output files
+  - `*.md` - Markdown reports
 
 ## 🔧 Requirements
 
 - Deno runtime
+- CLI executable: `./frontmatter-to-schema`
 - Read/Write permissions for file operations
 
 ## 💡 Tips
 
-1. **Permissions**: Use `--allow-read` and `--allow-write` flags as needed
-2. **Debugging**: Add `--inspect` flag to enable debugging
-3. **Watch Mode**: Use `--watch` flag for development
+1. **Make CLI executable**: 
+   ```bash
+   chmod +x frontmatter-to-schema
+   ```
 
+2. **View help**:
+   ```bash
+   ./frontmatter-to-schema --help
+   ```
+
+3. **Debug mode**:
+   ```bash
+   FRONTMATTER_DEBUG=1 ./frontmatter-to-schema <args>
+   ```
+
+4. **Watch mode** (for development):
+   ```bash
+   deno run --watch --allow-all cli.ts <args>
+   ```
+
+## 📖 Documentation
+
+- [CLI Usage Guide](../docs/cli-usage.md)
+- [Domain Design](../docs/domain/domain-design.md)
+- [Production Roadmap](../docs/production-roadmap.md)
+
+## 🧪 Testing
+
+Run all examples:
 ```bash
-# Development mode with auto-reload
-deno run --watch --allow-read --allow-write examples/01-build-registry.ts
+./examples/run-all.sh
 ```
 
-## 📖 Learn More
+## 📝 License
 
-See the main project documentation for:
-
-- [Domain Design](../docs/domain-design.md)
-- [Requirements Analysis](../docs/requirements-analysis.md)
-- [Production Roadmap](../docs/production-roadmap.md)
+See the main project LICENSE file.
