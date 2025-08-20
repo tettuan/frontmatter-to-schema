@@ -80,10 +80,25 @@ Return ONLY a JSON object with the mapped data.`,
 }
 
 async function main() {
-  const args = parseArgs(Deno.args, {
+  // Pre-process args to handle --key=value format
+  const processedArgs = Deno.args.map(arg => {
+    if (arg.startsWith('--') && arg.includes('=')) {
+      const [key, value] = arg.split('=', 2);
+      return [key, value];
+    }
+    return arg;
+  }).flat();
+
+  // Debug logging if needed
+  if (Deno.env.get("FRONTMATTER_DEBUG")) {
+    console.log("Raw args:", Deno.args);
+    console.log("Processed args:", processedArgs);
+  }
+
+  const args = parseArgs(processedArgs, {
     string: ["schema", "template", "destination"],
     boolean: ["help"],
-    stopEarly: true,
+    stopEarly: false,
   });
 
   if (args.help || args._.length === 0) {
@@ -110,11 +125,22 @@ async function main() {
     console.log(`💾 Destination: ${destinationDir}`);
 
     // Create value objects
-    const documentsPathResult = DocumentPath.create(markdownDir);
+    // DocumentPath expects markdown files, but CLI accepts directories
+    // So we need to handle this differently
+    const documentsPathResult = DocumentPath.create(
+      markdownDir.endsWith(".md") || markdownDir.endsWith(".markdown") 
+        ? markdownDir 
+        : `${markdownDir}/*.md`
+    );
     const schemaPathResult = ConfigPath.create(schemaPath);
     const templatePathResult = ConfigPath.create(templatePath);
+    
+    // Determine output filename based on template extension
+    const templateExt = templatePath.endsWith(".yaml") || templatePath.endsWith(".yml") 
+      ? "yaml" : "json";
+    const outputFileName = `registry.${templateExt}`;
     const outputPathResult = OutputPath.create(
-      join(destinationDir, "output.json"),
+      join(destinationDir, outputFileName),
     );
 
     if (
