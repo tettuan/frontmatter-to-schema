@@ -16,3 +16,8 @@ schema file.
 AI-complexity-control:`docs/development/ai-complexity-control_compact.ja.md`
 Totality: `docs/development/totality.ja.md` Prohibit-Hardcoding:
 `prohibit-hardcoding.ja.md`
+
+
+# Tests
+
+- use `*_test.ts` filename for test file.
