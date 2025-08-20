@@ -6,7 +6,7 @@
 
 ```typescript
 // 全域性原則：Result型によるエラー値化
-export type Result<T, E = Error> = 
+export type Result<T, E = Error> =
   | { readonly ok: true; readonly data: T }
   | { readonly ok: false; readonly error: E };
 
@@ -14,7 +14,10 @@ export type Result<T, E = Error> =
 export type DomainError =
   | { readonly kind: "SchemaNotLoaded" }
   | { readonly kind: "InvalidSchemaFormat"; readonly details: string }
-  | { readonly kind: "ValidationFailed"; readonly violations: readonly string[] }
+  | {
+    readonly kind: "ValidationFailed";
+    readonly violations: readonly string[];
+  }
   | { readonly kind: "MappingFailed"; readonly reason: string }
   | { readonly kind: "FileNotFound"; readonly path: string }
   | { readonly kind: "ParseError"; readonly input: string }
@@ -24,7 +27,7 @@ export type DomainError =
 // エラー作成ヘルパー
 export const createDomainError = <K extends DomainError["kind"]>(
   kind: K,
-  details: Omit<Extract<DomainError, { kind: K }>, "kind">
+  details: Omit<Extract<DomainError, { kind: K }>, "kind">,
 ): DomainError => ({ kind, ...details } as DomainError);
 ```
 
@@ -34,17 +37,17 @@ export const createDomainError = <K extends DomainError["kind"]>(
 // 全域性原則：Smart Constructorパターン
 export class MarkdownContent {
   private constructor(private readonly content: string) {}
-  
+
   static create(content: string): Result<MarkdownContent, DomainError> {
     if (content.length === 0) {
       return {
         ok: false,
-        error: createDomainError("ParseError", { input: "empty content" })
+        error: createDomainError("ParseError", { input: "empty content" }),
       };
     }
     return { ok: true, data: new MarkdownContent(content) };
   }
-  
+
   getValue(): string {
     return this.content;
   }
@@ -72,28 +75,28 @@ export interface FrontMatterExtractor {
 // ファイルパスの値オブジェクト
 export class FilePath {
   private constructor(private readonly path: string) {}
-  
+
   static create(path: string): Result<FilePath, DomainError> {
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: createDomainError("FileNotFound", { path })
+        error: createDomainError("FileNotFound", { path }),
       };
     }
     return { ok: true, data: new FilePath(path) };
   }
-  
+
   getValue(): string {
     return this.path;
   }
-  
+
   getDirectory(): string {
-    const lastSlash = this.path.lastIndexOf('/');
-    return lastSlash > 0 ? this.path.substring(0, lastSlash) : '/';
+    const lastSlash = this.path.lastIndexOf("/");
+    return lastSlash > 0 ? this.path.substring(0, lastSlash) : "/";
   }
-  
+
   getFilename(): string {
-    const lastSlash = this.path.lastIndexOf('/');
+    const lastSlash = this.path.lastIndexOf("/");
     return lastSlash >= 0 ? this.path.substring(lastSlash + 1) : this.path;
   }
 }
@@ -101,17 +104,17 @@ export class FilePath {
 // ファイルパターン
 export class FilePattern {
   private constructor(private readonly pattern: string) {}
-  
+
   static create(pattern: string): Result<FilePattern, DomainError> {
     if (!pattern) {
       return {
         ok: false,
-        error: createDomainError("InvalidConfiguration", { field: "pattern" })
+        error: createDomainError("InvalidConfiguration", { field: "pattern" }),
       };
     }
     return { ok: true, data: new FilePattern(pattern) };
   }
-  
+
   getValue(): string {
     return this.pattern;
   }
@@ -124,23 +127,35 @@ export class FilePattern {
 
 ```typescript
 // 全域性原則：Discriminated Union による状態管理
-export type SchemaContext = 
+export type SchemaContext =
   | { readonly kind: "NotLoaded" }
   | { readonly kind: "Loading"; readonly path: string }
-  | { readonly kind: "Loaded"; readonly schema: unknown; readonly loadedAt: Date }
+  | {
+    readonly kind: "Loaded";
+    readonly schema: unknown;
+    readonly loadedAt: Date;
+  }
   | { readonly kind: "Failed"; readonly error: DomainError };
 
 // Template注入コンテキスト
 export type TemplateContext =
   | { readonly kind: "NotLoaded" }
   | { readonly kind: "Loading"; readonly path: string }
-  | { readonly kind: "Loaded"; readonly template: unknown; readonly loadedAt: Date }
+  | {
+    readonly kind: "Loaded";
+    readonly template: unknown;
+    readonly loadedAt: Date;
+  }
   | { readonly kind: "Failed"; readonly error: DomainError };
 
 // Prompt注入コンテキスト
 export type PromptContext =
   | { readonly kind: "NotLoaded" }
-  | { readonly kind: "Loaded"; readonly extraction: string; readonly mapping: string }
+  | {
+    readonly kind: "Loaded";
+    readonly extraction: string;
+    readonly mapping: string;
+  }
   | { readonly kind: "Failed"; readonly error: DomainError };
 ```
 
@@ -154,9 +169,9 @@ export class ExecutionConfig {
     private readonly templatePath: FilePath,
     private readonly inputPath: FilePath,
     private readonly outputPath: FilePath,
-    private readonly outputFormat: OutputFormat
+    private readonly outputFormat: OutputFormat,
   ) {}
-  
+
   static create(config: {
     schemaPath: string;
     templatePath: string;
@@ -166,19 +181,19 @@ export class ExecutionConfig {
   }): Result<ExecutionConfig, DomainError> {
     const schemaPathResult = FilePath.create(config.schemaPath);
     if (!schemaPathResult.ok) return schemaPathResult;
-    
+
     const templatePathResult = FilePath.create(config.templatePath);
     if (!templatePathResult.ok) return templatePathResult;
-    
+
     const inputPathResult = FilePath.create(config.inputPath);
     if (!inputPathResult.ok) return inputPathResult;
-    
+
     const outputPathResult = FilePath.create(config.outputPath);
     if (!outputPathResult.ok) return outputPathResult;
-    
+
     const formatResult = OutputFormat.create(config.outputFormat);
     if (!formatResult.ok) return formatResult;
-    
+
     return {
       ok: true,
       data: new ExecutionConfig(
@@ -186,33 +201,47 @@ export class ExecutionConfig {
         templatePathResult.data,
         inputPathResult.data,
         outputPathResult.data,
-        formatResult.data
-      )
+        formatResult.data,
+      ),
     };
   }
-  
-  getSchemaPath(): FilePath { return this.schemaPath; }
-  getTemplatePath(): FilePath { return this.templatePath; }
-  getInputPath(): FilePath { return this.inputPath; }
-  getOutputPath(): FilePath { return this.outputPath; }
-  getOutputFormat(): OutputFormat { return this.outputFormat; }
+
+  getSchemaPath(): FilePath {
+    return this.schemaPath;
+  }
+  getTemplatePath(): FilePath {
+    return this.templatePath;
+  }
+  getInputPath(): FilePath {
+    return this.inputPath;
+  }
+  getOutputPath(): FilePath {
+    return this.outputPath;
+  }
+  getOutputFormat(): OutputFormat {
+    return this.outputFormat;
+  }
 }
 
 // 出力フォーマット
 export class OutputFormat {
   private static readonly VALID_FORMATS = ["json", "yaml", "xml"] as const;
-  private constructor(private readonly format: typeof OutputFormat.VALID_FORMATS[number]) {}
-  
+  private constructor(
+    private readonly format: typeof OutputFormat.VALID_FORMATS[number],
+  ) {}
+
   static create(format: string): Result<OutputFormat, DomainError> {
     if (OutputFormat.VALID_FORMATS.includes(format as any)) {
       return { ok: true, data: new OutputFormat(format as any) };
     }
     return {
       ok: false,
-      error: createDomainError("InvalidConfiguration", { field: "outputFormat" })
+      error: createDomainError("InvalidConfiguration", {
+        field: "outputFormat",
+      }),
     };
   }
-  
+
   getValue(): string {
     return this.format;
   }
@@ -230,12 +259,20 @@ export type PipelineState =
   | { readonly kind: "Initializing"; readonly config: ExecutionConfig }
   | { readonly kind: "LoadingSchema"; readonly progress: number }
   | { readonly kind: "LoadingTemplate"; readonly progress: number }
-  | { readonly kind: "ProcessingDocuments"; readonly current: number; readonly total: number }
+  | {
+    readonly kind: "ProcessingDocuments";
+    readonly current: number;
+    readonly total: number;
+  }
   | { readonly kind: "ApplyingSchema"; readonly documentId: string }
   | { readonly kind: "MappingToTemplate"; readonly documentId: string }
   | { readonly kind: "GeneratingOutput" }
   | { readonly kind: "Completed"; readonly outputPath: FilePath }
-  | { readonly kind: "Failed"; readonly error: DomainError; readonly failedAt: Date };
+  | {
+    readonly kind: "Failed";
+    readonly error: DomainError;
+    readonly failedAt: Date;
+  };
 
 // パイプライン遷移ルール
 export type StateTransition =
@@ -243,9 +280,15 @@ export type StateTransition =
   | { from: "Initializing"; to: "LoadingSchema" | "Failed" }
   | { from: "LoadingSchema"; to: "LoadingTemplate" | "Failed" }
   | { from: "LoadingTemplate"; to: "ProcessingDocuments" | "Failed" }
-  | { from: "ProcessingDocuments"; to: "ApplyingSchema" | "GeneratingOutput" | "Failed" }
+  | {
+    from: "ProcessingDocuments";
+    to: "ApplyingSchema" | "GeneratingOutput" | "Failed";
+  }
   | { from: "ApplyingSchema"; to: "MappingToTemplate" | "Failed" }
-  | { from: "MappingToTemplate"; to: "ProcessingDocuments" | "GeneratingOutput" | "Failed" }
+  | {
+    from: "MappingToTemplate";
+    to: "ProcessingDocuments" | "GeneratingOutput" | "Failed";
+  }
   | { from: "GeneratingOutput"; to: "Completed" | "Failed" };
 ```
 
@@ -265,33 +308,45 @@ export class ProcessedDocument {
     private readonly originalPath: FilePath,
     private readonly extractedData: ExtractedData,
     private readonly validatedData: unknown,
-    private readonly mappedData: unknown
+    private readonly mappedData: unknown,
   ) {}
-  
+
   static create(
     id: string,
     path: FilePath,
     extracted: ExtractedData,
     validated: unknown,
-    mapped: unknown
+    mapped: unknown,
   ): Result<ProcessedDocument, DomainError> {
     if (!id) {
       return {
         ok: false,
-        error: createDomainError("InvalidConfiguration", { field: "documentId" })
+        error: createDomainError("InvalidConfiguration", {
+          field: "documentId",
+        }),
       };
     }
     return {
       ok: true,
-      data: new ProcessedDocument(id, path, extracted, validated, mapped)
+      data: new ProcessedDocument(id, path, extracted, validated, mapped),
     };
   }
-  
-  getId(): string { return this.id; }
-  getOriginalPath(): FilePath { return this.originalPath; }
-  getExtractedData(): ExtractedData { return this.extractedData; }
-  getValidatedData(): unknown { return this.validatedData; }
-  getMappedData(): unknown { return this.mappedData; }
+
+  getId(): string {
+    return this.id;
+  }
+  getOriginalPath(): FilePath {
+    return this.originalPath;
+  }
+  getExtractedData(): ExtractedData {
+    return this.extractedData;
+  }
+  getValidatedData(): unknown {
+    return this.validatedData;
+  }
+  getMappedData(): unknown {
+    return this.mappedData;
+  }
 }
 ```
 
@@ -316,7 +371,9 @@ export type ActiveSchemaSet = {
 
 // Schema切り替えマネージャー
 export interface SchemaSwitchManager {
-  loadSchemaSet(config: ExecutionConfig): Promise<Result<ActiveSchemaSet, DomainError>>;
+  loadSchemaSet(
+    config: ExecutionConfig,
+  ): Promise<Result<ActiveSchemaSet, DomainError>>;
   getCurrentSet(): ActiveSchemaSet;
   unloadCurrentSet(): void;
 }
@@ -329,7 +386,7 @@ export interface SchemaSwitchManager {
 export interface DynamicPipelineFactory {
   createPipeline(
     config: ExecutionConfig,
-    schemaSet: ActiveSchemaSet
+    schemaSet: ActiveSchemaSet,
   ): Result<ExecutablePipeline, DomainError>;
 }
 
@@ -338,7 +395,7 @@ export interface ExecutablePipeline {
   readonly id: string;
   readonly config: ExecutionConfig;
   readonly state: PipelineState;
-  
+
   execute(): Promise<Result<PipelineExecutionResult, DomainError>>;
   getProgress(): PipelineProgress;
   cancel(): void;
@@ -352,33 +409,51 @@ export class PipelineExecutionResult {
     private readonly processedCount: number,
     private readonly skippedCount: number,
     private readonly failedCount: number,
-    private readonly executionTime: number
+    private readonly executionTime: number,
   ) {}
-  
+
   static create(
     outputPath: FilePath,
     processed: number,
     skipped: number,
     failed: number,
-    time: number
+    time: number,
   ): Result<PipelineExecutionResult, DomainError> {
     if (processed < 0 || skipped < 0 || failed < 0 || time < 0) {
       return {
         ok: false,
-        error: createDomainError("InvalidConfiguration", { field: "statistics" })
+        error: createDomainError("InvalidConfiguration", {
+          field: "statistics",
+        }),
       };
     }
     return {
       ok: true,
-      data: new PipelineExecutionResult(outputPath, processed, skipped, failed, time)
+      data: new PipelineExecutionResult(
+        outputPath,
+        processed,
+        skipped,
+        failed,
+        time,
+      ),
     };
   }
-  
-  getOutputPath(): FilePath { return this.outputPath; }
-  getProcessedCount(): number { return this.processedCount; }
-  getSkippedCount(): number { return this.skippedCount; }
-  getFailedCount(): number { return this.failedCount; }
-  getExecutionTime(): number { return this.executionTime; }
+
+  getOutputPath(): FilePath {
+    return this.outputPath;
+  }
+  getProcessedCount(): number {
+    return this.processedCount;
+  }
+  getSkippedCount(): number {
+    return this.skippedCount;
+  }
+  getFailedCount(): number {
+    return this.failedCount;
+  }
+  getExecutionTime(): number {
+    return this.executionTime;
+  }
 }
 
 // パイプライン進行状況
@@ -399,54 +474,70 @@ export type PipelineProgress = {
 // バリデーション結果
 export type ValidationResult =
   | { readonly kind: "Valid"; readonly data: unknown }
-  | { readonly kind: "Invalid"; readonly violations: readonly ValidationViolation[] };
+  | {
+    readonly kind: "Invalid";
+    readonly violations: readonly ValidationViolation[];
+  };
 
 // バリデーション違反
 export class ValidationViolation {
   private constructor(
     private readonly path: string,
     private readonly message: string,
-    private readonly severity: ValidationSeverity
+    private readonly severity: ValidationSeverity,
   ) {}
-  
+
   static create(
     path: string,
     message: string,
-    severity: string
+    severity: string,
   ): Result<ValidationViolation, DomainError> {
     const severityResult = ValidationSeverity.create(severity);
     if (!severityResult.ok) return severityResult;
-    
+
     return {
       ok: true,
-      data: new ValidationViolation(path, message, severityResult.data)
+      data: new ValidationViolation(path, message, severityResult.data),
     };
   }
-  
-  getPath(): string { return this.path; }
-  getMessage(): string { return this.message; }
-  getSeverity(): ValidationSeverity { return this.severity; }
+
+  getPath(): string {
+    return this.path;
+  }
+  getMessage(): string {
+    return this.message;
+  }
+  getSeverity(): ValidationSeverity {
+    return this.severity;
+  }
 }
 
 // バリデーション重要度
 export class ValidationSeverity {
-  private static readonly VALID_SEVERITIES = ["error", "warning", "info"] as const;
-  private constructor(private readonly severity: typeof ValidationSeverity.VALID_SEVERITIES[number]) {}
-  
+  private static readonly VALID_SEVERITIES = [
+    "error",
+    "warning",
+    "info",
+  ] as const;
+  private constructor(
+    private readonly severity:
+      typeof ValidationSeverity.VALID_SEVERITIES[number],
+  ) {}
+
   static create(severity: string): Result<ValidationSeverity, DomainError> {
     if (ValidationSeverity.VALID_SEVERITIES.includes(severity as any)) {
       return { ok: true, data: new ValidationSeverity(severity as any) };
     }
     return {
       ok: false,
-      error: createDomainError("InvalidConfiguration", { field: "severity" })
+      error: createDomainError("InvalidConfiguration", { field: "severity" }),
     };
   }
-  
+
   getValue(): string {
     return this.severity;
   }
-  
+
   isError(): boolean {
     return this.severity === "error";
   }
@@ -464,48 +555,64 @@ export const assertNever = (x: never): never => {
 // 状態遷移の妥当性検証
 export const validateStateTransition = (
   from: PipelineState,
-  to: PipelineState
+  to: PipelineState,
 ): Result<void, DomainError> => {
   switch (from.kind) {
     case "Idle":
       if (to.kind === "Initializing") return { ok: true, data: undefined };
       break;
     case "Initializing":
-      if (to.kind === "LoadingSchema" || to.kind === "Failed") return { ok: true, data: undefined };
+      if (to.kind === "LoadingSchema" || to.kind === "Failed") {
+        return { ok: true, data: undefined };
+      }
       break;
     case "LoadingSchema":
-      if (to.kind === "LoadingTemplate" || to.kind === "Failed") return { ok: true, data: undefined };
+      if (to.kind === "LoadingTemplate" || to.kind === "Failed") {
+        return { ok: true, data: undefined };
+      }
       break;
     case "LoadingTemplate":
-      if (to.kind === "ProcessingDocuments" || to.kind === "Failed") return { ok: true, data: undefined };
+      if (to.kind === "ProcessingDocuments" || to.kind === "Failed") {
+        return { ok: true, data: undefined };
+      }
       break;
     case "ProcessingDocuments":
-      if (to.kind === "ApplyingSchema" || to.kind === "GeneratingOutput" || to.kind === "Failed") {
+      if (
+        to.kind === "ApplyingSchema" || to.kind === "GeneratingOutput" ||
+        to.kind === "Failed"
+      ) {
         return { ok: true, data: undefined };
       }
       break;
     case "ApplyingSchema":
-      if (to.kind === "MappingToTemplate" || to.kind === "Failed") return { ok: true, data: undefined };
+      if (to.kind === "MappingToTemplate" || to.kind === "Failed") {
+        return { ok: true, data: undefined };
+      }
       break;
     case "MappingToTemplate":
-      if (to.kind === "ProcessingDocuments" || to.kind === "GeneratingOutput" || to.kind === "Failed") {
+      if (
+        to.kind === "ProcessingDocuments" || to.kind === "GeneratingOutput" ||
+        to.kind === "Failed"
+      ) {
         return { ok: true, data: undefined };
       }
       break;
     case "GeneratingOutput":
-      if (to.kind === "Completed" || to.kind === "Failed") return { ok: true, data: undefined };
+      if (to.kind === "Completed" || to.kind === "Failed") {
+        return { ok: true, data: undefined };
+      }
       break;
     case "Completed":
     case "Failed":
       // 終了状態からの遷移は不可
       break;
   }
-  
+
   return {
     ok: false,
-    error: createDomainError("ProcessingFailed", { 
-      step: `Invalid transition from ${from.kind} to ${to.kind}` 
-    })
+    error: createDomainError("ProcessingFailed", {
+      step: `Invalid transition from ${from.kind} to ${to.kind}`,
+    }),
   };
 };
 ```

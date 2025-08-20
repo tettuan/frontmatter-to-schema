@@ -5,30 +5,30 @@
 ### 1.1 フロントマター抽出サービス
 
 ```typescript
-import { Result, DomainError, createDomainError } from "./domain-core-types";
-import { MarkdownContent, ExtractedData } from "./domain-core-types";
+import { createDomainError, DomainError, Result } from "./domain-core-types";
+import { ExtractedData, MarkdownContent } from "./domain-core-types";
 
 // フロントマター抽出サービス実装（Schema非依存）
 export class FrontMatterExtractorService implements FrontMatterExtractor {
   private readonly frontMatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-  
+
   extract(content: MarkdownContent): Result<ExtractedData, DomainError> {
     const text = content.getValue();
     const match = text.match(this.frontMatterRegex);
-    
+
     if (!match) {
       // フロントマターが存在しない場合
       return {
         ok: true,
         data: {
           kind: "NoFrontMatter",
-          body: text
-        }
+          body: text,
+        },
       };
     }
-    
+
     const [, frontMatterText, body] = match;
-    
+
     try {
       // YAMLパース（外部ライブラリへの依存は抽象化）
       const frontMatter = this.parseFrontMatter(frontMatterText);
@@ -37,19 +37,19 @@ export class FrontMatterExtractorService implements FrontMatterExtractor {
         data: {
           kind: "WithFrontMatter",
           frontMatter,
-          body
-        }
+          body,
+        },
       };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ParseError", { 
-          input: `Invalid YAML in frontmatter: ${error}` 
-        })
+        error: createDomainError("ParseError", {
+          input: `Invalid YAML in frontmatter: ${error}`,
+        }),
       };
     }
   }
-  
+
   private parseFrontMatter(text: string): Record<string, unknown> {
     // YAMLパース処理（実装は省略）
     // 実際の実装では yaml.parse() などを使用
@@ -65,19 +65,23 @@ import { FilePath, FilePattern } from "./domain-core-types";
 
 // ファイル発見サービスインターフェース（Schema非依存）
 export interface FileDiscoveryService {
-  discover(patterns: readonly FilePattern[]): Promise<Result<readonly FilePath[], DomainError>>;
+  discover(
+    patterns: readonly FilePattern[],
+  ): Promise<Result<readonly FilePath[], DomainError>>;
   exists(path: FilePath): Promise<Result<boolean, DomainError>>;
   readContent(path: FilePath): Promise<Result<MarkdownContent, DomainError>>;
 }
 
 // 実装例（インフラ層で実装）
 export class FileDiscoveryServiceImpl implements FileDiscoveryService {
-  async discover(patterns: readonly FilePattern[]): Promise<Result<readonly FilePath[], DomainError>> {
+  async discover(
+    patterns: readonly FilePattern[],
+  ): Promise<Result<readonly FilePath[], DomainError>> {
     const files: FilePath[] = [];
-    
+
     for (const pattern of patterns) {
       const matchedPaths = await this.glob(pattern.getValue());
-      
+
       for (const path of matchedPaths) {
         const filePathResult = FilePath.create(path);
         if (filePathResult.ok) {
@@ -85,10 +89,10 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
         }
       }
     }
-    
+
     return { ok: true, data: files };
   }
-  
+
   async exists(path: FilePath): Promise<Result<boolean, DomainError>> {
     try {
       const exists = await this.checkFileExists(path.getValue());
@@ -97,30 +101,32 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
       return { ok: true, data: false };
     }
   }
-  
-  async readContent(path: FilePath): Promise<Result<MarkdownContent, DomainError>> {
+
+  async readContent(
+    path: FilePath,
+  ): Promise<Result<MarkdownContent, DomainError>> {
     try {
       const content = await this.readFile(path.getValue());
       return MarkdownContent.create(content);
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("FileNotFound", { path: path.getValue() })
+        error: createDomainError("FileNotFound", { path: path.getValue() }),
       };
     }
   }
-  
+
   // 抽象メソッド（インフラ層で実装）
   private async glob(pattern: string): Promise<string[]> {
     // 実装は省略
     return [];
   }
-  
+
   private async checkFileExists(path: string): Promise<boolean> {
     // 実装は省略
     return false;
   }
-  
+
   private async readFile(path: string): Promise<string> {
     // 実装は省略
     return "";
@@ -133,12 +139,12 @@ export class FileDiscoveryServiceImpl implements FileDiscoveryService {
 ### 2.1 Schema注入管理サービス
 
 ```typescript
-import { 
-  SchemaContext, 
-  TemplateContext, 
-  PromptContext,
+import {
+  ActiveSchemaSet,
   ExecutionConfig,
-  ActiveSchemaSet 
+  PromptContext,
+  SchemaContext,
+  TemplateContext,
 } from "./domain-core-types";
 
 // Schema注入管理サービス
@@ -146,38 +152,54 @@ export class SchemaInjectionManager implements SchemaSwitchManager {
   private schemaContext: SchemaContext = { kind: "NotLoaded" };
   private templateContext: TemplateContext = { kind: "NotLoaded" };
   private promptContext: PromptContext = { kind: "NotLoaded" };
-  
-  async loadSchemaSet(config: ExecutionConfig): Promise<Result<ActiveSchemaSet, DomainError>> {
+
+  async loadSchemaSet(
+    config: ExecutionConfig,
+  ): Promise<Result<ActiveSchemaSet, DomainError>> {
     // Schema読み込み
-    this.schemaContext = { kind: "Loading", path: config.getSchemaPath().getValue() };
+    this.schemaContext = {
+      kind: "Loading",
+      path: config.getSchemaPath().getValue(),
+    };
     const schemaResult = await this.loadSchema(config.getSchemaPath());
     if (!schemaResult.ok) {
       this.schemaContext = { kind: "Failed", error: schemaResult.error };
       return schemaResult;
     }
-    this.schemaContext = { kind: "Loaded", schema: schemaResult.data, loadedAt: new Date() };
-    
+    this.schemaContext = {
+      kind: "Loaded",
+      schema: schemaResult.data,
+      loadedAt: new Date(),
+    };
+
     // Template読み込み
-    this.templateContext = { kind: "Loading", path: config.getTemplatePath().getValue() };
+    this.templateContext = {
+      kind: "Loading",
+      path: config.getTemplatePath().getValue(),
+    };
     const templateResult = await this.loadTemplate(config.getTemplatePath());
     if (!templateResult.ok) {
       this.templateContext = { kind: "Failed", error: templateResult.error };
       return templateResult;
     }
-    this.templateContext = { kind: "Loaded", template: templateResult.data, loadedAt: new Date() };
-    
+    this.templateContext = {
+      kind: "Loaded",
+      template: templateResult.data,
+      loadedAt: new Date(),
+    };
+
     // Prompts読み込み
     const promptsResult = await this.loadPrompts(config);
     if (!promptsResult.ok) {
       this.promptContext = { kind: "Failed", error: promptsResult.error };
       return promptsResult;
     }
-    this.promptContext = { 
-      kind: "Loaded", 
+    this.promptContext = {
+      kind: "Loaded",
       extraction: promptsResult.data.extraction,
-      mapping: promptsResult.data.mapping 
+      mapping: promptsResult.data.mapping,
     };
-    
+
     // アクティブセット作成
     if (
       this.schemaContext.kind === "Loaded" &&
@@ -192,19 +214,19 @@ export class SchemaInjectionManager implements SchemaSwitchManager {
           template: this.templateContext.template,
           prompts: {
             extraction: this.promptContext.extraction,
-            mapping: this.promptContext.mapping
+            mapping: this.promptContext.mapping,
           },
-          activatedAt: new Date()
-        }
+          activatedAt: new Date(),
+        },
       };
     }
-    
+
     return {
       ok: false,
-      error: createDomainError("SchemaNotLoaded", {})
+      error: createDomainError("SchemaNotLoaded", {}),
     };
   }
-  
+
   getCurrentSet(): ActiveSchemaSet {
     if (
       this.schemaContext.kind === "Loaded" &&
@@ -217,38 +239,44 @@ export class SchemaInjectionManager implements SchemaSwitchManager {
         template: this.templateContext.template,
         prompts: {
           extraction: this.promptContext.extraction,
-          mapping: this.promptContext.mapping
+          mapping: this.promptContext.mapping,
         },
-        activatedAt: this.schemaContext.loadedAt
+        activatedAt: this.schemaContext.loadedAt,
       };
     }
     return { kind: "NotReady" };
   }
-  
+
   unloadCurrentSet(): void {
     this.schemaContext = { kind: "NotLoaded" };
     this.templateContext = { kind: "NotLoaded" };
     this.promptContext = { kind: "NotLoaded" };
   }
-  
-  private async loadSchema(path: FilePath): Promise<Result<unknown, DomainError>> {
+
+  private async loadSchema(
+    path: FilePath,
+  ): Promise<Result<unknown, DomainError>> {
     // 実装は省略（ファイル読み込みとJSONパース）
     return { ok: true, data: {} };
   }
-  
-  private async loadTemplate(path: FilePath): Promise<Result<unknown, DomainError>> {
+
+  private async loadTemplate(
+    path: FilePath,
+  ): Promise<Result<unknown, DomainError>> {
     // 実装は省略（ファイル読み込みとパース）
     return { ok: true, data: {} };
   }
-  
-  private async loadPrompts(config: ExecutionConfig): Promise<Result<{ extraction: string; mapping: string }, DomainError>> {
+
+  private async loadPrompts(
+    config: ExecutionConfig,
+  ): Promise<Result<{ extraction: string; mapping: string }, DomainError>> {
     // 実装は省略（プロンプトファイル読み込み）
-    return { 
-      ok: true, 
-      data: { 
-        extraction: "extraction prompt", 
-        mapping: "mapping prompt" 
-      } 
+    return {
+      ok: true,
+      data: {
+        extraction: "extraction prompt",
+        mapping: "mapping prompt",
+      },
     };
   }
 }
@@ -257,13 +285,17 @@ export class SchemaInjectionManager implements SchemaSwitchManager {
 ### 2.2 Schema適用サービス
 
 ```typescript
-import { ExtractedData, ValidationResult, ValidationViolation } from "./domain-core-types";
+import {
+  ExtractedData,
+  ValidationResult,
+  ValidationViolation,
+} from "./domain-core-types";
 
 // Schema適用サービスインターフェース
 export interface SchemaApplicationService {
   apply(
     data: ExtractedData,
-    schema: unknown
+    schema: unknown,
   ): Promise<Result<ValidationResult, DomainError>>;
 }
 
@@ -271,7 +303,7 @@ export interface SchemaApplicationService {
 export class SchemaApplicationServiceImpl implements SchemaApplicationService {
   async apply(
     data: ExtractedData,
-    schema: unknown
+    schema: unknown,
   ): Promise<Result<ValidationResult, DomainError>> {
     // フロントマターがない場合はスキップ
     if (data.kind === "NoFrontMatter") {
@@ -280,46 +312,53 @@ export class SchemaApplicationServiceImpl implements SchemaApplicationService {
         data: {
           kind: "Invalid",
           violations: [
-            await this.createViolation("frontmatter", "No frontmatter found", "error")
-          ]
-        }
+            await this.createViolation(
+              "frontmatter",
+              "No frontmatter found",
+              "error",
+            ),
+          ],
+        },
       };
     }
-    
+
     // Schema検証ロジック（実装は省略）
-    const violations = await this.validateAgainstSchema(data.frontMatter, schema);
-    
+    const violations = await this.validateAgainstSchema(
+      data.frontMatter,
+      schema,
+    );
+
     if (violations.length === 0) {
       return {
         ok: true,
         data: {
           kind: "Valid",
-          data: data.frontMatter
-        }
+          data: data.frontMatter,
+        },
       };
     }
-    
+
     return {
       ok: true,
       data: {
         kind: "Invalid",
-        violations
-      }
+        violations,
+      },
     };
   }
-  
+
   private async validateAgainstSchema(
     data: Record<string, unknown>,
-    schema: unknown
+    schema: unknown,
   ): Promise<readonly ValidationViolation[]> {
     // 実装は省略
     return [];
   }
-  
+
   private async createViolation(
     path: string,
     message: string,
-    severity: string
+    severity: string,
   ): Promise<ValidationViolation> {
     const result = ValidationViolation.create(path, message, severity);
     if (!result.ok) {
@@ -337,15 +376,16 @@ export class SchemaApplicationServiceImpl implements SchemaApplicationService {
 export interface TemplateApplicationService {
   apply(
     data: unknown,
-    template: unknown
+    template: unknown,
   ): Promise<Result<unknown, DomainError>>;
 }
 
 // Template適用サービス実装
-export class TemplateApplicationServiceImpl implements TemplateApplicationService {
+export class TemplateApplicationServiceImpl
+  implements TemplateApplicationService {
   async apply(
     data: unknown,
-    template: unknown
+    template: unknown,
   ): Promise<Result<unknown, DomainError>> {
     try {
       // テンプレート適用ロジック（実装は省略）
@@ -354,14 +394,17 @@ export class TemplateApplicationServiceImpl implements TemplateApplicationServic
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("MappingFailed", { 
-          reason: `Template mapping failed: ${error}` 
-        })
+        error: createDomainError("MappingFailed", {
+          reason: `Template mapping failed: ${error}`,
+        }),
       };
     }
   }
-  
-  private async mapToTemplate(data: unknown, template: unknown): Promise<unknown> {
+
+  private async mapToTemplate(
+    data: unknown,
+    template: unknown,
+  ): Promise<unknown> {
     // 実装は省略
     return {};
   }
@@ -374,12 +417,12 @@ export class TemplateApplicationServiceImpl implements TemplateApplicationServic
 
 ```typescript
 import {
-  PipelineState,
-  ExecutionConfig,
   ActiveSchemaSet,
+  DocumentProcessingResult,
+  ExecutionConfig,
   PipelineExecutionResult,
+  PipelineState,
   ProcessedDocument,
-  DocumentProcessingResult
 } from "./domain-core-types";
 
 // パイプライン実行サービス
@@ -388,184 +431,203 @@ export class PipelineExecutionService implements ExecutablePipeline {
   readonly config: ExecutionConfig;
   private _state: PipelineState = { kind: "Idle" };
   private cancelled = false;
-  
+
   constructor(
     config: ExecutionConfig,
     private readonly schemaSet: ActiveSchemaSet,
     private readonly extractor: FrontMatterExtractor,
     private readonly fileDiscovery: FileDiscoveryService,
     private readonly schemaService: SchemaApplicationService,
-    private readonly templateService: TemplateApplicationService
+    private readonly templateService: TemplateApplicationService,
   ) {
     this.id = this.generateId();
     this.config = config;
   }
-  
+
   get state(): PipelineState {
     return this._state;
   }
-  
+
   async execute(): Promise<Result<PipelineExecutionResult, DomainError>> {
     const startTime = Date.now();
-    
+
     // 状態遷移: Idle -> Initializing
     if (!this.transitionTo({ kind: "Initializing", config: this.config })) {
       return this.createFailureResult("Invalid state transition");
     }
-    
+
     // 状態遷移: Initializing -> LoadingSchema
     if (!this.transitionTo({ kind: "LoadingSchema", progress: 0 })) {
       return this.createFailureResult("Failed to start schema loading");
     }
-    
+
     // Schema検証
     if (this.schemaSet.kind !== "Ready") {
       return this.createFailureResult("Schema not ready");
     }
-    
+
     // 状態遷移: LoadingSchema -> LoadingTemplate
     if (!this.transitionTo({ kind: "LoadingTemplate", progress: 0 })) {
       return this.createFailureResult("Failed to start template loading");
     }
-    
+
     // ファイル発見
     const patterns = await this.getInputPatterns();
     const filesResult = await this.fileDiscovery.discover(patterns);
     if (!filesResult.ok) {
       return { ok: false, error: filesResult.error };
     }
-    
+
     // 状態遷移: LoadingTemplate -> ProcessingDocuments
     const totalFiles = filesResult.data.length;
-    if (!this.transitionTo({ kind: "ProcessingDocuments", current: 0, total: totalFiles })) {
+    if (
+      !this.transitionTo({
+        kind: "ProcessingDocuments",
+        current: 0,
+        total: totalFiles,
+      })
+    ) {
       return this.createFailureResult("Failed to start document processing");
     }
-    
+
     // ドキュメント処理
     const results: DocumentProcessingResult[] = [];
     for (let i = 0; i < filesResult.data.length; i++) {
       if (this.cancelled) {
         return this.createFailureResult("Pipeline cancelled");
       }
-      
+
       const file = filesResult.data[i];
       const result = await this.processDocument(file);
       results.push(result);
-      
+
       // 進捗更新
-      this.transitionTo({ kind: "ProcessingDocuments", current: i + 1, total: totalFiles });
+      this.transitionTo({
+        kind: "ProcessingDocuments",
+        current: i + 1,
+        total: totalFiles,
+      });
     }
-    
+
     // 状態遷移: ProcessingDocuments -> GeneratingOutput
     if (!this.transitionTo({ kind: "GeneratingOutput" })) {
       return this.createFailureResult("Failed to start output generation");
     }
-    
+
     // 出力生成
     const outputResult = await this.generateOutput(results);
     if (!outputResult.ok) {
       return outputResult;
     }
-    
+
     // 状態遷移: GeneratingOutput -> Completed
-    if (!this.transitionTo({ kind: "Completed", outputPath: this.config.getOutputPath() })) {
+    if (
+      !this.transitionTo({
+        kind: "Completed",
+        outputPath: this.config.getOutputPath(),
+      })
+    ) {
       return this.createFailureResult("Failed to complete pipeline");
     }
-    
+
     // 統計計算
-    const processed = results.filter(r => r.kind === "Success").length;
-    const skipped = results.filter(r => r.kind === "Skipped").length;
-    const failed = results.filter(r => r.kind === "Failed").length;
+    const processed = results.filter((r) => r.kind === "Success").length;
+    const skipped = results.filter((r) => r.kind === "Skipped").length;
+    const failed = results.filter((r) => r.kind === "Failed").length;
     const executionTime = Date.now() - startTime;
-    
+
     return PipelineExecutionResult.create(
       this.config.getOutputPath(),
       processed,
       skipped,
       failed,
-      executionTime
+      executionTime,
     );
   }
-  
+
   getProgress(): PipelineProgress {
     const percentage = this.calculateProgress();
     const message = this.getProgressMessage();
-    
+
     return {
       state: this._state,
       percentage,
       message,
       startedAt: new Date(),
-      estimatedCompletion: this.estimateCompletion()
+      estimatedCompletion: this.estimateCompletion(),
     };
   }
-  
+
   cancel(): void {
     this.cancelled = true;
-    this.transitionTo({ 
-      kind: "Failed", 
-      error: createDomainError("ProcessingFailed", { step: "Cancelled by user" }),
-      failedAt: new Date()
+    this.transitionTo({
+      kind: "Failed",
+      error: createDomainError("ProcessingFailed", {
+        step: "Cancelled by user",
+      }),
+      failedAt: new Date(),
     });
   }
-  
+
   dispose(): void {
     // リソースのクリーンアップ
     this.cancelled = true;
     this._state = { kind: "Idle" };
   }
-  
-  private async processDocument(file: FilePath): Promise<DocumentProcessingResult> {
+
+  private async processDocument(
+    file: FilePath,
+  ): Promise<DocumentProcessingResult> {
     // ドキュメント読み込み
     const contentResult = await this.fileDiscovery.readContent(file);
     if (!contentResult.ok) {
       return { kind: "Failed", error: contentResult.error };
     }
-    
+
     // フロントマター抽出
     const extractedResult = this.extractor.extract(contentResult.data);
     if (!extractedResult.ok) {
       return { kind: "Failed", error: extractedResult.error };
     }
-    
+
     // Schema適用
     const validationResult = await this.schemaService.apply(
       extractedResult.data,
-      this.schemaSet.kind === "Ready" ? this.schemaSet.schema : {}
+      this.schemaSet.kind === "Ready" ? this.schemaSet.schema : {},
     );
     if (!validationResult.ok) {
       return { kind: "Failed", error: validationResult.error };
     }
-    
+
     if (validationResult.data.kind === "Invalid") {
       return { kind: "Skipped", reason: "Validation failed" };
     }
-    
+
     // Template適用
     const mappingResult = await this.templateService.apply(
       validationResult.data.data,
-      this.schemaSet.kind === "Ready" ? this.schemaSet.template : {}
+      this.schemaSet.kind === "Ready" ? this.schemaSet.template : {},
     );
     if (!mappingResult.ok) {
       return { kind: "Failed", error: mappingResult.error };
     }
-    
+
     // 処理済みドキュメント作成
     const docResult = ProcessedDocument.create(
       this.generateDocumentId(),
       file,
       extractedResult.data,
       validationResult.data.data,
-      mappingResult.data
+      mappingResult.data,
     );
-    
+
     if (!docResult.ok) {
       return { kind: "Failed", error: docResult.error };
     }
-    
+
     return { kind: "Success", data: docResult.data };
   }
-  
+
   private transitionTo(newState: PipelineState): boolean {
     const validationResult = validateStateTransition(this._state, newState);
     if (validationResult.ok) {
@@ -574,70 +636,92 @@ export class PipelineExecutionService implements ExecutablePipeline {
     }
     return false;
   }
-  
-  private createFailureResult(reason: string): Result<PipelineExecutionResult, DomainError> {
+
+  private createFailureResult(
+    reason: string,
+  ): Result<PipelineExecutionResult, DomainError> {
     this.transitionTo({
       kind: "Failed",
       error: createDomainError("ProcessingFailed", { step: reason }),
-      failedAt: new Date()
+      failedAt: new Date(),
     });
     return {
       ok: false,
-      error: createDomainError("ProcessingFailed", { step: reason })
+      error: createDomainError("ProcessingFailed", { step: reason }),
     };
   }
-  
+
   private async getInputPatterns(): Promise<readonly FilePattern[]> {
     // 実装は省略
     return [];
   }
-  
-  private async generateOutput(results: DocumentProcessingResult[]): Promise<Result<void, DomainError>> {
+
+  private async generateOutput(
+    results: DocumentProcessingResult[],
+  ): Promise<Result<void, DomainError>> {
     // 実装は省略
     return { ok: true, data: undefined };
   }
-  
+
   private calculateProgress(): number {
     switch (this._state.kind) {
-      case "Idle": return 0;
-      case "Initializing": return 5;
-      case "LoadingSchema": return 10 + this._state.progress * 0.1;
-      case "LoadingTemplate": return 20 + this._state.progress * 0.1;
-      case "ProcessingDocuments": 
+      case "Idle":
+        return 0;
+      case "Initializing":
+        return 5;
+      case "LoadingSchema":
+        return 10 + this._state.progress * 0.1;
+      case "LoadingTemplate":
+        return 20 + this._state.progress * 0.1;
+      case "ProcessingDocuments":
         return 30 + (this._state.current / this._state.total) * 60;
-      case "ApplyingSchema": return 70;
-      case "MappingToTemplate": return 80;
-      case "GeneratingOutput": return 90;
-      case "Completed": return 100;
-      case "Failed": return -1;
+      case "ApplyingSchema":
+        return 70;
+      case "MappingToTemplate":
+        return 80;
+      case "GeneratingOutput":
+        return 90;
+      case "Completed":
+        return 100;
+      case "Failed":
+        return -1;
     }
   }
-  
+
   private getProgressMessage(): string {
     switch (this._state.kind) {
-      case "Idle": return "Waiting to start";
-      case "Initializing": return "Initializing pipeline";
-      case "LoadingSchema": return "Loading schema";
-      case "LoadingTemplate": return "Loading template";
-      case "ProcessingDocuments": 
+      case "Idle":
+        return "Waiting to start";
+      case "Initializing":
+        return "Initializing pipeline";
+      case "LoadingSchema":
+        return "Loading schema";
+      case "LoadingTemplate":
+        return "Loading template";
+      case "ProcessingDocuments":
         return `Processing documents (${this._state.current}/${this._state.total})`;
-      case "ApplyingSchema": return "Applying schema";
-      case "MappingToTemplate": return "Mapping to template";
-      case "GeneratingOutput": return "Generating output";
-      case "Completed": return "Pipeline completed";
-      case "Failed": return `Failed: ${this._state.error.kind}`;
+      case "ApplyingSchema":
+        return "Applying schema";
+      case "MappingToTemplate":
+        return "Mapping to template";
+      case "GeneratingOutput":
+        return "Generating output";
+      case "Completed":
+        return "Pipeline completed";
+      case "Failed":
+        return `Failed: ${this._state.error.kind}`;
     }
   }
-  
+
   private estimateCompletion(): Date | undefined {
     // 実装は省略
     return undefined;
   }
-  
+
   private generateId(): string {
     return `pipeline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
-  
+
   private generateDocumentId(): string {
     return `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -653,29 +737,29 @@ export class DynamicPipelineFactoryImpl implements DynamicPipelineFactory {
     private readonly extractor: FrontMatterExtractor,
     private readonly fileDiscovery: FileDiscoveryService,
     private readonly schemaService: SchemaApplicationService,
-    private readonly templateService: TemplateApplicationService
+    private readonly templateService: TemplateApplicationService,
   ) {}
-  
+
   createPipeline(
     config: ExecutionConfig,
-    schemaSet: ActiveSchemaSet
+    schemaSet: ActiveSchemaSet,
   ): Result<ExecutablePipeline, DomainError> {
     if (schemaSet.kind !== "Ready") {
       return {
         ok: false,
-        error: createDomainError("SchemaNotLoaded", {})
+        error: createDomainError("SchemaNotLoaded", {}),
       };
     }
-    
+
     const pipeline = new PipelineExecutionService(
       config,
       schemaSet,
       this.extractor,
       this.fileDiscovery,
       this.schemaService,
-      this.templateService
+      this.templateService,
     );
-    
+
     return { ok: true, data: pipeline };
   }
 }
@@ -691,13 +775,13 @@ export interface AIAnalysisService {
   analyzeWithSchema(
     content: string,
     schema: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>>;
-  
+
   mapWithTemplate(
     data: unknown,
     template: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>>;
 }
 
@@ -706,7 +790,7 @@ export class ClaudeAnalysisService implements AIAnalysisService {
   async analyzeWithSchema(
     content: string,
     schema: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     try {
       // Claude APIコール（実装は省略）
@@ -715,17 +799,17 @@ export class ClaudeAnalysisService implements AIAnalysisService {
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `AI analysis failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `AI analysis failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   async mapWithTemplate(
     data: unknown,
     template: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     try {
       // Claude APIコール（実装は省略）
@@ -734,14 +818,18 @@ export class ClaudeAnalysisService implements AIAnalysisService {
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("MappingFailed", { 
-          reason: `AI mapping failed: ${error}` 
-        })
+        error: createDomainError("MappingFailed", {
+          reason: `AI mapping failed: ${error}`,
+        }),
       };
     }
   }
-  
-  private async callClaude(input: unknown, context: unknown, prompt: string): Promise<unknown> {
+
+  private async callClaude(
+    input: unknown,
+    context: unknown,
+    prompt: string,
+  ): Promise<unknown> {
     // 実装は省略
     return {};
   }
@@ -752,7 +840,8 @@ export class ClaudeAnalysisService implements AIAnalysisService {
 
 このサービス設計により以下を実現：
 
-1. **Schema非依存コアサービス**: フロントマター抽出とファイル発見はSchemaに依存しない
+1. **Schema非依存コアサービス**:
+   フロントマター抽出とファイル発見はSchemaに依存しない
 2. **Schema注入管理**: 実行時にSchemaを注入し、管理する仕組み
 3. **型安全な状態遷移**: パイプライン実行の状態遷移を型で保証
 4. **エラーの値化**: すべてのサービスがResult型を返し、エラーを値として扱う

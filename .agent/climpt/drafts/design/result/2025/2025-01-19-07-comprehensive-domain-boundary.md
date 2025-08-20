@@ -1,4 +1,5 @@
 # 統合ドメイン境界線設計 - フロントマター解析システム
+
 ## コード分析と要求事項の統合設計
 
 ## 1. システム全体像（要求事項＋コード分析統合）
@@ -6,11 +7,13 @@
 ### 1.1 システムの目的と中心骨格
 
 **システムの目的（要求事項より）**：
+
 - Markdownファイルの索引(Index)作成
 - 柔軟なフロントマター解析による事後的型定義
 - 差し替え可能なSchema/Templateによる多様な索引対応
 
 **中心骨格（24回試行分析）**：
+
 ```
 入力(Markdown) → FrontMatter抽出 → AI解析(claude -p) → Schema検証 → Template変換 → 索引出力
 ```
@@ -49,6 +52,7 @@
 ### 2.1 機能要件からの境界導出
 
 **要求事項の機能要件**：
+
 1. フロントマター抽出（Deno実装）
 2. claude -pによる解析（2段階）
    - 情報抽出
@@ -57,6 +61,7 @@
 4. 複数索引形式対応
 
 **導出される境界**：
+
 ```typescript
 // ===============================================
 // 索引作成ドメイン（Index Creation Domain）
@@ -67,22 +72,22 @@ namespace IndexCreationDomain {
     createIndex(
       documents: MarkdownDocument[],
       schema: SchemaDefinition,
-      template: TemplateDefinition
+      template: TemplateDefinition,
     ): Promise<Result<Index>>;
   }
-  
+
   // AI解析統合（claude -p）
   interface AIAnalysisService {
     extractInformation(
       frontMatter: FrontMatterContent,
       schema: SchemaDefinition,
-      extractionPrompt: string
+      extractionPrompt: string,
     ): Promise<Result<ExtractedData>>;
-    
+
     mapToTemplate(
       extractedData: ExtractedData,
       template: TemplateDefinition,
-      mappingPrompt: string
+      mappingPrompt: string,
     ): Promise<Result<MappedResult>>;
   }
 }
@@ -97,7 +102,7 @@ namespace ConfigurationDomain {
     loadTemplate(path: string): Promise<Result<TemplateDefinition>>;
     loadPrompts(): Promise<Result<PromptPair>>;
   }
-  
+
   // 実例管理（examples/）
   interface ExampleRegistry {
     getExample(name: "climpt-registry" | "articles-index"): ExampleConfig;
@@ -109,11 +114,13 @@ namespace ConfigurationDomain {
 ### 2.2 非機能要件からの境界強化
 
 **柔軟性要件**：
+
 - Schema変更に対応可能
 - Markdown側の変更不要
 - 多様な索引形式対応
 
 **抽象化要件**：
+
 - 実例パターンの混入禁止
 - 設定/引数による解決
 
@@ -126,10 +133,10 @@ namespace AbstractionLayer {
   interface GenericProcessor<TInput, TOutput> {
     process(
       input: TInput,
-      strategy: ProcessingStrategy<TInput, TOutput>
+      strategy: ProcessingStrategy<TInput, TOutput>,
     ): Promise<Result<TOutput>>;
   }
-  
+
   // 設定駆動アーキテクチャ
   interface ConfigDrivenPipeline {
     configure(config: PipelineConfig): Result<ConfiguredPipeline>;
@@ -166,24 +173,24 @@ namespace AbstractionLayer {
 
 // 設定時境界（アプリケーション起動時）
 interface ConfigurationLifecycle {
-  readonly schema: SchemaDefinition;      // 不変
-  readonly template: TemplateDefinition;  // 不変
-  readonly prompts: PromptPair;          // 不変
+  readonly schema: SchemaDefinition; // 不変
+  readonly template: TemplateDefinition; // 不変
+  readonly prompts: PromptPair; // 不変
 }
 
 // 実行時境界（バッチ処理単位）
 interface ExecutionLifecycle {
-  readonly pipeline: AnalysisPipeline;    // セッション中不変
-  readonly registry: Registry;            // 累積変更
+  readonly pipeline: AnalysisPipeline; // セッション中不変
+  readonly registry: Registry; // 累積変更
   state: "initialized" | "processing" | "completed";
 }
 
 // ループ境界（ファイル単位）
 interface ProcessingLifecycle {
-  readonly filePath: string;              // 処理中不変
-  frontMatter?: FrontMatterContent;       // 抽出後設定
-  extractedData?: ExtractedData;          // 解析後設定
-  mappedResult?: MappedResult;            // 変換後設定
+  readonly filePath: string; // 処理中不変
+  frontMatter?: FrontMatterContent; // 抽出後設定
+  extractedData?: ExtractedData; // 解析後設定
+  mappedResult?: MappedResult; // 変換後設定
 }
 
 // イベント境界
@@ -198,19 +205,19 @@ type DomainEvent =
 
 ### 4.1 統合距離マトリクス
 
-| ドメイン要素 | 実行ステップ | 意味距離 | 要求重要度 | 総合距離 | 境界分類 |
-|-------------|------------|---------|-----------|---------|----------|
-| IndexingEngine | 0 | 0 | 10 | 0.0 | 絶対中核 |
-| SchemaDefinition | 1 | 1 | 10 | 1.0 | 絶対中核 |
-| ClaudeAnalyzer | 1 | 1 | 10 | 1.0 | 絶対中核 |
-| TemplateMapper | 2 | 2 | 9 | 2.2 | 準中核 |
-| ConfigurationLoader | 2 | 3 | 8 | 3.3 | 準中核 |
-| FrontMatterExtractor | 3 | 2 | 7 | 3.6 | 支援層 |
-| Registry | 3 | 3 | 6 | 4.2 | 支援層 |
-| FileDiscovery | 4 | 4 | 5 | 5.7 | 汎用層 |
-| PromptManager | 3 | 4 | 7 | 5.0 | 汎用層 |
-| FileSystem | 5 | 6 | 3 | 7.8 | インフラ |
-| ClaudeAPIClient | 4 | 7 | 4 | 8.1 | インフラ |
+| ドメイン要素         | 実行ステップ | 意味距離 | 要求重要度 | 総合距離 | 境界分類 |
+| -------------------- | ------------ | -------- | ---------- | -------- | -------- |
+| IndexingEngine       | 0            | 0        | 10         | 0.0      | 絶対中核 |
+| SchemaDefinition     | 1            | 1        | 10         | 1.0      | 絶対中核 |
+| ClaudeAnalyzer       | 1            | 1        | 10         | 1.0      | 絶対中核 |
+| TemplateMapper       | 2            | 2        | 9          | 2.2      | 準中核   |
+| ConfigurationLoader  | 2            | 3        | 8          | 3.3      | 準中核   |
+| FrontMatterExtractor | 3            | 2        | 7          | 3.6      | 支援層   |
+| Registry             | 3            | 3        | 6          | 4.2      | 支援層   |
+| FileDiscovery        | 4            | 4        | 5          | 5.7      | 汎用層   |
+| PromptManager        | 3            | 4        | 7          | 5.0      | 汎用層   |
+| FileSystem           | 5            | 6        | 3          | 7.8      | インフラ |
+| ClaudeAPIClient      | 4            | 7        | 4          | 8.1      | インフラ |
 
 ### 4.2 統合境界アーキテクチャ
 
@@ -224,18 +231,18 @@ export namespace CoreIndexingDomain {
   export interface IndexingEngine {
     createIndex(config: IndexingConfig): Promise<Result<Index>>;
   }
-  
+
   export interface SchemaBasedAnalyzer {
     analyze(
       content: FrontMatterContent,
-      schema: SchemaDefinition
+      schema: SchemaDefinition,
     ): Promise<Result<AnalyzedData>>;
   }
-  
+
   export interface ClaudeIntegration {
     executePrompt(
       prompt: string,
-      data: unknown
+      data: unknown,
     ): Promise<Result<unknown>>;
   }
 }
@@ -245,10 +252,10 @@ export namespace SupportingIndexDomain {
   export interface TemplateProcessor {
     process(
       data: AnalyzedData,
-      template: TemplateDefinition
+      template: TemplateDefinition,
     ): Result<MappedData>;
   }
-  
+
   export interface ConfigurationService {
     loadIndexingConfig(path: string): Promise<Result<IndexingConfig>>;
   }
@@ -259,7 +266,7 @@ export namespace DocumentProcessingDomain {
   export interface FrontMatterService {
     extract(markdown: string): Result<FrontMatterContent>;
   }
-  
+
   export interface RegistryService {
     aggregate(results: ProcessingResult[]): Result<Registry>;
   }
@@ -270,7 +277,7 @@ export namespace UtilityDomain {
   export interface FileDiscoveryService {
     discover(pattern: string): Promise<string[]>;
   }
-  
+
   export interface PromptTemplateService {
     loadPrompts(): Promise<PromptPair>;
   }
@@ -282,7 +289,7 @@ export namespace InfrastructureDomain {
     readFile(path: string): Promise<string>;
     writeFile(path: string, content: string): Promise<void>;
   }
-  
+
   export interface ExternalAPIAdapter {
     callClaude(prompt: string): Promise<string>;
   }
@@ -292,21 +299,25 @@ export namespace InfrastructureDomain {
 ## 5. 実装優先順位（要求事項準拠）
 
 ### Phase 1: MVP実装（実例1対応）
+
 1. ✅ FrontMatter抽出（Deno実装）
 2. ✅ Claude API統合（2段階プロンプト）
 3. ✅ Climpt Registry生成（.agent/climpt/registry.json）
 
 ### Phase 2: 汎用化（実例2対応）
+
 1. ⬜ YAML出力対応
 2. ⬜ 記事索引Schema対応
 3. ⬜ 複数入力パス対応
 
 ### Phase 3: 完全抽象化
+
 1. ⬜ 実例パターンの完全分離
 2. ⬜ プラグイン化アーキテクチャ
 3. ⬜ 動的Schema/Template読込
 
 ### Phase 4: 品質保証
+
 1. ⬜ 堅牢なテスト（tests/）
 2. ⬜ 実行可能な例（examples/）
 3. ⬜ CI/CD統合
@@ -326,20 +337,20 @@ export const RequirementComplianceChecker = {
     ];
     return !hasPatternInCore(patterns);
   },
-  
+
   // Schema/Template差し替え可能性チェック
   checkReplaceability(): boolean {
-    return hasExternalConfigLoader() && 
-           hasTemplateInjection() &&
-           hasSchemaInjection();
+    return hasExternalConfigLoader() &&
+      hasTemplateInjection() &&
+      hasSchemaInjection();
   },
-  
+
   // 抽象化レベルチェック
   checkAbstractionLevel(): boolean {
     return noDependencyOnExamples() &&
-           configDrivenArchitecture() &&
-           pathsAsArguments();
-  }
+      configDrivenArchitecture() &&
+      pathsAsArguments();
+  },
 };
 ```
 
@@ -397,17 +408,17 @@ interface IndexGenerationEvent {
 ```typescript
 export class DomainEventBus {
   private handlers = new Map<string, Set<EventHandler>>();
-  
+
   // 境界を越えた通信
   publish<T extends DomainEvent>(event: T): void {
     const handlers = this.handlers.get(event.type) || new Set();
-    handlers.forEach(handler => handler(event));
+    handlers.forEach((handler) => handler(event));
   }
-  
+
   // 境界でのイベント購読
   subscribe<T extends DomainEvent>(
     eventType: string,
-    handler: (event: T) => void
+    handler: (event: T) => void,
   ): void {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set());
@@ -421,12 +432,18 @@ export class DomainEventBus {
 
 ### 8.1 要求事項の成果物
 
-- [x] 1. 要求の整理と要件化
-- [x] 2. 機能要件、非機能要件の分離
-- [x] 3. ドメイン境界線の設計資料の作成
-- [ ] 4. 実装された解析のスクリプトと堅牢なテスト
-- [x] 5. 'claude -p' 用のプロンプト2つ
-- [ ] 6. examples/ に実例を使った実行例
+-
+  1. [x] 要求の整理と要件化
+-
+  2. [x] 機能要件、非機能要件の分離
+-
+  3. [x] ドメイン境界線の設計資料の作成
+-
+  4. [ ] 実装された解析のスクリプトと堅牢なテスト
+-
+  5. [x] 'claude -p' 用のプロンプト2つ
+-
+  6. [ ] examples/ に実例を使った実行例
 
 ### 8.2 境界設計の成果物
 

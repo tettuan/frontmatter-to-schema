@@ -5,19 +5,29 @@
 ### 1.1 Denoファイルシステムアダプター
 
 ```typescript
-import { Result, DomainError, createDomainError } from "../../domain/domain-core-types";
-import { FilePath, FilePattern, MarkdownContent } from "../../domain/domain-core-types";
+import {
+  createDomainError,
+  DomainError,
+  Result,
+} from "../../domain/domain-core-types";
+import {
+  FilePath,
+  FilePattern,
+  MarkdownContent,
+} from "../../domain/domain-core-types";
 import { FileDiscoveryService } from "../../domain/domain-services";
 
 // Denoファイルシステムアダプター
 export class DenoFileSystemAdapter implements FileDiscoveryService {
-  async discover(patterns: readonly FilePattern[]): Promise<Result<readonly FilePath[], DomainError>> {
+  async discover(
+    patterns: readonly FilePattern[],
+  ): Promise<Result<readonly FilePath[], DomainError>> {
     try {
       const allFiles: FilePath[] = [];
-      
+
       for (const pattern of patterns) {
         const matches = await this.globFiles(pattern.getValue());
-        
+
         for (const match of matches) {
           const pathResult = FilePath.create(match);
           if (pathResult.ok) {
@@ -25,18 +35,18 @@ export class DenoFileSystemAdapter implements FileDiscoveryService {
           }
         }
       }
-      
+
       return { ok: true, data: allFiles };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `File discovery failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `File discovery failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   async exists(path: FilePath): Promise<Result<boolean, DomainError>> {
     try {
       const fileInfo = await Deno.stat(path.getValue());
@@ -47,14 +57,16 @@ export class DenoFileSystemAdapter implements FileDiscoveryService {
       }
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `File check failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `File check failed: ${error}`,
+        }),
       };
     }
   }
-  
-  async readContent(path: FilePath): Promise<Result<MarkdownContent, DomainError>> {
+
+  async readContent(
+    path: FilePath,
+  ): Promise<Result<MarkdownContent, DomainError>> {
     try {
       const content = await Deno.readTextFile(path.getValue());
       return MarkdownContent.create(content);
@@ -62,31 +74,31 @@ export class DenoFileSystemAdapter implements FileDiscoveryService {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createDomainError("FileNotFound", { path: path.getValue() })
+          error: createDomainError("FileNotFound", { path: path.getValue() }),
         };
       }
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `File read failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `File read failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   private async globFiles(pattern: string): Promise<string[]> {
     const files: string[] = [];
-    
+
     // Denoのglob実装
     for await (const entry of Deno.readDir(".")) {
       if (entry.isFile && this.matchPattern(entry.name, pattern)) {
         files.push(entry.name);
       }
     }
-    
+
     return files;
   }
-  
+
   private matchPattern(filename: string, pattern: string): boolean {
     // 簡易的なパターンマッチング（実際はもっと複雑）
     const regexPattern = pattern
@@ -108,7 +120,7 @@ export class FileWriterAdapter {
   async write(
     path: FilePath,
     content: unknown,
-    format: OutputFormat
+    format: OutputFormat,
   ): Promise<Result<void, DomainError>> {
     try {
       const formatted = this.formatContent(content, format);
@@ -117,13 +129,13 @@ export class FileWriterAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `File write failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `File write failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   private formatContent(content: unknown, format: OutputFormat): string {
     switch (format.getValue()) {
       case "json":
@@ -136,13 +148,13 @@ export class FileWriterAdapter {
         return String(content);
     }
   }
-  
+
   private toYAML(content: unknown): string {
     // YAML変換実装（ライブラリ使用）
     // 簡易実装
     return JSON.stringify(content, null, 2);
   }
-  
+
   private toXML(content: unknown): string {
     // XML変換実装（ライブラリ使用）
     // 簡易実装
@@ -169,41 +181,41 @@ export class JSONConfigurationLoader implements ConfigurationLoader {
     try {
       const content = await Deno.readTextFile(path);
       const rawConfig = JSON.parse(content);
-      
+
       // バリデーションと変換
       if (!this.validateConfig(rawConfig)) {
         return {
           ok: false,
-          error: createDomainError("InvalidConfiguration", { field: "config" })
+          error: createDomainError("InvalidConfiguration", { field: "config" }),
         };
       }
-      
+
       return ExecutionConfig.create({
         schemaPath: rawConfig.schemaPath,
         templatePath: rawConfig.templatePath,
         inputPath: rawConfig.inputPath,
         outputPath: rawConfig.outputPath,
-        outputFormat: rawConfig.outputFormat
+        outputFormat: rawConfig.outputFormat,
       });
     } catch (error) {
       if (error instanceof SyntaxError) {
         return {
           ok: false,
-          error: createDomainError("ParseError", { input: path })
+          error: createDomainError("ParseError", { input: path }),
         };
       }
       return {
         ok: false,
-        error: createDomainError("FileNotFound", { path })
+        error: createDomainError("FileNotFound", { path }),
       };
     }
   }
-  
+
   private validateConfig(config: unknown): config is RawConfig {
     if (typeof config !== "object" || config === null) {
       return false;
     }
-    
+
     const c = config as Record<string, unknown>;
     return (
       typeof c.schemaPath === "string" &&
@@ -230,7 +242,10 @@ interface RawConfig {
 ```typescript
 // Schemaレジストリ
 export interface SchemaRegistry {
-  register(name: string, config: ExecutionConfig): Promise<Result<void, DomainError>>;
+  register(
+    name: string,
+    config: ExecutionConfig,
+  ): Promise<Result<void, DomainError>>;
   getConfig(name: string): Promise<Result<ExecutionConfig, DomainError>>;
   listSchemas(): Promise<string[]>;
 }
@@ -239,72 +254,80 @@ export interface SchemaRegistry {
 export class FileBasedSchemaRegistry implements SchemaRegistry {
   private readonly registryPath = ".schemas/registry.json";
   private cache = new Map<string, ExecutionConfig>();
-  
-  async register(name: string, config: ExecutionConfig): Promise<Result<void, DomainError>> {
+
+  async register(
+    name: string,
+    config: ExecutionConfig,
+  ): Promise<Result<void, DomainError>> {
     try {
       // レジストリ読み込み
       const registry = await this.loadRegistry();
-      
+
       // 設定を保存
       registry[name] = {
         schemaPath: config.getSchemaPath().getValue(),
         templatePath: config.getTemplatePath().getValue(),
         inputPath: config.getInputPath().getValue(),
         outputPath: config.getOutputPath().getValue(),
-        outputFormat: config.getOutputFormat().getValue()
+        outputFormat: config.getOutputFormat().getValue(),
       };
-      
+
       // レジストリ書き込み
-      await Deno.writeTextFile(this.registryPath, JSON.stringify(registry, null, 2));
-      
+      await Deno.writeTextFile(
+        this.registryPath,
+        JSON.stringify(registry, null, 2),
+      );
+
       // キャッシュ更新
       this.cache.set(name, config);
-      
+
       return { ok: true, data: undefined };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `Registry update failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `Registry update failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   async getConfig(name: string): Promise<Result<ExecutionConfig, DomainError>> {
     // キャッシュチェック
     if (this.cache.has(name)) {
       return { ok: true, data: this.cache.get(name)! };
     }
-    
+
     try {
       const registry = await this.loadRegistry();
-      
+
       if (!(name in registry)) {
         return {
           ok: false,
-          error: createDomainError("InvalidConfiguration", { field: `schema:${name}` })
+          error: createDomainError("InvalidConfiguration", {
+            field: `schema:${name}`,
+          }),
         };
       }
-      
+
       const rawConfig = registry[name];
       const config = await ExecutionConfig.create(rawConfig);
-      
+
       if (config.ok) {
         this.cache.set(name, config.data);
       }
-      
+
       return config;
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `Registry read failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `Registry read failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   async listSchemas(): Promise<string[]> {
     try {
       const registry = await this.loadRegistry();
@@ -313,7 +336,7 @@ export class FileBasedSchemaRegistry implements SchemaRegistry {
       return [];
     }
   }
-  
+
   private async loadRegistry(): Promise<Record<string, RawConfig>> {
     try {
       const content = await Deno.readTextFile(this.registryPath);
@@ -329,7 +352,7 @@ export class FileBasedSchemaRegistry implements SchemaRegistry {
 
 ### 3.1 Claude APIアダプター
 
-```typescript
+````typescript
 import { AIAnalysisService } from "../../domain/domain-services";
 
 // Claude API設定
@@ -343,56 +366,56 @@ interface ClaudeConfig {
 // Claude APIアダプター
 export class ClaudeAPIAdapter implements AIAnalysisService {
   private readonly config: ClaudeConfig;
-  
+
   constructor(config: ClaudeConfig) {
     this.config = config;
   }
-  
+
   async analyzeWithSchema(
     content: string,
     schema: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     try {
       const systemPrompt = this.buildSystemPrompt(schema, prompt);
       const response = await this.callClaudeAPI(systemPrompt, content);
-      
+
       // レスポンス解析
       const parsed = this.parseResponse(response);
       return { ok: true, data: parsed };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `Claude analysis failed: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `Claude analysis failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   async mapWithTemplate(
     data: unknown,
     template: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     try {
       const systemPrompt = this.buildMappingPrompt(template, prompt);
       const userPrompt = JSON.stringify(data, null, 2);
       const response = await this.callClaudeAPI(systemPrompt, userPrompt);
-      
+
       // レスポンス解析
       const parsed = this.parseResponse(response);
       return { ok: true, data: parsed };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("MappingFailed", { 
-          reason: `Claude mapping failed: ${error}` 
-        })
+        error: createDomainError("MappingFailed", {
+          reason: `Claude mapping failed: ${error}`,
+        }),
       };
     }
   }
-  
+
   private buildSystemPrompt(schema: unknown, prompt: string): string {
     return `
 You are a data extraction assistant. Extract information from the provided content according to this schema:
@@ -405,7 +428,7 @@ ${prompt}
 Return the extracted data as valid JSON.
     `.trim();
   }
-  
+
   private buildMappingPrompt(template: unknown, prompt: string): string {
     return `
 You are a data mapping assistant. Map the provided data to this template structure:
@@ -418,14 +441,17 @@ ${prompt}
 Return the mapped data as valid JSON.
     `.trim();
   }
-  
-  private async callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<string> {
+
+  private async callClaudeAPI(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<string> {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": this.config.apiKey,
-        "anthropic-version": "2023-06-01"
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: this.config.model,
@@ -435,27 +461,27 @@ Return the mapped data as valid JSON.
         messages: [
           {
             role: "user",
-            content: userPrompt
-          }
-        ]
-      })
+            content: userPrompt,
+          },
+        ],
+      }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API call failed: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.content[0].text;
   }
-  
+
   private parseResponse(response: string): unknown {
     // JSONレスポンスを抽出して解析
     const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[1]);
     }
-    
+
     // 直接JSONとして解析を試みる
     try {
       return JSON.parse(response);
@@ -465,7 +491,7 @@ Return the mapped data as valid JSON.
     }
   }
 }
-```
+````
 
 ### 3.2 モックAIアダプター（テスト用）
 
@@ -473,35 +499,37 @@ Return the mapped data as valid JSON.
 // モックAIアダプター
 export class MockAIAdapter implements AIAnalysisService {
   private readonly responses = new Map<string, unknown>();
-  
+
   setResponse(key: string, response: unknown): void {
     this.responses.set(key, response);
   }
-  
+
   async analyzeWithSchema(
     content: string,
     schema: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     const key = this.generateKey(content, schema);
-    const response = this.responses.get(key) || this.generateMockResponse(schema);
+    const response = this.responses.get(key) ||
+      this.generateMockResponse(schema);
     return { ok: true, data: response };
   }
-  
+
   async mapWithTemplate(
     data: unknown,
     template: unknown,
-    prompt: string
+    prompt: string,
   ): Promise<Result<unknown, DomainError>> {
     const key = this.generateKey(data, template);
-    const response = this.responses.get(key) || this.generateMockMapping(template);
+    const response = this.responses.get(key) ||
+      this.generateMockMapping(template);
     return { ok: true, data: response };
   }
-  
+
   private generateKey(input: unknown, context: unknown): string {
     return `${JSON.stringify(input)}-${JSON.stringify(context)}`;
   }
-  
+
   private generateMockResponse(schema: unknown): unknown {
     // スキーマに基づいてモックデータを生成
     return {
@@ -510,17 +538,17 @@ export class MockAIAdapter implements AIAnalysisService {
       tags: ["mock", "test"],
       metadata: {
         author: "Test Author",
-        date: new Date().toISOString()
-      }
+        date: new Date().toISOString(),
+      },
     };
   }
-  
+
   private generateMockMapping(template: unknown): unknown {
     // テンプレートに基づいてモックデータを生成
     return {
       id: "mock-id",
       name: "Mock Name",
-      values: [1, 2, 3]
+      values: [1, 2, 3],
     };
   }
 }
@@ -538,56 +566,58 @@ export class YAMLParserAdapter {
       // 実際はyamlライブラリを使用
       // import { parse } from "https://deno.land/std/yaml/mod.ts";
       // const parsed = parse(content);
-      
+
       // 簡易実装（実際はライブラリ使用）
       const parsed = this.simpleYAMLParse(content);
       return { ok: true, data: parsed };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ParseError", { input: `YAML parse error: ${error}` })
+        error: createDomainError("ParseError", {
+          input: `YAML parse error: ${error}`,
+        }),
       };
     }
   }
-  
+
   stringify(data: Record<string, unknown>): Result<string, DomainError> {
     try {
       // 実際はyamlライブラリを使用
       // import { stringify } from "https://deno.land/std/yaml/mod.ts";
       // const yaml = stringify(data);
-      
+
       // 簡易実装
       const yaml = this.simpleYAMLStringify(data);
       return { ok: true, data: yaml };
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError("ProcessingFailed", { 
-          step: `YAML stringify error: ${error}` 
-        })
+        error: createDomainError("ProcessingFailed", {
+          step: `YAML stringify error: ${error}`,
+        }),
       };
     }
   }
-  
+
   private simpleYAMLParse(content: string): Record<string, unknown> {
     // 非常に簡易的なYAMLパーサー（実際はライブラリ使用）
     const result: Record<string, unknown> = {};
     const lines = content.split("\n");
-    
+
     for (const line of lines) {
       if (line.includes(":")) {
-        const [key, value] = line.split(":").map(s => s.trim());
+        const [key, value] = line.split(":").map((s) => s.trim());
         result[key] = this.parseValue(value);
       }
     }
-    
+
     return result;
   }
-  
+
   private simpleYAMLStringify(data: Record<string, unknown>): string {
     // 簡易的なYAML文字列化
     const lines: string[] = [];
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (typeof value === "object" && value !== null) {
         lines.push(`${key}:`);
@@ -597,10 +627,10 @@ export class YAMLParserAdapter {
         lines.push(`${key}: ${value}`);
       }
     }
-    
+
     return lines.join("\n");
   }
-  
+
   private parseValue(value: string): unknown {
     // 値の解析
     if (value === "true") return true;
@@ -633,51 +663,51 @@ export interface Logger {
 // 構造化ログアダプター
 export class StructuredLogger implements Logger {
   private readonly minLevel: LogLevel;
-  
+
   constructor(minLevel: LogLevel = "info") {
     this.minLevel = minLevel;
   }
-  
+
   log(level: LogLevel, message: string, context?: unknown): void {
     if (!this.shouldLog(level)) return;
-    
+
     const logEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
       context,
-      pid: Deno.pid
+      pid: Deno.pid,
     };
-    
+
     this.output(level, logEntry);
   }
-  
+
   debug(message: string, context?: unknown): void {
     this.log("debug", message, context);
   }
-  
+
   info(message: string, context?: unknown): void {
     this.log("info", message, context);
   }
-  
+
   warn(message: string, context?: unknown): void {
     this.log("warn", message, context);
   }
-  
+
   error(message: string, context?: unknown): void {
     this.log("error", message, context);
   }
-  
+
   private shouldLog(level: LogLevel): boolean {
     const levels: LogLevel[] = ["debug", "info", "warn", "error"];
     const minIndex = levels.indexOf(this.minLevel);
     const levelIndex = levels.indexOf(level);
     return levelIndex >= minIndex;
   }
-  
+
   private output(level: LogLevel, entry: unknown): void {
     const json = JSON.stringify(entry);
-    
+
     if (level === "error") {
       console.error(json);
     } else if (level === "warn") {
@@ -699,22 +729,24 @@ export class EnvironmentAdapter {
   get(key: string): string | undefined {
     return Deno.env.get(key);
   }
-  
+
   getOrDefault(key: string, defaultValue: string): string {
     return Deno.env.get(key) || defaultValue;
   }
-  
+
   getRequired(key: string): Result<string, DomainError> {
     const value = Deno.env.get(key);
     if (!value) {
       return {
         ok: false,
-        error: createDomainError("InvalidConfiguration", { field: `env:${key}` })
+        error: createDomainError("InvalidConfiguration", {
+          field: `env:${key}`,
+        }),
       };
     }
     return { ok: true, data: value };
   }
-  
+
   getAll(): Record<string, string> {
     return Deno.env.toObject();
   }
@@ -723,25 +755,25 @@ export class EnvironmentAdapter {
 // アプリケーション設定
 export class ApplicationConfiguration {
   constructor(private readonly env: EnvironmentAdapter) {}
-  
+
   getClaudeAPIKey(): Result<string, DomainError> {
     return this.env.getRequired("CLAUDE_API_KEY");
   }
-  
+
   getClaudeModel(): string {
     return this.env.getOrDefault("CLAUDE_MODEL", "claude-3-opus-20240229");
   }
-  
+
   getMaxTokens(): number {
     const value = this.env.getOrDefault("CLAUDE_MAX_TOKENS", "4096");
     return parseInt(value, 10);
   }
-  
+
   getTemperature(): number {
     const value = this.env.getOrDefault("CLAUDE_TEMPERATURE", "0");
     return parseFloat(value);
   }
-  
+
   getLogLevel(): LogLevel {
     const value = this.env.getOrDefault("LOG_LEVEL", "info");
     if (["debug", "info", "warn", "error"].includes(value)) {
@@ -749,9 +781,12 @@ export class ApplicationConfiguration {
     }
     return "info";
   }
-  
+
   getSchemaRegistryPath(): string {
-    return this.env.getOrDefault("SCHEMA_REGISTRY_PATH", ".schemas/registry.json");
+    return this.env.getOrDefault(
+      "SCHEMA_REGISTRY_PATH",
+      ".schemas/registry.json",
+    );
   }
 }
 ```

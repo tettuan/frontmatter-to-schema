@@ -29,16 +29,19 @@
 ### 1.2 中心極限定理による中心点特定
 
 **第一中心点（解析エンジン）**
+
 - 座標: (0, 0) - システムの絶対中心
 - 質量: 最大（全ての処理が通過）
 - 引力範囲: 半径3（3ステップ以内の全要素）
 
 **第二中心点（スキーマ駆動）**
+
 - 座標: (2, 0) - 横軸2の距離
 - 質量: 大（型安全性の中核）
 - 引力範囲: 半径2
 
 **第三中心点（結果集約）**
+
 - 座標: (4, 2) - 出力側の中心
 - 質量: 中（集約処理の中核）
 - 引力範囲: 半径2
@@ -63,37 +66,41 @@ graph LR
 
 ### 2.2 距離判定マトリクス
 
-| 要素 | 実行ステップ数（縦軸） | 意味的距離（横軸） | 総合距離 | 境界判定 |
-|------|---------------------|-----------------|---------|---------|
-| AnalysisEngine | 0 | 0 | 0 | 中核 |
-| SchemaDefinition | 1 | 1 | 1.4 | 中核 |
-| AnalysisStrategy | 1 | 2 | 2.2 | 中核境界 |
-| FrontMatterContent | 2 | 1 | 2.2 | 支援 |
-| TemplateMapper | 2 | 3 | 3.6 | 支援境界 |
-| FileDiscovery | 3 | 4 | 5.0 | 汎用 |
-| AIAnalyzer | 3 | 5 | 5.8 | 汎用 |
-| FileSystem | 4 | 6 | 7.2 | インフラ |
+| 要素               | 実行ステップ数（縦軸） | 意味的距離（横軸） | 総合距離 | 境界判定 |
+| ------------------ | ---------------------- | ------------------ | -------- | -------- |
+| AnalysisEngine     | 0                      | 0                  | 0        | 中核     |
+| SchemaDefinition   | 1                      | 1                  | 1.4      | 中核     |
+| AnalysisStrategy   | 1                      | 2                  | 2.2      | 中核境界 |
+| FrontMatterContent | 2                      | 1                  | 2.2      | 支援     |
+| TemplateMapper     | 2                      | 3                  | 3.6      | 支援境界 |
+| FileDiscovery      | 3                      | 4                  | 5.0      | 汎用     |
+| AIAnalyzer         | 3                      | 5                  | 5.8      | 汎用     |
+| FileSystem         | 4                      | 6                  | 7.2      | インフラ |
 
 ## 3. ライフサイクル分析
 
 ### 3.1 ライフサイクル分類
 
 **永続的要素（Lifecycle: ∞）**
+
 - SchemaDefinition - アプリケーション全体で不変
 - TemplateDefinition - 設定として永続
 - Configuration - 起動時読み込み後不変
 
 **セッション要素（Lifecycle: Session）**
+
 - AnalysisEngine - 処理セッション中存続
 - Registry - バッチ処理単位で存続
 - Pipeline - 実行単位で存続
 
 **揮発性要素（Lifecycle: Request）**
+
 - FrontMatterContent - ファイル処理ごとに生成・破棄
 - AnalysisResult - 処理結果として一時保持
 - AnalysisContext - 処理コンテキストとして一時存在
 
 **外部依存要素（Lifecycle: External）**
+
 - FileSystem - OS依存
 - AIService (Claude API) - 外部サービス依存
 - Environment - 実行環境依存
@@ -115,6 +122,7 @@ graph LR
 ### 4.1 主要イベント境界
 
 **境界1: 設定読み込み境界**
+
 ```typescript
 interface ConfigurationLoadedEvent {
   config: ProcessingConfiguration;
@@ -124,6 +132,7 @@ interface ConfigurationLoadedEvent {
 ```
 
 **境界2: ファイル発見境界**
+
 ```typescript
 interface FilesDiscoveredEvent {
   files: ValidFilePath[];
@@ -132,6 +141,7 @@ interface FilesDiscoveredEvent {
 ```
 
 **境界3: 解析完了境界**
+
 ```typescript
 interface AnalysisCompletedEvent {
   filePath: string;
@@ -141,6 +151,7 @@ interface AnalysisCompletedEvent {
 ```
 
 **境界4: 集約完了境界**
+
 ```typescript
 interface AggregationCompletedEvent {
   registry: Registry;
@@ -160,14 +171,17 @@ interface AggregationCompletedEvent {
 export namespace CoreDomain {
   // 中心骨格要素のみ
   export interface AnalysisEngine {
-    analyze<T,U>(input: T, strategy: AnalysisStrategy<T,U>): Promise<Result<U>>;
+    analyze<T, U>(
+      input: T,
+      strategy: AnalysisStrategy<T, U>,
+    ): Promise<Result<U>>;
   }
-  
+
   export interface SchemaBasedAnalyzer<T> {
     process(data: unknown, schema: SchemaDefinition<T>): Promise<Result<T>>;
   }
-  
-  export interface AnalysisStrategy<T,U> {
+
+  export interface AnalysisStrategy<T, U> {
     name: string;
     execute(input: T, context: AnalysisContext): Promise<Result<U>>;
   }
@@ -182,19 +196,19 @@ export namespace SupportingDomain {
     export interface FrontMatterExtractor {
       extract(content: string): Result<FrontMatterContent>;
     }
-    
+
     export interface FileDiscovery {
       discover(patterns: string[]): Promise<ValidFilePath[]>;
     }
   }
-  
+
   // テンプレート変換支援
   export namespace TemplateProcessing {
-    export interface TemplateMapper<S,T> {
+    export interface TemplateMapper<S, T> {
       map(source: S, template: TemplateDefinition): Result<T>;
     }
   }
-  
+
   // 結果集約支援
   export namespace ResultAggregation {
     export interface Registry<T> {
@@ -214,7 +228,7 @@ export namespace GenericDomain {
       analyze(prompt: string, data: unknown): Promise<Result<unknown>>;
     }
   }
-  
+
   // 設定管理
   export namespace Configuration {
     export interface ConfigurationLoader {
@@ -232,12 +246,12 @@ export namespace InfrastructureDomain {
     export interface FileReader {
       read(path: string): Promise<Result<string>>;
     }
-    
+
     export interface FileWriter {
       write(path: string, content: string): Promise<Result<void>>;
     }
   }
-  
+
   // 外部サービス
   export namespace ExternalServices {
     export interface ClaudeAPIClient {
@@ -254,11 +268,11 @@ export namespace InfrastructureDomain {
 interface DomainEventBus {
   // 中核→支援（単方向）
   publish<T extends DomainEvent>(event: T): void;
-  
+
   // 支援→中核（イベント経由のみ）
   subscribe<T extends DomainEvent>(
     eventType: string,
-    handler: (event: T) => void
+    handler: (event: T) => void,
   ): void;
 }
 
@@ -274,11 +288,11 @@ interface BoundaryAdapter<TInternal, TExternal> {
 ### 6.1 複雑性メトリクス
 
 | メトリクス | 現状 | 目標 | 削減率 |
-|-----------|-----|------|--------|
-| ドメイン数 | 7 | 4 | 43% |
-| 境界数 | 12 | 4 | 67% |
-| 依存深度 | 5 | 3 | 40% |
-| 循環依存 | 2 | 0 | 100% |
+| ---------- | ---- | ---- | ------ |
+| ドメイン数 | 7    | 4    | 43%    |
+| 境界数     | 12   | 4    | 67%    |
+| 依存深度   | 5    | 3    | 40%    |
+| 循環依存   | 2    | 0    | 100%   |
 
 ### 6.2 凝集度・結合度
 
@@ -292,21 +306,25 @@ interface BoundaryAdapter<TInternal, TExternal> {
 ## 7. 実装優先順位
 
 ### Phase 1: 中核境界の確立（必須）
+
 1. AnalysisEngine インターフェースの純粋化
 2. SchemaBasedAnalyzer の独立性確保
 3. Result型による全域性の徹底
 
 ### Phase 2: イベント境界の実装（重要）
+
 1. DomainEventBus の実装
 2. 境界イベントの定義
 3. 非同期通信パターンの確立
 
 ### Phase 3: 支援境界の整理（推奨）
+
 1. FileProcessing の統合
 2. TemplateProcessing の最適化
 3. ResultAggregation の簡素化
 
 ### Phase 4: インフラ境界の分離（保守性）
+
 1. FileSystem アダプターの統一
 2. ExternalServices の抽象化
 3. 設定駆動アーキテクチャの完成
@@ -320,16 +338,16 @@ export const BoundaryViolationChecker = {
   checkCoreIsolation(): ViolationReport {
     // 静的解析による違反検出
   },
-  
+
   // 循環依存の検出
   checkCircularDependency(): ViolationReport {
     // 依存グラフ解析
   },
-  
+
   // ライフサイクル違反
   checkLifecycleMismatch(): ViolationReport {
     // 永続要素が揮発要素を保持
-  }
+  },
 };
 ```
 

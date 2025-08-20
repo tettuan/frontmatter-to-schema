@@ -5,38 +5,50 @@
 ### 1.1 メインユースケース
 
 ```typescript
-import { Result, DomainError, ExecutionConfig, PipelineExecutionResult } from "../domain/domain-core-types";
-import { SchemaSwitchManager, DynamicPipelineFactory } from "../domain/domain-services";
+import {
+  DomainError,
+  ExecutionConfig,
+  PipelineExecutionResult,
+  Result,
+} from "../domain/domain-core-types";
+import {
+  DynamicPipelineFactory,
+  SchemaSwitchManager,
+} from "../domain/domain-services";
 
 // フロントマター処理ユースケース
 export class ProcessFrontMatterUseCase {
   constructor(
     private readonly schemaManager: SchemaSwitchManager,
-    private readonly pipelineFactory: DynamicPipelineFactory
+    private readonly pipelineFactory: DynamicPipelineFactory,
   ) {}
-  
-  async execute(configPath: string): Promise<Result<PipelineExecutionResult, DomainError>> {
+
+  async execute(
+    configPath: string,
+  ): Promise<Result<PipelineExecutionResult, DomainError>> {
     // 設定読み込み
     const configResult = await this.loadConfiguration(configPath);
     if (!configResult.ok) {
       return configResult;
     }
-    
+
     // Schemaセット読み込み
-    const schemaSetResult = await this.schemaManager.loadSchemaSet(configResult.data);
+    const schemaSetResult = await this.schemaManager.loadSchemaSet(
+      configResult.data,
+    );
     if (!schemaSetResult.ok) {
       return schemaSetResult;
     }
-    
+
     // パイプライン作成
     const pipelineResult = this.pipelineFactory.createPipeline(
       configResult.data,
-      schemaSetResult.data
+      schemaSetResult.data,
     );
     if (!pipelineResult.ok) {
       return pipelineResult;
     }
-    
+
     // パイプライン実行
     try {
       const result = await pipelineResult.data.execute();
@@ -47,17 +59,19 @@ export class ProcessFrontMatterUseCase {
       this.schemaManager.unloadCurrentSet();
     }
   }
-  
-  private async loadConfiguration(path: string): Promise<Result<ExecutionConfig, DomainError>> {
+
+  private async loadConfiguration(
+    path: string,
+  ): Promise<Result<ExecutionConfig, DomainError>> {
     // 設定ファイル読み込みロジック（実装は省略）
     const config = {
       schemaPath: "examples/climpt-registry/schema.json",
       templatePath: "examples/climpt-registry/template.json",
       inputPath: ".agent/climpt/registered-commands.md",
       outputPath: "examples/output/climpt-registry.json",
-      outputFormat: "json"
+      outputFormat: "json",
     };
-    
+
     return ExecutionConfig.create(config);
   }
 }
@@ -70,25 +84,27 @@ export class ProcessFrontMatterUseCase {
 export class SwitchSchemaUseCase {
   constructor(
     private readonly schemaManager: SchemaSwitchManager,
-    private readonly registry: SchemaRegistry
+    private readonly registry: SchemaRegistry,
   ) {}
-  
+
   async execute(schemaName: string): Promise<Result<void, DomainError>> {
     // レジストリからSchema設定取得
     const configResult = await this.registry.getConfig(schemaName);
     if (!configResult.ok) {
       return configResult;
     }
-    
+
     // 現在のSchemaをアンロード
     this.schemaManager.unloadCurrentSet();
-    
+
     // 新しいSchemaをロード
-    const loadResult = await this.schemaManager.loadSchemaSet(configResult.data);
+    const loadResult = await this.schemaManager.loadSchemaSet(
+      configResult.data,
+    );
     if (!loadResult.ok) {
       return loadResult;
     }
-    
+
     return { ok: true, data: undefined };
   }
 }
@@ -96,13 +112,15 @@ export class SwitchSchemaUseCase {
 // バッチ処理ユースケース
 export class BatchProcessingUseCase {
   constructor(
-    private readonly mainUseCase: ProcessFrontMatterUseCase
+    private readonly mainUseCase: ProcessFrontMatterUseCase,
   ) {}
-  
-  async execute(configPaths: string[]): Promise<Result<BatchResult, DomainError>> {
+
+  async execute(
+    configPaths: string[],
+  ): Promise<Result<BatchResult, DomainError>> {
     const results: PipelineExecutionResult[] = [];
     const errors: DomainError[] = [];
-    
+
     for (const configPath of configPaths) {
       const result = await this.mainUseCase.execute(configPath);
       if (result.ok) {
@@ -111,7 +129,7 @@ export class BatchProcessingUseCase {
         errors.push(result.error);
       }
     }
-    
+
     return BatchResult.create(results, errors);
   }
 }
@@ -120,34 +138,34 @@ export class BatchProcessingUseCase {
 export class BatchResult {
   private constructor(
     private readonly successes: readonly PipelineExecutionResult[],
-    private readonly failures: readonly DomainError[]
+    private readonly failures: readonly DomainError[],
   ) {}
-  
+
   static create(
     successes: PipelineExecutionResult[],
-    failures: DomainError[]
+    failures: DomainError[],
   ): Result<BatchResult, DomainError> {
     return {
       ok: true,
-      data: new BatchResult(successes, failures)
+      data: new BatchResult(successes, failures),
     };
   }
-  
+
   getSuccesses(): readonly PipelineExecutionResult[] {
     return this.successes;
   }
-  
+
   getFailures(): readonly DomainError[] {
     return this.failures;
   }
-  
+
   getTotalProcessed(): number {
     return this.successes.reduce((sum, r) => sum + r.getProcessedCount(), 0);
   }
-  
+
   getTotalFailed(): number {
-    return this.failures.length + 
-           this.successes.reduce((sum, r) => sum + r.getFailedCount(), 0);
+    return this.failures.length +
+      this.successes.reduce((sum, r) => sum + r.getFailedCount(), 0);
   }
 }
 ```
@@ -170,41 +188,41 @@ export class SimpleDIContainer implements DIContainer {
   private factories = new Map<string, () => unknown>();
   private singletons = new Map<string, unknown>();
   private parent?: SimpleDIContainer;
-  
+
   constructor(parent?: SimpleDIContainer) {
     this.parent = parent;
   }
-  
+
   register<T>(token: string, factory: () => T): void {
     this.factories.set(token, factory);
   }
-  
+
   registerSingleton<T>(token: string, factory: () => T): void {
     if (!this.singletons.has(token)) {
       this.singletons.set(token, factory());
     }
   }
-  
+
   resolve<T>(token: string): T {
     // シングルトンチェック
     if (this.singletons.has(token)) {
       return this.singletons.get(token) as T;
     }
-    
+
     // ファクトリーチェック
     if (this.factories.has(token)) {
       const factory = this.factories.get(token)!;
       return factory() as T;
     }
-    
+
     // 親コンテナチェック
     if (this.parent) {
       return this.parent.resolve<T>(token);
     }
-    
+
     throw new Error(`Dependency not found: ${token}`);
   }
-  
+
   createScope(): DIContainer {
     return new SimpleDIContainer(this);
   }
@@ -219,33 +237,33 @@ export const DITokens = {
   // コアサービス（Schema非依存）
   FrontMatterExtractor: "FrontMatterExtractor",
   FileDiscoveryService: "FileDiscoveryService",
-  
+
   // Schema管理
   SchemaSwitchManager: "SchemaSwitchManager",
   SchemaRegistry: "SchemaRegistry",
-  
+
   // 適用サービス
   SchemaApplicationService: "SchemaApplicationService",
   TemplateApplicationService: "TemplateApplicationService",
-  
+
   // AI分析
   AIAnalysisService: "AIAnalysisService",
-  
+
   // パイプライン
   DynamicPipelineFactory: "DynamicPipelineFactory",
-  
+
   // ユースケース
   ProcessFrontMatterUseCase: "ProcessFrontMatterUseCase",
   SwitchSchemaUseCase: "SwitchSchemaUseCase",
   BatchProcessingUseCase: "BatchProcessingUseCase",
-  
+
   // インフラ
   FileSystem: "FileSystem",
   HttpClient: "HttpClient",
   Logger: "Logger",
-  
+
   // 設定
-  ApplicationConfig: "ApplicationConfig"
+  ApplicationConfig: "ApplicationConfig",
 } as const;
 
 export type DIToken = typeof DITokens[keyof typeof DITokens];
@@ -254,14 +272,14 @@ export type DIToken = typeof DITokens[keyof typeof DITokens];
 ### 2.3 依存性登録
 
 ```typescript
-import { 
-  FrontMatterExtractorService,
-  FileDiscoveryServiceImpl,
-  SchemaInjectionManager,
-  SchemaApplicationServiceImpl,
-  TemplateApplicationServiceImpl,
+import {
   ClaudeAnalysisService,
-  DynamicPipelineFactoryImpl
+  DynamicPipelineFactoryImpl,
+  FileDiscoveryServiceImpl,
+  FrontMatterExtractorService,
+  SchemaApplicationServiceImpl,
+  SchemaInjectionManager,
+  TemplateApplicationServiceImpl,
 } from "../domain/domain-services";
 
 // 依存性登録関数
@@ -269,70 +287,74 @@ export function registerDependencies(container: DIContainer): void {
   // コアサービス登録（シングルトン）
   container.registerSingleton(
     DITokens.FrontMatterExtractor,
-    () => new FrontMatterExtractorService()
+    () => new FrontMatterExtractorService(),
   );
-  
+
   container.registerSingleton(
     DITokens.FileDiscoveryService,
-    () => new FileDiscoveryServiceImpl()
+    () => new FileDiscoveryServiceImpl(),
   );
-  
+
   // Schema管理登録（リクエストスコープ）
   container.register(
     DITokens.SchemaSwitchManager,
-    () => new SchemaInjectionManager()
+    () => new SchemaInjectionManager(),
   );
-  
+
   // 適用サービス登録
   container.register(
     DITokens.SchemaApplicationService,
-    () => new SchemaApplicationServiceImpl()
+    () => new SchemaApplicationServiceImpl(),
   );
-  
+
   container.register(
     DITokens.TemplateApplicationService,
-    () => new TemplateApplicationServiceImpl()
+    () => new TemplateApplicationServiceImpl(),
   );
-  
+
   // AI分析サービス登録
   container.registerSingleton(
     DITokens.AIAnalysisService,
-    () => new ClaudeAnalysisService()
+    () => new ClaudeAnalysisService(),
   );
-  
+
   // パイプラインファクトリ登録
   container.register(
     DITokens.DynamicPipelineFactory,
-    () => new DynamicPipelineFactoryImpl(
-      container.resolve(DITokens.FrontMatterExtractor),
-      container.resolve(DITokens.FileDiscoveryService),
-      container.resolve(DITokens.SchemaApplicationService),
-      container.resolve(DITokens.TemplateApplicationService)
-    )
+    () =>
+      new DynamicPipelineFactoryImpl(
+        container.resolve(DITokens.FrontMatterExtractor),
+        container.resolve(DITokens.FileDiscoveryService),
+        container.resolve(DITokens.SchemaApplicationService),
+        container.resolve(DITokens.TemplateApplicationService),
+      ),
   );
-  
+
   // ユースケース登録
   container.register(
     DITokens.ProcessFrontMatterUseCase,
-    () => new ProcessFrontMatterUseCase(
-      container.resolve(DITokens.SchemaSwitchManager),
-      container.resolve(DITokens.DynamicPipelineFactory)
-    )
+    () =>
+      new ProcessFrontMatterUseCase(
+        container.resolve(DITokens.SchemaSwitchManager),
+        container.resolve(DITokens.DynamicPipelineFactory),
+      ),
   );
-  
+
   container.register(
     DITokens.SwitchSchemaUseCase,
-    () => new SwitchSchemaUseCase(
-      container.resolve(DITokens.SchemaSwitchManager),
-      container.resolve(DITokens.SchemaRegistry)
-    )
+    () =>
+      new SwitchSchemaUseCase(
+        container.resolve(DITokens.SchemaSwitchManager),
+        container.resolve(DITokens.SchemaRegistry),
+      ),
   );
-  
+
   container.register(
     DITokens.BatchProcessingUseCase,
-    () => new BatchProcessingUseCase(
-      container.resolve(DITokens.ProcessFrontMatterUseCase)
-    )
+    () =>
+      new BatchProcessingUseCase(
+        container.resolve(DITokens.ProcessFrontMatterUseCase),
+      ),
   );
 }
 ```
@@ -345,49 +367,53 @@ export function registerDependencies(container: DIContainer): void {
 // アプリケーションファサード
 export class ApplicationFacade {
   private container: DIContainer;
-  
+
   constructor() {
     this.container = new SimpleDIContainer();
     registerDependencies(this.container);
   }
-  
+
   // メイン処理実行
-  async processFrontMatter(configPath: string): Promise<Result<ProcessingReport, DomainError>> {
+  async processFrontMatter(
+    configPath: string,
+  ): Promise<Result<ProcessingReport, DomainError>> {
     const useCase = this.container.resolve<ProcessFrontMatterUseCase>(
-      DITokens.ProcessFrontMatterUseCase
+      DITokens.ProcessFrontMatterUseCase,
     );
-    
+
     const result = await useCase.execute(configPath);
     if (!result.ok) {
       return { ok: false, error: result.error };
     }
-    
+
     return ProcessingReport.create(result.data);
   }
-  
+
   // Schema切り替え
   async switchSchema(schemaName: string): Promise<Result<void, DomainError>> {
     const useCase = this.container.resolve<SwitchSchemaUseCase>(
-      DITokens.SwitchSchemaUseCase
+      DITokens.SwitchSchemaUseCase,
     );
-    
+
     return useCase.execute(schemaName);
   }
-  
+
   // バッチ処理
-  async processBatch(configPaths: string[]): Promise<Result<BatchReport, DomainError>> {
+  async processBatch(
+    configPaths: string[],
+  ): Promise<Result<BatchReport, DomainError>> {
     const useCase = this.container.resolve<BatchProcessingUseCase>(
-      DITokens.BatchProcessingUseCase
+      DITokens.BatchProcessingUseCase,
     );
-    
+
     const result = await useCase.execute(configPaths);
     if (!result.ok) {
       return { ok: false, error: result.error };
     }
-    
+
     return BatchReport.create(result.data);
   }
-  
+
   // リクエストスコープ作成
   createRequestScope(): RequestScope {
     const scopedContainer = this.container.createScope();
@@ -398,14 +424,16 @@ export class ApplicationFacade {
 // リクエストスコープ
 export class RequestScope {
   constructor(private readonly container: DIContainer) {}
-  
-  async execute(configPath: string): Promise<Result<PipelineExecutionResult, DomainError>> {
+
+  async execute(
+    configPath: string,
+  ): Promise<Result<PipelineExecutionResult, DomainError>> {
     const useCase = this.container.resolve<ProcessFrontMatterUseCase>(
-      DITokens.ProcessFrontMatterUseCase
+      DITokens.ProcessFrontMatterUseCase,
     );
     return useCase.execute(configPath);
   }
-  
+
   dispose(): void {
     // スコープのクリーンアップ
   }
@@ -419,16 +447,18 @@ export class RequestScope {
 export class ProcessingReport {
   private constructor(
     private readonly result: PipelineExecutionResult,
-    private readonly timestamp: Date
+    private readonly timestamp: Date,
   ) {}
-  
-  static create(result: PipelineExecutionResult): Result<ProcessingReport, DomainError> {
+
+  static create(
+    result: PipelineExecutionResult,
+  ): Result<ProcessingReport, DomainError> {
     return {
       ok: true,
-      data: new ProcessingReport(result, new Date())
+      data: new ProcessingReport(result, new Date()),
     };
   }
-  
+
   toJSON(): object {
     return {
       timestamp: this.timestamp.toISOString(),
@@ -437,11 +467,11 @@ export class ProcessingReport {
         processed: this.result.getProcessedCount(),
         skipped: this.result.getSkippedCount(),
         failed: this.result.getFailedCount(),
-        executionTimeMs: this.result.getExecutionTime()
-      }
+        executionTimeMs: this.result.getExecutionTime(),
+      },
     };
   }
-  
+
   toMarkdown(): string {
     return `
 # Processing Report
@@ -462,16 +492,16 @@ export class ProcessingReport {
 export class BatchReport {
   private constructor(
     private readonly batchResult: BatchResult,
-    private readonly timestamp: Date
+    private readonly timestamp: Date,
   ) {}
-  
+
   static create(batchResult: BatchResult): Result<BatchReport, DomainError> {
     return {
       ok: true,
-      data: new BatchReport(batchResult, new Date())
+      data: new BatchReport(batchResult, new Date()),
     };
   }
-  
+
   toJSON(): object {
     return {
       timestamp: this.timestamp.toISOString(),
@@ -479,18 +509,18 @@ export class BatchReport {
         totalSuccesses: this.batchResult.getSuccesses().length,
         totalFailures: this.batchResult.getFailures().length,
         totalProcessed: this.batchResult.getTotalProcessed(),
-        totalFailed: this.batchResult.getTotalFailed()
+        totalFailed: this.batchResult.getTotalFailed(),
       },
-      successes: this.batchResult.getSuccesses().map(s => ({
+      successes: this.batchResult.getSuccesses().map((s) => ({
         outputPath: s.getOutputPath().getValue(),
         processed: s.getProcessedCount(),
         skipped: s.getSkippedCount(),
-        failed: s.getFailedCount()
+        failed: s.getFailedCount(),
       })),
-      failures: this.batchResult.getFailures().map(f => ({
+      failures: this.batchResult.getFailures().map((f) => ({
         kind: f.kind,
-        details: f
-      }))
+        details: f,
+      })),
     };
   }
 }
@@ -504,11 +534,11 @@ export class BatchReport {
 // エラーハンドラー
 export class GlobalErrorHandler {
   private readonly handlers = new Map<DomainError["kind"], ErrorHandler>();
-  
+
   register(kind: DomainError["kind"], handler: ErrorHandler): void {
     this.handlers.set(kind, handler);
   }
-  
+
   handle(error: DomainError): ErrorResponse {
     const handler = this.handlers.get(error.kind);
     if (handler) {
@@ -516,12 +546,12 @@ export class GlobalErrorHandler {
     }
     return this.defaultHandler(error);
   }
-  
+
   private defaultHandler(error: DomainError): ErrorResponse {
     return {
       message: `An error occurred: ${error.kind}`,
       details: error,
-      suggestion: "Please check the logs for more information"
+      suggestion: "Please check the logs for more information",
     };
   }
 }
@@ -540,11 +570,13 @@ export interface ErrorResponse {
 
 // 具体的なエラーハンドラー実装
 export class SchemaNotLoadedHandler implements ErrorHandler {
-  handle(error: Extract<DomainError, { kind: "SchemaNotLoaded" }>): ErrorResponse {
+  handle(
+    error: Extract<DomainError, { kind: "SchemaNotLoaded" }>,
+  ): ErrorResponse {
     return {
       message: "Schema is not loaded",
       details: error,
-      suggestion: "Please ensure the schema file exists and is valid JSON"
+      suggestion: "Please ensure the schema file exists and is valid JSON",
     };
   }
 }
@@ -554,7 +586,7 @@ export class FileNotFoundHandler implements ErrorHandler {
     return {
       message: `File not found: ${error.path}`,
       details: error,
-      suggestion: "Please check the file path and ensure the file exists"
+      suggestion: "Please check the file path and ensure the file exists",
     };
   }
 }
@@ -576,29 +608,29 @@ export function registerErrorHandlers(handler: GlobalErrorHandler): void {
 export class ApplicationBootstrap {
   private facade?: ApplicationFacade;
   private errorHandler?: GlobalErrorHandler;
-  
+
   async initialize(): Promise<void> {
     // アプリケーション初期化
     this.facade = new ApplicationFacade();
-    
+
     // エラーハンドラー初期化
     this.errorHandler = new GlobalErrorHandler();
     registerErrorHandlers(this.errorHandler);
-    
+
     // その他の初期化処理
     await this.loadEnvironmentConfig();
     await this.setupLogging();
   }
-  
+
   async run(args: string[]): Promise<void> {
     if (!this.facade || !this.errorHandler) {
       throw new Error("Application not initialized");
     }
-    
+
     try {
       // コマンドライン引数解析
       const command = this.parseCommand(args);
-      
+
       // コマンド実行
       switch (command.type) {
         case "process":
@@ -618,7 +650,7 @@ export class ApplicationBootstrap {
       process.exit(1);
     }
   }
-  
+
   private async handleProcess(configPath: string): Promise<void> {
     const result = await this.facade!.processFrontMatter(configPath);
     if (result.ok) {
@@ -631,7 +663,7 @@ export class ApplicationBootstrap {
       }
     }
   }
-  
+
   private async handleBatch(configPaths: string[]): Promise<void> {
     const result = await this.facade!.processBatch(configPaths);
     if (result.ok) {
@@ -641,7 +673,7 @@ export class ApplicationBootstrap {
       console.error(response.message);
     }
   }
-  
+
   private async handleSwitch(schemaName: string): Promise<void> {
     const result = await this.facade!.switchSchema(schemaName);
     if (result.ok) {
@@ -651,23 +683,23 @@ export class ApplicationBootstrap {
       console.error(response.message);
     }
   }
-  
+
   private parseCommand(args: string[]): Command {
     // コマンドライン引数解析ロジック（実装は省略）
     return { type: "process", configPath: args[0] };
   }
-  
+
   private async loadEnvironmentConfig(): Promise<void> {
     // 環境設定読み込み（実装は省略）
   }
-  
+
   private async setupLogging(): Promise<void> {
     // ロギング設定（実装は省略）
   }
 }
 
 // コマンド型定義
-type Command = 
+type Command =
   | { type: "process"; configPath: string }
   | { type: "batch"; configPaths: string[] }
   | { type: "switch"; schemaName: string };
