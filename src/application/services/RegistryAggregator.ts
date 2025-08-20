@@ -1,7 +1,7 @@
 import type { Command, Registry } from "../../domain/registry/types.ts";
 import type { AnalysisResult } from "../../domain/analysis/AnalysisResult.ts";
 
-export class RegistryBuilder {
+export class RegistryAggregator {
   private commands: Command[] = [];
   private configs = new Set<string>();
 
