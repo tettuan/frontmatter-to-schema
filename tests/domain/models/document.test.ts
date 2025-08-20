@@ -1,11 +1,11 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
   Document,
+  DocumentBody,
   DocumentPath,
   FrontMatter,
-  DocumentBody,
 } from "../../../src/domain/models/document.ts";
-import { isOk, isError } from "../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../src/domain/shared/result.ts";
 
 Deno.test("DocumentPath", async (t) => {
   await t.step("should create valid document path", () => {
@@ -41,7 +41,7 @@ Deno.test("FrontMatter", async (t) => {
     const raw = "title: Test\nauthor: John";
     const parsed = { title: "Test", author: "John" };
     const result = FrontMatter.create(raw, parsed);
-    
+
     assertEquals(isOk(result), true);
     if (isOk(result)) {
       assertEquals(result.data.getRaw(), raw);
@@ -64,7 +64,7 @@ Deno.test("DocumentBody", async (t) => {
   await t.step("should create document body", () => {
     const content = "# Hello World\n\nThis is content.";
     const body = DocumentBody.create(content);
-    
+
     assertEquals(body.getContent(), content);
     assertEquals(body.getLength(), content.length);
   });
@@ -81,10 +81,10 @@ Deno.test("Document", async (t) => {
     const pathResult = DocumentPath.create("/test.md");
     const fmResult = FrontMatter.create("title: Test", { title: "Test" });
     const body = DocumentBody.create("Content");
-    
+
     if (isOk(pathResult) && isOk(fmResult)) {
       const doc = Document.create(pathResult.data, fmResult.data, body);
-      
+
       assertEquals(doc.hasFrontMatter(), true);
       assertEquals(doc.getPath().getValue(), "/test.md");
       assertEquals(doc.getBody().getContent(), "Content");
@@ -95,10 +95,10 @@ Deno.test("Document", async (t) => {
   await t.step("should create document without frontmatter", () => {
     const pathResult = DocumentPath.create("/test.md");
     const body = DocumentBody.create("Content");
-    
+
     if (isOk(pathResult)) {
       const doc = Document.create(pathResult.data, null, body);
-      
+
       assertEquals(doc.hasFrontMatter(), false);
       assertEquals(doc.getFrontMatter(), null);
     }

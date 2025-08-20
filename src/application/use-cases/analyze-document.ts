@@ -1,28 +1,23 @@
 // Analyze single document use case
 
 import {
-  type Result,
-  type ProcessingError,
   createError,
   isError,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
 import {
-  type Document,
+  AnalysisResult,
   type Schema,
   type Template,
-  AnalysisResult,
 } from "../../domain/models/entities.ts";
+import type { DocumentPath } from "../../domain/models/value-objects.ts";
 import type {
-  DocumentPath,
-} from "../../domain/models/value-objects.ts";
-import type {
+  AnalysisConfiguration,
   DocumentRepository,
-  SchemaRepository,
-  TemplateRepository,
   FrontMatterExtractor,
   SchemaAnalyzer,
   TemplateMapper,
-  AnalysisConfiguration,
 } from "../../domain/services/interfaces.ts";
 
 export interface AnalyzeDocumentUseCaseInput {
@@ -43,12 +38,14 @@ export class AnalyzeDocumentUseCase {
     private readonly documentRepo: DocumentRepository,
     private readonly frontMatterExtractor: FrontMatterExtractor,
     private readonly schemaAnalyzer: SchemaAnalyzer,
-    private readonly templateMapper: TemplateMapper
+    private readonly templateMapper: TemplateMapper,
   ) {}
 
   async execute(
-    input: AnalyzeDocumentUseCaseInput
-  ): Promise<Result<AnalyzeDocumentUseCaseOutput, ProcessingError & { message: string }>> {
+    input: AnalyzeDocumentUseCaseInput,
+  ): Promise<
+    Result<AnalyzeDocumentUseCaseOutput, ProcessingError & { message: string }>
+  > {
     const { documentPath, schema, template } = input;
 
     // Read document
@@ -59,8 +56,8 @@ export class AnalyzeDocumentUseCase {
         error: createError({
           kind: "ExtractionFailed",
           document: documentPath.getValue(),
-          reason: "Failed to read document"
-        })
+          reason: "Failed to read document",
+        }),
       };
     }
     const document = documentResult.data;
@@ -78,21 +75,24 @@ export class AnalyzeDocumentUseCase {
         error: createError({
           kind: "ExtractionFailed",
           document: documentPath.getValue(),
-          reason: "No frontmatter found in document"
-        })
+          reason: "No frontmatter found in document",
+        }),
       };
     }
 
     // Analyze with schema
-    const extractedResult = await this.schemaAnalyzer.analyze(frontMatter, schema);
+    const extractedResult = await this.schemaAnalyzer.analyze(
+      frontMatter,
+      schema,
+    );
     if (isError(extractedResult)) {
       return {
         ok: false,
         error: createError({
           kind: "AnalysisFailed",
           document: documentPath.getValue(),
-          reason: extractedResult.error.message
-        })
+          reason: extractedResult.error.message,
+        }),
       };
     }
     const extractedData = extractedResult.data;
@@ -105,8 +105,8 @@ export class AnalyzeDocumentUseCase {
         error: createError({
           kind: "MappingFailed",
           document: documentPath.getValue(),
-          reason: mappedResult.error.message
-        })
+          reason: mappedResult.error.message,
+        }),
       };
     }
     const mappedData = mappedResult.data;
@@ -115,7 +115,7 @@ export class AnalyzeDocumentUseCase {
     const analysisResult = AnalysisResult.create(
       document,
       extractedData,
-      mappedData
+      mappedData,
     );
 
     // Get field lists
@@ -127,8 +127,8 @@ export class AnalyzeDocumentUseCase {
       data: {
         result: analysisResult,
         extractedFields,
-        mappedFields
-      }
+        mappedFields,
+      },
     };
   }
 }

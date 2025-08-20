@@ -16,7 +16,6 @@ import {
   type FrontMatterInput,
   type FrontMatterOutput,
   type FrontMatterPipelineConfig,
-  FrontMatterPipelineFactory,
 } from "../../domain/pipeline/generic-pipeline.ts";
 import {
   SchemaAnalysisFactory,
@@ -388,9 +387,12 @@ export class ClimptPipelineFactory {
       analysisProcessor,
     };
 
-    // Create and return pipeline
-    const factory = new FrontMatterPipelineFactory(config);
-    return factory.createPipeline() as ClimptAnalysisPipeline;
+    // Create base pipeline using factory
+    // const factory = new FrontMatterPipelineFactory(config);
+    // const basePipeline = factory.createPipeline();
+
+    // Create ClimptAnalysisPipeline with the same configuration
+    return new ClimptAnalysisPipeline(config);
   }
 
   static async createDefault(): Promise<ClimptAnalysisPipeline> {

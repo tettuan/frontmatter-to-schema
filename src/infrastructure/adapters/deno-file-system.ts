@@ -1,6 +1,6 @@
 import type { Result } from "../../domain/shared/result.ts";
 import { createIOError, type IOError } from "../../domain/shared/errors.ts";
-import type { FileSystemPort, FileInfo } from "../ports/file-system.ts";
+import type { FileInfo, FileSystemPort } from "../ports/file-system.ts";
 import { walk } from "jsr:@std/fs/walk";
 import { ensureDir } from "jsr:@std/fs/ensure-dir";
 
@@ -21,14 +21,17 @@ export class DenoFileSystemAdapter implements FileSystemPort {
     }
   }
 
-  async writeFile(path: string, content: string): Promise<Result<void, IOError>> {
+  async writeFile(
+    path: string,
+    content: string,
+  ): Promise<Result<void, IOError>> {
     try {
       // Ensure directory exists
       const dir = path.substring(0, path.lastIndexOf("/"));
       if (dir) {
         await ensureDir(dir);
       }
-      
+
       await Deno.writeTextFile(path, content);
       return { ok: true, data: undefined };
     } catch (error) {
@@ -70,10 +73,12 @@ export class DenoFileSystemAdapter implements FileSystemPort {
       const files: FileInfo[] = [];
       const regex = pattern ? new RegExp(pattern) : undefined;
 
-      for await (const entry of walk(path, {
-        includeDirs: false,
-        match: regex ? [regex] : undefined,
-      })) {
+      for await (
+        const entry of walk(path, {
+          includeDirs: false,
+          match: regex ? [regex] : undefined,
+        })
+      ) {
         const stat = await Deno.stat(entry.path);
         files.push({
           path: entry.path,

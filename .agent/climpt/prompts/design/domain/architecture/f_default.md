@@ -1,13 +1,15 @@
 ---
 title:
 description: ドメイン境界情報などを元に、ドメイン設計を行う。
+variables:
+  input_text_file: ドメイン境界線情報
 ---
 
 # ドメイン設計
 
 「ドメイン情報」をもとに、ドメイン設計を行う。 まずは粗い型定義を行う。
 
-その際に、[全域性の原則](docs/totality.ja.md)を踏まえる。
+その際に、[全域性の原則](docs/development/totality.ja.md)を踏まえる。
 
 # ドメイン情報
 

@@ -56,14 +56,19 @@ export class ConfigurationValidator {
     if (!obj.input || typeof obj.input !== "object") {
       return {
         ok: false,
-        error: createConfigurationError("Missing or invalid 'input' configuration"),
+        error: createConfigurationError(
+          "Missing or invalid 'input' configuration",
+        ),
       };
     }
     const input = obj.input as Record<string, unknown>;
     if (!input.path || typeof input.path !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Input path is required and must be a string", "input.path"),
+        error: createConfigurationError(
+          "Input path is required and must be a string",
+          "input.path",
+        ),
       };
     }
 
@@ -71,20 +76,28 @@ export class ConfigurationValidator {
     if (!obj.schema || typeof obj.schema !== "object") {
       return {
         ok: false,
-        error: createConfigurationError("Missing or invalid 'schema' configuration"),
+        error: createConfigurationError(
+          "Missing or invalid 'schema' configuration",
+        ),
       };
     }
     const schema = obj.schema as Record<string, unknown>;
     if (!schema.definition) {
       return {
         ok: false,
-        error: createConfigurationError("Schema definition is required", "schema.definition"),
+        error: createConfigurationError(
+          "Schema definition is required",
+          "schema.definition",
+        ),
       };
     }
     if (!schema.format || typeof schema.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Schema format is required", "schema.format"),
+        error: createConfigurationError(
+          "Schema format is required",
+          "schema.format",
+        ),
       };
     }
 
@@ -92,20 +105,28 @@ export class ConfigurationValidator {
     if (!obj.template || typeof obj.template !== "object") {
       return {
         ok: false,
-        error: createConfigurationError("Missing or invalid 'template' configuration"),
+        error: createConfigurationError(
+          "Missing or invalid 'template' configuration",
+        ),
       };
     }
     const template = obj.template as Record<string, unknown>;
     if (!template.definition || typeof template.definition !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Template definition is required and must be a string", "template.definition"),
+        error: createConfigurationError(
+          "Template definition is required and must be a string",
+          "template.definition",
+        ),
       };
     }
     if (!template.format || typeof template.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Template format is required", "template.format"),
+        error: createConfigurationError(
+          "Template format is required",
+          "template.format",
+        ),
       };
     }
 
@@ -113,20 +134,28 @@ export class ConfigurationValidator {
     if (!obj.output || typeof obj.output !== "object") {
       return {
         ok: false,
-        error: createConfigurationError("Missing or invalid 'output' configuration"),
+        error: createConfigurationError(
+          "Missing or invalid 'output' configuration",
+        ),
       };
     }
     const output = obj.output as Record<string, unknown>;
     if (!output.path || typeof output.path !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Output path is required and must be a string", "output.path"),
+        error: createConfigurationError(
+          "Output path is required and must be a string",
+          "output.path",
+        ),
       };
     }
     if (!output.format || typeof output.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError("Output format is required", "output.format"),
+        error: createConfigurationError(
+          "Output format is required",
+          "output.format",
+        ),
       };
     }
 

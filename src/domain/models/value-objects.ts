@@ -1,28 +1,35 @@
 // Value objects with smart constructors following totality principle
 
-import { type Result, type ValidationError, createError } from "../shared/types.ts";
+import {
+  createError,
+  type Result,
+  type ValidationError,
+} from "../shared/types.ts";
 
 // Document-related value objects
 export class DocumentPath {
   private constructor(private readonly value: string) {}
 
-  static create(path: string): Result<DocumentPath, ValidationError & { message: string }> {
-    if (!path || path.trim() === "") {
+  static create(
+    path: string,
+  ): Result<DocumentPath, ValidationError & { message: string }> {
+    const trimmedPath = path.trim();
+    if (!trimmedPath) {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
 
-    if (!path.endsWith(".md") && !path.endsWith(".markdown")) {
+    if (!trimmedPath.endsWith(".md") && !trimmedPath.endsWith(".markdown")) {
       return {
         ok: false,
         error: createError({
           kind: "InvalidFormat",
           format: "*.md or *.markdown",
-          input: path
-        })
+          input: trimmedPath,
+        }),
       };
     }
 
-    return { ok: true, data: new DocumentPath(path) };
+    return { ok: true, data: new DocumentPath(trimmedPath) };
   }
 
   getValue(): string {
@@ -43,11 +50,10 @@ export class DocumentPath {
 export class FrontMatterContent {
   private constructor(private readonly value: string) {}
 
-  static create(content: string): Result<FrontMatterContent, ValidationError & { message: string }> {
-    if (!content || content.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
-    }
-
+  static create(
+    content: string,
+  ): Result<FrontMatterContent, ValidationError & { message: string }> {
+    // Allow empty content for frontmatter (documents may have empty frontmatter)
     return { ok: true, data: new FrontMatterContent(content) };
   }
 
@@ -67,7 +73,9 @@ export class FrontMatterContent {
 export class DocumentContent {
   private constructor(private readonly value: string) {}
 
-  static create(content: string): Result<DocumentContent, ValidationError & { message: string }> {
+  static create(
+    content: string,
+  ): Result<DocumentContent, ValidationError & { message: string }> {
     return { ok: true, data: new DocumentContent(content) };
   }
 
@@ -84,11 +92,26 @@ export class DocumentContent {
 export class ConfigPath {
   private constructor(private readonly value: string) {}
 
-  static create(path: string): Result<ConfigPath, ValidationError & { message: string }> {
+  static create(
+    path: string,
+  ): Result<ConfigPath, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
-
+    // Validate config file extensions
+    if (
+      !path.endsWith(".json") && !path.endsWith(".yaml") &&
+      !path.endsWith(".yml") && !path.endsWith(".toml")
+    ) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "InvalidFormat",
+          format: ".json, .yaml, .yml, or .toml",
+          input: path,
+        }),
+      };
+    }
     return { ok: true, data: new ConfigPath(path) };
   }
 
@@ -107,7 +130,9 @@ export class ConfigPath {
 export class OutputPath {
   private constructor(private readonly value: string) {}
 
-  static create(path: string): Result<OutputPath, ValidationError & { message: string }> {
+  static create(
+    path: string,
+  ): Result<OutputPath, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
@@ -129,12 +154,12 @@ export class OutputPath {
 export class SchemaDefinition {
   private constructor(
     private readonly value: unknown,
-    private readonly version: string
+    private readonly version: string,
   ) {}
 
   static create(
     definition: unknown,
-    version: string = "1.0.0"
+    version: string = "1.0.0",
   ): Result<SchemaDefinition, ValidationError & { message: string }> {
     if (!definition) {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
@@ -146,8 +171,8 @@ export class SchemaDefinition {
         error: createError({
           kind: "InvalidFormat",
           format: "object",
-          input: typeof definition
-        })
+          input: typeof definition,
+        }),
       };
     }
 
@@ -162,7 +187,9 @@ export class SchemaDefinition {
     return this.version;
   }
 
-  validate(data: unknown): Result<void, ValidationError & { message: string }> {
+  validate(
+    _data: unknown,
+  ): Result<void, ValidationError & { message: string }> {
     // Placeholder for schema validation logic
     // Would integrate with a JSON Schema validator or similar
     return { ok: true, data: undefined };
@@ -173,28 +200,34 @@ export class SchemaVersion {
   private constructor(
     private readonly major: number,
     private readonly minor: number,
-    private readonly patch: number
+    private readonly patch: number,
   ) {}
 
-  static create(version: string): Result<SchemaVersion, ValidationError & { message: string }> {
+  static create(
+    version: string,
+  ): Result<SchemaVersion, ValidationError & { message: string }> {
     const pattern = /^(\d+)\.(\d+)\.(\d+)$/;
     const match = version.match(pattern);
-    
+
     if (!match) {
       return {
         ok: false,
         error: createError({
           kind: "PatternMismatch",
           pattern: "X.Y.Z",
-          input: version
-        })
+          input: version,
+        }),
       };
     }
 
     const [, major, minor, patch] = match;
     return {
       ok: true,
-      data: new SchemaVersion(parseInt(major), parseInt(minor), parseInt(patch))
+      data: new SchemaVersion(
+        parseInt(major),
+        parseInt(minor),
+        parseInt(patch),
+      ),
     };
   }
 
@@ -210,33 +243,42 @@ export class SchemaVersion {
 // Template-related value objects
 export class TemplateFormat {
   private constructor(
-    private readonly format: "json" | "yaml" | "toml",
-    private readonly template: string
+    private readonly format: "json" | "yaml" | "toml" | "handlebars" | "custom",
+    private readonly template: string,
   ) {}
 
   static create(
     format: string,
-    template: string
+    template: string,
   ): Result<TemplateFormat, ValidationError & { message: string }> {
     if (!template || template.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
 
-    if (format !== "json" && format !== "yaml" && format !== "toml") {
+    if (
+      format !== "json" && format !== "yaml" && format !== "toml" &&
+      format !== "handlebars" && format !== "custom"
+    ) {
       return {
         ok: false,
         error: createError({
           kind: "InvalidFormat",
-          format: "json, yaml, or toml",
-          input: format
-        })
+          format: "json, yaml, toml, handlebars, or custom",
+          input: format,
+        }),
       };
     }
 
-    return { ok: true, data: new TemplateFormat(format, template) };
+    return {
+      ok: true,
+      data: new TemplateFormat(
+        format as "json" | "yaml" | "toml" | "handlebars" | "custom",
+        template,
+      ),
+    };
   }
 
-  getFormat(): "json" | "yaml" | "toml" {
+  getFormat(): "json" | "yaml" | "toml" | "handlebars" | "custom" {
     return this.format;
   }
 
@@ -249,13 +291,13 @@ export class MappingRule {
   private constructor(
     private readonly source: string,
     private readonly target: string,
-    private readonly transform?: (value: unknown) => unknown
+    private readonly transform?: (value: unknown) => unknown,
   ) {}
 
   static create(
     source: string,
     target: string,
-    transform?: (value: unknown) => unknown
+    transform?: (value: unknown) => unknown,
   ): Result<MappingRule, ValidationError & { message: string }> {
     if (!source || !target) {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
@@ -278,7 +320,10 @@ export class MappingRule {
   }
 
   private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
-    return path.split(".").reduce((acc: any, part) => acc?.[part], obj);
+    return path.split(".").reduce(
+      (acc: unknown, part) => (acc as Record<string, unknown>)?.[part],
+      obj,
+    );
   }
 }
 
@@ -287,7 +332,7 @@ export class ProcessingOptions {
   private constructor(
     private readonly parallel: boolean,
     private readonly maxConcurrency: number,
-    private readonly continueOnError: boolean
+    private readonly continueOnError: boolean,
   ) {}
 
   static create(options: {
@@ -306,14 +351,14 @@ export class ProcessingOptions {
           kind: "OutOfRange",
           value: maxConcurrency,
           min: 1,
-          max: 100
-        })
+          max: 100,
+        }),
       };
     }
 
     return {
       ok: true,
-      data: new ProcessingOptions(parallel, maxConcurrency, continueOnError)
+      data: new ProcessingOptions(parallel, maxConcurrency, continueOnError),
     };
   }
 

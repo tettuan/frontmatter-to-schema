@@ -1,6 +1,9 @@
 import type { Result } from "../shared/result.ts";
-import { type ValidationError, createValidationError } from "../shared/errors.ts";
-import type { Template, TemplateFormat } from "../models/template.ts";
+import {
+  createValidationError,
+  type ValidationError,
+} from "../shared/errors.ts";
+import type { Template } from "../models/template.ts";
 
 export class TemplateMapper {
   map(
@@ -22,7 +25,9 @@ export class TemplateMapper {
       default:
         return {
           ok: false,
-          error: createValidationError(`Unsupported template format: ${format}`),
+          error: createValidationError(
+            `Unsupported template format: ${format}`,
+          ),
         };
     }
   }
@@ -46,7 +51,7 @@ export class TemplateMapper {
 
   private mapToYaml(
     data: unknown,
-    templateDefinition: string,
+    _templateDefinition: string,
   ): Result<string, ValidationError> {
     try {
       // Simple YAML generation (in production, use a proper YAML library)
@@ -73,7 +78,7 @@ export class TemplateMapper {
 
   private mapWithCustom(
     data: unknown,
-    templateDefinition: string,
+    _templateDefinition: string,
   ): Result<string, ValidationError> {
     try {
       // Custom template processing
@@ -82,7 +87,9 @@ export class TemplateMapper {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(`Failed to map with custom template: ${error}`),
+        error: createValidationError(
+          `Failed to map with custom template: ${error}`,
+        ),
       };
     }
   }
@@ -177,7 +184,9 @@ export class TemplateMapper {
       return entries
         .map(([key, value]) => {
           if (typeof value === "object" && value !== null) {
-            return `${indentStr}${key}:\n${this.convertToYaml(value, indent + 1)}`;
+            return `${indentStr}${key}:\n${
+              this.convertToYaml(value, indent + 1)
+            }`;
           }
           const valueStr = this.convertToYaml(value, 0);
           return `${indentStr}${key}: ${valueStr.trim()}`;

@@ -15,7 +15,11 @@ import {
   type ProcessingResult,
 } from "../core/abstractions.ts";
 import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
-import { ValidFilePath, FrontMatterContent, SourceFile } from "../core/types.ts";
+import {
+  FrontMatterContent,
+  SourceFile,
+  ValidFilePath,
+} from "../core/types.ts";
 
 /**
  * Input for the frontmatter analysis pipeline
@@ -173,10 +177,16 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
           console.warn(`Invalid path: ${fullPath}`);
           continue;
         }
-        
-        const sourceFileResult = SourceFile.create(pathResult.data, content, frontMatter || undefined);
+
+        const sourceFileResult = SourceFile.create(
+          pathResult.data,
+          content,
+          frontMatter || undefined,
+        );
         if (!sourceFileResult.ok) {
-          console.warn(`Invalid source file: ${sourceFileResult.error.message}`);
+          console.warn(
+            `Invalid source file: ${sourceFileResult.error.message}`,
+          );
           continue;
         }
         const sourceFile = sourceFileResult.data;

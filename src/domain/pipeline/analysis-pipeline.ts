@@ -5,9 +5,9 @@
 import {
   type AnalysisContext,
   AnalysisResult,
-  ValidFilePath,
   SchemaDefinition,
   SourceFile,
+  ValidFilePath,
 } from "../core/types.ts";
 import type {
   AnalysisEngine,
@@ -97,7 +97,11 @@ export class AnalysisPipeline<TOutput = unknown> {
     }
 
     // Create source file
-    const sourceFileResult = SourceFile.create(path, content, frontMatter || undefined);
+    const sourceFileResult = SourceFile.create(
+      path,
+      content,
+      frontMatter || undefined,
+    );
     if (!sourceFileResult.ok) {
       return null;
     }
@@ -105,22 +109,24 @@ export class AnalysisPipeline<TOutput = unknown> {
 
     // Prepare context
     // Prepare schema
-    const schemaResult = this.config.output.schema 
+    const schemaResult = this.config.output.schema
       ? SchemaDefinition.create(this.config.output.schema)
       : null;
-      
+
     if (this.config.output.schema && (!schemaResult || !schemaResult.ok)) {
       return null;
     }
 
-    const _context: AnalysisContext = (schemaResult?.ok && schemaResult.data) ? {
-      kind: "SchemaAnalysis",
-      schema: schemaResult.data,
-      options: { includeMetadata: true }
-    } : {
-      kind: "BasicExtraction",
-      options: { includeMetadata: true }
-    };
+    const _context: AnalysisContext = (schemaResult?.ok && schemaResult.data)
+      ? {
+        kind: "SchemaAnalysis",
+        schema: schemaResult.data,
+        options: { includeMetadata: true },
+      }
+      : {
+        kind: "BasicExtraction",
+        options: { includeMetadata: true },
+      };
 
     // Execute strategies in sequence
     let data: unknown = frontMatter.data;

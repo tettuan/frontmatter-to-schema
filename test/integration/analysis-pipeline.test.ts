@@ -4,17 +4,18 @@ import {
   FrontMatterExtractionStrategy,
 } from "../../src/domain/core/analysis-engine.ts";
 import {
-  ValidFilePath,
+  type AnalysisContext,
   type FrontMatterContent,
   SchemaDefinition,
   SourceFile,
-  type AnalysisContext,
+  ValidFilePath,
 } from "../../src/domain/core/types.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
 
 // Test data and helpers
-const createSampleMarkdown = () => `---
+const createSampleMarkdown = () =>
+  `---
 domain: git
 action: create
 target: pull-request
@@ -52,35 +53,38 @@ const createCommandSchema = () => ({
   type: "object",
   properties: {
     domain: { type: "string", enum: ["git", "spec", "build", "test", "docs"] },
-    action: { type: "string", enum: ["create", "update", "delete", "analyze", "validate"] },
+    action: {
+      type: "string",
+      enum: ["create", "update", "delete", "analyze", "validate"],
+    },
     target: { type: "string" },
     description: { type: "string" },
     complexity: { type: "string", enum: ["low", "medium", "high"] },
     tags: { type: "array", items: { type: "string" } },
     version: { type: "number" },
-    active: { type: "boolean" }
+    active: { type: "boolean" },
   },
-  required: ["domain", "action", "target", "description"]
+  required: ["domain", "action", "target", "description"],
 });
 
 const createCommandTemplate = () => ({
   structure: {
     c1: "unknown",
-    c2: "unknown", 
+    c2: "unknown",
     c3: "unknown",
     description: "No description",
     metadata: {
       complexity: "medium",
       version: "1.0",
       active: true,
-      tags: []
-    }
+      tags: [],
+    },
   },
   mappingRules: {
     c1: "domain",
     c2: "action",
-    c3: "target"
-  }
+    c3: "target",
+  },
 });
 
 // Integration test helper to simulate complete file processing
@@ -88,7 +92,7 @@ async function processMarkdownFile(
   filePath: string,
   markdownContent: string,
   schema: Record<string, unknown>,
-  template: Record<string, unknown>
+  template: Record<string, unknown>,
 ): Promise<{
   sourceFile: SourceFile | null;
   extractedContent: FrontMatterContent | null;
@@ -106,17 +110,20 @@ async function processMarkdownFile(
   const strategy = new FrontMatterExtractionStrategy();
   const extractionContext: AnalysisContext = {
     kind: "BasicExtraction",
-    options: { includeMetadata: true }
+    options: { includeMetadata: true },
   };
-  
-  const extractionResult = await strategy.execute(markdownContent, extractionContext);
+
+  const extractionResult = await strategy.execute(
+    markdownContent,
+    extractionContext,
+  );
   if (!extractionResult.ok) {
     return {
       sourceFile: null,
       extractedContent: null,
       schemaValidated: null,
       templateMapped: null,
-      analysisResult: null
+      analysisResult: null,
     };
   }
 
@@ -124,10 +131,12 @@ async function processMarkdownFile(
   const sourceFileResult = SourceFile.create(
     pathResult.data,
     markdownContent,
-    extractionResult.data
+    extractionResult.data,
   );
   if (!sourceFileResult.ok) {
-    throw new Error(`Failed to create SourceFile: ${sourceFileResult.error.message}`);
+    throw new Error(
+      `Failed to create SourceFile: ${sourceFileResult.error.message}`,
+    );
   }
 
   // Step 4: Create Schema and validate
@@ -137,29 +146,29 @@ async function processMarkdownFile(
   }
 
   const { processor } = AnalysisEngineFactory.createDefault();
-  
+
   // Step 5: Schema validation
   const schemaContext: AnalysisContext = {
     kind: "SchemaAnalysis",
     schema: schemaResult.data,
-    options: { includeMetadata: true, validateResults: true }
+    options: { includeMetadata: true, validateResults: true },
   };
-  
+
   const schemaValidationResult = await processor.processWithContext(
     extractionResult.data,
-    schemaContext
+    schemaContext,
   );
-  
+
   // Step 6: Template mapping
   const templateContext: AnalysisContext = {
     kind: "TemplateMapping",
     template: template as { structure: Record<string, unknown> },
-    schema: schemaResult.data
+    schema: schemaResult.data,
   };
-  
+
   const templateMappingResult = await processor.processWithContext(
     extractionResult.data,
-    templateContext
+    templateContext,
   );
 
   // Step 7: Create AnalysisResult
@@ -171,59 +180,79 @@ async function processMarkdownFile(
       new Map([
         ["processedAt", new Date().toISOString()],
         ["sourceSchema", schema],
-        ["templateStructure", template.structure]
-      ])
+        ["templateStructure", template.structure],
+      ]),
     );
   }
 
   return {
     sourceFile: sourceFileResult.data,
     extractedContent: extractionResult.data,
-    schemaValidated: schemaValidationResult.ok ? schemaValidationResult.data as Record<string, unknown> : null,
-    templateMapped: templateMappingResult.ok ? templateMappingResult.data as Record<string, unknown> : null,
-    analysisResult: analysisResult as AnalysisResult<Record<string, unknown>> | null
+    schemaValidated: schemaValidationResult.ok
+      ? schemaValidationResult.data as Record<string, unknown>
+      : null,
+    templateMapped: templateMappingResult.ok
+      ? templateMappingResult.data as Record<string, unknown>
+      : null,
+    analysisResult: analysisResult as
+      | AnalysisResult<Record<string, unknown>>
+      | null,
   };
 }
 
 Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
-  await t.step("should process complete markdown file successfully", async () => {
-    const filePath = "/test/commands/git-create-pr.md";
-    const markdown = createSampleMarkdown();
-    const schema = createCommandSchema();
-    const template = createCommandTemplate();
+  await t.step(
+    "should process complete markdown file successfully",
+    async () => {
+      const filePath = "/test/commands/git-create-pr.md";
+      const markdown = createSampleMarkdown();
+      const schema = createCommandSchema();
+      const template = createCommandTemplate();
 
-    const result = await processMarkdownFile(filePath, markdown, schema, template);
+      const result = await processMarkdownFile(
+        filePath,
+        markdown,
+        schema,
+        template,
+      );
 
-    // Verify SourceFile creation
-    assertEquals(result.sourceFile?.path.value, filePath);
-    assertEquals(result.sourceFile?.hasFrontMatter(), true);
-    
-    // Verify FrontMatter extraction
-    assertEquals(result.extractedContent?.get("domain"), "git");
-    assertEquals(result.extractedContent?.get("action"), "create");
-    assertEquals(result.extractedContent?.get("target"), "pull-request");
-    assertEquals(result.extractedContent?.get("complexity"), "medium");
-    assertEquals(result.extractedContent?.get("version"), 1.2);
-    assertEquals(result.extractedContent?.get("active"), true);
+      // Verify SourceFile creation
+      assertEquals(result.sourceFile?.path.value, filePath);
+      assertEquals(result.sourceFile?.hasFrontMatter(), true);
 
-    // Verify schema validation
-    assertEquals(result.schemaValidated?.domain, "git");
-    assertEquals(result.schemaValidated?.action, "create");
-    assertEquals(result.schemaValidated?.description, "Create a pull request for code review");
+      // Verify FrontMatter extraction
+      assertEquals(result.extractedContent?.get("domain"), "git");
+      assertEquals(result.extractedContent?.get("action"), "create");
+      assertEquals(result.extractedContent?.get("target"), "pull-request");
+      assertEquals(result.extractedContent?.get("complexity"), "medium");
+      assertEquals(result.extractedContent?.get("version"), 1.2);
+      assertEquals(result.extractedContent?.get("active"), true);
 
-    // Verify template mapping
-    assertEquals(result.templateMapped?.c1, "git");
-    assertEquals(result.templateMapped?.c2, "create");
-    assertEquals(result.templateMapped?.c3, "pull-request");
-    assertEquals(result.templateMapped?.description, "Create a pull request for code review");
-    assertEquals(result.templateMapped?.complexity, "medium");
+      // Verify schema validation
+      assertEquals(result.schemaValidated?.domain, "git");
+      assertEquals(result.schemaValidated?.action, "create");
+      assertEquals(
+        result.schemaValidated?.description,
+        "Create a pull request for code review",
+      );
 
-    // Verify AnalysisResult
-    assertEquals(result.analysisResult?.sourceFile.value, filePath);
-    assertEquals(result.analysisResult?.extractedData.c1, "git");
-    assertEquals(result.analysisResult?.hasMetadata("processedAt"), true);
-    assertEquals(result.analysisResult?.getMetadata("sourceSchema"), schema);
-  });
+      // Verify template mapping
+      assertEquals(result.templateMapped?.c1, "git");
+      assertEquals(result.templateMapped?.c2, "create");
+      assertEquals(result.templateMapped?.c3, "pull-request");
+      assertEquals(
+        result.templateMapped?.description,
+        "Create a pull request for code review",
+      );
+      assertEquals(result.templateMapped?.complexity, "medium");
+
+      // Verify AnalysisResult
+      assertEquals(result.analysisResult?.sourceFile.value, filePath);
+      assertEquals(result.analysisResult?.extractedData.c1, "git");
+      assertEquals(result.analysisResult?.hasMetadata("processedAt"), true);
+      assertEquals(result.analysisResult?.getMetadata("sourceSchema"), schema);
+    },
+  );
 
   await t.step("should handle multiple markdown files in batch", async () => {
     const testFiles = [
@@ -246,7 +275,7 @@ active: true
 
 # Spec Requirements Analysis
 
-Analyze project requirements.`
+Analyze project requirements.`,
       },
       {
         path: "/test/commands/build-validate-config.md",
@@ -263,8 +292,8 @@ active: false
 
 # Build Config Validation
 
-Validate configuration.`
-      }
+Validate configuration.`,
+      },
     ];
 
     const schema = createCommandSchema();
@@ -280,8 +309,13 @@ Validate configuration.`
 
     // Process all files
     for (const file of testFiles) {
-      const result = await processMarkdownFile(file.path, file.content, schema, template);
-      
+      const result = await processMarkdownFile(
+        file.path,
+        file.content,
+        schema,
+        template,
+      );
+
       if (result.analysisResult) {
         registry.add(file.path, result.analysisResult);
         results.push(result);
@@ -312,7 +346,9 @@ Validate configuration.`
     assertEquals(allResults.length, 3);
 
     // Test filtering
-    const activeCommands = registry.filter(result => result.extractedData.active === true);
+    const activeCommands = registry.filter((result) =>
+      result.extractedData.active === true
+    );
     assertEquals(activeCommands.size(), 2); // git and spec commands are active
 
     // Test mapping - create simple derived registry
@@ -334,20 +370,20 @@ Validate configuration.`
         name: "Invalid file path",
         path: "/test/commands/invalid.txt", // Not .md
         content: createSampleMarkdown(),
-        expectedError: "must have one of these extensions"
+        expectedError: "must have one of these extensions",
       },
       {
         name: "No frontmatter",
         path: "/test/commands/no-frontmatter.md",
         content: "# Just markdown content\n\nNo frontmatter here.",
-        expectedError: "ExtractionStrategyFailed"
+        expectedError: "ExtractionStrategyFailed",
       },
       {
         name: "Empty frontmatter",
-        path: "/test/commands/empty-frontmatter.md", 
+        path: "/test/commands/empty-frontmatter.md",
         content: "---\n---\n\n# Empty frontmatter",
-        expectedError: null // Should succeed but with empty data
-      }
+        expectedError: null, // Should succeed but with empty data
+      },
     ];
 
     const schema = createCommandSchema();
@@ -355,8 +391,13 @@ Validate configuration.`
 
     for (const testCase of testCases) {
       try {
-        const result = await processMarkdownFile(testCase.path, testCase.content, schema, template);
-        
+        const result = await processMarkdownFile(
+          testCase.path,
+          testCase.content,
+          schema,
+          template,
+        );
+
         if (testCase.expectedError === "FileExtensionMismatch") {
           // Should throw before processing
           throw new Error("Expected FileExtensionMismatch error");
@@ -371,7 +412,10 @@ Validate configuration.`
         }
       } catch (error) {
         if (testCase.expectedError) {
-          assertEquals((error as Error).message.includes(testCase.expectedError), true);
+          assertEquals(
+            (error as Error).message.includes(testCase.expectedError),
+            true,
+          );
         } else {
           throw error; // Unexpected error
         }
@@ -400,7 +444,7 @@ active: "not_boolean"   # Should be boolean
       "/test/invalid.md",
       invalidMarkdown,
       schema,
-      template
+      template,
     );
 
     // The pipeline should still process (our schema validator is basic)
@@ -432,7 +476,7 @@ priority: urgent
       structure: {
         c1: "unknown",
         c2: "unknown",
-        c3: "unknown", 
+        c3: "unknown",
         description: "No description",
         metadata: {
           complexity: "medium",
@@ -440,21 +484,21 @@ priority: urgent
           reviewConfig: {
             defaultReviewers: [],
             requiresReview: true,
-            autoAssign: false
+            autoAssign: false,
           },
           labelConfig: {
             defaultLabels: ["standard"],
-            allowCustom: true
-          }
-        }
+            allowCustom: true,
+          },
+        },
       },
       mappingRules: {
         c1: "domain",
-        c2: "action", 
+        c2: "action",
         c3: "target",
         "metadata.reviewConfig.defaultReviewers": "reviewers",
-        "metadata.labelConfig.defaultLabels": "labels"
-      }
+        "metadata.labelConfig.defaultLabels": "labels",
+      },
     };
 
     const schema = {
@@ -463,20 +507,23 @@ priority: urgent
         ...createCommandSchema().properties,
         reviewers: { type: "array", items: { type: "string" } },
         labels: { type: "array", items: { type: "string" } },
-        priority: { type: "string", enum: ["low", "medium", "high", "urgent"] }
-      }
+        priority: { type: "string", enum: ["low", "medium", "high", "urgent"] },
+      },
     };
 
     const result = await processMarkdownFile(
       "/test/complex.md",
       complexMarkdown,
       schema,
-      complexTemplate
+      complexTemplate,
     );
 
     // Verify complex mapping
     assertEquals(result.templateMapped?.c1, "git");
-    assertEquals(result.templateMapped?.description, "Advanced PR creation with multiple reviewers");
+    assertEquals(
+      result.templateMapped?.description,
+      "Advanced PR creation with multiple reviewers",
+    );
     assertEquals(result.templateMapped?.complexity, "high");
     assertEquals(result.templateMapped?.version, 2.5);
     assertEquals(result.templateMapped?.reviewers, ["alice", "bob", "charlie"]);
@@ -484,9 +531,16 @@ priority: urgent
     assertEquals(result.templateMapped?.priority, "urgent");
 
     // Verify metadata preservation from template
-    const metadata = (result.templateMapped as Record<string, unknown>)?.metadata as Record<string, unknown>;
-    assertEquals((metadata?.reviewConfig as Record<string, unknown>)?.requiresReview, true);
-    assertEquals((metadata?.labelConfig as Record<string, unknown>)?.allowCustom, true);
+    const metadata = (result.templateMapped as Record<string, unknown>)
+      ?.metadata as Record<string, unknown>;
+    assertEquals(
+      (metadata?.reviewConfig as Record<string, unknown>)?.requiresReview,
+      true,
+    );
+    assertEquals(
+      (metadata?.labelConfig as Record<string, unknown>)?.allowCustom,
+      true,
+    );
   });
 
   await t.step("should measure performance with large dataset", async () => {
@@ -523,7 +577,7 @@ This is test file number ${i} for performance benchmarking.`;
         `/test/perf/file-${i}.md`,
         markdown,
         schema,
-        template
+        template,
       );
 
       if (result.analysisResult) {
@@ -537,10 +591,20 @@ This is test file number ${i} for performance benchmarking.`;
 
     // Performance assertions
     assertEquals(results.length, fileCount);
-    console.log(`Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${averageTime.toFixed(2)}ms per file)`);
-    
+    console.log(
+      `Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${
+        averageTime.toFixed(2)
+      }ms per file)`,
+    );
+
     // Should process files reasonably quickly (less than 100ms per file on average)
-    assertEquals(averageTime < 100, true, `Average processing time (${averageTime.toFixed(2)}ms) exceeded threshold`);
+    assertEquals(
+      averageTime < 100,
+      true,
+      `Average processing time (${
+        averageTime.toFixed(2)
+      }ms) exceeded threshold`,
+    );
 
     // Verify all results are valid
     results.forEach((result, index) => {

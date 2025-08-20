@@ -1,36 +1,29 @@
 // Process documents use case - orchestrates the entire document processing pipeline
 
 import {
-  type Result,
-  type ProcessingError,
   createError,
-  isOk,
   isError,
+  isOk,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
 import {
+  AnalysisResult,
   type Document,
-  type FrontMatter,
   type Schema,
   type Template,
-  type ExtractedData,
-  type MappedData,
-  AnalysisResult,
-  type AggregatedResult,
 } from "../../domain/models/entities.ts";
-import {
-  type DocumentPath,
-  ProcessingOptions,
-} from "../../domain/models/value-objects.ts";
+import { ProcessingOptions } from "../../domain/models/value-objects.ts";
 import type {
   DocumentRepository,
-  SchemaRepository,
-  TemplateRepository,
-  ResultRepository,
   FrontMatterExtractor,
-  SchemaAnalyzer,
-  TemplateMapper,
-  ResultAggregator,
   ProcessingConfiguration,
+  ResultAggregator,
+  ResultRepository,
+  SchemaAnalyzer,
+  SchemaRepository,
+  TemplateMapper,
+  TemplateRepository,
 } from "../../domain/services/interfaces.ts";
 
 export interface ProcessDocumentsUseCaseInput {
@@ -53,12 +46,14 @@ export class ProcessDocumentsUseCase {
     private readonly frontMatterExtractor: FrontMatterExtractor,
     private readonly schemaAnalyzer: SchemaAnalyzer,
     private readonly templateMapper: TemplateMapper,
-    private readonly resultAggregator: ResultAggregator
+    private readonly resultAggregator: ResultAggregator,
   ) {}
 
   async execute(
-    input: ProcessDocumentsUseCaseInput
-  ): Promise<Result<ProcessDocumentsUseCaseOutput, ProcessingError & { message: string }>> {
+    input: ProcessDocumentsUseCaseInput,
+  ): Promise<
+    Result<ProcessDocumentsUseCaseOutput, ProcessingError & { message: string }>
+  > {
     const { config } = input;
 
     // Load schema
@@ -68,8 +63,12 @@ export class ProcessDocumentsUseCase {
         ok: false,
         error: createError({
           kind: "ConfigurationInvalid",
-          errors: [{ kind: "InvalidPath", path: config.schemaPath.getValue(), reason: "Failed to load schema" }]
-        })
+          errors: [{
+            kind: "InvalidPath",
+            path: config.schemaPath.getValue(),
+            reason: "Failed to load schema",
+          }],
+        }),
       };
     }
     const schema = schemaResult.data;
@@ -81,21 +80,31 @@ export class ProcessDocumentsUseCase {
         ok: false,
         error: createError({
           kind: "ConfigurationInvalid",
-          errors: [{ kind: "InvalidPath", path: config.templatePath.getValue(), reason: "Failed to load template" }]
-        })
+          errors: [{
+            kind: "InvalidPath",
+            path: config.templatePath.getValue(),
+            reason: "Failed to load template",
+          }],
+        }),
       };
     }
     const template = templateResult.data;
 
     // Find all documents
-    const documentsResult = await this.documentRepo.findAll(config.documentsPath);
+    const documentsResult = await this.documentRepo.findAll(
+      config.documentsPath,
+    );
     if (isError(documentsResult)) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationInvalid",
-          errors: [{ kind: "InvalidPath", path: config.documentsPath.getValue(), reason: "Failed to find documents" }]
-        })
+          errors: [{
+            kind: "InvalidPath",
+            path: config.documentsPath.getValue(),
+            reason: "Failed to find documents",
+          }],
+        }),
       };
     }
     const documents = documentsResult.data;
@@ -107,8 +116,8 @@ export class ProcessDocumentsUseCase {
         ok: false,
         error: createError({
           kind: "ConfigurationInvalid",
-          errors: [optionsResult.error]
-        })
+          errors: [optionsResult.error],
+        }),
       };
     }
     const options = optionsResult.data;
@@ -119,22 +128,22 @@ export class ProcessDocumentsUseCase {
 
     if (options.isParallel()) {
       // Parallel processing
-      const promises = documents.map(doc =>
+      const promises = documents.map((doc) =>
         this.processDocument(doc, schema, template)
-          .then(result => ({ doc, result }))
+          .then((result) => ({ doc, result }))
       );
 
       const outcomes = await Promise.all(promises);
-      
+
       for (const { doc, result } of outcomes) {
         if (isOk(result)) {
           results.push(result.data);
         } else {
           errors.push({
             document: doc.getPath().getValue(),
-            error: result.error.message
+            error: result.error.message,
           });
-          
+
           if (!options.shouldContinueOnError()) {
             break;
           }
@@ -144,15 +153,15 @@ export class ProcessDocumentsUseCase {
       // Sequential processing
       for (const doc of documents) {
         const result = await this.processDocument(doc, schema, template);
-        
+
         if (isOk(result)) {
           results.push(result.data);
         } else {
           errors.push({
             document: doc.getPath().getValue(),
-            error: result.error.message
+            error: result.error.message,
           });
-          
+
           if (!options.shouldContinueOnError()) {
             break;
           }
@@ -165,19 +174,22 @@ export class ProcessDocumentsUseCase {
     if (isError(aggregateResult)) {
       return {
         ok: false,
-        error: aggregateResult.error
+        error: aggregateResult.error,
       };
     }
 
     // Save aggregated results
-    const saveResult = await this.resultRepo.save(aggregateResult.data, config.outputPath);
+    const saveResult = await this.resultRepo.save(
+      aggregateResult.data,
+      config.outputPath,
+    );
     if (isError(saveResult)) {
       return {
         ok: false,
         error: createError({
           kind: "AggregationFailed",
-          reason: "Failed to save results"
-        })
+          reason: "Failed to save results",
+        }),
       };
     }
 
@@ -187,15 +199,15 @@ export class ProcessDocumentsUseCase {
         processedCount: results.length,
         failedCount: errors.length,
         outputPath: config.outputPath.getValue(),
-        errors
-      }
+        errors,
+      },
     };
   }
 
   private async processDocument(
     document: Document,
     schema: Schema,
-    template: Template
+    template: Template,
   ): Promise<Result<AnalysisResult, ProcessingError & { message: string }>> {
     // Extract frontmatter
     const frontMatterResult = this.frontMatterExtractor.extract(document);
@@ -210,19 +222,25 @@ export class ProcessDocumentsUseCase {
         error: createError({
           kind: "ExtractionFailed",
           document: document.getPath().getValue(),
-          reason: "No frontmatter found"
-        })
+          reason: "No frontmatter found",
+        }),
       };
     }
 
     // Analyze with schema
-    const extractedResult = await this.schemaAnalyzer.analyze(frontMatter, schema);
+    const extractedResult = await this.schemaAnalyzer.analyze(
+      frontMatter,
+      schema,
+    );
     if (isError(extractedResult)) {
       return extractedResult;
     }
 
     // Map to template
-    const mappedResult = this.templateMapper.map(extractedResult.data, template);
+    const mappedResult = this.templateMapper.map(
+      extractedResult.data,
+      template,
+    );
     if (isError(mappedResult)) {
       return mappedResult;
     }
@@ -231,7 +249,7 @@ export class ProcessDocumentsUseCase {
     const analysisResult = AnalysisResult.create(
       document,
       extractedResult.data,
-      mappedResult.data
+      mappedResult.data,
     );
 
     return { ok: true, data: analysisResult };

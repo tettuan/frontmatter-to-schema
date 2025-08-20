@@ -13,7 +13,10 @@ export interface FileSystemPort {
   readFile(path: string): Promise<Result<string, IOError>>;
   writeFile(path: string, content: string): Promise<Result<void, IOError>>;
   exists(path: string): Promise<Result<boolean, IOError>>;
-  listFiles(path: string, pattern?: string): Promise<Result<FileInfo[], IOError>>;
+  listFiles(
+    path: string,
+    pattern?: string,
+  ): Promise<Result<FileInfo[], IOError>>;
   createDirectory(path: string): Promise<Result<void, IOError>>;
   deleteFile(path: string): Promise<Result<void, IOError>>;
 }

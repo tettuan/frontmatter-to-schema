@@ -12,6 +12,7 @@ Map the extracted article data to the books schema format.
 ## Schema Requirements
 
 The output must be an object with a "books" array containing items with:
+
 - title: string (required) - Article title
 - emoji: string - Emoji icon (default: "📚")
 - type: string (required) - Article type

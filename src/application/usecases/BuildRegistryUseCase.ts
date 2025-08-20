@@ -2,7 +2,7 @@ import type { FileReader } from "../../infrastructure/filesystem/FileReader.ts";
 import type { FileWriter } from "../../infrastructure/filesystem/FileWriter.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/Extractor.ts";
 import type { ClaudeAnalyzer } from "../../domain/analysis/Analyzer.ts";
-import { RegistryBuilder } from "../services/RegistryBuilder.ts";
+import { RegistryAggregator } from "../services/RegistryAggregator.ts";
 import type { Registry } from "../../domain/registry/types.ts";
 
 export class BuildRegistryUseCase {
@@ -22,7 +22,7 @@ export class BuildRegistryUseCase {
     const promptList = await this.fileReader.readDirectory(promptsPath);
     console.log(`Found ${promptList.count} prompt files`);
 
-    const builder = new RegistryBuilder();
+    const aggregator = new RegistryAggregator();
 
     for (const promptFile of promptList.getAll()) {
       console.log(`Processing: ${promptFile.filename}`);
@@ -40,7 +40,7 @@ export class BuildRegistryUseCase {
         );
 
         if (analysisResult.isValid) {
-          builder.addAnalysisResult(analysisResult);
+          aggregator.addAnalysisResult(analysisResult);
           console.log(`  Extracted ${analysisResult.commands.length} commands`);
         } else {
           console.log(`  No valid commands found`);
@@ -50,7 +50,7 @@ export class BuildRegistryUseCase {
       }
     }
 
-    const registry = builder.build();
+    const registry = aggregator.build();
     await this.fileWriter.writeJson(outputPath, registry);
 
     console.log(`Registry saved to: ${outputPath}`);

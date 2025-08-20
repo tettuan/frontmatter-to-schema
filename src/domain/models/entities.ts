@@ -1,21 +1,27 @@
 // Domain entities following DDD principles
 
-import { type Result, type ValidationError, createError } from "../shared/types.ts";
+import {
+  createError,
+  type Result,
+  type ValidationError,
+} from "../shared/types.ts";
 import type {
+  DocumentContent,
   DocumentPath,
   FrontMatterContent,
-  DocumentContent,
+  MappingRule,
   SchemaDefinition,
   SchemaVersion,
   TemplateFormat,
-  MappingRule,
 } from "./value-objects.ts";
 
 // ID value objects
 export class DocumentId {
   private constructor(private readonly value: string) {}
 
-  static create(value: string): Result<DocumentId, ValidationError & { message: string }> {
+  static create(
+    value: string,
+  ): Result<DocumentId, ValidationError & { message: string }> {
     if (!value || value.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
@@ -38,7 +44,9 @@ export class DocumentId {
 export class SchemaId {
   private constructor(private readonly value: string) {}
 
-  static create(value: string): Result<SchemaId, ValidationError & { message: string }> {
+  static create(
+    value: string,
+  ): Result<SchemaId, ValidationError & { message: string }> {
     if (!value || value.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
@@ -57,7 +65,9 @@ export class SchemaId {
 export class TemplateId {
   private constructor(private readonly value: string) {}
 
-  static create(value: string): Result<TemplateId, ValidationError & { message: string }> {
+  static create(
+    value: string,
+  ): Result<TemplateId, ValidationError & { message: string }> {
     if (!value || value.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
@@ -76,7 +86,9 @@ export class TemplateId {
 export class AnalysisId {
   private constructor(private readonly value: string) {}
 
-  static create(value: string): Result<AnalysisId, ValidationError & { message: string }> {
+  static create(
+    value: string,
+  ): Result<AnalysisId, ValidationError & { message: string }> {
     if (!value || value.trim() === "") {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
@@ -102,13 +114,13 @@ export class Document {
     private readonly id: DocumentId,
     private readonly path: DocumentPath,
     private readonly frontMatter: FrontMatter | null,
-    private readonly content: DocumentContent
+    private readonly content: DocumentContent,
   ) {}
 
   static create(
     path: DocumentPath,
     frontMatter: FrontMatter | null,
-    content: DocumentContent
+    content: DocumentContent,
   ): Document {
     return new Document(DocumentId.fromPath(path), path, frontMatter, content);
   }
@@ -137,12 +149,12 @@ export class Document {
 export class FrontMatter {
   constructor(
     private readonly content: FrontMatterContent,
-    private readonly raw: string
+    private readonly raw: string,
   ) {}
 
   static create(
     content: FrontMatterContent,
-    raw: string
+    raw: string,
   ): FrontMatter {
     return new FrontMatter(content, raw);
   }
@@ -165,14 +177,14 @@ export class Schema {
     private readonly id: SchemaId,
     private readonly definition: SchemaDefinition,
     private readonly version: SchemaVersion,
-    private readonly description: string
+    private readonly description: string,
   ) {}
 
   static create(
     id: SchemaId,
     definition: SchemaDefinition,
     version: SchemaVersion,
-    description: string = ""
+    description: string = "",
   ): Schema {
     return new Schema(id, definition, version, description);
   }
@@ -203,14 +215,14 @@ export class Template {
     private readonly id: TemplateId,
     private readonly format: TemplateFormat,
     private readonly mappingRules: MappingRule[],
-    private readonly description: string
+    private readonly description: string,
   ) {}
 
   static create(
     id: TemplateId,
     format: TemplateFormat,
     mappingRules: MappingRule[],
-    description: string = ""
+    description: string = "",
   ): Template {
     return new Template(id, format, mappingRules, description);
   }
@@ -233,28 +245,39 @@ export class Template {
 
   applyRules(data: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    
+
     for (const rule of this.mappingRules) {
       const value = rule.apply(data);
       const target = rule.getTarget();
       this.setValueByPath(result, target, value);
     }
-    
+
     return result;
   }
 
-  private setValueByPath(obj: Record<string, unknown>, path: string, value: unknown): void {
+  private setValueByPath(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): void {
     const parts = path.split(".");
     const last = parts.pop()!;
-    
-    let current: any = obj;
+
+    let current: Record<string, unknown> = obj as Record<string, unknown>;
     for (const part of parts) {
       if (!(part in current)) {
         current[part] = {};
       }
-      current = current[part];
+      const next = current[part];
+      if (typeof next === "object" && next !== null && !Array.isArray(next)) {
+        current = next as Record<string, unknown>;
+      } else {
+        // If the path doesn't lead to an object, create one
+        current[part] = {};
+        current = current[part] as Record<string, unknown>;
+      }
     }
-    
+
     current[last] = value;
   }
 }
@@ -300,11 +323,15 @@ export class MappedData {
     return this.objectToYAML(this.data, 0);
   }
 
-  private objectToYAML(obj: any, indent: number): string {
+  private objectToYAML(obj: unknown, indent: number): string {
     const lines: string[] = [];
     const spaces = "  ".repeat(indent);
-    
-    for (const [key, value] of Object.entries(obj)) {
+
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+      return String(obj);
+    }
+
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (value === null || value === undefined) {
         lines.push(`${spaces}${key}: null`);
       } else if (typeof value === "object" && !Array.isArray(value)) {
@@ -324,7 +351,7 @@ export class MappedData {
         lines.push(`${spaces}${key}: ${JSON.stringify(value)}`);
       }
     }
-    
+
     return lines.join("\n");
   }
 }
@@ -335,20 +362,20 @@ export class AnalysisResult {
     private readonly document: Document,
     private readonly extractedData: ExtractedData,
     private readonly mappedData: MappedData,
-    private readonly timestamp: Date
+    private readonly timestamp: Date,
   ) {}
 
   static create(
     document: Document,
     extractedData: ExtractedData,
-    mappedData: MappedData
+    mappedData: MappedData,
   ): AnalysisResult {
     return new AnalysisResult(
       AnalysisId.generate(),
       document,
       extractedData,
       mappedData,
-      new Date()
+      new Date(),
     );
   }
 
@@ -377,12 +404,12 @@ export class AggregatedResult {
   constructor(
     private readonly results: AnalysisResult[],
     private readonly format: "json" | "yaml",
-    private readonly timestamp: Date
+    private readonly timestamp: Date,
   ) {}
 
   static create(
     results: AnalysisResult[],
-    format: "json" | "yaml" = "json"
+    format: "json" | "yaml" = "json",
   ): AggregatedResult {
     return new AggregatedResult(results, format, new Date());
   }
@@ -400,22 +427,27 @@ export class AggregatedResult {
   }
 
   toOutput(): string {
-    const data = this.results.map(r => r.getMappedData().getData());
-    
+    const data = this.results.map((r) => r.getMappedData().getData());
+
     if (this.format === "json") {
       return JSON.stringify({ results: data }, null, 2);
     } else {
       // Simplified YAML - would use proper YAML library
-      return `results:\n${data.map(d => this.objectToYAML(d, 1)).join("\n")}`;
+      return `results:\n${data.map((d) => this.objectToYAML(d, 1)).join("\n")}`;
     }
   }
 
-  private objectToYAML(obj: any, indent: number): string {
+  private objectToYAML(obj: unknown, indent: number): string {
     const lines: string[] = [];
     const spaces = "  ".repeat(indent);
-    
+
     lines.push(`${spaces}-`);
-    for (const [key, value] of Object.entries(obj)) {
+
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+      return `${spaces}- ${JSON.stringify(obj)}`;
+    }
+
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (value && typeof value === "object" && !Array.isArray(value)) {
         lines.push(`${spaces}  ${key}:`);
         for (const [k, v] of Object.entries(value)) {
@@ -430,10 +462,10 @@ export class AggregatedResult {
         lines.push(`${spaces}  ${key}: ${JSON.stringify(value)}`);
       }
     }
-    
+
     return lines.join("\n");
   }
 }
 
 // Re-export value objects needed by infrastructure
-export { SchemaVersion } from './value-objects.ts';
+export { SchemaVersion } from "./value-objects.ts";

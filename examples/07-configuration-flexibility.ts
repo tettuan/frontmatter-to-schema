@@ -1,4 +1,4 @@
-#!/usr/bin/env deno run --allow-read --allow-write --allow-run
+#!/usr/bin/env deno run --allow-read --allow-write --allow-run --allow-env
 
 /**
  * Example demonstrating configuration flexibility and schema independence

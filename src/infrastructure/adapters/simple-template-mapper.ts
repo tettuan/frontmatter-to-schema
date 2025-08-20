@@ -1,9 +1,9 @@
 // Simple template mapper implementation
 
 import {
-  type Result,
-  type ProcessingError,
   createError,
+  type ProcessingError,
+  type Result,
 } from "../../domain/shared/types.ts";
 import {
   type ExtractedData,
@@ -15,7 +15,7 @@ import type { TemplateMapper } from "../../domain/services/interfaces.ts";
 export class SimpleTemplateMapper implements TemplateMapper {
   map(
     data: ExtractedData,
-    template: Template
+    template: Template,
   ): Result<MappedData, ProcessingError & { message: string }> {
     try {
       // Apply mapping rules from template
@@ -45,8 +45,8 @@ export class SimpleTemplateMapper implements TemplateMapper {
         error: createError({
           kind: "MappingFailed",
           document: "unknown",
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -104,8 +104,10 @@ export class SimpleTemplateMapper implements TemplateMapper {
 
   private parseYAMLValue(value: string): unknown {
     // Remove quotes if present
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       return value.slice(1, -1);
     }
 
@@ -123,19 +125,21 @@ export class SimpleTemplateMapper implements TemplateMapper {
 
   private mergeWithTemplate(
     mappedData: Record<string, unknown>,
-    templateData: Record<string, unknown>
+    templateData: Record<string, unknown>,
   ): Record<string, unknown> {
     const result = { ...templateData };
 
     // Deep merge mapped data into template
     for (const [key, value] of Object.entries(mappedData)) {
       if (value !== undefined && value !== null) {
-        if (typeof value === "object" && !Array.isArray(value) &&
-            typeof result[key] === "object" && !Array.isArray(result[key])) {
+        if (
+          typeof value === "object" && !Array.isArray(value) &&
+          typeof result[key] === "object" && !Array.isArray(result[key])
+        ) {
           // Recursively merge objects
           result[key] = this.mergeWithTemplate(
             value as Record<string, unknown>,
-            result[key] as Record<string, unknown>
+            result[key] as Record<string, unknown>,
           );
         } else {
           // Replace value

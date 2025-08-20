@@ -1,5 +1,8 @@
 import type { Result } from "../shared/result.ts";
-import { type ValidationError, createValidationError } from "../shared/errors.ts";
+import {
+  createValidationError,
+  type ValidationError,
+} from "../shared/errors.ts";
 import type { Schema } from "../models/schema.ts";
 
 export interface ValidationResult {
@@ -16,7 +19,7 @@ export class SchemaValidator {
     // This is a simplified validator
     // In production, this would use a proper JSON Schema validator
     const schemaDefinition = schema.getDefinition().getDefinition();
-    
+
     if (typeof schemaDefinition !== "object" || schemaDefinition === null) {
       return {
         ok: false,
@@ -49,7 +52,9 @@ export class SchemaValidator {
     }
 
     const dataObj = data as Record<string, unknown>;
-    const properties = schema["properties"] as Record<string, unknown> | undefined;
+    const properties = schema["properties"] as
+      | Record<string, unknown>
+      | undefined;
     const required = schema["required"] as string[] | undefined;
 
     // Check required fields
@@ -70,16 +75,16 @@ export class SchemaValidator {
     // Validate properties
     if (properties) {
       const validatedData: Record<string, unknown> = {};
-      
+
       for (const [key, value] of Object.entries(dataObj)) {
         if (key in properties) {
           const fieldSchema = properties[key] as Record<string, unknown>;
           const validationResult = this.validateField(value, fieldSchema, key);
-          
+
           if (!validationResult.ok) {
             return validationResult;
           }
-          
+
           validatedData[key] = validationResult.data;
         } else if (schema["additionalProperties"] === false) {
           return {
@@ -152,7 +157,7 @@ export class SchemaValidator {
         }
         break;
 
-      case "array":
+      case "array": {
         if (!Array.isArray(value)) {
           return {
             ok: false,
@@ -163,7 +168,7 @@ export class SchemaValidator {
             ),
           };
         }
-        
+
         // Validate array items if schema is provided
         const items = schema["items"] as Record<string, unknown> | undefined;
         if (items) {
@@ -182,6 +187,7 @@ export class SchemaValidator {
           return { ok: true, data: validatedArray };
         }
         break;
+      }
 
       case "object":
         return this.validateObject(value, schema);

@@ -15,9 +15,9 @@
             "items": { "type": "string" }
           },
           "published": { "type": "boolean" },
-          "published_at": { 
-            "type": "string", 
-            "format": "date-time" 
+          "published_at": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "required": ["title", "type", "published"],

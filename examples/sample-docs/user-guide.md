@@ -1,0 +1,14 @@
+---
+name: User Guide
+type: guide
+priority: 1
+tags: [users, getting-started]
+summary: Complete user guide for the application
+details: Comprehensive guide covering all user-facing features
+author: Documentation Team
+reviewers: [alice, bob]
+---
+
+# User Guide
+
+This is a comprehensive user guide...

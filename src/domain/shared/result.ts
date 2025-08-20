@@ -2,11 +2,15 @@ export type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
 
-export function isOk<T, E>(result: Result<T, E>): result is { ok: true; data: T } {
+export function isOk<T, E>(
+  result: Result<T, E>,
+): result is { ok: true; data: T } {
   return result.ok === true;
 }
 
-export function isError<T, E>(result: Result<T, E>): result is { ok: false; error: E } {
+export function isError<T, E>(
+  result: Result<T, E>,
+): result is { ok: false; error: E } {
   return result.ok === false;
 }
 
@@ -62,14 +66,14 @@ export async function flatMapAsync<T, U, E>(
 
 export function combine<T, E>(results: Result<T, E>[]): Result<T[], E> {
   const data: T[] = [];
-  
+
   for (const result of results) {
     if (isError(result)) {
       return result;
     }
     data.push(result.data);
   }
-  
+
   return { ok: true, data };
 }
 
@@ -78,7 +82,7 @@ export function combineWithErrors<T, E>(
 ): { successes: T[]; errors: E[] } {
   const successes: T[] = [];
   const errors: E[] = [];
-  
+
   for (const result of results) {
     if (isOk(result)) {
       successes.push(result.data);
@@ -86,6 +90,6 @@ export function combineWithErrors<T, E>(
       errors.push(result.error);
     }
   }
-  
+
   return { successes, errors };
 }

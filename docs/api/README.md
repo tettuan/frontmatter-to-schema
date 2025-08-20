@@ -2,29 +2,36 @@
 
 ## Overview
 
-A Domain-Driven Design (DDD) implementation for extracting, analyzing, and transforming markdown frontmatter using flexible schemas and templates. Built with TypeScript/Deno following totality principles and AI-complexity control.
+A Domain-Driven Design (DDD) implementation for extracting, analyzing, and
+transforming markdown frontmatter using flexible schemas and templates. Built
+with TypeScript/Deno following totality principles and AI-complexity control.
 
 ## Core Architecture
 
 ### Domain Layer
 
 #### Value Objects
+
 Smart constructors ensuring type safety and validation:
 
 ```typescript
-import { DocumentPath, SchemaDefinition } from "./domain/models/value-objects.ts";
+import {
+  DocumentPath,
+  SchemaDefinition,
+} from "./domain/models/value-objects.ts";
 
 // All constructors return Result<T, E> types
 const pathResult = DocumentPath.create("/docs/article.md");
 if (pathResult.ok) {
   const path = pathResult.data;
-  console.log(path.getValue());     // "/docs/article.md"
-  console.log(path.getFilename());   // "article.md"
-  console.log(path.getDirectory());  // "/docs"
+  console.log(path.getValue()); // "/docs/article.md"
+  console.log(path.getFilename()); // "article.md"
+  console.log(path.getDirectory()); // "/docs"
 }
 ```
 
 #### Entities
+
 Core domain models with business logic:
 
 ```typescript
@@ -38,6 +45,7 @@ const template = Template.create(id, format, mappingRules);
 ### Application Layer
 
 #### Use Cases
+
 Orchestrate domain operations:
 
 ```typescript
@@ -51,17 +59,18 @@ const useCase = new ProcessDocumentsUseCase(
   frontMatterExtractor,
   schemaAnalyzer,
   templateMapper,
-  resultAggregator
+  resultAggregator,
 );
 
 const result = await useCase.execute({
-  config: processingConfiguration
+  config: processingConfiguration,
 });
 ```
 
 ### Infrastructure Layer
 
 #### Repositories
+
 Data access implementations:
 
 ```typescript
@@ -72,12 +81,17 @@ const documents = await repo.findAll(DocumentPath.create("./docs"));
 ```
 
 #### Adapters
+
 External service integrations:
 
 ```typescript
 import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
 
-const analyzer = new ClaudeSchemaAnalyzer(config, extractionPrompt, mappingPrompt);
+const analyzer = new ClaudeSchemaAnalyzer(
+  config,
+  extractionPrompt,
+  mappingPrompt,
+);
 const result = await analyzer.analyze(frontMatter, schema);
 ```
 
@@ -107,7 +121,7 @@ const result = await analyzer.analyze(frontMatter, schema);
   "properties": {
     "title": { "type": "string" },
     "author": { "type": "string" },
-    "tags": { 
+    "tags": {
       "type": "array",
       "items": { "type": "string" }
     },
@@ -120,6 +134,7 @@ const result = await analyzer.analyze(frontMatter, schema);
 ### Template Formats
 
 Supports multiple template formats:
+
 - JSON with placeholders: `{"name": "{{name}}"}`
 - YAML mappings
 - Handlebars templates
@@ -149,7 +164,7 @@ deno run --allow-read --allow-write --allow-env main.ts \
 All operations follow Result type pattern:
 
 ```typescript
-type Result<T, E> = 
+type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
 
@@ -194,7 +209,7 @@ Implement `SchemaAnalyzer` interface:
 interface SchemaAnalyzer {
   analyze(
     frontMatter: FrontMatter,
-    schema: Schema
+    schema: Schema,
   ): Promise<Result<ExtractedData, AnalysisError>>;
 }
 ```
@@ -207,7 +222,7 @@ Implement `TemplateMapper` interface:
 interface TemplateMapper {
   map(
     data: ExtractedData,
-    template: Template
+    template: Template,
   ): Result<MappedData, MappingError>;
 }
 ```
@@ -215,6 +230,7 @@ interface TemplateMapper {
 ## Examples
 
 See `/examples` directory for:
+
 - `climpt-registry/` - Command registry generation
 - `articles-index/` - Blog article indexing
 - Complete end-to-end workflows

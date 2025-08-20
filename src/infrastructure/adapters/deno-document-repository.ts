@@ -3,24 +3,22 @@
 import { walk } from "jsr:@std/fs@1.0.8/walk";
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import {
-  type Result,
-  type IOError,
   createError,
-  type wrapAsync,
+  type IOError,
+  type Result,
 } from "../../domain/shared/types.ts";
+import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
-  Document,
-  FrontMatter,
-} from "../../domain/models/entities.ts";
-import {
+  DocumentContent,
   DocumentPath,
   FrontMatterContent,
-  DocumentContent,
 } from "../../domain/models/value-objects.ts";
 import type { DocumentRepository } from "../../domain/services/interfaces.ts";
 
 export class DenoDocumentRepository implements DocumentRepository {
-  async findAll(path: DocumentPath): Promise<Result<Document[], IOError & { message: string }>> {
+  async findAll(
+    path: DocumentPath,
+  ): Promise<Result<Document[], IOError & { message: string }>> {
     const documents: Document[] = [];
     const dirPath = path.getValue();
 
@@ -31,18 +29,20 @@ export class DenoDocumentRepository implements DocumentRepository {
         return {
           ok: false,
           error: createError({
-            kind: "InvalidPath",
+            kind: "ReadError",
             path: dirPath,
-            reason: "Path is not a directory"
-          } as any)
+            reason: "Path is not a directory",
+          }),
         };
       }
 
       // Walk through directory to find markdown files
-      for await (const entry of walk(dirPath, {
-        exts: [".md", ".markdown"],
-        skip: [/node_modules/, /\.git/],
-      })) {
+      for await (
+        const entry of walk(dirPath, {
+          exts: [".md", ".markdown"],
+          skip: [/node_modules/, /\.git/],
+        })
+      ) {
         if (entry.isFile) {
           const docPathResult = DocumentPath.create(entry.path);
           if (docPathResult.ok) {
@@ -59,13 +59,13 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: dirPath })
+          error: createError({ kind: "FileNotFound", path: dirPath }),
         };
       }
       if (error instanceof Deno.errors.PermissionDenied) {
         return {
           ok: false,
-          error: createError({ kind: "PermissionDenied", path: dirPath })
+          error: createError({ kind: "PermissionDenied", path: dirPath }),
         };
       }
       return {
@@ -73,25 +73,27 @@ export class DenoDocumentRepository implements DocumentRepository {
         error: createError({
           kind: "ReadError",
           path: dirPath,
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
   async findByPattern(
     pattern: string,
-    basePath: string = "."
+    basePath: string = ".",
   ): Promise<Result<Document[], IOError & { message: string }>> {
     const documents: Document[] = [];
     const regex = new RegExp(pattern);
 
     try {
-      for await (const entry of walk(basePath, {
-        exts: [".md", ".markdown"],
-        skip: [/node_modules/, /\.git/],
-        match: [regex],
-      })) {
+      for await (
+        const entry of walk(basePath, {
+          exts: [".md", ".markdown"],
+          skip: [/node_modules/, /\.git/],
+          match: [regex],
+        })
+      ) {
         if (entry.isFile) {
           const docPathResult = DocumentPath.create(entry.path);
           if (docPathResult.ok) {
@@ -110,33 +112,43 @@ export class DenoDocumentRepository implements DocumentRepository {
         error: createError({
           kind: "ReadError",
           path: basePath,
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
-  async read(path: DocumentPath): Promise<Result<Document, IOError & { message: string }>> {
+  async read(
+    path: DocumentPath,
+  ): Promise<Result<Document, IOError & { message: string }>> {
     const filePath = path.getValue();
 
     try {
       const content = await Deno.readTextFile(filePath);
-      
+
       // Try to extract frontmatter
       let frontMatter: FrontMatter | null = null;
       let bodyContent = content;
 
       try {
         const extracted = extract(content);
-        if (extracted.frontMatter && Object.keys(extracted.frontMatter).length > 0) {
+        if (
+          extracted.frontMatter && Object.keys(extracted.frontMatter).length > 0
+        ) {
           // Convert frontmatter to string representation
           const frontMatterStr = JSON.stringify(extracted.frontMatter);
-          const frontMatterContentResult = FrontMatterContent.create(frontMatterStr);
-          
+          const frontMatterContentResult = FrontMatterContent.create(
+            frontMatterStr,
+          );
+
           if (frontMatterContentResult.ok) {
             // Get raw frontmatter section
-            const rawFrontMatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1] || "";
-            frontMatter = FrontMatter.create(frontMatterContentResult.data, rawFrontMatter);
+            const rawFrontMatter =
+              content.match(/^---\n([\s\S]*?)\n---/)?.[1] || "";
+            frontMatter = FrontMatter.create(
+              frontMatterContentResult.data,
+              rawFrontMatter,
+            );
           }
         }
         bodyContent = extracted.body;
@@ -151,24 +163,28 @@ export class DenoDocumentRepository implements DocumentRepository {
           error: createError({
             kind: "ReadError",
             path: filePath,
-            reason: "Invalid document content"
-          })
+            reason: "Invalid document content",
+          }),
         };
       }
 
-      const document = Document.create(path, frontMatter, documentContentResult.data);
+      const document = Document.create(
+        path,
+        frontMatter,
+        documentContentResult.data,
+      );
       return { ok: true, data: document };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: filePath })
+          error: createError({ kind: "FileNotFound", path: filePath }),
         };
       }
       if (error instanceof Deno.errors.PermissionDenied) {
         return {
           ok: false,
-          error: createError({ kind: "PermissionDenied", path: filePath })
+          error: createError({ kind: "PermissionDenied", path: filePath }),
         };
       }
       return {
@@ -176,8 +192,8 @@ export class DenoDocumentRepository implements DocumentRepository {
         error: createError({
           kind: "ReadError",
           path: filePath,
-          reason: error instanceof Error ? error.message : "Unknown error"
-        })
+          reason: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }

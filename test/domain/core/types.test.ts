@@ -1,10 +1,10 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
   AnalysisResult,
-  ValidFilePath,
   FrontMatterContent,
   SchemaDefinition,
   SourceFile,
+  ValidFilePath,
 } from "../../../src/domain/core/types.ts";
 import { ResultUtils } from "../../../src/domain/core/result.ts";
 
@@ -67,7 +67,9 @@ Deno.test("FrontMatterContent", async (t) => {
 
 Deno.test("SchemaDefinition", async (t) => {
   await t.step("should validate schema exists", () => {
-    const schema = ResultUtils.unwrap(SchemaDefinition.create({ type: "object" }));
+    const schema = ResultUtils.unwrap(
+      SchemaDefinition.create({ type: "object" }),
+    );
     const validationResult = schema.validate({});
     assertEquals(validationResult.ok, true);
 
@@ -84,13 +86,13 @@ Deno.test("SourceFile", async (t) => {
     const withFrontMatter = ResultUtils.unwrap(SourceFile.create(
       ResultUtils.unwrap(ValidFilePath.create("/test.md")),
       "# Content",
-      ResultUtils.unwrap(FrontMatterContent.fromObject({ title: "Test" }))
+      ResultUtils.unwrap(FrontMatterContent.fromObject({ title: "Test" })),
     ));
     assertEquals(withFrontMatter.hasFrontMatter(), true);
 
     const withoutFrontMatter = ResultUtils.unwrap(SourceFile.create(
       ResultUtils.unwrap(ValidFilePath.create("/test.md")),
-      "# Content"
+      "# Content",
     ));
     assertEquals(withoutFrontMatter.hasFrontMatter(), false);
   });

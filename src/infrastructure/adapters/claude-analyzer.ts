@@ -1,9 +1,9 @@
 import type { Result } from "../../domain/shared/result.ts";
-import { createAPIError, type APIError } from "../../domain/shared/errors.ts";
+import { type APIError, createAPIError } from "../../domain/shared/errors.ts";
 import type {
-  AIAnalyzerPort,
   AIAnalysisRequest,
   AIAnalysisResponse,
+  AIAnalyzerPort,
 } from "../ports/ai-analyzer.ts";
 
 export class ClaudeAnalyzerAdapter implements AIAnalyzerPort {
@@ -13,22 +13,27 @@ export class ClaudeAnalyzerAdapter implements AIAnalyzerPort {
     try {
       // Build command arguments
       const args = ["claude", "-p"];
-      
+
       if (request.systemPrompt) {
         args.push("-s", request.systemPrompt);
       }
-      
+
       if (request.temperature !== undefined) {
         args.push("-t", request.temperature.toString());
       }
-      
+
       if (request.maxTokens) {
         args.push("-m", request.maxTokens.toString());
       }
 
       // Create the command
       const command = new Deno.Command("bash", {
-        args: ["-c", `echo '${this.escapeContent(request.content)}' | ${args.join(" ")} '${this.escapeContent(request.prompt)}'`],
+        args: [
+          "-c",
+          `echo '${this.escapeContent(request.content)}' | ${args.join(" ")} '${
+            this.escapeContent(request.prompt)
+          }'`,
+        ],
         stdout: "piped",
         stderr: "piped",
       });

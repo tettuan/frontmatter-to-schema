@@ -1,6 +1,6 @@
 import type { Result } from "../shared/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
-import { FrontMatter, DocumentBody } from "../models/document.ts";
+import { DocumentBody, FrontMatter } from "../models/document.ts";
 
 export interface FrontMatterExtractionResult {
   frontMatter: FrontMatter | null;
@@ -10,7 +10,9 @@ export interface FrontMatterExtractionResult {
 export class FrontMatterExtractor {
   private readonly frontMatterRegex = /^---\s*\n([\s\S]*?)---\s*(\n|$)/;
 
-  extract(content: string): Result<FrontMatterExtractionResult, ValidationError> {
+  extract(
+    content: string,
+  ): Result<FrontMatterExtractionResult, ValidationError> {
     const match = content.match(this.frontMatterRegex);
 
     if (!match) {
@@ -57,7 +59,7 @@ export class FrontMatterExtractor {
     try {
       // Simple key-value parsing
       // In production, this would use a proper YAML parser
-      const lines = raw.split("\n").filter(line => line.trim().length > 0);
+      const lines = raw.split("\n").filter((line) => line.trim().length > 0);
       const result: Record<string, unknown> = {};
 
       for (const line of lines) {
@@ -65,23 +67,20 @@ export class FrontMatterExtractor {
         if (colonIndex > 0) {
           const key = line.slice(0, colonIndex).trim();
           const value = line.slice(colonIndex + 1).trim();
-          
+
           // Handle arrays (simple case)
           if (value.startsWith("[") && value.endsWith("]")) {
             result[key] = value
               .slice(1, -1)
               .split(",")
               .map((v) => v.trim().replace(/^["']|["']$/g, ""));
-          }
-          // Handle booleans
+          } // Handle booleans
           else if (value === "true" || value === "false") {
             result[key] = value === "true";
-          }
-          // Handle numbers
+          } // Handle numbers
           else if (!isNaN(Number(value)) && value !== "") {
             result[key] = Number(value);
-          }
-          // Handle strings
+          } // Handle strings
           else {
             result[key] = value.replace(/^["']|["']$/g, "");
           }

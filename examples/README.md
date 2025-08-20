@@ -66,7 +66,7 @@ Creates a complete MCP registry with sample commands.
 
 **Features:**
 
-- Uses RegistryBuilder to create registry
+- Uses RegistryAggregator to create registry
 - Adds multiple command entries
 - Validates registry structure
 - Saves to JSON file

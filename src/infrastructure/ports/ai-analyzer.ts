@@ -19,5 +19,7 @@ export interface AIAnalysisResponse {
 }
 
 export interface AIAnalyzerPort {
-  analyze(request: AIAnalysisRequest): Promise<Result<AIAnalysisResponse, APIError>>;
+  analyze(
+    request: AIAnalysisRequest,
+  ): Promise<Result<AIAnalysisResponse, APIError>>;
 }

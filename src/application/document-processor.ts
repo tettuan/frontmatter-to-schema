@@ -1,22 +1,13 @@
-import { type Result, isOk, type isError } from "../domain/shared/result.ts";
+import { isOk, type Result } from "../domain/shared/result.ts";
 import type { DomainError, ValidationError } from "../domain/shared/errors.ts";
+import { Document, DocumentPath } from "../domain/models/document.ts";
+import { Schema, SchemaDefinition } from "../domain/models/schema.ts";
+import { Template, TemplateDefinition } from "../domain/models/template.ts";
 import {
-  Document,
-  DocumentPath,
-} from "../domain/models/document.ts";
-import {
-  Schema,
-  SchemaDefinition,
-} from "../domain/models/schema.ts";
-import {
-  Template,
-  TemplateDefinition,
-} from "../domain/models/template.ts";
-import {
+  BatchTransformationResult,
+  ExtractedData,
   TransformationContext,
   TransformationResult,
-  ExtractedData,
-  BatchTransformationResult,
 } from "../domain/models/transformation.ts";
 import type { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
@@ -38,14 +29,14 @@ export class DocumentProcessor {
     config: ApplicationConfiguration,
   ): Promise<Result<BatchTransformationResult, DomainError>> {
     // Load schema
-    const schemaResult = await this.loadSchema(config.schema);
+    const schemaResult = this.loadSchema(config.schema);
     if (!schemaResult.ok) {
       return schemaResult;
     }
     const schema = schemaResult.data;
 
     // Load template
-    const templateResult = await this.loadTemplate(config.template);
+    const templateResult = this.loadTemplate(config.template);
     if (!templateResult.ok) {
       return templateResult;
     }
@@ -98,9 +89,9 @@ export class DocumentProcessor {
     return { ok: true, data: batchResult };
   }
 
-  private async loadSchema(
+  private loadSchema(
     config: { definition: unknown; format: "json" | "yaml" | "custom" },
-  ): Promise<Result<Schema, DomainError>> {
+  ): Result<Schema, DomainError> {
     const definitionResult = SchemaDefinition.create(
       config.definition,
       config.format,
@@ -116,9 +107,12 @@ export class DocumentProcessor {
     return schemaResult;
   }
 
-  private async loadTemplate(
-    config: { definition: string; format: "json" | "yaml" | "handlebars" | "custom" },
-  ): Promise<Result<Template, DomainError>> {
+  private loadTemplate(
+    config: {
+      definition: string;
+      format: "json" | "yaml" | "handlebars" | "custom";
+    },
+  ): Result<Template, DomainError> {
     const definitionResult = TemplateDefinition.create(
       config.definition,
       config.format,
@@ -190,7 +184,7 @@ export class DocumentProcessor {
 
     // Extract data using AI if prompts are provided
     let extractedData: ExtractedData;
-    
+
     if (extractionPrompt && document.hasFrontMatter()) {
       const analysisResult = await this.aiAnalyzer.analyze({
         content: document.getFrontMatter()!.getRaw(),
@@ -219,11 +213,12 @@ export class DocumentProcessor {
 
     // Map to schema using AI if mapping prompt is provided
     let validatedData: unknown;
-    
+
     if (mappingPrompt) {
       const mappingResult = await this.aiAnalyzer.analyze({
         content: JSON.stringify(extractedData.getData()),
-        prompt: mappingPrompt + "\n\nSchema: " + JSON.stringify(schema.getDefinition().getDefinition()),
+        prompt: mappingPrompt + "\n\nSchema: " +
+          JSON.stringify(schema.getDefinition().getDefinition()),
       });
 
       if (!mappingResult.ok) {
@@ -241,11 +236,11 @@ export class DocumentProcessor {
         extractedData.getData(),
         schema,
       );
-      
+
       if (!validationResult.ok) {
         return validationResult;
       }
-      
+
       validatedData = validationResult.data;
     }
 
@@ -264,7 +259,7 @@ export class DocumentProcessor {
     config: { path: string; format: "json" | "yaml" | "markdown" },
   ): Promise<Result<void, DomainError>> {
     const aggregatedData = batchResult.aggregateData();
-    
+
     // Wrap data based on output format
     const outputData = config.format === "json" || config.format === "yaml"
       ? aggregatedData

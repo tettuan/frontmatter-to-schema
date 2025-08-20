@@ -1,11 +1,11 @@
 #!/usr/bin/env deno run --allow-read --allow-write
 
-import { RegistryBuilder } from "./src/registry-builder.ts";
+import { RegistryAggregator } from "./src/registry-aggregator.ts";
 import type { MappedEntry } from "./src/types.ts";
 
 console.log("Creating sample registry...");
 
-const builder = new RegistryBuilder();
+const aggregator = new RegistryAggregator();
 
 // Add sample entries based on discovered files
 const sampleEntries: MappedEntry[] = [
@@ -59,11 +59,11 @@ const sampleEntries: MappedEntry[] = [
 
 // Add all sample entries
 for (const entry of sampleEntries) {
-  builder.addEntry(entry);
+  aggregator.addEntry(entry);
 }
 
 // Validate
-const validation = builder.validate();
+const validation = aggregator.validate();
 if (!validation.isValid) {
   console.error("❌ Validation failed:");
   validation.errors.forEach((error) => console.error(`  - ${error}`));
@@ -73,13 +73,13 @@ if (!validation.isValid) {
 console.log("✅ Validation passed");
 
 // Write to file
-await builder.writeToFile(".agent/climpt/registry.json");
+await aggregator.writeToFile(".agent/climpt/registry.json");
 
 console.log("🎉 Sample registry created!");
-console.log(`📦 Commands: ${builder.getEntryCount()}`);
+console.log(`📦 Commands: ${aggregator.getEntryCount()}`);
 
 // Display the registry
-const registry = builder.build();
+const registry = aggregator.build();
 console.log("\n📄 Registry structure:");
 console.log(`Version: ${registry.version}`);
 console.log(`Available configs: ${registry.tools.availableConfigs.join(", ")}`);

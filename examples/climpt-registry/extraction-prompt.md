@@ -12,6 +12,7 @@ Extract command information from the markdown frontmatter.
 ## Expected Output Format
 
 Return a JSON object with the following structure:
+
 ```json
 {
   "c1": "domain/category (e.g., git, spec, test, code, docs, meta)",

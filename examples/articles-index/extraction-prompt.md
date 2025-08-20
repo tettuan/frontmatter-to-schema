@@ -12,6 +12,7 @@ Extract article metadata from the markdown frontmatter.
 ## Expected Output Format
 
 Return a JSON object with the following structure:
+
 ```json
 {
   "title": "Article title",
@@ -26,6 +27,7 @@ Return a JSON object with the following structure:
 ## Field Mappings
 
 Common frontmatter field variations to look for:
+
 - Title: title, name, heading
 - Type: type, category, kind
 - Topics: topics, tags, keywords, categories
@@ -34,6 +36,7 @@ Common frontmatter field variations to look for:
 - Emoji: emoji, icon
 
 If a field is not present, use these defaults:
+
 - emoji: "📚"
 - type: "tech"
 - published: false

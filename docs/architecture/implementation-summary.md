@@ -2,28 +2,34 @@
 
 ## Overview
 
-The Frontmatter-to-Schema application has been completely redesigned following Domain-Driven Design (DDD) principles with proper abstraction layers and clear separation of concerns.
+The Frontmatter-to-Schema application has been completely redesigned following
+Domain-Driven Design (DDD) principles with proper abstraction layers and clear
+separation of concerns.
 
 ## Key Achievements
 
 ### 1. **Complete Abstraction**
+
 - No hard-coded schemas or templates in the application code
 - All specifics are provided via external configuration
 - The application works with any schema/template combination
 
 ### 2. **Domain-Driven Design**
+
 - Clear domain boundaries between layers
 - Rich domain models with validation
 - Domain services for business logic
 - Infrastructure adapters for external systems
 
 ### 3. **Totality Principle**
+
 - All functions return Result types (no exceptions)
 - Invalid states are impossible to represent
 - Smart constructors ensure data validity
 - Comprehensive error handling
 
 ### 4. **Flexible Architecture**
+
 ```
 src/
 ├── domain/              # Pure business logic
@@ -43,6 +49,7 @@ src/
 ## Usage
 
 ### Command Line Interface
+
 ```bash
 # Using configuration file
 deno run --allow-read --allow-write --allow-run src/main-new.ts -c config.json
@@ -56,6 +63,7 @@ deno run --allow-read --allow-write --allow-run src/main-new.ts \
 ```
 
 ### Configuration Format
+
 ```json
 {
   "input": {
@@ -63,7 +71,7 @@ deno run --allow-read --allow-write --allow-run src/main-new.ts \
     "pattern": "\\.md$"
   },
   "schema": {
-    "definition": { /* JSON Schema */ },
+    "definition": {/* JSON Schema */},
     "format": "json"
   },
   "template": {
@@ -87,11 +95,13 @@ deno run --allow-read --allow-write --allow-run src/main-new.ts \
 Two complete examples are provided:
 
 ### 1. Climpt Registry Generation
+
 - Processes prompt files to generate command registry
 - Located in `examples/climpt-registry/`
 - Run: `deno run --allow-all examples/run-example.ts -e climpt`
 
 ### 2. Articles Index Generation
+
 - Processes article markdown files to generate books.yml
 - Located in `examples/articles-index/`
 - Run: `deno run --allow-all examples/run-example.ts -e articles`
@@ -99,6 +109,7 @@ Two complete examples are provided:
 ## Testing
 
 Comprehensive test coverage including:
+
 - Domain models validation
 - Service functionality
 - Extraction and parsing
@@ -106,13 +117,15 @@ Comprehensive test coverage including:
 - Template mapping
 
 Run tests:
+
 ```bash
 deno test --allow-read --allow-write --allow-run tests/
 ```
 
 ## Key Design Decisions
 
-1. **Result Type Pattern**: All operations return Result<T, E> for explicit error handling
+1. **Result Type Pattern**: All operations return Result<T, E> for explicit
+   error handling
 2. **Smart Constructors**: Domain objects can only be created in valid states
 3. **Port/Adapter Pattern**: Infrastructure is decoupled from domain logic
 4. **Configuration-Driven**: All specifics are externalized
@@ -129,7 +142,9 @@ deno test --allow-read --allow-write --allow-run tests/
 
 ## Migration from Old Implementation
 
-The old implementation (`src/main.ts`) is preserved but the new implementation (`src/main-new.ts`) should be used for all new development. The new implementation:
+The old implementation (`src/main.ts`) is preserved but the new implementation
+(`src/main-new.ts`) should be used for all new development. The new
+implementation:
 
 - Removes all hard-coded registry-specific logic
 - Externalizes all schemas and templates
@@ -140,6 +155,7 @@ The old implementation (`src/main.ts`) is preserved but the new implementation (
 ## Future Enhancements
 
 Potential areas for enhancement:
+
 1. Add support for more template engines (Handlebars, Liquid)
 2. Implement proper YAML parser instead of simple implementation
 3. Add parallel processing for large batches

@@ -1,6 +1,8 @@
 ---
 title:
 description: 粗い考えをもとに、ドメイン境界線を引いてみる。
+variables:
+  input_text: 原案
 ---
 
 # ドメイン境界線の設計

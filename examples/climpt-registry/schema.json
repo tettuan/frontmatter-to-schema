@@ -2,11 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "version": { 
+    "version": {
       "type": "string",
       "description": "Registry version (e.g., '1.0.0')"
     },
-    "description": { 
+    "description": {
       "type": "string",
       "description": "Overall registry description"
     },
@@ -24,23 +24,23 @@
           "items": {
             "type": "object",
             "properties": {
-              "c1": { 
+              "c1": {
                 "type": "string",
                 "description": "Domain/category (git, spec, test, code, docs, meta)"
               },
-              "c2": { 
+              "c2": {
                 "type": "string",
                 "description": "Action/directive (create, analyze, execute, etc.)"
               },
-              "c3": { 
+              "c3": {
                 "type": "string",
                 "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
               },
-              "description": { 
+              "description": {
                 "type": "string",
                 "description": "Command description"
               },
-              "usage": { 
+              "usage": {
                 "type": "string",
                 "description": "Usage instructions and examples"
               },

@@ -12,14 +12,17 @@ variables:
 
 ## 0. 目的・適用範囲
 
-**目的**: Domain-Driven Design（DDD）アーキテクチャにおける包括的テスト戦略を確立し、型安全性と品質保証を実現する体系的アプローチを定める。Result型パターンと全域性原則に基づき、再現性と保守性の高いテスト実装を実現する。
+**目的**: Domain-Driven
+Design（DDD）アーキテクチャにおける包括的テスト戦略を確立し、型安全性と品質保証を実現する体系的アプローチを定める。Result型パターンと全域性原則に基づき、再現性と保守性の高いテスト実装を実現する。
 
 **適用範囲**:
+
 - DDDアーキテクチャのすべてのコンポーネント（値オブジェクト、エンティティ、ドメインサービス、アプリケーションサービス）
 - 単体テスト、統合テスト、エンドツーエンドテストの実装と運用
 - CI/CDパイプラインでの自動テスト実行と品質ゲート
 
 **非適用範囲**:
+
 - 外部サービスの実装テスト（モック化対象）
 - 特定テストツールの操作マニュアル
 - レガシーコードの部分的テスト追加
@@ -35,6 +38,7 @@ variables:
 ## 2. 前提情報・仮定
 
 ### 前提情報リスト
+
 - **プロジェクト構造**: frontmatter-to-schema（Deno TypeScript DDD実装）
 - **現状**: 41テスト（186ステップ）合格、TypeScript/lint完全準拠
 - **テストフレームワーク**: Deno標準テスト機能（jsr:@std/assert）
@@ -42,6 +46,7 @@ variables:
 - **品質原則**: totality原則、AI複雑性制御
 
 ### 仮定リスト
+
 - Deno実行環境（--allow-read, --allow-write, --allow-env権限）利用可能
 - TypeScript strict modeが有効
 - 開発者がDDDパターンと全域性原則を理解済み
@@ -84,6 +89,7 @@ function badTest(input: string) {
 **実行判断**: 新機能実装またはリファクタリング開始時
 
 **完了条件**:
+
 - テストヘルパー関数の定義完了
 - モック実装の準備完了
 - テストデータビルダーの構築完了
@@ -93,6 +99,7 @@ function badTest(input: string) {
 **実行判断**: ドメインモデル実装完了時
 
 #### 値オブジェクトテスト
+
 ```typescript
 // tests/domain/models/value-objects.test.ts
 Deno.test("DocumentPath - Smart Constructor", async (t) => {
@@ -125,6 +132,7 @@ Deno.test("DocumentPath - Smart Constructor", async (t) => {
 ```
 
 **品質基準**:
+
 - 正常系、異常系、境界値の3パターン必須
 - エラーの種類と内容の検証
 - 不変条件の維持確認
@@ -142,15 +150,15 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
       schemaRepo,
       templateRepo,
       analyzer,
-      mapper
+      mapper,
     );
-    
+
     const result = await pipeline.process({
       documentsPath: "./test-docs",
       schemaPath: "./schema.json",
-      templatePath: "./template.yaml"
+      templatePath: "./template.yaml",
     });
-    
+
     assertEquals(isOk(result), true);
     if (isOk(result)) {
       assertEquals(result.data.processedCount, 3);
@@ -168,12 +176,12 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
 await t.step("大量データ処理性能", async () => {
   const files = generateTestFiles(100);
   const start = performance.now();
-  
+
   const results = await processor.processAll(files);
-  
+
   const elapsed = performance.now() - start;
   const avgTime = elapsed / files.length;
-  
+
   assert(avgTime < 10, `Average time ${avgTime}ms exceeds 10ms threshold`);
 });
 ```
@@ -183,6 +191,7 @@ await t.step("大量データ処理性能", async () => {
 **実行判断**: すべてのテスト実装完了後
 
 **完了条件**:
+
 - カバレッジ90%以上達成
 - 全テスト合格
 - CI/CDパイプライン統合完了
@@ -198,11 +207,11 @@ export class TestDataBuilder {
     if (!result.ok) throw new Error("Test data creation failed");
     return result.data;
   }
-  
+
   static frontMatter(data: Record<string, unknown>): FrontMatter {
     return FrontMatter.create(data);
   }
-  
+
   static schema(definition: unknown): Schema {
     return Schema.create(definition, "1.0.0");
   }
@@ -215,17 +224,21 @@ export class TestDataBuilder {
 export class ResultAssertions {
   static assertSuccess<T, E>(result: Result<T, E>): T {
     if (!result.ok) {
-      throw new AssertionError(`Expected success but got error: ${JSON.stringify(result.error)}`);
+      throw new AssertionError(
+        `Expected success but got error: ${JSON.stringify(result.error)}`,
+      );
     }
     return result.data;
   }
-  
+
   static assertError<T, E>(result: Result<T, E>, expectedKind?: string): E {
     if (result.ok) {
       throw new AssertionError(`Expected error but got success`);
     }
     if (expectedKind && result.error.kind !== expectedKind) {
-      throw new AssertionError(`Expected error kind ${expectedKind} but got ${result.error.kind}`);
+      throw new AssertionError(
+        `Expected error kind ${expectedKind} but got ${result.error.kind}`,
+      );
     }
     return result.error;
   }
@@ -261,12 +274,14 @@ jobs:
 ## 成果物
 
 ### 主成果物
+
 - 包括的テストスイート実装
 - テストヘルパーライブラリ
 - CI/CD設定ファイル
 - テスト実行ガイド
 
 ### 付録
+
 - **用語集**: テスト用語とDDD用語の定義
 - **禁止パターン**: 避けるべきテスト実装
 - **前提情報リスト**: プロジェクト固有情報
@@ -275,14 +290,18 @@ jobs:
 ## 参照資料
 
 ### 必須参照資料
+
 - **全域性原則**: `docs/development/totality.ja.md`
-- **AI複雑化防止（科学的制御）**: `docs/development/ai-complexity-control_compact.ja.md`
+- **AI複雑化防止（科学的制御）**:
+  `docs/development/ai-complexity-control_compact.ja.md`
 
 ### 一次資料
+
 - Deno公式テストAPI仕様（正確な実装のため）
 - TypeScript型システムドキュメント（型安全性確保のため）
 
 ### 二次資料
+
 - DDDテストパターン解説（実装パターン参考のため）
 
 ## 変更履歴
