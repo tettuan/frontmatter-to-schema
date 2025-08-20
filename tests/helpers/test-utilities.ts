@@ -19,7 +19,10 @@ import {
   ValidFilePath,
 } from "../../src/domain/core/types.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
-import { getBreakdownLogger, type TestScopeLogger } from "./breakdown-logger.ts";
+import {
+  getBreakdownLogger,
+  type TestScopeLogger,
+} from "./breakdown-logger.ts";
 
 // Test Data Builders following Builder pattern for robust test data creation
 export class TestDataBuilder {
@@ -130,7 +133,7 @@ export class TestDataBuilder {
 // Result Assertion Helpers for type-safe testing
 export class ResultAssertions {
   private static logger = getBreakdownLogger();
-  
+
   /**
    * Asserts that a Result is successful and returns the data
    */
@@ -140,11 +143,11 @@ export class ResultAssertions {
       phase: "assert" as const,
       operation: "assertSuccess",
     };
-    
+
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result as any, message);
+      this.logger.logResult(testContext, result, message);
     }
-    
+
     assertEquals(
       result.ok,
       true,
@@ -169,11 +172,11 @@ export class ResultAssertions {
       phase: "assert" as const,
       operation: "assertError",
     };
-    
+
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result as any, message);
+      this.logger.logResult(testContext, result, message);
     }
-    
+
     assertEquals(result.ok, false, message || "Expected result to be an error");
     if (!result.ok) {
       if (expectedErrorKind && "kind" in result.error) {
@@ -553,7 +556,7 @@ climpt-${frontMatter.domain} ${frontMatter.action} ${frontMatter.target} --verbo
 // Performance Testing Utilities
 export class PerformanceTestUtils {
   private static logger = getBreakdownLogger();
-  
+
   /**
    * Measures execution time of an async function
    */
@@ -655,11 +658,11 @@ export class PerformanceTestUtils {
 // Test Structure with BreakdownLogger Support
 export class TestWithBreakdown {
   private logger: TestScopeLogger;
-  
+
   constructor(testName: string, domain?: string) {
     this.logger = getBreakdownLogger().createTestScope(testName, domain);
   }
-  
+
   /**
    * Run a test with structured phases and automatic logging
    */
@@ -679,7 +682,7 @@ export class TestWithBreakdown {
       this.logger.endTimer("arrange", `Arrange phase failed: ${error}`);
       throw error;
     }
-    
+
     // Act phase
     this.logger.startTimer("act");
     this.logger.act("Starting act phase");
@@ -691,7 +694,7 @@ export class TestWithBreakdown {
       this.logger.endTimer("act", `Act phase failed: ${error}`);
       throw error;
     }
-    
+
     // Assert phase
     this.logger.startTimer("assert");
     this.logger.assert("Starting assert phase");
@@ -702,7 +705,7 @@ export class TestWithBreakdown {
       this.logger.endTimer("assert", `Assert phase failed: ${error}`);
       throw error;
     }
-    
+
     // Cleanup phase (if provided)
     if (cleanup) {
       this.logger.startTimer("cleanup");
@@ -716,7 +719,7 @@ export class TestWithBreakdown {
       }
     }
   }
-  
+
   /**
    * Get the scoped logger for custom logging
    */

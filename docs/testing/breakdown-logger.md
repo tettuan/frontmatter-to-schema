@@ -2,7 +2,10 @@
 
 ## Overview
 
-BreakdownLogger is a structured logging utility designed specifically for test debugging in the frontmatter-to-schema project. It follows Domain-Driven Design (DDD) principles and provides comprehensive test execution analysis with minimal performance impact when disabled.
+BreakdownLogger is a structured logging utility designed specifically for test
+debugging in the frontmatter-to-schema project. It follows Domain-Driven Design
+(DDD) principles and provides comprehensive test execution analysis with minimal
+performance impact when disabled.
 
 ## Key Features
 
@@ -44,17 +47,21 @@ BREAKDOWN_LOG=true deno test test/integration/analysis-pipeline.test.ts --allow-
 
 ### 1. Test Utilities Integration
 
-The BreakdownLogger is integrated into the test utilities to provide automatic logging:
+The BreakdownLogger is integrated into the test utilities to provide automatic
+logging:
 
 - **ResultAssertions**: Automatically logs Result type assertions
 - **PerformanceTestUtils**: Logs performance measurements
-- **TestWithBreakdown**: Provides structured test execution with automatic phase logging
+- **TestWithBreakdown**: Provides structured test execution with automatic phase
+  logging
 
 ### 2. Test Files Using BreakdownLogger
 
-The following test files have been enhanced with strategic BreakdownLogger integration:
+The following test files have been enhanced with strategic BreakdownLogger
+integration:
 
-- `test/integration/analysis-pipeline.test.ts` - Pipeline processing and performance tests
+- `test/integration/analysis-pipeline.test.ts` - Pipeline processing and
+  performance tests
 - `tests/domain/core/comprehensive-unit.test.ts` - Domain value object tests
 - `test/helpers/test-utilities.ts` - Core test utilities with embedded logging
 
@@ -82,7 +89,7 @@ await test.runTest(
   // Optional cleanup phase
   async () => {
     // Clean up resources
-  }
+  },
 );
 ```
 
@@ -106,7 +113,8 @@ When enabled, BreakdownLogger produces structured output:
 
 ## Best Practices
 
-1. **Strategic Placement**: Add logging at critical decision points and complex operations
+1. **Strategic Placement**: Add logging at critical decision points and complex
+   operations
 2. **Result Logging**: Use `logResult()` for Result type operations
 3. **Performance Tracking**: Use timers for operations that might be slow
 4. **Test Scoping**: Always create scoped loggers for individual tests
@@ -123,7 +131,8 @@ When enabled, BreakdownLogger produces structured output:
 
 ### Error Handling
 
-The logger gracefully handles environments where `Deno.env` access is not permitted, defaulting to disabled state.
+The logger gracefully handles environments where `Deno.env` access is not
+permitted, defaulting to disabled state.
 
 ## Future Enhancements
 
@@ -135,4 +144,7 @@ The logger gracefully handles environments where `Deno.env` access is not permit
 
 ## Conclusion
 
-BreakdownLogger provides a powerful debugging tool for understanding test execution flow and identifying performance bottlenecks, while maintaining zero overhead in production test runs. Its strategic placement in critical test paths enables developers to quickly diagnose issues when needed.
+BreakdownLogger provides a powerful debugging tool for understanding test
+execution flow and identifying performance bottlenecks, while maintaining zero
+overhead in production test runs. Its strategic placement in critical test paths
+enables developers to quickly diagnose issues when needed.

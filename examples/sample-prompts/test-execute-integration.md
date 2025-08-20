@@ -1,7 +1,7 @@
 ---
 c1: test
 c2: execute
-c3: integration-suite  
+c3: integration-suite
 description: Execute integration test suite
 usage: Run comprehensive integration tests
 input: [CODE, CONFIG]

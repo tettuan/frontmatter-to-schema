@@ -12,7 +12,10 @@ import {
 } from "../../src/domain/core/types.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
-import { getBreakdownLogger, type TestScopeLogger } from "../helpers/breakdown-logger.ts";
+import {
+  getBreakdownLogger,
+  type TestScopeLogger,
+} from "../helpers/breakdown-logger.ts";
 import { TestWithBreakdown } from "../helpers/test-utilities.ts";
 
 // Test data and helpers
@@ -126,7 +129,7 @@ async function processMarkdownFile(
     extractionContext,
   );
   logger?.endTimer("extraction", "FrontMatter extraction completed");
-  
+
   if (!extractionResult.ok) {
     logger?.logResult("act", extractionResult, "FrontMatter extraction failed");
     return {
@@ -137,7 +140,11 @@ async function processMarkdownFile(
       analysisResult: null,
     };
   }
-  logger?.logResult("act", extractionResult, "FrontMatter extracted successfully");
+  logger?.logResult(
+    "act",
+    extractionResult,
+    "FrontMatter extracted successfully",
+  );
 
   // Step 3: Create SourceFile
   const sourceFileResult = SourceFile.create(
@@ -218,10 +225,10 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
     async () => {
       const testWithBreakdown = new TestWithBreakdown(
         "ProcessCompleteMarkdownFile",
-        "integration"
+        "integration",
       );
       const logger = testWithBreakdown.getLogger();
-      
+
       const filePath = "/test/commands/git-create-pr.md";
       const markdown = createSampleMarkdown();
       const schema = createCommandSchema();
@@ -565,9 +572,9 @@ priority: urgent
   await t.step("should measure performance with large dataset", async () => {
     const logger = getBreakdownLogger().createTestScope(
       "PerformanceLargeDataset",
-      "integration"
+      "integration",
     );
-    
+
     logger.arrange("Setting up performance test");
     const startTime = performance.now();
     const fileCount = 50;
@@ -580,7 +587,7 @@ priority: urgent
     }> = [];
     const schema = createCommandSchema();
     const template = createCommandTemplate();
-    
+
     logger.act("Processing batch of files", { count: fileCount });
 
     // Generate test files
@@ -625,14 +632,14 @@ This is test file number ${i} for performance benchmarking.`;
 
     // Performance assertions
     assertEquals(results.length, fileCount);
-    
+
     // Use logger instead of console.log when enabled
     if (logger) {
       logger.assert(
         `Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${
           averageTime.toFixed(2)
         }ms per file)`,
-        { duration, averageTime, fileCount }
+        { duration, averageTime, fileCount },
       );
     } else {
       console.log(

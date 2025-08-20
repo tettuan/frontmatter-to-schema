@@ -1,9 +1,9 @@
 /**
  * BreakdownLogger - Strategic Test Debugging Utility
- * 
+ *
  * Provides structured logging for test execution analysis
  * following Totality principles and DDD architecture.
- * 
+ *
  * Usage:
  * - Enabled only when BREAKDOWN_LOG environment variable is set
  * - Logs to structured format for easy parsing
@@ -82,7 +82,7 @@ export class BreakdownLogger {
     if (!this.enabled) return undefined;
     const start = this.timers.get(key);
     if (start === undefined) return undefined;
-    
+
     const duration = performance.now() - start;
     this.timers.delete(key);
     return duration;
@@ -126,7 +126,7 @@ export class BreakdownLogger {
     data?: unknown,
   ): void {
     if (!this.enabled) return;
-    
+
     const duration = this.endTimer(timerKey);
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
@@ -136,7 +136,7 @@ export class BreakdownLogger {
       data,
       duration,
     };
-    
+
     this.entries.push(entry);
     this.output(entry);
   }
@@ -150,7 +150,7 @@ export class BreakdownLogger {
     message?: string,
   ): void {
     if (!this.enabled) return;
-    
+
     const context: LogContext = { testName, phase };
     this.info(
       context,
@@ -167,7 +167,7 @@ export class BreakdownLogger {
     message?: string,
   ): void {
     if (!this.enabled) return;
-    
+
     if (result.ok) {
       this.info(
         context,
@@ -222,7 +222,7 @@ export class BreakdownLogger {
     data?: unknown,
   ): void {
     if (!this.enabled) return;
-    
+
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -230,7 +230,7 @@ export class BreakdownLogger {
       message,
       data,
     };
-    
+
     this.entries.push(entry);
     this.output(entry);
   }
@@ -240,15 +240,13 @@ export class BreakdownLogger {
    */
   private output(entry: LogEntry): void {
     if (!this.enabled) return;
-    
+
     const prefix = `[${entry.level.toUpperCase()}]`;
     const contextStr = `[${entry.context.testName}:${entry.context.phase}]`;
-    const timeStr = entry.duration 
-      ? ` (${entry.duration.toFixed(2)}ms)`
-      : "";
-    
+    const timeStr = entry.duration ? ` (${entry.duration.toFixed(2)}ms)` : "";
+
     const logMessage = `${prefix} ${contextStr} ${entry.message}${timeStr}`;
-    
+
     switch (entry.level) {
       case "debug":
         console.debug(logMessage, entry.data || "");
@@ -383,18 +381,18 @@ export function logTestExecution(
   descriptor: PropertyDescriptor,
 ): PropertyDescriptor {
   const originalMethod = descriptor.value;
-  
+
   descriptor.value = async function (...args: unknown[]) {
     const logger = getBreakdownLogger();
     if (!logger.isEnabled()) {
       return originalMethod.apply(this, args);
     }
-    
+
     const testName = `${target?.constructor.name}.${propertyKey}`;
     const scope = logger.createTestScope(testName);
-    
+
     scope.startTimer("total");
-    
+
     try {
       const result = await originalMethod.apply(this, args);
       scope.endTimer("total", "Test completed successfully");
@@ -404,6 +402,6 @@ export function logTestExecution(
       throw error;
     }
   };
-  
+
   return descriptor;
 }

@@ -25,8 +25,11 @@ import { getBreakdownLogger } from "../../../helpers/breakdown-logger.ts";
 // ============================================================================
 
 Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
-  const logger = getBreakdownLogger().createTestScope("DocumentPath", "domain-core");
-  
+  const logger = getBreakdownLogger().createTestScope(
+    "DocumentPath",
+    "domain-core",
+  );
+
   await t.step("Smart Constructor - Success Cases", () => {
     logger.arrange("Preparing test cases for DocumentPath");
     const testCases = [
@@ -36,10 +39,12 @@ Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
       { input: "深/日本語/ファイル.md", expected: "深/日本語/ファイル.md" },
     ];
 
-    logger.act("Testing DocumentPath creation", { caseCount: testCases.length });
+    logger.act("Testing DocumentPath creation", {
+      caseCount: testCases.length,
+    });
     for (const { input, expected } of testCases) {
       const result = DocumentPath.create(input);
-      logger.logResult("act", result as any, `DocumentPath.create("${input}")`);
+      logger.logResult("act", result, `DocumentPath.create("${input}")`);
       assertEquals(isOk(result), true, `Failed for input: ${input}`);
       if (isOk(result)) {
         assertEquals(result.data.getValue(), expected);

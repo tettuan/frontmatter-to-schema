@@ -27,7 +27,9 @@ Deno.test("FrontMatterExtractor - should return null for no frontmatter", () => 
 
 Deno.test("FrontMatterExtractor - should detect frontmatter presence", async () => {
   const extractor = new FrontMatterExtractor();
-  const withFrontmatter = await Deno.readTextFile("./test/sample-prompt.md");
+  const withFrontmatter = await Deno.readTextFile(
+    "./tests/fixtures/sample-prompt.md",
+  );
   const withoutFrontmatter = "# Regular markdown";
 
   assertEquals(extractor.hasFrontMatter(withFrontmatter), true);
