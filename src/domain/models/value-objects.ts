@@ -45,12 +45,21 @@ export class DocumentPath {
       return { ok: false, error: createError({ kind: "EmptyInput" }) };
     }
 
-    if (!trimmedPath.endsWith(".md") && !trimmedPath.endsWith(".markdown")) {
+    // Accept both individual markdown files and glob patterns for directories
+    const isValidPath = 
+      trimmedPath.endsWith(".md") || 
+      trimmedPath.endsWith(".markdown") ||
+      trimmedPath.endsWith("/*.md") ||
+      trimmedPath.endsWith("/*.markdown") ||
+      trimmedPath.includes("**/*.md") ||
+      trimmedPath.includes("**/*.markdown");
+
+    if (!isValidPath) {
       return {
         ok: false,
         error: createError({
           kind: "InvalidFormat",
-          format: "*.md or *.markdown",
+          format: "*.md, *.markdown, or directory glob pattern (e.g., dir/*.md)",
           input: trimmedPath,
         }),
       };
