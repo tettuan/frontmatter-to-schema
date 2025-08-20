@@ -5,8 +5,8 @@ import {
   SchemaDefinition,
   SourceFile,
   ValidFilePath,
-} from "../../../src/domain/core/types.ts";
-import type { ValidationError } from "../../../src/domain/core/result.ts";
+} from "../../../../src/domain/core/types.ts";
+import type { ValidationError } from "../../../../src/domain/core/result.ts";
 
 Deno.test("ValidFilePath Smart Constructor", async (t) => {
   await t.step("should create valid file path successfully", () => {

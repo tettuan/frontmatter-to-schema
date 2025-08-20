@@ -1,4 +1,4 @@
-import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../../src/domain/frontmatter/Extractor.ts";
 import { assertEquals } from "https://deno.land/std@0.220.0/assert/mod.ts";
 
 Deno.test("Edge Cases - frontmatter in middle of document", () => {

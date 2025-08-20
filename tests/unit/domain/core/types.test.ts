@@ -5,8 +5,8 @@ import {
   SchemaDefinition,
   SourceFile,
   ValidFilePath,
-} from "../../../src/domain/core/types.ts";
-import { ResultUtils } from "../../../src/domain/core/result.ts";
+} from "../../../../src/domain/core/types.ts";
+import { ResultUtils } from "../../../../src/domain/core/result.ts";
 
 Deno.test("ValidFilePath", async (t) => {
   await t.step("should identify markdown files", () => {

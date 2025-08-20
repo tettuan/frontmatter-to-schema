@@ -17,7 +17,7 @@ import {
   unwrapOrResult,
   unwrapResult,
   type ValidationError,
-} from "../../../src/domain/core/result.ts";
+} from "../../../../src/domain/core/result.ts";
 
 // Test helper functions for creating test data
 const createSuccessResult = <T>(

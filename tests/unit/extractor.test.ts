@@ -1,4 +1,4 @@
-import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../../src/domain/frontmatter/Extractor.ts";
 import {
   assertEquals,
   assertExists,
@@ -6,7 +6,7 @@ import {
 
 Deno.test("FrontMatterExtractor - should extract frontmatter", async () => {
   const extractor = new FrontMatterExtractor();
-  const content = await Deno.readTextFile("./test/sample-prompt.md");
+  const content = await Deno.readTextFile("./tests/fixtures/sample-prompt.md");
 
   const frontMatter = extractor.extract(content);
 

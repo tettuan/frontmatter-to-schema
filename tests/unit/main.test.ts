@@ -1,6 +1,6 @@
 #!/usr/bin/env deno run --allow-read --allow-write
 
-import { discoverPromptFiles } from "./src/file-discovery.ts";
+import { discoverPromptFiles } from "../../src/file-discovery.ts";
 
 console.log("Testing file discovery...");
 

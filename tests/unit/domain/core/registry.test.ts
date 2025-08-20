@@ -1,10 +1,10 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { Registry } from "../../../src/domain/core/registry.ts";
+import { Registry } from "../../../../src/domain/core/registry.ts";
 import {
   AnalysisResult,
   ValidFilePath,
-} from "../../../src/domain/core/types.ts";
-import { ResultUtils } from "../../../src/domain/core/result.ts";
+} from "../../../../src/domain/core/types.ts";
+import { ResultUtils } from "../../../../src/domain/core/result.ts";
 
 Deno.test("Registry", async (t) => {
   await t.step("should add and retrieve results", () => {
