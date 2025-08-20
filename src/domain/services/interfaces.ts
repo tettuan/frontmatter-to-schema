@@ -1,9 +1,9 @@
 /**
  * Domain Service Interfaces
- * 
+ *
  * These interfaces define the contracts for domain services following DDD principles.
  * They are part of the domain layer and represent business capabilities.
- * 
+ *
  * Key principles:
  * - All methods return Result types (Totality principle)
  * - Interfaces are schema-agnostic where possible
@@ -39,7 +39,7 @@ import type {
 
 /**
  * Extracts frontmatter metadata from markdown documents
- * 
+ *
  * Responsible for parsing YAML/TOML frontmatter from document content.
  * Returns null if no frontmatter is present (which is a valid state).
  */
@@ -51,7 +51,7 @@ export interface FrontMatterExtractor {
 
 /**
  * Analyzes frontmatter against a schema definition
- * 
+ *
  * This is a key injection point for schema variability.
  * The schema is provided at runtime, allowing different schemas
  * to be used with the same application instance.
@@ -65,7 +65,7 @@ export interface SchemaAnalyzer {
 
 /**
  * Maps extracted data to a template structure
- * 
+ *
  * Transforms schema-validated data into the desired output format.
  * The template is injected at runtime for maximum flexibility.
  */
@@ -78,7 +78,7 @@ export interface TemplateMapper {
 
 /**
  * Aggregates multiple analysis results into a final output
- * 
+ *
  * Combines results from processing multiple documents into
  * a single cohesive output structure.
  */
@@ -90,7 +90,7 @@ export interface ResultAggregator {
 
 /**
  * Repository Interfaces
- * 
+ *
  * These interfaces define contracts for data access, following the
  * Repository pattern from DDD. They abstract infrastructure concerns
  * from the domain layer.

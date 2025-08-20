@@ -1,6 +1,6 @@
 /**
  * Value Objects implementing Domain-Driven Design patterns
- * 
+ *
  * These value objects follow the Totality principle:
  * - Smart constructors ensure only valid instances can be created
  * - All functions are total (no exceptions, use Result types)
@@ -16,12 +16,12 @@ import {
 
 /**
  * Represents a path to a Markdown document
- * 
+ *
  * Business Rules:
  * - Path must not be empty
  * - Must end with .md or .markdown extension
  * - Immutable after creation
- * 
+ *
  * @example
  * const result = DocumentPath.create("docs/readme.md");
  * if (result.ok) {
@@ -33,7 +33,7 @@ export class DocumentPath {
 
   /**
    * Creates a validated DocumentPath instance
-   * 
+   *
    * @param path - The file path to validate
    * @returns Result containing either a valid DocumentPath or validation error
    */
