@@ -14,6 +14,7 @@
     "jsr:@std/path@^1.0.8": "1.1.2",
     "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@std/toml@^1.0.1": "1.0.9",
+    "jsr:@std/yaml@1": "1.0.9",
     "jsr:@std/yaml@^1.0.5": "1.0.9"
   },
   "jsr": {
@@ -36,7 +37,7 @@
       "integrity": "abddc64030a33eb5bc524b8c73e7c417cea09177aaeb4abf75a56b540c4b6e60",
       "dependencies": [
         "jsr:@std/toml",
-        "jsr:@std/yaml"
+        "jsr:@std/yaml@^1.0.5"
       ]
     },
     "@std/fs@1.0.8": {

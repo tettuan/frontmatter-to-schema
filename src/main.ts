@@ -23,6 +23,13 @@ import {
   TemplateLoader,
 } from "./infrastructure/adapters/configuration-loader.ts";
 
+// Legacy imports for BuildRegistryUseCase
+import { FileReader } from "./infrastructure/filesystem/FileReader.ts";
+import { FileWriter } from "./infrastructure/filesystem/FileWriter.ts";
+import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
+import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
+import { BuildRegistryUseCase } from "./application/usecases/BuildRegistryUseCase.ts";
+
 // Load prompt templates
 async function loadPromptTemplates(): Promise<
   { extraction: string; mapping: string }
@@ -51,15 +58,54 @@ Return ONLY a JSON object with the mapped data.`,
   }
 }
 
+// Legacy function for BuildRegistryUseCase
+async function runBuildRegistry() {
+  const PROMPTS_PATH = ".agent/climpt/prompts";
+  const OUTPUT_PATH = ".agent/climpt/registry.json";
+  const EXTRACT_PROMPT_PATH = "./src/prompts/extract-information.md";
+  const MAPPING_PROMPT_PATH = "./src/prompts/map-to-template.md";
+
+  try {
+    const fileReader = new FileReader();
+    const fileWriter = new FileWriter();
+    const extractor = new FrontMatterExtractor();
+
+    const extractPrompt = await Deno.readTextFile(EXTRACT_PROMPT_PATH);
+    const mappingPrompt = await Deno.readTextFile(MAPPING_PROMPT_PATH);
+    const analyzer = new ClaudeAnalyzer(extractPrompt, mappingPrompt);
+
+    const useCase = new BuildRegistryUseCase(
+      fileReader,
+      fileWriter,
+      extractor,
+      analyzer,
+    );
+
+    const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
+
+    console.log("\n✅ Registry build completed successfully!");
+    console.log(`📊 Summary:`);
+    console.log(`   - Total commands: ${registry.tools.commands.length}`);
+    console.log(
+      `   - Available configs: ${registry.tools.availableConfigs.length}`,
+    );
+    console.log(`   - Output: ${OUTPUT_PATH}`);
+  } catch (error) {
+    console.error("❌ Failed to build registry:", error);
+    Deno.exit(1);
+  }
+}
+
 async function main() {
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],
-    boolean: ["help", "parallel", "continue-on-error"],
+    boolean: ["help", "parallel", "continue-on-error", "build-registry"],
     default: {
       config: "config.json",
       format: "json",
       parallel: true,
       "continue-on-error": false,
+      "build-registry": false,
     },
   });
 
@@ -79,6 +125,7 @@ Options:
   --format <json|yaml>    Output format (default: json)
   --parallel              Process documents in parallel (default: true)
   --continue-on-error     Continue processing on errors (default: false)
+  --build-registry        Run legacy BuildRegistryUseCase
   --help                  Show this help message
 
 Examples:
@@ -91,8 +138,17 @@ Examples:
     --schema examples/climpt-registry/schema.json \\
     --template examples/climpt-registry/template.json \\
     --output .agent/climpt/registry.json
+    
+  # Run legacy build registry
+  deno run --allow-all src/main.ts --build-registry
 `);
     Deno.exit(0);
+  }
+
+  // Check if legacy build-registry mode is requested
+  if (args["build-registry"]) {
+    await runBuildRegistry();
+    return;
   }
 
   try {

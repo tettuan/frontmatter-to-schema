@@ -1,13 +1,13 @@
 import { FrontMatter } from "./FrontMatter.ts";
-import { parse } from "https://deno.land/std@0.220.0/yaml/mod.ts";
+import { parse } from "jsr:@std/yaml@1";
 
 export class FrontMatterExtractor {
-  private readonly frontMatterRegex = /^---\n([\s\S]*?)\n---/;
+  private readonly frontMatterRegex = /^---\n([\s\S]*?)---/;
 
   extract(content: string): FrontMatter | null {
     const match = content.match(this.frontMatterRegex);
 
-    if (!match || !match[1]) {
+    if (!match || match[1] === undefined) {
       return null;
     }
 
@@ -21,11 +21,8 @@ export class FrontMatterExtractor {
     try {
       const data = parse(raw) as Record<string, unknown>;
       return new FrontMatter(raw, data || {});
-    } catch (error) {
-      // Suppress error logging in production
-      if (Deno.env.get("DEBUG") === "true") {
-        console.error("Failed to parse YAML frontmatter:", error);
-      }
+    } catch (_error) {
+      // Return null for invalid YAML
       return null;
     }
   }
