@@ -12,6 +12,8 @@ import {
 } from "../../src/domain/core/types.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
+import { getBreakdownLogger, type TestScopeLogger } from "../helpers/breakdown-logger.ts";
+import { TestWithBreakdown } from "../helpers/test-utilities.ts";
 
 // Test data and helpers
 const createSampleMarkdown = () =>
@@ -93,6 +95,7 @@ async function processMarkdownFile(
   markdownContent: string,
   schema: Record<string, unknown>,
   template: Record<string, unknown>,
+  logger?: TestScopeLogger,
 ): Promise<{
   sourceFile: SourceFile | null;
   extractedContent: FrontMatterContent | null;
@@ -101,23 +104,31 @@ async function processMarkdownFile(
   analysisResult: AnalysisResult<Record<string, unknown>> | null;
 }> {
   // Step 1: Create ValidFilePath
+  logger?.arrange("Creating ValidFilePath", { filePath });
   const pathResult = ValidFilePath.createMarkdown(filePath);
   if (!pathResult.ok) {
+    logger?.logResult("arrange", pathResult, "Failed to create ValidFilePath");
     throw new Error(`Invalid file path: ${pathResult.error.message}`);
   }
+  logger?.logResult("arrange", pathResult, "ValidFilePath created");
 
   // Step 2: Extract FrontMatter from markdown
+  logger?.act("Extracting FrontMatter from markdown");
   const strategy = new FrontMatterExtractionStrategy();
   const extractionContext: AnalysisContext = {
     kind: "BasicExtraction",
     options: { includeMetadata: true },
   };
 
+  logger?.startTimer("extraction");
   const extractionResult = await strategy.execute(
     markdownContent,
     extractionContext,
   );
+  logger?.endTimer("extraction", "FrontMatter extraction completed");
+  
   if (!extractionResult.ok) {
+    logger?.logResult("act", extractionResult, "FrontMatter extraction failed");
     return {
       sourceFile: null,
       extractedContent: null,
@@ -126,6 +137,7 @@ async function processMarkdownFile(
       analysisResult: null,
     };
   }
+  logger?.logResult("act", extractionResult, "FrontMatter extracted successfully");
 
   // Step 3: Create SourceFile
   const sourceFileResult = SourceFile.create(
@@ -204,6 +216,12 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
   await t.step(
     "should process complete markdown file successfully",
     async () => {
+      const testWithBreakdown = new TestWithBreakdown(
+        "ProcessCompleteMarkdownFile",
+        "integration"
+      );
+      const logger = testWithBreakdown.getLogger();
+      
       const filePath = "/test/commands/git-create-pr.md";
       const markdown = createSampleMarkdown();
       const schema = createCommandSchema();
@@ -214,6 +232,7 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
         markdown,
         schema,
         template,
+        logger,
       );
 
       // Verify SourceFile creation
@@ -544,6 +563,12 @@ priority: urgent
   });
 
   await t.step("should measure performance with large dataset", async () => {
+    const logger = getBreakdownLogger().createTestScope(
+      "PerformanceLargeDataset",
+      "integration"
+    );
+    
+    logger.arrange("Setting up performance test");
     const startTime = performance.now();
     const fileCount = 50;
     const results: Array<{
@@ -555,6 +580,8 @@ priority: urgent
     }> = [];
     const schema = createCommandSchema();
     const template = createCommandTemplate();
+    
+    logger.act("Processing batch of files", { count: fileCount });
 
     // Generate test files
     for (let i = 0; i < fileCount; i++) {
@@ -589,13 +616,31 @@ This is test file number ${i} for performance benchmarking.`;
     const duration = endTime - startTime;
     const averageTime = duration / fileCount;
 
+    logger.assert("Validating performance results", {
+      totalDuration: duration,
+      averageTime,
+      fileCount,
+      successCount: results.length,
+    });
+
     // Performance assertions
     assertEquals(results.length, fileCount);
-    console.log(
-      `Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${
-        averageTime.toFixed(2)
-      }ms per file)`,
-    );
+    
+    // Use logger instead of console.log when enabled
+    if (logger) {
+      logger.assert(
+        `Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${
+          averageTime.toFixed(2)
+        }ms per file)`,
+        { duration, averageTime, fileCount }
+      );
+    } else {
+      console.log(
+        `Processed ${fileCount} files in ${duration.toFixed(2)}ms (avg: ${
+          averageTime.toFixed(2)
+        }ms per file)`,
+      );
+    }
 
     // Should process files reasonably quickly (less than 100ms per file on average)
     assertEquals(
