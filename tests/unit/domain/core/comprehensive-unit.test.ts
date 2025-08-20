@@ -6,7 +6,7 @@ import {
   isOk,
   mapResult,
   type Result,
-} from "../../../src/domain/shared/types.ts";
+} from "../../../../src/domain/shared/types.ts";
 import {
   ConfigPath,
   DocumentPath,
@@ -17,8 +17,8 @@ import {
   SchemaDefinition,
   SchemaVersion,
   TemplateFormat,
-} from "../../../src/domain/models/value-objects.ts";
-import { getBreakdownLogger } from "../../../test/helpers/breakdown-logger.ts";
+} from "../../../../src/domain/models/value-objects.ts";
+import { getBreakdownLogger } from "../../../helpers/breakdown-logger.ts";
 
 // ============================================================================
 // Domain Core Value Objects Comprehensive Tests

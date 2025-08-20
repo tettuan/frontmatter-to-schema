@@ -8,18 +8,18 @@ import {
   RobustSchemaAnalyzer,
   RobustTemplateMapper,
   SchemaMappingStrategy,
-} from "../../../src/domain/core/analysis-engine.ts";
+} from "../../../../src/domain/core/analysis-engine.ts";
 import {
   type AnalysisContext,
   FrontMatterContent,
   SchemaDefinition,
   // ValidFilePath is imported but not used in this test file
-} from "../../../src/domain/core/types.ts";
+} from "../../../../src/domain/core/types.ts";
 import {
   type AnalysisError,
   createDomainError,
   type Result,
-} from "../../../src/domain/core/result.ts";
+} from "../../../../src/domain/core/result.ts";
 
 // Test helper functions
 const createTestFrontMatterContent = (data: Record<string, unknown>) => {

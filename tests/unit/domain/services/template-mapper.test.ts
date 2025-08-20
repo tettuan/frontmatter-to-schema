@@ -1,10 +1,10 @@
 import { assertEquals } from "jsr:@std/assert";
-import { TemplateMapper } from "../../../src/domain/services/template-mapper.ts";
+import { TemplateMapper } from "../../../../src/domain/services/template-mapper.ts";
 import {
   Template,
   TemplateDefinition,
-} from "../../../src/domain/models/template.ts";
-import { isOk } from "../../../src/domain/shared/result.ts";
+} from "../../../../src/domain/models/template.ts";
+import { isOk } from "../../../../src/domain/shared/result.ts";
 
 Deno.test("TemplateMapper", async (t) => {
   const mapper = new TemplateMapper();

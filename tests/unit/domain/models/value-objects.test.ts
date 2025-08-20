@@ -9,8 +9,8 @@ import {
   SchemaDefinition,
   SchemaVersion,
   TemplateFormat,
-} from "../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../src/domain/shared/types.ts";
+} from "../../../../src/domain/models/value-objects.ts";
+import { isError, isOk } from "../../../../src/domain/shared/types.ts";
 
 Deno.test("DocumentPath - Smart Constructor", async (t) => {
   await t.step("should create valid path", () => {

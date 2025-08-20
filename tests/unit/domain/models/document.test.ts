@@ -4,8 +4,8 @@ import {
   DocumentBody,
   DocumentPath,
   FrontMatter,
-} from "../../../src/domain/models/document.ts";
-import { isError, isOk } from "../../../src/domain/shared/result.ts";
+} from "../../../../src/domain/models/document.ts";
+import { isError, isOk } from "../../../../src/domain/shared/result.ts";
 
 Deno.test("DocumentPath", async (t) => {
   await t.step("should create valid document path", () => {
