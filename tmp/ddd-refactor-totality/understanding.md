@@ -3,6 +3,7 @@
 ## 1. 核心概念の理解
 
 ### 1.1 Totality (全域性原則)
+
 - **目的**: 部分関数を全域関数に変換し、型システムで「ありえない状態」を排除
 - **主要パターン**:
   - Discriminated Union（タグ付きユニオン）
@@ -11,6 +12,7 @@
   - `switch`文による網羅的分岐
 
 ### 1.2 Domain-Driven Design
+
 - **Schema可変性**: 実行時にSchemaを注入・切り替え可能
 - **境界設計**:
   - Schema非依存コア（不変領域）
@@ -19,6 +21,7 @@
   - 実行時構成層
 
 ### 1.3 AI複雑化制御
+
 - **エントロピー制御**: 複雑性の自然増大を抑制
 - **重力制御**: 関連機能の適切な凝集
 - **収束制御**: 既存パターンへの収束
@@ -26,6 +29,7 @@
 ## 2. 現在のアーキテクチャ理解
 
 ### 2.1 層構成
+
 ```
 Application Layer (CLI Handler, Config Loader, Error Logger)
     ↓
@@ -37,6 +41,7 @@ Infrastructure Layer (Deno File Reader, Claude API, JSON Writer)
 ```
 
 ### 2.2 主要ドメインエンティティ
+
 - **PromptFile**: パスとコンテンツ、コマンド構造を持つ
 - **FrontmatterData**: Markdownのフロントマター情報
 - **CommandStructure**: c1(domain), c2(directive), c3(layer)の階層構造
@@ -45,6 +50,7 @@ Infrastructure Layer (Deno File Reader, Claude API, JSON Writer)
 ## 3. リファクタリング方針
 
 ### 3.1 Totality適用箇所
+
 1. **オプショナルプロパティの排除**
    - 現状: `{ a?: X; b?: Y }` のような不明確な状態
    - 改善: Discriminated Unionによる明確な状態表現
@@ -58,6 +64,7 @@ Infrastructure Layer (Deno File Reader, Claude API, JSON Writer)
    - 改善: 制約付き値型による不正状態の排除
 
 ### 3.2 DDD境界の明確化
+
 1. **Schema非依存コアの分離**
    - FrontMatter抽出
    - ファイル発見
@@ -76,6 +83,7 @@ Infrastructure Layer (Deno File Reader, Claude API, JSON Writer)
 ## 4. 実装計画
 
 ### 4.1 優先順位
+
 1. **Phase 1**: 型安全性の強化（Totality）
    - Result型の導入
    - Smart Constructorの実装
@@ -92,11 +100,13 @@ Infrastructure Layer (Deno File Reader, Claude API, JSON Writer)
    - CI/CDパイプラインの検証
 
 ### 4.2 リスク管理
+
 - **既存機能の保持**: 段階的リファクタリングで機能を維持
 - **テスト駆動**: 各変更前後でテストを実行
 - **複雑性監視**: エントロピー計算による複雑性制御
 
 ## 5. 次のステップ
+
 1. 現在の実装ファイルを調査
 2. リファクタリング対象ファイルのリスト作成
 3. 各ファイルの修正実施

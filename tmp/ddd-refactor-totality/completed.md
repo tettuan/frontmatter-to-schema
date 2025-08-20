@@ -1,21 +1,27 @@
 # DDD & Totality リファクタリング完了報告
 
 ## 実施日時
+
 2025-08-19
 
 ## 実施内容
 
 ### 1. Totality原則の適用 ✅
+
 - **Result型の完全導入**: エラーハンドリングを全てResult型に統一
 - **Smart Constructorの実装**: 値オブジェクトに制約を強制
-- **Discriminated Unionの活用**: オプショナルプロパティを排除し、明確な状態表現を実現
+- **Discriminated Unionの活用**:
+  オプショナルプロパティを排除し、明確な状態表現を実現
 
 ### 2. DDD境界設計の実装 ✅
-- **Schema非依存コア**: `schema-agnostic.ts` - Schemaを知らない純粋な処理エンジンを実装
+
+- **Schema非依存コア**: `schema-agnostic.ts` -
+  Schemaを知らない純粋な処理エンジンを実装
 - **Schema注入層**: `schema-injection.ts` - 実行時Schema注入を可能にする層を実装
 - **動的Schema管理**: `schema-management.ts` - Schema切り替えと管理機能を実装
 
 ### 3. 新規実装ファイル
+
 1. `src/domain/core/schema-injection.ts`
    - RuntimeSchemaInjector: 実行時Schema注入
    - SchemaContext/TemplateContext/PromptContext: 注入されたSchema情報
@@ -34,22 +40,26 @@
    - SimpleFileDiscovery: Schema非依存のファイル発見
 
 ### 4. 更新ファイル
+
 - `src/domain/core/result.ts`: 新しいエラー型の追加
 - `src/application/climpt/climpt-adapter.ts`: 未使用importの削除
 
 ## 達成された改善点
 
 ### 型安全性の向上
+
 - 部分関数を全域関数に変換
 - 不正な状態を型レベルで排除
 - エラーハンドリングの明示化
 
 ### アーキテクチャの改善
+
 - Schema可変性の実現
 - 境界の明確化（Schema依存/非依存）
 - 実行時Schema注入による柔軟性
 
 ### 複雑性の制御
+
 - エントロピー増大の抑制
 - 既存機能を維持しつつ段階的にリファクタリング
 - AI複雑化制御フレームワークに準拠
@@ -57,12 +67,14 @@
 ## テスト結果
 
 ### 単体テスト ✅
+
 ```
 deno test tests/
 ✅ 55 passed (235 steps)
 ```
 
 ### CI テスト ✅
+
 ```
 deno task ci:dirty
 ✅ Type Check: passed
