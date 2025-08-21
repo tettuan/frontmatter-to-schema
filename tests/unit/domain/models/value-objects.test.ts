@@ -273,7 +273,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     assertEquals(isOk(result), true);
   });
 
-  await t.step("should reject invalid format", () => {
+  await t.step("should reject major.minor format (requires X.Y.Z)", () => {
     const result = SchemaVersion.create("1.0");
     assertEquals(isError(result), true);
     if (isError(result)) {
@@ -281,9 +281,28 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     }
   });
 
-  await t.step("should reject non-numeric versions", () => {
+  await t.step("should reject version with v prefix", () => {
     const result = SchemaVersion.create("v1.0.0");
     assertEquals(isError(result), true);
+    if (isError(result)) {
+      assertEquals(result.error.kind, "PatternMismatch");
+    }
+  });
+
+  await t.step("should reject single number version", () => {
+    const result = SchemaVersion.create("2");
+    assertEquals(isError(result), true);
+    if (isError(result)) {
+      assertEquals(result.error.kind, "PatternMismatch");
+    }
+  });
+
+  await t.step("should reject invalid format", () => {
+    const result = SchemaVersion.create("invalid-version");
+    assertEquals(isError(result), true);
+    if (isError(result)) {
+      assertEquals(result.error.kind, "PatternMismatch");
+    }
   });
 });
 

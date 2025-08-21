@@ -253,28 +253,34 @@ export class SchemaVersion {
   static create(
     version: string,
   ): Result<SchemaVersion, ValidationError & { message: string }> {
-    const pattern = /^(\d+)\.(\d+)\.(\d+)$/;
-    const match = version.match(pattern);
+    // Strict semantic versioning validation
+    // Only accept proper semantic version format: X.Y.Z
+    const trimmedVersion = version.trim();
 
-    if (!match) {
+    // Check for valid semantic version pattern (X.Y.Z)
+    const strictPattern = /^(\d+)\.(\d+)\.(\d+)$/;
+    const match = trimmedVersion.match(strictPattern);
+
+    if (match) {
+      const [, major, minor, patch] = match;
       return {
-        ok: false,
-        error: createError({
-          kind: "PatternMismatch",
-          pattern: "X.Y.Z",
-          input: version,
-        }),
+        ok: true,
+        data: new SchemaVersion(
+          parseInt(major),
+          parseInt(minor),
+          parseInt(patch),
+        ),
       };
     }
 
-    const [, major, minor, patch] = match;
+    // Reject invalid formats
     return {
-      ok: true,
-      data: new SchemaVersion(
-        parseInt(major),
-        parseInt(minor),
-        parseInt(patch),
-      ),
+      ok: false,
+      error: createError({
+        kind: "PatternMismatch",
+        pattern: "X.Y.Z (semantic version)",
+        input: version,
+      }),
     };
   }
 
