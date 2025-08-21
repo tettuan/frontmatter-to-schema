@@ -91,7 +91,9 @@ async function main() {
   }).flat();
 
   // Debug logging if needed
-  if (Deno.env.get("FRONTMATTER_DEBUG")) {
+  const debugMode = Deno.env.get("FRONTMATTER_TO_SCHEMA_DEBUG") === "true" ||
+    Deno.env.get("FRONTMATTER_DEBUG") === "true"; // backward compatibility
+  if (debugMode) {
     console.log("Raw args:", Deno.args);
     console.log("Processed args:", processedArgs);
   }
@@ -176,7 +178,9 @@ async function main() {
 
     // Load prompts and create analyzer
     const prompts = await loadPromptTemplates();
-    const useMock = Deno.env.get("FRONTMATTER_TEST_MODE") === "true";
+    const useMock =
+      Deno.env.get("FRONTMATTER_TO_SCHEMA_TEST_MODE") === "true" ||
+      Deno.env.get("FRONTMATTER_TEST_MODE") === "true"; // backward compatibility
     const schemaAnalyzer = useMock
       ? new MockSchemaAnalyzer(
         { aiProvider: "mock", aiConfig: {} },
