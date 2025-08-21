@@ -1,5 +1,0 @@
-#!/bin/bash
-
-# exec deno run --env --allow-read --allow-write --allow-env --allow-run "https://raw.githubusercontent.com/tettuan/frontmatter-to-schema/main/cli.ts" "$@"
-deno run --allow-read --allow-write --allow-env --allow-run
-  https://raw.githubusercontent.com/tettuan/frontmatter-to-schema/main/cli.ts

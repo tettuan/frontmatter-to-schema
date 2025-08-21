@@ -58,7 +58,6 @@ chmod +x examples/02-cli-advanced.sh
 ./examples/02-cli-advanced.sh
 ```
 
-
 ## 📁 Sample Data
 
 ### Input Directories
