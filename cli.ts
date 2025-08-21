@@ -228,9 +228,11 @@ async function main() {
       console.log(`💾 Output saved to: ${result.data.outputPath}`);
     } else {
       console.error("\n❌ Processing failed:", result.error.message);
-      
+
       // Show more details for ConfigurationInvalid errors
-      if (result.error.kind === "ConfigurationInvalid" && "errors" in result.error) {
+      if (
+        result.error.kind === "ConfigurationInvalid" && "errors" in result.error
+      ) {
         console.error("\nConfiguration errors:");
         for (const err of result.error.errors) {
           if ("path" in err && "reason" in err) {
@@ -240,13 +242,13 @@ async function main() {
           }
         }
       }
-      
+
       // Show debug info if debug mode is enabled
       if (debugMode) {
         console.error("\nDebug info:");
         console.error(JSON.stringify(result.error, null, 2));
       }
-      
+
       Deno.exit(1);
     }
   } catch (error) {

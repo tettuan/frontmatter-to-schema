@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ci status check
-./scripts/ci-with-issue-creation.sh
+scripts/ci-with-issue-creation.sh
 ci_status=$?
 
 # github status check
