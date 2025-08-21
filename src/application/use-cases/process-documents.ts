@@ -59,6 +59,16 @@ export class ProcessDocumentsUseCase {
     // Load schema
     const schemaResult = await this.schemaRepo.load(config.schemaPath);
     if (isError(schemaResult)) {
+      // Provide more specific error message
+      let reason = "Failed to load schema";
+      if (schemaResult.error.kind === "FileNotFound") {
+        reason = "Schema file not found";
+      } else if (schemaResult.error.kind === "ReadError" && schemaResult.error.reason) {
+        reason = `Schema load error: ${schemaResult.error.reason}`;
+      } else if (schemaResult.error.message) {
+        reason = schemaResult.error.message;
+      }
+      
       return {
         ok: false,
         error: createError({
@@ -66,7 +76,7 @@ export class ProcessDocumentsUseCase {
           errors: [{
             kind: "InvalidPath",
             path: config.schemaPath.getValue(),
-            reason: "Failed to load schema",
+            reason,
           }],
         }),
       };
@@ -76,6 +86,16 @@ export class ProcessDocumentsUseCase {
     // Load template
     const templateResult = await this.templateRepo.load(config.templatePath);
     if (isError(templateResult)) {
+      // Provide more specific error message
+      let reason = "Failed to load template";
+      if (templateResult.error.kind === "FileNotFound") {
+        reason = "Template file not found";
+      } else if (templateResult.error.kind === "ReadError" && templateResult.error.reason) {
+        reason = `Template load error: ${templateResult.error.reason}`;
+      } else if (templateResult.error.message) {
+        reason = templateResult.error.message;
+      }
+      
       return {
         ok: false,
         error: createError({
@@ -83,7 +103,7 @@ export class ProcessDocumentsUseCase {
           errors: [{
             kind: "InvalidPath",
             path: config.templatePath.getValue(),
-            reason: "Failed to load template",
+            reason,
           }],
         }),
       };
@@ -95,6 +115,16 @@ export class ProcessDocumentsUseCase {
       config.documentsPath,
     );
     if (isError(documentsResult)) {
+      // Provide more specific error message
+      let reason = "Failed to find documents";
+      if (documentsResult.error.kind === "FileNotFound") {
+        reason = "Documents directory not found";
+      } else if (documentsResult.error.kind === "ReadError" && documentsResult.error.reason) {
+        reason = `Documents load error: ${documentsResult.error.reason}`;
+      } else if (documentsResult.error.message) {
+        reason = documentsResult.error.message;
+      }
+      
       return {
         ok: false,
         error: createError({
@@ -102,7 +132,7 @@ export class ProcessDocumentsUseCase {
           errors: [{
             kind: "InvalidPath",
             path: config.documentsPath.getValue(),
-            reason: "Failed to find documents",
+            reason,
           }],
         }),
       };
