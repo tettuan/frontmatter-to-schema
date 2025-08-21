@@ -184,10 +184,43 @@ export class ConfigurationLoader
   ): Promise<Result<Schema, IOError & { message: string }>> {
     try {
       const schemaPath = path.getValue();
-      const content = await Deno.readTextFile(schemaPath);
-      const schemaData = JSON.parse(content);
+      let content: string;
 
-      const idResult = SchemaId.create(schemaData.id || "default-schema");
+      try {
+        content = await Deno.readTextFile(schemaPath);
+      } catch (error) {
+        if (error instanceof Deno.errors.NotFound) {
+          return {
+            ok: false,
+            error: createError({
+              kind: "FileNotFound",
+              path: schemaPath,
+              message: `Schema file not found: ${schemaPath}`,
+            }),
+          };
+        }
+        throw error;
+      }
+
+      let schemaData: unknown;
+      try {
+        schemaData = JSON.parse(content);
+      } catch (error) {
+        return {
+          ok: false,
+          error: createError({
+            kind: "ReadError",
+            path: schemaPath,
+            reason: `Invalid JSON in schema file: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            message: `Failed to parse schema JSON from ${schemaPath}`,
+          }),
+        };
+      }
+
+      const data = schemaData as Record<string, unknown>;
+      const idResult = SchemaId.create((data.id as string) || "default-schema");
       if (!idResult.ok) {
         return {
           ok: false,
@@ -195,13 +228,14 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema ID",
+            message: "Schema contains invalid ID field",
           }),
         };
       }
 
       const definitionResult = SchemaDefinition.create(
-        schemaData.properties || schemaData,
-        schemaData.version || "1.0.0",
+        data.properties || data,
+        (data.version as string) || "1.0.0",
       );
       if (!definitionResult.ok) {
         return {
@@ -210,11 +244,14 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema definition",
+            message: "Schema structure is invalid",
           }),
         };
       }
 
-      const versionResult = SchemaVersion.create(schemaData.version || "1.0.0");
+      const versionResult = SchemaVersion.create(
+        (data.version as string) || "1.0.0",
+      );
       if (!versionResult.ok) {
         return {
           ok: false,
@@ -222,6 +259,7 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema version",
+            message: "Schema version format is invalid",
           }),
         };
       }
@@ -230,23 +268,20 @@ export class ConfigurationLoader
         idResult.data,
         definitionResult.data,
         versionResult.data,
-        schemaData.description || "",
+        (data.description as string) || "",
       );
 
       return { ok: true, data: schema };
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createError({ kind: "FileNotFound", path: path.getValue() }),
-        };
-      }
       return {
         ok: false,
         error: createError({
           kind: "ReadError",
           path: path.getValue(),
           reason: error instanceof Error ? error.message : "Unknown error",
+          message: `Unexpected error loading schema: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
         }),
       };
     }
@@ -320,7 +355,23 @@ export class TemplateLoader implements TemplateRepository {
   ): Promise<Result<Template, IOError & { message: string }>> {
     try {
       const templatePath = path.getValue();
-      const content = await Deno.readTextFile(templatePath);
+      let content: string;
+
+      try {
+        content = await Deno.readTextFile(templatePath);
+      } catch (error) {
+        if (error instanceof Deno.errors.NotFound) {
+          return {
+            ok: false,
+            error: createError({
+              kind: "FileNotFound",
+              path: templatePath,
+              message: `Template file not found: ${templatePath}`,
+            }),
+          };
+        }
+        throw error;
+      }
 
       // Detect format
       let format: "json" | "yaml" | "toml";
@@ -402,18 +453,15 @@ export class TemplateLoader implements TemplateRepository {
 
       return { ok: true, data: template };
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createError({ kind: "FileNotFound", path: path.getValue() }),
-        };
-      }
       return {
         ok: false,
         error: createError({
           kind: "ReadError",
           path: path.getValue(),
           reason: error instanceof Error ? error.message : "Unknown error",
+          message: `Unexpected error loading template: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
         }),
       };
     }

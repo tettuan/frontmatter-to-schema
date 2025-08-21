@@ -63,12 +63,14 @@ export class ProcessDocumentsUseCase {
       let reason = "Failed to load schema";
       if (schemaResult.error.kind === "FileNotFound") {
         reason = "Schema file not found";
-      } else if (schemaResult.error.kind === "ReadError" && schemaResult.error.reason) {
+      } else if (
+        schemaResult.error.kind === "ReadError" && schemaResult.error.reason
+      ) {
         reason = `Schema load error: ${schemaResult.error.reason}`;
       } else if (schemaResult.error.message) {
         reason = schemaResult.error.message;
       }
-      
+
       return {
         ok: false,
         error: createError({
@@ -90,12 +92,14 @@ export class ProcessDocumentsUseCase {
       let reason = "Failed to load template";
       if (templateResult.error.kind === "FileNotFound") {
         reason = "Template file not found";
-      } else if (templateResult.error.kind === "ReadError" && templateResult.error.reason) {
+      } else if (
+        templateResult.error.kind === "ReadError" && templateResult.error.reason
+      ) {
         reason = `Template load error: ${templateResult.error.reason}`;
       } else if (templateResult.error.message) {
         reason = templateResult.error.message;
       }
-      
+
       return {
         ok: false,
         error: createError({
@@ -119,12 +123,15 @@ export class ProcessDocumentsUseCase {
       let reason = "Failed to find documents";
       if (documentsResult.error.kind === "FileNotFound") {
         reason = "Documents directory not found";
-      } else if (documentsResult.error.kind === "ReadError" && documentsResult.error.reason) {
+      } else if (
+        documentsResult.error.kind === "ReadError" &&
+        documentsResult.error.reason
+      ) {
         reason = `Documents load error: ${documentsResult.error.reason}`;
       } else if (documentsResult.error.message) {
         reason = documentsResult.error.message;
       }
-      
+
       return {
         ok: false,
         error: createError({
