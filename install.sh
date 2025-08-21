@@ -34,20 +34,27 @@ BIN_DIR="${INSTALL_ROOT}/bin"
 BINARY_NAME="${FRONTMATTER_TO_SCHEMA_BINARY_NAME:-frontmatter-to-schema}"
 GITHUB_TOKEN="${FRONTMATTER_TO_SCHEMA_GITHUB_TOKEN:-}"
 
-# Create temporary directory for installation
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+# Set installation directory in user's home
+REPO_INSTALL_DIR="$HOME/.frontmatter-to-schema"
 
-echo "📥 Cloning repository from GitHub (branch: $BRANCH)..."
+echo "📥 Installing from GitHub (branch: $BRANCH)..."
+
+# Remove old installation if exists
+if [ -d "$REPO_INSTALL_DIR" ]; then
+    echo "🔄 Updating existing installation..."
+    rm -rf "$REPO_INSTALL_DIR"
+fi
+
+# Clone repository to permanent location
 # Use GitHub token if available for private repos or to avoid rate limits
 if [ -n "$GITHUB_TOKEN" ]; then
-    git clone --quiet --depth 1 --branch "$BRANCH" "https://${GITHUB_TOKEN}@github.com/tettuan/frontmatter-to-schema.git" "$TEMP_DIR"
+    git clone --quiet --depth 1 --branch "$BRANCH" "https://${GITHUB_TOKEN}@github.com/tettuan/frontmatter-to-schema.git" "$REPO_INSTALL_DIR"
 else
-    git clone --quiet --depth 1 --branch "$BRANCH" "$GITHUB_REPO.git" "$TEMP_DIR"
+    git clone --quiet --depth 1 --branch "$BRANCH" "$GITHUB_REPO.git" "$REPO_INSTALL_DIR"
 fi
 
 # Check if cli.ts exists
-if [ ! -f "$TEMP_DIR/cli.ts" ]; then
+if [ ! -f "$REPO_INSTALL_DIR/cli.ts" ]; then
     echo "❌ Error: cli.ts not found in repository"
     exit 1
 fi
@@ -61,14 +68,16 @@ if [ -n "$FRONTMATTER_TO_SCHEMA_PERMISSIONS" ]; then
     PERMISSIONS="$FRONTMATTER_TO_SCHEMA_PERMISSIONS"
 fi
 
-# Install using deno install
+# Install using deno install with the permanent location
 echo "🔧 Installing to ${BIN_DIR}/${BINARY_NAME}"
-cd "$TEMP_DIR"
+mkdir -p "$BIN_DIR"
+
 DENO_INSTALL_ROOT="$INSTALL_ROOT" deno install \
+    --global \
     $PERMISSIONS \
     --name "$BINARY_NAME" \
     --force \
-    "./cli.ts"
+    "$REPO_INSTALL_DIR/cli.ts"
 
 echo ""
 echo "✅ Installation complete!"
