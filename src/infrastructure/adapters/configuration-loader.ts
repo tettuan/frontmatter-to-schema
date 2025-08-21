@@ -195,8 +195,7 @@ export class ConfigurationLoader
             error: createError({
               kind: "FileNotFound",
               path: schemaPath,
-              message: `Schema file not found: ${schemaPath}`,
-            }),
+            }, `Schema file not found: ${schemaPath}`),
           };
         }
         throw error;
@@ -211,11 +210,10 @@ export class ConfigurationLoader
           error: createError({
             kind: "ReadError",
             path: schemaPath,
-            reason: `Invalid JSON in schema file: ${
+            reason: `Invalid JSON: ${
               error instanceof Error ? error.message : "Unknown error"
             }`,
-            message: `Failed to parse schema JSON from ${schemaPath}`,
-          }),
+          }, `Failed to parse schema JSON from ${schemaPath}`),
         };
       }
 
@@ -228,8 +226,7 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema ID",
-            message: "Schema contains invalid ID field",
-          }),
+          }, "Schema contains invalid ID field"),
         };
       }
 
@@ -244,8 +241,7 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema definition",
-            message: "Schema structure is invalid",
-          }),
+          }, "Schema structure is invalid"),
         };
       }
 
@@ -259,8 +255,7 @@ export class ConfigurationLoader
             kind: "ReadError",
             path: schemaPath,
             reason: "Invalid schema version",
-            message: "Schema version format is invalid",
-          }),
+          }, "Schema version format is invalid"),
         };
       }
 
@@ -275,14 +270,16 @@ export class ConfigurationLoader
     } catch (error) {
       return {
         ok: false,
-        error: createError({
-          kind: "ReadError",
-          path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
-          message: `Unexpected error loading schema: ${
+        error: createError(
+          {
+            kind: "ReadError",
+            path: path.getValue(),
+            reason: error instanceof Error ? error.message : "Unknown error",
+          },
+          `Unexpected error loading schema: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
-        }),
+        ),
       };
     }
   }
@@ -366,8 +363,7 @@ export class TemplateLoader implements TemplateRepository {
             error: createError({
               kind: "FileNotFound",
               path: templatePath,
-              message: `Template file not found: ${templatePath}`,
-            }),
+            }, `Template file not found: ${templatePath}`),
           };
         }
         throw error;
@@ -455,14 +451,16 @@ export class TemplateLoader implements TemplateRepository {
     } catch (error) {
       return {
         ok: false,
-        error: createError({
-          kind: "ReadError",
-          path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
-          message: `Unexpected error loading template: ${
+        error: createError(
+          {
+            kind: "ReadError",
+            path: path.getValue(),
+            reason: error instanceof Error ? error.message : "Unknown error",
+          },
+          `Unexpected error loading template: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
-        }),
+        ),
       };
     }
   }

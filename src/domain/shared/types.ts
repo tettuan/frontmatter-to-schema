@@ -1,5 +1,11 @@
 // Core domain types following totality principle
 
+import {
+  type ErrorCode,
+  ErrorMessages,
+  getErrorCode,
+} from "./error-messages.ts";
+
 export type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
@@ -36,38 +42,105 @@ export type AIError =
 export function createError<E extends { kind: string }>(
   error: E,
   message?: string,
-): E & { message: string } {
+): E & { message: string; code: ErrorCode } {
+  const code = getErrorCode(error.kind);
   return {
     ...error,
-    message: message ?? getDefaultMessage(error),
+    code,
+    message: message ?? getDefaultMessage(error, code),
   };
 }
 
 function getDefaultMessage(
   error: { kind: string; [key: string]: unknown },
+  code: ErrorCode,
 ): string {
-  switch (error.kind) {
-    case "EmptyInput":
-      return "Input cannot be empty";
-    case "InvalidFormat":
-      return `Invalid format, expected ${error["format"]}, got: ${
-        error["input"]
-      }`;
-    case "PatternMismatch":
-      return `Input does not match pattern ${error["pattern"]}: ${
-        error["input"]
-      }`;
-    case "OutOfRange":
-      return `Value ${error["value"]} is out of range`;
-    case "InvalidPath":
-      return `Invalid path: ${error["path"]} - ${error["reason"]}`;
-    case "FileNotFound":
-      return `File not found: ${error["path"]}`;
-    case "PermissionDenied":
-      return `Permission denied: ${error["path"]}`;
-    default:
-      return `Error: ${error.kind}`;
-  }
+  const baseMessage = (() => {
+    switch (error.kind) {
+      case "EmptyInput":
+        return ErrorMessages.EMPTY_INPUT;
+      case "InvalidFormat":
+        return ErrorMessages.INVALID_FORMAT(
+          String(error["format"]),
+          String(error["input"]),
+        );
+      case "PatternMismatch":
+        return ErrorMessages.PATTERN_MISMATCH(
+          String(error["pattern"]),
+          String(error["input"]),
+        );
+      case "OutOfRange":
+        return ErrorMessages.OUT_OF_RANGE(
+          error["value"],
+          error["min"] as number | undefined,
+          error["max"] as number | undefined,
+        );
+      case "InvalidPath":
+        return ErrorMessages.INVALID_PATH(
+          String(error["path"]),
+          String(error["reason"]),
+        );
+      case "FileNotFound":
+        return ErrorMessages.FILE_NOT_FOUND(String(error["path"]));
+      case "PermissionDenied":
+        return ErrorMessages.PERMISSION_DENIED(String(error["path"]));
+      case "ReadError":
+        return ErrorMessages.READ_ERROR(
+          String(error["path"]),
+          String(error["reason"]),
+        );
+      case "WriteError":
+        return ErrorMessages.WRITE_ERROR(
+          String(error["path"]),
+          String(error["reason"]),
+        );
+      case "SchemaValidation":
+        return ErrorMessages.SCHEMA_VALIDATION(error["errors"] as unknown[]);
+      case "TemplateValidation":
+        return ErrorMessages.TEMPLATE_VALIDATION(error["errors"] as unknown[]);
+      case "ExtractionFailed":
+        return ErrorMessages.EXTRACTION_FAILED(
+          String(error["document"]),
+          String(error["reason"]),
+        );
+      case "AnalysisFailed":
+        return ErrorMessages.ANALYSIS_FAILED(
+          String(error["document"]),
+          String(error["reason"]),
+        );
+      case "MappingFailed":
+        return ErrorMessages.MAPPING_FAILED(
+          String(error["document"]),
+          String(error["reason"]),
+        );
+      case "AggregationFailed":
+        return ErrorMessages.AGGREGATION_FAILED(String(error["reason"]));
+      case "ConfigurationInvalid":
+        return ErrorMessages.CONFIGURATION_INVALID(
+          error["errors"] as unknown[],
+        );
+      case "PromptTooLong":
+        return ErrorMessages.PROMPT_TOO_LONG(
+          Number(error["length"]),
+          Number(error["maxLength"]),
+        );
+      case "APIError":
+        return ErrorMessages.API_ERROR(
+          String(error["message"]),
+          error["code"] as string | undefined,
+        );
+      case "RateLimited":
+        return ErrorMessages.RATE_LIMITED(
+          error["retryAfter"] as number | undefined,
+        );
+      case "InvalidResponse":
+        return ErrorMessages.INVALID_RESPONSE(String(error["response"]));
+      default:
+        return `Error: ${error.kind}`;
+    }
+  })();
+
+  return `[${code}] ${baseMessage}`;
 }
 
 // Result combinators
