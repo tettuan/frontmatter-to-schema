@@ -1,10 +1,12 @@
 # Frontmatter to Schema CLI Examples
 
-This directory contains examples demonstrating how to use the frontmatter-to-schema CLI tool.
+This directory contains examples demonstrating how to use the
+frontmatter-to-schema CLI tool.
 
 ## 🚀 Quick Start
 
-The CLI tool processes markdown files with frontmatter and transforms them according to schemas and templates:
+The CLI tool processes markdown files with frontmatter and transforms them
+according to schemas and templates:
 
 ```bash
 # Basic usage
@@ -24,11 +26,13 @@ frontmatter-to-schema examples/sample-docs \
 Basic CLI usage examples demonstrating common use cases.
 
 **Features:**
+
 - Process with configuration file
 - Process articles with YAML template
 - Display help information
 
 **Usage:**
+
 ```bash
 chmod +x examples/01-cli-basic.sh
 ./examples/01-cli-basic.sh
@@ -41,95 +45,30 @@ chmod +x examples/01-cli-basic.sh
 Advanced CLI usage patterns including batch processing and error handling.
 
 **Features:**
+
 - Process multiple directories
 - Custom output formats
 - Error handling strategies
 - Batch processing with validation
 
 **Usage:**
+
 ```bash
 chmod +x examples/02-cli-advanced.sh
 ./examples/02-cli-advanced.sh
 ```
 
----
-
-### 03-cli-programmatic.ts
-
-Demonstrates programmatic usage of the CLI from TypeScript/JavaScript.
-
-**Features:**
-- Execute CLI from TypeScript
-- Process multiple configurations
-- Handle errors programmatically
-- Generate summary reports
-
-**Usage:**
-```bash
-deno run --allow-read --allow-write --allow-run examples/03-cli-programmatic.ts
-```
-
-## 📂 Legacy Examples (Programmatic API)
-
-The following examples demonstrate direct API usage (without CLI):
-
-### 01-build-registry.ts
-Builds a command registry by scanning climpt prompt files.
-
-```bash
-deno run --allow-read --allow-write examples/01-build-registry.ts
-```
-
-### 02-parse-frontmatter.ts
-Demonstrates frontmatter extraction and parsing from markdown files.
-
-```bash
-deno run --allow-read examples/02-parse-frontmatter.ts
-```
-
-### 03-create-registry.ts
-Creates a complete MCP registry with sample commands.
-
-```bash
-deno run --allow-read --allow-write examples/03-create-registry.ts
-```
-
-### 04-complete-flow.ts
-Demonstrates the complete document processing pipeline.
-
-```bash
-deno run --allow-read --allow-write --allow-env --allow-run examples/04-complete-flow.ts
-```
-
-### 05-climpt-registry.ts
-Processes climpt prompts to generate registry.
-
-```bash
-deno run --allow-read --allow-write --allow-env --allow-run examples/05-climpt-registry.ts
-```
-
-### 06-redesigned-architecture.ts
-Demonstrates the redesigned DDD architecture.
-
-```bash
-deno run --allow-read --allow-write --allow-env --allow-run examples/06-redesigned-architecture.ts
-```
-
-### 07-configuration-flexibility.ts
-Shows configuration flexibility and schema variability.
-
-```bash
-deno run --allow-read --allow-write --allow-env --allow-run examples/07-configuration-flexibility.ts
-```
 
 ## 📁 Sample Data
 
 ### Input Directories
+
 - `sample-docs/` - Sample markdown documents
 - `alternative-structure/` - Alternative command structure
 - `.agent/climpt/prompts/` - Climpt prompt files
 
 ### Configuration Files
+
 - `climpt-registry/` - Climpt registry configuration
   - `schema.json` - JSON schema for validation
   - `template.json` - Output template
@@ -139,6 +78,7 @@ deno run --allow-read --allow-write --allow-env --allow-run examples/07-configur
   - `template.yaml` - YAML output template
 
 ### Output Directory
+
 - `output/` - Generated files from examples
   - `*.json` - JSON output files
   - `*.yaml` - YAML output files
@@ -152,7 +92,7 @@ deno run --allow-read --allow-write --allow-env --allow-run examples/07-configur
 
 ## 💡 Tips
 
-1. **Make CLI executable**: 
+1. **Make CLI executable**:
    ```bash
    chmod +x frontmatter-to-schema
    ```
@@ -181,6 +121,7 @@ deno run --allow-read --allow-write --allow-env --allow-run examples/07-configur
 ## 🧪 Testing
 
 Run all examples:
+
 ```bash
 ./examples/run-all.sh
 ```

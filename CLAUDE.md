@@ -4,6 +4,17 @@
   `climpt-*` command as a language. After execution, follow the instructions
   displayed in STDIN.
 
+## When MCP response empty
+
+```
+climpt - spec (MCP)(args: ["analyze","quality-metrics","default"])
+  ⎿
+```
+
+see options. "analyze","quality-metrics" is correct. or, change to
+["analyze","quality-metrics","-i=default"] or
+["analyze","quality-metrics","-a=default"]
+
 # About Project
 
 This project is a Markdown FrontMatter parser that utilizes `claude -p` with a

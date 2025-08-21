@@ -20,7 +20,15 @@ export class DenoDocumentRepository implements DocumentRepository {
     path: DocumentPath,
   ): Promise<Result<Document[], IOError & { message: string }>> {
     const documents: Document[] = [];
-    const dirPath = path.getValue();
+    const pathValue = path.getValue();
+
+    // Extract directory from glob pattern (e.g., "dir/*.md" -> "dir")
+    let dirPath = pathValue;
+    if (pathValue.includes("*.md") || pathValue.includes("*.markdown")) {
+      // Remove the glob pattern to get the directory
+      dirPath = pathValue.replace(/\/?\*\.(md|markdown)$/, "");
+      if (!dirPath) dirPath = ".";
+    }
 
     try {
       // Check if path exists

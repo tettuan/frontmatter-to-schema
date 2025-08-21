@@ -46,8 +46,7 @@ export class DocumentPath {
     }
 
     // Accept both individual markdown files and glob patterns for directories
-    const isValidPath = 
-      trimmedPath.endsWith(".md") || 
+    const isValidPath = trimmedPath.endsWith(".md") ||
       trimmedPath.endsWith(".markdown") ||
       trimmedPath.endsWith("/*.md") ||
       trimmedPath.endsWith("/*.markdown") ||
@@ -59,7 +58,8 @@ export class DocumentPath {
         ok: false,
         error: createError({
           kind: "InvalidFormat",
-          format: "*.md, *.markdown, or directory glob pattern (e.g., dir/*.md)",
+          format:
+            "*.md, *.markdown, or directory glob pattern (e.g., dir/*.md)",
           input: trimmedPath,
         }),
       };

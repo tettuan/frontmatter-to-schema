@@ -169,7 +169,7 @@ export interface AnalysisConfiguration {
   promptsPath?: ConfigPath;
   extractionPrompt?: string;
   mappingPrompt?: string;
-  aiProvider: "claude" | "openai" | "local";
+  aiProvider: "claude" | "openai" | "local" | "mock";
   aiConfig: {
     apiKey?: string;
     model?: string;

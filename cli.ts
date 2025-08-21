@@ -18,6 +18,7 @@ import { join } from "jsr:@std/path@1.1.2";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./src/infrastructure/adapters/claude-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-schema-analyzer.ts";
 import { SimpleTemplateMapper } from "./src/infrastructure/adapters/simple-template-mapper.ts";
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
@@ -81,9 +82,9 @@ Return ONLY a JSON object with the mapped data.`,
 
 async function main() {
   // Pre-process args to handle --key=value format
-  const processedArgs = Deno.args.map(arg => {
-    if (arg.startsWith('--') && arg.includes('=')) {
-      const [key, value] = arg.split('=', 2);
+  const processedArgs = Deno.args.map((arg) => {
+    if (arg.startsWith("--") && arg.includes("=")) {
+      const [key, value] = arg.split("=", 2);
       return [key, value];
     }
     return arg;
@@ -128,16 +129,18 @@ async function main() {
     // DocumentPath expects markdown files, but CLI accepts directories
     // So we need to handle this differently
     const documentsPathResult = DocumentPath.create(
-      markdownDir.endsWith(".md") || markdownDir.endsWith(".markdown") 
-        ? markdownDir 
-        : `${markdownDir}/*.md`
+      markdownDir.endsWith(".md") || markdownDir.endsWith(".markdown")
+        ? markdownDir
+        : `${markdownDir}/*.md`,
     );
     const schemaPathResult = ConfigPath.create(schemaPath);
     const templatePathResult = ConfigPath.create(templatePath);
-    
+
     // Determine output filename based on template extension
-    const templateExt = templatePath.endsWith(".yaml") || templatePath.endsWith(".yml") 
-      ? "yaml" : "json";
+    const templateExt =
+      templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+        ? "yaml"
+        : "json";
     const outputFileName = `registry.${templateExt}`;
     const outputPathResult = OutputPath.create(
       join(destinationDir, outputFileName),
@@ -173,11 +176,18 @@ async function main() {
 
     // Load prompts and create analyzer
     const prompts = await loadPromptTemplates();
-    const schemaAnalyzer = new ClaudeSchemaAnalyzer(
-      { aiProvider: "claude", aiConfig: {} },
-      prompts.extraction,
-      prompts.mapping,
-    );
+    const useMock = Deno.env.get("FRONTMATTER_TEST_MODE") === "true";
+    const schemaAnalyzer = useMock
+      ? new MockSchemaAnalyzer(
+        { aiProvider: "mock", aiConfig: {} },
+        prompts.extraction,
+        prompts.mapping,
+      )
+      : new ClaudeSchemaAnalyzer(
+        { aiProvider: "claude", aiConfig: {} },
+        prompts.extraction,
+        prompts.mapping,
+      );
 
     // Create use case
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
