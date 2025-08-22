@@ -34,8 +34,10 @@ export class MockSchemaAnalyzer implements SchemaAnalyzer {
       // Minimal async operation to satisfy linter
       await Promise.resolve();
 
-      if (Deno.env.get("FRONTMATTER_DEBUG")) {
-        console.log("Mock analyzer - rawYamlContent:", rawYamlContent);
+      const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+      
+      if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
+        console.log("🔍 [DEBUG] Mock analyzer - rawYamlContent:", rawYamlContent);
       }
 
       const parsedData = parse(rawYamlContent) as Record<string, unknown>;
@@ -48,14 +50,24 @@ export class MockSchemaAnalyzer implements SchemaAnalyzer {
         _mock: true,
       };
 
-      if (Deno.env.get("FRONTMATTER_DEBUG")) {
-        console.log("Mock analyzer - mockResult:", mockResult);
+      if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
+        console.log("🔍 [DEBUG] Mock analyzer - mockResult:", mockResult);
+        console.log("🔍 [DEBUG] Creating ExtractedData from mockResult...");
       }
 
-      return { ok: true, data: ExtractedData.create(mockResult) };
+      const extractedData = ExtractedData.create(mockResult);
+      
+      if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
+        console.log("🔍 [DEBUG] ExtractedData created successfully");
+        console.log("🔍 [DEBUG] Returning success result");
+      }
+
+      return { ok: true, data: extractedData };
     } catch (error) {
-      if (Deno.env.get("FRONTMATTER_DEBUG")) {
-        console.log("Mock analyzer error:", error);
+      const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+      if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
+        console.log("❌ [DEBUG] Mock analyzer error:", error);
+        console.log("❌ [DEBUG] Error stack:", error instanceof Error ? error.stack : "no stack");
       }
       return {
         ok: false,

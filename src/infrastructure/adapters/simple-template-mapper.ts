@@ -29,10 +29,14 @@ export class SimpleTemplateMapper implements TemplateMapper {
 
       if (format === "json") {
         const templateData = this.parseJSONTemplate(templateStr);
-        finalData = this.mergeWithTemplate(mappedData, templateData);
+        // Replace placeholders in template with actual values
+        const processedTemplate = this.replacePlaceholders(templateData, mappedData) as Record<string, unknown>;
+        finalData = this.mergeWithTemplate(mappedData, processedTemplate);
       } else if (format === "yaml") {
         const templateData = this.parseYAMLTemplate(templateStr);
-        finalData = this.mergeWithTemplate(mappedData, templateData);
+        // Replace placeholders in template with actual values
+        const processedTemplate = this.replacePlaceholders(templateData, mappedData) as Record<string, unknown>;
+        finalData = this.mergeWithTemplate(mappedData, processedTemplate);
       } else {
         // For other formats, use mapped data directly
         finalData = mappedData;
@@ -149,5 +153,37 @@ export class SimpleTemplateMapper implements TemplateMapper {
     }
 
     return result;
+  }
+
+  private replacePlaceholders(
+    templateData: unknown,
+    mappedData: Record<string, unknown>,
+  ): unknown {
+    if (typeof templateData === "string") {
+      // Replace {{placeholder}} patterns with actual values
+      let result = templateData;
+      for (const [key, value] of Object.entries(mappedData)) {
+        const placeholder = `{{${key}}}`;
+        if (result.includes(placeholder)) {
+          result = result.replace(
+            new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+            String(value ?? '')
+          );
+        }
+      }
+      return result;
+    } else if (Array.isArray(templateData)) {
+      // Process arrays recursively
+      return templateData.map(item => this.replacePlaceholders(item, mappedData));
+    } else if (typeof templateData === "object" && templateData !== null) {
+      // Process objects recursively
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(templateData)) {
+        result[key] = this.replacePlaceholders(value, mappedData);
+      }
+      return result;
+    }
+    // Return primitive values as-is
+    return templateData;
   }
 }

@@ -405,13 +405,17 @@ export class ProcessDocumentsUseCase {
       schema,
     );
     if (verboseMode) {
-      console.log(`✅ [VERBOSE] AI analysis completed for: ${docPath}`);
+      console.log(`🔍 [DEBUG] AI analysis result:`, extractedResult);
     }
     if (isError(extractedResult)) {
       if (verboseMode) {
         console.log(`❌ [VERBOSE] AI analysis failed for: ${docPath}`);
+        console.log(`❌ [DEBUG] Error details:`, extractedResult.error);
       }
       return extractedResult;
+    }
+    if (verboseMode) {
+      console.log(`✅ [VERBOSE] AI analysis successful for: ${docPath}`);
     }
 
     // Map to template

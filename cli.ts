@@ -190,15 +190,21 @@ async function main() {
     const schemaPathResult = ConfigPath.create(schemaPath);
     const templatePathResult = ConfigPath.create(templatePath);
 
-    // Determine output filename based on template extension
-    const templateExt =
-      templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
-        ? "yaml"
-        : "json";
-    const outputFileName = `registry.${templateExt}`;
-    const outputPathResult = OutputPath.create(
-      join(destinationDir, outputFileName),
-    );
+    // Determine output path - if destination already has an extension, use it as-is
+    // Otherwise, append the appropriate extension based on template
+    let outputPath: string;
+    if (destinationDir.endsWith(".json") || destinationDir.endsWith(".yaml") || 
+        destinationDir.endsWith(".yml") || destinationDir.endsWith(".toml")) {
+      outputPath = destinationDir;
+    } else {
+      const templateExt =
+        templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+          ? "yaml"
+          : "json";
+      const outputFileName = `registry.${templateExt}`;
+      outputPath = join(destinationDir, outputFileName);
+    }
+    const outputPathResult = OutputPath.create(outputPath);
 
     if (
       !documentsPathResult.ok || !schemaPathResult.ok ||

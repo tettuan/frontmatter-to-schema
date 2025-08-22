@@ -439,6 +439,28 @@ export class TemplateLoader implements TemplateRepository {
           }
         }
       }
+      
+      // Auto-detect placeholders in template and create mapping rules
+      const placeholders = this.extractPlaceholders(content);
+      for (const placeholder of placeholders) {
+        // Create a mapping rule for each placeholder
+        // e.g., {{title}} -> maps from "title" field to "title" in output
+        const fieldName = placeholder.replace(/{{|}}/g, '').trim();
+        const ruleResult = MappingRule.create(
+          fieldName,  // source field from data
+          fieldName,  // target field in output
+          undefined   // no transformation
+        );
+        if (ruleResult.ok) {
+          // Only add if not already defined in explicit mappings
+          const exists = mappingRules.some(r => 
+            r.getSource() === fieldName && r.getTarget() === fieldName
+          );
+          if (!exists) {
+            mappingRules.push(ruleResult.data);
+          }
+        }
+      }
 
       const template = Template.create(
         idResult.data,
@@ -493,5 +515,19 @@ export class TemplateLoader implements TemplateRepository {
     }
 
     return result;
+  }
+
+  private extractPlaceholders(content: string): string[] {
+    // Extract all {{placeholder}} patterns from the template
+    const placeholderRegex = /\{\{([^}]+)\}\}/g;
+    const placeholders: string[] = [];
+    let match;
+    
+    while ((match = placeholderRegex.exec(content)) !== null) {
+      placeholders.push(match[0]); // Full placeholder including {{}}
+    }
+    
+    // Return unique placeholders
+    return [...new Set(placeholders)];
   }
 }
