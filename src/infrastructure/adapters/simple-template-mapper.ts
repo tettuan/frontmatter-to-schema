@@ -4,6 +4,7 @@ import {
   createError,
   type ProcessingError,
   type Result,
+  type ValidationError,
 } from "../../domain/shared/types.ts";
 import {
   type ExtractedData,
@@ -33,16 +34,38 @@ export class SimpleTemplateMapper implements TemplateMapper {
         const processedTemplate = this.replacePlaceholders(
           templateData,
           mappedData,
-        ) as Record<string, unknown>;
-        finalData = this.mergeWithTemplate(mappedData, processedTemplate);
+        );
+        const validatedTemplate = this.validateAsRecord(processedTemplate);
+        if (!validatedTemplate.ok) {
+          return {
+            ok: false,
+            error: createError({
+              kind: "MappingFailed",
+              document: "unknown",
+              reason: "Template processing resulted in invalid format",
+            }),
+          };
+        }
+        finalData = this.mergeWithTemplate(mappedData, validatedTemplate.data);
       } else if (format === "yaml") {
         const templateData = this.parseYAMLTemplate(templateStr);
         // Replace placeholders in template with actual values
         const processedTemplate = this.replacePlaceholders(
           templateData,
           mappedData,
-        ) as Record<string, unknown>;
-        finalData = this.mergeWithTemplate(mappedData, processedTemplate);
+        );
+        const validatedTemplate = this.validateAsRecord(processedTemplate);
+        if (!validatedTemplate.ok) {
+          return {
+            ok: false,
+            error: createError({
+              kind: "MappingFailed",
+              document: "unknown",
+              reason: "Template processing resulted in invalid format",
+            }),
+          };
+        }
+        finalData = this.mergeWithTemplate(mappedData, validatedTemplate.data);
       } else {
         // For other formats, use mapped data directly
         finalData = mappedData;
@@ -159,6 +182,22 @@ export class SimpleTemplateMapper implements TemplateMapper {
     }
 
     return result;
+  }
+
+  private validateAsRecord(
+    data: unknown,
+  ): Result<Record<string, unknown>, ValidationError & { message: string }> {
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+      return { ok: true, data: data as Record<string, unknown> };
+    }
+    return {
+      ok: false,
+      error: createError({
+        kind: "InvalidFormat",
+        format: "object",
+        input: String(data),
+      }),
+    };
   }
 
   private replacePlaceholders(
