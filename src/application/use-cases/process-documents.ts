@@ -204,6 +204,24 @@ export class ProcessDocumentsUseCase {
     }
     const documents = documentsResult.data;
 
+    // Check if any documents were found
+    if (documents.length === 0) {
+      if (verboseMode) {
+        console.log(
+          `⚠️ [VERBOSE] No markdown files found in the specified directory`,
+        );
+      }
+      return {
+        ok: true,
+        data: {
+          processedCount: 0,
+          failedCount: 0,
+          outputPath: config.outputPath.getValue(),
+          errors: [],
+        },
+      };
+    }
+
     // Process options
     const optionsResult = ProcessingOptions.create(config.options);
     if (isError(optionsResult)) {
@@ -221,14 +239,48 @@ export class ProcessDocumentsUseCase {
     const results: AnalysisResult[] = [];
     const errors: Array<{ document: string; error: string }> = [];
 
+    if (verboseMode) {
+      console.log(
+        `📝 [VERBOSE] Starting to process ${documents.length} documents...`,
+      );
+      console.log(
+        `⚙️ [VERBOSE] Processing mode: ${
+          options.isParallel() ? "Parallel" : "Sequential"
+        }`,
+      );
+    }
+
     if (options.isParallel()) {
       // Parallel processing
-      const promises = documents.map((doc) =>
-        this.processDocument(doc, schema, template)
-          .then((result) => ({ doc, result }))
-      );
+      if (verboseMode) {
+        console.log(
+          `🔄 [VERBOSE] Creating parallel processing promises for ${documents.length} documents...`,
+        );
+      }
+
+      const promises = documents.map((doc) => {
+        if (verboseMode) {
+          console.log(
+            `🔄 [VERBOSE] Creating promise for: ${doc.getPath().getValue()}`,
+          );
+        }
+        return this.processDocument(doc, schema, template)
+          .then((result) => ({ doc, result }));
+      });
+
+      if (verboseMode) {
+        console.log(
+          `⏳ [VERBOSE] Waiting for all ${promises.length} promises to complete...`,
+        );
+      }
 
       const outcomes = await Promise.all(promises);
+
+      if (verboseMode) {
+        console.log(
+          `✅ [VERBOSE] All promises completed, processing outcomes...`,
+        );
+      }
 
       for (const { doc, result } of outcomes) {
         if (isOk(result)) {
@@ -304,14 +356,32 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ): Promise<Result<AnalysisResult, ProcessingError & { message: string }>> {
+    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+    const docPath = document.getPath().getValue();
+
+    if (verboseMode) {
+      console.log(`📄 [VERBOSE] Processing document: ${docPath}`);
+    }
+
     // Extract frontmatter
+    if (verboseMode) {
+      console.log(`📤 [VERBOSE] Extracting frontmatter from: ${docPath}`);
+    }
     const frontMatterResult = this.frontMatterExtractor.extract(document);
     if (isError(frontMatterResult)) {
+      if (verboseMode) {
+        console.log(
+          `❌ [VERBOSE] Frontmatter extraction failed for: ${docPath}`,
+        );
+      }
       return frontMatterResult;
     }
 
     const frontMatter = frontMatterResult.data;
     if (!frontMatter) {
+      if (verboseMode) {
+        console.log(`⚠️ [VERBOSE] No frontmatter found in: ${docPath}`);
+      }
       return {
         ok: false,
         error: createError({
@@ -322,22 +392,45 @@ export class ProcessDocumentsUseCase {
       };
     }
 
+    if (verboseMode) {
+      console.log(`✅ [VERBOSE] Frontmatter extracted from: ${docPath}`);
+    }
+
     // Analyze with schema
+    if (verboseMode) {
+      console.log(`🤖 [VERBOSE] Starting AI analysis for: ${docPath}`);
+    }
     const extractedResult = await this.schemaAnalyzer.analyze(
       frontMatter,
       schema,
     );
+    if (verboseMode) {
+      console.log(`✅ [VERBOSE] AI analysis completed for: ${docPath}`);
+    }
     if (isError(extractedResult)) {
+      if (verboseMode) {
+        console.log(`❌ [VERBOSE] AI analysis failed for: ${docPath}`);
+      }
       return extractedResult;
     }
 
     // Map to template
+    if (verboseMode) {
+      console.log(`🗺️ [VERBOSE] Mapping to template for: ${docPath}`);
+    }
     const mappedResult = this.templateMapper.map(
       extractedResult.data,
       template,
     );
     if (isError(mappedResult)) {
+      if (verboseMode) {
+        console.log(`❌ [VERBOSE] Template mapping failed for: ${docPath}`);
+      }
       return mappedResult;
+    }
+
+    if (verboseMode) {
+      console.log(`✅ [VERBOSE] Template mapping completed for: ${docPath}`);
     }
 
     // Create analysis result
@@ -346,6 +439,10 @@ export class ProcessDocumentsUseCase {
       extractedResult.data,
       mappedResult.data,
     );
+
+    if (verboseMode) {
+      console.log(`✅ [VERBOSE] Document processing completed: ${docPath}`);
+    }
 
     return { ok: true, data: analysisResult };
   }

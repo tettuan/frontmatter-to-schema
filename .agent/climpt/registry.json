@@ -1,299 +1,100 @@
 {
-  "version": "1.0.0",
-  "description": "Climpt comprehensive configuration for MCP server and command registry",
-  "tools": {
-    "availableConfigs": [
-      "build",
-      "code",
-      "design",
-      "docs",
-      "git",
-      "meta",
-      "refactor",
-      "spec",
-      "test"
-    ],
-    "commands": [
-      {
-        "c1": "build",
-        "c2": "robust",
-        "c3": "test",
-        "description": "testを強固に構築する / 強固で堅牢なテスト構築指示書",
-        "usage": "climpt-build robust test -f test_spec.md",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default", "strict"],
-          "input_file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "build",
-        "c2": "robust",
-        "c3": "code",
-        "description": "APIを強固に構築する",
-        "usage": "climpt-build robust code -f api_spec.md",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "code",
-        "c2": "create",
-        "c3": "implementation",
-        "description": "Create Implementation from Design - Generate detailed implementation from design documents",
-        "usage": "climpt-code create implementation -f design.md -a detailed -o src/",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["detailed"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "design",
-        "c2": "domain",
-        "c3": "boundary",
-        "description": "粗い考えをもとに、ドメイン境界線を引いてみる / コードベースをもとに、ドメイン境界線を引く",
-        "usage": "echo 'domain concepts' | climpt-design domain boundary -o boundaries.md",
-        "options": {
-          "input": ["default", "code"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "design",
-        "c2": "domain",
-        "c3": "architecture",
-        "description": "ドメイン境界情報などを元に、ドメイン設計を行う",
-        "usage": "climpt-design domain architecture -f boundaries.md -o architecture.md",
-        "options": {
-          "input": ["default", "core", "detail"],
-          "adaptation": ["default"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "docs",
-        "c2": "generate-robust",
-        "c3": "instruction-doc",
-        "description": "Climpt プロンプト作成指示書 - 短い指示文からでも、既存情報を補完して高再現性の指示書を作成",
-        "usage": "echo 'brief instruction' | climpt-docs generate-robust instruction-doc -o instruction.md",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "decide-branch",
-        "c3": "working-branch",
-        "description": "git branch の新規立ち上げ判断と、新ブランチ作成",
-        "usage": "echo 'feature description' | climpt-git decide-branch working-branch",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "list-select",
-        "c3": "pr-branch",
-        "description": "現存のPRとブランチをリスト化して、次に作業する対象を選ぶ",
-        "usage": "climpt-git list-select pr-branch",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "find-oldest",
-        "c3": "descendant-branch",
-        "description": "Git関連ブランチ探索とマージ処理実行",
-        "usage": "climpt-git find-oldest descendant-branch",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "merge-cleanup",
-        "c3": "develop-branches",
-        "description": "developにマージして不要なブランチを掃除する - mergeされていないブランチを全てdevelopへ統合し、マージ後に削除",
-        "usage": "climpt-git merge-cleanup develop-branches",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "group-commit",
-        "c3": "unstaged-changes",
-        "description": "意味的近さでコミットを分けて実施する",
-        "usage": "climpt-git group-commit unstaged-changes",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "analyze",
-        "c3": "commit-history",
-        "description": "Analyze Commit History - Analyze git commit history and generate insights",
-        "usage": "echo 'main..feature' | climpt-git analyze commit-history",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "merge-up",
-        "c3": "base-branch",
-        "description": "作業ブランチ間のマージ処理 - 作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする",
-        "usage": "climpt-git merge-up base-branch",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "create",
-        "c3": "refinement-issue",
-        "description": "Create Refinement Issue - Create a refinement issue from requirements documentation",
-        "usage": "climpt-git create refinement-issue -f requirements.md",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "description": "climpt実行コマンドを構築するclimpt - 渡された内容に相応しい climpt-* を構築し、示す",
-        "usage": "echo 'task description' | climpt-meta resolve registered-commands",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "list",
-        "c3": "available-commands",
-        "description": "List Available Commands - List all available Climpt commands and their options",
-        "usage": "climpt-meta list available-commands",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "build-list",
-        "c3": "command-registry",
-        "description": "Climpt 実行可能コマンドの一覧作成 / Registry.json Generation / Claude Code Version",
-        "usage": "climpt-meta build-list command-registry",
-        "options": {
-          "input": ["default", "claude"],
-          "adaptation": ["default", "registry"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "refactor",
-        "c2": "ddd",
-        "c3": "architecture",
-        "description": "Domain-Driven Design based architecture refactoring",
-        "usage": "climpt-refactor ddd architecture",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "refactor",
-        "c2": "basedon",
-        "c3": "ddd",
-        "description": "ドメイン駆動設計と全域性（Totality）に基づくリファクタリング",
-        "usage": "echo 'refactor scope' | climpt-refactor basedon ddd -i nextaction",
-        "options": {
-          "input": ["default", "nextaction"],
-          "adaptation": ["default"],
-          "input_file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "quality-metrics",
-        "description": "Analyze Specification Quality - Analyze specification quality and completeness metrics",
-        "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["default"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      }
-    ]
-  }
+  "results": [
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    },
+    {
+      "name": "{{name}}"
+    }
+  ]
 }

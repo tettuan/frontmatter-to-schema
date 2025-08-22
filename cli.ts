@@ -304,6 +304,11 @@ async function main() {
       },
     };
 
+    console.log("⚡ Processing documents...");
+    console.log(
+      "📝 This may take a moment depending on the number of files and AI processing...",
+    );
+
     const result = await processDocumentsUseCase.execute({
       config: processingConfig,
     });

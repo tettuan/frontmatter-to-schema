@@ -53,21 +53,58 @@ export class DenoDocumentRepository implements DocumentRepository {
       }
 
       // Walk through directory to find markdown files
+      if (verboseMode) {
+        console.log(`🚶 [VERBOSE] Starting directory walk from: ${dirPath}`);
+      }
+
+      let fileCount = 0;
       for await (
         const entry of walk(dirPath, {
           exts: [".md", ".markdown"],
           skip: [/node_modules/, /\.git/],
         })
       ) {
+        if (verboseMode) {
+          console.log(
+            `📄 [VERBOSE] Found entry: ${entry.path} (isFile: ${entry.isFile})`,
+          );
+        }
+
         if (entry.isFile) {
+          fileCount++;
+          if (verboseMode) {
+            console.log(
+              `📖 [VERBOSE] Processing file #${fileCount}: ${entry.path}`,
+            );
+          }
+
           const docPathResult = DocumentPath.create(entry.path);
           if (docPathResult.ok) {
             const docResult = await this.read(docPathResult.data);
             if (docResult.ok) {
               documents.push(docResult.data);
+              if (verboseMode) {
+                console.log(
+                  `✅ [VERBOSE] Successfully processed file: ${entry.path}`,
+                );
+              }
+            } else if (verboseMode) {
+              console.log(
+                `⚠️ [VERBOSE] Failed to read file: ${entry.path} - ${
+                  docResult.error.message || docResult.error.kind
+                }`,
+              );
             }
+          } else if (verboseMode) {
+            console.log(`⚠️ [VERBOSE] Invalid document path: ${entry.path}`);
           }
         }
+      }
+
+      if (verboseMode) {
+        console.log(
+          `✅ [VERBOSE] Walk completed. Found ${fileCount} markdown files, successfully processed ${documents.length}`,
+        );
       }
 
       return { ok: true, data: documents };

@@ -138,9 +138,39 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       };
     }
 
+    let tempFile: string | null = null;
     try {
+      // First check if claude command exists
+      try {
+        const checkCommand = new Deno.Command("which", {
+          args: ["claude"],
+          stdout: "piped",
+          stderr: "piped",
+        });
+        const checkResult = await checkCommand.output();
+        if (checkResult.code !== 0) {
+          return {
+            ok: false,
+            error: createError({
+              kind: "APIError",
+              message:
+                "Claude CLI not found. Please install the Claude CLI or set FRONTMATTER_TO_SCHEMA_TEST_MODE=true to use mock mode.",
+            }),
+          };
+        }
+      } catch {
+        return {
+          ok: false,
+          error: createError({
+            kind: "APIError",
+            message:
+              "Failed to check for Claude CLI. Please install the Claude CLI or set FRONTMATTER_TO_SCHEMA_TEST_MODE=true to use mock mode.",
+          }),
+        };
+      }
+
       // Execute claude command with prompt
-      const tempFile = await Deno.makeTempFile({ suffix: ".md" });
+      tempFile = await Deno.makeTempFile({ suffix: ".md" });
       await Deno.writeTextFile(tempFile, prompt);
 
       const command = new Deno.Command("claude", {
@@ -149,10 +179,44 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         stderr: "piped",
       });
 
-      const { code, stdout, stderr } = await command.output();
+      // Create a timeout promise (30 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error("Claude API call timed out after 30 seconds")),
+          30000,
+        );
+      });
+
+      // Race between command execution and timeout
+      const outputPromise = command.output();
+      let result;
+      try {
+        result = await Promise.race([outputPromise, timeoutPromise]);
+      } catch (timeoutError) {
+        // Try to kill the process if it's still running
+        try {
+          const ps = new Deno.Command("pkill", {
+            args: ["-f", `claude.*${tempFile}`],
+          });
+          await ps.output();
+        } catch {
+          // Ignore cleanup errors
+        }
+        throw timeoutError;
+      }
+
+      const { code, stdout, stderr } = result as Awaited<
+        ReturnType<typeof command.output>
+      >;
 
       // Clean up temp file
-      await Deno.remove(tempFile);
+      if (tempFile) {
+        try {
+          await Deno.remove(tempFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
 
       if (code !== 0) {
         const errorMsg = new TextDecoder().decode(stderr);
@@ -169,6 +233,15 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       const response = new TextDecoder().decode(stdout);
       return { ok: true, data: response };
     } catch (error) {
+      // Clean up temp file on error
+      if (tempFile) {
+        try {
+          await Deno.remove(tempFile);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+
       return {
         ok: false,
         error: createError({
