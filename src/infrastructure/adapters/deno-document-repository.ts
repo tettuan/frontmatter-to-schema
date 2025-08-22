@@ -21,6 +21,11 @@ export class DenoDocumentRepository implements DocumentRepository {
   ): Promise<Result<Document[], IOError & { message: string }>> {
     const documents: Document[] = [];
     const pathValue = path.getValue();
+    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+
+    if (verboseMode) {
+      console.log(`🔍 [VERBOSE] Searching for documents in: ${pathValue}`);
+    }
 
     // Extract directory from glob pattern (e.g., "dir/*.md" -> "dir")
     let dirPath = pathValue;
@@ -28,6 +33,9 @@ export class DenoDocumentRepository implements DocumentRepository {
       // Remove the glob pattern to get the directory
       dirPath = pathValue.replace(/\/?\*\.(md|markdown)$/, "");
       if (!dirPath) dirPath = ".";
+    }
+    if (verboseMode) {
+      console.log(`📂 [VERBOSE] Resolved directory path: ${dirPath}`);
     }
 
     try {

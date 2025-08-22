@@ -55,10 +55,31 @@ export class ProcessDocumentsUseCase {
     Result<ProcessDocumentsUseCaseOutput, ProcessingError & { message: string }>
   > {
     const { config } = input;
+    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+
+    if (verboseMode) {
+      console.log("🎯 [VERBOSE] Starting document processing pipeline...");
+      console.log(
+        `📋 [VERBOSE] Config - schema: ${config.schemaPath.getValue()}, template: ${config.templatePath.getValue()}, documents: ${config.documentsPath.getValue()}`,
+      );
+    }
 
     // Load schema
+    if (verboseMode) {
+      console.log("📖 [VERBOSE] Loading schema...");
+    }
     const schemaResult = await this.schemaRepo.load(config.schemaPath);
+    if (verboseMode) {
+      console.log(
+        `✅ [VERBOSE] Schema loaded: ${schemaResult.ok ? "SUCCESS" : "FAILED"}`,
+      );
+    }
     if (isError(schemaResult)) {
+      if (verboseMode) {
+        console.log(
+          `❌ [VERBOSE] Schema load error: ${schemaResult.error.kind} - ${schemaResult.error.message}`,
+        );
+      }
       // Provide more specific error message
       let reason = "Failed to load schema";
       if (schemaResult.error.kind === "FileNotFound") {
@@ -86,8 +107,23 @@ export class ProcessDocumentsUseCase {
     const schema = schemaResult.data;
 
     // Load template
+    if (verboseMode) {
+      console.log("📄 [VERBOSE] Loading template...");
+    }
     const templateResult = await this.templateRepo.load(config.templatePath);
+    if (verboseMode) {
+      console.log(
+        `✅ [VERBOSE] Template loaded: ${
+          templateResult.ok ? "SUCCESS" : "FAILED"
+        }`,
+      );
+    }
     if (isError(templateResult)) {
+      if (verboseMode) {
+        console.log(
+          `❌ [VERBOSE] Template load error: ${templateResult.error.kind} - ${templateResult.error.message}`,
+        );
+      }
       // Provide more specific error message
       let reason = "Failed to load template";
       if (templateResult.error.kind === "FileNotFound") {
@@ -115,10 +151,32 @@ export class ProcessDocumentsUseCase {
     const template = templateResult.data;
 
     // Find all documents
+    if (verboseMode) {
+      console.log("📁 [VERBOSE] Scanning for markdown files...");
+    }
     const documentsResult = await this.documentRepo.findAll(
       config.documentsPath,
     );
+    if (verboseMode) {
+      console.log(
+        `📊 [VERBOSE] Document search: ${
+          documentsResult.ok ? "SUCCESS" : "FAILED"
+        }`,
+      );
+    }
+    if (documentsResult.ok) {
+      if (verboseMode) {
+        console.log(
+          `✅ [VERBOSE] Found ${documentsResult.data.length} markdown files`,
+        );
+      }
+    }
     if (isError(documentsResult)) {
+      if (verboseMode) {
+        console.log(
+          `❌ [VERBOSE] Document search error: ${documentsResult.error.kind} - ${documentsResult.error.message}`,
+        );
+      }
       // Provide more specific error message
       let reason = "Failed to find documents";
       if (documentsResult.error.kind === "FileNotFound") {

@@ -37,7 +37,7 @@ function printUsage() {
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
 Usage:
-  frontmatter-to-schema <markdownfile_root_dir> --schema=<schema_file> --template=<template_file> [--destination=<output_dir>]
+  frontmatter-to-schema <markdownfile_root_dir> --schema=<schema_file> --template=<template_file> [options]
 
 Arguments:
   markdownfile_root_dir    Path to markdown files directory or pattern
@@ -46,11 +46,13 @@ Options:
   --schema=<file>         Path to schema file (JSON or YAML)
   --template=<file>       Path to template file (any format)
   --destination=<dir>     Output directory (optional, defaults to markdown directory)
+  --verbose               Enable detailed progress output
   --help                  Show this help message
 
 Examples:
   frontmatter-to-schema ./docs --schema=schema.json --template=template.md
   frontmatter-to-schema ./prompts/* --schema=config/schema.yml --template=config/template.txt --destination=./output
+  frontmatter-to-schema ./docs --schema=schema.json --template=template.md --verbose
 `);
 }
 
@@ -100,7 +102,7 @@ async function main() {
 
   const args = parseArgs(processedArgs, {
     string: ["schema", "template", "destination"],
-    boolean: ["help"],
+    boolean: ["help", "verbose"],
     stopEarly: false,
   });
 
@@ -113,6 +115,7 @@ async function main() {
   const schemaPath = args.schema;
   const templatePath = args.template;
   const destinationDir = args.destination || markdownDir;
+  const verboseMode = args.verbose || false;
 
   if (!schemaPath || !templatePath) {
     console.error("Error: --schema and --template options are required");
@@ -126,6 +129,55 @@ async function main() {
     console.log(`📋 Schema: ${schemaPath}`);
     console.log(`📝 Template: ${templatePath}`);
     console.log(`💾 Destination: ${destinationDir}`);
+
+    // Verbose: Check file existence before processing
+    if (verboseMode) {
+      console.log("🔍 [VERBOSE] Validating input files...");
+      try {
+        const schemaStats = await Deno.stat(schemaPath);
+        console.log(
+          `✅ [VERBOSE] Schema file exists: ${schemaPath} (size: ${
+            (schemaStats.size / 1024).toFixed(1)
+          }KB)`,
+        );
+      } catch (error) {
+        console.log(
+          `❌ [VERBOSE] Schema file check failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      try {
+        const templateStats = await Deno.stat(templatePath);
+        console.log(
+          `✅ [VERBOSE] Template file exists: ${templatePath} (size: ${
+            (templateStats.size / 1024).toFixed(1)
+          }KB)`,
+        );
+      } catch (error) {
+        console.log(
+          `❌ [VERBOSE] Template file check failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      try {
+        const dirStats = await Deno.stat(markdownDir);
+        console.log(
+          `✅ [VERBOSE] Directory exists: ${markdownDir} (isDirectory: ${dirStats.isDirectory})`,
+        );
+      } catch (error) {
+        console.log(
+          `❌ [VERBOSE] Directory check failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      console.log("🔧 [VERBOSE] Creating value objects...");
+    }
 
     // Create value objects
     // DocumentPath expects markdown files, but CLI accepts directories
@@ -169,15 +221,34 @@ async function main() {
     }
 
     // Initialize services
+    if (verboseMode) {
+      console.log("🏗️ [VERBOSE] Initializing services...");
+    }
     const configLoader = new ConfigurationLoader();
     const templateLoader = new TemplateLoader();
     const documentRepo = new DenoDocumentRepository();
     const frontMatterExtractor = new FrontMatterExtractorImpl();
     const templateMapper = new SimpleTemplateMapper();
     const resultAggregator = new ResultAggregatorImpl("json");
+    if (verboseMode) {
+      console.log("✅ [VERBOSE] Document repository initialized");
+      console.log("✅ [VERBOSE] Template mapper initialized");
+      console.log("✅ [VERBOSE] Result aggregator initialized");
+    }
 
     // Load prompts and create analyzer
+    if (verboseMode) {
+      console.log("📝 [VERBOSE] Loading prompt templates...");
+    }
     const prompts = await loadPromptTemplates();
+    if (verboseMode) {
+      console.log("✅ [VERBOSE] Prompt templates loaded successfully");
+    }
+    // Set verbose mode for components
+    if (verboseMode) {
+      Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
+    }
+
     const useMock =
       Deno.env.get("FRONTMATTER_TO_SCHEMA_TEST_MODE") === "true" ||
       Deno.env.get("FRONTMATTER_TEST_MODE") === "true"; // backward compatibility
@@ -194,6 +265,7 @@ async function main() {
       );
 
     // Create use case
+    console.log("🎯 [DEBUG] Creating ProcessDocumentsUseCase...");
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
       documentRepo,
       configLoader,
@@ -206,6 +278,21 @@ async function main() {
     );
 
     // Execute processing
+    console.log("🚀 [DEBUG] Starting document processing...");
+    console.log(`📊 [DEBUG] Processing config: ${
+      JSON.stringify(
+        {
+          documentsPath: documentsPathResult.data.getValue(),
+          schemaPath: schemaPathResult.data.getValue(),
+          templatePath: templatePathResult.data.getValue(),
+          outputPath: outputPathResult.data.getValue(),
+        },
+        null,
+        2,
+      )
+    }`);
+
+    const _startTime = Date.now();
     const processingConfig = {
       documentsPath: documentsPathResult.data,
       schemaPath: schemaPathResult.data,
