@@ -26,5 +26,12 @@ variables:
 3. [hardcording](docs/development/prohibit-hardcoding.ja.md)は禁止。
 4. [AI実装複雑化防止](docs/development/ai-complexity-control_compact.ja.md)に従うこと。
 
-上記を理解したうえで、「大筋の内容」を
+上記を理解したうえで、「大筋の内容」を分析する。
 
+- 起きている問題を整理
+- その領域で分類
+- 分類ごとの解決すべき課題の個数を把握
+- 解決すべき課題の列挙
+
+問題の種類でグルーピングしたあと、各問題領域ごとに Issue
+作成用の文章を作成し、gh で Issue 作成する。

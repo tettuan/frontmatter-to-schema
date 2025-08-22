@@ -193,8 +193,10 @@ async function main() {
     // Determine output path - if destination already has an extension, use it as-is
     // Otherwise, append the appropriate extension based on template
     let outputPath: string;
-    if (destinationDir.endsWith(".json") || destinationDir.endsWith(".yaml") || 
-        destinationDir.endsWith(".yml") || destinationDir.endsWith(".toml")) {
+    if (
+      destinationDir.endsWith(".json") || destinationDir.endsWith(".yaml") ||
+      destinationDir.endsWith(".yml") || destinationDir.endsWith(".toml")
+    ) {
       outputPath = destinationDir;
     } else {
       const templateExt =

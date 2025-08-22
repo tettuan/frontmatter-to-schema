@@ -2,6 +2,6 @@
 params:
   two:
     directiveType:
-      pattern: "^(find-oldest|merge-up|group-commit|list-select|decide-branch|merge-cleanup)$"
+      pattern: "^(find-oldest|merge-up|group-commit|list-select|decide-branch|merge-cleanup|document)$"
     layerType:
-      pattern: "^(descendant-branch|base-branch|unstaged-changes|pr-branch|working-branch|develop-branches)$"
+      pattern: "^(descendant-branch|base-branch|unstaged-changes|pr-branch|working-branch|develop-branches|fix-instruction)$"

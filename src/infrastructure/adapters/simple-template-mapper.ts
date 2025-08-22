@@ -30,12 +30,18 @@ export class SimpleTemplateMapper implements TemplateMapper {
       if (format === "json") {
         const templateData = this.parseJSONTemplate(templateStr);
         // Replace placeholders in template with actual values
-        const processedTemplate = this.replacePlaceholders(templateData, mappedData) as Record<string, unknown>;
+        const processedTemplate = this.replacePlaceholders(
+          templateData,
+          mappedData,
+        ) as Record<string, unknown>;
         finalData = this.mergeWithTemplate(mappedData, processedTemplate);
       } else if (format === "yaml") {
         const templateData = this.parseYAMLTemplate(templateStr);
         // Replace placeholders in template with actual values
-        const processedTemplate = this.replacePlaceholders(templateData, mappedData) as Record<string, unknown>;
+        const processedTemplate = this.replacePlaceholders(
+          templateData,
+          mappedData,
+        ) as Record<string, unknown>;
         finalData = this.mergeWithTemplate(mappedData, processedTemplate);
       } else {
         // For other formats, use mapped data directly
@@ -166,15 +172,17 @@ export class SimpleTemplateMapper implements TemplateMapper {
         const placeholder = `{{${key}}}`;
         if (result.includes(placeholder)) {
           result = result.replace(
-            new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-            String(value ?? '')
+            new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
+            String(value ?? ""),
           );
         }
       }
       return result;
     } else if (Array.isArray(templateData)) {
       // Process arrays recursively
-      return templateData.map(item => this.replacePlaceholders(item, mappedData));
+      return templateData.map((item) =>
+        this.replacePlaceholders(item, mappedData)
+      );
     } else if (typeof templateData === "object" && templateData !== null) {
       // Process objects recursively
       const result: Record<string, unknown> = {};

@@ -35,9 +35,12 @@ export class MockSchemaAnalyzer implements SchemaAnalyzer {
       await Promise.resolve();
 
       const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
-      
+
       if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
-        console.log("🔍 [DEBUG] Mock analyzer - rawYamlContent:", rawYamlContent);
+        console.log(
+          "🔍 [DEBUG] Mock analyzer - rawYamlContent:",
+          rawYamlContent,
+        );
       }
 
       const parsedData = parse(rawYamlContent) as Record<string, unknown>;
@@ -56,7 +59,7 @@ export class MockSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       const extractedData = ExtractedData.create(mockResult);
-      
+
       if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
         console.log("🔍 [DEBUG] ExtractedData created successfully");
         console.log("🔍 [DEBUG] Returning success result");
@@ -67,7 +70,10 @@ export class MockSchemaAnalyzer implements SchemaAnalyzer {
       const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
       if (verboseMode || Deno.env.get("FRONTMATTER_DEBUG")) {
         console.log("❌ [DEBUG] Mock analyzer error:", error);
-        console.log("❌ [DEBUG] Error stack:", error instanceof Error ? error.stack : "no stack");
+        console.log(
+          "❌ [DEBUG] Error stack:",
+          error instanceof Error ? error.stack : "no stack",
+        );
       }
       return {
         ok: false,
