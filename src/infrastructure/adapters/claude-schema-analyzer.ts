@@ -149,7 +149,18 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         stderr: "piped",
       });
 
-      const { code, stdout, stderr } = await command.output();
+      // Add timeout protection (30 seconds)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Claude API timeout after 30 seconds")),
+          30000,
+        )
+      );
+
+      const { code, stdout, stderr } = await Promise.race([
+        command.output(),
+        timeoutPromise,
+      ]);
 
       // Clean up temp file
       await Deno.remove(tempFile);

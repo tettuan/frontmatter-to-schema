@@ -45,13 +45,30 @@ export class DenoDocumentRepository implements DocumentRepository {
       }
 
       // Walk through directory to find markdown files
+      const walkOptions = {
+        exts: [".md", ".markdown"],
+        skip: [/node_modules/, /\.git/, /\.vscode/, /\.idea/, /dist/, /build/],
+        maxDepth: 10, // Prevent infinite depth traversal
+        followSymlinks: false, // Prevent symlink loops
+      };
+
+      let fileCount = 0;
+      const maxFiles = 1000; // Prevent processing too many files
+
       for await (
-        const entry of walk(dirPath, {
-          exts: [".md", ".markdown"],
-          skip: [/node_modules/, /\.git/],
-        })
+        const entry of walk(dirPath, walkOptions)
       ) {
         if (entry.isFile) {
+          fileCount++;
+
+          // Safety check to prevent processing too many files
+          if (fileCount > maxFiles) {
+            console.warn(
+              `⚠️  Warning: Stopped processing after ${maxFiles} files. Use a more specific path to process fewer files.`,
+            );
+            break;
+          }
+
           const docPathResult = DocumentPath.create(entry.path);
           if (docPathResult.ok) {
             const docResult = await this.read(docPathResult.data);

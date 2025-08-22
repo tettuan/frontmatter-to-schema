@@ -127,6 +127,50 @@ async function main() {
     console.log(`📝 Template: ${templatePath}`);
     console.log(`💾 Destination: ${destinationDir}`);
 
+    // Validate required files exist before processing
+    console.log("🔍 Validating files...");
+
+    try {
+      await Deno.stat(schemaPath);
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        console.error(`❌ Schema file not found: ${schemaPath}`);
+        console.error(
+          "Please ensure the schema file exists and the path is correct.",
+        );
+        Deno.exit(1);
+      }
+      throw error;
+    }
+
+    try {
+      await Deno.stat(templatePath);
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        console.error(`❌ Template file not found: ${templatePath}`);
+        console.error(
+          "Please ensure the template file exists and the path is correct.",
+        );
+        Deno.exit(1);
+      }
+      throw error;
+    }
+
+    try {
+      await Deno.stat(markdownDir);
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        console.error(`❌ Markdown directory not found: ${markdownDir}`);
+        console.error(
+          "Please ensure the directory exists and the path is correct.",
+        );
+        Deno.exit(1);
+      }
+      throw error;
+    }
+
+    console.log("✅ All required files validated successfully");
+
     // Create value objects
     // DocumentPath expects markdown files, but CLI accepts directories
     // So we need to handle this differently
