@@ -1,0 +1,10 @@
+# Breakdown Configuration
+params:
+  two:
+    directiveType:
+      pattern: "^(analyze-structure)$"
+    layerType:
+      pattern: "^(requirements)$"
+options:
+  destination:
+    prefix: "drafts/spec/result/yyyy/mm/yyyy-mm-dd-hh-"

@@ -1,6 +1,6 @@
 # Breakdown Configuration
 working_dir: ".agent/climpt"
 app_prompt:
-  base_dir: "prompts/refactor"
+  base_dir: "prompts/spec"
 app_schema:
-  base_dir: "schema/refactor"
+  base_dir: "schema/spec"
