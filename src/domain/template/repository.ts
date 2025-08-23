@@ -17,6 +17,16 @@ export class TemplatePath {
   private constructor(private readonly value: string) {}
 
   static create(path: string): Result<TemplatePath, ValidationError> {
+    if (typeof path !== "string") {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Template path must be a string",
+        },
+      };
+    }
+
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
