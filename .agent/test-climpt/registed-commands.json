@@ -1,9 +1,8 @@
 {
   "results": [
     {
-      "command": "Test Title",
-      "description": "Test Description",
-      "title": "Test Title"
+      "title": "Test Title",
+      "description": "Test Description"
     }
   ]
 }

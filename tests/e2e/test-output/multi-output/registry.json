@@ -1,92 +1,18 @@
 {
   "results": [
     {
-      "version": "1.0.0",
-      "description": "Climpt comprehensive configuration for MCP server and command registry",
       "tools": {
-        "availableConfigs": [
-          "code",
-          "docs",
-          "git",
-          "meta",
-          "spec",
-          "test"
-        ],
-        "commands": [],
         "commands[]": {
           "description": "Test Description"
         }
-      },
-      "mappings": [
-        {
-          "source": "c1",
-          "target": "tools.commands[].c1"
-        },
-        {
-          "source": "c2",
-          "target": "tools.commands[].c2"
-        },
-        {
-          "source": "c3",
-          "target": "tools.commands[].c3"
-        },
-        {
-          "source": "description",
-          "target": "tools.commands[].description"
-        },
-        {
-          "source": "usage",
-          "target": "tools.commands[].usage"
-        },
-        {
-          "source": "options",
-          "target": "tools.commands[].options"
-        }
-      ]
+      }
     },
     {
-      "version": "1.0.0",
-      "description": "Climpt comprehensive configuration for MCP server and command registry",
       "tools": {
-        "availableConfigs": [
-          "code",
-          "docs",
-          "git",
-          "meta",
-          "spec",
-          "test"
-        ],
-        "commands": [],
         "commands[]": {
           "description": "Test Description"
         }
-      },
-      "mappings": [
-        {
-          "source": "c1",
-          "target": "tools.commands[].c1"
-        },
-        {
-          "source": "c2",
-          "target": "tools.commands[].c2"
-        },
-        {
-          "source": "c3",
-          "target": "tools.commands[].c3"
-        },
-        {
-          "source": "description",
-          "target": "tools.commands[].description"
-        },
-        {
-          "source": "usage",
-          "target": "tools.commands[].usage"
-        },
-        {
-          "source": "options",
-          "target": "tools.commands[].options"
-        }
-      ]
+      }
     }
   ]
 }
