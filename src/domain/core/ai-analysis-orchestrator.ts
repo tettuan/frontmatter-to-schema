@@ -1,6 +1,6 @@
 /**
  * AI Analysis Orchestrator - Two-stage processing with claude -p
- * 
+ *
  * Template Flow (テンプレートからの変換フロー):
  * Inputs:
  *   - テンプレート当て込みのprompt (PromptB)
@@ -10,7 +10,7 @@
  *   - claude -p processes all inputs
  * Output:
  *   - 変換後テンプレート (統合にそのまま利用)
- * 
+ *
  * Stage 1: Information extraction from frontmatter
  * Stage 2: Template application with extracted information
  */

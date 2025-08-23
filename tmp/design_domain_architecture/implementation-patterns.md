@@ -10,7 +10,10 @@
 // ===============================================
 export interface SchemaAdapter {
   loadSchema(path: string): Promise<Result<unknown, DomainError>>;
-  validateData(data: unknown, schema: unknown): Result<ValidationResult, DomainError>;
+  validateData(
+    data: unknown,
+    schema: unknown,
+  ): Result<ValidationResult, DomainError>;
   getSchemaType(): string;
 }
 
@@ -43,27 +46,34 @@ export class ZodSchemaAdapter implements SchemaAdapter {
       if (!module.schema) {
         return {
           ok: false,
-          error: { kind: "SchemaNotFound", schemaId: path }
+          error: { kind: "SchemaNotFound", schemaId: path },
         };
       }
       return { ok: true, data: module.schema };
     } catch (error) {
       return {
         ok: false,
-        error: { kind: "IOError", operation: "load", path }
+        error: { kind: "IOError", operation: "load", path },
       };
     }
   }
 
-  validateData(data: unknown, schema: unknown): Result<ValidationResult, DomainError> {
+  validateData(
+    data: unknown,
+    schema: unknown,
+  ): Result<ValidationResult, DomainError> {
     // Zodスキーマとして型チェック
     if (!this.isZodSchema(schema)) {
       return {
         ok: false,
-        error: { kind: "ValidationFailed", field: "schema", reason: "Not a valid Zod schema" }
+        error: {
+          kind: "ValidationFailed",
+          field: "schema",
+          reason: "Not a valid Zod schema",
+        },
       };
     }
-    
+
     const result = schema.safeParse(data);
     if (result.success) {
       return {
@@ -71,18 +81,18 @@ export class ZodSchemaAdapter implements SchemaAdapter {
         data: {
           isValid: true,
           errors: [],
-          normalizedData: result.data
-        }
+          normalizedData: result.data,
+        },
       };
     }
-    
+
     return {
       ok: true,
       data: {
         isValid: false,
         errors: this.mapZodErrors(result.error),
-        normalizedData: undefined
-      }
+        normalizedData: undefined,
+      },
     };
   }
 
@@ -91,10 +101,10 @@ export class ZodSchemaAdapter implements SchemaAdapter {
   }
 
   private mapZodErrors(error: ZodError): ValidationIssue[] {
-    return error.issues.map(issue => ({
+    return error.issues.map((issue) => ({
       path: issue.path.join("."),
       message: issue.message,
-      code: issue.code
+      code: issue.code,
     }));
   }
 
@@ -108,7 +118,7 @@ export class ZodSchemaAdapter implements SchemaAdapter {
 // ===============================================
 export class JSONSchemaAdapter implements SchemaAdapter {
   private ajv: Ajv;
-  
+
   constructor() {
     this.ajv = new Ajv({ allErrors: true });
   }
@@ -121,30 +131,33 @@ export class JSONSchemaAdapter implements SchemaAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: { kind: "ParseError", input: path, format: "json" }
+        error: { kind: "ParseError", input: path, format: "json" },
       };
     }
   }
 
-  validateData(data: unknown, schema: unknown): Result<ValidationResult, DomainError> {
+  validateData(
+    data: unknown,
+    schema: unknown,
+  ): Result<ValidationResult, DomainError> {
     const validate = this.ajv.compile(schema);
     const isValid = validate(data);
-    
+
     return {
       ok: true,
       data: {
         isValid,
         errors: this.mapAjvErrors(validate.errors || []),
-        normalizedData: isValid ? data : undefined
-      }
+        normalizedData: isValid ? data : undefined,
+      },
     };
   }
 
   private mapAjvErrors(errors: ErrorObject[]): ValidationIssue[] {
-    return errors.map(error => ({
+    return errors.map((error) => ({
       path: error.instancePath,
       message: error.message || "Validation failed",
-      code: error.keyword
+      code: error.keyword,
     }));
   }
 
@@ -184,31 +197,44 @@ export class HandlebarsTemplateAdapter implements TemplateAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: { kind: "IOError", operation: "load", path }
+        error: { kind: "IOError", operation: "load", path },
       };
     }
   }
 
-  renderTemplate(template: unknown, data: unknown): Result<string, DomainError> {
+  renderTemplate(
+    template: unknown,
+    data: unknown,
+  ): Result<string, DomainError> {
     if (!this.isHandlebarsTemplate(template)) {
       return {
         ok: false,
-        error: { kind: "ValidationFailed", field: "template", reason: "Not a Handlebars template" }
+        error: {
+          kind: "ValidationFailed",
+          field: "template",
+          reason: "Not a Handlebars template",
+        },
       };
     }
-    
+
     try {
       const rendered = template(data);
       return { ok: true, data: rendered };
     } catch (error) {
       return {
         ok: false,
-        error: { kind: "ProcessingFailed", step: "render", detail: error.message }
+        error: {
+          kind: "ProcessingFailed",
+          step: "render",
+          detail: error.message,
+        },
       };
     }
   }
 
-  private isHandlebarsTemplate(template: unknown): template is HandlebarsTemplateDelegate {
+  private isHandlebarsTemplate(
+    template: unknown,
+  ): template is HandlebarsTemplateDelegate {
     return typeof template === "function";
   }
 
@@ -228,45 +254,56 @@ export class SimpleTemplateAdapter implements TemplateAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: { kind: "IOError", operation: "load", path }
+        error: { kind: "IOError", operation: "load", path },
       };
     }
   }
 
-  renderTemplate(template: unknown, data: unknown): Result<string, DomainError> {
+  renderTemplate(
+    template: unknown,
+    data: unknown,
+  ): Result<string, DomainError> {
     if (typeof template !== "string") {
       return {
         ok: false,
-        error: { kind: "ValidationFailed", field: "template", reason: "Template must be a string" }
+        error: {
+          kind: "ValidationFailed",
+          field: "template",
+          reason: "Template must be a string",
+        },
       };
     }
-    
+
     const dataResult = this.validateDataAsRecord(data);
     if (!dataResult.ok) {
       return dataResult;
     }
-    
+
     let rendered = template;
     const placeholderRegex = /\{\{([^}]+)\}\}/g;
-    
+
     rendered = rendered.replace(placeholderRegex, (match, key) => {
       const trimmedKey = key.trim();
       const value = dataResult.data[trimmedKey];
       return value !== undefined ? String(value) : match;
     });
-    
+
     return { ok: true, data: rendered };
   }
 
   private validateDataAsRecord(
-    data: unknown
+    data: unknown,
   ): Result<Record<string, unknown>, DomainError> {
     if (typeof data === "object" && data !== null && !Array.isArray(data)) {
       return { ok: true, data: data as Record<string, unknown> };
     }
     return {
       ok: false,
-      error: { kind: "ValidationFailed", field: "data", reason: "Data must be an object" }
+      error: {
+        kind: "ValidationFailed",
+        field: "data",
+        reason: "Data must be an object",
+      },
     };
   }
 
@@ -301,7 +338,7 @@ export class AdapterRegistry {
     if (!adapter) {
       return {
         ok: false,
-        error: { kind: "SchemaNotFound", schemaId: type }
+        error: { kind: "SchemaNotFound", schemaId: type },
       };
     }
     return { ok: true, data: adapter };
@@ -312,7 +349,7 @@ export class AdapterRegistry {
     if (!adapter) {
       return {
         ok: false,
-        error: { kind: "TemplateNotFound", templateId: type }
+        error: { kind: "TemplateNotFound", templateId: type },
       };
     }
     return { ok: true, data: adapter };
@@ -324,11 +361,11 @@ export class AdapterRegistry {
 // ===============================================
 export class ProcessingEngine {
   constructor(
-    private readonly registry: AdapterRegistry
+    private readonly registry: AdapterRegistry,
   ) {}
 
   async process(
-    config: PipelineConfig
+    config: PipelineConfig,
   ): Promise<Result<PipelineResult, DomainError>> {
     // Schemaアダプタ取得
     const schemaType = this.detectSchemaType(config.getSchemaContext());
@@ -339,7 +376,9 @@ export class ProcessingEngine {
 
     // Templateアダプタ取得
     const templateType = this.detectTemplateType(config.getTemplateContext());
-    const templateAdapterResult = this.registry.getTemplateAdapter(templateType);
+    const templateAdapterResult = this.registry.getTemplateAdapter(
+      templateType,
+    );
     if (!templateAdapterResult.ok) {
       return templateAdapterResult;
     }
@@ -348,7 +387,7 @@ export class ProcessingEngine {
     return this.executeProcessing(
       config,
       schemaAdapterResult.data,
-      templateAdapterResult.data
+      templateAdapterResult.data,
     );
   }
 
@@ -365,7 +404,7 @@ export class ProcessingEngine {
   private async executeProcessing(
     config: PipelineConfig,
     schemaAdapter: SchemaAdapter,
-    templateAdapter: TemplateAdapter
+    templateAdapter: TemplateAdapter,
   ): Promise<Result<PipelineResult, DomainError>> {
     // 実際の処理ロジック
     const startTime = Date.now();
@@ -376,10 +415,10 @@ export class ProcessingEngine {
 
     // ファイル処理ループ
     const files = await this.discoverFiles(config.getInputPattern());
-    
+
     for (const file of files) {
       processed++;
-      
+
       // データ抽出
       const dataResult = await this.extractData(file);
       if (!dataResult.ok) {
@@ -388,7 +427,7 @@ export class ProcessingEngine {
           document: file,
           stage: "Extraction",
           error: dataResult.error,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
         continue;
       }
@@ -396,15 +435,19 @@ export class ProcessingEngine {
       // バリデーション
       const validationResult = schemaAdapter.validateData(
         dataResult.data,
-        config.getSchemaContext().getSchema()
+        config.getSchemaContext().getSchema(),
       );
       if (!validationResult.ok || !validationResult.data.isValid) {
         failed++;
         errors.push({
           document: file,
           stage: "Validation",
-          error: { kind: "ValidationFailed", field: "data", reason: "Schema validation failed" },
-          timestamp: new Date()
+          error: {
+            kind: "ValidationFailed",
+            field: "data",
+            reason: "Schema validation failed",
+          },
+          timestamp: new Date(),
         });
         continue;
       }
@@ -412,7 +455,7 @@ export class ProcessingEngine {
       // テンプレート適用
       const renderResult = templateAdapter.renderTemplate(
         config.getTemplateContext().getTemplate(),
-        validationResult.data.normalizedData
+        validationResult.data.normalizedData,
       );
       if (!renderResult.ok) {
         failed++;
@@ -420,7 +463,7 @@ export class ProcessingEngine {
           document: file,
           stage: "Mapping",
           error: renderResult.error,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
         continue;
       }
@@ -428,7 +471,7 @@ export class ProcessingEngine {
       // 出力
       const outputResult = await this.writeOutput(
         config.getOutputPath(),
-        renderResult.data
+        renderResult.data,
       );
       if (!outputResult.ok) {
         failed++;
@@ -436,7 +479,7 @@ export class ProcessingEngine {
           document: file,
           stage: "Output",
           error: outputResult.error,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
         continue;
       }
@@ -451,7 +494,7 @@ export class ProcessingEngine {
       failed,
       config.getOutputPath(),
       executionTime,
-      errors
+      errors,
     );
   }
 
@@ -460,12 +503,17 @@ export class ProcessingEngine {
     return [];
   }
 
-  private async extractData(file: string): Promise<Result<unknown, DomainError>> {
+  private async extractData(
+    file: string,
+  ): Promise<Result<unknown, DomainError>> {
     // ファイルからデータ抽出
     return { ok: true, data: {} };
   }
 
-  private async writeOutput(path: string, content: string): Promise<Result<void, DomainError>> {
+  private async writeOutput(
+    path: string,
+    content: string,
+  ): Promise<Result<void, DomainError>> {
     // ファイル出力
     return { ok: true, data: undefined };
   }
@@ -481,16 +529,19 @@ export class ProcessingEngine {
 export class ApplicationBootstrap {
   static createDefaultRegistry(): AdapterRegistry {
     const registry = new AdapterRegistry();
-    
+
     // デフォルトアダプタ登録
     registry.registerSchemaAdapter("zod", new ZodSchemaAdapter());
     registry.registerSchemaAdapter("json-schema", new JSONSchemaAdapter());
-    
-    registry.registerTemplateAdapter("handlebars", new HandlebarsTemplateAdapter());
+
+    registry.registerTemplateAdapter(
+      "handlebars",
+      new HandlebarsTemplateAdapter(),
+    );
     registry.registerTemplateAdapter("simple", new SimpleTemplateAdapter());
     registry.registerTemplateAdapter("json", new SimpleTemplateAdapter());
     registry.registerTemplateAdapter("yaml", new SimpleTemplateAdapter());
-    
+
     return registry;
   }
 
@@ -505,11 +556,11 @@ export class ApplicationBootstrap {
 // ===============================================
 async function main(): Promise<void> {
   const engine = await ApplicationBootstrap.createEngine();
-  
+
   // Schema読み込み
   const schemaResult = await SchemaContext.create(
     "user-schema",
-    await loadZodSchema("./schemas/user.ts")
+    await loadZodSchema("./schemas/user.ts"),
   );
   if (!schemaResult.ok) {
     console.error(schemaResult.error);
@@ -520,7 +571,7 @@ async function main(): Promise<void> {
   const templateResult = await TemplateContext.create(
     "user-template",
     "User: {{name}}, Email: {{email}}",
-    "simple"
+    "simple",
   );
   if (!templateResult.ok) {
     console.error(templateResult.error);
@@ -532,7 +583,7 @@ async function main(): Promise<void> {
     schemaResult.data,
     templateResult.data,
     "./data/*.json",
-    "./output/users.txt"
+    "./output/users.txt",
   );
   if (!configResult.ok) {
     console.error(configResult.error);
@@ -546,7 +597,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log(`処理完了: ${result.data.getSuccessCount()}/${result.data.getProcessedCount()} 成功`);
+  console.log(
+    `処理完了: ${result.data.getSuccessCount()}/${result.data.getProcessedCount()} 成功`,
+  );
 }
 ```
 
