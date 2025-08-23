@@ -21,35 +21,48 @@
 /** Markdownファイルパス - 不変値オブジェクト */
 export class MarkdownFilePath {
   private constructor(private readonly value: string) {}
-  
+
   static create(path: string): Result<MarkdownFilePath, PathError> {
     if (!path) {
-      return { ok: false, error: { kind: "EmptyPath", message: "Path cannot be empty" } };
+      return {
+        ok: false,
+        error: { kind: "EmptyPath", message: "Path cannot be empty" },
+      };
     }
-    if (!path.endsWith('.md') && !path.endsWith('.markdown')) {
-      return { ok: false, error: { kind: "InvalidExtension", message: "File must be markdown" } };
+    if (!path.endsWith(".md") && !path.endsWith(".markdown")) {
+      return {
+        ok: false,
+        error: { kind: "InvalidExtension", message: "File must be markdown" },
+      };
     }
     return { ok: true, data: new MarkdownFilePath(path) };
   }
-  
-  getValue(): string { return this.value; }
+
+  getValue(): string {
+    return this.value;
+  }
 }
 
 /** Markdownコンテンツ - 不変値オブジェクト */
 export class MarkdownContent {
   private constructor(private readonly content: string) {}
-  
+
   static create(content: string): Result<MarkdownContent, ContentError> {
     if (content === null || content === undefined) {
-      return { ok: false, error: { kind: "NullContent", message: "Content cannot be null" } };
+      return {
+        ok: false,
+        error: { kind: "NullContent", message: "Content cannot be null" },
+      };
     }
     return { ok: true, data: new MarkdownContent(content) };
   }
-  
-  getValue(): string { return this.content; }
-  
+
+  getValue(): string {
+    return this.content;
+  }
+
   hasFrontMatter(): boolean {
-    return this.content.startsWith('---\n');
+    return this.content.startsWith("---\n");
   }
 }
 
@@ -57,32 +70,48 @@ export class MarkdownContent {
 export class FrontMatter {
   private constructor(
     private readonly rawYaml: string,
-    private readonly parsed: Record<string, unknown>
+    private readonly parsed: Record<string, unknown>,
   ) {}
-  
+
   static create(yaml: string): Result<FrontMatter, FrontMatterError> {
-    if (!yaml || yaml.trim() === '') {
-      return { ok: false, error: { kind: "EmptyFrontMatter", message: "FrontMatter is empty" } };
+    if (!yaml || yaml.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyFrontMatter", message: "FrontMatter is empty" },
+      };
     }
-    
+
     try {
       const parsed = parseYaml(yaml); // YAML解析関数
-      if (typeof parsed !== 'object' || parsed === null) {
-        return { ok: false, error: { kind: "InvalidYaml", message: "YAML must be an object" } };
+      if (typeof parsed !== "object" || parsed === null) {
+        return {
+          ok: false,
+          error: { kind: "InvalidYaml", message: "YAML must be an object" },
+        };
       }
-      return { ok: true, data: new FrontMatter(yaml, parsed as Record<string, unknown>) };
+      return {
+        ok: true,
+        data: new FrontMatter(yaml, parsed as Record<string, unknown>),
+      };
     } catch (e) {
-      return { ok: false, error: { kind: "ParseError", message: `YAML parse failed: ${e}` } };
+      return {
+        ok: false,
+        error: { kind: "ParseError", message: `YAML parse failed: ${e}` },
+      };
     }
   }
-  
-  getRawYaml(): string { return this.rawYaml; }
-  getParsed(): Readonly<Record<string, unknown>> { return this.parsed; }
-  
+
+  getRawYaml(): string {
+    return this.rawYaml;
+  }
+  getParsed(): Readonly<Record<string, unknown>> {
+    return this.parsed;
+  }
+
   hasKey(key: string): boolean {
     return key in this.parsed;
   }
-  
+
   getValue(key: string): unknown | undefined {
     return this.parsed[key];
   }
@@ -99,43 +128,54 @@ export class MarkdownDocument {
     private readonly path: MarkdownFilePath,
     private readonly content: MarkdownContent,
     private readonly frontMatter: FrontMatter | null,
-    private readonly body: string
+    private readonly body: string,
   ) {}
-  
+
   static create(
     path: MarkdownFilePath,
-    content: MarkdownContent
+    content: MarkdownContent,
   ): Result<MarkdownDocument, DocumentError> {
     const extraction = extractFrontMatterAndBody(content.getValue());
-    
+
     if (!extraction.ok) {
       return { ok: false, error: extraction.error };
     }
-    
+
     const { frontMatterYaml, body } = extraction.data;
-    
+
     let frontMatter: FrontMatter | null = null;
     if (frontMatterYaml) {
       const fmResult = FrontMatter.create(frontMatterYaml);
       if (!fmResult.ok) {
-        return { ok: false, error: { kind: "FrontMatterError", message: fmResult.error.message } };
+        return {
+          ok: false,
+          error: { kind: "FrontMatterError", message: fmResult.error.message },
+        };
       }
       frontMatter = fmResult.data;
     }
-    
+
     const id = DocumentId.generate(path.getValue());
-    
+
     return {
       ok: true,
-      data: new MarkdownDocument(id, path, content, frontMatter, body)
+      data: new MarkdownDocument(id, path, content, frontMatter, body),
     };
   }
-  
-  getId(): DocumentId { return this.id; }
-  getPath(): MarkdownFilePath { return this.path; }
-  getFrontMatter(): FrontMatter | null { return this.frontMatter; }
-  getBody(): string { return this.body; }
-  
+
+  getId(): DocumentId {
+    return this.id;
+  }
+  getPath(): MarkdownFilePath {
+    return this.path;
+  }
+  getFrontMatter(): FrontMatter | null {
+    return this.frontMatter;
+  }
+  getBody(): string {
+    return this.body;
+  }
+
   hasFrontMatter(): boolean {
     return this.frontMatter !== null;
   }
@@ -149,25 +189,26 @@ export class MarkdownDocument {
 export class FrontMatterExtractor {
   extract(document: MarkdownDocument): Result<FrontMatter, ExtractionError> {
     const frontMatter = document.getFrontMatter();
-    
+
     if (!frontMatter) {
       return {
         ok: false,
         error: {
           kind: "NoFrontMatter",
-          message: `Document ${document.getPath().getValue()} has no frontmatter`
-        }
+          message:
+            `Document ${document.getPath().getValue()} has no frontmatter`,
+        },
       };
     }
-    
+
     return { ok: true, data: frontMatter };
   }
-  
+
   extractBatch(documents: MarkdownDocument[]): ExtractionResult[] {
-    return documents.map(doc => ({
+    return documents.map((doc) => ({
       documentId: doc.getId(),
       path: doc.getPath(),
-      result: this.extract(doc)
+      result: this.extract(doc),
     }));
   }
 }
@@ -177,8 +218,12 @@ export class FrontMatterExtractor {
 // ========================================
 
 export interface MarkdownDocumentRepository {
-  findByPath(path: MarkdownFilePath): Promise<Result<MarkdownDocument, RepositoryError>>;
-  findAll(directory: DirectoryPath): Promise<Result<MarkdownDocument[], RepositoryError>>;
+  findByPath(
+    path: MarkdownFilePath,
+  ): Promise<Result<MarkdownDocument, RepositoryError>>;
+  findAll(
+    directory: DirectoryPath,
+  ): Promise<Result<MarkdownDocument[], RepositoryError>>;
   exists(path: MarkdownFilePath): Promise<boolean>;
 }
 
@@ -191,9 +236,9 @@ export class FrontMatterExtracted implements DomainEvent {
     public readonly documentId: DocumentId,
     public readonly documentPath: string,
     public readonly frontMatter: FrontMatter,
-    public readonly extractedAt: Date = new Date()
+    public readonly extractedAt: Date = new Date(),
   ) {}
-  
+
   getEventName(): string {
     return "FrontMatterExtracted";
   }
@@ -203,7 +248,7 @@ export class FrontMatterExtracted implements DomainEvent {
 // Error Types
 // ========================================
 
-export type FrontMatterError = 
+export type FrontMatterError =
   | { kind: "EmptyFrontMatter"; message: string }
   | { kind: "InvalidYaml"; message: string }
   | { kind: "ParseError"; message: string };
@@ -230,24 +275,37 @@ export type DocumentError =
 export class AnalysisSchema {
   private constructor(
     private readonly schema: object,
-    private readonly version: string
+    private readonly version: string,
   ) {}
-  
-  static create(schema: unknown, version: string): Result<AnalysisSchema, SchemaError> {
-    if (!schema || typeof schema !== 'object') {
-      return { ok: false, error: { kind: "InvalidSchema", message: "Schema must be an object" } };
+
+  static create(
+    schema: unknown,
+    version: string,
+  ): Result<AnalysisSchema, SchemaError> {
+    if (!schema || typeof schema !== "object") {
+      return {
+        ok: false,
+        error: { kind: "InvalidSchema", message: "Schema must be an object" },
+      };
     }
-    
+
     if (!version || !isValidSemver(version)) {
-      return { ok: false, error: { kind: "InvalidVersion", message: "Invalid schema version" } };
+      return {
+        ok: false,
+        error: { kind: "InvalidVersion", message: "Invalid schema version" },
+      };
     }
-    
+
     return { ok: true, data: new AnalysisSchema(schema as object, version) };
   }
-  
-  getSchema(): Readonly<object> { return this.schema; }
-  getVersion(): string { return this.version; }
-  
+
+  getSchema(): Readonly<object> {
+    return this.schema;
+  }
+  getVersion(): string {
+    return this.version;
+  }
+
   validate(data: unknown): Result<void, ValidationError> {
     // JSON Schema検証ロジック
     return validateAgainstSchema(data, this.schema);
@@ -258,28 +316,31 @@ export class AnalysisSchema {
 export class Prompt {
   private constructor(
     private readonly template: string,
-    private readonly variables: Map<string, string>
+    private readonly variables: Map<string, string>,
   ) {}
-  
+
   static create(template: string): Result<Prompt, PromptError> {
-    if (!template || template.trim() === '') {
-      return { ok: false, error: { kind: "EmptyPrompt", message: "Prompt cannot be empty" } };
+    if (!template || template.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyPrompt", message: "Prompt cannot be empty" },
+      };
     }
-    
+
     const variables = extractVariables(template); // {{var}}形式の変数を抽出
     return { ok: true, data: new Prompt(template, variables) };
   }
-  
+
   render(values: Record<string, string>): Result<string, RenderError> {
     let rendered = this.template;
-    
+
     for (const [key, _] of this.variables) {
       if (!(key in values)) {
         return { ok: false, error: { kind: "MissingVariable", variable: key } };
       }
-      rendered = rendered.replace(new RegExp(`{{${key}}}`, 'g'), values[key]);
+      rendered = rendered.replace(new RegExp(`{{${key}}}`, "g"), values[key]);
     }
-    
+
     return { ok: true, data: rendered };
   }
 }
@@ -288,22 +349,35 @@ export class Prompt {
 export class ExtractedInfo {
   private constructor(
     private readonly data: Record<string, unknown>,
-    private readonly metadata: ExtractionMetadata
+    private readonly metadata: ExtractionMetadata,
   ) {}
-  
+
   static create(
     rawData: unknown,
-    metadata: ExtractionMetadata
+    metadata: ExtractionMetadata,
   ): Result<ExtractedInfo, ExtractionError> {
-    if (!rawData || typeof rawData !== 'object') {
-      return { ok: false, error: { kind: "InvalidData", message: "Extracted data must be object" } };
+    if (!rawData || typeof rawData !== "object") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidData",
+          message: "Extracted data must be object",
+        },
+      };
     }
-    
-    return { ok: true, data: new ExtractedInfo(rawData as Record<string, unknown>, metadata) };
+
+    return {
+      ok: true,
+      data: new ExtractedInfo(rawData as Record<string, unknown>, metadata),
+    };
   }
-  
-  getData(): Readonly<Record<string, unknown>> { return this.data; }
-  getMetadata(): ExtractionMetadata { return this.metadata; }
+
+  getData(): Readonly<Record<string, unknown>> {
+    return this.data;
+  }
+  getMetadata(): ExtractionMetadata {
+    return this.metadata;
+  }
 }
 
 /** テンプレート - 外部ファイルから読み込み */
@@ -311,56 +385,83 @@ export class Template {
   private constructor(
     private readonly name: string,
     private readonly content: string,
-    private readonly format: "json" | "yaml" | "markdown"
+    private readonly format: "json" | "yaml" | "markdown",
   ) {}
-  
+
   static create(
     name: string,
     content: string,
-    format: "json" | "yaml" | "markdown" = "json"
+    format: "json" | "yaml" | "markdown" = "json",
   ): Result<Template, ValidationError> {
-    if (!name || name.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", message: "Template name cannot be empty" } };
+    if (!name || name.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", message: "Template name cannot be empty" },
+      };
     }
-    
-    if (!content || content.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", message: "Template content cannot be empty" } };
+
+    if (!content || content.trim() === "") {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+          message: "Template content cannot be empty",
+        },
+      };
     }
-    
+
     return { ok: true, data: new Template(name, content, format) };
   }
-  
-  getName(): string { return this.name; }
-  getContent(): string { return this.content; }
-  getFormat(): string { return this.format; }
+
+  getName(): string {
+    return this.name;
+  }
+  getContent(): string {
+    return this.content;
+  }
+  getFormat(): string {
+    return this.format;
+  }
 }
 
 /** 構造化データ - 不変値オブジェクト（成果D） */
 export class StructuredData {
   private constructor(
-    private readonly content: string,  // 変換後テンプレート
+    private readonly content: string, // 変換後テンプレート
     private readonly templateName: string,
-    private readonly metadata: StructuringMetadata
+    private readonly metadata: StructuringMetadata,
   ) {}
-  
+
   static createFromAppliedTemplate(
     appliedContent: string,
     templateName: string,
-    metadata: StructuringMetadata
+    metadata: StructuringMetadata,
   ): Result<StructuredData, StructuringError> {
-    if (!appliedContent || appliedContent.trim() === '') {
-      return { ok: false, error: { kind: "EmptyContent", message: "Applied template content is empty" } };
+    if (!appliedContent || appliedContent.trim() === "") {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyContent",
+          message: "Applied template content is empty",
+        },
+      };
     }
-    
+
     return {
       ok: true,
-      data: new StructuredData(appliedContent, templateName, metadata)
+      data: new StructuredData(appliedContent, templateName, metadata),
     };
   }
-  
-  getContent(): string { return this.content; }
-  getTemplateName(): string { return this.templateName; }
-  getMetadata(): StructuringMetadata { return this.metadata; }
+
+  getContent(): string {
+    return this.content;
+  }
+  getTemplateName(): string {
+    return this.templateName;
+  }
+  getMetadata(): StructuringMetadata {
+    return this.metadata;
+  }
 }
 
 // ========================================
@@ -372,98 +473,128 @@ export class AIAnalysisOrchestrator {
   constructor(
     private readonly aiProvider: AIProvider,
     private readonly promptA: Prompt,
-    private readonly promptB: Prompt
+    private readonly promptB: Prompt,
   ) {}
-  
+
   /** 第1段階: 情報抽出（成果B → 成果C） */
   async extractInformation(
     frontMatter: FrontMatter,
-    schema: AnalysisSchema
+    schema: AnalysisSchema,
   ): Promise<Result<ExtractedInfo, AnalysisError>> {
     // プロンプトAをレンダリング
     const renderResult = this.promptA.render({
       FRONTMATTER: JSON.stringify(frontMatter.getParsed()),
-      SCHEMA: JSON.stringify(schema.getSchema())
+      SCHEMA: JSON.stringify(schema.getSchema()),
     });
-    
+
     if (!renderResult.ok) {
-      return { ok: false, error: { kind: "PromptRenderError", message: renderResult.error.variable } };
+      return {
+        ok: false,
+        error: {
+          kind: "PromptRenderError",
+          message: renderResult.error.variable,
+        },
+      };
     }
-    
+
     // AI解析実行
     const analysisResult = await this.aiProvider.analyze(renderResult.data);
-    
+
     if (!analysisResult.ok) {
-      return { ok: false, error: { kind: "AIAnalysisError", message: analysisResult.error.message } };
+      return {
+        ok: false,
+        error: {
+          kind: "AIAnalysisError",
+          message: analysisResult.error.message,
+        },
+      };
     }
-    
+
     // 結果をパースして成果Cを生成
     try {
       const parsed = JSON.parse(analysisResult.data);
       const metadata: ExtractionMetadata = {
         extractedAt: new Date(),
         promptUsed: "PromptA",
-        schemaVersion: schema.getVersion()
+        schemaVersion: schema.getVersion(),
       };
-      
+
       return ExtractedInfo.create(parsed, metadata);
     } catch (e) {
-      return { ok: false, error: { kind: "ParseError", message: `Failed to parse AI response: ${e}` } };
+      return {
+        ok: false,
+        error: {
+          kind: "ParseError",
+          message: `Failed to parse AI response: ${e}`,
+        },
+      };
     }
   }
-  
+
   /** 第2段階: テンプレート当て込み（成果C → 成果D） */
   async applyTemplate(
     extractedInfo: ExtractedInfo,
     schema: AnalysisSchema,
-    template: Template
+    template: Template,
   ): Promise<Result<StructuredData, AnalysisError>> {
     // プロンプトBをレンダリング - AIがテンプレートに値を埋め込む
     const renderResult = this.promptB.render({
       EXTRACTED_DATA: JSON.stringify(extractedInfo.getData()),
       SCHEMA: JSON.stringify(schema.getSchema()),
-      TEMPLATE: template.getContent()  // テンプレートをそのまま渡す
+      TEMPLATE: template.getContent(), // テンプレートをそのまま渡す
     });
-    
+
     if (!renderResult.ok) {
-      return { ok: false, error: { kind: "PromptRenderError", message: renderResult.error.variable } };
+      return {
+        ok: false,
+        error: {
+          kind: "PromptRenderError",
+          message: renderResult.error.variable,
+        },
+      };
     }
-    
+
     // AI解析実行 (claude -p 2回目) - テンプレート当て込み
     const analysisResult = await this.aiProvider.analyze(renderResult.data);
-    
+
     if (!analysisResult.ok) {
-      return { ok: false, error: { kind: "AIAnalysisError", message: analysisResult.error.message } };
+      return {
+        ok: false,
+        error: {
+          kind: "AIAnalysisError",
+          message: analysisResult.error.message,
+        },
+      };
     }
-    
+
     // AIが当て込んだテンプレート結果をそのまま成果Dとして使用
     const metadata: StructuringMetadata = {
       structuredAt: new Date(),
       promptUsed: "PromptB",
       templateName: template.getName(),
-      appliedContent: analysisResult.data,  // 変換後テンプレート
-      sourceMetadata: extractedInfo.getMetadata()
+      appliedContent: analysisResult.data, // 変換後テンプレート
+      sourceMetadata: extractedInfo.getMetadata(),
     };
-    
+
     return StructuredData.createFromAppliedTemplate(
       analysisResult.data,
       template.getName(),
-      metadata
+      metadata,
     );
   }
-  
+
   /** 完全な2段階処理パイプライン */
   async analyze(
     frontMatter: FrontMatter,
     schema: AnalysisSchema,
-    template: Template
+    template: Template,
   ): Promise<Result<StructuredData, AnalysisError>> {
     // 第1段階: 情報抽出
     const extractionResult = await this.extractInformation(frontMatter, schema);
     if (!extractionResult.ok) {
       return extractionResult;
     }
-    
+
     // 第2段階: テンプレート当て込み
     return this.applyTemplate(extractionResult.data, schema, template);
   }
@@ -483,23 +614,35 @@ export interface AIProvider {
 /** Claude実装（反腐敗層の実装） */
 export class ClaudeAIProvider implements AIProvider {
   constructor(private readonly commandExecutor: CommandExecutor) {}
-  
+
   async analyze(prompt: string): Promise<Result<string, AIProviderError>> {
     try {
-      const result = await this.commandExecutor.execute('claude', ['-p'], prompt);
+      const result = await this.commandExecutor.execute(
+        "claude",
+        ["-p"],
+        prompt,
+      );
       if (!result.ok) {
-        return { ok: false, error: { kind: "ExecutionError", message: result.error } };
+        return {
+          ok: false,
+          error: { kind: "ExecutionError", message: result.error },
+        };
       }
       return { ok: true, data: result.data.stdout };
     } catch (e) {
-      return { ok: false, error: { kind: "UnexpectedError", message: `Claude API error: ${e}` } };
+      return {
+        ok: false,
+        error: { kind: "UnexpectedError", message: `Claude API error: ${e}` },
+      };
     }
   }
-  
-  getProviderName(): string { return "Claude"; }
-  
+
+  getProviderName(): string {
+    return "Claude";
+  }
+
   async isAvailable(): Promise<boolean> {
-    const result = await this.commandExecutor.execute('which', ['claude']);
+    const result = await this.commandExecutor.execute("which", ["claude"]);
     return result.ok;
   }
 }
@@ -512,20 +655,24 @@ export class InformationExtracted implements DomainEvent {
   constructor(
     public readonly documentId: DocumentId,
     public readonly extractedInfo: ExtractedInfo,
-    public readonly extractedAt: Date = new Date()
+    public readonly extractedAt: Date = new Date(),
   ) {}
-  
-  getEventName(): string { return "InformationExtracted"; }
+
+  getEventName(): string {
+    return "InformationExtracted";
+  }
 }
 
 export class DataStructured implements DomainEvent {
   constructor(
     public readonly documentId: DocumentId,
     public readonly structuredData: StructuredData,
-    public readonly structuredAt: Date = new Date()
+    public readonly structuredAt: Date = new Date(),
   ) {}
-  
-  getEventName(): string { return "DataStructured"; }
+
+  getEventName(): string {
+    return "DataStructured";
+  }
 }
 
 // ========================================
@@ -548,21 +695,25 @@ export type AnalysisError =
 // Result Type - 全域性の実現
 // ========================================
 
-export type Result<T, E> = 
+export type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
 
-export function isOk<T, E>(result: Result<T, E>): result is { ok: true; data: T } {
+export function isOk<T, E>(
+  result: Result<T, E>,
+): result is { ok: true; data: T } {
   return result.ok === true;
 }
 
-export function isError<T, E>(result: Result<T, E>): result is { ok: false; error: E } {
+export function isError<T, E>(
+  result: Result<T, E>,
+): result is { ok: false; error: E } {
   return result.ok === false;
 }
 
 export function mapResult<T, U, E>(
   result: Result<T, E>,
-  fn: (data: T) => U
+  fn: (data: T) => U,
 ): Result<U, E> {
   if (isOk(result)) {
     return { ok: true, data: fn(result.data) };
@@ -572,7 +723,7 @@ export function mapResult<T, U, E>(
 
 export function flatMapResult<T, U, E>(
   result: Result<T, E>,
-  fn: (data: T) => Result<U, E>
+  fn: (data: T) => Result<U, E>,
 ): Result<U, E> {
   if (isOk(result)) {
     return fn(result.data);
@@ -595,14 +746,16 @@ export interface DomainEvent {
 
 export class DocumentId {
   private constructor(private readonly value: string) {}
-  
+
   static generate(seed: string): DocumentId {
     const hash = createHash(seed + Date.now().toString());
     return new DocumentId(hash);
   }
-  
-  getValue(): string { return this.value; }
-  
+
+  getValue(): string {
+    return this.value;
+  }
+
   equals(other: DocumentId): boolean {
     return this.value === other.value;
   }
@@ -622,7 +775,7 @@ export interface StructuringMetadata {
   structuredAt: Date;
   promptUsed: string;
   templateName: string;
-  appliedContent: string;  // 変換後テンプレート内容
+  appliedContent: string; // 変換後テンプレート内容
   sourceMetadata: ExtractionMetadata;
 }
 ```

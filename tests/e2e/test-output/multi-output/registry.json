@@ -14,7 +14,7 @@
         ],
         "commands": [],
         "commands[]": {
-          "description": "Test registry document 1"
+          "description": "Test Description"
         }
       },
       "mappings": [
@@ -58,7 +58,7 @@
         ],
         "commands": [],
         "commands[]": {
-          "description": "Test registry document 2"
+          "description": "Test Description"
         }
       },
       "mappings": [

@@ -14,6 +14,7 @@
     "example:articles": "deno run --allow-all src/main.ts --config examples/articles-index/config.json"
   },
   "imports": {
+    "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@^1.0.89",
     "jsr:@std/fs": "jsr:@std/fs@1.0.8",
     "jsr:@std/front-matter": "jsr:@std/front-matter@1.0.5",
     "jsr:@std/cli": "jsr:@std/cli@1.0.9",

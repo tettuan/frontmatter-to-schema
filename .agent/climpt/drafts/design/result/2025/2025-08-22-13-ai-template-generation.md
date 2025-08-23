@@ -2,7 +2,7 @@
 
 ## 概要
 
-第2段階のAI処理で、外部テンプレートファイルと抽出情報を`claude -p`に渡し、AIがテンプレートへの値の埋め込みを行う設計。TypeScriptでのテンプレート解析は行わない。
+第2段階のAI処理で、外部テンプレートファイルと抽出情報を`Claude Code SDK`に渡し、AIがテンプレートへの値の埋め込みを行う設計。TypeScriptでのテンプレート解析は行わない。
 
 ## 1. 修正版AI解析オーケストレーター
 
@@ -17,138 +17,174 @@
 export class AIAnalysisOrchestrator {
   constructor(
     private readonly aiProvider: AIProvider,
-    private readonly promptA: Prompt,  // 情報抽出用プロンプト
-    private readonly promptB: Prompt   // テンプレート当て込み用プロンプト
+    private readonly promptA: Prompt, // 情報抽出用プロンプト
+    private readonly promptB: Prompt, // テンプレート当て込み用プロンプト
   ) {}
-  
-  /** 
+
+  /**
    * 第1段階: 情報抽出（成果B → 成果C）
    * フロントマターから必要な情報を抽出
    */
   async extractInformation(
     frontMatter: FrontMatter,
-    schema: AnalysisSchema
+    schema: AnalysisSchema,
   ): Promise<Result<ExtractedInfo, AnalysisError>> {
     // プロンプトAをレンダリング
     const renderResult = this.promptA.render({
       FRONTMATTER: JSON.stringify(frontMatter.getParsed()),
-      SCHEMA: JSON.stringify(schema.getSchema())
+      SCHEMA: JSON.stringify(schema.getSchema()),
     });
-    
+
     if (!renderResult.ok) {
-      return { ok: false, error: { kind: "PromptRenderError", message: renderResult.error.variable } };
+      return {
+        ok: false,
+        error: {
+          kind: "PromptRenderError",
+          message: renderResult.error.variable,
+        },
+      };
     }
-    
+
     // AI解析実行 (claude -p 1回目)
     const analysisResult = await this.aiProvider.analyze(renderResult.data);
-    
+
     if (!analysisResult.ok) {
-      return { ok: false, error: { kind: "AIAnalysisError", message: analysisResult.error.message } };
+      return {
+        ok: false,
+        error: {
+          kind: "AIAnalysisError",
+          message: analysisResult.error.message,
+        },
+      };
     }
-    
+
     // 結果をパースして成果Cを生成
     try {
       const parsed = JSON.parse(analysisResult.data);
       const metadata: ExtractionMetadata = {
         extractedAt: new Date(),
         promptUsed: "PromptA",
-        schemaVersion: schema.getVersion()
+        schemaVersion: schema.getVersion(),
       };
-      
+
       return ExtractedInfo.create(parsed, metadata);
     } catch (e) {
-      return { ok: false, error: { kind: "ParseError", message: `Failed to parse AI response: ${e}` } };
+      return {
+        ok: false,
+        error: {
+          kind: "ParseError",
+          message: `Failed to parse AI response: ${e}`,
+        },
+      };
     }
   }
-  
-  /** 
+
+  /**
    * 第2段階: テンプレート当て込み（成果C → 成果D）
    * AIが抽出情報をテンプレートに埋め込む
    */
   async applyTemplate(
     extractedInfo: ExtractedInfo,
     schema: AnalysisSchema,
-    template: Template
+    template: Template,
   ): Promise<Result<TemplateResult, AnalysisError>> {
     // プロンプトBをレンダリング - テンプレート当て込み指示
     const renderResult = this.promptB.render({
       EXTRACTED_DATA: JSON.stringify(extractedInfo.getData()),
       SCHEMA: JSON.stringify(schema.getSchema()),
-      TEMPLATE: template.getContent()
+      TEMPLATE: template.getContent(),
     });
-    
+
     if (!renderResult.ok) {
-      return { ok: false, error: { kind: "PromptRenderError", message: renderResult.error.variable } };
+      return {
+        ok: false,
+        error: {
+          kind: "PromptRenderError",
+          message: renderResult.error.variable,
+        },
+      };
     }
-    
+
     const startTime = Date.now();
-    
+
     // AI解析実行 (claude -p 2回目) - テンプレート当て込み
     const analysisResult = await this.aiProvider.analyze(renderResult.data);
-    
+
     if (!analysisResult.ok) {
-      return { ok: false, error: { kind: "AIAnalysisError", message: analysisResult.error.message } };
+      return {
+        ok: false,
+        error: {
+          kind: "AIAnalysisError",
+          message: analysisResult.error.message,
+        },
+      };
     }
-    
+
     const duration = Date.now() - startTime;
-    
+
     // AIが当て込んだテンプレート結果を作成
     const metadata: TemplateApplicationMetadata = {
       promptUsed: "PromptB",
       aiProvider: this.aiProvider.getProviderName(),
       templateName: template.getName(),
       duration,
-      retryCount: 0
+      retryCount: 0,
     };
-    
+
     const templateResult = TemplateResult.create(
       analysisResult.data,
       template,
-      metadata
+      metadata,
     );
-    
+
     if (!templateResult.ok) {
-      return { ok: false, error: { kind: "TemplateApplicationError", message: templateResult.error.message } };
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateApplicationError",
+          message: templateResult.error.message,
+        },
+      };
     }
-    
+
     // 当て込み結果の検証（必要に応じて）
     // 注: claude -pが適切に処理するため、基本的に検証は不要
-    
+
     return { ok: true, data: templateResult.data };
   }
-  
-  /** 
+
+  /**
    * 完全な2段階処理パイプライン
    * 情報抽出 → テンプレート当て込み
    */
   async analyze(
     frontMatter: FrontMatter,
     schema: AnalysisSchema,
-    template: Template
+    template: Template,
   ): Promise<Result<StructuredData, AnalysisError>> {
     // 第1段階: 情報抽出
     const extractionResult = await this.extractInformation(frontMatter, schema);
     if (!extractionResult.ok) {
       return extractionResult;
     }
-    
+
     // 第2段階: AIによるテンプレート当て込み
     const templateResult = await this.applyTemplate(
       extractionResult.data,
       schema,
-      template
+      template,
     );
-    
+
     if (!templateResult.ok) {
       return templateResult;
     }
-    
+
     // TemplateResultをStructuredDataに変換
     const structuredData = StructuredData.createFromTemplateResult(
       templateResult.data,
-      extractionResult.data
+      extractionResult.data,
     );
-    
+
     return structuredData;
   }
 }
@@ -162,28 +198,40 @@ export class Template {
   private constructor(
     private readonly name: string,
     private readonly content: string,
-    private readonly format: "json" | "yaml" | "markdown"
+    private readonly format: "json" | "yaml" | "markdown",
   ) {}
-  
+
   static create(
     name: string,
     content: string,
-    format: "json" | "yaml" | "markdown" = "json"
+    format: "json" | "yaml" | "markdown" = "json",
   ): Result<Template, ValidationError> {
-    if (!name || name.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", field: "TemplateName" } };
+    if (!name || name.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", field: "TemplateName" },
+      };
     }
-    
-    if (!content || content.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", field: "TemplateContent" } };
+
+    if (!content || content.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", field: "TemplateContent" },
+      };
     }
-    
+
     return { ok: true, data: new Template(name, content, format) };
   }
-  
-  getName(): string { return this.name; }
-  getContent(): string { return this.content; }
-  getFormat(): string { return this.format; }
+
+  getName(): string {
+    return this.name;
+  }
+  getContent(): string {
+    return this.content;
+  }
+  getFormat(): string {
+    return this.format;
+  }
 }
 
 /** テンプレート当て込み結果 */
@@ -191,27 +239,36 @@ export class TemplateResult {
   private constructor(
     private readonly appliedContent: string,
     private readonly template: Template,
-    private readonly metadata: TemplateApplicationMetadata
+    private readonly metadata: TemplateApplicationMetadata,
   ) {}
-  
+
   static create(
     appliedContent: string,
     template: Template,
-    metadata: TemplateApplicationMetadata
+    metadata: TemplateApplicationMetadata,
   ): Result<TemplateResult, ValidationError> {
-    if (!appliedContent || appliedContent.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", field: "AppliedContent" } };
+    if (!appliedContent || appliedContent.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", field: "AppliedContent" },
+      };
     }
-    
+
     return {
       ok: true,
-      data: new TemplateResult(appliedContent, template, metadata)
+      data: new TemplateResult(appliedContent, template, metadata),
     };
   }
-  
-  getAppliedContent(): string { return this.appliedContent; }
-  getTemplate(): Template { return this.template; }
-  getMetadata(): TemplateApplicationMetadata { return this.metadata; }
+
+  getAppliedContent(): string {
+    return this.appliedContent;
+  }
+  getTemplate(): Template {
+    return this.template;
+  }
+  getMetadata(): TemplateApplicationMetadata {
+    return this.metadata;
+  }
 }
 
 /** テンプレート適用メタデータ */
@@ -229,49 +286,49 @@ export class StructuredData {
     private readonly content: string,
     private readonly sourceResult: TemplateResult,
     private readonly sourceInfo: ExtractedInfo,
-    private readonly metadata: StructuringMetadata
+    private readonly metadata: StructuringMetadata,
   ) {}
-  
+
   /**
    * テンプレート当て込み結果から構造化データを作成
    */
   static createFromTemplateResult(
     result: TemplateResult,
-    sourceInfo: ExtractedInfo
+    sourceInfo: ExtractedInfo,
   ): Result<StructuredData, StructuringError> {
     const metadata: StructuringMetadata = {
       structuredAt: new Date(),
       promptUsed: "PromptB",
       templateName: result.getTemplate().getName(),
       appliedAt: result.getMetadata().duration,
-      sourceMetadata: sourceInfo.getMetadata()
+      sourceMetadata: sourceInfo.getMetadata(),
     };
-    
+
     return {
       ok: true,
       data: new StructuredData(
         result.getAppliedContent(),
         result,
         sourceInfo,
-        metadata
-      )
+        metadata,
+      ),
     };
   }
-  
-  getContent(): string { 
-    return this.content; 
+
+  getContent(): string {
+    return this.content;
   }
-  
+
   getSourceResult(): TemplateResult {
     return this.sourceResult;
   }
-  
+
   getSourceInfo(): ExtractedInfo {
     return this.sourceInfo;
   }
-  
-  getMetadata(): StructuringMetadata { 
-    return this.metadata; 
+
+  getMetadata(): StructuringMetadata {
+    return this.metadata;
   }
 }
 
@@ -379,13 +436,13 @@ if (!templateResult.ok) {
 const orchestrator = new AIAnalysisOrchestrator(
   new ClaudeAIProvider(commandExecutor),
   promptA,
-  promptB
+  promptB,
 );
 
 const result = await orchestrator.analyze(
   frontMatter,
   schema,
-  templateResult.data  // テンプレート
+  templateResult.data, // テンプレート
 );
 
 if (result.ok) {
@@ -398,7 +455,7 @@ if (result.ok) {
 
 [docs/domain/domain-template.md](../../domain/domain-template.md)に基づく:
 
-1. **TypeScriptでテンプレート解析しない**: `claude -p`に全て任せる
+1. **TypeScriptでテンプレート解析しない**: `Claude Code SDK`に全て任せる
 2. **テンプレートはそのまま渡す**: 変数埋め込みはAIが実行
 3. **変換結果をそのまま利用**: 統合処理に直接使用
 

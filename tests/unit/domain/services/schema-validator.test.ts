@@ -141,8 +141,8 @@ Deno.test("SchemaValidator", async (t) => {
   });
 
   await t.step("should handle invalid schema definition", () => {
-    const schemaDefResult = SchemaDefinition.create(null as any, "json");
-    
+    const schemaDefResult = SchemaDefinition.create(null as unknown, "json");
+
     if (isOk(schemaDefResult)) {
       const schemaResult = Schema.create("test", schemaDefResult.data);
       if (isOk(schemaResult)) {
@@ -189,9 +189,12 @@ Deno.test("SchemaValidator", async (t) => {
         const data = { id: 42 };
         const result = validator.validate(data, schemaResult.data);
         assertEquals(isOk(result), true);
-        
+
         const invalidData = { id: "not a number" };
-        const invalidResult = validator.validate(invalidData, schemaResult.data);
+        const invalidResult = validator.validate(
+          invalidData,
+          schemaResult.data,
+        );
         assertEquals(isError(invalidResult), true);
       }
     }
@@ -245,7 +248,10 @@ Deno.test("SchemaValidator", async (t) => {
         const invalidData = {
           user: "not an object",
         };
-        const invalidResult = validator.validate(invalidData, schemaResult.data);
+        const invalidResult = validator.validate(
+          invalidData,
+          schemaResult.data,
+        );
         assertEquals(isError(invalidResult), true);
       }
     }
@@ -320,32 +326,35 @@ Deno.test("SchemaValidator", async (t) => {
     }
   });
 
-  await t.step("should handle properties without additionalProperties restriction", () => {
-    const schemaDefResult = SchemaDefinition.create({
-      type: "object",
-      properties: {
-        name: { type: "string" },
-      },
-    }, "json");
+  await t.step(
+    "should handle properties without additionalProperties restriction",
+    () => {
+      const schemaDefResult = SchemaDefinition.create({
+        type: "object",
+        properties: {
+          name: { type: "string" },
+        },
+      }, "json");
 
-    if (isOk(schemaDefResult)) {
-      const schemaResult = Schema.create("test", schemaDefResult.data);
-      if (isOk(schemaResult)) {
-        const data = {
-          name: "John",
-          extra1: "field1",
-          extra2: 123,
-        };
-        const result = validator.validate(data, schemaResult.data);
-        assertEquals(isOk(result), true);
-        if (isOk(result)) {
-          const validated = result.data as Record<string, unknown>;
-          assertEquals(validated.extra1, "field1");
-          assertEquals(validated.extra2, 123);
+      if (isOk(schemaDefResult)) {
+        const schemaResult = Schema.create("test", schemaDefResult.data);
+        if (isOk(schemaResult)) {
+          const data = {
+            name: "John",
+            extra1: "field1",
+            extra2: 123,
+          };
+          const result = validator.validate(data, schemaResult.data);
+          assertEquals(isOk(result), true);
+          if (isOk(result)) {
+            const validated = result.data as Record<string, unknown>;
+            assertEquals(validated.extra1, "field1");
+            assertEquals(validated.extra2, 123);
+          }
         }
       }
-    }
-  });
+    },
+  );
 
   await t.step("should handle empty schema properties", () => {
     const schemaDefResult = SchemaDefinition.create({
