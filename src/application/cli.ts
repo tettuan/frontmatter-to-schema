@@ -1,5 +1,5 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
-import { isError, type Result } from "../domain/shared/result.ts";
+import { isError, type Result } from "../domain/core/result.ts";
 import { type DomainError, errorToString } from "../domain/shared/errors.ts";
 import {
   type ApplicationConfiguration,
@@ -9,12 +9,12 @@ import { DocumentProcessor } from "./document-processor.ts";
 import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { TemplateMapper } from "../domain/services/template-mapper.ts";
-import { DenoFileSystemAdapter } from "../infrastructure/adapters/deno-file-system.ts";
+import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { ClaudeAnalyzerAdapter } from "../infrastructure/adapters/claude-analyzer.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
-  private readonly fileSystem = new DenoFileSystemAdapter();
+  private readonly fileSystem = new DenoFileSystemProvider();
   private readonly aiAnalyzer = new ClaudeAnalyzerAdapter();
   private readonly frontMatterExtractor = new FrontMatterExtractor();
   private readonly schemaValidator = new SchemaValidator();

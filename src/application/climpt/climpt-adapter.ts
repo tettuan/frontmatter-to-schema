@@ -8,9 +8,14 @@
 import type {
   ConfigurationProvider,
   ExternalAnalysisService,
-  FileSystemProvider,
   PromptConfiguration,
 } from "../../domain/core/abstractions.ts";
+import type {
+  FileInfo,
+  FileSystemPort,
+} from "../../infrastructure/ports/file-system.ts";
+import type { Result } from "../../domain/core/result.ts";
+import { createIOError, type IOError } from "../../domain/shared/errors.ts";
 import {
   FrontMatterAnalysisPipeline,
   type FrontMatterInput,
@@ -102,44 +107,139 @@ export class ClaudeCLIService implements ExternalAnalysisService {
 /**
  * Deno file system provider
  */
-export class DenoFileSystemProvider implements FileSystemProvider {
-  async readFile(path: string): Promise<string> {
-    return await Deno.readTextFile(path);
-  }
-
-  async writeFile(path: string, content: string): Promise<void> {
-    // Ensure directory exists
-    const dir = path.split("/").slice(0, -1).join("/");
-    if (dir) {
-      await Deno.mkdir(dir, { recursive: true });
-    }
-
-    await Deno.writeTextFile(path, content);
-  }
-
-  async readDirectory(path: string): Promise<string[]> {
-    const files: string[] = [];
-
+export class DenoFileSystemProvider implements FileSystemPort {
+  async readFile(path: string): Promise<Result<string, IOError>> {
     try {
-      for await (const dirEntry of Deno.readDir(path)) {
-        if (dirEntry.isFile && dirEntry.name.endsWith(".md")) {
-          files.push(dirEntry.name);
-        }
-      }
+      const content = await Deno.readTextFile(path);
+      return { ok: true, data: content };
     } catch (error) {
-      throw new Error(`Failed to read directory ${path}: ${error}`);
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to read file: ${error}`,
+          path,
+          "read",
+        ),
+      };
     }
-
-    return files;
   }
 
-  async exists(path: string): Promise<boolean> {
+  async writeFile(
+    path: string,
+    content: string,
+  ): Promise<Result<void, IOError>> {
+    try {
+      // Ensure directory exists
+      const dir = path.split("/").slice(0, -1).join("/");
+      if (dir) {
+        await Deno.mkdir(dir, { recursive: true });
+      }
+
+      await Deno.writeTextFile(path, content);
+      return { ok: true, data: undefined };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to write file: ${error}`,
+          path,
+          "write",
+        ),
+      };
+    }
+  }
+
+  async exists(path: string): Promise<Result<boolean, IOError>> {
     try {
       await Deno.stat(path);
-      return true;
-    } catch {
-      return false;
+      return { ok: true, data: true };
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        return { ok: true, data: false };
+      }
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to check file existence: ${error}`,
+          path,
+          "read",
+        ),
+      };
     }
+  }
+
+  async listFiles(
+    path: string,
+    pattern?: string,
+  ): Promise<Result<FileInfo[], IOError>> {
+    try {
+      const files: FileInfo[] = [];
+
+      for await (const dirEntry of Deno.readDir(path)) {
+        if (dirEntry.isFile && (!pattern || dirEntry.name.match(pattern))) {
+          const stat = await Deno.stat(`${path}/${dirEntry.name}`);
+          files.push({
+            path: `${path}/${dirEntry.name}`,
+            name: dirEntry.name,
+            isDirectory: false,
+            size: stat.size,
+            modifiedAt: stat.mtime || new Date(),
+          });
+        }
+      }
+
+      return { ok: true, data: files };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to list files: ${error}`,
+          path,
+          "read",
+        ),
+      };
+    }
+  }
+
+  async createDirectory(path: string): Promise<Result<void, IOError>> {
+    try {
+      await Deno.mkdir(path, { recursive: true });
+      return { ok: true, data: undefined };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to create directory: ${error}`,
+          path,
+          "write",
+        ),
+      };
+    }
+  }
+
+  async deleteFile(path: string): Promise<Result<void, IOError>> {
+    try {
+      await Deno.remove(path);
+      return { ok: true, data: undefined };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createIOError(
+          `Failed to delete file: ${error}`,
+          path,
+          "delete",
+        ),
+      };
+    }
+  }
+
+  // Legacy methods for backward compatibility
+  async readDirectory(path: string): Promise<string[]> {
+    const result = await this.listFiles(path, "\\.md$");
+    if (result.ok) {
+      return result.data.map((f) => f.name); // Return just the name, not full path
+    }
+    throw new Error(`Failed to read directory: ${result.error.message}`);
   }
 }
 

@@ -8,7 +8,7 @@
  * - OK: `Claude Code SDK` での変換結果を受け取るだけ
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import {
   createValidationError,
   type ValidationError,

@@ -311,3 +311,7 @@ export const isFailure = <T, E extends { message: string }>(
 ): result is { ok: false; error: E } => {
   return !result.ok;
 };
+
+// Aliases for compatibility with shared/result.ts
+export const isOk = isSuccess;
+export const isError = isFailure;
