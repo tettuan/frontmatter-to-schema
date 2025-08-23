@@ -1,158 +1,57 @@
-# Development Guidelines and Conventions
+# Essential Development Guidelines
 
-## Code Style and Conventions
+## Totality Patterns
 
-### File Naming
-
-- TypeScript files: kebab-case with `.ts` extension
-- Test files: `test-*.ts` in `test/` directory
-- Domain files: Organized by domain boundaries in `src/domain/`
-
-### Type Conventions
-
-- Value Objects: PascalCase classes (e.g., `FilePath`, `FrontMatterContent`)
-- Interfaces: PascalCase with descriptive names (e.g., `AnalysisStrategy`,
-  `FrontMatterExtractor`)
-- Generic Types: Use descriptive type parameters (e.g., `<TInput, TOutput>`,
-  `<TSchema, TResult>`)
-
-### Import/Export Style
-
-- Use explicit imports: `import type { ... }` for types
-- Prefer named exports over default exports
-- Group imports: external packages, then local modules
-
-## Architecture Patterns
-
-### Domain-Driven Design (DDD)
-
-- **Bounded Contexts**: Clear separation between core and supporting domains
-- **Value Objects**: Immutable objects with behavior (FilePath,
-  FrontMatterContent)
-- **Entities**: Objects with identity (SourceFile, AnalysisResult)
-- **Aggregates**: Consistency boundaries (Registry)
-- **Domain Services**: Stateless operations (AnalysisEngine, Transformer)
-
-### Test-Driven Development (TDD)
-
-- Write tests first, then implement
-- Test files in `test/` directory with `test-` prefix
-- Focus on domain behavior, not implementation details
-- Use descriptive test names that explain the behavior
-
-### Totality Principles
-
-- **No Partial Functions**: Use `Result<T, E>` instead of throwing exceptions
-- **Discriminated Unions**: Instead of optional properties
-- **Smart Constructors**: Private constructors with static creation methods
-- **Comprehensive Error Types**: Typed error handling with descriptive messages
-
-```typescript
-// ❌ Bad: Partial function
-function parseValue(input: string): number {
-  return parseInt(input); // Can return NaN
-}
-
-// ✅ Good: Total function
-function parseValue(input: string): Result<number, ValidationError> {
-  const parsed = parseInt(input);
-  if (isNaN(parsed)) {
-    return { ok: false, error: { kind: "ParseError", input } };
-  }
-  return { ok: true, data: parsed };
-}
-```
-
-## AI-Complexity-Control Principles
-
-### Entropy Control
-
-- Measure complexity using class count, interface count, abstraction layers
-- Set entropy thresholds and monitor increases
-- Prefer composition over inheritance
-- Keep cyclomatic complexity low
-
-### Functional Gravity
-
-- Related functions should be close (high cohesion)
-- Unrelated functions should be separate (low coupling)
-- Identify the "mass center" of functionality
-- Organize code around domain boundaries
-
-### Pattern Convergence
-
-- Use established patterns (Strategy, Factory, Pipeline)
-- Avoid novel abstractions unless necessary
-- Document pattern usage and rationale
-- Prefer proven solutions over custom implementations
-
-## Error Handling Strategy
-
-### Result Type Pattern
-
+### Result Types
 ```typescript
 type Result<T, E> = { ok: true; data: T } | { ok: false; error: E };
 
-// Common error types
-type ValidationError =
-  | { kind: "EmptyInput" }
-  | { kind: "InvalidFormat"; format: string }
-  | { kind: "OutOfRange"; value: number; min: number; max: number };
+// Smart Constructor Pattern
+class ValidValue {
+  private constructor(readonly value: string) {}
+  static create(input: string): Result<ValidValue, ValidationError> {
+    if (input.trim().length === 0) {
+      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+    }
+    return { ok: true, data: new ValidValue(input) };
+  }
+}
 ```
 
-### Error Creation Helpers
-
+### Discriminated Unions
 ```typescript
-const createError = (error: ValidationError, customMessage?: string) => ({
-  ...error,
-  message: customMessage || getDefaultMessage(error),
-});
+// ❌ Bad: Optional properties
+interface BadState { a?: X; b?: Y; }
+
+// ✅ Good: Tagged unions
+type GoodState = { kind: "A"; data: X } | { kind: "B"; data: Y };
 ```
 
-## Configuration and Extensibility
+## DDD Structure
+- **Domain Layer**: Pure business logic, no dependencies
+- **Value Objects**: Immutable with smart constructors
+- **Entities**: Objects with identity
+- **Aggregates**: Consistency boundaries
 
-### Plugin Architecture
+## AI-Complexity-Control
+1. **Entropy Control**: Limit class/interface growth
+2. **Functional Gravity**: Related code stays together
+3. **Pattern Convergence**: Use established patterns
 
-- Use interfaces for pluggable components
-- Implement factory patterns for component creation
-- Support configuration-driven behavior
-- Enable dependency injection
+## Key Commands
+```bash
+# Testing
+./run-tests.sh
+deno task ci
 
-### Schema-Driven Development
+# Main execution
+deno run --allow-read --allow-write --allow-run src/main.ts
 
-- External schemas define data structure
-- Templates define output format
-- Prompts define AI interaction
-- All configurable without code changes
+# Quality
+deno fmt && deno lint
+```
 
-## Documentation Requirements
-
-### Code Documentation
-
-- JSDoc comments for public APIs
-- Inline comments for complex logic
-- README files for major components
-- Architecture decision records (ADRs) for significant changes
-
-### Domain Documentation
-
-- Ubiquitous language definitions
-- Domain model diagrams
-- Bounded context maps
-- Integration patterns documentation
-
-## Quality Assurance
-
-### Testing Strategy
-
-- Unit tests for domain logic
-- Integration tests for external dependencies
-- Contract tests for interfaces
-- Example-based validation in `examples/`
-
-### Code Quality
-
-- No `any` types unless absolutely necessary
-- Prefer `unknown` over `any` when type is uncertain
-- Use type assertions sparingly and document why
-- Enable strict TypeScript compiler options
+## Error Handling
+- No exceptions - use Result types
+- Comprehensive error types with messages
+- Chain operations with `flatMap`
