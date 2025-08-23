@@ -7,7 +7,7 @@ import { assertEquals, assertExists } from "jsr:@std/assert";
 import { TemplateProcessingService } from "../../../../src/domain/template/service.ts";
 import { FileTemplateRepository } from "../../../../src/infrastructure/template/file-template-repository.ts";
 import { Template, TemplateDefinition } from "../../../../src/domain/models/template.ts";
-import { NativeTemplateStrategy } from "../../../../src/domain/template/strategies.ts";
+import type { TemplateRepository } from "../../../../src/domain/template/repository.ts";
 
 Deno.test("TemplateProcessingService - Service Layer Tests", async (t) => {
   const testDir = await Deno.makeTempDir();
@@ -73,11 +73,11 @@ Deno.test("TemplateProcessingService - Service Layer Tests", async (t) => {
     assertEquals(result1.ok, false, "Should reject empty template ID");
     
     // Test null data
-    const result2 = await service.processTemplate("test", null as any, {}, "json");
+    const result2 = await service.processTemplate("test", null as unknown, {}, "json");
     assertEquals(result2.ok, false, "Should reject null data");
     
     // Test invalid format
-    const result3 = await service.processTemplate("test", {}, {}, "invalid" as any);
+    const result3 = await service.processTemplate("test", {}, {}, "invalid" as unknown as "json");
     assertEquals(result3.ok, false, "Should reject invalid format");
   });
 
@@ -370,7 +370,7 @@ Deno.test("TemplateProcessingService - Concurrency Tests", async (t) => {
 Deno.test("TemplateProcessingService - Error Recovery Tests", async (t) => {
   const testDir = await Deno.makeTempDir();
   const repo = new FileTemplateRepository(testDir);
-  const service = new TemplateProcessingService({ repository: repo });
+  const _service = new TemplateProcessingService({ repository: repo });
 
   await t.step("should handle strategy errors gracefully", async () => {
     // Create a service without AI analyzer (will use native strategy)
@@ -399,21 +399,21 @@ Deno.test("TemplateProcessingService - Error Recovery Tests", async (t) => {
 
   await t.step("should handle repository failures gracefully", async () => {
     const failingRepo = {
-      async load(_id: string) {
-        return { ok: false, error: { tag: "validation", message: "Repository error", data: undefined } };
+      load(_id: string) {
+        return Promise.resolve({ ok: false, error: { kind: "ValidationError", message: "Repository error" } });
       },
-      async save(_template: any) {
-        return { ok: false, error: { tag: "validation", message: "Save failed", data: undefined } };
+      save(_template: unknown) {
+        return Promise.resolve({ ok: false, error: { kind: "ValidationError", message: "Save failed" } });
       },
-      async exists(_id: string) {
-        return false;
+      exists(_id: string) {
+        return Promise.resolve(false);
       },
-      async list() {
-        return { ok: false, error: { tag: "validation", message: "List failed", data: undefined } };
+      list() {
+        return Promise.resolve({ ok: false, error: { kind: "ValidationError", message: "List failed" } });
       }
     };
     
-    const failingService = new TemplateProcessingService({ repository: failingRepo as any });
+    const failingService = new TemplateProcessingService({ repository: failingRepo as unknown as TemplateRepository });
     
     const result = await failingService.processTemplate("test", {}, {}, "json");
     assertEquals(result.ok, false, "Should handle repository failure");

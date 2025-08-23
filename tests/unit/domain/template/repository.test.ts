@@ -33,9 +33,9 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
       "   ",                // Whitespace only
       "test.txt",          // Invalid extension
       "test.pdf",          // Non-template extension
-      null as any,         // Null
-      undefined as any,    // Undefined
-      123 as any          // Non-string
+      null as unknown,         // Null
+      undefined as unknown,    // Undefined
+      123 as unknown          // Non-string
     ];
     
     for (const path of invalidPaths) {

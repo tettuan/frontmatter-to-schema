@@ -20,7 +20,7 @@ class MockAIAnalyzer implements AIAnalyzerPort {
     private responseData: string = "AI processed template"
   ) {}
 
-  async analyze(_data: any) {
+  analyze(_data: unknown) {
     if (this.shouldSucceed) {
       return {
         ok: true as const,
@@ -226,7 +226,7 @@ Deno.test("AITemplateStrategy - Integration Tests", async (t) => {
   await t.step("should build proper prompts", async () => {
     let capturedPrompt = "";
     const mockAI: AIAnalyzerPort = {
-      async analyze(data: any) {
+      analyze(data: unknown) {
         capturedPrompt = data.prompt;
         return {
           ok: true as const,
@@ -354,7 +354,7 @@ Deno.test("CompositeTemplateStrategy - Fallback Tests", async (t) => {
 Deno.test("Strategy Pattern - Boundary Tests", async (t) => {
   const strategy = new NativeTemplateStrategy();
 
-  await t.step("should handle all supported formats", async () => {
+  await t.step("should handle all supported formats", () => {
     const formats = ["json", "yaml", "custom"] as const;
     
     for (const format of formats) {

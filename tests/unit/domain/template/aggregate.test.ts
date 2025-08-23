@@ -9,10 +9,11 @@ import { FileTemplateRepository } from "../../../../src/infrastructure/template/
 import { Template, TemplateDefinition } from "../../../../src/domain/models/template.ts";
 import type { TemplateApplicationContext } from "../../../../src/domain/template/aggregate.ts";
 import { AITemplateStrategy, NativeTemplateStrategy, CompositeTemplateStrategy } from "../../../../src/domain/template/strategies.ts";
+import type { AIAnalyzerPort } from "../../../../src/infrastructure/ports/ai-analyzer.ts";
 
 // Mock AI Analyzer for testing
 class MockAIAnalyzer {
-  async analyze(_data: any) {
+  analyze(_data: unknown) {
     return {
       ok: true as const,
       data: {
@@ -26,7 +27,7 @@ class MockAIAnalyzer {
 Deno.test("TemplateAggregate - Domain Boundary Tests", async (t) => {
   const mockRepo = new FileTemplateRepository("./tests/fixtures/templates");
   const mockAI = new MockAIAnalyzer();
-  const aiStrategy = new AITemplateStrategy(mockAI as any);
+  const aiStrategy = new AITemplateStrategy(mockAI as unknown as AIAnalyzerPort);
   const nativeStrategy = new NativeTemplateStrategy();
   const compositeStrategy = new CompositeTemplateStrategy(aiStrategy, nativeStrategy);
   
@@ -246,7 +247,7 @@ Deno.test("TemplateAggregate - Consistency Boundary Tests", async (t) => {
     assertEquals(result1.ok, false, "Should reject empty template ID");
     
     // Try to apply with invalid context
-    const result2 = await aggregate.applyTemplate("test", null as any);
+    const result2 = await aggregate.applyTemplate("test", null as unknown as TemplateApplicationContext);
     assertEquals(result2.ok, false, "Should reject null context");
   });
 });
