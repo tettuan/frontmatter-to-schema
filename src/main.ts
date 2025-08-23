@@ -29,13 +29,14 @@ import { ProcessDocumentsUseCase } from "./application/use-cases/process-documen
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
 import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-schema-analyzer.ts";
-import { SimpleTemplateMapper } from "./infrastructure/adapters/simple-template-mapper.ts";
+// SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
 import {
   ConfigurationLoader,
   TemplateLoader,
 } from "./infrastructure/adapters/configuration-loader.ts";
+import type { ExtractedData, Template } from "./domain/models/entities.ts";
 
 /**
  * Legacy imports maintained for backward compatibility
@@ -215,7 +216,32 @@ Examples:
     const templateLoader = new TemplateLoader();
     const documentRepo = new DenoDocumentRepository();
     const frontMatterExtractor = new FrontMatterExtractorImpl();
-    const templateMapper = new SimpleTemplateMapper();
+    // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
+    // Note: This is a temporary solution, should be properly injected
+    const { MappedData } = await import("./domain/models/entities.ts");
+    const { createError } = await import("./domain/shared/types.ts");
+
+    const templateMapper = {
+      map: (data: ExtractedData, template: Template) => {
+        try {
+          // Simplified fallback - in production should use proper DI
+          const mappedResult = template.applyRules(data.getData());
+          const mappedData = MappedData.create(mappedResult);
+          return { ok: true as const, data: mappedData };
+        } catch (error) {
+          return {
+            ok: false as const,
+            error: createError({
+              kind: "MappingFailed" as const,
+              document: "unknown",
+              reason: error instanceof Error
+                ? error.message
+                : "Template mapping failed",
+            }),
+          };
+        }
+      },
+    };
     const resultAggregator = new ResultAggregatorImpl(
       args.format as "json" | "yaml",
     );

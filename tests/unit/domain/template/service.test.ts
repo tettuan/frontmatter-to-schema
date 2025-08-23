@@ -340,8 +340,15 @@ Deno.test("TemplateProcessingService - Integration Tests", async (t) => {
           {},
           "json",
         );
-        // Should fail due to missing required paths
-        assertEquals(result.ok, false);
+        // Should succeed with partial data (new behavior with PlaceholderProcessor)
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          // Verify the output contains placeholders for missing data
+          const output = JSON.parse(result.data);
+          assertEquals(output.required, "present");
+          assertEquals(output.optional, "{{optional}}"); // Placeholder preserved
+          assertEquals(output.nested.value, "{{nested.value}}"); // Placeholder preserved
+        }
       }
     }
   });

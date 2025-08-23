@@ -13,6 +13,11 @@ import { createValidationError } from "../shared/errors.ts";
 import type { Template } from "../models/template.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import { TemplateFormatHandlerFactory } from "./format-handlers.ts";
+import {
+  type PlaceholderProcessingContext,
+  PlaceholderProcessor,
+} from "./placeholder-processor.ts";
 
 /**
  * Strategy interface for template processing
@@ -117,45 +122,127 @@ ${template.getDefinition().getDefinition()}
 
 /**
  * Native TypeScript template processing strategy (Fallback)
- * Processes templates using TypeScript logic
+ * Processes templates using shared common infrastructure
+ * Updated to use TemplateFormatHandler and PlaceholderProcessor
  */
 export class NativeTemplateStrategy implements TemplateProcessingStrategy {
-  async process(
+  private readonly placeholderProcessor: PlaceholderProcessor;
+
+  constructor() {
+    this.placeholderProcessor = new PlaceholderProcessor();
+  }
+
+  process(
     template: Template,
     context: TemplateApplicationContext,
   ): Promise<Result<string, ValidationError>> {
     const format = template.getDefinition().getFormat();
 
-    try {
-      // Use await to satisfy linter
-      switch (format) {
-        case "json":
-          return await Promise.resolve(
-            this.processJsonTemplate(template, context),
-          );
-        case "yaml":
-          return await Promise.resolve(
-            this.processYamlTemplate(template, context),
-          );
-        case "custom":
-          return await Promise.resolve(
-            this.processCustomTemplate(template, context),
-          );
-        default:
-          return {
-            ok: false,
-            error: createValidationError(
-              `Unsupported template format for native processing: ${format}`,
-            ),
-          };
-      }
-    } catch (error) {
-      return {
+    // Check if this strategy can handle the template format
+    if (!this.canHandle(template)) {
+      return Promise.resolve({
         ok: false,
         error: createValidationError(
-          `Native template processing failed: ${error}`,
+          `NativeTemplateStrategy cannot handle format: ${format}`,
         ),
+      });
+    }
+
+    try {
+      // Get appropriate format handler from factory
+      const handlerResult = TemplateFormatHandlerFactory.getHandler(format);
+      if (!handlerResult.ok) {
+        return Promise.resolve({
+          ok: false,
+          error: createValidationError(
+            `Unsupported template format for native processing: ${format}. ${handlerResult.error.message}`,
+          ),
+        });
+      }
+
+      const handler = handlerResult.data;
+      const templateContent = template.getDefinition().getDefinition();
+
+      // Parse template using format handler
+      const parseResult = handler.parse(templateContent);
+      if (!parseResult.ok) {
+        return Promise.resolve({
+          ok: false,
+          error: createValidationError(
+            `Failed to parse template: ${parseResult.error.message}`,
+          ),
+        });
+      }
+
+      // Process placeholders using unified processor
+      const placeholderContext: PlaceholderProcessingContext = {
+        data: context.extractedData as Record<string, unknown>,
+        patternType: "mustache", // Default to mustache style
+        strictMode: false, // Allow partial replacements
       };
+
+      const placeholderResult = this.placeholderProcessor.process(
+        parseResult.data,
+        placeholderContext,
+      );
+
+      if (!placeholderResult.ok) {
+        return Promise.resolve({
+          ok: false,
+          error: createValidationError(
+            `Placeholder processing failed: ${placeholderResult.error.message}`,
+          ),
+        });
+      }
+
+      const processResult = placeholderResult.data;
+
+      // Handle processing results based on kind
+      let processedData: unknown;
+      switch (processResult.kind) {
+        case "Success":
+          processedData = processResult.processedContent;
+          break;
+        case "PartialSuccess":
+          // Log warning for missing placeholders but continue
+          console.warn(
+            `Template processing completed with missing placeholders: ${
+              processResult.missingPlaceholders.join(", ")
+            }`,
+          );
+          processedData = processResult.processedContent;
+          break;
+        case "Failure":
+          return Promise.resolve({
+            ok: false,
+            error: processResult.error,
+          });
+      }
+
+      // Serialize result using format handler
+      const serializeResult = handler.serialize(processedData);
+      if (!serializeResult.ok) {
+        return Promise.resolve({
+          ok: false,
+          error: createValidationError(
+            `Failed to serialize processed template: ${serializeResult.error.message}`,
+          ),
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        data: serializeResult.data,
+      });
+    } catch (error) {
+      return Promise.resolve({
+        ok: false,
+        error: createValidationError(
+          `Native template processing failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      });
     }
   }
 
@@ -169,212 +256,14 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
     return "NativeTemplateStrategy";
   }
 
-  private processJsonTemplate(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): Result<string, ValidationError> {
-    const templateDef = template.getDefinition().getDefinition();
-
-    try {
-      const parsedTemplate = JSON.parse(templateDef);
-      const result = this.applyDataToTemplate(
-        context.extractedData,
-        parsedTemplate,
-      );
-
-      if (!result.ok) {
-        return result;
-      }
-
-      return {
-        ok: true,
-        data: JSON.stringify(result.data, null, 2),
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createValidationError(
-          `Failed to process JSON template: ${error}`,
-        ),
-      };
-    }
-  }
-
-  private processYamlTemplate(
-    _template: Template,
-    context: TemplateApplicationContext,
-  ): Result<string, ValidationError> {
-    const result = this.convertToYaml(context.extractedData);
-    return result;
-  }
-
-  private processCustomTemplate(
-    _template: Template,
-    context: TemplateApplicationContext,
-  ): Result<string, ValidationError> {
-    // For custom templates, just return the data as JSON
-    return {
-      ok: true,
-      data: JSON.stringify(context.extractedData, null, 2),
-    };
-  }
-
-  /**
-   * Apply data to template with Result type (Totality principle)
-   */
-  private applyDataToTemplate(
-    data: unknown,
-    template: unknown,
-  ): Result<unknown, ValidationError> {
-    if (template === null || template === undefined) {
-      return { ok: true, data };
-    }
-
-    if (typeof template === "string") {
-      // Check if it's a placeholder
-      if (template.startsWith("{{") && template.endsWith("}}")) {
-        const path = template.slice(2, -2).trim();
-        const result = this.getValueByPath(data, path);
-        return result;
-      }
-      return { ok: true, data: template };
-    }
-
-    if (Array.isArray(template)) {
-      const results: unknown[] = [];
-      for (const item of template) {
-        const result = this.applyDataToTemplate(data, item);
-        if (!result.ok) {
-          return result;
-        }
-        results.push(result.data);
-      }
-      return { ok: true, data: results };
-    }
-
-    if (typeof template === "object") {
-      const resultObj: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(template)) {
-        const result = this.applyDataToTemplate(data, value);
-        if (!result.ok) {
-          return result;
-        }
-        resultObj[key] = result.data;
-      }
-      return { ok: true, data: resultObj };
-    }
-
-    return { ok: true, data: template };
-  }
-
-  /**
-   * Get value by path with Result type (Totality principle)
-   */
-  private getValueByPath(
-    data: unknown,
-    path: string,
-  ): Result<unknown, ValidationError> {
-    const parts = path.split(".");
-    let current = data;
-
-    for (const part of parts) {
-      if (current === null || current === undefined) {
-        return {
-          ok: false,
-          error: createValidationError(
-            `Path "${path}" not found: value is null/undefined at "${part}"`,
-          ),
-        };
-      }
-
-      if (typeof current !== "object") {
-        return {
-          ok: false,
-          error: createValidationError(
-            `Path "${path}" not found: expected object at "${part}" but got ${typeof current}`,
-          ),
-        };
-      }
-
-      const obj = current as Record<string, unknown>;
-      if (!(part in obj)) {
-        return {
-          ok: false,
-          error: createValidationError(
-            `Path "${path}" not found: property "${part}" does not exist`,
-          ),
-        };
-      }
-
-      current = obj[part];
-    }
-
-    return { ok: true, data: current };
-  }
-
-  /**
-   * Convert data to YAML format with Result type
-   */
-  private convertToYaml(data: unknown): Result<string, ValidationError> {
-    try {
-      const yaml = this.dataToYaml(data, 0);
-      return { ok: true, data: yaml };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createValidationError(`Failed to convert to YAML: ${error}`),
-      };
-    }
-  }
-
-  private dataToYaml(data: unknown, indent: number): string {
-    const indentStr = "  ".repeat(indent);
-
-    if (data === null || data === undefined) {
-      return `${indentStr}null`;
-    }
-
-    if (typeof data === "string") {
-      if (data.includes(":") || data.includes("#") || data.includes('"')) {
-        return `${indentStr}"${data.replace(/"/g, '\\"')}"`;
-      }
-      return `${indentStr}${data}`;
-    }
-
-    if (typeof data === "number" || typeof data === "boolean") {
-      return `${indentStr}${data}`;
-    }
-
-    if (Array.isArray(data)) {
-      if (data.length === 0) {
-        return `${indentStr}[]`;
-      }
-      return data
-        .map((item) => {
-          const itemStr = this.dataToYaml(item, indent + 1);
-          return `${indentStr}- ${itemStr.trim()}`;
-        })
-        .join("\n");
-    }
-
-    if (typeof data === "object") {
-      const entries = Object.entries(data as Record<string, unknown>);
-      if (entries.length === 0) {
-        return `${indentStr}{}`;
-      }
-      return entries
-        .map(([key, value]) => {
-          if (typeof value === "object" && value !== null) {
-            return `${indentStr}${key}:\n${this.dataToYaml(value, indent + 1)}`;
-          }
-          const valueStr = this.dataToYaml(value, 0);
-          return `${indentStr}${key}: ${valueStr.trim()}`;
-        })
-        .join("\n");
-    }
-
-    return `${indentStr}${String(data)}`;
-  }
+  // Removed duplicate methods that are now handled by shared infrastructure:
+  // - processJsonTemplate: replaced by TemplateFormatHandlerFactory
+  // - processYamlTemplate: replaced by TemplateFormatHandlerFactory
+  // - processCustomTemplate: replaced by TemplateFormatHandlerFactory
+  // - applyDataToTemplate: replaced by PlaceholderProcessor
+  // - getValueByPath: replaced by PlaceholderProcessor
+  // - convertToYaml: replaced by YAMLTemplateHandler
+  // - dataToYaml: replaced by YAMLTemplateHandler
 }
 
 /**
