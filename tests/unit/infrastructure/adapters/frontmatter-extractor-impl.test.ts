@@ -1,20 +1,25 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { FrontMatterExtractorImpl } from "../../../../src/infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { Document, FrontMatter } from "../../../../src/domain/models/entities.ts";
 import {
-  DocumentPath,
+  Document,
+  FrontMatter,
+} from "../../../../src/domain/models/entities.ts";
+import {
   DocumentContent,
+  DocumentPath,
   FrontMatterContent,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isOk, isError } from "../../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../../src/domain/shared/result.ts";
 
 Deno.test("FrontMatterExtractorImpl", async (t) => {
   const extractor = new FrontMatterExtractorImpl();
 
-  await t.step("should extract frontmatter from document without existing frontmatter", () => {
-    // Create a document without frontmatter
-    const pathResult = DocumentPath.create("test.md");
-    const contentResult = DocumentContent.create(`---
+  await t.step(
+    "should extract frontmatter from document without existing frontmatter",
+    () => {
+      // Create a document without frontmatter
+      const pathResult = DocumentPath.create("test.md");
+      const contentResult = DocumentContent.create(`---
 title: Test Document
 date: 2024-01-01
 tags:
@@ -26,55 +31,62 @@ tags:
 
 This is the body of the document.`);
 
-    if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
-        pathResult.data,
-        null, // No existing frontmatter
-        contentResult.data,
-      );
+      if (isOk(pathResult) && isOk(contentResult)) {
+        const document = Document.create(
+          pathResult.data,
+          null, // No existing frontmatter
+          contentResult.data,
+        );
 
-      const result = extractor.extract(document);
-      assertEquals(isOk(result), true);
+        const result = extractor.extract(document);
+        assertEquals(isOk(result), true);
 
-      if (isOk(result)) {
-        assertExists(result.data);
-        if (result.data) {
-          const raw = result.data.getRaw();
-          assertEquals(raw.includes("title: Test Document"), true);
-          assertEquals(raw.includes("date: 2024-01-01"), true);
+        if (isOk(result)) {
+          assertExists(result.data);
+          if (result.data) {
+            const raw = result.data.getRaw();
+            assertEquals(raw.includes("title: Test Document"), true);
+            assertEquals(raw.includes("date: 2024-01-01"), true);
+          }
         }
       }
-    }
-  });
+    },
+  );
 
-  await t.step("should return existing frontmatter if document already has it", () => {
-    // Create a document with existing frontmatter
-    const pathResult = DocumentPath.create("test.md");
-    const contentResult = DocumentContent.create("# Test Content");
-    const frontMatterContentResult = FrontMatterContent.create(
-      JSON.stringify({ title: "Existing", date: "2024-01-01" }),
-    );
-
-    if (isOk(pathResult) && isOk(contentResult) && isOk(frontMatterContentResult)) {
-      const existingFrontMatter = FrontMatter.create(
-        frontMatterContentResult.data,
-        "title: Existing\ndate: 2024-01-01",
+  await t.step(
+    "should return existing frontmatter if document already has it",
+    () => {
+      // Create a document with existing frontmatter
+      const pathResult = DocumentPath.create("test.md");
+      const contentResult = DocumentContent.create("# Test Content");
+      const frontMatterContentResult = FrontMatterContent.create(
+        JSON.stringify({ title: "Existing", date: "2024-01-01" }),
       );
 
-      const document = Document.create(
-        pathResult.data,
-        existingFrontMatter,
-        contentResult.data,
-      );
+      if (
+        isOk(pathResult) && isOk(contentResult) &&
+        isOk(frontMatterContentResult)
+      ) {
+        const existingFrontMatter = FrontMatter.create(
+          frontMatterContentResult.data,
+          "title: Existing\ndate: 2024-01-01",
+        );
 
-      const result = extractor.extract(document);
-      assertEquals(isOk(result), true);
+        const document = Document.create(
+          pathResult.data,
+          existingFrontMatter,
+          contentResult.data,
+        );
 
-      if (isOk(result)) {
-        assertEquals(result.data, existingFrontMatter);
+        const result = extractor.extract(document);
+        assertEquals(isOk(result), true);
+
+        if (isOk(result)) {
+          assertEquals(result.data, existingFrontMatter);
+        }
       }
-    }
-  });
+    },
+  );
 
   await t.step("should return null for document without frontmatter", () => {
     const pathResult = DocumentPath.create("test.md");
@@ -283,9 +295,11 @@ This looks like frontmatter but isn't properly formed.`);
     }
   });
 
-  await t.step("should handle document with multiple frontmatter-like sections", () => {
-    const pathResult = DocumentPath.create("test.md");
-    const contentResult = DocumentContent.create(`---
+  await t.step(
+    "should handle document with multiple frontmatter-like sections",
+    () => {
+      const pathResult = DocumentPath.create("test.md");
+      const contentResult = DocumentContent.create(`---
 title: First Section
 ---
 
@@ -297,24 +311,25 @@ This is not frontmatter
 
 More content`);
 
-    if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
-        pathResult.data,
-        null,
-        contentResult.data,
-      );
+      if (isOk(pathResult) && isOk(contentResult)) {
+        const document = Document.create(
+          pathResult.data,
+          null,
+          contentResult.data,
+        );
 
-      const result = extractor.extract(document);
-      assertEquals(isOk(result), true);
+        const result = extractor.extract(document);
+        assertEquals(isOk(result), true);
 
-      if (isOk(result)) {
-        // Should only extract the first valid frontmatter section
-        if (result.data) {
-          const raw = result.data.getRaw();
-          assertEquals(raw.includes("title: First Section"), true);
-          assertEquals(raw.includes("This is not frontmatter"), false);
+        if (isOk(result)) {
+          // Should only extract the first valid frontmatter section
+          if (result.data) {
+            const raw = result.data.getRaw();
+            assertEquals(raw.includes("title: First Section"), true);
+            assertEquals(raw.includes("This is not frontmatter"), false);
+          }
         }
       }
-    }
-  });
+    },
+  );
 });

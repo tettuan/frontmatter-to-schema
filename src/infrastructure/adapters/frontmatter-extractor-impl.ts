@@ -21,12 +21,12 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
 
     try {
       const content = document.getContent().getValue();
-      
+
       // Check if content has frontmatter markers before attempting extraction
       if (!content.startsWith("---\n")) {
         return { ok: true, data: null };
       }
-      
+
       const extracted = extract(content);
 
       if (

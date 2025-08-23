@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { DenoDocumentRepository } from "../../../../src/infrastructure/adapters/deno-document-repository.ts";
 import { DocumentPath } from "../../../../src/domain/models/value-objects.ts";
-import { isOk, isError } from "../../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../../src/domain/shared/result.ts";
 import { join } from "jsr:@std/path";
 
 Deno.test("DenoDocumentRepository", async (t) => {
@@ -45,7 +45,7 @@ Just plain markdown content.`,
     // Create subdirectory with more files
     const subDir = join(testDir, "subdir");
     await Deno.mkdir(subDir);
-    
+
     await Deno.writeTextFile(
       join(subDir, "nested.md"),
       `---
@@ -67,14 +67,14 @@ Nested content.`,
   await t.step("should find all documents in directory", async () => {
     const pathResult = DocumentPath.create(testDir);
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.findAll(pathResult.data);
       assertEquals(isOk(result), true);
-      
+
       if (isOk(result)) {
         assertEquals(result.data.length, 4); // All .md files including subdirectory
-        
+
         // Check that documents have proper structure
         const doc = result.data[0];
         assertExists(doc.getPath());
@@ -86,11 +86,11 @@ Nested content.`,
   await t.step("should handle glob patterns", async () => {
     const pathResult = DocumentPath.create(`${testDir}/*.md`);
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.findAll(pathResult.data);
       assertEquals(isOk(result), true);
-      
+
       if (isOk(result)) {
         // Should find files in root directory only (not subdirectory)
         assertEquals(result.data.length >= 3, true);
@@ -101,15 +101,15 @@ Nested content.`,
   await t.step("should read single document with frontmatter", async () => {
     const pathResult = DocumentPath.create(join(testDir, "test1.md"));
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.read(pathResult.data);
       assertEquals(isOk(result), true);
-      
+
       if (isOk(result)) {
         const doc = result.data;
         assertExists(doc.getFrontMatter());
-        
+
         const frontMatter = doc.getFrontMatter();
         if (frontMatter) {
           const raw = frontMatter.getRaw();
@@ -122,11 +122,11 @@ Nested content.`,
   await t.step("should read document without frontmatter", async () => {
     const pathResult = DocumentPath.create(join(testDir, "no-frontmatter.md"));
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.read(pathResult.data);
       assertEquals(isOk(result), true);
-      
+
       if (isOk(result)) {
         const doc = result.data;
         // Document should exist but frontmatter should be null
@@ -139,11 +139,11 @@ Nested content.`,
   await t.step("should handle non-existent file", async () => {
     const pathResult = DocumentPath.create(join(testDir, "nonexistent.md"));
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.read(pathResult.data);
       assertEquals(isError(result), true);
-      
+
       if (isError(result)) {
         assertEquals(result.error.kind, "FileNotFound");
       }
@@ -153,11 +153,11 @@ Nested content.`,
   await t.step("should handle non-existent directory", async () => {
     const pathResult = DocumentPath.create(join(testDir, "nonexistent-dir"));
     assertExists(pathResult.ok);
-    
+
     if (isOk(pathResult)) {
       const result = await repository.findAll(pathResult.data);
       assertEquals(isError(result), true);
-      
+
       if (isError(result)) {
         assertEquals(result.error.kind, "FileNotFound");
       }
@@ -167,7 +167,7 @@ Nested content.`,
   await t.step("should find documents by pattern", async () => {
     const result = await repository.findByPattern("test[0-9]\\.md", testDir);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       assertEquals(result.data.length, 2); // test1.md and test2.md
     }
@@ -176,7 +176,7 @@ Nested content.`,
   await t.step("should handle pattern with no matches", async () => {
     const result = await repository.findByPattern("nomatch\\.md", testDir);
     assertEquals(isOk(result), true);
-    
+
     if (isOk(result)) {
       assertEquals(result.data.length, 0);
     }
@@ -195,11 +195,11 @@ Nested content.`,
     if (isOk(pathResult)) {
       const result = await repository.findAll(pathResult.data);
       assertEquals(isOk(result), true);
-      
+
       if (isOk(result)) {
         // Should not include the file in node_modules
-        const paths = result.data.map(d => d.getPath().getValue());
-        assertEquals(paths.some(p => p.includes("node_modules")), false);
+        const paths = result.data.map((d) => d.getPath().getValue());
+        assertEquals(paths.some((p) => p.includes("node_modules")), false);
       }
     }
   });
@@ -208,7 +208,7 @@ Nested content.`,
     // This test would require setting up special permissions
     // For now, we'll test the error handling path is correct
     const repo = new DenoDocumentRepository();
-    
+
     // Mock a path that might cause permission issues
     const pathResult = DocumentPath.create("/root/protected.md");
     if (isOk(pathResult)) {
@@ -216,19 +216,21 @@ Nested content.`,
       // Should handle permission error or file not found
       if (isError(result)) {
         assertEquals(
-          result.error.kind === "PermissionDenied" || 
-          result.error.kind === "FileNotFound",
+          result.error.kind === "PermissionDenied" ||
+            result.error.kind === "FileNotFound",
           true,
         );
       }
     }
   });
 
-  await t.step("should handle invalid JSON in frontmatter extraction", async () => {
-    // Create a file with complex frontmatter that might fail JSON conversion
-    await Deno.writeTextFile(
-      join(testDir, "complex-frontmatter.md"),
-      `---
+  await t.step(
+    "should handle invalid JSON in frontmatter extraction",
+    async () => {
+      // Create a file with complex frontmatter that might fail JSON conversion
+      await Deno.writeTextFile(
+        join(testDir, "complex-frontmatter.md"),
+        `---
 title: Complex
 date: 2024-01-01T00:00:00Z
 nested:
@@ -239,19 +241,22 @@ nested:
 ---
 
 Content here.`,
-    );
+      );
 
-    const pathResult = DocumentPath.create(join(testDir, "complex-frontmatter.md"));
-    if (isOk(pathResult)) {
-      const result = await repository.read(pathResult.data);
-      assertEquals(isOk(result), true);
-      
-      if (isOk(result)) {
-        // Should handle complex frontmatter gracefully
-        assertExists(result.data.getContent());
+      const pathResult = DocumentPath.create(
+        join(testDir, "complex-frontmatter.md"),
+      );
+      if (isOk(pathResult)) {
+        const result = await repository.read(pathResult.data);
+        assertEquals(isOk(result), true);
+
+        if (isOk(result)) {
+          // Should handle complex frontmatter gracefully
+          assertExists(result.data.getContent());
+        }
       }
-    }
-  });
+    },
+  );
 
   await t.step("should work with verbose mode", async () => {
     // Set verbose mode
