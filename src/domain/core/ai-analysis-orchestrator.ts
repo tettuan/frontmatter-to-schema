@@ -134,13 +134,13 @@ export class AIAnalysisOrchestrator {
   ): Promise<Result<ExtractedInfo, ValidationError>> {
     // Build extraction prompt
     const prompt = this.buildExtractionPrompt(
-      frontMatter.toObject(),
-      schema.getDefinition(),
+      frontMatter.data,
+      schema.schema as object,
     );
 
     // Execute AI analysis (claude -p 1st call)
     const result = await this.aiAnalyzer.analyze({
-      content: JSON.stringify(frontMatter.toObject()),
+      content: JSON.stringify(frontMatter.data),
       prompt,
     });
 
@@ -184,7 +184,7 @@ export class AIAnalysisOrchestrator {
     // Build template application prompt
     const prompt = this.buildTemplateApplicationPrompt(
       extractedInfo.getData(),
-      schema.getDefinition(),
+      schema.schema as object,
       template.getDefinition().getDefinition(),
     );
 
@@ -192,7 +192,7 @@ export class AIAnalysisOrchestrator {
     const result = await this.aiAnalyzer.analyze({
       content: JSON.stringify({
         extractedData: extractedInfo.getData(),
-        schema: schema.getDefinition(),
+        schema: schema.schema,
         template: template.getDefinition().getDefinition(),
       }),
       prompt,
@@ -211,14 +211,14 @@ export class AIAnalysisOrchestrator {
     const metadata: StructuringMetadata = {
       structuredAt: new Date(),
       promptUsed: "PromptB",
-      templateName: template.getName(),
+      templateName: template.getId(),
       appliedContent: result.data.result,
       sourceMetadata: extractedInfo.getMetadata(),
     };
 
     return StructuredData.createFromAppliedTemplate(
       result.data.result,
-      template.getName(),
+      template.getId(),
       metadata,
     );
   }
