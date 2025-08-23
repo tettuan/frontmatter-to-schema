@@ -268,7 +268,7 @@ export class ProcessDocumentsUseCase {
       const promises = documents.map((doc) => {
         const docPath = doc.getPath().getValue();
         console.log(`🚀 Starting: ${docPath}`);
-        
+
         if (verboseMode) {
           console.log(
             `🔄 [VERBOSE] Creating promise for: ${docPath}`,
@@ -318,7 +318,7 @@ export class ProcessDocumentsUseCase {
       for (const doc of documents) {
         const docPath = doc.getPath().getValue();
         console.log(`🚀 Starting: ${docPath}`);
-        
+
         const result = await this.processDocument(doc, schema, template);
 
         if (isOk(result)) {
@@ -332,7 +332,9 @@ export class ProcessDocumentsUseCase {
           });
 
           if (!options.shouldContinueOnError()) {
-            console.log(`⛔ Stopping due to error (continue-on-error is false)`);
+            console.log(
+              `⛔ Stopping due to error (continue-on-error is false)`,
+            );
             break;
           }
         }
