@@ -1,0 +1,137 @@
+/**
+ * Unified Template Processing Service
+ *
+ * This is the main entry point for all template operations
+ * Consolidates the functionality from multiple template mappers
+ */
+
+import type { Result } from "../shared/result.ts";
+import type { ValidationError } from "../shared/errors.ts";
+import {
+  TemplateAggregate,
+  type TemplateApplicationContext,
+} from "./aggregate.ts";
+import type { TemplateRepository } from "./repository.ts";
+import {
+  AITemplateStrategy,
+  CompositeTemplateStrategy,
+  NativeTemplateStrategy,
+  type TemplateProcessingStrategy,
+} from "./strategies.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import type { EventStore } from "./events.ts";
+
+export interface TemplateServiceConfig {
+  repository: TemplateRepository;
+  aiAnalyzer?: AIAnalyzerPort;
+  eventStore?: EventStore;
+  preferAI?: boolean; // Default true
+}
+
+/**
+ * Unified template processing service
+ * Replaces: TemplateMapper, AITemplateMapper, SimpleTemplateMapper
+ */
+export class TemplateProcessingService {
+  private readonly aggregate: TemplateAggregate;
+  private readonly eventStore?: EventStore;
+
+  constructor(config: TemplateServiceConfig) {
+    // Setup processing strategy
+    const strategy = this.createStrategy(config);
+
+    // Create aggregate
+    this.aggregate = new TemplateAggregate(
+      config.repository,
+      strategy,
+    );
+
+    this.eventStore = config.eventStore;
+  }
+
+  /**
+   * Process a template with data
+   * This is the main entry point for template processing
+   */
+  async processTemplate(
+    templateId: string,
+    data: unknown,
+    schema: object,
+    format: "json" | "yaml" | "markdown" = "json",
+  ): Promise<Result<string, ValidationError>> {
+    const context: TemplateApplicationContext = {
+      extractedData: data,
+      schema,
+      format,
+    };
+
+    // Process through aggregate
+    const result = await this.aggregate.applyTemplate(templateId, context);
+
+    // Publish events if event store is configured
+    if (this.eventStore) {
+      const events = this.aggregate.getEvents();
+      for (const event of events) {
+        this.eventStore.publish(event);
+      }
+      this.aggregate.clearEvents();
+    }
+
+    return result;
+  }
+
+  /**
+   * Load a template without processing
+   * Useful for validation or inspection
+   */
+  loadTemplate(templateId: string) {
+    return this.aggregate.loadTemplate(templateId);
+  }
+
+  /**
+   * Get loaded templates (for monitoring/debugging)
+   */
+  getLoadedTemplates() {
+    return this.aggregate.getLoadedTemplates();
+  }
+
+  /**
+   * Create the appropriate processing strategy based on configuration
+   */
+  private createStrategy(
+    config: TemplateServiceConfig,
+  ): TemplateProcessingStrategy {
+    const nativeStrategy = new NativeTemplateStrategy();
+
+    if (!config.aiAnalyzer) {
+      // No AI analyzer available, use native only
+      return nativeStrategy;
+    }
+
+    const aiStrategy = new AITemplateStrategy(config.aiAnalyzer);
+
+    if (config.preferAI !== false) {
+      // Default: AI primary, native fallback
+      return new CompositeTemplateStrategy(aiStrategy, nativeStrategy);
+    } else {
+      // Native primary, AI fallback
+      return new CompositeTemplateStrategy(nativeStrategy, aiStrategy);
+    }
+  }
+}
+
+/**
+ * Factory function for creating template service with default configuration
+ */
+export function createTemplateService(
+  repository: TemplateRepository,
+  aiAnalyzer?: AIAnalyzerPort,
+  eventStore?: EventStore,
+): TemplateProcessingService {
+  return new TemplateProcessingService({
+    repository,
+    aiAnalyzer,
+    eventStore,
+    preferAI: true,
+  });
+}
