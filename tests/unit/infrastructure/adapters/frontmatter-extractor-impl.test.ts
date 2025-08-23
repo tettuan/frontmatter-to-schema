@@ -9,7 +9,7 @@ import {
   DocumentPath,
   FrontMatterContent,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../../src/domain/core/result.ts";
 
 Deno.test("FrontMatterExtractorImpl", async (t) => {
   const extractor = new FrontMatterExtractorImpl();
