@@ -1,6 +1,6 @@
 /**
  * AI Analysis Orchestrator - Two-stage processing with claude -p
- * 
+ *
  * Template Flow (テンプレートからの変換フロー):
  * Inputs:
  *   - テンプレート当て込みのprompt (PromptB)
@@ -10,7 +10,7 @@
  *   - claude -p processes all inputs
  * Output:
  *   - 変換後テンプレート (統合にそのまま利用)
- * 
+ *
  * Stage 1: Information extraction from frontmatter
  * Stage 2: Template application with extracted information
  */
@@ -22,7 +22,7 @@ import {
 } from "../shared/errors.ts";
 import type { FrontMatterContent } from "./types.ts";
 import type { SchemaDefinition } from "./types.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
 
 /**
@@ -134,13 +134,13 @@ export class AIAnalysisOrchestrator {
   ): Promise<Result<ExtractedInfo, ValidationError>> {
     // Build extraction prompt
     const prompt = this.buildExtractionPrompt(
-      frontMatter.toObject(),
-      schema.getDefinition(),
+      frontMatter.data,
+      schema.schema as object,
     );
 
     // Execute AI analysis (claude -p 1st call)
     const result = await this.aiAnalyzer.analyze({
-      content: JSON.stringify(frontMatter.toObject()),
+      content: JSON.stringify(frontMatter.data),
       prompt,
     });
 
@@ -184,16 +184,16 @@ export class AIAnalysisOrchestrator {
     // Build template application prompt
     const prompt = this.buildTemplateApplicationPrompt(
       extractedInfo.getData(),
-      schema.getDefinition(),
-      template.getDefinition().getDefinition(),
+      schema.schema as object,
+      template.getFormat().getTemplate(),
     );
 
     // Execute AI analysis (claude -p 2nd call)
     const result = await this.aiAnalyzer.analyze({
       content: JSON.stringify({
         extractedData: extractedInfo.getData(),
-        schema: schema.getDefinition(),
-        template: template.getDefinition().getDefinition(),
+        schema: schema.schema,
+        template: template.getFormat().getTemplate(),
       }),
       prompt,
     });
@@ -211,14 +211,14 @@ export class AIAnalysisOrchestrator {
     const metadata: StructuringMetadata = {
       structuredAt: new Date(),
       promptUsed: "PromptB",
-      templateName: template.getName(),
+      templateName: template.getId().getValue(),
       appliedContent: result.data.result,
       sourceMetadata: extractedInfo.getMetadata(),
     };
 
     return StructuredData.createFromAppliedTemplate(
       result.data.result,
-      template.getName(),
+      template.getId().getValue(),
       metadata,
     );
   }

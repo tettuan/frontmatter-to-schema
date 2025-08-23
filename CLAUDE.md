@@ -17,8 +17,8 @@ see options. "analyze","quality-metrics" is correct. or, change to
 
 # About Project
 
-This project is a Markdown FrontMatter parser that utilizes `claude -p` with a
-schema file.
+This project is a Markdown FrontMatter parser that utilizes `Claude Code SDK`
+with a schema file.
 
 - Deno Project, use JSR for packages
 - DDD, TDD, Totality, AI-complexity-control
@@ -31,3 +31,9 @@ Totality: `docs/development/totality.ja.md` Prohibit-Hardcoding:
 # Tests
 
 - use `*_test.ts` filename for test file.
+
+# Claude Code SDK
+
+- use "Command line" SDK
+- Claude Code SDK reference: https://docs.anthropic.com/ja/docs/claude-code/sdk
+  - saved: docs/claude_code_sdk_command_line.md

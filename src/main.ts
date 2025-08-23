@@ -28,6 +28,7 @@ import type {
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-schema-analyzer.ts";
 import { SimpleTemplateMapper } from "./infrastructure/adapters/simple-template-mapper.ts";
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
@@ -277,12 +278,39 @@ Examples:
     // Load prompt templates
     const prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer
-    const schemaAnalyzer = new ClaudeSchemaAnalyzer(
-      analysisConfig,
-      prompts.extraction,
-      prompts.mapping,
-    );
+    // Initialize schema analyzer - use mock if in test mode or Claude unavailable
+    let schemaAnalyzer;
+    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true" ||
+      !Deno.env.get("CLAUDE_API_KEY");
+
+    if (useMock) {
+      schemaAnalyzer = new MockSchemaAnalyzer();
+      console.log(
+        "🎭 Using mock analyzer (test mode or Claude API key not available)",
+      );
+    } else {
+      try {
+        // Check if claude CLI is available
+        const checkResult = new Deno.Command("which", { args: ["claude"] })
+          .spawn();
+        const status = await checkResult.status;
+
+        if (status.success) {
+          schemaAnalyzer = new ClaudeSchemaAnalyzer(
+            analysisConfig,
+            prompts.extraction,
+            prompts.mapping,
+          );
+          console.log("🤖 Using Claude CLI for AI analysis");
+        } else {
+          throw new Error("Claude CLI not found");
+        }
+      } catch {
+        // Fallback to mock analyzer
+        schemaAnalyzer = new MockSchemaAnalyzer();
+        console.log("🎭 Using mock analyzer (Claude CLI not available)");
+      }
+    }
 
     // Create use case
     const processDocumentsUseCase = new ProcessDocumentsUseCase(

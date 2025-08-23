@@ -34,7 +34,7 @@ echo "something" | climpt-* <Directive> <Layer> --*
 This implementation uses Claude Code's shell capabilities to:
 
 - Mechanically list prompt files using shell commands
-- Loop through files and analyze content using `claude -p`
+- Loop through files and analyze content using `Claude Code SDK`
 - Generate structured output
 
 ## Step 1: Initialize Output File

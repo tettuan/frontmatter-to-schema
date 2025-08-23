@@ -3,6 +3,7 @@ import { TemplateMapper } from "../../../../src/domain/services/template-mapper.
 import {
   Template,
   TemplateDefinition,
+  type TemplateFormat,
 } from "../../../../src/domain/models/template.ts";
 import { isOk } from "../../../../src/domain/shared/result.ts";
 
@@ -198,7 +199,10 @@ Deno.test("TemplateMapper", async (t) => {
         const result = mapper.map(data, templateResult.data);
         assertEquals(isOk(result), false);
         if (!isOk(result)) {
-          assertEquals(result.error.message, "Handlebars support not yet implemented");
+          assertEquals(
+            result.error.message,
+            "Handlebars support not yet implemented",
+          );
         }
       }
     }
@@ -344,7 +348,7 @@ Deno.test("TemplateMapper", async (t) => {
           assertEquals(parsed.string, "static string");
           assertEquals(parsed.number, 42);
           assertEquals(parsed.boolean, true);
-          assertEquals(parsed.nullValue, data);  // null in template means use the data
+          assertEquals(parsed.nullValue, data); // null in template means use the data
           assertEquals(parsed.placeholder, "dynamic");
         }
       }
@@ -354,7 +358,7 @@ Deno.test("TemplateMapper", async (t) => {
   await t.step("should handle unsupported format", () => {
     const templateDefResult = TemplateDefinition.create(
       "template",
-      "unknown" as any,
+      "unknown" as TemplateFormat,
     );
 
     if (isOk(templateDefResult)) {
@@ -370,28 +374,31 @@ Deno.test("TemplateMapper", async (t) => {
     }
   });
 
-  await t.step("should handle non-object current value in path traversal", () => {
-    const templateDefResult = TemplateDefinition.create(
-      JSON.stringify({
-        value: "{{simple.nested.path}}",
-      }),
-      "json",
-    );
+  await t.step(
+    "should handle non-object current value in path traversal",
+    () => {
+      const templateDefResult = TemplateDefinition.create(
+        JSON.stringify({
+          value: "{{simple.nested.path}}",
+        }),
+        "json",
+      );
 
-    if (isOk(templateDefResult)) {
-      const templateResult = Template.create("test", templateDefResult.data);
-      if (isOk(templateResult)) {
-        const data = {
-          simple: "not an object",
-        };
+      if (isOk(templateDefResult)) {
+        const templateResult = Template.create("test", templateDefResult.data);
+        if (isOk(templateResult)) {
+          const data = {
+            simple: "not an object",
+          };
 
-        const result = mapper.map(data, templateResult.data);
-        assertEquals(isOk(result), true);
-        if (isOk(result)) {
-          const parsed = JSON.parse(result.data);
-          assertEquals(parsed.value, undefined);
+          const result = mapper.map(data, templateResult.data);
+          assertEquals(isOk(result), true);
+          if (isOk(result)) {
+            const parsed = JSON.parse(result.data);
+            assertEquals(parsed.value, undefined);
+          }
         }
       }
-    }
-  });
+    },
+  );
 });

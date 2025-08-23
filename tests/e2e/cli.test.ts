@@ -23,7 +23,9 @@ async function ensureTestDir() {
     await Deno.mkdir(TEST_OUTPUT_DIR, { recursive: true });
   } catch (error) {
     if (error instanceof Deno.errors.PermissionDenied) {
-      console.warn("Warning: Cannot create test output directory. Some tests may be skipped.");
+      console.warn(
+        "Warning: Cannot create test output directory. Some tests may be skipped.",
+      );
     } else if (!(error instanceof Deno.errors.AlreadyExists)) {
       throw error;
     }

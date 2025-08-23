@@ -36,18 +36,21 @@ Markdownファイル → フロントマター抽出 → AI解析（2段階） �
 **責務**: Markdownファイルからフロントマターを抽出する純粋な変換処理
 
 **境界コンテキスト**:
+
 - 入力: Markdownファイルパス
 - 出力: フロントマターデータ（成果B）
 - ライフサイクル: 短期（リクエスト単位）
 
 **集約ルート**:
+
 ```typescript
 class FrontMatterExtractor {
-  extract(markdown: MarkdownContent): FrontMatter
+  extract(markdown: MarkdownContent): FrontMatter;
 }
 ```
 
 **イベント境界**:
+
 - 発行: `FrontMatterExtracted(documentPath, frontMatter)`
 - 購読: なし
 
@@ -56,24 +59,35 @@ class FrontMatterExtractor {
 **責務**: claude -pを使用した2段階のAI解析処理
 
 **境界コンテキスト**:
+
 - 入力: フロントマター + 解析結果のSchema + プロンプト
 - 出力: 構造化データ（成果D）
 - ライフサイクル: 短期（リクエスト単位）
 
 **集約ルート**:
+
 ```typescript
 class AIAnalysisOrchestrator {
   // 第1段階: 情報抽出
-  extractInformation(frontMatter: FrontMatter, schema: Schema, promptA: Prompt): ExtractedInfo
-  
+  extractInformation(
+    frontMatter: FrontMatter,
+    schema: Schema,
+    promptA: Prompt,
+  ): ExtractedInfo;
+
   // 第2段階: テンプレート当て込み
-  mapToTemplate(extractedInfo: ExtractedInfo, schema: Schema, promptB: Prompt): StructuredData
+  mapToTemplate(
+    extractedInfo: ExtractedInfo,
+    schema: Schema,
+    promptB: Prompt,
+  ): StructuredData;
 }
 ```
 
 **イベント境界**:
+
 - 購読: `FrontMatterExtracted`
-- 発行: 
+- 発行:
   - `InformationExtracted(extractedInfo)` - 第1段階完了
   - `DataStructured(structuredData)` - 第2段階完了
 
@@ -82,19 +96,22 @@ class AIAnalysisOrchestrator {
 **責務**: 解析結果のSchemaの管理と検証
 
 **境界コンテキスト**:
+
 - 入力: Schema定義ファイル
 - 出力: 検証済みSchema
 - ライフサイクル: 中期（設定変更まで）
 
 **集約ルート**:
+
 ```typescript
 class SchemaRepository {
-  load(path: SchemaPath): Schema
-  validate(data: any, schema: Schema): ValidationResult
+  load(path: SchemaPath): Schema;
+  validate(data: any, schema: Schema): ValidationResult;
 }
 ```
 
 **イベント境界**:
+
 - 発行: `SchemaLoaded(schema)`
 - 購読: なし
 
@@ -103,19 +120,22 @@ class SchemaRepository {
 **責務**: 解析テンプレートの管理と適用
 
 **境界コンテキスト**:
+
 - 入力: テンプレート定義ファイル
 - 出力: 適用可能なテンプレート
 - ライフサイクル: 中期（設定変更まで）
 
 **集約ルート**:
+
 ```typescript
 class TemplateRepository {
-  load(path: TemplatePath): Template
-  apply(data: StructuredData, template: Template): FormattedOutput
+  load(path: TemplatePath): Template;
+  apply(data: StructuredData, template: Template): FormattedOutput;
 }
 ```
 
 **イベント境界**:
+
 - 発行: `TemplateLoaded(template)`
 - 購読: なし
 
@@ -124,20 +144,23 @@ class TemplateRepository {
 **責務**: 個別の解析結果を最終成果物Zに統合
 
 **境界コンテキスト**:
+
 - 入力: 構造化データ（成果D）の集合
 - 出力: 統合された索引（最終成果物Z）
 - ライフサイクル: バッチ処理単位
 
 **集約ルート**:
+
 ```typescript
 class ResultAggregator {
-  initialize(): FinalResult
-  integrate(result: StructuredData, finalResult: FinalResult): FinalResult
-  save(finalResult: FinalResult, outputPath: OutputPath): void
+  initialize(): FinalResult;
+  integrate(result: StructuredData, finalResult: FinalResult): FinalResult;
+  save(finalResult: FinalResult, outputPath: OutputPath): void;
 }
 ```
 
 **イベント境界**:
+
 - 購読: `DataStructured`
 - 発行: `ResultIntegrated(finalResult)`
 
@@ -148,14 +171,16 @@ class ResultAggregator {
 **責務**: ファイルシステムの操作とパス管理
 
 **境界コンテキスト**:
+
 - ライフサイクル: 短期（I/O操作単位）
 
 **集約ルート**:
+
 ```typescript
 class FileSystem {
-  listMarkdownFiles(directory: DirectoryPath): MarkdownFile[]
-  readFile(path: FilePath): FileContent
-  writeFile(path: FilePath, content: FileContent): void
+  listMarkdownFiles(directory: DirectoryPath): MarkdownFile[];
+  readFile(path: FilePath): FileContent;
+  writeFile(path: FilePath, content: FileContent): void;
 }
 ```
 
@@ -164,14 +189,16 @@ class FileSystem {
 **責務**: アプリケーション設定の管理
 
 **境界コンテキスト**:
+
 - ライフサイクル: 長期（アプリケーション起動時）
 
 **集約ルート**:
+
 ```typescript
 class ConfigurationManager {
-  loadConfig(profile: string): Configuration
-  getSchemaPath(): SchemaPath
-  getTemplatePath(): TemplatePath
+  loadConfig(profile: string): Configuration;
+  getSchemaPath(): SchemaPath;
+  getTemplatePath(): TemplatePath;
 }
 ```
 
@@ -180,25 +207,30 @@ class ConfigurationManager {
 **責務**: AI解析用プロンプトの管理
 
 **境界コンテキスト**:
+
 - ライフサイクル: 長期（埋め込みまたは外部ファイル）
 
 **集約ルート**:
+
 ```typescript
 class PromptManager {
-  getPromptA(): Prompt  // 情報抽出用
-  getPromptB(): Prompt  // テンプレート当て込み用
+  getPromptA(): Prompt; // 情報抽出用
+  getPromptB(): Prompt; // テンプレート当て込み用
 }
 ```
 
 ### 2.3 汎用サブドメイン
 
 #### GD1: ロギング（Logging）
+
 - 全ドメインから利用される横断的関心事
 
 #### GD2: エラーハンドリング（Error Handling）
+
 - 全ドメインで発生するエラーの統一処理
 
 #### GD3: メトリクス（Metrics）
+
 - パフォーマンス測定と監視
 
 ## 3. ドメイン間の相互作用
@@ -218,14 +250,14 @@ graph LR
 
 ### 3.2 ライフサイクル分離
 
-| ドメイン | ライフサイクル | 結合度 |
-|---------|--------------|--------|
-| フロントマター抽出 | 短期（ms） | 疎結合 |
-| AI解析 | 短期（秒） | 疎結合 |
-| Schema管理 | 中期（時間） | 疎結合 |
-| テンプレート管理 | 中期（時間） | 疎結合 |
-| 結果統合 | バッチ（分） | 疎結合 |
-| 設定管理 | 長期（日） | 疎結合 |
+| ドメイン           | ライフサイクル | 結合度 |
+| ------------------ | -------------- | ------ |
+| フロントマター抽出 | 短期（ms）     | 疎結合 |
+| AI解析             | 短期（秒）     | 疎結合 |
+| Schema管理         | 中期（時間）   | 疎結合 |
+| テンプレート管理   | 中期（時間）   | 疎結合 |
+| 結果統合           | バッチ（分）   | 疎結合 |
+| 設定管理           | 長期（日）     | 疎結合 |
 
 ## 4. 境界コンテキストマップ
 
@@ -244,26 +276,27 @@ graph LR
 
 ### 4.2 統合パターン
 
-| 境界間 | 統合パターン | 実装方法 |
-|--------|------------|----------|
-| フロントマター抽出 → AI解析 | イベント駆動 | 非同期イベント |
-| AI解析（第1段階）→ AI解析（第2段階） | パイプライン | 同期呼び出し |
-| AI解析 → 結果統合 | イベント駆動 | 非同期イベント |
-| Schema/テンプレート → AI解析 | 共有カーネル | 依存性注入 |
+| 境界間                               | 統合パターン | 実装方法       |
+| ------------------------------------ | ------------ | -------------- |
+| フロントマター抽出 → AI解析          | イベント駆動 | 非同期イベント |
+| AI解析（第1段階）→ AI解析（第2段階） | パイプライン | 同期呼び出し   |
+| AI解析 → 結果統合                    | イベント駆動 | 非同期イベント |
+| Schema/テンプレート → AI解析         | 共有カーネル | 依存性注入     |
 
 ## 5. 反腐敗層（ACL）の設計
 
 ### 5.1 外部システムとの境界
 
 #### ACL1: Claude API アダプター
+
 - **場所**: AI解析ドメイン内
-- **責務**: `claude -p`コマンドの抽象化
+- **責務**: `Claude Code SDK`コマンドの抽象化
 - **実装**:
   ```typescript
   interface AIProvider {
-    analyze(input: string, prompt: string): Promise<string>
+    analyze(input: string, prompt: string): Promise<string>;
   }
-  
+
   class ClaudeAdapter implements AIProvider {
     async analyze(input: string, prompt: string): Promise<string> {
       // claude -p の実行をラップ
@@ -272,6 +305,7 @@ graph LR
   ```
 
 #### ACL2: ファイルシステムアダプター
+
 - **場所**: ファイル管理ドメイン内
 - **責務**: Denoファイルシステムの抽象化
 
@@ -279,43 +313,46 @@ graph LR
 
 ### 6.1 イベントカタログ
 
-| イベント名 | 発行元 | 購読先 | ペイロード |
-|-----------|--------|--------|------------|
-| MarkdownFileFound | ファイル管理 | フロントマター抽出 | {path, content} |
-| FrontMatterExtracted | フロントマター抽出 | AI解析 | {path, frontMatter} |
-| InformationExtracted | AI解析（第1段階） | AI解析（第2段階） | {extractedInfo} |
-| DataStructured | AI解析（第2段階） | 結果統合 | {structuredData} |
-| ResultIntegrated | 結果統合 | ファイル管理 | {finalResult, outputPath} |
-| ProcessingError | 各ドメイン | エラーハンドリング | {domain, error, context} |
+| イベント名           | 発行元             | 購読先             | ペイロード                |
+| -------------------- | ------------------ | ------------------ | ------------------------- |
+| MarkdownFileFound    | ファイル管理       | フロントマター抽出 | {path, content}           |
+| FrontMatterExtracted | フロントマター抽出 | AI解析             | {path, frontMatter}       |
+| InformationExtracted | AI解析（第1段階）  | AI解析（第2段階）  | {extractedInfo}           |
+| DataStructured       | AI解析（第2段階）  | 結果統合           | {structuredData}          |
+| ResultIntegrated     | 結果統合           | ファイル管理       | {finalResult, outputPath} |
+| ProcessingError      | 各ドメイン         | エラーハンドリング | {domain, error, context}  |
 
 ### 6.2 イベントストア
 
 ```typescript
 interface DomainEvent {
-  eventId: string
-  eventType: string
-  aggregateId: string
-  occurredAt: Date
-  payload: any
+  eventId: string;
+  eventType: string;
+  aggregateId: string;
+  occurredAt: Date;
+  payload: any;
 }
 
 class EventStore {
-  publish(event: DomainEvent): void
-  subscribe(eventType: string, handler: EventHandler): void
+  publish(event: DomainEvent): void;
+  subscribe(eventType: string, handler: EventHandler): void;
 }
 ```
 
 ## 7. 集約の不変条件
 
 ### 7.1 フロントマター抽出
+
 - フロントマターは必ずMarkdownファイルの先頭に存在する
 - YAML形式で記述されている
 
 ### 7.2 AI解析
+
 - 第1段階の出力（成果C）は第2段階の入力となる
 - 両段階で同じSchemaを参照する
 
 ### 7.3 結果統合
+
 - 最終成果物Zは全ての成果Dの集合である
 - 統合は冪等性を保証する
 
@@ -325,16 +362,29 @@ class EventStore {
 
 ```typescript
 // パス関連
-class FilePath { constructor(public readonly value: string) {} }
+class FilePath {
+  constructor(public readonly value: string) {}
+}
 class SchemaPath extends FilePath {}
 class TemplatePath extends FilePath {}
 class OutputPath extends FilePath {}
 
 // データ関連
-class FrontMatter { constructor(public readonly data: object) {} }
-class Schema { constructor(public readonly definition: object) {} }
-class Template { constructor(public readonly format: string, public readonly content: string) {} }
-class Prompt { constructor(public readonly text: string) {} }
+class FrontMatter {
+  constructor(public readonly data: object) {}
+}
+class Schema {
+  constructor(public readonly definition: object) {}
+}
+class Template {
+  constructor(
+    public readonly format: string,
+    public readonly content: string,
+  ) {}
+}
+class Prompt {
+  constructor(public readonly text: string) {}
+}
 ```
 
 ## 9. リポジトリインターフェース
@@ -343,17 +393,17 @@ class Prompt { constructor(public readonly text: string) {} }
 
 ```typescript
 interface SchemaRepository {
-  load(path: SchemaPath): Promise<Schema>
-  save(schema: Schema, path: SchemaPath): Promise<void>
+  load(path: SchemaPath): Promise<Schema>;
+  save(schema: Schema, path: SchemaPath): Promise<void>;
 }
 
 interface TemplateRepository {
-  load(path: TemplatePath): Promise<Template>
-  save(template: Template, path: TemplatePath): Promise<void>
+  load(path: TemplatePath): Promise<Template>;
+  save(template: Template, path: TemplatePath): Promise<void>;
 }
 
 interface ResultRepository {
-  save(result: FinalResult, path: OutputPath): Promise<void>
+  save(result: FinalResult, path: OutputPath): Promise<void>;
 }
 ```
 
@@ -388,16 +438,19 @@ class AnalysisPipelineService {
 ## 11. 実装優先順位
 
 ### Phase 1: コアドメイン基盤
+
 1. フロントマター抽出ドメイン
 2. Schema管理ドメイン
 3. テンプレート管理ドメイン
 
 ### Phase 2: AI統合
+
 1. AI解析ドメイン（2段階処理）
 2. プロンプト管理ドメイン
 3. Claude APIアダプター
 
 ### Phase 3: 統合と出力
+
 1. 結果統合ドメイン
 2. イベント駆動アーキテクチャ
 3. エラーハンドリング強化
