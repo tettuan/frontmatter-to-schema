@@ -22,8 +22,19 @@ export type ValidationError =
   | { kind: "EmptyInput"; field: string }
   | { kind: "TooLong"; field: string; maxLength: number; actualLength: number }
   | { kind: "PatternMismatch"; field: string; pattern: string; value: string }
-  | { kind: "OutOfRange"; field: string; min?: number; max?: number; value: number }
-  | { kind: "InvalidFormat"; field: string; expectedFormat: string; value: string }
+  | {
+    kind: "OutOfRange";
+    field: string;
+    min?: number;
+    max?: number;
+    value: number;
+  }
+  | {
+    kind: "InvalidFormat";
+    field: string;
+    expectedFormat: string;
+    value: string;
+  }
   | { kind: "MissingRequired"; field: string }
   | { kind: "InvalidState"; message: string };
 
@@ -57,7 +68,7 @@ export function getValidationErrorMessage(error: ValidationError): string {
 // ========================================
 
 /** パス種別 - Discriminated Union */
-export type PathKind = 
+export type PathKind =
   | { type: "markdown"; extension: ".md" | ".markdown" }
   | { type: "yaml"; extension: ".yml" | ".yaml" }
   | { type: "json"; extension: ".json" }
@@ -67,44 +78,55 @@ export type PathKind =
 abstract class PathBase<K extends PathKind> {
   protected constructor(
     protected readonly value: string,
-    protected readonly kind: K
+    protected readonly kind: K,
   ) {}
-  
-  getValue(): string { return this.value; }
-  getKind(): K { return this.kind; }
-  
+
+  getValue(): string {
+    return this.value;
+  }
+  getKind(): K {
+    return this.kind;
+  }
+
   abstract validate(): Result<void, ValidationError>;
 }
 
 /** Markdownファイルパス */
-export class MarkdownFilePath extends PathBase<{ type: "markdown"; extension: ".md" | ".markdown" }> {
+export class MarkdownFilePath
+  extends PathBase<{ type: "markdown"; extension: ".md" | ".markdown" }> {
   private constructor(value: string, extension: ".md" | ".markdown") {
     super(value, { type: "markdown", extension });
   }
-  
+
   static create(path: string): Result<MarkdownFilePath, ValidationError> {
-    if (!path || path.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", field: "MarkdownFilePath" } };
-    }
-    
-    const extension = path.endsWith('.md') ? '.md' : 
-                     path.endsWith('.markdown') ? '.markdown' : null;
-    
-    if (!extension) {
-      return { 
-        ok: false, 
-        error: { 
-          kind: "InvalidFormat", 
-          field: "MarkdownFilePath",
-          expectedFormat: "*.md or *.markdown",
-          value: path
-        }
+    if (!path || path.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", field: "MarkdownFilePath" },
       };
     }
-    
+
+    const extension = path.endsWith(".md")
+      ? ".md"
+      : path.endsWith(".markdown")
+      ? ".markdown"
+      : null;
+
+    if (!extension) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          field: "MarkdownFilePath",
+          expectedFormat: "*.md or *.markdown",
+          value: path,
+        },
+      };
+    }
+
     return { ok: true, data: new MarkdownFilePath(path, extension) };
   }
-  
+
   validate(): Result<void, ValidationError> {
     if (!this.value.endsWith(this.kind.extension)) {
       return {
@@ -113,49 +135,53 @@ export class MarkdownFilePath extends PathBase<{ type: "markdown"; extension: ".
           kind: "InvalidFormat",
           field: "MarkdownFilePath",
           expectedFormat: `*${this.kind.extension}`,
-          value: this.value
-        }
+          value: this.value,
+        },
       };
     }
     return { ok: true, data: undefined };
   }
-  
+
   getBaseName(): string {
-    const parts = this.value.split('/');
+    const parts = this.value.split("/");
     const fileName = parts[parts.length - 1];
-    return fileName.replace(this.kind.extension, '');
+    return fileName.replace(this.kind.extension, "");
   }
 }
 
 /** Schema/Templateパス */
-export class ConfigFilePath extends PathBase<{ type: "yaml" | "json"; extension: string }> {
+export class ConfigFilePath
+  extends PathBase<{ type: "yaml" | "json"; extension: string }> {
   private constructor(
-    value: string, 
+    value: string,
     type: "yaml" | "json",
-    extension: string
+    extension: string,
   ) {
     super(value, { type, extension });
   }
-  
+
   static create(path: string): Result<ConfigFilePath, ValidationError> {
-    if (!path || path.trim() === '') {
-      return { ok: false, error: { kind: "EmptyInput", field: "ConfigFilePath" } };
+    if (!path || path.trim() === "") {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", field: "ConfigFilePath" },
+      };
     }
-    
+
     let type: "yaml" | "json" | null = null;
-    let extension = '';
-    
-    if (path.endsWith('.yml')) {
+    let extension = "";
+
+    if (path.endsWith(".yml")) {
       type = "yaml";
       extension = ".yml";
-    } else if (path.endsWith('.yaml')) {
+    } else if (path.endsWith(".yaml")) {
       type = "yaml";
       extension = ".yaml";
-    } else if (path.endsWith('.json')) {
+    } else if (path.endsWith(".json")) {
       type = "json";
       extension = ".json";
     }
-    
+
     if (!type) {
       return {
         ok: false,
@@ -163,22 +189,22 @@ export class ConfigFilePath extends PathBase<{ type: "yaml" | "json"; extension:
           kind: "InvalidFormat",
           field: "ConfigFilePath",
           expectedFormat: "*.yml, *.yaml, or *.json",
-          value: path
-        }
+          value: path,
+        },
       };
     }
-    
+
     return { ok: true, data: new ConfigFilePath(path, type, extension) };
   }
-  
+
   validate(): Result<void, ValidationError> {
     return { ok: true, data: undefined };
   }
-  
+
   isYaml(): boolean {
     return this.kind.type === "yaml";
   }
-  
+
   isJson(): boolean {
     return this.kind.type === "json";
   }
@@ -221,67 +247,89 @@ export type ProcessingError =
 export class FrontMatterProcessor {
   constructor(
     private readonly extractor: FrontMatterExtractor,
-    private readonly analyzer: AIAnalysisOrchestrator
+    private readonly analyzer: AIAnalysisOrchestrator,
   ) {}
-  
+
   async process(
     document: MarkdownDocument,
     schema: AnalysisSchema,
-    template: AnalysisTemplate
+    template: AnalysisTemplate,
   ): Promise<Result<StructuredData, ProcessingError>> {
     // 初期状態
     let state: FrontMatterProcessingState;
-    
+
     // フロントマター抽出
     const extractResult = this.extractor.extract(document);
     if (!extractResult.ok) {
       state = {
         stage: "failed",
-        error: { kind: "ExtractionFailed", message: extractResult.error.message },
-        history: { retryCount: 0, failedAt: new Date() }
+        error: {
+          kind: "ExtractionFailed",
+          message: extractResult.error.message,
+        },
+        history: { retryCount: 0, failedAt: new Date() },
       };
       return { ok: false, error: state.error };
     }
-    
+
     state = { stage: "extracted", data: extractResult.data };
-    
+
     // 第1段階: 情報抽出
     state = { stage: "analyzing", data: state.data, startedAt: new Date() };
-    
-    const infoResult = await this.analyzer.extractInformation(state.data, schema);
+
+    const infoResult = await this.analyzer.extractInformation(
+      state.data,
+      schema,
+    );
     if (!infoResult.ok) {
       state = {
         stage: "failed",
-        error: { kind: "AnalysisFailed", message: infoResult.error.message, stage: 1 },
-        history: { extractedAt: new Date(), retryCount: 0, failedAt: new Date() }
+        error: {
+          kind: "AnalysisFailed",
+          message: infoResult.error.message,
+          stage: 1,
+        },
+        history: {
+          extractedAt: new Date(),
+          retryCount: 0,
+          failedAt: new Date(),
+        },
       };
       return { ok: false, error: state.error };
     }
-    
-    state = { 
-      stage: "extracted-info", 
+
+    state = {
+      stage: "extracted-info",
       data: infoResult.data,
-      frontMatter: (state as any).data 
+      frontMatter: (state as any).data,
     };
-    
+
     // 第2段階: テンプレートマッピング
     state = { stage: "mapping", data: state.data, startedAt: new Date() };
-    
-    const structResult = await this.analyzer.mapToTemplate(state.data, schema, template);
+
+    const structResult = await this.analyzer.mapToTemplate(
+      state.data,
+      schema,
+      template,
+    );
     if (!structResult.ok) {
       state = {
         stage: "failed",
-        error: { kind: "AnalysisFailed", message: structResult.error.message, stage: 2 },
-        history: { 
+        error: {
+          kind: "AnalysisFailed",
+          message: structResult.error.message,
+          stage: 2,
+        },
+        history: {
           extractedAt: new Date(),
           analyzedAt: new Date(),
           retryCount: 0,
-          failedAt: new Date()
-        }
+          failedAt: new Date(),
+        },
       };
       return { ok: false, error: state.error };
     }
-    
+
     state = {
       stage: "structured",
       data: structResult.data,
@@ -289,22 +337,28 @@ export class FrontMatterProcessor {
         extractedAt: new Date(),
         analyzedAt: new Date(),
         mappedAt: new Date(),
-        retryCount: 0
-      }
+        retryCount: 0,
+      },
     };
-    
+
     return { ok: true, data: state.data };
   }
-  
+
   // 状態遷移の可視化
   getNextStage(current: FrontMatterProcessingState["stage"]): string[] {
     switch (current) {
-      case "extracted": return ["analyzing", "failed"];
-      case "analyzing": return ["extracted-info", "failed"];
-      case "extracted-info": return ["mapping", "failed"];
-      case "mapping": return ["structured", "failed"];
-      case "structured": return [];
-      case "failed": return ["extracted"]; // リトライ可能
+      case "extracted":
+        return ["analyzing", "failed"];
+      case "analyzing":
+        return ["extracted-info", "failed"];
+      case "extracted-info":
+        return ["mapping", "failed"];
+      case "mapping":
+        return ["structured", "failed"];
+      case "structured":
+        return [];
+      case "failed":
+        return ["extracted"]; // リトライ可能
     }
   }
 }
@@ -322,31 +376,40 @@ export class TemplateGenerationRequest {
   private constructor(
     private readonly extractedInfo: ExtractedInfo,
     private readonly schema: AnalysisSchema,
-    private readonly targetFormat: "json" | "yaml" | "markdown"
+    private readonly targetFormat: "json" | "yaml" | "markdown",
   ) {}
-  
+
   static create(
     extractedInfo: ExtractedInfo,
     schema: AnalysisSchema,
-    targetFormat: "json" | "yaml" | "markdown" = "json"
+    targetFormat: "json" | "yaml" | "markdown" = "json",
   ): Result<TemplateGenerationRequest, ValidationError> {
     if (!extractedInfo) {
-      return { ok: false, error: { kind: "MissingRequired", field: "ExtractedInfo" } };
+      return {
+        ok: false,
+        error: { kind: "MissingRequired", field: "ExtractedInfo" },
+      };
     }
-    
+
     if (!schema) {
       return { ok: false, error: { kind: "MissingRequired", field: "Schema" } };
     }
-    
+
     return {
       ok: true,
-      data: new TemplateGenerationRequest(extractedInfo, schema, targetFormat)
+      data: new TemplateGenerationRequest(extractedInfo, schema, targetFormat),
     };
   }
-  
-  getExtractedInfo(): ExtractedInfo { return this.extractedInfo; }
-  getSchema(): AnalysisSchema { return this.schema; }
-  getTargetFormat(): string { return this.targetFormat; }
+
+  getExtractedInfo(): ExtractedInfo {
+    return this.extractedInfo;
+  }
+  getSchema(): AnalysisSchema {
+    return this.schema;
+  }
+  getTargetFormat(): string {
+    return this.targetFormat;
+  }
 }
 
 /** AI生成テンプレート - AIが生成した構造化データ */
@@ -355,17 +418,17 @@ export class AIGeneratedTemplate {
     private readonly structuredData: Record<string, unknown>,
     private readonly format: "json" | "yaml" | "markdown",
     private readonly generatedAt: Date,
-    private readonly metadata: TemplateGenerationMetadata
+    private readonly metadata: TemplateGenerationMetadata,
   ) {}
-  
+
   static create(
     rawResponse: string,
     format: "json" | "yaml" | "markdown",
-    metadata: TemplateGenerationMetadata
+    metadata: TemplateGenerationMetadata,
   ): Result<AIGeneratedTemplate, ValidationError> {
     // AIレスポンスの解析
     let structuredData: Record<string, unknown>;
-    
+
     try {
       if (format === "json") {
         structuredData = JSON.parse(rawResponse);
@@ -376,7 +439,7 @@ export class AIGeneratedTemplate {
         // Markdownの場合は構造化データとして保存
         structuredData = {
           content: rawResponse,
-          format: "markdown"
+          format: "markdown",
         };
       }
     } catch (e) {
@@ -386,32 +449,40 @@ export class AIGeneratedTemplate {
           kind: "InvalidFormat",
           field: "AIResponse",
           expectedFormat: format,
-          value: rawResponse.substring(0, 100) + "..."
-        }
+          value: rawResponse.substring(0, 100) + "...",
+        },
       };
     }
-    
+
     return {
       ok: true,
       data: new AIGeneratedTemplate(
         structuredData,
         format,
         new Date(),
-        metadata
-      )
+        metadata,
+      ),
     };
   }
-  
-  getStructuredData(): Readonly<Record<string, unknown>> { 
-    return this.structuredData; 
+
+  getStructuredData(): Readonly<Record<string, unknown>> {
+    return this.structuredData;
   }
-  
-  getFormat(): string { return this.format; }
-  getGeneratedAt(): Date { return this.generatedAt; }
-  getMetadata(): TemplateGenerationMetadata { return this.metadata; }
-  
+
+  getFormat(): string {
+    return this.format;
+  }
+  getGeneratedAt(): Date {
+    return this.generatedAt;
+  }
+  getMetadata(): TemplateGenerationMetadata {
+    return this.metadata;
+  }
+
   // スキーマに対する検証
-  validateAgainstSchema(schema: AnalysisSchema): Result<void, ValidationError[]> {
+  validateAgainstSchema(
+    schema: AnalysisSchema,
+  ): Result<void, ValidationError[]> {
     return schema.validate(this.structuredData);
   }
 }
@@ -436,82 +507,88 @@ export interface TemplateGenerationMetadata {
 export class DocumentAggregate {
   private constructor(
     private readonly documents: Map<DocumentId, MarkdownDocument>,
-    private readonly processingStates: Map<DocumentId, FrontMatterProcessingState>,
-    private readonly version: number
+    private readonly processingStates: Map<
+      DocumentId,
+      FrontMatterProcessingState
+    >,
+    private readonly version: number,
   ) {}
-  
+
   static create(): DocumentAggregate {
     return new DocumentAggregate(new Map(), new Map(), 0);
   }
-  
+
   // ドキュメント追加（不変条件チェック付き）
-  addDocument(document: MarkdownDocument): Result<DocumentAggregate, ValidationError> {
+  addDocument(
+    document: MarkdownDocument,
+  ): Result<DocumentAggregate, ValidationError> {
     const id = document.getId();
-    
+
     if (this.documents.has(id)) {
       return {
         ok: false,
         error: {
           kind: "InvalidState",
-          message: `Document ${id.getValue()} already exists`
-        }
+          message: `Document ${id.getValue()} already exists`,
+        },
       };
     }
-    
+
     const newDocuments = new Map(this.documents);
     newDocuments.set(id, document);
-    
+
     const newStates = new Map(this.processingStates);
     if (document.hasFrontMatter()) {
       newStates.set(id, {
         stage: "extracted",
-        data: document.getFrontMatter()!
+        data: document.getFrontMatter()!,
       });
     }
-    
+
     return {
       ok: true,
-      data: new DocumentAggregate(newDocuments, newStates, this.version + 1)
+      data: new DocumentAggregate(newDocuments, newStates, this.version + 1),
     };
   }
-  
+
   // 処理状態の更新（状態遷移ルールを強制）
   updateProcessingState(
     documentId: DocumentId,
-    newState: FrontMatterProcessingState
+    newState: FrontMatterProcessingState,
   ): Result<DocumentAggregate, ValidationError> {
     const currentState = this.processingStates.get(documentId);
-    
+
     if (!currentState) {
       return {
         ok: false,
         error: {
           kind: "InvalidState",
-          message: `No processing state for document ${documentId.getValue()}`
-        }
+          message: `No processing state for document ${documentId.getValue()}`,
+        },
       };
     }
-    
+
     // 状態遷移の妥当性チェック
     if (!this.isValidTransition(currentState.stage, newState.stage)) {
       return {
         ok: false,
         error: {
           kind: "InvalidState",
-          message: `Invalid transition from ${currentState.stage} to ${newState.stage}`
-        }
+          message:
+            `Invalid transition from ${currentState.stage} to ${newState.stage}`,
+        },
       };
     }
-    
+
     const newStates = new Map(this.processingStates);
     newStates.set(documentId, newState);
-    
+
     return {
       ok: true,
-      data: new DocumentAggregate(this.documents, newStates, this.version + 1)
+      data: new DocumentAggregate(this.documents, newStates, this.version + 1),
     };
   }
-  
+
   private isValidTransition(from: string, to: string): boolean {
     const validTransitions: Record<string, string[]> = {
       "extracted": ["analyzing", "failed"],
@@ -519,17 +596,17 @@ export class DocumentAggregate {
       "extracted-info": ["mapping", "failed"],
       "mapping": ["structured", "failed"],
       "structured": [],
-      "failed": ["extracted"]
+      "failed": ["extracted"],
     };
-    
+
     return validTransitions[from]?.includes(to) ?? false;
   }
-  
+
   // 集約の状態を取得
   getDocumentCount(): number {
     return this.documents.size;
   }
-  
+
   getProcessingStats(): ProcessingStats {
     const stats: ProcessingStats = {
       total: this.documents.size,
@@ -538,20 +615,32 @@ export class DocumentAggregate {
       extractedInfo: 0,
       mapping: 0,
       structured: 0,
-      failed: 0
+      failed: 0,
     };
-    
+
     for (const state of this.processingStates.values()) {
       switch (state.stage) {
-        case "extracted": stats.extracted++; break;
-        case "analyzing": stats.analyzing++; break;
-        case "extracted-info": stats.extractedInfo++; break;
-        case "mapping": stats.mapping++; break;
-        case "structured": stats.structured++; break;
-        case "failed": stats.failed++; break;
+        case "extracted":
+          stats.extracted++;
+          break;
+        case "analyzing":
+          stats.analyzing++;
+          break;
+        case "extracted-info":
+          stats.extractedInfo++;
+          break;
+        case "mapping":
+          stats.mapping++;
+          break;
+        case "structured":
+          stats.structured++;
+          break;
+        case "failed":
+          stats.failed++;
+          break;
       }
     }
-    
+
     return stats;
   }
 }
@@ -588,55 +677,59 @@ export type DomainEventBase<T extends string, P> = {
 /** ドメインイベント - Discriminated Union */
 export type DomainEvent =
   | DomainEventBase<"FrontMatterExtracted", {
-      documentPath: string;
-      frontMatter: Record<string, unknown>;
-    }>
+    documentPath: string;
+    frontMatter: Record<string, unknown>;
+  }>
   | DomainEventBase<"InformationExtracted", {
-      documentId: string;
-      extractedInfo: Record<string, unknown>;
-      duration: number;
-    }>
+    documentId: string;
+    extractedInfo: Record<string, unknown>;
+    duration: number;
+  }>
   | DomainEventBase<"DataStructured", {
-      documentId: string;
-      structuredData: Record<string, unknown>;
-      templateName: string;
-      duration: number;
-    }>
+    documentId: string;
+    structuredData: Record<string, unknown>;
+    templateName: string;
+    duration: number;
+  }>
   | DomainEventBase<"ProcessingFailed", {
-      documentId: string;
-      error: ProcessingError;
-      stage: string;
-    }>
+    documentId: string;
+    error: ProcessingError;
+    stage: string;
+  }>
   | DomainEventBase<"BatchCompleted", {
-      totalDocuments: number;
-      successCount: number;
-      failureCount: number;
-      duration: number;
-    }>;
+    totalDocuments: number;
+    successCount: number;
+    failureCount: number;
+    duration: number;
+  }>;
 
 /** イベントハンドラー型 */
-export type EventHandler<E extends DomainEvent> = (event: E) => Promise<Result<void, Error>>;
+export type EventHandler<E extends DomainEvent> = (
+  event: E,
+) => Promise<Result<void, Error>>;
 
 /** イベントバス - 型安全な実装 */
 export class EventBus {
   private handlers = new Map<string, EventHandler<any>[]>();
-  
+
   subscribe<E extends DomainEvent>(
     eventType: E["eventType"],
-    handler: EventHandler<E>
+    handler: EventHandler<E>,
   ): void {
     const existing = this.handlers.get(eventType) || [];
     this.handlers.set(eventType, [...existing, handler]);
   }
-  
-  async publish<E extends DomainEvent>(event: E): Promise<Result<void, Error>[]> {
+
+  async publish<E extends DomainEvent>(
+    event: E,
+  ): Promise<Result<void, Error>[]> {
     const handlers = this.handlers.get(event.eventType) || [];
     const results = await Promise.all(
-      handlers.map(handler => handler(event))
+      handlers.map((handler) => handler(event)),
     );
     return results;
   }
-  
+
   // イベントの網羅的処理
   async handle(event: DomainEvent): Promise<void> {
     switch (event.eventType) {
@@ -657,36 +750,42 @@ export class EventBus {
         break;
     }
   }
-  
+
   private async handleFrontMatterExtracted(
-    event: DomainEventBase<"FrontMatterExtracted", any>
+    event: DomainEventBase<"FrontMatterExtracted", any>,
   ): Promise<void> {
     console.log(`FrontMatter extracted from ${event.payload.documentPath}`);
   }
-  
+
   private async handleInformationExtracted(
-    event: DomainEventBase<"InformationExtracted", any>
+    event: DomainEventBase<"InformationExtracted", any>,
   ): Promise<void> {
     console.log(`Information extracted in ${event.payload.duration}ms`);
   }
-  
+
   private async handleDataStructured(
-    event: DomainEventBase<"DataStructured", any>
+    event: DomainEventBase<"DataStructured", any>,
   ): Promise<void> {
-    console.log(`Data structured using template: ${event.payload.templateName}`);
+    console.log(
+      `Data structured using template: ${event.payload.templateName}`,
+    );
   }
-  
+
   private async handleProcessingFailed(
-    event: DomainEventBase<"ProcessingFailed", any>
+    event: DomainEventBase<"ProcessingFailed", any>,
   ): Promise<void> {
-    console.error(`Processing failed at ${event.payload.stage}: ${event.payload.error.kind}`);
+    console.error(
+      `Processing failed at ${event.payload.stage}: ${event.payload.error.kind}`,
+    );
   }
-  
+
   private async handleBatchCompleted(
-    event: DomainEventBase<"BatchCompleted", any>
+    event: DomainEventBase<"BatchCompleted", any>,
   ): Promise<void> {
     const { successCount, failureCount, duration } = event.payload;
-    console.log(`Batch completed: ${successCount} success, ${failureCount} failures in ${duration}ms`);
+    console.log(
+      `Batch completed: ${successCount} success, ${failureCount} failures in ${duration}ms`,
+    );
   }
 }
 ```

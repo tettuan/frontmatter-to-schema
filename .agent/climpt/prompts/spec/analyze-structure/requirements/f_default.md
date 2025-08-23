@@ -25,8 +25,7 @@ variables:
 
 # 要求のファイル
 
-{input_text_file} 
-
+{input_text_file}
 
 # 出力先
 
