@@ -6,7 +6,10 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { TemplatePath } from "../../../../src/domain/template/repository.ts";
 import { FileTemplateRepository } from "../../../../src/infrastructure/template/file-template-repository.ts";
-import { Template, TemplateDefinition } from "../../../../src/domain/models/template.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../../../src/domain/models/template.ts";
 
 Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
   await t.step("should create valid template paths", () => {
@@ -15,9 +18,9 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
       "/absolute/path/template.yaml",
       "relative/template.hbs",
       "../parent/template.yml",
-      "template",           // Path without extension is valid (directory)
+      "template", // Path without extension is valid (directory)
     ];
-    
+
     for (const path of validPaths) {
       const result = TemplatePath.create(path);
       assertEquals(result.ok, true, `Should accept valid path: ${path}`);
@@ -29,15 +32,15 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
 
   await t.step("should reject invalid template paths", () => {
     const invalidPaths = [
-      "",                    // Empty path
-      "   ",                // Whitespace only
-      "test.txt",          // Invalid extension
-      "test.pdf",          // Non-template extension
-      null as unknown,         // Null
-      undefined as unknown,    // Undefined
-      123 as unknown          // Non-string
+      "", // Empty path
+      "   ", // Whitespace only
+      "test.txt", // Invalid extension
+      "test.pdf", // Non-template extension
+      null as unknown, // Null
+      undefined as unknown, // Undefined
+      123 as unknown, // Non-string
     ];
-    
+
     for (const path of invalidPaths) {
       const result = TemplatePath.create(path as string);
       assertEquals(result.ok, false, `Should reject invalid path: ${path}`);
@@ -57,12 +60,16 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
       { ext: ".template", valid: true },
       { ext: ".txt", valid: false },
       { ext: ".md", valid: false },
-      { ext: ".js", valid: false }
+      { ext: ".js", valid: false },
     ];
-    
+
     for (const { ext, valid } of extensions) {
       const result = TemplatePath.create(`template${ext}`);
-      assertEquals(result.ok, valid, `Extension ${ext} should be ${valid ? "valid" : "invalid"}`);
+      assertEquals(
+        result.ok,
+        valid,
+        `Extension ${ext} should be ${valid ? "valid" : "invalid"}`,
+      );
     }
   });
 
@@ -85,16 +92,20 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
   await t.step("should save and load templates", async () => {
     const templateDef = TemplateDefinition.create(
       JSON.stringify({ test: "{{value}}" }),
-      "json"
+      "json",
     );
-    
+
     if (templateDef.ok) {
-      const template = Template.create("save-load-test", templateDef.data, "Test template");
+      const template = Template.create(
+        "save-load-test",
+        templateDef.data,
+        "Test template",
+      );
       if (template.ok) {
         // Save template
         const saveResult = await repo.save(template.data);
         assertEquals(saveResult.ok, true, "Should save template successfully");
-        
+
         // Load template
         const loadResult = await repo.load("save-load-test");
         assertEquals(loadResult.ok, true, "Should load template successfully");
@@ -118,15 +129,23 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
   await t.step("should check template existence", async () => {
     const templateDef = TemplateDefinition.create("test", "yaml");
     if (templateDef.ok) {
-      const template = Template.create("exists-test", templateDef.data, "Exists test");
+      const template = Template.create(
+        "exists-test",
+        templateDef.data,
+        "Exists test",
+      );
       if (template.ok) {
         await repo.save(template.data);
-        
+
         const exists1 = await repo.exists("exists-test");
         assertEquals(exists1, true, "Should exist after saving");
-        
+
         const exists2 = await repo.exists("does-not-exist");
-        assertEquals(exists2, false, "Should not exist for non-existent template");
+        assertEquals(
+          exists2,
+          false,
+          "Should not exist for non-existent template",
+        );
       }
     }
   });
@@ -143,12 +162,16 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
         }
       }
     }
-    
+
     const listResult = await repo.list();
     assertEquals(listResult.ok, true, "Should list templates successfully");
     if (listResult.ok) {
       for (const id of templates) {
-        assertEquals(listResult.data.includes(id), true, `Should include ${id}`);
+        assertEquals(
+          listResult.data.includes(id),
+          true,
+          `Should include ${id}`,
+        );
       }
     }
   });
@@ -156,18 +179,22 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
   await t.step("should cache loaded templates", async () => {
     const templateDef = TemplateDefinition.create("cached", "custom");
     if (templateDef.ok) {
-      const template = Template.create("cache-test", templateDef.data, "Cache test");
+      const template = Template.create(
+        "cache-test",
+        templateDef.data,
+        "Cache test",
+      );
       if (template.ok) {
         await repo.save(template.data);
-        
+
         // First load
         const result1 = await repo.load("cache-test");
         assertEquals(result1.ok, true);
-        
+
         // Second load (should use cache)
         const result2 = await repo.load("cache-test");
         assertEquals(result2.ok, true);
-        
+
         if (result1.ok && result2.ok) {
           // Should be the same cached instance
           assertEquals(result1.data.getId(), result2.data.getId());
@@ -180,10 +207,14 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
     const formats = [
       { id: "json-template", format: "json" as const, content: "{}" },
       { id: "yaml-template", format: "yaml" as const, content: "key: value" },
-      { id: "hbs-template", format: "handlebars" as const, content: "{{#if test}}" },
-      { id: "custom-template", format: "custom" as const, content: "custom" }
+      {
+        id: "hbs-template",
+        format: "handlebars" as const,
+        content: "{{#if test}}",
+      },
+      { id: "custom-template", format: "custom" as const, content: "custom" },
     ];
-    
+
     for (const { id, format, content } of formats) {
       const def = TemplateDefinition.create(content, format);
       if (def.ok) {
@@ -191,7 +222,7 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
         if (template.ok) {
           const saveResult = await repo.save(template.data);
           assertEquals(saveResult.ok, true, `Should save ${format} template`);
-          
+
           const loadResult = await repo.load(id);
           assertEquals(loadResult.ok, true, `Should load ${format} template`);
           if (loadResult.ok) {
@@ -211,10 +242,14 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
 Deno.test("FileTemplateRepository - Error Handling Tests", async (t) => {
   await t.step("should handle permission errors gracefully", async () => {
     const repo = new FileTemplateRepository("/root/no-permission");
-    
+
     const templateDef = TemplateDefinition.create("test", "json");
     if (templateDef.ok) {
-      const template = Template.create("perm-test", templateDef.data, "Permission test");
+      const template = Template.create(
+        "perm-test",
+        templateDef.data,
+        "Permission test",
+      );
       if (template.ok) {
         const result = await repo.save(template.data);
         assertEquals(result.ok, false, "Should fail with permission error");
@@ -228,42 +263,50 @@ Deno.test("FileTemplateRepository - Error Handling Tests", async (t) => {
   await t.step("should handle corrupted template files", async () => {
     const testDir = await Deno.makeTempDir();
     const repo = new FileTemplateRepository(testDir);
-    
+
     // Create a corrupted JSON file
     await Deno.writeTextFile(`${testDir}/corrupted.json`, "{ invalid json");
-    
+
     const result = await repo.load("corrupted");
     // Should fail to load but not throw
     assertExists(result, "Should return result even for corrupted file");
-    
+
     await Deno.remove(testDir, { recursive: true });
   });
 
   await t.step("should handle concurrent operations", async () => {
     const testDir = await Deno.makeTempDir();
     const repo = new FileTemplateRepository(testDir);
-    
+
     const operations = [];
     for (let i = 0; i < 10; i++) {
       const def = TemplateDefinition.create(`content ${i}`, "json");
       if (def.ok) {
-        const template = Template.create(`concurrent-${i}`, def.data, `Concurrent ${i}`);
+        const template = Template.create(
+          `concurrent-${i}`,
+          def.data,
+          `Concurrent ${i}`,
+        );
         if (template.ok) {
           operations.push(repo.save(template.data));
         }
       }
     }
-    
+
     const results = await Promise.all(operations);
     for (const result of results) {
       assertEquals(result.ok, true, "All concurrent saves should succeed");
     }
-    
+
     const listResult = await repo.list();
     if (listResult.ok) {
-      assertEquals(listResult.data.length >= 10, true, "Should have saved all templates");
+      assertEquals(
+        listResult.data.length >= 10,
+        true,
+        "Should have saved all templates",
+      );
     }
-    
+
     await Deno.remove(testDir, { recursive: true });
   });
 });
@@ -272,14 +315,14 @@ Deno.test("Repository Pattern - Abstraction Tests", async (t) => {
   await t.step("repository methods return Result types", async () => {
     const testDir = await Deno.makeTempDir();
     const repo = new FileTemplateRepository(testDir);
-    
+
     // All repository methods should return Result type
     const loadResult = await repo.load("any-id");
     assertExists(loadResult.ok, "load should return Result");
-    
+
     const listResult = await repo.list();
     assertExists(listResult.ok, "list should return Result");
-    
+
     const templateDef = TemplateDefinition.create("test", "json");
     if (templateDef.ok) {
       const template = Template.create("test", templateDef.data, "test");
@@ -288,45 +331,49 @@ Deno.test("Repository Pattern - Abstraction Tests", async (t) => {
         assertExists(saveResult.ok, "save should return Result");
       }
     }
-    
+
     // exists returns boolean directly (query method)
     const exists = await repo.exists("test");
     assertEquals(typeof exists, "boolean", "exists should return boolean");
-    
+
     await Deno.remove(testDir, { recursive: true });
   });
 
   await t.step("repository maintains consistency", async () => {
     const testDir = await Deno.makeTempDir();
     const repo = new FileTemplateRepository(testDir);
-    
+
     const def = TemplateDefinition.create("original content", "json");
     if (def.ok) {
       const template = Template.create("consistency-test", def.data, "test");
       if (template.ok) {
         await repo.save(template.data);
-        
+
         // Update and save again
         const newDef = TemplateDefinition.create("updated content", "json");
         if (newDef.ok) {
-          const updated = Template.create("consistency-test", newDef.data, "updated");
+          const updated = Template.create(
+            "consistency-test",
+            newDef.data,
+            "updated",
+          );
           if (updated.ok) {
             await repo.save(updated.data);
-            
+
             // Load should return updated version
             const loaded = await repo.load("consistency-test");
             if (loaded.ok) {
               assertEquals(
                 loaded.data.getDefinition().getDefinition(),
                 "updated content",
-                "Should load updated version"
+                "Should load updated version",
               );
             }
           }
         }
       }
     }
-    
+
     await Deno.remove(testDir, { recursive: true });
   });
 });
