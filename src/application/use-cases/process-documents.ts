@@ -250,6 +250,13 @@ export class ProcessDocumentsUseCase {
       );
     }
 
+    // Display processing list
+    console.log(`\n📋 Processing ${documents.length} markdown file(s):`);
+    for (const doc of documents) {
+      console.log(`  • ${doc.getPath().getValue()}`);
+    }
+    console.log("");
+
     if (options.isParallel()) {
       // Parallel processing
       if (verboseMode) {
@@ -259,13 +266,23 @@ export class ProcessDocumentsUseCase {
       }
 
       const promises = documents.map((doc) => {
+        const docPath = doc.getPath().getValue();
+        console.log(`🚀 Starting: ${docPath}`);
+        
         if (verboseMode) {
           console.log(
-            `🔄 [VERBOSE] Creating promise for: ${doc.getPath().getValue()}`,
+            `🔄 [VERBOSE] Creating promise for: ${docPath}`,
           );
         }
         return this.processDocument(doc, schema, template)
-          .then((result) => ({ doc, result }));
+          .then((result) => {
+            if (isOk(result)) {
+              console.log(`✅ Success: ${docPath}`);
+            } else {
+              console.log(`❌ Failed: ${docPath} - ${result.error.message}`);
+            }
+            return { doc, result };
+          });
       });
 
       if (verboseMode) {
@@ -299,31 +316,51 @@ export class ProcessDocumentsUseCase {
     } else {
       // Sequential processing
       for (const doc of documents) {
+        const docPath = doc.getPath().getValue();
+        console.log(`🚀 Starting: ${docPath}`);
+        
         const result = await this.processDocument(doc, schema, template);
 
         if (isOk(result)) {
+          console.log(`✅ Success: ${docPath}`);
           results.push(result.data);
         } else {
+          console.log(`❌ Failed: ${docPath} - ${result.error.message}`);
           errors.push({
-            document: doc.getPath().getValue(),
+            document: docPath,
             error: result.error.message,
           });
 
           if (!options.shouldContinueOnError()) {
+            console.log(`⛔ Stopping due to error (continue-on-error is false)`);
             break;
           }
         }
       }
     }
 
+    // Check if any results were processed
+    if (results.length === 0) {
+      console.log(`\n⚠️ No documents were successfully processed`);
+      if (errors.length > 0) {
+        console.log(`📊 Failed documents: ${errors.length}`);
+        for (const error of errors) {
+          console.log(`  • ${error.document}: ${error.error}`);
+        }
+      }
+    }
+
     // Aggregate results
+    console.log(`\n📦 Aggregating ${results.length} result(s)...`);
     const aggregateResult = this.resultAggregator.aggregate(results);
     if (isError(aggregateResult)) {
+      console.log(`❌ Aggregation failed: ${aggregateResult.error.message}`);
       return {
         ok: false,
         error: aggregateResult.error,
       };
     }
+    console.log(`✅ Aggregation successful`);
 
     // Save aggregated results
     const saveResult = await this.resultRepo.save(
