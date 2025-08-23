@@ -6,9 +6,11 @@ import {
   getErrorCode,
 } from "./error-messages.ts";
 
-export type Result<T, E> =
-  | { ok: true; data: T }
-  | { ok: false; error: E };
+// Import Result type from the canonical location
+import type { Result } from "../core/result.ts";
+
+// Re-export for backward compatibility
+export type { Result };
 
 export type ValidationError =
   | { kind: "EmptyInput" }

@@ -1,31 +1,43 @@
-# Task: Fix Duplicate Result Type Definitions
+# リファクタリングタスク
 
-## Issue: #339 - Critical Priority
-**Problem**: Two separate Result type definitions causing type confusion and DDD violations
+## 現在の問題点
 
-## Analysis Phase
-- [ ] 1. Read Totality documentation (docs/development/totality.ja.md)
-- [ ] 2. Read AI complexity control framework 
-- [ ] 3. Analyze current Result type usage across codebase
-- [ ] 4. Identify all files importing from each Result implementation
-- [ ] 5. Compare functionality between core/result.ts vs shared/result.ts
+1. Result型の重複定義 (src/domain/core/result.ts と src/domain/shared/types.ts)
+2. console.log文の残存 (100箇所以上)
+3. Factoryクラスの散在と責務不明確
 
-## Planning Phase  
-- [ ] 6. Create consolidation strategy
-- [ ] 7. Choose authoritative Result implementation (likely core/result.ts)
-- [ ] 8. Map migration path for affected files
+## タスク一覧
 
-## Implementation Phase
-- [ ] 9. Update all imports to use single Result type
-- [ ] 10. Remove duplicate shared/result.ts file
-- [ ] 11. Ensure error types are consistent
-- [ ] 12. Update utility function usage
+### 1. Result型の統合
 
-## Testing Phase
-- [ ] 13. Run existing tests to ensure no breakage
-- [ ] 14. Update tests that reference removed file
-- [ ] 15. Verify type safety improvements
+- [ ] src/domain/core/result.ts を正規の定義として確定
+- [ ] src/domain/shared/types.ts から重複定義を削除
+- [ ] 全ファイルのインポートパスを統一
+- [ ] テストを実行して動作確認
 
-## Completion
-- [ ] 16. Run `deno task ci` to ensure all checks pass
-- [ ] 17. Document changes in completion report
+### 2. console.log文の削除とロガー実装
+
+- [ ] ロガーインターフェースの設計
+- [ ] 環境変数によるログレベル制御の実装
+- [ ] 全console.log文の調査とリスト化
+- [ ] console.logをロガーに置換
+- [ ] テストコードのconsole.logは保持
+
+### 3. Factoryパターンのリファクタリング
+
+- [ ] 各Factoryクラスの責務分析
+- [ ] ドメイン境界に基づく整理
+- [ ] Abstract Factoryパターンの適用検討
+- [ ] 依存性注入の改善
+
+### 4. 品質確認
+
+- [ ] deno task test の実行
+- [ ] deno task ci の実行
+- [ ] リファクタリング後のエントロピー測定
+
+## 優先順位
+
+1. Result型の統合 (最優先 - 型の一貫性)
+2. console.log文の削除 (高優先 - 本番環境への影響)
+3. Factoryパターンのリファクタリング (中優先 - 保守性向上)

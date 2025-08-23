@@ -15,6 +15,7 @@ import {
 } from "../core/abstractions.ts";
 import type { FileSystemPort } from "../../infrastructure/ports/file-system.ts";
 import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
+import { LoggerFactory } from "../shared/logging/logger.ts";
 import {
   FrontMatterContent,
   SourceFile,
@@ -165,9 +166,11 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       "\\.md$",
     );
     if (!fileListResult.ok) {
-      console.warn(
-        `Failed to list files in ${directory}: ${fileListResult.error.message}`,
-      );
+      const logger = LoggerFactory.createLogger("generic-pipeline");
+      logger.warn("Failed to list files in directory", {
+        directory,
+        error: fileListResult.error.message,
+      });
       return [];
     }
 
@@ -183,9 +186,11 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
           fileInfo.path,
         );
         if (!contentResult.ok) {
-          console.warn(
-            `Failed to read file ${fileInfo.path}: ${contentResult.error.message}`,
-          );
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Failed to read file content", {
+            path: fileInfo.path,
+            error: contentResult.error.message,
+          });
           continue;
         }
 
@@ -193,7 +198,8 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
         const frontMatter = this.extractFrontMatter(content);
         const pathResult = ValidFilePath.create(fileInfo.path);
         if (!pathResult.ok) {
-          console.warn(`Invalid path: ${fileInfo.path}`);
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Invalid file path", { path: fileInfo.path });
           continue;
         }
 
@@ -203,15 +209,20 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
           frontMatter || undefined,
         );
         if (!sourceFileResult.ok) {
-          console.warn(
-            `Invalid source file: ${sourceFileResult.error.message}`,
-          );
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Invalid source file", {
+            error: sourceFileResult.error.message,
+          });
           continue;
         }
         const sourceFile = sourceFileResult.data;
         sourceFiles.push(sourceFile);
       } catch (error) {
-        console.warn(`Failed to read file ${fileInfo.path}:`, error);
+        const logger = LoggerFactory.createLogger("generic-pipeline");
+        logger.warn("Failed to read file", {
+          path: fileInfo.path,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -234,7 +245,10 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       const contentResult = FrontMatterContent.fromObject(data);
       return contentResult.ok ? contentResult.data : null;
     } catch (error) {
-      console.warn("Failed to parse frontmatter:", error);
+      const logger = LoggerFactory.createLogger("generic-pipeline");
+      logger.warn("Failed to parse frontmatter", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }

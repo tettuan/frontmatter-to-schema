@@ -342,6 +342,8 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
 /**
  * Template Format Handler Factory
  * Provides centralized access to format handlers
+ *
+ * @deprecated Use TemplateDomainFactory from component-factory.ts for better domain separation
  */
 export class TemplateFormatHandlerFactory {
   private static readonly handlers: TemplateFormatHandler[] = [

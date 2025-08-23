@@ -6,7 +6,7 @@
 // Core Result type - foundation for all domain operations
 export type Result<T, E> =
   | { ok: true; data: T }
-  | { ok: false; error: E & { message: string } };
+  | { ok: false; error: E };
 
 // Comprehensive domain error types following the new architecture
 export type DomainError =
@@ -265,7 +265,12 @@ export const unwrapResult = <T, E>(result: Result<T, E>): T => {
   if (result.ok) {
     return result.data;
   }
-  throw new Error(result.error.message);
+  const error = result.error;
+  const message =
+    typeof error === "object" && error !== null && "message" in error
+      ? String((error as { message: unknown }).message)
+      : JSON.stringify(error);
+  throw new Error(message);
 };
 
 // Get data or provide default value

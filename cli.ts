@@ -62,10 +62,10 @@ async function loadPromptTemplates(): Promise<
 > {
   try {
     const extraction = await Deno.readTextFile(
-      "src/infrastructure/prompts/extract-information.md",
+      "src/domain/prompts/extract-frontmatter.md",
     );
     const mapping = await Deno.readTextFile(
-      "src/infrastructure/prompts/map-to-template.md",
+      "src/domain/prompts/map-to-template.md",
     );
     return { extraction, mapping };
   } catch {

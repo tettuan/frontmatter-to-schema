@@ -145,7 +145,14 @@ export class ResultAssertions {
     };
 
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result, message);
+      // Type-safe wrapper for logResult with message constraint
+      const resultWithMessage = result.ok
+        ? { ok: true as const, data: result.data }
+        : {
+          ok: false as const,
+          error: { message: JSON.stringify(result.error) },
+        };
+      this.logger.logResult(testContext, resultWithMessage, message);
     }
 
     assertEquals(
@@ -174,7 +181,11 @@ export class ResultAssertions {
     };
 
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result, message);
+      // Result already has the right type constraint for E
+      const resultWithMessage = result.ok
+        ? { ok: true as const, data: result.data }
+        : { ok: false as const, error: result.error };
+      this.logger.logResult(testContext, resultWithMessage, message);
     }
 
     assertEquals(result.ok, false, message || "Expected result to be an error");

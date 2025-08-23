@@ -18,6 +18,7 @@ import {
   type PlaceholderProcessingContext,
   PlaceholderProcessor,
 } from "./placeholder-processor.ts";
+import { LoggerFactory } from "../shared/logging/logger.ts";
 
 /**
  * Strategy interface for template processing
@@ -203,15 +204,18 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
         case "Success":
           processedData = processResult.processedContent;
           break;
-        case "PartialSuccess":
+        case "PartialSuccess": {
           // Log warning for missing placeholders but continue
-          console.warn(
-            `Template processing completed with missing placeholders: ${
-              processResult.missingPlaceholders.join(", ")
-            }`,
+          const logger = LoggerFactory.createLogger("native-strategy");
+          logger.warn(
+            "Template processing completed with missing placeholders",
+            {
+              missingPlaceholders: processResult.missingPlaceholders,
+            },
           );
           processedData = processResult.processedContent;
           break;
+        }
         case "Failure":
           return Promise.resolve({
             ok: false,
@@ -287,9 +291,11 @@ export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
       }
 
       // Log primary failure (in production, use proper logger)
-      console.warn(
-        `Primary strategy (${this.primary.getName()}) failed: ${result.error.message}`,
-      );
+      const logger = LoggerFactory.createLogger("fallback-strategy");
+      logger.warn("Primary strategy failed, using fallback", {
+        primaryStrategy: this.primary.getName(),
+        error: result.error.message,
+      });
     }
 
     // Fall back to secondary strategy

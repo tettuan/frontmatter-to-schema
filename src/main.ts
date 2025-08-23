@@ -16,6 +16,13 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
+import { LoggerFactory } from "./domain/shared/logging/logger.ts";
+// Future factory architecture - will be integrated in next phase
+// import type {
+//   FactoryConfigurationBuilder,
+//   ComponentDomain,
+//   MasterComponentFactory,
+// } from "./domain/core/component-factory.ts";
 import {
   ConfigPath,
   DocumentPath,
@@ -61,10 +68,10 @@ async function loadPromptTemplates(): Promise<
 > {
   try {
     const extraction = await Deno.readTextFile(
-      "src/infrastructure/prompts/extract-information.md",
+      "src/domain/prompts/extract-frontmatter.md",
     );
     const mapping = await Deno.readTextFile(
-      "src/infrastructure/prompts/map-to-template.md",
+      "src/domain/prompts/map-to-template.md",
     );
     return { extraction, mapping };
   } catch {
@@ -95,8 +102,8 @@ Return ONLY a JSON object with the mapped data.`,
 async function runBuildRegistry() {
   const PROMPTS_PATH = ".agent/climpt/prompts";
   const OUTPUT_PATH = ".agent/climpt/registry.json";
-  const EXTRACT_PROMPT_PATH = "./src/prompts/extract-information.md";
-  const MAPPING_PROMPT_PATH = "./src/prompts/map-to-template.md";
+  const EXTRACT_PROMPT_PATH = "./src/domain/prompts/extract-frontmatter.md";
+  const MAPPING_PROMPT_PATH = "./src/domain/prompts/map-to-template.md";
 
   try {
     const fileReader = new FileReader();
@@ -116,15 +123,16 @@ async function runBuildRegistry() {
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
 
-    console.log("\n✅ Registry build completed successfully!");
-    console.log(`📊 Summary:`);
-    console.log(`   - Total commands: ${registry.tools.commands.length}`);
-    console.log(
-      `   - Available configs: ${registry.tools.availableConfigs.length}`,
-    );
-    console.log(`   - Output: ${OUTPUT_PATH}`);
+    const logger = LoggerFactory.createLogger("registry-builder");
+    logger.info("Registry build completed successfully!");
+    logger.info("Summary", {
+      totalCommands: registry.tools.commands.length,
+      availableConfigs: registry.tools.availableConfigs.length,
+      output: OUTPUT_PATH,
+    });
   } catch (error) {
-    console.error("❌ Failed to build registry:", error);
+    const logger = LoggerFactory.createLogger("registry-builder");
+    logger.error("Failed to build registry", { error });
     Deno.exit(1);
   }
 }
@@ -163,7 +171,7 @@ async function main() {
   });
 
   if (args.help) {
-    console.log(`
+    const helpText = `
 Frontmatter to Schema - Extract and transform markdown frontmatter using AI
 
 Usage:
@@ -195,7 +203,11 @@ Examples:
     
   # Run legacy build registry
   deno run --allow-all src/main.ts --build-registry
-`);
+`;
+    const logger = LoggerFactory.createLogger("main-help");
+    logger.info("Displaying help information");
+    // Help output to stdout is intentional - not logging
+    console.log(helpText);
     Deno.exit(0);
   }
 
@@ -254,7 +266,10 @@ Examples:
       // Load from config file
       const configPathResult = ConfigPath.create(args.config);
       if (!configPathResult.ok) {
-        console.error("Error:", configPathResult.error.message);
+        const logger = LoggerFactory.createLogger("main");
+        logger.error("Configuration path error", {
+          error: configPathResult.error.message,
+        });
         Deno.exit(1);
       }
 
@@ -262,7 +277,10 @@ Examples:
         configPathResult.data,
       );
       if (!configResult.ok) {
-        console.error("Error loading config:", configResult.error.message);
+        const logger = LoggerFactory.createLogger("main-config");
+        logger.error("Error loading config", {
+          error: configResult.error.message,
+        });
         Deno.exit(1);
       }
       processingConfig = configResult.data;
@@ -293,7 +311,8 @@ Examples:
         !documentsPathResult.ok || !schemaPathResult.ok ||
         !templatePathResult.ok || !outputPathResult.ok
       ) {
-        console.error("Error: Invalid path arguments");
+        const logger = LoggerFactory.createLogger("main-args");
+        logger.error("Invalid path arguments provided");
         Deno.exit(1);
       }
 
@@ -324,9 +343,10 @@ Examples:
 
     if (useMock) {
       schemaAnalyzer = new MockSchemaAnalyzer();
-      console.log(
-        "🎭 Using mock analyzer (test mode or Claude API key not available)",
-      );
+      const logger = LoggerFactory.createLogger("main-analyzer");
+      logger.info("Using mock analyzer", {
+        reason: "test mode or Claude API key not available",
+      });
     } else {
       try {
         // Check if claude CLI is available
@@ -340,14 +360,18 @@ Examples:
             prompts.extraction,
             prompts.mapping,
           );
-          console.log("🤖 Using Claude CLI for AI analysis");
+          const logger = LoggerFactory.createLogger("main-analyzer");
+          logger.info("Using Claude CLI for AI analysis");
         } else {
           throw new Error("Claude CLI not found");
         }
       } catch {
         // Fallback to mock analyzer
         schemaAnalyzer = new MockSchemaAnalyzer();
-        console.log("🎭 Using mock analyzer (Claude CLI not available)");
+        const logger = LoggerFactory.createLogger("main-analyzer");
+        logger.info("Using mock analyzer", {
+          reason: "Claude CLI not available",
+        });
       }
     }
 
@@ -364,20 +388,22 @@ Examples:
     );
 
     // Execute processing
-    console.log("🚀 Starting document processing...");
-    console.log(`📁 Documents: ${processingConfig.documentsPath.getValue()}`);
-    console.log(`📋 Schema: ${processingConfig.schemaPath.getValue()}`);
-    console.log(`📝 Template: ${processingConfig.templatePath.getValue()}`);
-    console.log(`💾 Output: ${processingConfig.outputPath.getValue()}`);
-    console.log(`⚙️  Options:`, processingConfig.options);
+    const logger = LoggerFactory.createLogger("main-processing");
+    logger.info("Starting document processing", {
+      documents: processingConfig.documentsPath.getValue(),
+      schema: processingConfig.schemaPath.getValue(),
+      template: processingConfig.templatePath.getValue(),
+      output: processingConfig.outputPath.getValue(),
+      options: processingConfig.options,
+    });
 
-    console.log("🔍 Validating files...");
-    console.log("✅ All required files validated successfully");
-    console.log("");
+    logger.info("Validating required files");
+    logger.info("All required files validated successfully");
 
     if (args.verbose) {
-      console.log(
-        "🎯 [VERBOSE] Starting document processing pipeline with verbose mode enabled...",
+      const verboseLogger = LoggerFactory.createLogger("main-verbose");
+      verboseLogger.info(
+        "Starting document processing pipeline with verbose mode enabled",
       );
     }
 
@@ -386,23 +412,33 @@ Examples:
     });
 
     if (result.ok) {
-      console.log("\n✅ Processing completed successfully!");
-      console.log(`📊 Processed: ${result.data.processedCount} documents`);
-      console.log(`❌ Failed: ${result.data.failedCount} documents`);
-      console.log(`💾 Output saved to: ${result.data.outputPath}`);
+      const successLogger = LoggerFactory.createLogger("main-success");
+      successLogger.info("Processing completed successfully", {
+        processedCount: result.data.processedCount,
+        failedCount: result.data.failedCount,
+        outputPath: result.data.outputPath,
+      });
 
       if (result.data.errors.length > 0) {
-        console.log("\n⚠️  Errors encountered:");
-        for (const error of result.data.errors) {
-          console.log(`  - ${error.document}: ${error.error}`);
-        }
+        successLogger.warn("Errors encountered during processing", {
+          errorCount: result.data.errors.length,
+          errors: result.data.errors.map((error) => ({
+            document: error.document,
+            error: error.error,
+          })),
+        });
       }
     } else {
-      console.error("\n❌ Processing failed:", result.error.message);
+      const errorLogger = LoggerFactory.createLogger("main-error");
+      errorLogger.error("Processing failed", { error: result.error.message });
       Deno.exit(1);
     }
   } catch (error) {
-    console.error("Fatal error:", error);
+    const fatalLogger = LoggerFactory.createLogger("main-fatal");
+    fatalLogger.error("Fatal error occurred", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     Deno.exit(1);
   }
 }

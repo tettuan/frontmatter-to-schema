@@ -363,6 +363,8 @@ export class PlaceholderProcessor {
 
 /**
  * Factory for creating pre-configured PlaceholderProcessor instances
+ *
+ * @deprecated Use TemplateDomainFactory from component-factory.ts for better domain separation
  */
 export class PlaceholderProcessorFactory {
   /**
