@@ -119,11 +119,19 @@ Deno.test("NativeTemplateStrategy - Totality Tests", async (t) => {
         };
 
         const result = await strategy.process(template.data, context);
+        // New behavior: succeeds with missing placeholders preserved
         assertEquals(
           result.ok,
-          false,
-          "Should fail gracefully for missing path",
+          true,
+          "Should succeed with missing placeholders preserved",
         );
+        if (result.ok) {
+          // Verify placeholders are preserved for missing data
+          const output = JSON.parse(result.data);
+          // The output should have the structure with placeholders preserved
+          assertEquals(typeof output, "object");
+          assertEquals(output.required, "{{missing.nested.path}}");
+        }
         if (!result.ok) {
           assertExists(result.error.message);
           assertEquals(result.error.message.includes("not found"), true);
@@ -394,7 +402,13 @@ Deno.test("CompositeTemplateStrategy - Fallback Tests", async (t) => {
         };
 
         const result = await composite.process(template.data, context);
-        assertEquals(result.ok, false, "Should fail when both strategies fail");
+        // New behavior: falls back to NativeTemplateStrategy which succeeds with missing placeholders
+        assertEquals(result.ok, true, "Should succeed with fallback strategy");
+        if (result.ok) {
+          // Verify placeholders are preserved for missing data
+          const output = JSON.parse(result.data);
+          assertEquals(output.missing, "{{non.existent.path}}");
+        }
       }
     }
   });
@@ -457,7 +471,9 @@ Deno.test("Strategy Pattern - Boundary Tests", async (t) => {
         assertEquals(result.ok, false);
         if (!result.ok) {
           assertEquals(
-            result.error.message.includes("Unsupported template format"),
+            result.error.message.includes(
+              "NativeTemplateStrategy cannot handle format",
+            ),
             true,
           );
         }
