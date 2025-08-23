@@ -22,7 +22,7 @@ import {
 } from "../shared/errors.ts";
 import type { FrontMatterContent } from "./types.ts";
 import type { SchemaDefinition } from "./types.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
 
 /**
@@ -185,7 +185,7 @@ export class AIAnalysisOrchestrator {
     const prompt = this.buildTemplateApplicationPrompt(
       extractedInfo.getData(),
       schema.schema as object,
-      template.getDefinition().getDefinition(),
+      template.getFormat().getTemplate(),
     );
 
     // Execute AI analysis (claude -p 2nd call)
@@ -193,7 +193,7 @@ export class AIAnalysisOrchestrator {
       content: JSON.stringify({
         extractedData: extractedInfo.getData(),
         schema: schema.schema,
-        template: template.getDefinition().getDefinition(),
+        template: template.getFormat().getTemplate(),
       }),
       prompt,
     });
@@ -211,14 +211,14 @@ export class AIAnalysisOrchestrator {
     const metadata: StructuringMetadata = {
       structuredAt: new Date(),
       promptUsed: "PromptB",
-      templateName: template.getId(),
+      templateName: template.getId().getValue(),
       appliedContent: result.data.result,
       sourceMetadata: extractedInfo.getMetadata(),
     };
 
     return StructuredData.createFromAppliedTemplate(
       result.data.result,
-      template.getId(),
+      template.getId().getValue(),
       metadata,
     );
   }

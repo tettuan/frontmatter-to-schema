@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# execution
+scripts/test-frontmatter-to-schema.sh
+test_exit_status=$?
+if [ $test_exit_status -ne 0 ]; then 
+    echo '{"decision": "block", "reason": "frontmatter-to-schema execution failed. run scripts/test-frontmatter-to-schema.sh and then, run [climpt-meta resolve registered-commands <<<\"created_message\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)"}'
+    exit 2
+fi
 # github status check
 scripts/check-github-status.sh
 exit_status=$?
