@@ -3,6 +3,7 @@
 ## Totality Patterns
 
 ### Result Types
+
 ```typescript
 type Result<T, E> = { ok: true; data: T } | { ok: false; error: E };
 
@@ -19,26 +20,33 @@ class ValidValue {
 ```
 
 ### Discriminated Unions
+
 ```typescript
 // ❌ Bad: Optional properties
-interface BadState { a?: X; b?: Y; }
+interface BadState {
+  a?: X;
+  b?: Y;
+}
 
 // ✅ Good: Tagged unions
 type GoodState = { kind: "A"; data: X } | { kind: "B"; data: Y };
 ```
 
 ## DDD Structure
+
 - **Domain Layer**: Pure business logic, no dependencies
 - **Value Objects**: Immutable with smart constructors
 - **Entities**: Objects with identity
 - **Aggregates**: Consistency boundaries
 
 ## AI-Complexity-Control
+
 1. **Entropy Control**: Limit class/interface growth
 2. **Functional Gravity**: Related code stays together
 3. **Pattern Convergence**: Use established patterns
 
 ## Key Commands
+
 ```bash
 # Testing
 ./run-tests.sh
@@ -52,6 +60,7 @@ deno fmt && deno lint
 ```
 
 ## Error Handling
+
 - No exceptions - use Result types
 - Comprehensive error types with messages
 - Chain operations with `flatMap`
