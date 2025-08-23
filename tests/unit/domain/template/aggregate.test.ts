@@ -9,25 +9,29 @@ import { FileTemplateRepository } from "../../../../src/infrastructure/template/
 import { Template, TemplateDefinition } from "../../../../src/domain/models/template.ts";
 import type { TemplateApplicationContext } from "../../../../src/domain/template/aggregate.ts";
 import { AITemplateStrategy, NativeTemplateStrategy, CompositeTemplateStrategy } from "../../../../src/domain/template/strategies.ts";
-import type { AIAnalyzerPort } from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort, AIAnalysisRequest } from "../../../../src/infrastructure/ports/ai-analyzer.ts";
 
 // Mock AI Analyzer for testing
-class MockAIAnalyzer {
-  analyze(_data: unknown) {
-    return {
+class MockAIAnalyzer implements AIAnalyzerPort {
+  analyze(_request: AIAnalysisRequest) {
+    return Promise.resolve({
       ok: true as const,
       data: {
         result: "Mocked AI template result",
-        processingTime: 100
+        usage: {
+          promptTokens: 10,
+          completionTokens: 20,
+          totalTokens: 30
+        }
       }
-    };
+    });
   }
 }
 
 Deno.test("TemplateAggregate - Domain Boundary Tests", async (t) => {
   const mockRepo = new FileTemplateRepository("./tests/fixtures/templates");
   const mockAI = new MockAIAnalyzer();
-  const aiStrategy = new AITemplateStrategy(mockAI as unknown as AIAnalyzerPort);
+  const aiStrategy = new AITemplateStrategy(mockAI);
   const nativeStrategy = new NativeTemplateStrategy();
   const compositeStrategy = new CompositeTemplateStrategy(aiStrategy, nativeStrategy);
   

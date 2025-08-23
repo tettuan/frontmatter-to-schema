@@ -11,7 +11,8 @@ import {
 } from "../../../../src/domain/template/strategies.ts";
 import { Template, TemplateDefinition } from "../../../../src/domain/models/template.ts";
 import type { TemplateApplicationContext } from "../../../../src/domain/template/aggregate.ts";
-import type { AIAnalyzerPort } from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort, AIAnalysisRequest } from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+import { createAPIError } from "../../../../src/domain/shared/errors.ts";
 
 // Mock AI Analyzer for testing
 class MockAIAnalyzer implements AIAnalyzerPort {
@@ -20,25 +21,24 @@ class MockAIAnalyzer implements AIAnalyzerPort {
     private responseData: string = "AI processed template"
   ) {}
 
-  analyze(_data: unknown) {
+  analyze(_request: AIAnalysisRequest) {
     if (this.shouldSucceed) {
-      return {
+      return Promise.resolve({
         ok: true as const,
         data: {
           result: this.responseData,
-          processingTime: 100
+          usage: {
+            promptTokens: 10,
+            completionTokens: 20,
+            totalTokens: 30
+          }
         }
-      };
+      });
     }
-    return {
+    return Promise.resolve({
       ok: false as const,
-      error: {
-        kind: "APIError" as const,
-        message: "AI processing failed",
-        statusCode: 500,
-        response: undefined
-      }
-    };
+      error: createAPIError("AI processing failed", 500)
+    });
   }
 }
 
@@ -226,12 +226,12 @@ Deno.test("AITemplateStrategy - Integration Tests", async (t) => {
   await t.step("should build proper prompts", async () => {
     let capturedPrompt = "";
     const mockAI: AIAnalyzerPort = {
-      analyze(data: unknown) {
-        capturedPrompt = data.prompt;
-        return {
+      analyze(request: AIAnalysisRequest) {
+        capturedPrompt = request.prompt;
+        return Promise.resolve({
           ok: true as const,
-          data: { result: "processed", processingTime: 100 }
-        };
+          data: { result: "processed", usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 } }
+        });
       }
     };
     

@@ -39,7 +39,7 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
     ];
     
     for (const path of invalidPaths) {
-      const result = TemplatePath.create(path);
+      const result = TemplatePath.create(path as string);
       assertEquals(result.ok, false, `Should reject invalid path: ${path}`);
       if (!result.ok) {
         assertExists(result.error);
