@@ -15,6 +15,7 @@ import type {
   AnalysisConfiguration,
   SchemaAnalyzer,
 } from "../../domain/services/interfaces.ts";
+import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
 
 export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
   constructor(
@@ -32,7 +33,10 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
     try {
       // Prepare extraction prompt
       if (verboseMode) {
-        console.log("🤖 [VERBOSE] Preparing frontmatter extraction prompt...");
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Preparing frontmatter extraction prompt");
       }
       const extractionPrompt = this.prepareExtractionPrompt(
         frontMatter.getRaw(),
@@ -40,23 +44,25 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       );
 
       if (verboseMode) {
-        console.log(
-          "📤 [VERBOSE] Calling Claude API for frontmatter extraction...",
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
         );
-        console.log(
-          "🎯 [DEBUG] Extraction prompt preview:",
-          extractionPrompt.substring(0, 200) + "...",
-        );
+        verboseLogger.info("Calling Claude API for frontmatter extraction");
+        verboseLogger.debug("Extraction prompt preview", {
+          preview: extractionPrompt.substring(0, 200) + "...",
+        });
       }
 
       // Call Claude API for extraction
       const extractionResult = await this.callClaudeAPI(extractionPrompt);
       if (!extractionResult.ok) {
         if (verboseMode) {
-          console.log(
-            "❌ [VERBOSE] Claude API extraction failed:",
-            extractionResult.error.message,
+          const verboseLogger = LoggerFactory.createLogger(
+            "claude-schema-analyzer",
           );
+          verboseLogger.error("Claude API extraction failed", {
+            error: extractionResult.error.message,
+          });
         }
         return {
           ok: false,
@@ -69,18 +75,23 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       if (verboseMode) {
-        console.log("✅ [VERBOSE] Claude API extraction successful");
-        console.log("📋 [DEBUG] Raw extraction result from Claude -p:");
-        console.log("─────────── EXTRACTION RESULT START ───────────");
-        console.log(extractionResult.data);
-        console.log("─────────── EXTRACTION RESULT END ───────────");
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Claude API extraction successful");
+        verboseLogger.debug("Raw extraction result from Claude", {
+          result: extractionResult.data,
+        });
       }
 
       // Parse extraction result
       const extractedData = this.parseExtractionResult(extractionResult.data);
       if (!extractedData) {
         if (verboseMode) {
-          console.log("❌ [VERBOSE] Failed to parse extraction result");
+          const verboseLogger = LoggerFactory.createLogger(
+            "claude-schema-analyzer",
+          );
+          verboseLogger.error("Failed to parse extraction result");
         }
         return {
           ok: false,
@@ -93,14 +104,21 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       if (verboseMode) {
-        console.log("✅ [VERBOSE] Extraction result parsed successfully");
-        console.log("📊 [DEBUG] Parsed frontmatter analysis result:");
-        console.log(JSON.stringify(extractedData, null, 2));
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Extraction result parsed successfully");
+        verboseLogger.debug("Parsed frontmatter analysis result", {
+          extractedData,
+        });
       }
 
       // Prepare mapping prompt
       if (verboseMode) {
-        console.log("🗺️ [VERBOSE] Preparing template mapping prompt...");
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Preparing template mapping prompt");
       }
       const mappingPrompt = this.prepareMappingPrompt(
         extractedData,
@@ -108,21 +126,25 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       );
 
       if (verboseMode) {
-        console.log("📤 [VERBOSE] Calling Claude API for template mapping...");
-        console.log(
-          "🎯 [DEBUG] Mapping prompt preview:",
-          mappingPrompt.substring(0, 200) + "...",
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
         );
+        verboseLogger.info("Calling Claude API for template mapping");
+        verboseLogger.debug("Mapping prompt preview", {
+          preview: mappingPrompt.substring(0, 200) + "...",
+        });
       }
 
       // Call Claude API for mapping
       const mappingResult = await this.callClaudeAPI(mappingPrompt);
       if (!mappingResult.ok) {
         if (verboseMode) {
-          console.log(
-            "❌ [VERBOSE] Claude API mapping failed:",
-            mappingResult.error.message,
+          const verboseLogger = LoggerFactory.createLogger(
+            "claude-schema-analyzer",
           );
+          verboseLogger.error("Claude API mapping failed", {
+            error: mappingResult.error.message,
+          });
         }
         return {
           ok: false,
@@ -135,18 +157,23 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       if (verboseMode) {
-        console.log("✅ [VERBOSE] Claude API mapping successful");
-        console.log("📋 [DEBUG] Raw mapping result from Claude -p:");
-        console.log("─────────── MAPPING RESULT START ───────────");
-        console.log(mappingResult.data);
-        console.log("─────────── MAPPING RESULT END ───────────");
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Claude API mapping successful");
+        verboseLogger.debug("Raw mapping result from Claude", {
+          result: mappingResult.data,
+        });
       }
 
       // Parse mapping result
       const mappedData = this.parseMappingResult(mappingResult.data);
       if (!mappedData) {
         if (verboseMode) {
-          console.log("❌ [VERBOSE] Failed to parse mapping result");
+          const verboseLogger = LoggerFactory.createLogger(
+            "claude-schema-analyzer",
+          );
+          verboseLogger.error("Failed to parse mapping result");
         }
         return {
           ok: false,
@@ -159,15 +186,24 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       if (verboseMode) {
-        console.log("✅ [VERBOSE] Mapping result parsed successfully");
-        console.log("📊 [DEBUG] Final template mapping result:");
-        console.log(JSON.stringify(mappedData, null, 2));
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.info("Mapping result parsed successfully");
+        verboseLogger.debug("Final template mapping result", {
+          mappedData,
+        });
       }
 
       return { ok: true, data: ExtractedData.create(mappedData) };
     } catch (error) {
       if (verboseMode) {
-        console.log("❌ [VERBOSE] Unexpected error in Claude analysis:", error);
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
+        );
+        verboseLogger.error("Unexpected error in Claude analysis", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return {
         ok: false,
@@ -254,9 +290,13 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
 
       if (verboseMode) {
-        console.log(
-          `🌡️ [VERBOSE] Using Claude temperature: ${temperature} (lower = more stable)`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "claude-schema-analyzer",
         );
+        verboseLogger.info("Using Claude temperature setting", {
+          temperature,
+          note: "lower = more stable",
+        });
       }
 
       const command = new Deno.Command("claude", {

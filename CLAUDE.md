@@ -24,9 +24,34 @@ with a schema file.
 - DDD, TDD, Totality, AI-complexity-control
 
 **MUST READ**:
-AI-complexity-control:`docs/development/ai-complexity-control_compact.ja.md`
-Totality: `docs/development/totality.ja.md` Prohibit-Hardcoding:
-`prohibit-hardcoding.ja.md`
+AI-complexity-control: `docs/development/ai-complexity-control.md` (English) or `docs/development/ai-complexity-control_compact.ja.md` (Japanese)
+Totality: `docs/development/totality.md` (English) or `docs/development/totality.ja.md` (Japanese)
+Prohibit-Hardcoding: `prohibit-hardcoding.ja.md`
+
+# Documentation Language Policy
+
+**Primary Language**: English - for broader accessibility and maintainability
+**Secondary Language**: Japanese - architectural documents available in both languages
+
+## Language Guidelines
+
+### Code and Comments
+- **All code comments**: English only
+- **Variable/function names**: English only  
+- **Error messages**: English only
+- **Log messages**: English only
+
+### Documentation
+- **README files**: English primary
+- **API documentation**: English only
+- **Architectural documents**: English + Japanese (.ja.md files)
+- **Development guides**: English primary, Japanese (.ja.md) when beneficial
+
+### Rationale
+- **Accessibility**: Broader international contributor base
+- **Maintainability**: Single language reduces maintenance overhead
+- **Consistency**: Clear standards prevent mixed-language confusion
+- **Internationalization**: Structured approach for multi-language support when needed
 
 # Tests
 

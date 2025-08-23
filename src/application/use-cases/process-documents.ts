@@ -254,8 +254,11 @@ export class ProcessDocumentsUseCase {
     // Check if any documents were found
     if (documents.length === 0) {
       if (verboseMode) {
-        console.log(
-          `⚠️ [VERBOSE] No markdown files found in the specified directory`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-verbose",
+        );
+        verboseLogger.warn(
+          "No markdown files found in the specified directory",
         );
       }
       return {
@@ -317,7 +320,10 @@ export class ProcessDocumentsUseCase {
 
       const promises = documents.map((doc) => {
         const docPath = doc.getPath().getValue();
-        console.log(`🚀 Starting: ${docPath}`);
+        const startLogger = LoggerFactory.createLogger(
+          "process-documents-main",
+        );
+        startLogger.info("Starting document processing", { docPath });
 
         if (verboseMode) {
           const verboseLogger = LoggerFactory.createLogger(
@@ -347,17 +353,21 @@ export class ProcessDocumentsUseCase {
       });
 
       if (verboseMode) {
-        console.log(
-          `⏳ [VERBOSE] Waiting for all ${promises.length} promises to complete...`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-verbose",
         );
+        verboseLogger.info("Waiting for all promises to complete", {
+          promiseCount: promises.length,
+        });
       }
 
       const outcomes = await Promise.all(promises);
 
       if (verboseMode) {
-        console.log(
-          `✅ [VERBOSE] All promises completed, processing outcomes...`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-verbose",
         );
+        verboseLogger.info("All promises completed, processing outcomes");
       }
 
       for (const { doc, result } of outcomes) {
@@ -437,16 +447,24 @@ export class ProcessDocumentsUseCase {
     }
 
     // Aggregate results
-    console.log(`\n📦 Aggregating ${results.length} result(s)...`);
+    const aggregationLogger = LoggerFactory.createLogger(
+      "process-documents-main",
+    );
+    aggregationLogger.info("Aggregating results", {
+      resultCount: results.length,
+    });
     const aggregateResult = this.resultAggregator.aggregate(results);
     if (isError(aggregateResult)) {
-      console.log(`❌ Aggregation failed: ${aggregateResult.error.message}`);
+      const errorLogger = LoggerFactory.createLogger("process-documents-error");
+      errorLogger.error("Aggregation failed", {
+        errorMessage: aggregateResult.error.message,
+      });
       return {
         ok: false,
         error: aggregateResult.error,
       };
     }
-    console.log(`✅ Aggregation successful`);
+    aggregationLogger.info("Aggregation successful");
 
     // Save aggregated results
     const saveResult = await this.resultRepo.save(
@@ -483,19 +501,26 @@ export class ProcessDocumentsUseCase {
     const docPath = document.getPath().getValue();
 
     if (verboseMode) {
-      console.log(`📄 [VERBOSE] Processing document: ${docPath}`);
+      const verboseLogger = LoggerFactory.createLogger(
+        "process-documents-verbose",
+      );
+      verboseLogger.info("Processing document", { docPath });
     }
 
     // Extract frontmatter
     if (verboseMode) {
-      console.log(`📤 [VERBOSE] Extracting frontmatter from: ${docPath}`);
+      const verboseLogger = LoggerFactory.createLogger(
+        "process-documents-verbose",
+      );
+      verboseLogger.info("Extracting frontmatter", { docPath });
     }
     const frontMatterResult = this.frontMatterExtractor.extract(document);
     if (isError(frontMatterResult)) {
       if (verboseMode) {
-        console.log(
-          `❌ [VERBOSE] Frontmatter extraction failed for: ${docPath}`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-verbose",
         );
+        verboseLogger.error("Frontmatter extraction failed", { docPath });
       }
       return frontMatterResult;
     }
@@ -503,7 +528,10 @@ export class ProcessDocumentsUseCase {
     const frontMatter = frontMatterResult.data;
     if (!frontMatter) {
       if (verboseMode) {
-        console.log(`⚠️ [VERBOSE] No frontmatter found in: ${docPath}`);
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-verbose",
+        );
+        verboseLogger.warn("No frontmatter found", { docPath });
       }
       return {
         ok: false,
