@@ -27,16 +27,37 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
     frontMatter: FrontMatter,
     schema: Schema,
   ): Promise<Result<ExtractedData, ProcessingError & { message: string }>> {
+    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+
     try {
       // Prepare extraction prompt
+      if (verboseMode) {
+        console.log("🤖 [VERBOSE] Preparing frontmatter extraction prompt...");
+      }
       const extractionPrompt = this.prepareExtractionPrompt(
         frontMatter.getRaw(),
         schema.getDefinition().getValue(),
       );
 
+      if (verboseMode) {
+        console.log(
+          "📤 [VERBOSE] Calling Claude API for frontmatter extraction...",
+        );
+        console.log(
+          "🎯 [DEBUG] Extraction prompt preview:",
+          extractionPrompt.substring(0, 200) + "...",
+        );
+      }
+
       // Call Claude API for extraction
       const extractionResult = await this.callClaudeAPI(extractionPrompt);
       if (!extractionResult.ok) {
+        if (verboseMode) {
+          console.log(
+            "❌ [VERBOSE] Claude API extraction failed:",
+            extractionResult.error.message,
+          );
+        }
         return {
           ok: false,
           error: createError({
@@ -47,9 +68,20 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         };
       }
 
+      if (verboseMode) {
+        console.log("✅ [VERBOSE] Claude API extraction successful");
+        console.log("📋 [DEBUG] Raw extraction result from Claude -p:");
+        console.log("─────────── EXTRACTION RESULT START ───────────");
+        console.log(extractionResult.data);
+        console.log("─────────── EXTRACTION RESULT END ───────────");
+      }
+
       // Parse extraction result
       const extractedData = this.parseExtractionResult(extractionResult.data);
       if (!extractedData) {
+        if (verboseMode) {
+          console.log("❌ [VERBOSE] Failed to parse extraction result");
+        }
         return {
           ok: false,
           error: createError({
@@ -60,15 +92,38 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         };
       }
 
+      if (verboseMode) {
+        console.log("✅ [VERBOSE] Extraction result parsed successfully");
+        console.log("📊 [DEBUG] Parsed frontmatter analysis result:");
+        console.log(JSON.stringify(extractedData, null, 2));
+      }
+
       // Prepare mapping prompt
+      if (verboseMode) {
+        console.log("🗺️ [VERBOSE] Preparing template mapping prompt...");
+      }
       const mappingPrompt = this.prepareMappingPrompt(
         extractedData,
         schema.getDefinition().getValue(),
       );
 
+      if (verboseMode) {
+        console.log("📤 [VERBOSE] Calling Claude API for template mapping...");
+        console.log(
+          "🎯 [DEBUG] Mapping prompt preview:",
+          mappingPrompt.substring(0, 200) + "...",
+        );
+      }
+
       // Call Claude API for mapping
       const mappingResult = await this.callClaudeAPI(mappingPrompt);
       if (!mappingResult.ok) {
+        if (verboseMode) {
+          console.log(
+            "❌ [VERBOSE] Claude API mapping failed:",
+            mappingResult.error.message,
+          );
+        }
         return {
           ok: false,
           error: createError({
@@ -79,9 +134,20 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         };
       }
 
+      if (verboseMode) {
+        console.log("✅ [VERBOSE] Claude API mapping successful");
+        console.log("📋 [DEBUG] Raw mapping result from Claude -p:");
+        console.log("─────────── MAPPING RESULT START ───────────");
+        console.log(mappingResult.data);
+        console.log("─────────── MAPPING RESULT END ───────────");
+      }
+
       // Parse mapping result
       const mappedData = this.parseMappingResult(mappingResult.data);
       if (!mappedData) {
+        if (verboseMode) {
+          console.log("❌ [VERBOSE] Failed to parse mapping result");
+        }
         return {
           ok: false,
           error: createError({
@@ -92,8 +158,17 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         };
       }
 
+      if (verboseMode) {
+        console.log("✅ [VERBOSE] Mapping result parsed successfully");
+        console.log("📊 [DEBUG] Final template mapping result:");
+        console.log(JSON.stringify(mappedData, null, 2));
+      }
+
       return { ok: true, data: ExtractedData.create(mappedData) };
     } catch (error) {
+      if (verboseMode) {
+        console.log("❌ [VERBOSE] Unexpected error in Claude analysis:", error);
+      }
       return {
         ok: false,
         error: createError({
@@ -173,8 +248,19 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       tempFile = await Deno.makeTempFile({ suffix: ".md" });
       await Deno.writeTextFile(tempFile, prompt);
 
+      // Get temperature setting for stable results (default to 0.1 for consistency)
+      const temperature = Deno.env.get("FRONTMATTER_CLAUDE_TEMPERATURE") ||
+        "0.1";
+      const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+
+      if (verboseMode) {
+        console.log(
+          `🌡️ [VERBOSE] Using Claude temperature: ${temperature} (lower = more stable)`,
+        );
+      }
+
       const command = new Deno.Command("claude", {
-        args: ["-p", tempFile],
+        args: ["-p", tempFile, "--temperature", temperature],
         stdout: "piped",
         stderr: "piped",
       });
