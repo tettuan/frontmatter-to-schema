@@ -1,0 +1,33 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "climpt"
+  ],
+  "permissions": {
+    "allow": [
+      "climpt__*"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/hook_stops.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/hook_stops.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
