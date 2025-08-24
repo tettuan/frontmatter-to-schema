@@ -91,7 +91,9 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
           const verboseLogger = LoggerFactory.createLogger(
             "claude-schema-analyzer",
           );
-          verboseLogger.error("Failed to parse extraction result");
+          verboseLogger.error("Failed to parse extraction result", {
+            rawResponse: extractionResult.data.substring(0, 500),
+          });
         }
         return {
           ok: false,
@@ -300,7 +302,7 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
       }
 
       const command = new Deno.Command("claude", {
-        args: ["-p", tempFile, "--temperature", temperature],
+        args: ["--dangerously-skip-permissions", "-p", tempFile],
         stdout: "piped",
         stderr: "piped",
       });
