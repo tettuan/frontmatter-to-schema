@@ -1,7 +1,7 @@
 ---
 title: climpt実行コマンドを構築するclimpt
 description: 渡された内容に相応しい climpt-* を構築し、示す。
-variables:
+options:
   input_text: 使いたいファイルリストや内容。
 Notice: この指示書をAgentは選択はしない。ユーザー実行のみ許可。
 ---

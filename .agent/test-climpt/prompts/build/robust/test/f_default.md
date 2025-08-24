@@ -1,6 +1,6 @@
 ---
 title: testを強固に構築する
-variables:
+options:
   input_text_file: 強固に構築すべき機能要件
   input_text: 強固な構築に向けた追加指示
 ---

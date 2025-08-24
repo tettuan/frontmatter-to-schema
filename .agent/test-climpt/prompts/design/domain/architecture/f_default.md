@@ -1,7 +1,7 @@
 ---
 title:
 description: ドメイン境界情報などを元に、ドメイン設計を行う。
-variables:
+options:
   input_text_file: ドメイン境界線情報
 ---
 
