@@ -1,7 +1,7 @@
 // Configuration loader implementation
 
 import type { Result } from "../../domain/core/result.ts";
-import type { ValidationError, IOError } from "../../domain/shared/types.ts";
+import type { IOError, ValidationError } from "../../domain/shared/types.ts";
 import { createError } from "../../domain/shared/types.ts";
 import {
   ConfigPath,
@@ -316,11 +316,16 @@ export class ConfigurationLoader
       }
       return {
         ok: false,
-        error: createError({
-          kind: "WriteError",
-          path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
-        }, `Write error: ${error instanceof Error ? error.message : "Unknown error"}`),
+        error: createError(
+          {
+            kind: "WriteError",
+            path: path.getValue(),
+            reason: error instanceof Error ? error.message : "Unknown error",
+          },
+          `Write error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        ),
       };
     }
   }
@@ -336,11 +341,16 @@ export class ConfigurationLoader
     } catch (error) {
       return {
         ok: false,
-        error: createError({
-          kind: "WriteError",
-          path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
-        }, `Write error: ${error instanceof Error ? error.message : "Unknown error"}`),
+        error: createError(
+          {
+            kind: "WriteError",
+            path: path.getValue(),
+            reason: error instanceof Error ? error.message : "Unknown error",
+          },
+          `Write error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        ),
       };
     }
   }

@@ -2,10 +2,12 @@ import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import {
   NativeTemplateStrategy,
-  type TemplateProcessingStrategy,
 } from "../../src/domain/template/strategies.ts";
 import type { TemplateApplicationContext } from "../../src/domain/template/aggregate.ts";
-import { Template, TemplateDefinition } from "../../src/domain/models/template.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../src/domain/models/template.ts";
 
 const createTestTemplate = (
   format: "json" | "yaml" | "handlebars" | "custom" = "json",
@@ -15,17 +17,25 @@ const createTestTemplate = (
     title: "{{title}}",
     description: "{{description}}",
   });
-  
+
   const definitionResult = TemplateDefinition.create(templateContent, format);
   if (!definitionResult.ok) {
-    throw new Error(`Failed to create template definition: ${definitionResult.error.message}`);
+    throw new Error(
+      `Failed to create template definition: ${definitionResult.error.message}`,
+    );
   }
-  
-  const templateResult = Template.create("test-template-1", definitionResult.data);
+
+  const templateResult = Template.create(
+    "test-template-1",
+    definitionResult.data,
+    "Test template",
+  );
   if (!templateResult.ok) {
-    throw new Error(`Failed to create template: ${templateResult.error.message}`);
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
   }
-  
+
   return templateResult.data;
 };
 
@@ -81,7 +91,10 @@ describe("Integration: Template Strategy Basic Tests", () => {
       if (result.ok) {
         assertExists(result.data);
         assertEquals(result.data.includes("title: YAML Test"), true);
-        assertEquals(result.data.includes("description: YAML Description"), true);
+        assertEquals(
+          result.data.includes("description: YAML Description"),
+          true,
+        );
       }
     });
 
@@ -144,18 +157,21 @@ describe("Integration: Template Strategy Basic Tests", () => {
 
     it("should handle nested data structures", async () => {
       const strategy = new NativeTemplateStrategy();
-      const nestedTemplate = createTestTemplate("json", JSON.stringify({
-        title: "{{title}}",
-        author: "{{author.name}}",
-        metadata: "{{metadata}}",
-      }));
-      
+      const nestedTemplate = createTestTemplate(
+        "json",
+        JSON.stringify({
+          title: "{{title}}",
+          author: "{{author.name}}",
+          metadata: "{{metadata}}",
+        }),
+      );
+
       const nestedData = {
         title: "Nested Test",
         author: { name: "Test Author", email: "test@example.com" },
         metadata: { created: "2024-08-24", tags: ["test"] },
       };
-      
+
       const context = createTestContext(nestedData, "json");
       const result = await strategy.process(nestedTemplate, context);
 
@@ -173,7 +189,7 @@ describe("Integration: Template Strategy Basic Tests", () => {
   describe("Template Format Validation", () => {
     it("should process templates with different formats", async () => {
       const strategy = new NativeTemplateStrategy();
-      
+
       // Test each format
       const formats: Array<["json" | "yaml" | "custom", string]> = [
         ["json", JSON.stringify({ test: "{{value}}" })],
@@ -184,13 +200,17 @@ describe("Integration: Template Strategy Basic Tests", () => {
       for (const [format, content] of formats) {
         const template = createTestTemplate(format, content);
         const context = createTestContext({ value: "Success" }, "json");
-        
+
         const result = await strategy.process(template, context);
-        
+
         assertEquals(result.ok, true, `Failed for format: ${format}`);
         if (result.ok) {
           assertExists(result.data);
-          assertEquals(result.data.includes("Success"), true, `Value not found in ${format} output`);
+          assertEquals(
+            result.data.includes("Success"),
+            true,
+            `Value not found in ${format} output`,
+          );
         }
       }
     });
@@ -214,10 +234,10 @@ describe("Integration: Template Strategy Basic Tests", () => {
     it("should handle circular references gracefully", async () => {
       const strategy = new NativeTemplateStrategy();
       const template = createTestTemplate("json");
-      
-      const circularData: any = { title: "Circular" };
+
+      const circularData: Record<string, unknown> = { title: "Circular" };
       circularData.self = circularData; // Create circular reference
-      
+
       const context = createTestContext(circularData);
       const result = await strategy.process(template, context);
 
@@ -232,21 +252,24 @@ describe("Integration: Template Strategy Basic Tests", () => {
   describe("Performance", () => {
     it("should handle large templates efficiently", async () => {
       const strategy = new NativeTemplateStrategy();
-      
+
       // Create a large template with many placeholders
-      const largeTemplate: any = {};
+      const largeTemplate: Record<string, string> = {};
       for (let i = 0; i < 100; i++) {
         largeTemplate[`field${i}`] = `{{field${i}}}`;
       }
-      
-      const template = createTestTemplate("json", JSON.stringify(largeTemplate));
-      
+
+      const template = createTestTemplate(
+        "json",
+        JSON.stringify(largeTemplate),
+      );
+
       // Create matching data
-      const largeData: any = {};
+      const largeData: Record<string, string> = {};
       for (let i = 0; i < 100; i++) {
         largeData[`field${i}`] = `value${i}`;
       }
-      
+
       const context = createTestContext(largeData);
       const startTime = Date.now();
       const result = await strategy.process(template, context);
@@ -264,9 +287,11 @@ describe("Integration: Template Strategy Basic Tests", () => {
       const promises = Array.from({ length: 5 }, (_, i) =>
         strategy.process(
           template,
-          createTestContext({ title: `Concurrent ${i}`, description: `Test ${i}` }),
-        ),
-      );
+          createTestContext({
+            title: `Concurrent ${i}`,
+            description: `Test ${i}`,
+          }),
+        ));
 
       const results = await Promise.all(promises);
 

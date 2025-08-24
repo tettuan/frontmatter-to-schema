@@ -4,10 +4,7 @@
  */
 
 // Re-export template-related value objects from the models directory
-export {
-  TemplateFormat,
-  MappingRule,
-} from "../models/value-objects.ts";
+export { MappingRule, TemplateFormat } from "../models/value-objects.ts";
 
 // Template-specific types if needed
 export type TemplateValueObject = string;

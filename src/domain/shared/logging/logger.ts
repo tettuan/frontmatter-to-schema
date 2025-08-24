@@ -114,12 +114,17 @@ export class LoggerFactory {
   private static instance: Logger | null = null;
 
   static createLogger(source?: string): Logger {
-    if (Deno.env.get("NODE_ENV") === "production") {
-      return new NullLogger();
+    // Try to check environment, but fallback gracefully if not allowed
+    try {
+      if (Deno.env.get("NODE_ENV") === "production") {
+        return new NullLogger();
+      }
+      const minLevel = (Deno.env.get("LOG_LEVEL") as LogLevel) || "info";
+      return new ConsoleLogger(source, minLevel);
+    } catch {
+      // If we can't access env vars, default to info level console logger
+      return new ConsoleLogger(source, "info");
     }
-
-    const minLevel = (Deno.env.get("LOG_LEVEL") as LogLevel) || "info";
-    return new ConsoleLogger(source, minLevel);
   }
 
   static getDefaultLogger(): Logger {

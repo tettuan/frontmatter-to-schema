@@ -15,7 +15,7 @@ export function createError(
 ): IOError & { message: string } {
   // Determine message based on error kind
   const defaultMessage = getDefaultMessage(error);
-  
+
   return {
     ...error,
     message: message || defaultMessage,
@@ -28,9 +28,13 @@ function getDefaultMessage(error: Omit<IOError, "message">): string {
     case "FileNotFound":
       return `File not found: ${error.path}`;
     case "ReadError":
-      return `Read error at ${error.path}: ${errorWithReason.reason || 'unknown'}`;
+      return `Read error at ${error.path}: ${
+        errorWithReason.reason || "unknown"
+      }`;
     case "WriteError":
-      return `Write error at ${error.path}: ${errorWithReason.reason || 'unknown'}`;
+      return `Write error at ${error.path}: ${
+        errorWithReason.reason || "unknown"
+      }`;
     case "PermissionDenied":
       return `Permission denied: ${error.path}`;
     default:
