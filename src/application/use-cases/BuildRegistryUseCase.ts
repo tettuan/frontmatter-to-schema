@@ -3,8 +3,8 @@ import type { FileWriter } from "../../infrastructure/filesystem/FileWriter.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/Extractor.ts";
 import type { ClaudeAnalyzer } from "../../domain/analysis/Analyzer.ts";
 import { RegistryAggregator } from "../services/RegistryAggregator.ts";
-import type { Registry } from "../../domain/registry/types.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import type { Registry } from "../../domain/core/registry-types.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 
 export class BuildRegistryUseCase {
   constructor(

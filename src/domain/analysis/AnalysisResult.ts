@@ -1,4 +1,4 @@
-import type { Command } from "../registry/types.ts";
+import type { Command } from "../core/registry-types.ts";
 
 export class AnalysisResult {
   constructor(

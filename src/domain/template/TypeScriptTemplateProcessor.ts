@@ -8,7 +8,10 @@ import {
   createValidationError,
   type ValidationError,
 } from "../shared/errors.ts";
-import type { MappedSchemaData } from "../schema/TypeScriptSchemaMatcher.ts";
+import type {
+  MappedSchemaData,
+  SchemaMatchResult,
+} from "../models/TypeScriptSchemaMatcher.ts";
 
 export interface ProcessedTemplate {
   readonly content: string;
@@ -131,7 +134,9 @@ export class TypeScriptTemplateProcessor {
     options: TemplateProcessingOptions,
   ): { found: boolean; value: string; isRequired: boolean } {
     // Find matching data for the variable path
-    const match = mappedData.matches.find((m) => m.path === variable);
+    const match = mappedData.matches.find((m: SchemaMatchResult) =>
+      m.path === variable
+    );
 
     if (!match) {
       const isRequired = mappedData.missingRequiredKeys.includes(variable);
@@ -249,7 +254,9 @@ export class TypeScriptTemplateProcessor {
     }
 
     // Simple path resolution
-    const match = mappedData.matches.find((m) => m.path === schemaPath);
+    const match = mappedData.matches.find((m: SchemaMatchResult) =>
+      m.path === schemaPath
+    );
     return {
       found: !!match,
       value: match?.value,
@@ -262,7 +269,7 @@ export class TypeScriptTemplateProcessor {
   ): { found: boolean; value: unknown } {
     // For paths like tools.commands[].options.input, collect all matching array elements
     const baseArrayPath = schemaPath.replace("[]", "");
-    const matchingPaths = mappedData.matches.filter((m) =>
+    const matchingPaths = mappedData.matches.filter((m: SchemaMatchResult) =>
       m.path.startsWith(baseArrayPath) && m.path !== baseArrayPath
     );
 
@@ -302,7 +309,9 @@ export class TypeScriptTemplateProcessor {
     schemaPath: string,
     mappedData: MappedSchemaData,
   ): { found: boolean; value: unknown } {
-    const match = mappedData.matches.find((m) => m.path === schemaPath);
+    const match = mappedData.matches.find((m: SchemaMatchResult) =>
+      m.path === schemaPath
+    );
     return {
       found: !!match,
       value: match?.value,

@@ -15,7 +15,7 @@ import {
 } from "../core/abstractions.ts";
 import type { FileSystemPort } from "../../infrastructure/ports/file-system.ts";
 import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
-import { LoggerFactory } from "../shared/logging/logger.ts";
+import { LoggerFactory } from "../shared/logger.ts";
 import {
   FrontMatterContent,
   SourceFile,

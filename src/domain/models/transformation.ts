@@ -1,6 +1,6 @@
 import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
-import type { Document } from "./document.ts";
+import type { Document } from "./entities.ts";
 import type { Schema } from "./schema.ts";
 import type { Template } from "./template.ts";
 

@@ -4,7 +4,7 @@
  * Usage: deno run examples/extract-frontmatter.ts
  */
 
-import { extractAccordingToSchema } from "../src/domain/extraction/frontmatter-extractor.ts";
+import { extractAccordingToSchema } from "../src/domain/services/frontmatter-extractor.ts";
 
 // Example from the task
 const frontmatter = "title:プロジェクト全体の深掘り調査と修正タスク洗い出し";
