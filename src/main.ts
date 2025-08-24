@@ -53,7 +53,7 @@ import { FileReader } from "./infrastructure/filesystem/FileReader.ts";
 import { FileWriter } from "./infrastructure/filesystem/FileWriter.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
 import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
-import { BuildRegistryUseCase } from "./application/usecases/BuildRegistryUseCase.ts";
+import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
 
 /**
  * Loads AI prompt templates for schema extraction and mapping
