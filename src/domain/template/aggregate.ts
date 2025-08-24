@@ -79,7 +79,9 @@ export class TemplateAggregate {
     if (!context) {
       return {
         ok: false,
-        error: createValidationError("Template application context cannot be null"),
+        error: createValidationError(
+          "Template application context cannot be null",
+        ),
       };
     }
 

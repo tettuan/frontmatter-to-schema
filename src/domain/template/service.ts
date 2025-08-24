@@ -87,7 +87,8 @@ export class TemplateProcessingService {
         ok: false,
         error: {
           kind: "ValidationError" as const,
-          message: `Invalid format: ${format}. Must be one of: json, yaml, markdown`,
+          message:
+            `Invalid format: ${format}. Must be one of: json, yaml, markdown`,
         },
       };
     }
