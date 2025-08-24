@@ -1,4 +1,4 @@
-import type { Result } from "../../domain/shared/result.ts";
+import type { Result } from "../../domain/core/result.ts";
 import type { APIError } from "../../domain/shared/errors.ts";
 
 export interface AIAnalysisRequest {

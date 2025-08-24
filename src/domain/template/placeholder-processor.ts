@@ -5,7 +5,7 @@
  * Consolidates duplicate placeholder processing from SimpleTemplateMapper and NativeTemplateStrategy.
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
 
@@ -363,6 +363,8 @@ export class PlaceholderProcessor {
 
 /**
  * Factory for creating pre-configured PlaceholderProcessor instances
+ *
+ * @deprecated Use TemplateDomainFactory from component-factory.ts for better domain separation
  */
 export class PlaceholderProcessorFactory {
   /**

@@ -5,7 +5,7 @@
  * Consolidates duplicate JSON/YAML parsing logic from multiple locations.
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
 
@@ -342,6 +342,8 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
 /**
  * Template Format Handler Factory
  * Provides centralized access to format handlers
+ *
+ * @deprecated Use TemplateDomainFactory from component-factory.ts for better domain separation
  */
 export class TemplateFormatHandlerFactory {
   private static readonly handlers: TemplateFormatHandler[] = [

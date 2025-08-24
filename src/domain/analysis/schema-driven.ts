@@ -225,6 +225,8 @@ export class SchemaAnalysisProcessor<TInput, TSchema, TOutput> {
 
 /**
  * Factory for creating schema-driven analysis components
+ *
+ * @deprecated Use AnalysisDomainFactory from component-factory.ts for better domain separation
  */
 export class SchemaAnalysisFactory {
   static createAnalyzer<TSchema, TResult>(

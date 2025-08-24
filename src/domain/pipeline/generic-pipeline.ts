@@ -9,12 +9,13 @@ import {
   type AnalysisContext,
   type ConfigurationProvider,
   ExtensiblePipeline,
-  type FileSystemProvider,
   type Pipeline as _Pipeline,
   PipelineFactory,
   type ProcessingResult,
 } from "../core/abstractions.ts";
+import type { FileSystemPort } from "../../infrastructure/ports/file-system.ts";
 import type { SchemaAnalysisProcessor } from "../analysis/schema-driven.ts";
+import { LoggerFactory } from "../shared/logging/logger.ts";
 import {
   FrontMatterContent,
   SourceFile,
@@ -54,7 +55,7 @@ export interface FrontMatterPipelineConfig<TSchema, TTemplate> {
     extractionPrompt: string;
     mappingPrompt: string;
   };
-  fileSystem: FileSystemProvider;
+  fileSystem: FileSystemPort;
   analysisProcessor: SchemaAnalysisProcessor<
     FrontMatterContent,
     TSchema,
@@ -160,21 +161,45 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
     directory: string,
     pattern?: RegExp,
   ): Promise<SourceFile[]> {
-    const fileNames = await this.config.fileSystem.readDirectory(directory);
+    const fileListResult = await this.config.fileSystem.listFiles(
+      directory,
+      "\\.md$",
+    );
+    if (!fileListResult.ok) {
+      const logger = LoggerFactory.createLogger("generic-pipeline");
+      logger.warn("Failed to list files in directory", {
+        directory,
+        error: fileListResult.error.message,
+      });
+      return [];
+    }
+
     const sourceFiles: SourceFile[] = [];
 
-    for (const fileName of fileNames) {
-      if (pattern && !pattern.test(fileName)) {
+    for (const fileInfo of fileListResult.data) {
+      if (pattern && !pattern.test(fileInfo.name)) {
         continue;
       }
 
-      const fullPath = `${directory}/${fileName}`;
       try {
-        const content = await this.config.fileSystem.readFile(fullPath);
+        const contentResult = await this.config.fileSystem.readFile(
+          fileInfo.path,
+        );
+        if (!contentResult.ok) {
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Failed to read file content", {
+            path: fileInfo.path,
+            error: contentResult.error.message,
+          });
+          continue;
+        }
+
+        const content = contentResult.data;
         const frontMatter = this.extractFrontMatter(content);
-        const pathResult = ValidFilePath.create(fullPath);
+        const pathResult = ValidFilePath.create(fileInfo.path);
         if (!pathResult.ok) {
-          console.warn(`Invalid path: ${fullPath}`);
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Invalid file path", { path: fileInfo.path });
           continue;
         }
 
@@ -184,15 +209,20 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
           frontMatter || undefined,
         );
         if (!sourceFileResult.ok) {
-          console.warn(
-            `Invalid source file: ${sourceFileResult.error.message}`,
-          );
+          const logger = LoggerFactory.createLogger("generic-pipeline");
+          logger.warn("Invalid source file", {
+            error: sourceFileResult.error.message,
+          });
           continue;
         }
         const sourceFile = sourceFileResult.data;
         sourceFiles.push(sourceFile);
       } catch (error) {
-        console.warn(`Failed to read file ${fullPath}:`, error);
+        const logger = LoggerFactory.createLogger("generic-pipeline");
+        logger.warn("Failed to read file", {
+          path: fileInfo.path,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -215,7 +245,10 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       const contentResult = FrontMatterContent.fromObject(data);
       return contentResult.ok ? contentResult.data : null;
     } catch (error) {
-      console.warn("Failed to parse frontmatter:", error);
+      const logger = LoggerFactory.createLogger("generic-pipeline");
+      logger.warn("Failed to parse frontmatter", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
@@ -287,6 +320,7 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
 
 /**
  * Factory for creating configured frontmatter analysis pipelines
+ * @deprecated Use PipelineDomainFactory from component-factory.ts for better domain separation
  */
 export class FrontMatterPipelineFactory<TSchema, TTemplate>
   extends PipelineFactory<
@@ -344,7 +378,7 @@ export class ConfigurablePipelineProvider<TSchema, TTemplate>
   }
 
   async createConfig(
-    fileSystem: FileSystemProvider,
+    fileSystem: FileSystemPort,
     analysisProcessor: SchemaAnalysisProcessor<
       FrontMatterContent,
       TSchema,

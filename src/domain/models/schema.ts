@@ -1,4 +1,4 @@
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 
 export type SchemaFormat = "json" | "yaml" | "custom";

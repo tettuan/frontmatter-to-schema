@@ -47,16 +47,6 @@ export interface ExternalAnalysisService {
 }
 
 /**
- * File system operations abstraction
- */
-export interface FileSystemProvider {
-  readFile(path: string): Promise<string>;
-  writeFile(path: string, content: string): Promise<void>;
-  readDirectory(path: string): Promise<string[]>;
-  exists(path: string): Promise<boolean>;
-}
-
-/**
  * Context information passed through the analysis pipeline
  */
 export interface AnalysisContext {

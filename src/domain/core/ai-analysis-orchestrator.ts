@@ -15,7 +15,7 @@
  * Stage 2: Template application with extracted information
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import {
   createValidationError,
   type ValidationError,

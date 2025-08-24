@@ -1,4 +1,4 @@
-import { isOk, type Result } from "../domain/shared/result.ts";
+import { isOk, type Result } from "../domain/core/result.ts";
 import type { DomainError, ValidationError } from "../domain/shared/errors.ts";
 import { Document, DocumentPath } from "../domain/models/document.ts";
 import { Schema, SchemaDefinition } from "../domain/models/schema.ts";

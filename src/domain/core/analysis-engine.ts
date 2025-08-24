@@ -338,6 +338,8 @@ export class ContextualAnalysisProcessor {
 /**
  * Factory for creating Analysis Engine components
  * Implements dependency injection for the backbone system
+ *
+ * @deprecated Use AnalysisDomainFactory from component-factory.ts for better domain separation
  */
 export class AnalysisEngineFactory {
   static createDefault(): {

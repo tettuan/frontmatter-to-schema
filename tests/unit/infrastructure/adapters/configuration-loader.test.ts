@@ -4,7 +4,7 @@ import {
   ConfigPath,
   OutputPath,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../../src/domain/core/result.ts";
 import { join } from "jsr:@std/path";
 import type {
   AggregatedResult,

@@ -3,7 +3,7 @@
  * Loads templates from the file system
  */
 
-import type { Result } from "../../domain/shared/result.ts";
+import type { Result } from "../../domain/core/result.ts";
 import type { ValidationError } from "../../domain/shared/errors.ts";
 import { createValidationError } from "../../domain/shared/errors.ts";
 import { Template, TemplateDefinition } from "../../domain/models/template.ts";
