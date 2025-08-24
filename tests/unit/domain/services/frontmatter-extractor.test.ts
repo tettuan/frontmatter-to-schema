@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { FrontMatterExtractor } from "../../../../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../../../../src/domain/frontmatter/frontmatter-models.ts";
 
 Deno.test("FrontMatterExtractor", async (t) => {
   const extractor = new FrontMatterExtractor();

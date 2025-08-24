@@ -1,5 +1,23 @@
-import { FrontMatter } from "./FrontMatter.ts";
 import { parse } from "jsr:@std/yaml@1";
+
+export class FrontMatter {
+  constructor(
+    public readonly raw: string,
+    public readonly data: Record<string, unknown>,
+  ) {}
+
+  get(key: string): unknown {
+    return this.data[key];
+  }
+
+  has(key: string): boolean {
+    return key in this.data;
+  }
+
+  toJson(): string {
+    return JSON.stringify(this.data, null, 2);
+  }
+}
 
 export class FrontMatterExtractor {
   private readonly frontMatterRegex = /^---\n([\s\S]*?)---/;

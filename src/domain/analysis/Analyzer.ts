@@ -1,4 +1,4 @@
-import type { FrontMatter } from "../frontmatter/FrontMatter.ts";
+import type { FrontMatter } from "../frontmatter/frontmatter-models.ts";
 import { AnalysisResult } from "./AnalysisResult.ts";
 import type { Command } from "../core/registry-types.ts";
 

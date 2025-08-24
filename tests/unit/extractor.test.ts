@@ -1,4 +1,4 @@
-import { FrontMatterExtractor } from "../../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../../src/domain/frontmatter/frontmatter-models.ts";
 import {
   assertEquals,
   assertExists,

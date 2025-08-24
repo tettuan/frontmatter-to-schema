@@ -4,7 +4,7 @@ import {
   FileReader,
   FileWriter,
 } from "../src/infrastructure/filesystem/file-system.ts";
-import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../src/domain/frontmatter/frontmatter-models.ts";
 import { RegistryAggregator } from "../src/application/services/RegistryAggregator.ts";
 import { AnalysisResult } from "../src/domain/analysis/AnalysisResult.ts";
 import type { Command } from "../src/domain/core/registry-types.ts";

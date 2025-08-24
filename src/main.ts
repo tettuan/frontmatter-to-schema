@@ -53,7 +53,7 @@ import {
   FileReader,
   FileWriter,
 } from "./infrastructure/filesystem/file-system.ts";
-import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
 import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
 import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
 
