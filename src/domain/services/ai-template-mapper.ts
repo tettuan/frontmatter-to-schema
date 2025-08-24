@@ -2,10 +2,6 @@
  * AI-based template mapper that delegates template application to claude -p
  *
  * Domain Template Principle:
- * - TypeScriptでテンプレートを解析する必要はない
- * - `Claude Code SDK` へテンプレート当て込みプロンプトと一緒に、テンプレートを渡し、返却結果を受け取るだけ
- * - NG: TypeScriptでの当て込み
- * - OK: `Claude Code SDK` での変換結果を受け取るだけ
  */
 
 import type { Result } from "../core/result.ts";

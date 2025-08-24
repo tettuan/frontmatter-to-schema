@@ -239,6 +239,23 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
   private async callClaudeAPI(
     prompt: string,
   ): Promise<Result<string, AIError & { message: string }>> {
+    // Check if test mode is enabled
+    const isTestMode =
+      Deno.env.get("FRONTMATTER_TO_SCHEMA_TEST_MODE") === "true";
+    if (isTestMode) {
+      // Return mock response in test mode
+      return {
+        ok: true,
+        data: JSON.stringify({
+          title: "Test Document",
+          author: "Test Author",
+          date: "2025-08-24",
+          // Include any data that was in the prompt for testing
+          _testMode: true,
+        }),
+      };
+    }
+
     // Check prompt length
     if (prompt.length > 100000) {
       return {

@@ -1,52 +1,65 @@
-# AI解析ドメイン - テンプレート当て込み版
+# TypeScript処理アーキテクチャ - Schema一致とテンプレート変換
 
 ## 概要
 
-第2段階のAI処理で、外部テンプレートファイルと抽出情報を`Claude Code SDK`に渡し、AIがテンプレートへの値の埋め込みを行う設計。TypeScriptでのテンプレート解析は行わない。
+TypeScriptによる構造化された段階的処理で、フロントマターからSchemaへの一致とテンプレート変換を行う設計。外部AI処理ではなく、決定論的で予測可能な変換処理を実装。
 
-## 1. 修正版AI解析オーケストレーター
+## 1. TypeScript処理オーケストレーター
 
 ### 1.1 型定義
 
 ```typescript
 // ========================================
-// AI Analysis with Template Application
+// TypeScript-based Schema Matching and Template Processing
 // ========================================
 
-/** AI解析オーケストレーター - テンプレート当て込み版 */
-export class AIAnalysisOrchestrator {
+/** TypeScript処理オーケストレーター */
+export class TypeScriptProcessingOrchestrator {
   constructor(
-    private readonly aiProvider: AIProvider,
-    private readonly promptA: Prompt, // 情報抽出用プロンプト
-    private readonly promptB: Prompt, // テンプレート当て込み用プロンプト
+    private readonly frontmatterExtractor: FrontMatterExtractor,
+    private readonly schemaExpander: SchemaExpander,
+    private readonly mapper: SchemaMapper,
+    private readonly templateProcessor: TemplateProcessor,
   ) {}
 
   /**
-   * 第1段階: 情報抽出（成果B → 成果C）
-   * フロントマターから必要な情報を抽出
+   * 第1段階: フロントマター抽出・解析
    */
-  async extractInformation(
-    frontMatter: FrontMatter,
-    schema: AnalysisSchema,
-  ): Promise<Result<ExtractedInfo, AnalysisError>> {
-    // プロンプトAをレンダリング
-    const renderResult = this.promptA.render({
-      FRONTMATTER: JSON.stringify(frontMatter.getParsed()),
-      SCHEMA: JSON.stringify(schema.getSchema()),
-    });
+  async extractAndParse(
+    markdown: string,
+  ): Promise<Result<ParsedFrontMatter, ExtractionError>> {
+    // フロントマター部分を抽出
+    const extractionResult = this.frontmatterExtractor.extract(markdown);
+    if (!extractionResult.ok) {
+      return extractionResult;
+    }
 
-    if (!renderResult.ok) {
+    // YAMLとして解析
+    const parseResult = this.frontmatterExtractor.parseYAML(
+      extractionResult.data.content
+    );
+    if (!parseResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "PromptRenderError",
-          message: renderResult.error.variable,
+          kind: "ParseError",
+          message: `YAML parsing failed: ${parseResult.error.message}`,
         },
       };
     }
 
-    // AI解析実行 (claude -p 1回目)
-    const analysisResult = await this.aiProvider.analyze(renderResult.data);
+    return {
+      ok: true,
+      data: {
+        parsed: parseResult.data,
+        original: extractionResult.data.content,
+        metadata: {
+          extractedAt: new Date(),
+          lineRange: extractionResult.data.lineRange,
+        }
+      }
+    };
+  }
 
     if (!analysisResult.ok) {
       return {
@@ -95,65 +108,101 @@ export class AIAnalysisOrchestrator {
       TEMPLATE: template.getContent(),
     });
 
-    if (!renderResult.ok) {
+  /**
+   * 第2段階: Schema展開とマッピング
+   */
+  async expandAndMap(
+    parsedFrontMatter: ParsedFrontMatter,
+    schema: JSONSchema,
+  ): Promise<Result<SchemaMapping, MappingError>> {
+    // Schema を階層展開
+    const expansionResult = this.schemaExpander.expand(schema);
+    if (!expansionResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "PromptRenderError",
-          message: renderResult.error.variable,
+          kind: "SchemaExpansionError", 
+          message: expansionResult.error.message,
         },
       };
     }
 
-    const startTime = Date.now();
-
-    // AI解析実行 (claude -p 2回目) - テンプレート当て込み
-    const analysisResult = await this.aiProvider.analyze(renderResult.data);
-
-    if (!analysisResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "AIAnalysisError",
-          message: analysisResult.error.message,
-        },
-      };
-    }
-
-    const duration = Date.now() - startTime;
-
-    // AIが当て込んだテンプレート結果を作成
-    const metadata: TemplateApplicationMetadata = {
-      promptUsed: "PromptB",
-      aiProvider: this.aiProvider.getProviderName(),
-      templateName: template.getName(),
-      duration,
-      retryCount: 0,
-    };
-
-    const templateResult = TemplateResult.create(
-      analysisResult.data,
-      template,
-      metadata,
+    // フロントマターとSchemaの対応付け
+    const mappingResult = this.mapper.map(
+      parsedFrontMatter.parsed,
+      expansionResult.data,
+      {
+        similarityThreshold: 0.8,
+        enforceTypeChecking: true,
+        warnOnMissing: true,
+      }
     );
 
-    if (!templateResult.ok) {
+    if (!mappingResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "TemplateApplicationError",
-          message: templateResult.error.message,
+          kind: "MappingError",
+          message: mappingResult.error.message,
         },
       };
     }
 
-    // 当て込み結果の検証（必要に応じて）
-    // 注: claude -pが適切に処理するため、基本的に検証は不要
-
-    return { ok: true, data: templateResult.data };
+    return { ok: true, data: mappingResult.data };
   }
 
   /**
+   * 第3段階: テンプレート変数置換処理
+   */
+  async applyTemplate(
+    mapping: SchemaMapping,
+    template: Template,
+  ): Promise<Result<ProcessedTemplate, TemplateError>> {
+    // テンプレート内の変数を検出
+    const variablesResult = this.templateProcessor.extractVariables(
+      template.getContent()
+    );
+
+    if (!variablesResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateParseError",
+          message: variablesResult.error.message,
+        },
+      };
+    }
+
+    // 変数を値で置換
+    const substitutionResult = this.templateProcessor.substituteVariables(
+      template.getContent(),
+      variablesResult.data,
+      mapping.getMappedData()
+    );
+
+    if (!substitutionResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "SubstitutionError",
+          message: substitutionResult.error.message,
+        },
+      };
+    }
+
+    const processedTemplate = ProcessedTemplate.create(
+      substitutionResult.data.content,
+      template,
+      {
+        processedAt: new Date(),
+        variablesFound: variablesResult.data.length,
+        substitutionsMade: substitutionResult.data.substitutions,
+        warnings: substitutionResult.data.warnings,
+      }
+    );
+
+    return processedTemplate;
+  }  /**
    * 完全な2段階処理パイプライン
    * 情報抽出 → テンプレート当て込み
    */
@@ -455,20 +504,17 @@ if (result.ok) {
 
 [docs/domain/domain-template.md](../../domain/domain-template.md)に基づく:
 
-1. **TypeScriptでテンプレート解析しない**: `Claude Code SDK`に全て任せる
-2. **テンプレートはそのまま渡す**: 変数埋め込みはAIが実行
-3. **変換結果をそのまま利用**: 統合処理に直接使用
+1. **TypeScript段階的処理**: Schema展開とマッピングを順次実行
+2. **型安全な変数置換**: 型チェックによる確実な当て込み
+3. **決定論的な変換**: 予測可能で再現性のある結果
 
 ```mermaid
 graph TD
-    subgraph "Inputs to claude -p"
-        A[テンプレート当て込みprompt]
+    subgraph "TypeScript Processing"
+        A[テンプレート]
         B[Schema]
-        C[テンプレート]
-        D[抽出情報]
-    end
-    
-    subgraph "claude -p"
+        C[フロントマター]
+        D[マッピング処理]
         P[AI処理]
     end
     

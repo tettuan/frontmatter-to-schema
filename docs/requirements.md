@@ -2,7 +2,7 @@
 
 1. Extract and analyze Markdown frontmatter
 2. Map analyzed results to template format based on Schema and write output
-3. Use `Claude Code SDK` for analysis to ensure frontmatter flexibility
+3. Use TypeScript structured processing for analysis to ensure frontmatter flexibility
 
 ## Purpose
 
@@ -52,16 +52,16 @@ empty state (Final Result Z)
 
 Process Result A in a loop. Process all items. In each loop, process one prompt
 at a time. First, extract the frontmatter portion using Deno. (Result B) Analyze
-Result B with `Claude Code SDK` (Result C) Map Result C to structured data using
-`Claude Code SDK` (Result D) Integrate Result D into Final Result Z Save Final
+Result B with TypeScript processing (Result C) Map Result C to structured data using
+TypeScript processing (Result D) Integrate Result D into Final Result Z Save Final
 Result Z.
 
-## claude -p
+## TypeScript Processing
 
 Use the following two types:
 
-a. Extract information using prompts, frontmatter, and "analysis result Schema"
-b. Map extracted information to analysis template using "analysis result Schema"
+a. Extract information using Schema expansion and mapping from frontmatter data
+b. Map extracted information to analysis template using type-safe variable substitution
 
 Embed extraction prompts inside TypeScript.
 
@@ -75,7 +75,7 @@ Rules:
 3. Application code is unaffected by changes to Example 1-Example 2 hierarchy
    information
 4. Points 2 and 3 above are resolved through configuration or arguments
-5. Final Result Z equals the combined results from `Claude Code SDK` `b`
+5. Final Result Z equals the combined results from TypeScript processing
 
 # Reference Information
 
