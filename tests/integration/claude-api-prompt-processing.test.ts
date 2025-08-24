@@ -66,7 +66,7 @@ Deno.test("Claude API Prompt Processing - Extract frontmatter based on schema", 
   };
 
   // Simulate extraction logic
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   // Extract fields matching the schema
   for (const key in schema) {
@@ -97,7 +97,7 @@ Deno.test("Claude API Prompt Processing - Parse and extract only schema-matching
   };
 
   // Extract only schema-matching fields
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   for (const key in schema) {
     if (key in frontMatterData) {
@@ -124,7 +124,7 @@ Deno.test("Claude API Prompt Processing - Return null for missing required field
   };
 
   // Extract fields with null for missing required fields
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   for (const key in schema) {
     if (key in frontMatterData) {
@@ -170,7 +170,7 @@ Deno.test("Claude API Prompt Processing - Handle complex nested structures", () 
   };
 
   // Extract nested structure
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   for (const key in schema) {
     if (key in frontMatterData) {
@@ -182,10 +182,15 @@ Deno.test("Claude API Prompt Processing - Handle complex nested structures", () 
 
   // Verify nested structure is preserved
   assertExists(extractedData.metadata);
-  assertEquals(extractedData.metadata.version, "2.0");
-  assertEquals(extractedData.metadata.features.length, 2);
-  assertEquals(extractedData.metadata.config.enabled, true);
-  assertEquals(extractedData.metadata.config.level, 5);
+  const metadata = extractedData.metadata as {
+    version: string;
+    features: string[];
+    config: { enabled: boolean; level: number };
+  };
+  assertEquals(metadata.version, "2.0");
+  assertEquals(metadata.features.length, 2);
+  assertEquals(metadata.config.enabled, true);
+  assertEquals(metadata.config.level, 5);
 });
 
 Deno.test("Claude API Prompt Processing - Validate prompt template structure", () => {
@@ -228,7 +233,7 @@ Deno.test("Claude API Prompt Processing - Handle empty frontmatter", () => {
   };
 
   // Extract fields from empty frontmatter
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   for (const key in schema) {
     if (key in frontMatterData) {
@@ -261,7 +266,7 @@ Deno.test("Claude API Prompt Processing - Handle schema with enum values", () =>
   };
 
   // Extract and validate enum fields
-  const extractedData: Record<string, any> = {};
+  const extractedData: Record<string, unknown> = {};
 
   for (const key in schema) {
     if (key in frontMatterData) {
@@ -308,7 +313,7 @@ Deno.test("Claude API Prompt Processing - Handle pattern validation", () => {
       : {};
 
     // Extract and validate pattern
-    const extractedData: Record<string, any> = {};
+    const extractedData: Record<string, unknown> = {};
 
     if ("version" in frontMatterData) {
       const value = frontMatterData.version;

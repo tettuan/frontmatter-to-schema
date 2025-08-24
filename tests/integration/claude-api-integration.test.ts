@@ -1,11 +1,11 @@
 /**
  * Comprehensive Claude API Integration Tests
- * 
+ *
  * Tests for issue #359: Add comprehensive Claude API integration tests
- * 
+ *
  * Test Coverage:
  * - Basic integration test setup
- * - Mock API responses  
+ * - Mock API responses
  * - Error handling scenarios
  * - Response validation
  * - Concurrent request handling
@@ -34,9 +34,9 @@ describe("Claude API Integration Tests", () => {
     it("should handle mock successful responses", () => {
       const mockResponse = {
         ok: true,
-        data: { extracted: "data" }
+        data: { extracted: "data" },
       };
-      
+
       assertExists(mockResponse);
       assertEquals(mockResponse.ok, true);
       assertExists(mockResponse.data);
@@ -45,9 +45,9 @@ describe("Claude API Integration Tests", () => {
     it("should handle mock error responses", () => {
       const mockError = {
         ok: false,
-        error: { kind: "AIError", message: "Test error" }
+        error: { kind: "AIError", message: "Test error" },
       };
-      
+
       assertExists(mockError);
       assertEquals(mockError.ok, false);
       assertExists(mockError.error);
@@ -59,9 +59,9 @@ describe("Claude API Integration Tests", () => {
     it("should validate rate limit error structure", () => {
       const rateLimitError = {
         type: "rate_limit_error",
-        message: "Rate limit exceeded"
+        message: "Rate limit exceeded",
       };
-      
+
       assertExists(rateLimitError);
       assertEquals(rateLimitError.type, "rate_limit_error");
       assertExists(rateLimitError.message.includes("rate limit"));
@@ -70,9 +70,9 @@ describe("Claude API Integration Tests", () => {
     it("should validate authentication error structure", () => {
       const authError = {
         type: "authentication_error",
-        message: "Invalid API key"
+        message: "Invalid API key",
       };
-      
+
       assertExists(authError);
       assertEquals(authError.type, "authentication_error");
       assertExists(authError.message.includes("API key"));
@@ -81,9 +81,9 @@ describe("Claude API Integration Tests", () => {
     it("should validate quota exceeded error structure", () => {
       const quotaError = {
         type: "quota_exceeded",
-        message: "Monthly quota exceeded"
+        message: "Monthly quota exceeded",
       };
-      
+
       assertExists(quotaError);
       assertEquals(quotaError.type, "quota_exceeded");
       assertExists(quotaError.message.includes("quota"));
@@ -94,10 +94,10 @@ describe("Claude API Integration Tests", () => {
     it("should validate successful API response structure", () => {
       const apiResponse = {
         content: [
-          { text: '{"extracted": "data", "title": "Test"}' }
-        ]
+          { text: '{"extracted": "data", "title": "Test"}' },
+        ],
       };
-      
+
       assertExists(apiResponse);
       assertExists(apiResponse.content);
       assertEquals(Array.isArray(apiResponse.content), true);
@@ -108,10 +108,10 @@ describe("Claude API Integration Tests", () => {
       const errorResponse = {
         error: {
           type: "invalid_request_error",
-          message: "Invalid request format"
-        }
+          message: "Invalid request format",
+        },
       };
-      
+
       assertExists(errorResponse);
       assertExists(errorResponse.error);
       assertExists(errorResponse.error.type);
@@ -121,14 +121,14 @@ describe("Claude API Integration Tests", () => {
 
   describe("Concurrent Request Handling", () => {
     it("should support concurrent mock requests", async () => {
-      const promises = Array(3).fill(null).map(() => 
+      const promises = Array(3).fill(null).map(() =>
         Promise.resolve({ ok: true, data: {} })
       );
-      
+
       const results = await Promise.all(promises);
-      
+
       assertEquals(results.length, 3);
-      results.forEach(result => {
+      results.forEach((result) => {
         assertExists(result);
         assertEquals(result.ok, true);
       });
@@ -142,10 +142,10 @@ describe("Claude API Mock Service Tests", () => {
       const mockConfig = {
         aiProvider: "mock",
         aiConfig: {
-          model: "test-model"
-        }
+          model: "test-model",
+        },
       };
-      
+
       assertExists(mockConfig);
       assertEquals(mockConfig.aiProvider, "mock");
       assertExists(mockConfig.aiConfig);
@@ -154,9 +154,9 @@ describe("Claude API Mock Service Tests", () => {
     it("should validate mock error simulation", () => {
       const mockErrorConfig = {
         simulateError: true,
-        errorType: "rate_limit"
+        errorType: "rate_limit",
       };
-      
+
       assertExists(mockErrorConfig);
       assertEquals(mockErrorConfig.simulateError, true);
       assertEquals(mockErrorConfig.errorType, "rate_limit");
