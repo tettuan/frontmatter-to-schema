@@ -1,0 +1,12 @@
+{
+  "test": {
+    "permissions": {
+      "read": true,
+      "write": true,
+      "run": true,
+      "env": true,
+      "net": false,
+      "sys": false
+    }
+  }
+}
