@@ -21,7 +21,7 @@ import {
   type PlaceholderProcessingContext,
   PlaceholderProcessor,
 } from "./placeholder-processor.ts";
-import { LoggerFactory } from "../shared/logging/logger.ts";
+import { LoggerFactory } from "../shared/logger.ts";
 
 /**
  * Strategy interface for template processing

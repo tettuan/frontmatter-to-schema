@@ -16,7 +16,7 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
-import { LoggerFactory } from "./domain/shared/logging/logger.ts";
+import { LoggerFactory } from "./domain/shared/logger.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
 //   FactoryConfigurationBuilder,
@@ -34,7 +34,7 @@ import type {
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
-import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-analyzer.ts";
 import { TypeScriptSchemaAnalyzer } from "./infrastructure/adapters/typescript-schema-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";

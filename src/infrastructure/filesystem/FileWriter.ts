@@ -1,4 +1,4 @@
-import type { Registry } from "../../domain/registry/types.ts";
+import type { Registry } from "../../domain/core/registry-types.ts";
 
 export class FileWriter {
   async writeJson(path: string, data: Registry): Promise<void> {

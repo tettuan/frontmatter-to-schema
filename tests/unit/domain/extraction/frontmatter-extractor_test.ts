@@ -3,7 +3,7 @@
  */
 
 import { assertEquals } from "jsr:@std/assert";
-import { extractAccordingToSchema } from "../../../../src/domain/extraction/frontmatter-extractor.ts";
+import { extractAccordingToSchema } from "../../../../src/domain/services/frontmatter-extractor.ts";
 
 Deno.test("extractAccordingToSchema - Extract title from frontmatter", () => {
   const frontmatter = "title:プロジェクト全体の深掘り調査と修正タスク洗い出し";

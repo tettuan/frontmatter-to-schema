@@ -7,7 +7,7 @@ import {
   createValidationError,
   type ValidationError,
 } from "../shared/errors.ts";
-import { LoggerFactory } from "../shared/logging/logger.ts";
+import { LoggerFactory } from "../shared/logger.ts";
 
 import {
   type FrontMatterData,
@@ -17,7 +17,7 @@ import {
   type MappedSchemaData,
   type SchemaProperty,
   TypeScriptSchemaMatcher,
-} from "../schema/TypeScriptSchemaMatcher.ts";
+} from "../models/TypeScriptSchemaMatcher.ts";
 import {
   type ProcessedTemplate,
   type TemplateProcessingOptions,

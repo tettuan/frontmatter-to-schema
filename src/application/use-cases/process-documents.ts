@@ -14,7 +14,7 @@ import {
   type Template,
 } from "../../domain/models/entities.ts";
 import { ProcessingOptions } from "../../domain/models/value-objects.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type {
   DocumentRepository,
   FrontMatterExtractor,

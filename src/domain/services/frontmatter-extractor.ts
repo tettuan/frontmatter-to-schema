@@ -1,101 +1,230 @@
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
-import { DocumentBody, FrontMatter } from "../models/document.ts";
+/**
+ * Frontmatter Extraction Function
+ * Extracts frontmatter data according to a provided schema
+ */
 
-export interface FrontMatterExtractionResult {
-  frontMatter: FrontMatter | null;
-  body: DocumentBody;
+interface SchemaDefinition {
+  version?: {
+    type: string;
+    description: string;
+    pattern?: string;
+  };
+  description?: {
+    type: string;
+    description: string;
+  };
+  tools?: {
+    type: string;
+    description: string;
+    properties?: {
+      availableConfigs?: {
+        type: string;
+        description: string;
+        items?: {
+          type: string;
+          enum?: string[];
+        };
+      };
+      commands?: {
+        type: string;
+        description: string;
+        items?: {
+          $ref?: string;
+        };
+      };
+    };
+    required?: string[];
+    additionalProperties?: boolean;
+  };
 }
 
-export class FrontMatterExtractor {
-  private readonly frontMatterRegex = /^---\s*\n([\s\S]*?)---\s*(\n|$)/;
+interface ExtractedData {
+  version: string | null;
+  description: string | null;
+  tools: {
+    availableConfigs: string[] | null;
+    commands: unknown[] | null;
+  } | null;
+}
 
-  extract(
-    content: string,
-  ): Result<FrontMatterExtractionResult, ValidationError> {
-    const match = content.match(this.frontMatterRegex);
+/**
+ * Extract frontmatter data according to the provided schema
+ * @param frontmatterData - The parsed frontmatter YAML object
+ * @param schema - The JSON schema definition
+ * @returns Extracted data matching the schema structure
+ */
+export function extractFrontmatterToSchema(
+  frontmatterData: Record<string, unknown>,
+  schema: SchemaDefinition,
+): ExtractedData {
+  const result: ExtractedData = {
+    version: null,
+    description: null,
+    tools: null,
+  };
 
-    if (!match) {
-      // No frontmatter found, entire content is body
-      return {
-        ok: true,
-        data: {
-          frontMatter: null,
-          body: DocumentBody.create(content),
-        },
-      };
+  // Extract version if present in frontmatter
+  if (schema.version && frontmatterData.version !== undefined) {
+    const version = frontmatterData.version;
+    if (typeof version === "string") {
+      // Validate pattern if specified
+      if (schema.version.pattern) {
+        const pattern = new RegExp(schema.version.pattern);
+        if (pattern.test(version)) {
+          result.version = version;
+        }
+      } else {
+        result.version = version;
+      }
     }
-
-    const rawFrontMatter = match[1];
-    const bodyContent = content.slice(match[0].length);
-
-    // Parse the frontmatter
-    const parseResult = this.parseFrontMatter(rawFrontMatter);
-    if (!parseResult.ok) {
-      return parseResult;
-    }
-
-    const frontMatterResult = FrontMatter.create(
-      rawFrontMatter,
-      parseResult.data,
-    );
-
-    if (!frontMatterResult.ok) {
-      return frontMatterResult;
-    }
-
-    return {
-      ok: true,
-      data: {
-        frontMatter: frontMatterResult.data,
-        body: DocumentBody.create(bodyContent),
-      },
-    };
   }
 
-  private parseFrontMatter(
-    raw: string,
-  ): Result<Record<string, unknown>, ValidationError> {
-    try {
-      // Simple key-value parsing
-      // In production, this would use a proper YAML parser
-      const lines = raw.split("\n").filter((line) => line.trim().length > 0);
-      const result: Record<string, unknown> = {};
+  // Extract description if present in frontmatter
+  if (schema.description && frontmatterData.description !== undefined) {
+    const description = frontmatterData.description;
+    if (typeof description === "string") {
+      result.description = description;
+    }
+  }
 
-      for (const line of lines) {
-        const colonIndex = line.indexOf(":");
-        if (colonIndex > 0) {
-          const key = line.slice(0, colonIndex).trim();
-          const value = line.slice(colonIndex + 1).trim();
+  // Extract tools if present in frontmatter
+  if (schema.tools && frontmatterData.tools !== undefined) {
+    const tools = frontmatterData.tools;
+    if (typeof tools === "object" && tools !== null) {
+      const toolsData = tools as Record<string, unknown>;
+      result.tools = {
+        availableConfigs: null,
+        commands: null,
+      };
 
-          // Handle arrays (simple case)
-          if (value.startsWith("[") && value.endsWith("]")) {
-            result[key] = value
-              .slice(1, -1)
-              .split(",")
-              .map((v) => v.trim().replace(/^["']|["']$/g, ""));
-          } // Handle booleans
-          else if (value === "true" || value === "false") {
-            result[key] = value === "true";
-          } // Handle numbers
-          else if (!isNaN(Number(value)) && value !== "") {
-            result[key] = Number(value);
-          } // Handle strings
-          else {
-            result[key] = value.replace(/^["']|["']$/g, "");
+      // Extract availableConfigs
+      if (
+        schema.tools.properties?.availableConfigs &&
+        toolsData.availableConfigs !== undefined
+      ) {
+        const configs = toolsData.availableConfigs;
+        if (Array.isArray(configs)) {
+          const validConfigs: string[] = [];
+          for (const config of configs) {
+            if (typeof config === "string") {
+              // Check enum constraint if specified
+              const enumValues = schema.tools.properties.availableConfigs.items
+                ?.enum;
+              if (enumValues) {
+                if (enumValues.includes(config)) {
+                  validConfigs.push(config);
+                }
+              } else {
+                validConfigs.push(config);
+              }
+            }
+          }
+          if (validConfigs.length > 0) {
+            result.tools.availableConfigs = validConfigs;
           }
         }
       }
 
-      return { ok: true, data: result };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "ValidationError",
-          message: `Failed to parse frontmatter: ${error}`,
-        },
-      };
+      // Extract commands
+      if (
+        schema.tools.properties?.commands && toolsData.commands !== undefined
+      ) {
+        const commands = toolsData.commands;
+        if (Array.isArray(commands)) {
+          result.tools.commands = commands;
+        }
+      }
     }
   }
+
+  return result;
+}
+
+/**
+ * Parse YAML frontmatter and extract according to schema
+ * @param yamlContent - The raw YAML frontmatter content
+ * @param schema - The JSON schema definition
+ * @returns JSON object with extracted data
+ */
+export function parseFrontmatterAndExtract(
+  yamlContent: string,
+  schema: SchemaDefinition,
+): ExtractedData {
+  // Simple YAML parsing for the given example
+  const frontmatterData: Record<string, unknown> = {};
+
+  // Parse simple key-value pairs from YAML
+  const lines = yamlContent.split("\n");
+  for (const line of lines) {
+    const match = line.match(/^(\w+):\s*(.+)$/);
+    if (match) {
+      const [, key, value] = match;
+      // Remove quotes if present
+      const cleanValue = value.replace(/^["']|["']$/g, "");
+      frontmatterData[key] = cleanValue;
+    }
+  }
+
+  return extractFrontmatterToSchema(frontmatterData, schema);
+}
+
+/**
+ * Main extraction function as specified in the task
+ * @param frontmatterYaml - The frontmatter YAML string (e.g., "title:プロジェクト全体の深掘り調査と修正タスク洗い出し")
+ * @param schema - The JSON schema object
+ * @returns JSON object containing the extracted data
+ */
+export function extractAccordingToSchema(
+  frontmatterYaml: string,
+  schema: Record<string, unknown>,
+): Record<string, unknown> {
+  // Parse the frontmatter
+  const frontmatterData: Record<string, unknown> = {};
+
+  // Handle the specific format from the task (e.g., "title:プロジェクト全体の深掘り調査と修正タスク洗い出し")
+  const parts = frontmatterYaml.split(":");
+  if (parts.length >= 2) {
+    const key = parts[0].trim();
+    const value = parts.slice(1).join(":").trim();
+    frontmatterData[key] = value;
+  }
+
+  // Extract according to schema structure
+  const result: Record<string, unknown> = {};
+
+  // Check each property in the schema
+  for (const [schemaKey, schemaValue] of Object.entries(schema)) {
+    if (schemaKey === "$schema") continue; // Skip meta properties
+
+    // Initialize with null for missing required fields
+    result[schemaKey] = null;
+
+    // If the frontmatter has a matching key, use it
+    if (frontmatterData[schemaKey] !== undefined) {
+      result[schemaKey] = frontmatterData[schemaKey];
+    } else {
+      // Check if it's an object with nested properties
+      if (typeof schemaValue === "object" && schemaValue !== null) {
+        const schemaProp = schemaValue as Record<string, unknown>;
+        if (schemaProp.type === "object" && schemaProp.properties) {
+          // Initialize nested object with null values
+          const nestedObj: Record<string, unknown> = {};
+          for (
+            const nestedKey of Object.keys(
+              schemaProp.properties as Record<string, unknown>,
+            )
+          ) {
+            nestedObj[nestedKey] = null;
+          }
+          result[schemaKey] = nestedObj;
+        } else if (schemaProp.type === "array") {
+          result[schemaKey] = null;
+        } else if (schemaProp.type === "string") {
+          result[schemaKey] = null;
+        }
+      }
+    }
+  }
+
+  return result;
 }

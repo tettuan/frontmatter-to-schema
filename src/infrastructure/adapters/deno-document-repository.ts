@@ -7,7 +7,7 @@ import {
   type IOError,
   type Result,
 } from "../../domain/shared/types.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
   DocumentContent,

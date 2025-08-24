@@ -1,93 +1,46 @@
-# Issue #377: Code Quality Analysis - Over-Engineering Assessment
+# Refactoring Analysis - Issue #377
 
-## Current State Analysis
+## Current State
+- Total TypeScript files in src: 78
+- CI Status: All tests passing (121 tests)
+- Recent consolidations:
+  - Merged mock-ai-analyzer and mock-schema-analyzer into mock-analyzer.ts
+  - Removed duplicate Document model (models/document.ts)
+  - Moved directories from domain subdirectories
 
-### File Statistics
-- **Total TypeScript files in src/**: 81 files
-- **Total files mentioned in CI**: 119 files (includes tests)
-- **Directory depth**: Up to 3 levels deep
+## Target
+- Reduce files from ~78 to ~60 (need to remove ~18 files)
 
-### Directory Structure Issues
+## Identified Consolidation Opportunities
 
-#### 1. Duplicate Directories
-- `src/application/use-cases/` vs `src/application/usecases/`
-  - Both directories exist with similar purpose
-  - Should be consolidated into one
+### 1. Claude Analyzers (Priority: HIGH)
+- src/infrastructure/adapters/claude-analyzer.ts
+- src/infrastructure/adapters/claude-schema-analyzer.ts
+- Can be merged into single analyzer with method overloading (similar to mock-analyzer)
 
-#### 2. Multiple Analyzer Implementations
-Found 5 different analyzer types:
-- `claude-analyzer.ts`
-- `claude-schema-analyzer.ts`
-- `mock-ai-analyzer.ts`
-- `mock-schema-analyzer.ts`
-- `typescript-schema-analyzer.ts`
+### 2. Domain Services with Overlapping Concerns
+- Multiple extractor implementations
+- Template processing spread across multiple files
+- Schema-related services that could be unified
 
-Potential overlap between Claude and TypeScript analyzers.
+### 3. Redundant Interface Files
+- src/domain/services/interfaces.ts
+- src/domain/services/interfaces-improved.ts
+- Should consolidate into single interface file
 
-#### 3. Scattered Analysis Logic
-Analysis functionality spread across:
-- `src/domain/analysis/`
-- `src/domain/core/ai-analysis-orchestrator.ts`
-- `src/domain/core/analysis-engine.ts`
-- `src/domain/pipeline/analysis-pipeline.ts`
-- `src/infrastructure/adapters/*analyzer*.ts`
+### 4. Domain Subdirectories to Flatten
+- src/domain/shared/logging/ (only has logger.ts)
+- Consider moving shared utilities to single level
 
-### Identified Redundancies
+### 5. Duplicate Registry/Aggregator Files
+- src/application/services/RegistryAggregator.ts
+- src/registry-aggregator.ts
+- Appear to be duplicates
 
-#### 1. Schema Analyzers
-- **ClaudeSchemaAnalyzer** vs **TypeScriptSchemaAnalyzer**
-  - Both appear to analyze schemas
-  - Need to check if they serve different purposes or can be unified
-
-#### 2. Mock Implementations
-- Separate mock files for AI and Schema analyzers
-  - Could potentially be consolidated into a single mock adapter
-
-#### 3. Domain vs Infrastructure Analysis
-- Analysis logic split between domain and infrastructure layers
-  - May violate DDD boundaries
-
-### Entropy Indicators (per AI-complexity-control)
-
-1. **File Proliferation**: 81 source files for a frontmatter-to-schema converter
-2. **Deep Nesting**: 3+ levels of directory nesting
-3. **Scattered Concerns**: Same functionality across multiple directories
-4. **Abstraction Overload**: Multiple abstraction layers without clear separation
-
-## Recommendations
-
-### Phase 1: Quick Wins
-1. **Merge duplicate directories**: Consolidate `use-cases` and `usecases`
-2. **Unify mock implementations**: Single mock analyzer for testing
-3. **Consolidate analyzer base**: Common analyzer interface/base class
-
-### Phase 2: Structural Improvements
-1. **Flatten directory structure**: Reduce nesting where possible
-2. **Consolidate analysis domain**: Single analysis module
-3. **Review abstraction layers**: Remove unnecessary indirection
-
-### Phase 3: DDD Alignment
-1. **Clear bounded contexts**: Ensure proper domain boundaries
-2. **Aggregate consolidation**: Group related entities
-3. **Value object review**: Check for redundant value objects
-
-## Complexity Metrics
-
-### Current Complexity Score
-- **File Count Score**: HIGH (81 files)
-- **Directory Depth Score**: MEDIUM (3 levels)
-- **Duplication Score**: HIGH (multiple analyzers)
-- **Overall**: NEEDS REFACTORING
-
-### Target Complexity Score
-- **File Count Target**: ~50-60 files (-25%)
-- **Directory Depth Target**: 2 levels max
-- **Duplication Target**: Zero redundant implementations
-
-## Next Steps
-
-1. Analyze each analyzer implementation to understand differences
-2. Map business value for each abstraction
-3. Create consolidation plan
-4. Execute refactoring with tests
-5. Validate with CI
+## Action Plan
+1. Consolidate Claude analyzers (saves 1 file)
+2. Merge interface files (saves 1 file)
+3. Flatten logging directory (structural improvement)
+4. Remove duplicate registry aggregator (saves 1 file)
+5. Review and consolidate template-related files
+6. Review and consolidate schema-related services

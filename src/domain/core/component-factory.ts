@@ -5,7 +5,7 @@
 
 import type { Result } from "./result.ts";
 import type { ValidationError } from "../shared/errors.ts";
-import { type Logger, LoggerFactory } from "../shared/logging/logger.ts";
+import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Analysis Domain Factories
 import {

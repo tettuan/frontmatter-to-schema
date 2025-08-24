@@ -1,6 +1,6 @@
 import type { FrontMatter } from "../frontmatter/FrontMatter.ts";
 import { AnalysisResult } from "./AnalysisResult.ts";
-import type { Command } from "../registry/types.ts";
+import type { Command } from "../core/registry-types.ts";
 
 export interface Analyzer {
   analyze(

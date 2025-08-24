@@ -15,7 +15,7 @@ import type {
   AnalysisConfiguration,
   SchemaAnalyzer,
 } from "../../domain/services/interfaces.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 
 export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
   constructor(

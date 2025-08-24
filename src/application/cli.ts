@@ -6,18 +6,18 @@ import {
   ConfigurationValidator,
 } from "./configuration.ts";
 import { DocumentProcessor } from "./document-processor.ts";
-import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
+import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { TemplateMapper } from "../domain/services/template-mapper.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { ClaudeAnalyzerAdapter } from "../infrastructure/adapters/claude-analyzer.ts";
-import { LoggerFactory } from "../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../domain/shared/logger.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
   private readonly aiAnalyzer = new ClaudeAnalyzerAdapter();
-  private readonly frontMatterExtractor = new FrontMatterExtractor();
+  private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
   private readonly schemaValidator = new SchemaValidator();
   private readonly templateMapper = new TemplateMapper();
   private readonly processor: DocumentProcessor;

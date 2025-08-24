@@ -16,7 +16,7 @@ import type {
 } from "../../infrastructure/ports/file-system.ts";
 import type { Result } from "../../domain/core/result.ts";
 import { createIOError, type IOError } from "../../domain/shared/errors.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 import {
   ComponentDomain,
   FactoryConfigurationBuilder,

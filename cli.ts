@@ -15,14 +15,11 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { join } from "jsr:@std/path@1.1.2";
-import {
-  type Logger,
-  LoggerFactory,
-} from "./src/domain/shared/logging/logger.ts";
+import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./src/infrastructure/adapters/claude-schema-analyzer.ts";
-import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";

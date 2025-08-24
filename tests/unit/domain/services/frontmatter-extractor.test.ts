@@ -1,6 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { FrontMatterExtractor } from "../../../../src/domain/services/frontmatter-extractor.ts";
-import { isOk } from "../../../../src/domain/core/result.ts";
+import { FrontMatterExtractor } from "../../../../src/domain/frontmatter/Extractor.ts";
 
 Deno.test("FrontMatterExtractor", async (t) => {
   const extractor = new FrontMatterExtractor();
@@ -18,23 +17,15 @@ tags: [deno, typescript]
 This is the body of the document.`;
 
     const result = extractor.extract(content);
-    assertEquals(isOk(result), true);
 
-    if (isOk(result)) {
-      const { frontMatter, body } = result.data;
-
-      // Check frontmatter exists
-      assertEquals(frontMatter !== null, true);
-      if (frontMatter) {
-        const parsed = frontMatter.getParsed();
-        assertEquals(parsed.title, "Test Article");
-        assertEquals(parsed.author, "John Doe");
-        assertEquals(parsed.published, true);
-        assertEquals(Array.isArray(parsed.tags), true);
-      }
-
-      // Check body
-      assertEquals(body.getContent().startsWith("# Main Content"), true);
+    // Check frontmatter exists
+    assertEquals(result !== null, true);
+    if (result) {
+      const parsed = result.data;
+      assertEquals(parsed.title, "Test Article");
+      assertEquals(parsed.author, "John Doe");
+      assertEquals(parsed.published, true);
+      assertEquals(Array.isArray(parsed.tags), true);
     }
   });
 
@@ -44,13 +35,7 @@ This is the body of the document.`;
 Just regular markdown content.`;
 
     const result = extractor.extract(content);
-    assertEquals(isOk(result), true);
-
-    if (isOk(result)) {
-      const { frontMatter, body } = result.data;
-      assertEquals(frontMatter, null);
-      assertEquals(body.getContent(), content);
-    }
+    assertEquals(result, null);
   });
 
   await t.step("should parse different value types", () => {
@@ -67,20 +52,17 @@ quoted: "quoted value"
 Body content`;
 
     const result = extractor.extract(content);
-    assertEquals(isOk(result), true);
+    assertEquals(result !== null, true);
 
-    if (isOk(result)) {
-      const { frontMatter } = result.data;
-      if (frontMatter) {
-        const parsed = frontMatter.getParsed();
-        assertEquals(parsed.string, "hello world");
-        assertEquals(parsed.number, 42);
-        assertEquals(parsed.float, 3.14);
-        assertEquals(parsed.boolean_true, true);
-        assertEquals(parsed.boolean_false, false);
-        assertEquals(Array.isArray(parsed.array), true);
-        assertEquals(parsed.quoted, "quoted value");
-      }
+    if (result) {
+      const parsed = result.data;
+      assertEquals(parsed.string, "hello world");
+      assertEquals(parsed.number, 42);
+      assertEquals(parsed.float, 3.14);
+      assertEquals(parsed.boolean_true, true);
+      assertEquals(parsed.boolean_false, false);
+      assertEquals(Array.isArray(parsed.array), true);
+      assertEquals(parsed.quoted, "quoted value");
     }
   });
 
@@ -91,12 +73,11 @@ Body content`;
 Body content`;
 
     const result = extractor.extract(content);
-    assertEquals(isOk(result), true);
+    assertEquals(result !== null, true);
 
-    if (isOk(result)) {
-      const { frontMatter, body } = result.data;
-      assertEquals(frontMatter !== null, true);
-      assertEquals(body.getContent().trim(), "Body content");
+    if (result) {
+      const parsed = result.data;
+      assertEquals(Object.keys(parsed).length, 0);
     }
   });
 });

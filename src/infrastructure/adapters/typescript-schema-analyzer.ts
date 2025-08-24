@@ -19,7 +19,7 @@ import type {
   FrontMatterContent,
   SchemaDefinition,
 } from "../../domain/core/types.ts";
-import { LoggerFactory } from "../../domain/shared/logging/logger.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 
 import {
   type ProcessingRequest,

@@ -18,7 +18,7 @@ import type {
   Transformer,
 } from "../core/interfaces.ts";
 import { Registry } from "../core/registry.ts";
-import { LoggerFactory } from "../shared/logging/logger.ts";
+import { LoggerFactory } from "../shared/logger.ts";
 
 /**
  * Generic analysis pipeline that orchestrates the entire process
