@@ -1,3 +1,7 @@
+# behavior
+
+- Compact often.
+
 # MCP and CLI
 
 - `climpt-*` is a bash command. It is also available via MCP. Execute the
@@ -62,4 +66,3 @@ languages
 # Tests
 
 - use `*_test.ts` filename for test file.
-

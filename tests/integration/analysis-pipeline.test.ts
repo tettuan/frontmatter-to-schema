@@ -1,10 +1,12 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
+  type AnalysisEngine,
+  type ContextualAnalysisProcessor,
   FrontMatterExtractionStrategy,
 } from "../../src/domain/core/analysis-engine.ts";
 import {
-  FactoryConfigurationBuilder,
   ComponentDomain,
+  FactoryConfigurationBuilder,
 } from "../../src/domain/core/component-factory.ts";
 import {
   type AnalysisContext,
@@ -168,7 +170,13 @@ async function processMarkdownFile(
   }
 
   const factory = FactoryConfigurationBuilder.createDefault();
-  const { processor } = factory.createDomainComponents(ComponentDomain.Analysis);
+  const components = factory.createDomainComponents(
+    ComponentDomain.Analysis,
+  ) as {
+    processor: ContextualAnalysisProcessor;
+    engine: AnalysisEngine;
+  };
+  const { processor } = components;
 
   // Step 5: Schema validation
   const schemaContext: AnalysisContext = {

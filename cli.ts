@@ -15,10 +15,10 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { join } from "jsr:@std/path@1.1.2";
-<<<<<<< Updated upstream
-=======
-import { LoggerFactory, type Logger } from "./src/domain/shared/logging/logger.ts";
->>>>>>> Stashed changes
+import {
+  type Logger,
+  LoggerFactory,
+} from "./src/domain/shared/logging/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./src/infrastructure/adapters/claude-schema-analyzer.ts";
@@ -173,12 +173,12 @@ async function main() {
 
       try {
         const dirStats = await Deno.stat(markdownDir);
-        logger.debug("Directory exists", {
+        cliLogger.debug("Directory exists", {
           path: markdownDir,
           isDirectory: dirStats.isDirectory,
         });
       } catch (error) {
-        logger.debug("Directory check failed", {
+        cliLogger.debug("Directory check failed", {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -324,15 +324,15 @@ async function main() {
       cliLogger.debug("🚀 Starting document processing...");
       cliLogger.debug(`📊 Processing config: ${
         JSON.stringify(
-        {
-          documentsPath: documentsPathResult.data.getValue(),
-          schemaPath: schemaPathResult.data.getValue(),
-          templatePath: templatePathResult.data.getValue(),
-          outputPath: outputPathResult.data.getValue(),
-        },
-        null,
-        2,
-      )
+          {
+            documentsPath: documentsPathResult.data.getValue(),
+            schemaPath: schemaPathResult.data.getValue(),
+            templatePath: templatePathResult.data.getValue(),
+            outputPath: outputPathResult.data.getValue(),
+          },
+          null,
+          2,
+        )
       }`);
     }
 

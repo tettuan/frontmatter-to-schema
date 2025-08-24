@@ -9,12 +9,10 @@ import { createValidationError } from "../../domain/shared/errors.ts";
 import { Template, TemplateDefinition } from "../../domain/models/template.ts";
 import type { TemplateRepository } from "../../domain/template/repository.ts";
 import { TemplatePath } from "../../domain/template/repository.ts";
+import { TemplateFormat } from "../../domain/template/format-handlers.ts";
 import {
-  TemplateFormat,
-} from "../../domain/template/format-handlers.ts";
-import {
-  FactoryConfigurationBuilder,
   ComponentDomain,
+  FactoryConfigurationBuilder,
 } from "../../domain/core/component-factory.ts";
 
 export class FileTemplateRepository implements TemplateRepository {
@@ -99,10 +97,17 @@ export class FileTemplateRepository implements TemplateRepository {
       // Validate template format using format handler from unified factory
       const factory = FactoryConfigurationBuilder.createDefault();
       const templateComponents = factory.createDomainComponents(
-        ComponentDomain.Template
-      ) as { formatHandlers: Map<string, any> };
-      const handler = templateComponents.formatHandlers.get(format.toLowerCase());
-      
+        ComponentDomain.Template,
+      ) as {
+        formatHandlers: Map<
+          string,
+          import("../../domain/template/format-handlers.ts").TemplateFormatHandler
+        >;
+      };
+      const handler = templateComponents.formatHandlers.get(
+        format.toLowerCase(),
+      );
+
       if (handler) {
         // Pre-validate template content
         const parseResult = handler.parse(content);

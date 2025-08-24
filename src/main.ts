@@ -34,8 +34,8 @@ import type {
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
-import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
 import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-schema-analyzer.ts";
+import { TypeScriptSchemaAnalyzer } from "./infrastructure/adapters/typescript-schema-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
@@ -260,7 +260,7 @@ Examples:
 
     // Load configuration
     let processingConfig: ProcessingConfiguration;
-    let analysisConfig: AnalysisConfiguration;
+    let _analysisConfig: AnalysisConfiguration;
 
     if (args.config && !args.documents) {
       // Load from config file
@@ -290,10 +290,10 @@ Examples:
         configPathResult.data,
       );
       if (analysisResult.ok) {
-        analysisConfig = analysisResult.data;
+        _analysisConfig = analysisResult.data;
       } else {
         // Use defaults
-        analysisConfig = {
+        _analysisConfig = {
           aiProvider: "claude",
           aiConfig: {},
         };
@@ -327,52 +327,32 @@ Examples:
         },
       };
 
-      analysisConfig = {
+      _analysisConfig = {
         aiProvider: "claude",
         aiConfig: {},
       };
     }
 
     // Load prompt templates
-    const prompts = await loadPromptTemplates();
+    const _prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer - use mock if in test mode or Claude unavailable
+    // Initialize schema analyzer
     let schemaAnalyzer;
-    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true" ||
-      !Deno.env.get("CLAUDE_API_KEY");
+    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
 
     if (useMock) {
       schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
       logger.info("Using mock analyzer", {
-        reason: "test mode or Claude API key not available",
+        reason: "test mode enabled",
       });
     } else {
-      try {
-        // Check if claude CLI is available
-        const checkResult = new Deno.Command("which", { args: ["claude"] })
-          .spawn();
-        const status = await checkResult.status;
-
-        if (status.success) {
-          schemaAnalyzer = new ClaudeSchemaAnalyzer(
-            analysisConfig,
-            prompts.extraction,
-            prompts.mapping,
-          );
-          const logger = LoggerFactory.createLogger("main-analyzer");
-          logger.info("Using Claude CLI for AI analysis");
-        } else {
-          throw new Error("Claude CLI not found");
-        }
-      } catch {
-        // Fallback to mock analyzer
-        schemaAnalyzer = new MockSchemaAnalyzer();
-        const logger = LoggerFactory.createLogger("main-analyzer");
-        logger.info("Using mock analyzer", {
-          reason: "Claude CLI not available",
-        });
-      }
+      // Use TypeScript implementation
+      schemaAnalyzer = new TypeScriptSchemaAnalyzer();
+      const logger = LoggerFactory.createLogger("main-analyzer");
+      logger.info("Using TypeScript analyzer", {
+        reason: "TypeScript implementation",
+      });
     }
 
     // Create use case

@@ -41,12 +41,10 @@ Markdownファイルの索引(Index)を作るためである。
 
 # 解析の手順
 
-一覧：
-まず、プロンプト一覧を作る。(成果A)
+一覧： まず、プロンプト一覧を作る。(成果A)
 また、最終成果物を空の状態でつくる（最終成果物Z）
 
-各コマンド：
-成果Aに対し、ループ処理する。全件実施する。
+各コマンド： 成果Aに対し、ループ処理する。全件実施する。
 各ループ内では、プロンプト1つずつを処理する。
 最初にフロントマター部分を抽出する。これはDenoで実施する。(成果B)
 成果Bから、`Claude Code SDK` で解析する（成果C）
@@ -57,23 +55,21 @@ Markdownファイルの索引(Index)を作るためである。
 
 availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
 
-利用するSchemaとテンプレート:　
-registry_template.json
-registry_schema.json
+利用するSchemaとテンプレート:　 registry_template.json registry_schema.json
 
 ## 個別コマンドの整形
 
 以下の2種類を使い分ける。
 
-a. プロンプトとフロントマターと「解析結果のSchema」を使って情報を抽出する 
+a. プロンプトとフロントマターと「解析結果のSchema」を使って情報を抽出する
 b.抽出した情報を、「解析結果のSchema」を使って、解析テンプレートへ当て込む
 
 抽出のための処理は、TypeScriptで行う。
 
-詳しくは `docs/architecture/schema_matching_architecture.ja.md` へ記載したため、必ず読むこと。
+詳しくは `docs/architecture/schema_matching_architecture.ja.md`
+へ記載したため、必ず読むこと。
 
-利用するSchemaとテンプレート:　
-registry_command_schema.json
+利用するSchemaとテンプレート:　 registry_command_schema.json
 registry_command_template.json
 
 ## 抽象化レベル
@@ -234,7 +230,6 @@ registry_command_template.json
   }
 }
 ```
-
 
 ```json:registry_command_template.json
 {

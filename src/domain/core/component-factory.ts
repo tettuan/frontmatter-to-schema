@@ -10,11 +10,10 @@ import { type Logger, LoggerFactory } from "../shared/logging/logger.ts";
 // Analysis Domain Factories
 import {
   type AnalysisEngine,
-  type ContextualAnalysisProcessor,
+  ContextualAnalysisProcessor,
   GenericAnalysisEngine,
   RobustSchemaAnalyzer,
   RobustTemplateMapper,
-  ContextualAnalysisProcessor,
 } from "./analysis-engine.ts";
 import { SchemaAnalysisFactory } from "../analysis/schema-driven.ts";
 import type {
@@ -90,7 +89,7 @@ export class AnalysisDomainFactory
     const engine = new GenericAnalysisEngine(this.timeout);
     const robustSchemaAnalyzer = new RobustSchemaAnalyzer();
     const robustTemplateMapper = new RobustTemplateMapper();
-    
+
     const processor = new ContextualAnalysisProcessor(
       engine,
       robustSchemaAnalyzer,
