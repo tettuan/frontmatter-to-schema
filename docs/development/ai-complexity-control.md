@@ -2,13 +2,16 @@
 
 ## Overview
 
-Control implementation complexity in AI-driven development using scientific principles from physics and statistics to maintain a simple and maintainable codebase.
+Control implementation complexity in AI-driven development using scientific
+principles from physics and statistics to maintain a simple and maintainable
+codebase.
 
 ## Root Causes of AI Complexity
 
 1. **Context fragmentation**: Local optimization with limited perspective
 2. **Over-engineering**: Unnecessary abstractions and pattern proliferation
-3. **Historical disconnection**: Failure to inherit design intentions, tendency to avoid deletion
+3. **Historical disconnection**: Failure to inherit design intentions, tendency
+   to avoid deletion
 
 **Detailed explanation**:
 [ai-complexity-control.ja.md](./ai-complexity-control.ja.md#背景ai複雑化の根本原因) -
@@ -181,11 +184,12 @@ Specific operational methods for each control prompt
 
 ### Scientific Justification
 
-- **Entropy**: Significant reduction from 25→20 classes, 8→5 interfaces, 4→1 abstraction layer
-- **Gravity**: TypeProvider-DirectiveType attraction <
-  JSR-DirectiveType attraction (direct integration superior)
-- **Convergence**: Provider statistics (frequency 12, success rate 0.3, score 0.28) <
-  Direct integration (frequency 45, success rate 0.85, score 18.1)
+- **Entropy**: Significant reduction from 25→20 classes, 8→5 interfaces, 4→1
+  abstraction layer
+- **Gravity**: TypeProvider-DirectiveType attraction < JSR-DirectiveType
+  attraction (direct integration superior)
+- **Convergence**: Provider statistics (frequency 12, success rate 0.3, score
+  0.28) < Direct integration (frequency 45, success rate 0.85, score 18.1)
 
 ### Deletion Strategy
 
@@ -242,15 +246,21 @@ check:complexity-gate() {
 
 **System construction details**:
 [ai-complexity-control.ja.md](./ai-complexity-control.ja.md#継続的改善メカニズム) -
-Implementation methods for automatic collection, report generation, and warning systems
+Implementation methods for automatic collection, report generation, and warning
+systems
 
 ## Conclusion
 
-Objective control of AI implementation behavior through the three major scientific principles of **entropy, gravity, and convergence**. Achieve pre-detection of complexity, preventive control, and continuous improvement for sustainable software development in the AI era.
+Objective control of AI implementation behavior through the three major
+scientific principles of **entropy, gravity, and convergence**. Achieve
+pre-detection of complexity, preventive control, and continuous improvement for
+sustainable software development in the AI era.
 
 ### Core Effects
 
-1. **Quantitative quality control**: Objective evaluation independent of subjectivity
+1. **Quantitative quality control**: Objective evaluation independent of
+   subjectivity
 2. **Preventive complexity control**: Avoid complexity through early detection
 3. **Scientific AI guidance**: Behavior modification through prompt design
-4. **Automatic quality maintenance**: Continuous monitoring and health maintenance mechanisms
+4. **Automatic quality maintenance**: Continuous monitoring and health
+   maintenance mechanisms

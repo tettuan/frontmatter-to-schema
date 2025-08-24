@@ -320,6 +320,7 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
 
 /**
  * Factory for creating configured frontmatter analysis pipelines
+ * @deprecated Use PipelineDomainFactory from component-factory.ts for better domain separation
  */
 export class FrontMatterPipelineFactory<TSchema, TTemplate>
   extends PipelineFactory<

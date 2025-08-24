@@ -2,7 +2,8 @@
 
 ## Core Philosophy
 
-**Convert partial functions to total functions** and eliminate "impossible states" using the type system.
+**Convert partial functions to total functions** and eliminate "impossible
+states" using the type system.
 
 ## Basic Patterns
 
@@ -146,8 +147,10 @@ Design perspectives that humans should clarify before applying totality:
 
 1. **State enumeration**: List all "valid states" that data can take
 2. **Transition definition**: Identify valid change patterns between states
-3. **Constraint clarification**: Identify value ranges, combination restrictions, dependencies
-4. **Exception cases**: Determine handling policies for error states, boundary values, and abnormal scenarios
+3. **Constraint clarification**: Identify value ranges, combination
+   restrictions, dependencies
+4. **Exception cases**: Determine handling policies for error states, boundary
+   values, and abnormal scenarios
 
 ### 📋 Business Rule Collection Template
 
@@ -187,7 +190,8 @@ Recommended format for presenting business rules to Claude:
 
 ### Concrete Application Examples
 
-- **Smart Constructor Implementation Example for LayerType and DirectiveType** (planned)
+- **Smart Constructor Implementation Example for LayerType and DirectiveType**
+  (planned)
   - TYPE design is defined by domain-driven design
   - For detailed domain design, refer to [#file:domain_core](../../domain_core/)
   - Type safety implementation patterns in core domains
@@ -317,7 +321,8 @@ const result = ValidatedValue.builder<string>()
 
 ## Step-by-Step Application Process
 
-1. **Business rule collection**: Organize domain information using the template above
+1. **Business rule collection**: Organize domain information using the template
+   above
 2. **Type definition modification**: Optional → Discriminated Union
 3. **Return value modification**: `T | null` → `Result<T, E>`
 4. **Branch modification**: `if (obj.prop)` → `switch (obj.kind)`
@@ -337,9 +342,10 @@ const result = ValidatedValue.builder<string>()
 
 When asked to "improve code by applying the totality principle":
 
-1. **Business rule confirmation**: Request rule presentation using the template above
-2. **Identify partial functions**:
-   Identify functions that return `undefined`/`null` or use type assertions, convert to Result type
+1. **Business rule confirmation**: Request rule presentation using the template
+   above
+2. **Identify partial functions**: Identify functions that return
+   `undefined`/`null` or use type assertions, convert to Result type
 3. **Improve type definitions**: Optional properties → Discriminated Union
 4. **Improve error handling**: Exceptions → Result type
 5. **Improve branching**: `if` chains → `switch` statements
@@ -403,5 +409,5 @@ const result = ValidValue.create(
 );
 ```
 
-**Goal**:
-Design where business rules are reflected in types, the compiler detects invalid states, and `switch` statements don't require `default` cases.
+**Goal**: Design where business rules are reflected in types, the compiler
+detects invalid states, and `switch` statements don't require `default` cases.
