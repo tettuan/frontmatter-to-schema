@@ -1,7 +1,9 @@
 // Configuration loader implementation
 
 import type { Result } from "../../domain/core/result.ts";
-import type { ValidationError, IOError } from "../../domain/shared/types.ts";
+import type { ValidationError } from "../../domain/shared/errors.ts";
+import { createValidationError } from "../../domain/shared/errors.ts";
+import type { IOError } from "../../domain/shared/types.ts";
 import { createError } from "../../domain/shared/types.ts";
 import {
   ConfigPath,
@@ -311,7 +313,7 @@ export class ConfigurationLoader
           error: createError({
             kind: "PermissionDenied",
             path: path.getValue(),
-          }, `Permission denied: ${path.getValue()}`),
+          }),
         };
       }
       return {
@@ -320,7 +322,7 @@ export class ConfigurationLoader
           kind: "WriteError",
           path: path.getValue(),
           reason: error instanceof Error ? error.message : "Unknown error",
-        }, `Write error: ${error instanceof Error ? error.message : "Unknown error"}`),
+        }),
       };
     }
   }
@@ -340,7 +342,7 @@ export class ConfigurationLoader
           kind: "WriteError",
           path: path.getValue(),
           reason: error instanceof Error ? error.message : "Unknown error",
-        }, `Write error: ${error instanceof Error ? error.message : "Unknown error"}`),
+        }),
       };
     }
   }
@@ -403,7 +405,7 @@ export class TemplateLoader implements TemplateRepository {
             kind: "ReadError",
             path: templatePath,
             reason: "Invalid template ID",
-          }, "Invalid template ID"),
+          }),
         };
       }
 
@@ -415,7 +417,7 @@ export class TemplateLoader implements TemplateRepository {
             kind: "ReadError",
             path: templatePath,
             reason: "Invalid template format",
-          }, "Invalid template format"),
+          }),
         };
       }
 
