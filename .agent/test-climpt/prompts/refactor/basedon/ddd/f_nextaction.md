@@ -1,7 +1,7 @@
 ---
 title:
 description:
-variables:
+options:
   uv-scope: 実行済の結果から導き出したネクストアクションを進める。その際に、基本事項を維持した状態で、次アクションを指示する。
   input_text: ネクストアクションの指示書
 ---

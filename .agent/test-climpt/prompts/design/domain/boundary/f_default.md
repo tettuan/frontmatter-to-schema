@@ -1,7 +1,7 @@
 ---
 title:
 description: 粗い考えをもとに、ドメイン境界線を引いてみる。
-variables:
+options:
   input_text: 原案
 ---
 

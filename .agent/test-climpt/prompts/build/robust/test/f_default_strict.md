@@ -1,6 +1,6 @@
 ---
 title: 強固で堅牢なテスト構築指示書
-variables:
+options:
   input_text_file: テスト対象機能の仕様書PATH
   input_text: 追加テスト要件または特別な考慮事項
   uv-test-scope: テスト対象範囲（unit/integration/e2e）
