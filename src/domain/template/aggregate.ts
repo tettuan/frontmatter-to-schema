@@ -40,6 +40,14 @@ export class TemplateAggregate {
   async loadTemplate(
     templateId: string,
   ): Promise<Result<Template, ValidationError>> {
+    // Validate templateId
+    if (!templateId || templateId.trim() === "") {
+      return {
+        ok: false,
+        error: createValidationError("Template ID cannot be empty"),
+      };
+    }
+
     // Check if already loaded
     const cached = this.loadedTemplates.get(templateId);
     if (cached) {
@@ -67,6 +75,14 @@ export class TemplateAggregate {
     templateId: string,
     context: TemplateApplicationContext,
   ): Promise<Result<string, ValidationError>> {
+    // Validate context
+    if (!context) {
+      return {
+        ok: false,
+        error: createValidationError("Template application context cannot be null"),
+      };
+    }
+
     // Load template if not cached
     const templateResult = await this.loadTemplate(templateId);
     if (!templateResult.ok) {
