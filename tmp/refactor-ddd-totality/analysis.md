@@ -38,6 +38,7 @@ After reviewing the codebase:
 ## Priority Areas for Refactoring
 
 ### High Priority (Core Domain)
+
 1. **Value Objects** (`src/domain/models/value-objects.ts`)
    - Add Smart Constructors
    - Implement validation rules
@@ -53,6 +54,7 @@ After reviewing the codebase:
    - Add exhaustive matching
 
 ### Medium Priority (Support Domain)
+
 1. **Template Processing**
    - Ensure total functions
    - Add proper error handling
@@ -62,6 +64,7 @@ After reviewing the codebase:
    - Use Result types consistently
 
 ### Low Priority (Infrastructure)
+
 1. **File System Operations**
    - Already mostly using Result types
    - Minor improvements needed

@@ -56,7 +56,7 @@ export interface FrontMatterExtractor {
 /**
  * Analysis configuration - makes optional parameters explicit
  */
-export type AnalysisConfig = 
+export type AnalysisConfig =
   | { kind: "Default" }
   | { kind: "Custom"; timeout: number; retries: number }
   | { kind: "Strict"; requiredFields: string[] };
@@ -224,9 +224,13 @@ export type AIProviderConfig =
 export interface ConfigurationLoader {
   loadProcessingConfig(
     path: ConfigPath,
-  ): Promise<Result<ProcessingConfiguration, ValidationError & { message: string }>>;
+  ): Promise<
+    Result<ProcessingConfiguration, ValidationError & { message: string }>
+  >;
 
   loadAnalysisConfig(
     path: ConfigPath,
-  ): Promise<Result<AnalysisConfiguration, ValidationError & { message: string }>>;
+  ): Promise<
+    Result<AnalysisConfiguration, ValidationError & { message: string }>
+  >;
 }
