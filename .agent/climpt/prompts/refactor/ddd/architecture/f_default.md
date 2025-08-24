@@ -1,7 +1,7 @@
 ---
 title:
 description:
-variables:
+options:
   uv-scope: ドメイン設計のアーキテクチャを再設計する。
 ---
 

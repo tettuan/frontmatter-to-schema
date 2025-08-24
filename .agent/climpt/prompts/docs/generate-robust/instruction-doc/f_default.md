@@ -1,7 +1,7 @@
 ---
 title: Climpt プロンプト作成指示書
 description: 短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める。
-variables:
+options:
   text_input: 指示したい内容を記載する
   destination_path: 出力先
 ---

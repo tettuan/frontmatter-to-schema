@@ -1,6 +1,6 @@
 ---
 title: 要求をブレイクダウンし構造化する
-variables:
+options:
   destination_path: 出力先
   input_text_file: 要求のファイル
 ---

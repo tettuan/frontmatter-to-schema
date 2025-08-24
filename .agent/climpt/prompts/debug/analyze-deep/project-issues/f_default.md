@@ -29,7 +29,8 @@ gh で 適切なラベルをつけてIssueを作って。
 
 ## ラベル
 
-[bug, ci-failure, duplicate, enhancement, refactor, documentation, priority-high]
+[bug, ci-failure, duplicate, enhancement, refactor, documentation,
+priority-high]
 
 # 何も課題がない場合
 
