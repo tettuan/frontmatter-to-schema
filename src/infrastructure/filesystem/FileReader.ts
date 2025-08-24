@@ -1,5 +1,4 @@
-import { PromptFile } from "../../domain/services/PromptFile.ts";
-import { PromptList } from "../../domain/services/PromptList.ts";
+import { PromptFile, PromptList } from "../../domain/services/prompt-models.ts";
 import { walk } from "jsr:@std/fs@1/walk";
 
 export class FileReader {
