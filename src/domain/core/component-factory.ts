@@ -10,8 +10,11 @@ import { type Logger, LoggerFactory } from "../shared/logging/logger.ts";
 // Analysis Domain Factories
 import {
   type AnalysisEngine,
-  AnalysisEngineFactory,
   type ContextualAnalysisProcessor,
+  GenericAnalysisEngine,
+  RobustSchemaAnalyzer,
+  RobustTemplateMapper,
+  ContextualAnalysisProcessor,
 } from "./analysis-engine.ts";
 import { SchemaAnalysisFactory } from "../analysis/schema-driven.ts";
 import type {
