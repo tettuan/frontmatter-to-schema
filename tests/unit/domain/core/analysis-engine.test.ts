@@ -1,7 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
   type AnalysisEngine,
-  AnalysisEngineFactory,
   type AnalysisStrategy,
   ContextualAnalysisProcessor,
   FrontMatterExtractionStrategy,
@@ -11,8 +10,8 @@ import {
   SchemaMappingStrategy,
 } from "../../../../src/domain/core/analysis-engine.ts";
 import {
-  FactoryConfigurationBuilder,
   ComponentDomain,
+  FactoryConfigurationBuilder,
 } from "../../../../src/domain/core/component-factory.ts";
 import {
   type AnalysisContext,
@@ -20,10 +19,6 @@ import {
   SchemaDefinition,
   // ValidFilePath is imported but not used in this test file
 } from "../../../../src/domain/core/types.ts";
-import {
-  ComponentDomain,
-  FactoryConfigurationBuilder,
-} from "../../../../src/domain/core/component-factory.ts";
 import {
   type AnalysisError,
   createDomainError,
@@ -489,20 +484,36 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
 Deno.test("AnalysisDomainFactory via FactoryConfigurationBuilder", async (t) => {
   await t.step("should create default components", () => {
     const factory = FactoryConfigurationBuilder.createDefault();
-    const components = factory.createDomainComponents(ComponentDomain.Analysis);
-    
+    const components = factory.createDomainComponents(
+      ComponentDomain.Analysis,
+    ) as {
+      engine: AnalysisEngine;
+      processor: ContextualAnalysisProcessor;
+    };
+
     assertEquals(components.engine instanceof GenericAnalysisEngine, true);
-    assertEquals(components.processor instanceof ContextualAnalysisProcessor, true);
+    assertEquals(
+      components.processor instanceof ContextualAnalysisProcessor,
+      true,
+    );
   });
 
   await t.step("should create components with custom configuration", () => {
     const factory = new FactoryConfigurationBuilder()
       .withAnalysisDomain()
       .build();
-    const components = factory.createDomainComponents(ComponentDomain.Analysis);
+    const components = factory.createDomainComponents(
+      ComponentDomain.Analysis,
+    ) as {
+      engine: AnalysisEngine;
+      processor: ContextualAnalysisProcessor;
+    };
 
     assertEquals(components.engine instanceof GenericAnalysisEngine, true);
-    assertEquals(components.processor instanceof ContextualAnalysisProcessor, true);
+    assertEquals(
+      components.processor instanceof ContextualAnalysisProcessor,
+      true,
+    );
   });
 });
 
