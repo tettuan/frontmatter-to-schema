@@ -141,3 +141,5 @@ vite.config.ts.timestamp-*
 # Zenn
 .agent/drafts/articles/
 .agent/drafts/articles/**
+tests/integration/claude-api-integration.test.ts
+.serena/

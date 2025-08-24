@@ -1,7 +1,5 @@
 /**
  * TypeScript Processing Orchestrator
- * Unified orchestrator that replaces Claude Code SDK processing
- * Implements the 3-phase architecture from schema_matching_architecture.ja.md
  */
 
 import type { Result } from "./result.ts";

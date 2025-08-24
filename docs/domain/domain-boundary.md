@@ -287,17 +287,17 @@ graph LR
 
 ### 5.1 外部システムとの境界
 
-#### ACL1: Claude API アダプター
+#### ACL1: TypeScript処理アダプター
 
-- **場所**: AI解析ドメイン内
-- **責務**: `Claude Code SDK`コマンドの抽象化
+- **場所**: Schema処理ドメイン内
+- **責務**: TypeScript処理エンジンの抽象化
 - **実装**:
   ```typescript
-  interface AIProvider {
-    analyze(input: string, prompt: string): Promise<string>;
+  interface ProcessingProvider {
+    analyze(input: string, schema: JSONSchema): Promise<string>;
   }
 
-  class ClaudeAdapter implements AIProvider {
+  class TypeScriptAdapter implements ProcessingProvider {
     async analyze(input: string, prompt: string): Promise<string> {
       // claude -p の実行をラップ
     }

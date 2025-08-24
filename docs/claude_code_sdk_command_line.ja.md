@@ -1,141 +1,116 @@
-# Claude Code SDK - Command Line Interface
+# TypeScript による Schema一致とテンプレート変換
 
-## インストール
+## アーキテクチャ
 
-```bash
-npm install -g @anthropic-ai/claude-code
+TypeScriptによる構造化処理により、Schema展開とマッピングによる確実な変換を実現します。
+
+## 処理フロー
+
+```
+入力 → フロントマター抽出 → Schema展開 → マッピング → テンプレート当て込み → 出力
 ```
 
-## 基本的な使用方法
+## TypeScript処理の詳細
 
-### 非対話モード
+### 1. フロントマター抽出フェーズ
 
-```bash
-claude -p "Your prompt here"
+TypeScriptでのYAML処理：
+
+```typescript
+import { parse } from "js-yaml";
+
+// フロントマター部分を抽出
+const frontMatter = extractFrontMatter(markdown);
+const parsedData = parse(frontMatter) as Record<string, unknown>;
 ```
 
-### カスタムシステムプロンプト付き
+### 2. Schema展開フェーズ
 
-```bash
-claude -p "Your prompt here" \
-  --append-system-prompt "Custom instructions" \
-  --allowedTools "Bash,Read,WebSearch" \
-  --permission-mode acceptEdits
+JSON Schemaを階層化してパス情報を生成：
+
+```typescript
+interface SchemaPath {
+  path: string;               // "tools.commands[].options.input"
+  type: string;               // "array<string>"
+  description?: string;       // "Supported input formats"
+  required: boolean;          // true/false
+}
+
+const expandedSchema = expandSchema(jsonSchema);
 ```
 
-## 主要なCLIオプション
+### 3. マッピングフェーズ
 
-| オプション               | 説明                                     |
-| ------------------------ | ---------------------------------------- |
-| `--print`, `-p`          | 非対話モードで実行                       |
-| `--output-format`        | 出力形式を指定 (text, json, stream-json) |
-| `--resume`, `-r`         | 特定のセッションを継続                   |
-| `--allowedTools`         | 許可するツールを指定                     |
-| `--append-system-prompt` | カスタムシステム指示を追加               |
-| `--permission-mode`      | エージェントの動作を制御                 |
+フロントマターとSchemaの対応付け：
 
-## 使用例
-
-### 1. 法的文書レビュー
-
-```bash
-claude -p "Review contract terms" \
-  --append-system-prompt "You are a legal assistant identifying risks"
+```typescript
+const mappingResult = mapFrontMatterToSchema(
+  parsedFrontMatter,
+  expandedSchema,
+  {
+    similarityThreshold: 0.8,
+    enforceTypeChecking: true,
+    requireAllMandatory: true
+  }
+);
 ```
 
-### 2. セキュリティ監査
+### 4. テンプレート当て込みフェーズ
 
-```bash
-gh pr diff 123 | claude -p \
-  --append-system-prompt "Analyze PR for security vulnerabilities"
+TypeScriptによる変数置換処理：
+
+```typescript
+// テンプレート内の {SchemaPath} を検出して置換
+const processTemplate = (template: string, mappedData: Record<string, unknown>) => {
+  return template.replace(/\{([^}]+)\}/g, (match, path) => {
+    const value = getValueByPath(mappedData, path);
+    if (value === undefined) {
+      // 必須項目の場合は警告、任意項目は空文字
+      return isRequired(path) ? `[MISSING: ${path}]` : '';
+    }
+    return formatValue(value, getTypeByPath(path));
+  });
+};
 ```
 
-### 3. コード生成
+## 利点
 
-```bash
-claude -p "Generate a React component for user authentication" \
-  --allowedTools "Write,Read" \
-  --output-format json
+1. **予測可能性**: 決定論的な処理結果
+2. **デバッグ容易性**: ステップバイステップでの確認可能  
+3. **パフォーマンス**: 高速な処理
+4. **型安全性**: コンパイル時エラー検出
+5. **カスタマイズ性**: 細かな処理調整が可能
+
+### Schema一致の確実性
+
+- JSON Schema仕様に完全準拠
+- 型検証による確実なマッピング
+- 必須項目チェックによるデータ完全性保証
+
+## 実装例
+
+### 完全な処理パイプライン
+
+```typescript
+import { SchemaMatchingProcessor } from './schema-matching-processor';
+
+const processor = new SchemaMatchingProcessor();
+
+const result = await processor.process({
+  markdown: inputMarkdown,
+  schema: jsonSchema,
+  template: templateString,
+  options: {
+    strictTypeChecking: true,
+    warnOnMissingRequired: true,
+    similarityThreshold: 0.8
+  }
+});
+
+if (result.success) {
+  console.log('Processed template:', result.output);
+  console.log('Mapping warnings:', result.warnings);
+} else {
+  console.error('Processing failed:', result.errors);
+}
 ```
-
-## 認証
-
-環境変数を設定:
-
-```bash
-export ANTHROPIC_API_KEY="your-api-key"
-```
-
-サードパーティプロバイダーのサポート:
-
-- Amazon Bedrock
-- Google Vertex AI
-
-## ツール権限管理
-
-利用可能なツール:
-
-- `Bash` - コマンド実行
-- `Read` - ファイル読み取り
-- `Write` - ファイル書き込み
-- `Edit` - ファイル編集
-- `WebSearch` - ウェブ検索
-- `WebFetch` - ウェブコンテンツ取得
-
-## 出力形式
-
-### テキスト形式（デフォルト）
-
-```bash
-claude -p "Your prompt" --output-format text
-```
-
-### JSON形式
-
-```bash
-claude -p "Your prompt" --output-format json
-```
-
-### ストリーミングJSON形式
-
-```bash
-claude -p "Your prompt" --output-format stream-json
-```
-
-## セッション管理
-
-### セッションの再開
-
-```bash
-claude --resume <session-id>
-```
-
-### セッション履歴の確認
-
-```bash
-claude --list-sessions
-```
-
-## 高度な使用方法
-
-### パイプライン処理
-
-```bash
-cat file.txt | claude -p "Analyze this content"
-```
-
-### 複数ツールの組み合わせ
-
-```bash
-claude -p "Analyze and refactor this codebase" \
-  --allowedTools "Read,Write,Edit,Bash" \
-  --append-system-prompt "Focus on performance optimization"
-```
-
-## ベストプラクティス
-
-1. **明確なプロンプト**: 具体的で明確な指示を提供する
-2. **適切なツール権限**: 必要最小限のツールのみを許可する
-3. **システムプロンプトの活用**: タスクに特化した指示を追加する
-4. **出力形式の選択**: 用途に応じて適切な形式を選択する
-5. **セッション管理**: 長期的なタスクではセッションを活用する

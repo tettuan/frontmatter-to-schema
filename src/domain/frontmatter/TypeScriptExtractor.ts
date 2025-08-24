@@ -1,6 +1,5 @@
 /**
  * TypeScript-based frontmatter extractor
- * Replaces Claude Code SDK processing with pure TypeScript implementation
  */
 
 import { extract as extractFrontMatter } from "jsr:@std/front-matter@1.0.5/any";
