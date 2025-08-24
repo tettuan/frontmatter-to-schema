@@ -21,8 +21,7 @@ import {
   type ValidationError,
 } from "../shared/errors.ts";
 import type { FrontMatterContent } from "./types.ts";
-import type { SchemaDefinition } from "./types.ts";
-import type { Template } from "../models/entities.ts";
+import type { Schema, Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
 
 /**
@@ -130,12 +129,16 @@ export class AIAnalysisOrchestrator {
    */
   async extractInformation(
     frontMatter: FrontMatterContent,
-    schema: SchemaDefinition,
+    schema: Schema,
   ): Promise<Result<ExtractedInfo, ValidationError>> {
+    // Extract schema definition and version from Schema entity
+    const schemaDefinition = schema.getDefinition();
+    const schemaVersion = schema.getVersion();
+
     // Build extraction prompt
     const prompt = this.buildExtractionPrompt(
       frontMatter.data,
-      schema.schema as object,
+      schemaDefinition.getValue() as object,
     );
 
     // Execute AI analysis (claude -p 1st call)
@@ -159,7 +162,7 @@ export class AIAnalysisOrchestrator {
       const metadata: ExtractionMetadata = {
         extractedAt: new Date(),
         promptUsed: "PromptA",
-        schemaVersion: "1.0.0", // TODO: Get from schema
+        schemaVersion: schemaVersion.toString(),
       };
 
       return ExtractedInfo.create(parsed, metadata);
@@ -178,13 +181,16 @@ export class AIAnalysisOrchestrator {
    */
   async applyTemplate(
     extractedInfo: ExtractedInfo,
-    schema: SchemaDefinition,
+    schema: Schema,
     template: Template,
   ): Promise<Result<StructuredData, ValidationError>> {
+    // Extract schema definition from Schema entity
+    const schemaDefinition = schema.getDefinition();
+
     // Build template application prompt
     const prompt = this.buildTemplateApplicationPrompt(
       extractedInfo.getData(),
-      schema.schema as object,
+      schemaDefinition.getValue() as object,
       template.getFormat().getTemplate(),
     );
 
@@ -192,7 +198,7 @@ export class AIAnalysisOrchestrator {
     const result = await this.aiAnalyzer.analyze({
       content: JSON.stringify({
         extractedData: extractedInfo.getData(),
-        schema: schema.schema,
+        schema: schemaDefinition.getValue(),
         template: template.getFormat().getTemplate(),
       }),
       prompt,
@@ -228,7 +234,7 @@ export class AIAnalysisOrchestrator {
    */
   async analyze(
     frontMatter: FrontMatterContent,
-    schema: SchemaDefinition,
+    schema: Schema,
     template: Template,
   ): Promise<Result<StructuredData, ValidationError>> {
     // Stage 1: Information extraction
