@@ -377,48 +377,6 @@ export class ContextualAnalysisProcessor {
 }
 
 /**
- * Factory for creating Analysis Engine components
- * Implements dependency injection for the backbone system
- *
- * @deprecated Use AnalysisDomainFactory from component-factory.ts for better domain separation
- */
-export class AnalysisEngineFactory {
-  static createDefault(): {
-    engine: AnalysisEngine;
-    processor: ContextualAnalysisProcessor;
-  } {
-    const engine = new GenericAnalysisEngine();
-    const schemaAnalyzer = new RobustSchemaAnalyzer();
-    const templateMapper = new RobustTemplateMapper();
-
-    const processor = new ContextualAnalysisProcessor(
-      engine,
-      schemaAnalyzer,
-      templateMapper,
-    );
-
-    return { engine, processor };
-  }
-
-  static createWithTimeout(timeoutMs: number): {
-    engine: AnalysisEngine;
-    processor: ContextualAnalysisProcessor;
-  } {
-    const engine = new GenericAnalysisEngine(timeoutMs);
-    const schemaAnalyzer = new RobustSchemaAnalyzer();
-    const templateMapper = new RobustTemplateMapper();
-
-    const processor = new ContextualAnalysisProcessor(
-      engine,
-      schemaAnalyzer,
-      templateMapper,
-    );
-
-    return { engine, processor };
-  }
-}
-
-/**
  * Analysis Strategy Implementations
  * Concrete strategies for different analysis types
  */
