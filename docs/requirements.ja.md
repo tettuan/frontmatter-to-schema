@@ -58,7 +58,9 @@ Markdownファイルの索引(Index)を作るためである。
 a. プロンプトとフロントマターと「解析結果のSchema」を使って情報を抽出する b.
 抽出した情報を、「解析結果のSchema」を使って、解析テンプレートへ当て込む
 
-抽出のためのプロンプトは、TypeScript内部へ埋め込む。
+抽出のための処理は、TypeScriptで行う。
+
+詳しくは `docs/architecture/schema_matching_architecture.ja.md` へ記載したため、必ず読むこと。
 
 ## 抽象化レベル
 
@@ -95,38 +97,118 @@ a. プロンプトとフロントマターと「解析結果のSchema」を使�
 
 ### 解析結果のSchema：
 
-```json
+```json:registry_schema.json
 {
-  "version": string,           // Registry version (e.g., "1.0.0")
-  "description": string,       // Overall registry description
-  "tools": {
-    // Tool names array - each becomes available as climpt-{name}
-    "availableConfigs": string[],  // ["git", "spec", "test", "code", "docs", "meta"]
-    
-    // Command registry - defines all available C3L commands
-    "commands": [
-      {
-        "c1": string,         // Domain/category (git, spec, test, code, docs, meta)
-        "c2": string,         // Action/directive (create, analyze, execute, etc.)
-        "c3": string,         // Target/layer (refinement-issue, quality-metrics, etc.)
-        "description": string,// Command description
-        "usage": string,      // Usage instructions and examples
-        "options": {          // Available options for this command
-          "input": string[],     // Supported input formats
-          "adaptation": string[], // Processing modes
-          "input_file": boolean[],  // File input support
-          "stdin": boolean[],       // Standard input support
-          "destination": boolean[]  // Output destination support
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Registry Schema",
+  "description": "Schema for registry configuration with tools and commands",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Registry version (e.g., \"1.0.0\")",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Overall registry description"
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool configuration and command registry",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "description": "Tool names array - each becomes available as climpt-{name}",
+          "items": {
+            "type": "string",
+            "enum": ["git", "spec", "test", "code", "docs", "meta"]
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry - defines all available C3L commands",
+          "items": { "$ref": "command.schema.json" }
         }
-      }
-    ]
-  }
+      },
+      "required": ["availableConfigs", "commands"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
+}
+```
+
+```json:registry_command_schema.json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Command Schema",
+  "description": "Schema for a single command definition",
+  "properties": {
+    "c1": {
+      "type": "string",
+      "description": "Domain/category (git, spec, test, code, docs, meta)",
+      "enum": ["git", "spec", "test", "code", "docs", "meta"]
+    },
+    "c2": {
+      "type": "string",
+      "description": "Action/directive (create, analyze, execute, etc.)"
+    },
+    "c3": {
+      "type": "string",
+      "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Command description"
+    },
+    "usage": {
+      "type": "string",
+      "description": "Usage instructions and examples"
+    },
+    "options": {
+      "type": "object",
+      "description": "Available options for this command",
+      "properties": {
+        "input": {
+          "type": "array",
+          "description": "Supported input formats",
+          "items": { "type": "string" }
+        },
+        "adaptation": {
+          "type": "array",
+          "description": "Processing modes",
+          "items": { "type": "string" }
+        },
+        "input_file": {
+          "type": "array",
+          "description": "File input support",
+          "items": { "type": "boolean" }
+        },
+        "stdin": {
+          "type": "array",
+          "description": "Standard input support",
+          "items": { "type": "boolean" }
+        },
+        "destination": {
+          "type": "array",
+          "description": "Output destination support",
+          "items": { "type": "boolean" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["c1", "c2", "c3", "description", "usage", "options"],
+  "additionalProperties": false
 }
 ```
 
 ### 解析結果のテンプレート：
 
-```json
+```json:registry_template.json
 {
   "version": "1.0.0",
   "description": "Climpt comprehensive configuration for MCP server and command registry",
@@ -140,46 +222,29 @@ a. プロンプトとフロントマターと「解析結果のSchema」を使�
       "test"
     ],
     "commands": [
-      // Git commands
-      {
-        "c1": "git",
-        "c2": "create",
-        "c3": "refinement-issue",
-        "description": "Create a refinement issue from requirements documentation",
-        "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md",
-        "options": {
-          "input": ["MD"],
-          "adaptation": ["default", "detailed"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "analyze",
-        "c3": "commit-history",
-        "description": "Analyze commit history and generate insights"
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "quality-metrics",
-        "description": "Analyze specification quality and completeness"
-      },
-      {
-        "c1": "spec",
-        "c2": "validate",
-        "c3": "requirements",
-        "description": "Validate requirements against standards"
-      },
-      {
-        "c1": "test",
-        "c2": "execute",
-        "c3": "integration-suite",
-        "description": "Execute integration test suite"
-      }
+      // 🔖 No inline command definitions here.
+      // Each command should be defined as a separate template:
+      //   e.g., commands/git/create-refinement-issue.json
+      //        commands/spec/analyze-quality-metrics.json
     ]
+  }
+}
+```
+
+
+```json:registry_command_template.json
+{
+  "c1": "git",
+  "c2": "create",
+  "c3": "refinement-issue",
+  "description": "Create a refinement issue from requirements documentation",
+  "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md",
+  "options": {
+    "input": ["MD"],
+    "adaptation": ["default", "detailed"],
+    "input_file": [true],
+    "stdin": [false],
+    "destination": [true]
   }
 }
 ```

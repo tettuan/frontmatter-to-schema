@@ -18,11 +18,14 @@ import type {
   Transformer,
 } from "../core/interfaces.ts";
 import { Registry } from "../core/registry.ts";
+import { LoggerFactory } from "../shared/logging/logger.ts";
 
 /**
  * Generic analysis pipeline that orchestrates the entire process
  */
 export class AnalysisPipeline<TOutput = unknown> {
+  private readonly logger = LoggerFactory.createLogger("AnalysisPipeline");
+
   constructor(
     private readonly config: PipelineConfig,
     private readonly fileDiscovery: FileDiscovery,
@@ -49,7 +52,10 @@ export class AnalysisPipeline<TOutput = unknown> {
           registry.add(filePath, result);
         }
       } catch (error) {
-        console.error(`Error processing ${filePath}:`, error);
+        this.logger.error(`Error processing ${filePath}`, {
+          filePath,
+          error: error instanceof Error ? error.message : String(error),
+        });
         // Continue with other files
       }
     }
@@ -92,7 +98,7 @@ export class AnalysisPipeline<TOutput = unknown> {
     const frontMatter = await this.extractor.extract(content);
 
     if (!frontMatter) {
-      console.warn(`No frontmatter found in ${filePath}`);
+      this.logger.warn(`No frontmatter found in file`, { filePath });
       return null;
     }
 
@@ -134,7 +140,7 @@ export class AnalysisPipeline<TOutput = unknown> {
     for (const strategyName of this.config.processing.strategies) {
       const strategy = this.strategies.get(strategyName);
       if (!strategy) {
-        console.warn(`Strategy ${strategyName} not found`);
+        this.logger.warn(`Strategy not found`, { strategyName });
         continue;
       }
 

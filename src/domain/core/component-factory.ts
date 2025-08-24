@@ -67,12 +67,15 @@ export class AnalysisDomainFactory
   implements DomainComponentFactory<ComponentDomain.Analysis> {
   readonly domain = ComponentDomain.Analysis;
   private readonly logger: Logger;
+  private readonly timeout?: number;
 
   constructor(
     private readonly externalService?: ExternalAnalysisService,
     private readonly prompts?: PromptConfiguration,
+    options?: { timeout?: number },
   ) {
     this.logger = LoggerFactory.createLogger("analysis-factory");
+    this.timeout = options?.timeout;
   }
 
   createComponents(): {
@@ -83,8 +86,16 @@ export class AnalysisDomainFactory
   } {
     this.logger.info("Creating analysis domain components");
 
-    // Create core engine components
-    const { engine, processor } = AnalysisEngineFactory.createDefault();
+    // Create core engine components directly (previously done by deprecated AnalysisEngineFactory)
+    const engine = new GenericAnalysisEngine(this.timeout);
+    const robustSchemaAnalyzer = new RobustSchemaAnalyzer();
+    const robustTemplateMapper = new RobustTemplateMapper();
+    
+    const processor = new ContextualAnalysisProcessor(
+      engine,
+      robustSchemaAnalyzer,
+      robustTemplateMapper,
+    );
 
     // Create schema-driven components if dependencies are available
     let schemaAnalyzer: SchemaBasedAnalyzer<unknown, unknown>;
@@ -100,36 +111,12 @@ export class AnalysisDomainFactory
         this.prompts,
       );
     } else {
-      // Use default implementations
+      // Use default implementations (the robust ones created above)
       this.logger.warn(
-        "Creating analysis components with minimal dependencies",
+        "Creating analysis components with default implementations",
       );
-      schemaAnalyzer = SchemaAnalysisFactory.createAnalyzer(
-        {
-          analyze() {
-            return Promise.resolve({
-              message: "No external service configured",
-            });
-          },
-        },
-        {
-          extractionPrompt: "Default extraction prompt",
-          mappingPrompt: "Default mapping prompt",
-        },
-      );
-      templateMapper = SchemaAnalysisFactory.createMapper(
-        {
-          analyze() {
-            return Promise.resolve({
-              message: "No external service configured",
-            });
-          },
-        },
-        {
-          extractionPrompt: "Default extraction prompt",
-          mappingPrompt: "Default mapping prompt",
-        },
-      );
+      schemaAnalyzer = robustSchemaAnalyzer;
+      templateMapper = robustTemplateMapper;
     }
 
     this.logger.info("Analysis domain components created successfully");
