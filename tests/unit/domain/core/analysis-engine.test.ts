@@ -1,6 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  AnalysisEngineFactory,
   type AnalysisStrategy,
   ContextualAnalysisProcessor,
   FrontMatterExtractionStrategy,
@@ -9,6 +8,10 @@ import {
   RobustTemplateMapper,
   SchemaMappingStrategy,
 } from "../../../../src/domain/core/analysis-engine.ts";
+import {
+  FactoryConfigurationBuilder,
+  ComponentDomain,
+} from "../../../../src/domain/core/component-factory.ts";
 import {
   type AnalysisContext,
   FrontMatterContent,
@@ -485,19 +488,23 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
   );
 });
 
-Deno.test("AnalysisEngineFactory", async (t) => {
+Deno.test("AnalysisDomainFactory via FactoryConfigurationBuilder", async (t) => {
   await t.step("should create default components", () => {
-    const { engine, processor } = AnalysisEngineFactory.createDefault();
-
-    assertEquals(engine instanceof GenericAnalysisEngine, true);
-    assertEquals(processor instanceof ContextualAnalysisProcessor, true);
+    const factory = FactoryConfigurationBuilder.createDefault();
+    const components = factory.createDomainComponents(ComponentDomain.Analysis);
+    
+    assertEquals(components.engine instanceof GenericAnalysisEngine, true);
+    assertEquals(components.processor instanceof ContextualAnalysisProcessor, true);
   });
 
-  await t.step("should create components with custom timeout", () => {
-    const { engine, processor } = AnalysisEngineFactory.createWithTimeout(5000);
+  await t.step("should create components with custom configuration", () => {
+    const factory = new FactoryConfigurationBuilder()
+      .withAnalysisDomain()
+      .build();
+    const components = factory.createDomainComponents(ComponentDomain.Analysis);
 
-    assertEquals(engine instanceof GenericAnalysisEngine, true);
-    assertEquals(processor instanceof ContextualAnalysisProcessor, true);
+    assertEquals(components.engine instanceof GenericAnalysisEngine, true);
+    assertEquals(components.processor instanceof ContextualAnalysisProcessor, true);
   });
 });
 
