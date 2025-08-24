@@ -103,9 +103,10 @@ async function main() {
   // Debug logging if needed
   const debugMode = Deno.env.get("FRONTMATTER_TO_SCHEMA_DEBUG") === "true" ||
     Deno.env.get("FRONTMATTER_DEBUG") === "true"; // backward compatibility
+  const logger = LoggerFactory.createLogger("cli");
   if (debugMode) {
-    console.log("Raw args:", Deno.args);
-    console.log("Processed args:", processedArgs);
+    logger.debug("Raw args", { args: Deno.args });
+    logger.debug("Processed args", { args: processedArgs });
   }
 
   const args = parseArgs(processedArgs, {
@@ -140,35 +141,29 @@ async function main() {
 
     // Verbose: Check file existence before processing
     if (verboseMode) {
-      console.log("🔍 [VERBOSE] Validating input files...");
+      logger.debug("Validating input files");
       try {
         const schemaStats = await Deno.stat(schemaPath);
-        console.log(
-          `✅ [VERBOSE] Schema file exists: ${schemaPath} (size: ${
-            (schemaStats.size / 1024).toFixed(1)
-          }KB)`,
-        );
+        logger.debug("Schema file exists", {
+          path: schemaPath,
+          sizeKB: (schemaStats.size / 1024).toFixed(1),
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Schema file check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        logger.debug("Schema file check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       try {
         const templateStats = await Deno.stat(templatePath);
-        console.log(
-          `✅ [VERBOSE] Template file exists: ${templatePath} (size: ${
-            (templateStats.size / 1024).toFixed(1)
-          }KB)`,
-        );
+        logger.debug("Template file exists", {
+          path: templatePath,
+          sizeKB: (templateStats.size / 1024).toFixed(1),
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Template file check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        logger.debug("Template file check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       try {
@@ -183,7 +178,7 @@ async function main() {
         });
       }
 
-      console.log("🔧 [VERBOSE] Creating value objects...");
+      logger.debug("Creating value objects");
     }
 
     // Create value objects
@@ -237,7 +232,7 @@ async function main() {
 
     // Initialize services
     if (verboseMode) {
-      console.log("🏗️ [VERBOSE] Initializing services...");
+      logger.debug("Initializing services");
     }
     const configLoader = new ConfigurationLoader();
     const templateLoader = new TemplateLoader();
@@ -271,18 +266,18 @@ async function main() {
     };
     const resultAggregator = new ResultAggregatorImpl("json");
     if (verboseMode) {
-      console.log("✅ [VERBOSE] Document repository initialized");
-      console.log("✅ [VERBOSE] Template mapper initialized");
-      console.log("✅ [VERBOSE] Result aggregator initialized");
+      logger.debug("Document repository initialized");
+      logger.debug("Template mapper initialized");
+      logger.debug("Result aggregator initialized");
     }
 
     // Load prompts and create analyzer
     if (verboseMode) {
-      console.log("📝 [VERBOSE] Loading prompt templates...");
+      logger.debug("Loading prompt templates");
     }
     const prompts = await loadPromptTemplates();
     if (verboseMode) {
-      console.log("✅ [VERBOSE] Prompt templates loaded successfully");
+      logger.debug("Prompt templates loaded successfully");
     }
     // Set verbose mode for components
     if (verboseMode) {
