@@ -59,6 +59,40 @@ export class TemplateProcessingService {
     schema: object,
     format: "json" | "yaml" | "markdown" = "json",
   ): Promise<Result<string, ValidationError>> {
+    // Validate inputs
+    if (!templateId || templateId.trim() === "") {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError" as const,
+          message: "Template ID cannot be empty",
+        },
+      };
+    }
+
+    if (data === null || data === undefined) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError" as const,
+          message: "Data cannot be null or undefined",
+        },
+      };
+    }
+
+    // Validate format
+    const validFormats = ["json", "yaml", "markdown"];
+    if (!validFormats.includes(format)) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError" as const,
+          message:
+            `Invalid format: ${format}. Must be one of: json, yaml, markdown`,
+        },
+      };
+    }
+
     const context: TemplateApplicationContext = {
       extractedData: data,
       schema,
