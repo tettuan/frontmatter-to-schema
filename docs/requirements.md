@@ -6,28 +6,35 @@
 
 ## Purpose
 
-To create indexes for Markdown files.
-Various Markdown files exist for different purposes with diverse frontmatter definitions.
-Creating indexes is difficult without strict Schema definitions in operation.
-Therefore, we use AI to perform post-hoc type definition and indexing (not through input validation or pre-definition, but for already created Markdown).
+To create indexes for Markdown files. Various Markdown files exist for different
+purposes with diverse frontmatter definitions. Creating indexes is difficult
+without strict Schema definitions in operation. Therefore, we use AI to perform
+post-hoc type definition and indexing (not through input validation or
+pre-definition, but for already created Markdown).
 
 ## Background
 
 Markdown and frontmatter offer the advantage of flexible operation as needed.
-However, since they are created without strict type definitions, input methods and naming tend to be operator-dependent.
-Furthermore, including accumulated past Markdown files makes it difficult to pre-define and operate everything.
+However, since they are created without strict type definitions, input methods
+and naming tend to be operator-dependent. Furthermore, including accumulated
+past Markdown files makes it difficult to pre-define and operate everything.
 This addresses these challenges.
 
 ## Reason for Flexibility
 
 Applications that only support specific patterns cannot adapt to Schema changes.
-Therefore, the application reads Schemas and templates externally, uses Schema definitions with replacement in mind, and outputs to templates.
+Therefore, the application reads Schemas and templates externally, uses Schema
+definitions with replacement in mind, and outputs to templates.
 
-This allows changing only the index-side definitions **without modifying the Markdown side** when index specifications change.
+This allows changing only the index-side definitions **without modifying the
+Markdown side** when index specifications change.
 
-Additionally, by switching Schema and template sets and changing Markdown file paths and index output destinations, the same application can create various indexes for prompt collections, article indexes, etc.
+Additionally, by switching Schema and template sets and changing Markdown file
+paths and index output destinations, the same application can create various
+indexes for prompt collections, article indexes, etc.
 
-This is the reason for ensuring flexibility and why "making replaceable Schemas and templates is an important requirement."
+This is the reason for ensuring flexibility and why "making replaceable Schemas
+and templates is an important requirement."
 
 # Deliverables
 
@@ -40,16 +47,14 @@ This is the reason for ensuring flexibility and why "making replaceable Schemas 
 
 # Analysis Process
 
-First, create a prompt list. (Result A)
-Also, create the final deliverable in an empty state (Final Result Z)
+First, create a prompt list. (Result A) Also, create the final deliverable in an
+empty state (Final Result Z)
 
-Process Result A in a loop. Process all items.
-In each loop, process one prompt at a time.
-First, extract the frontmatter portion using Deno. (Result B)
-Analyze Result B with `Claude Code SDK` (Result C)
-Map Result C to structured data using `Claude Code SDK` (Result D)
-Integrate Result D into Final Result Z
-Save Final Result Z.
+Process Result A in a loop. Process all items. In each loop, process one prompt
+at a time. First, extract the frontmatter portion using Deno. (Result B) Analyze
+Result B with `Claude Code SDK` (Result C) Map Result C to structured data using
+`Claude Code SDK` (Result D) Integrate Result D into Final Result Z Save Final
+Result Z.
 
 ## claude -p
 
@@ -65,18 +70,22 @@ Embed extraction prompts inside TypeScript.
 Rules:
 
 1. Do not mix concrete Example 1-Example 2 patterns in implementation
-2. Application code is unaffected by changes to Example 1-Example 2 Schema and template examples
-3. Application code is unaffected by changes to Example 1-Example 2 hierarchy information
+2. Application code is unaffected by changes to Example 1-Example 2 Schema and
+   template examples
+3. Application code is unaffected by changes to Example 1-Example 2 hierarchy
+   information
 4. Points 2 and 3 above are resolved through configuration or arguments
 5. Final Result Z equals the combined results from `Claude Code SDK` `b`
 
 # Reference Information
 
-The following are actual use case examples. The deliverable is a generically abstracted application that can handle cases beyond Example 1-Example 2 listed here.
-These examples are provided to verify whether the application can actually map from Schema to template using these real cases.
+The following are actual use case examples. The deliverable is a generically
+abstracted application that can handle cases beyond Example 1-Example 2 listed
+here. These examples are provided to verify whether the application can actually
+map from Schema to template using these real cases.
 
-For actual usage examples, create under examples/ in an executable form.
-tests/ strengthens application code, while examples/ demonstrates real examples.
+For actual usage examples, create under examples/ in an executable form. tests/
+strengthens application code, while examples/ demonstrates real examples.
 
 ## Example 1
 

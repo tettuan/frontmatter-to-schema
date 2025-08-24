@@ -1,8 +1,8 @@
 # Testing Specification - Execution Guide
 
-> **Important**: 
-> This document is a **practical guide for test execution**. For complete test strategy, 
-> refer to [../../tests/README.md](../../tests/README.md).
+> **Important**: This document is a **practical guide for test execution**. For
+> complete test strategy, refer to
+> [../../tests/README.md](../../tests/README.md).
 
 ## Current Status
 
@@ -15,8 +15,10 @@ A test strategy based on **Domain-Driven Design** has been established:
 
 ### Test Placement Policy
 
-- **Unit Tests**: Placed in the same directory as implementation files under `src/`
-- **Integration/E2E Tests**: Placed in independent test directories under `tests/`
+- **Unit Tests**: Placed in the same directory as implementation files under
+  `src/`
+- **Integration/E2E Tests**: Placed in independent test directories under
+  `tests/`
 
 ```
 src/                          # Implementation files + unit tests
@@ -170,9 +172,11 @@ LOG_LEVEL=info LOG_LENGTH=S deno test
 
 ### Preprocessing Failure Determination
 
-- If a test fails in preprocessing not related to the test's purpose, another preprocessing test is needed
+- If a test fails in preprocessing not related to the test's purpose, another
+  preprocessing test is needed
 - Preprocessing tests should be placed in earlier execution stages
 - Preprocessing examples:
-  - Configuration determination test fails on config file loading → 
-    Create config file loading test
-- Test preprocessing should use confirmed processes executed before the relevant test
+  - Configuration determination test fails on config file loading → Create
+    config file loading test
+- Test preprocessing should use confirmed processes executed before the relevant
+  test
