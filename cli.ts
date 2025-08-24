@@ -15,6 +15,10 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { join } from "jsr:@std/path@1.1.2";
+<<<<<<< Updated upstream
+=======
+import { LoggerFactory, type Logger } from "./src/domain/shared/logging/logger.ts";
+>>>>>>> Stashed changes
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { ClaudeSchemaAnalyzer } from "./src/infrastructure/adapters/claude-schema-analyzer.ts";
@@ -33,8 +37,11 @@ import {
 } from "./src/domain/models/value-objects.ts";
 import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
 
+// Create global CLI logger
+const cliLogger: Logger = LoggerFactory.createLogger("CLI");
+
 function printUsage() {
-  console.log(`
+  cliLogger.info(`
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
 Usage:
@@ -119,17 +126,17 @@ async function main() {
   const verboseMode = args.verbose || false;
 
   if (!schemaPath || !templatePath) {
-    console.error("Error: --schema and --template options are required");
+    cliLogger.error("Error: --schema and --template options are required");
     printUsage();
     Deno.exit(1);
   }
 
   try {
-    console.log("🚀 Starting frontmatter-to-schema CLI...");
-    console.log(`📁 Markdown directory: ${markdownDir}`);
-    console.log(`📋 Schema: ${schemaPath}`);
-    console.log(`📝 Template: ${templatePath}`);
-    console.log(`💾 Destination: ${destinationDir}`);
+    cliLogger.info("🚀 Starting frontmatter-to-schema CLI...");
+    cliLogger.info(`📁 Markdown directory: ${markdownDir}`);
+    cliLogger.info(`📋 Schema: ${schemaPath}`);
+    cliLogger.info(`📝 Template: ${templatePath}`);
+    cliLogger.info(`💾 Destination: ${destinationDir}`);
 
     // Verbose: Check file existence before processing
     if (verboseMode) {
@@ -166,15 +173,14 @@ async function main() {
 
       try {
         const dirStats = await Deno.stat(markdownDir);
-        console.log(
-          `✅ [VERBOSE] Directory exists: ${markdownDir} (isDirectory: ${dirStats.isDirectory})`,
-        );
+        logger.debug("Directory exists", {
+          path: markdownDir,
+          isDirectory: dirStats.isDirectory,
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Directory check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        logger.debug("Directory check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       console.log("🔧 [VERBOSE] Creating value objects...");
@@ -213,18 +219,18 @@ async function main() {
       !documentsPathResult.ok || !schemaPathResult.ok ||
       !templatePathResult.ok || !outputPathResult.ok
     ) {
-      console.error("Error: Invalid paths provided");
+      cliLogger.error("Error: Invalid paths provided");
       if (!documentsPathResult.ok) {
-        console.error(`  Documents: ${documentsPathResult.error.message}`);
+        cliLogger.error(`  Documents: ${documentsPathResult.error.message}`);
       }
       if (!schemaPathResult.ok) {
-        console.error(`  Schema: ${schemaPathResult.error.message}`);
+        cliLogger.error(`  Schema: ${schemaPathResult.error.message}`);
       }
       if (!templatePathResult.ok) {
-        console.error(`  Template: ${templatePathResult.error.message}`);
+        cliLogger.error(`  Template: ${templatePathResult.error.message}`);
       }
       if (!outputPathResult.ok) {
-        console.error(`  Output: ${outputPathResult.error.message}`);
+        cliLogger.error(`  Output: ${outputPathResult.error.message}`);
       }
       Deno.exit(1);
     }
@@ -299,7 +305,9 @@ async function main() {
       );
 
     // Create use case
-    console.log("🎯 [DEBUG] Creating ProcessDocumentsUseCase...");
+    if (debugMode) {
+      cliLogger.debug("🎯 Creating ProcessDocumentsUseCase...");
+    }
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
       documentRepo,
       configLoader,
@@ -312,9 +320,10 @@ async function main() {
     );
 
     // Execute processing
-    console.log("🚀 [DEBUG] Starting document processing...");
-    console.log(`📊 [DEBUG] Processing config: ${
-      JSON.stringify(
+    if (debugMode) {
+      cliLogger.debug("🚀 Starting document processing...");
+      cliLogger.debug(`📊 Processing config: ${
+        JSON.stringify(
         {
           documentsPath: documentsPathResult.data.getValue(),
           schemaPath: schemaPathResult.data.getValue(),
@@ -324,7 +333,8 @@ async function main() {
         null,
         2,
       )
-    }`);
+      }`);
+    }
 
     const _startTime = Date.now();
     const processingConfig = {
@@ -338,8 +348,8 @@ async function main() {
       },
     };
 
-    console.log("⚡ Processing documents...");
-    console.log(
+    cliLogger.info("⚡ Processing documents...");
+    cliLogger.info(
       "📝 This may take a moment depending on the number of files and AI processing...",
     );
 
@@ -348,37 +358,37 @@ async function main() {
     });
 
     if (result.ok) {
-      console.log("\n✅ Processing completed successfully!");
-      console.log(`📊 Processed: ${result.data.processedCount} documents`);
-      console.log(`❌ Failed: ${result.data.failedCount} documents`);
-      console.log(`💾 Output saved to: ${result.data.outputPath}`);
+      cliLogger.info("\n✅ Processing completed successfully!");
+      cliLogger.info(`📊 Processed: ${result.data.processedCount} documents`);
+      cliLogger.info(`❌ Failed: ${result.data.failedCount} documents`);
+      cliLogger.info(`💾 Output saved to: ${result.data.outputPath}`);
     } else {
-      console.error("\n❌ Processing failed:", result.error.message);
+      cliLogger.error("\n❌ Processing failed: " + result.error.message);
 
       // Show more details for ConfigurationInvalid errors
       if (
         result.error.kind === "ConfigurationInvalid" && "errors" in result.error
       ) {
-        console.error("\nConfiguration errors:");
+        cliLogger.error("\nConfiguration errors:");
         for (const err of result.error.errors) {
           if ("path" in err && "reason" in err) {
-            console.error(`  - ${err.path}: ${err.reason}`);
+            cliLogger.error(`  - ${err.path}: ${err.reason}`);
           } else {
-            console.error(`  - ${JSON.stringify(err)}`);
+            cliLogger.error(`  - ${JSON.stringify(err)}`);
           }
         }
       }
 
       // Show debug info if debug mode is enabled
       if (debugMode) {
-        console.error("\nDebug info:");
-        console.error(JSON.stringify(result.error, null, 2));
+        cliLogger.debug("\nDebug info:");
+        cliLogger.debug(JSON.stringify(result.error, null, 2));
       }
 
       Deno.exit(1);
     }
   } catch (error) {
-    console.error("Fatal error:", error);
+    cliLogger.error("Fatal error: " + String(error));
     Deno.exit(1);
   }
 }

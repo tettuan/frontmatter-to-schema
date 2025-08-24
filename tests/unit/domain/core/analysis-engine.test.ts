@@ -649,8 +649,10 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 Deno.test("Integration: Complete Analysis Workflow", async (t) => {
   await t.step("should perform complete analysis workflow", async () => {
     // Create components
-    const { engine: _engine, processor } = AnalysisEngineFactory
-      .createDefault();
+    const factory = FactoryConfigurationBuilder.createDefault();
+    const { engine: _engine, processor } = factory.createDomainComponents(
+      ComponentDomain.Analysis
+    );
 
     // Create test data
     const data = createTestFrontMatterContent({
@@ -750,7 +752,10 @@ This is the markdown content.`;
         assertEquals(extractionResult.data.get("published"), true);
 
         // Process with ContextualAnalysisProcessor
-        const { processor } = AnalysisEngineFactory.createDefault();
+        const factory = FactoryConfigurationBuilder.createDefault();
+        const { processor } = factory.createDomainComponents(
+          ComponentDomain.Analysis
+        );
         const processResult = await processor.processWithContext(
           extractionResult.data,
           context,

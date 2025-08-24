@@ -1,8 +1,11 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  AnalysisEngineFactory,
   FrontMatterExtractionStrategy,
 } from "../../src/domain/core/analysis-engine.ts";
+import {
+  FactoryConfigurationBuilder,
+  ComponentDomain,
+} from "../../src/domain/core/component-factory.ts";
 import {
   type AnalysisContext,
   type FrontMatterContent,
@@ -164,7 +167,8 @@ async function processMarkdownFile(
     throw new Error(`Invalid schema: ${schemaResult.error.message}`);
   }
 
-  const { processor } = AnalysisEngineFactory.createDefault();
+  const factory = FactoryConfigurationBuilder.createDefault();
+  const { processor } = factory.createDomainComponents(ComponentDomain.Analysis);
 
   // Step 5: Schema validation
   const schemaContext: AnalysisContext = {
