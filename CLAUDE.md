@@ -66,3 +66,7 @@ languages
 # Tests
 
 - use `*_test.ts` filename for test file.
+
+# Git
+
+- use gh for Git access.
