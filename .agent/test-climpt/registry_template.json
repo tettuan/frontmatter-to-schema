@@ -1,15 +1,8 @@
 {
-  "version": "1.0.0",
-  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "version": "{version}",
+  "description": "{description}",
   "tools": {
-    "availableConfigs": [
-      "code",
-      "docs",
-      "git",
-      "meta",
-      "spec",
-      "test"
-    ],
+    "availableConfigs": "{tools.availableConfigs}",
     "commands": [
       { "$ref": "registry_command_template.json" }
     ]

@@ -1,14 +1,14 @@
 {
-  "c1": "git",
-  "c2": "create",
-  "c3": "refinement-issue",
-  "description": "Create a refinement issue from requirements documentation",
-  "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md",
+  "c1": "{c1}",
+  "c2": "{c2}",
+  "c3": "{c3}",
+  "description": "{description}",
+  "usage": "{usage}",
   "options": {
-    "input": ["MD"],
-    "adaptation": ["default", "detailed"],
-    "input_file": [true],
-    "stdin": [false],
-    "destination": [true]
+    "input": "{options.input}",
+    "adaptation": "{options.adaptation}",
+    "input_file": "{options.input_file}",
+    "stdin": "{options.stdin}",
+    "destination": "{options.destination}"
   }
 }
