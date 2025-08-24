@@ -13,6 +13,9 @@ import { createValidationError } from "../shared/errors.ts";
 import type { Template } from "../models/template.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+
+// Re-export for external use
+export type { TemplateApplicationContext };
 import { TemplateFormatHandlerFactory } from "./format-handlers.ts";
 import {
   type PlaceholderProcessingContext,

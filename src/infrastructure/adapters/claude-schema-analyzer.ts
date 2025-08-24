@@ -307,11 +307,11 @@ export class ClaudeSchemaAnalyzer implements SchemaAnalyzer {
         stderr: "piped",
       });
 
-      // Create a timeout promise (30 seconds)
+      // Create a timeout promise (60 seconds)
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
-          () => reject(new Error("Claude API call timed out after 30 seconds")),
-          30000,
+          () => reject(new Error("Claude API call timed out after 60 seconds")),
+          60000,
         );
       });
 
