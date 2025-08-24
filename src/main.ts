@@ -49,8 +49,10 @@ import type { ExtractedData, Template } from "./domain/models/entities.ts";
  * Legacy imports maintained for backward compatibility
  * These will be deprecated in future versions
  */
-import { FileReader } from "./infrastructure/filesystem/FileReader.ts";
-import { FileWriter } from "./infrastructure/filesystem/FileWriter.ts";
+import {
+  FileReader,
+  FileWriter,
+} from "./infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
 import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
 import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";

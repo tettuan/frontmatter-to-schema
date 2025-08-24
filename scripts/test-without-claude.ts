@@ -1,7 +1,9 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
-import { FileReader } from "../src/infrastructure/filesystem/FileReader.ts";
-import { FileWriter } from "../src/infrastructure/filesystem/FileWriter.ts";
+import {
+  FileReader,
+  FileWriter,
+} from "../src/infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "../src/domain/frontmatter/Extractor.ts";
 import { RegistryAggregator } from "../src/application/services/RegistryAggregator.ts";
 import { AnalysisResult } from "../src/domain/analysis/AnalysisResult.ts";

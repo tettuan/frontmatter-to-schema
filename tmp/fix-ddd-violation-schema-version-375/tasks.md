@@ -3,6 +3,7 @@
 ## Tasks
 
 ### Phase 1: Core Changes
+
 - [ ] Update `AIAnalysisOrchestrator.extractInformation()` signature
   - [ ] Change parameter from `SchemaDefinition` to `Schema`
   - [ ] Extract definition using `schema.getDefinition()`
@@ -19,11 +20,13 @@
   - [ ] Add if missing for string representation
 
 ### Phase 2: Update Callers
+
 - [ ] Find all files importing AIAnalysisOrchestrator
 - [ ] Update each caller to pass Schema instead of SchemaDefinition
 - [ ] Ensure Schema entities are properly loaded
 
 ### Phase 3: Test Updates
+
 - [ ] Update ai-analysis-orchestrator tests
   - [ ] Create proper Schema entities in test fixtures
   - [ ] Test version extraction
@@ -34,6 +37,7 @@
   - [ ] Fix any failing tests
 
 ### Phase 4: Integration Testing
+
 - [ ] Run full test suite
   - [ ] `deno test --allow-all src/`
   - [ ] Fix any integration issues
@@ -58,6 +62,7 @@
    - Files that call analyze() or extractInformation()
 
 ## Success Criteria
+
 - ✅ No hard-coded version strings
 - ✅ Version extracted from Schema entity
 - ✅ All tests passing

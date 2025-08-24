@@ -1,5 +1,7 @@
-import type { FileReader } from "../../infrastructure/filesystem/FileReader.ts";
-import type { FileWriter } from "../../infrastructure/filesystem/FileWriter.ts";
+import type {
+  FileReader,
+  FileWriter,
+} from "../../infrastructure/filesystem/file-system.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/Extractor.ts";
 import type { ClaudeAnalyzer } from "../../domain/analysis/Analyzer.ts";
 import { RegistryAggregator } from "../services/RegistryAggregator.ts";

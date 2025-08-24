@@ -2,7 +2,8 @@
 
 1. Extract and analyze Markdown frontmatter
 2. Map analyzed results to template format based on Schema and write output
-3. Use TypeScript structured processing for analysis to ensure frontmatter flexibility
+3. Use TypeScript structured processing for analysis to ensure frontmatter
+   flexibility
 
 ## Purpose
 
@@ -52,16 +53,17 @@ empty state (Final Result Z)
 
 Process Result A in a loop. Process all items. In each loop, process one prompt
 at a time. First, extract the frontmatter portion using Deno. (Result B) Analyze
-Result B with TypeScript processing (Result C) Map Result C to structured data using
-TypeScript processing (Result D) Integrate Result D into Final Result Z Save Final
-Result Z.
+Result B with TypeScript processing (Result C) Map Result C to structured data
+using TypeScript processing (Result D) Integrate Result D into Final Result Z
+Save Final Result Z.
 
 ## TypeScript Processing
 
 Use the following two types:
 
 a. Extract information using Schema expansion and mapping from frontmatter data
-b. Map extracted information to analysis template using type-safe variable substitution
+b. Map extracted information to analysis template using type-safe variable
+substitution
 
 Embed extraction prompts inside TypeScript.
 
