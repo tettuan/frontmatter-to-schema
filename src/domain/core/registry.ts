@@ -110,7 +110,9 @@ export class Registry<T = unknown> {
   toObject(): Record<string, T> {
     const obj: Record<string, T> = {};
     for (const [key, result] of this.results) {
-      obj[key] = result.extractedData;
+      obj[key] = result.data ||
+        (result as { extractedData?: T }).extractedData ||
+        (result as unknown as T);
     }
     return obj;
   }

@@ -17,7 +17,7 @@ import type { TemplateApplicationContext } from "../../../../src/domain/template
 import type {
   AIAnalysisRequest,
   AIAnalyzerPort,
-} from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+} from "../../../../src/infrastructure/ports/index.ts";
 import { createAPIError } from "../../../../src/domain/shared/errors.ts";
 
 // Mock AI Analyzer for testing

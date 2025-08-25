@@ -5,7 +5,7 @@ import type {
 import type { FrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
 import type { ClaudeAnalyzer } from "../../domain/analysis/Analyzer.ts";
 import { RegistryAggregator } from "../services/RegistryAggregator.ts";
-import type { Registry } from "../../domain/core/registry-types.ts";
+import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 
 export class BuildRegistryUseCase {

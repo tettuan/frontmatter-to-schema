@@ -20,9 +20,9 @@ import {
   createValidationError,
   type ValidationError,
 } from "../shared/errors.ts";
-import type { FrontMatterContent } from "./types.ts";
+import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { Schema, Template } from "../models/entities.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 /**
  * Extracted information from frontmatter (成果C)
@@ -136,14 +136,17 @@ export class AIAnalysisOrchestrator {
     const schemaVersion = schema.getVersion();
 
     // Build extraction prompt
+    const frontMatterData = frontMatter.toJSON();
     const prompt = this.buildExtractionPrompt(
-      frontMatter.data,
+      frontMatterData && typeof frontMatterData === "object"
+        ? frontMatterData as object
+        : {},
       schemaDefinition.getValue() as object,
     );
 
     // Execute AI analysis (claude -p 1st call)
     const result = await this.aiAnalyzer.analyze({
-      content: JSON.stringify(frontMatter.data),
+      content: JSON.stringify(frontMatter.toJSON()),
       prompt,
     });
 

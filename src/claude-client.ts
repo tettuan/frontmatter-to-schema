@@ -1,4 +1,4 @@
-import type { AnalysisResult, MappedEntry } from "./types.ts";
+import type { AnalysisResult, MappedEntry } from "./domain/core/types.ts";
 
 /**
  * Claude -p client for analysis

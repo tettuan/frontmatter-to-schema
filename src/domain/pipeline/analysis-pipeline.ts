@@ -2,13 +2,10 @@
  * Generic analysis pipeline for processing files
  */
 
-import {
-  type AnalysisContext,
-  AnalysisResult,
-  SchemaDefinition,
-  SourceFile,
-  ValidFilePath,
-} from "../core/types.ts";
+import { type AnalysisContext, AnalysisResult } from "../core/types.ts";
+import { DocumentPath } from "../models/value-objects.ts";
+import { SchemaDefinition } from "../models/schema.ts";
+// Note: DocumentPath and DocumentPath replaced with DocumentPath
 import type {
   AnalysisEngine,
   AnalysisStrategy,
@@ -76,7 +73,7 @@ export class AnalysisPipeline<TOutput = unknown> {
 
     // Filter for markdown files if needed
     return this.fileDiscovery.filter(files, (file) => {
-      const pathResult = ValidFilePath.create(file);
+      const pathResult = DocumentPath.create(file);
       return pathResult.ok && pathResult.data.isMarkdown();
     });
   }
@@ -85,7 +82,7 @@ export class AnalysisPipeline<TOutput = unknown> {
    * Processes a single file through the pipeline
    */
   private async processFile(filePath: string): Promise<AnalysisResult | null> {
-    const pathResult = ValidFilePath.create(filePath);
+    const pathResult = DocumentPath.create(filePath);
     if (!pathResult.ok) {
       return null;
     }
@@ -102,21 +99,13 @@ export class AnalysisPipeline<TOutput = unknown> {
       return null;
     }
 
-    // Create source file
-    const sourceFileResult = SourceFile.create(
-      path,
-      content,
-      frontMatter || undefined,
-    );
-    if (!sourceFileResult.ok) {
-      return null;
-    }
-    const _sourceFile = sourceFileResult.data;
+    // Document path is already created above as 'path'
+    // No need for separate DocumentPath creation
 
     // Prepare context
     // Prepare schema
     const schemaResult = this.config.output.schema
-      ? SchemaDefinition.create(this.config.output.schema)
+      ? SchemaDefinition.create(this.config.output.schema, "json")
       : null;
 
     if (this.config.output.schema && (!schemaResult || !schemaResult.ok)) {
@@ -126,16 +115,18 @@ export class AnalysisPipeline<TOutput = unknown> {
     const _context: AnalysisContext = (schemaResult?.ok && schemaResult.data)
       ? {
         kind: "SchemaAnalysis",
+        document: filePath,
         schema: schemaResult.data,
         options: { includeMetadata: true },
       }
       : {
         kind: "BasicExtraction",
+        document: filePath,
         options: { includeMetadata: true },
       };
 
     // Execute strategies in sequence
-    let data: unknown = frontMatter.data;
+    let data: unknown = frontMatter.toJSON();
 
     for (const strategyName of this.config.processing.strategies) {
       const strategy = this.strategies.get(strategyName);

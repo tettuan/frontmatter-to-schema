@@ -13,12 +13,11 @@ import {
   ComponentDomain,
   FactoryConfigurationBuilder,
 } from "../../../../src/domain/core/component-factory.ts";
+import type { AnalysisContext } from "../../../../src/domain/core/types.ts";
 import {
-  type AnalysisContext,
   FrontMatterContent,
-  SchemaDefinition,
-  // ValidFilePath is imported but not used in this test file
-} from "../../../../src/domain/core/types.ts";
+} from "../../../../src/domain/models/value-objects.ts";
+import { SchemaDefinition } from "../../../../src/domain/models/schema.ts";
 import {
   type AnalysisError,
   createDomainError,
@@ -33,7 +32,7 @@ const createTestFrontMatterContent = (data: Record<string, unknown>) => {
 };
 
 const createTestSchemaDefinition = (schema: unknown) => {
-  const result = SchemaDefinition.create(schema);
+  const result = SchemaDefinition.create(schema, "json");
   if (!result.ok) throw new Error("Failed to create test SchemaDefinition");
   return result.data;
 };
@@ -201,7 +200,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
 
       const result = await analyzer.process(
         data,
-        schema as SchemaDefinition<Record<string, unknown>>,
+        schema as SchemaDefinition,
       );
 
       assertEquals(result.ok, true);
@@ -232,7 +231,7 @@ Deno.test("RobustSchemaAnalyzer", async (t) => {
 
     const result = await analyzer.process(
       data,
-      invalidSchema as SchemaDefinition<Record<string, unknown>>,
+      invalidSchema as unknown as SchemaDefinition,
     );
 
     assertEquals(result.ok, false);
@@ -272,7 +271,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
       Record<string, unknown>,
       Record<string, unknown>
     >();
-    const template = { structure: { name: "default" } };
+    const template = { template: "default", variables: { name: "default" } };
 
     const result = await mapper.map(
       null as unknown as Record<string, unknown>,
@@ -288,7 +287,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
       Record<string, unknown>,
       Record<string, unknown>
     >();
-    const template = { structure: { name: "default" } };
+    const template = { template: "default", variables: { name: "default" } };
 
     const result = await mapper.map(
       undefined as unknown as Record<string, unknown>,
@@ -304,7 +303,7 @@ Deno.test("RobustTemplateMapper", async (t) => {
       Record<string, unknown>,
       Record<string, unknown>
     >();
-    const template = { structure: { name: "default" } };
+    const template = { template: "default", variables: { name: "default" } };
 
     const result = await mapper.map(
       "primitive value" as unknown as Record<string, unknown>,
@@ -338,6 +337,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     const schema = createTestSchemaDefinition({ type: "object" });
     const context: AnalysisContext = {
       kind: "SchemaAnalysis",
+      document: "test",
       schema,
       options: { includeMetadata: true },
     };
@@ -362,7 +362,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       const data = createTestFrontMatterContent({ title: "Test" });
       const context: AnalysisContext = {
         kind: "TemplateMapping",
-        template: { structure: { name: "default" } },
+        document: "test",
+        template: { template: "default", variables: { name: "default" } },
       };
 
       const result = await processor.processWithContext(data, context);
@@ -388,7 +389,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       const schema = createTestSchemaDefinition({ type: "object" });
       const context: AnalysisContext = {
         kind: "TemplateMapping",
-        template: { structure: { name: "default" } },
+        document: "test",
+        template: { template: "default", variables: { name: "default" } },
         schema,
       };
 
@@ -413,7 +415,11 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     const schema = createTestSchemaDefinition({ type: "object" });
     const context: AnalysisContext = {
       kind: "ValidationOnly",
-      schema,
+      document: "/test/sample.md",
+      schema: {
+        validate: (data: unknown) => ({ ok: true, data }),
+        schema: schema.getDefinition(),
+      },
     };
 
     const result = await processor.processWithContext(data, context);
@@ -437,6 +443,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
     });
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: { includeMetadata: true },
     };
 
@@ -466,6 +473,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       const data = createTestFrontMatterContent({ title: "Test" });
       const context: AnalysisContext = {
         kind: "BasicExtraction",
+        document: "test",
         options: {},
       };
 
@@ -529,6 +537,7 @@ author: John Doe
 
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: {},
     };
 
@@ -552,6 +561,7 @@ No frontmatter here.`;
 
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: {},
     };
 
@@ -581,6 +591,7 @@ title Test Document (missing colon)
 
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: {},
     };
 
@@ -600,6 +611,7 @@ title Test Document (missing colon)
 
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: {},
     };
 
@@ -629,6 +641,7 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 
       const context: AnalysisContext = {
         kind: "SchemaAnalysis",
+        document: "test",
         schema,
         options: {},
       };
@@ -650,6 +663,7 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 
     const context: AnalysisContext = {
       kind: "BasicExtraction",
+      document: "test",
       options: {},
     };
 
@@ -693,6 +707,7 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     // Test SchemaAnalysis workflow
     const schemaContext: AnalysisContext = {
       kind: "SchemaAnalysis",
+      document: "test",
       schema,
       options: { includeMetadata: true, validateResults: true },
     };
@@ -713,7 +728,9 @@ Deno.test("Integration: Complete Analysis Workflow", async (t) => {
     // Test TemplateMapping workflow
     const templateContext: AnalysisContext = {
       kind: "TemplateMapping",
+      document: "test",
       template: {
+        template: "test template",
         structure: {
           name: "processed_document",
           category: "test",
@@ -755,6 +772,7 @@ This is the markdown content.`;
 
       const context: AnalysisContext = {
         kind: "BasicExtraction",
+        document: "test",
         options: { includeMetadata: true },
       };
 

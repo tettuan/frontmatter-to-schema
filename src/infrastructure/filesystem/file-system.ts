@@ -1,4 +1,4 @@
-import type { Registry } from "../../domain/core/registry-types.ts";
+import type { Registry } from "../../domain/core/types.ts";
 import { PromptFile, PromptList } from "../../domain/services/prompt-models.ts";
 import { walk } from "jsr:@std/fs@1/walk";
 

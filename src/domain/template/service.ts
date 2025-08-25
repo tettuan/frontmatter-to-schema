@@ -18,7 +18,7 @@ import {
   NativeTemplateStrategy,
   type TemplateProcessingStrategy,
 } from "./strategies.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 import type { EventStore } from "./events.ts";
 
 export interface TemplateServiceConfig {

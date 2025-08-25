@@ -18,7 +18,7 @@ import type {
   AIAnalysisRequest,
   AIAnalysisResponse,
   AIAnalyzerPort,
-} from "../ports/ai-analyzer.ts";
+} from "../ports/index.ts";
 import type { APIError } from "../../domain/shared/errors.ts";
 import { createAPIError } from "../../domain/shared/errors.ts";
 

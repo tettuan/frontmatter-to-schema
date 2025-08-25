@@ -16,8 +16,10 @@ import {
 import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import type { TemplateMapper } from "../domain/services/template-mapper.ts";
-import type { FileSystemPort } from "../infrastructure/ports/file-system.ts";
-import type { AIAnalyzerPort } from "../infrastructure/ports/ai-analyzer.ts";
+import type {
+  AIAnalyzerPort,
+  FileSystemPort,
+} from "../infrastructure/ports/index.ts";
 import type { ApplicationConfiguration } from "./configuration.ts";
 
 export class DocumentProcessor {
@@ -101,13 +103,30 @@ export class DocumentProcessor {
       config.format,
     );
     if (!definitionResult.ok) {
-      return definitionResult;
+      // Convert ValidationError to DomainError
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: `Schema definition error: ${definitionResult.error.kind}`,
+        },
+      };
     }
 
     const schemaResult = Schema.create(
       "main-schema",
       definitionResult.data,
     );
+    if (!schemaResult.ok) {
+      // Convert ValidationError to DomainError
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: `Schema creation error: ${schemaResult.error.kind}`,
+        },
+      };
+    }
     return schemaResult;
   }
 

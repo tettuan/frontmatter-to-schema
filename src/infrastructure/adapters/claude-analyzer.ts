@@ -4,7 +4,7 @@ import type {
   AIAnalysisRequest,
   AIAnalysisResponse,
   AIAnalyzerPort,
-} from "../ports/ai-analyzer.ts";
+} from "../ports/index.ts";
 
 export class ClaudeAnalyzerAdapter implements AIAnalyzerPort {
   async analyze(

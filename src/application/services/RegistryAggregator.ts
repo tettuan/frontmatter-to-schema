@@ -1,5 +1,5 @@
-import type { Command, Registry } from "../../domain/core/registry-types.ts";
-import type { AnalysisResult } from "../../domain/analysis/AnalysisResult.ts";
+import type { Command, Registry } from "../../domain/core/types.ts";
+import type { AnalysisResult } from "../../domain/analysis/Analyzer.ts";
 
 export class RegistryAggregator {
   private commands: Command[] = [];

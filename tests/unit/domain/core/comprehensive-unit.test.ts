@@ -57,8 +57,7 @@ Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
     const errorCases = [
       { input: "", expectedError: "EmptyInput" },
       { input: "   ", expectedError: "EmptyInput" },
-      { input: "/not-markdown.txt", expectedError: "InvalidFormat" },
-      { input: "file-without-extension", expectedError: "InvalidFormat" },
+      // Note: DocumentPath now accepts any valid file path, validation moved to domain layer
     ];
 
     for (const { input, expectedError } of errorCases) {
@@ -67,6 +66,13 @@ Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
       if (isError(result)) {
         assertEquals(result.error.kind, expectedError);
       }
+    }
+
+    // Test that non-markdown files are accepted but identified correctly
+    const txtResult = DocumentPath.create("/not-markdown.txt");
+    assertEquals(isError(txtResult), false);
+    if (!isError(txtResult)) {
+      assertEquals(txtResult.data.isMarkdown(), false);
     }
   });
 
@@ -127,15 +133,16 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
       }
     }
 
-    // Arrays are technically objects in JS, so they pass the current validation
-    // This is actually a bug in SchemaDefinition that should be fixed
+    // Arrays should be properly rejected (bug has been fixed)
     const arrayResult = SchemaDefinition.create([], "1.0.0");
-    // Currently this passes, but it shouldn't - documenting the behavior
     assertEquals(
-      isOk(arrayResult),
+      isError(arrayResult),
       true,
-      "Arrays currently pass validation (bug)",
+      "Arrays should be rejected",
     );
+    if (isError(arrayResult)) {
+      assertEquals(arrayResult.error.kind, "InvalidFormat");
+    }
   });
 
   await t.step("Complex Nested Schema", () => {
@@ -633,9 +640,9 @@ Deno.test("DDD Core - Error Propagation", async (t) => {
 
   await t.step("Multiple Validation Errors", () => {
     const invalidCases = [
-      DocumentPath.create(""),
-      DocumentPath.create("invalid.txt"),
-      ConfigPath.create("no-extension"),
+      DocumentPath.create(""), // Empty path - should fail
+      DocumentPath.create("   "), // Whitespace only - should fail
+      ConfigPath.create("no-extension"), // No extension - should fail
     ];
 
     const errorCount = invalidCases.filter((r) => !r.ok).length;

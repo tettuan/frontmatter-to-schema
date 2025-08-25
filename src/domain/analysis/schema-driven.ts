@@ -13,7 +13,7 @@ import type {
   SchemaBasedAnalyzer,
   TemplateMapper,
 } from "../core/abstractions.ts";
-import { FrontMatterContent } from "../core/types.ts";
+import { FrontMatterContent } from "../models/value-objects.ts";
 
 /**
  * Generic schema-driven analyzer implementation
@@ -61,7 +61,7 @@ export class GenericSchemaAnalyzer<TSchema, TResult>
 
   private serializeData(data: unknown): string {
     if (data instanceof FrontMatterContent) {
-      return JSON.stringify(data.data, null, 2);
+      return JSON.stringify(data.toJSON(), null, 2);
     }
     if (typeof data === "object" && data !== null) {
       return JSON.stringify(data, null, 2);

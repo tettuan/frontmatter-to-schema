@@ -1,6 +1,26 @@
 import type { FrontMatter } from "../frontmatter/frontmatter-models.ts";
-import { AnalysisResult } from "./AnalysisResult.ts";
-import type { Command } from "../core/registry-types.ts";
+import type { Command } from "../core/types.ts";
+
+// AnalysisResult - consolidated from AnalysisResult.ts
+export class AnalysisResult {
+  constructor(
+    public readonly sourceFile: string,
+    public readonly commands: Command[],
+    public readonly metadata: Record<string, unknown> = {},
+  ) {}
+
+  get isValid(): boolean {
+    return this.commands.length > 0;
+  }
+
+  merge(other: AnalysisResult): AnalysisResult {
+    return new AnalysisResult(
+      `${this.sourceFile},${other.sourceFile}`,
+      [...this.commands, ...other.commands],
+      { ...this.metadata, ...other.metadata },
+    );
+  }
+}
 
 export interface Analyzer {
   analyze(

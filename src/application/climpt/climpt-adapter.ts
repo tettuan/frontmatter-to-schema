@@ -13,7 +13,7 @@ import type {
 import type {
   FileInfo,
   FileSystemPort,
-} from "../../infrastructure/ports/file-system.ts";
+} from "../../infrastructure/ports/index.ts";
 import type { Result } from "../../domain/core/result.ts";
 import { createIOError, type IOError } from "../../domain/shared/errors.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";

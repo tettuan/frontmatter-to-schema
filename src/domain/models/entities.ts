@@ -206,7 +206,38 @@ export class Schema {
   }
 
   validate(data: unknown): Result<void, ValidationError & { message: string }> {
-    return this.definition.validate(data);
+    const result = this.definition.validate(data);
+    if (result.ok) {
+      return { ok: true, data: undefined };
+    }
+
+    // Convert the error from core/result.ts format to shared/types.ts format
+    const coreError = result.error;
+    const sharedError = this.convertErrorFormat(coreError);
+    return { ok: false, error: sharedError };
+  }
+
+  private convertErrorFormat(
+    coreError: { kind: string; [key: string]: unknown },
+  ): ValidationError & { message: string } {
+    if (coreError.kind === "InvalidFormat" && "expectedFormat" in coreError) {
+      return createError({
+        kind: "InvalidFormat",
+        format: String(coreError.expectedFormat),
+        input: String(coreError.input),
+      });
+    }
+
+    if (coreError.kind === "EmptyInput") {
+      return createError({ kind: "EmptyInput" });
+    }
+
+    // For other error types, try to map them or return a generic error
+    return createError({
+      kind: "InvalidFormat",
+      format: "valid data",
+      input: String(coreError),
+    });
   }
 }
 

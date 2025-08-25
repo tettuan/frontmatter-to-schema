@@ -15,10 +15,7 @@ import {
   type Schema,
 } from "../../domain/models/entities.ts";
 import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";
-import type {
-  FrontMatterContent,
-  SchemaDefinition,
-} from "../../domain/core/types.ts";
+import type { FrontMatterContent } from "../../domain/models/value-objects.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 
 import {
@@ -47,29 +44,41 @@ export class TypeScriptSchemaAnalyzer implements SchemaAnalyzer {
       // Note: Type casting needed due to duplicate FrontMatterContent classes
       const frontMatterContent = frontMatter
         .getContent() as unknown as FrontMatterContent;
-      const schemaDefinition = schema
-        .getDefinition() as unknown as SchemaDefinition<unknown>;
+      const schemaDefinition = schema.getDefinition();
 
       if (verboseMode) {
         this.logger.info("Starting TypeScript-based frontmatter analysis");
-        this.logger.debug("Frontmatter content keys", {
-          keys: frontMatterContent.keys().join(", "),
-        });
+        const contentJson = frontMatterContent.toJSON();
+        if (contentJson && typeof contentJson === "object") {
+          this.logger.debug("Frontmatter content keys", {
+            keys: Object.keys(contentJson).join(", "),
+          });
+        }
       }
 
       // Create a dummy template since we're just extracting and mapping data
-      const dummyTemplate = JSON.stringify(schemaDefinition.schema, null, 2);
+      // schemaDefinition is a SchemaDefinition from domain/models/schema.ts which has getDefinition()
+      const rawSchema =
+        (schemaDefinition as { getDefinition?: () => unknown }).getDefinition
+          ? (schemaDefinition as unknown as { getDefinition: () => unknown })
+            .getDefinition()
+          : schemaDefinition;
+      const dummyTemplate = JSON.stringify(rawSchema, null, 2);
 
       // Convert frontmatter to YAML-like content
-      const frontmatterContentStr = frontMatterContent.keys()
-        .map((key: string) =>
-          `${key}: ${JSON.stringify(frontMatterContent.get(key))}`
-        )
-        .join("\n");
+      const contentJson = frontMatterContent.toJSON() as Record<
+        string,
+        unknown
+      >;
+      const frontmatterContentStr = contentJson
+        ? Object.entries(contentJson)
+          .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+          .join("\n")
+        : "";
 
       const processingRequest: ProcessingRequest = {
         content: `---\n${frontmatterContentStr}\n---\nDummy content`,
-        schema: schemaDefinition.schema,
+        schema: rawSchema as Record<string, unknown>,
         templateContent: dummyTemplate,
         options: {
           verbose: verboseMode,
@@ -169,12 +178,16 @@ export class TypeScriptSchemaAnalyzer implements SchemaAnalyzer {
   ): Result<ProcessingStats, ProcessingError> {
     try {
       // Get the underlying schema definition
-      const schemaDefinition = schema
-        .getDefinition() as unknown as SchemaDefinition<unknown>;
+      const schemaDefinition = schema.getDefinition();
 
       // Expand schema to get properties count
+      const rawSchemaForStats =
+        (schemaDefinition as { getDefinition?: () => unknown }).getDefinition
+          ? (schemaDefinition as unknown as { getDefinition: () => unknown })
+            .getDefinition()
+          : schemaDefinition;
       const schemaExpansionResult = this.orchestrator.expandSchema(
-        schemaDefinition.schema,
+        rawSchemaForStats as Record<string, unknown>,
       );
 
       if (!schemaExpansionResult.ok) {
@@ -194,7 +207,10 @@ export class TypeScriptSchemaAnalyzer implements SchemaAnalyzer {
       // Get frontmatter key count
       const frontMatterContent = frontMatter
         .getContent() as unknown as FrontMatterContent;
-      const frontMatterKeys = frontMatterContent.keys();
+      const contentJson = frontMatterContent.toJSON();
+      const frontMatterKeys = contentJson && typeof contentJson === "object"
+        ? Object.keys(contentJson)
+        : [];
 
       const stats: ProcessingStats = {
         schemaPropertiesCount: schemaProperties.length,

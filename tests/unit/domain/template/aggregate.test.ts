@@ -19,7 +19,7 @@ import {
 import type {
   AIAnalysisRequest,
   AIAnalyzerPort,
-} from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+} from "../../../../src/infrastructure/ports/index.ts";
 
 // Mock AI Analyzer for testing
 class MockAIAnalyzer implements AIAnalyzerPort {
