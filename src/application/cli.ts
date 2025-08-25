@@ -10,13 +10,13 @@ import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { TemplateMapper } from "../domain/services/template-mapper.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
-import { ClaudeAnalyzerAdapter } from "../infrastructure/adapters/claude-analyzer.ts";
+import { MockAnalyzer } from "../infrastructure/adapters/mock-analyzer.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
-  private readonly aiAnalyzer = new ClaudeAnalyzerAdapter();
+  private readonly aiAnalyzer = new MockAnalyzer();
   private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
   private readonly schemaValidator = new SchemaValidator();
   private readonly templateMapper = new TemplateMapper();

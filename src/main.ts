@@ -54,7 +54,6 @@ import {
   FileWriter,
 } from "./infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
-import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
 import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
 
 /**
@@ -104,23 +103,20 @@ Return ONLY a JSON object with the mapped data.`,
 async function runBuildRegistry() {
   const PROMPTS_PATH = ".agent/climpt/prompts";
   const OUTPUT_PATH = ".agent/climpt/registry.json";
-  const EXTRACT_PROMPT_PATH = "./src/domain/prompts/extract-frontmatter.md";
-  const MAPPING_PROMPT_PATH = "./src/domain/prompts/map-to-template.md";
 
   try {
     const fileReader = new FileReader();
     const fileWriter = new FileWriter();
     const extractor = new FrontMatterExtractor();
 
-    const extractPrompt = await Deno.readTextFile(EXTRACT_PROMPT_PATH);
-    const mappingPrompt = await Deno.readTextFile(MAPPING_PROMPT_PATH);
-    const analyzer = new ClaudeAnalyzer(extractPrompt, mappingPrompt);
+    // Use TypeScriptSchemaAnalyzer instead of ClaudeAnalyzer
+    const analyzer = new TypeScriptSchemaAnalyzer();
 
     const useCase = new BuildRegistryUseCase(
       fileReader,
       fileWriter,
       extractor,
-      analyzer,
+      analyzer as any, // Type casting needed for compatibility
     );
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);

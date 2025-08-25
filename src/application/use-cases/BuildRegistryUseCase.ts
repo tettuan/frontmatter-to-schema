@@ -3,17 +3,17 @@ import type {
   FileWriter,
 } from "../../infrastructure/filesystem/file-system.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
-import type { ClaudeAnalyzer } from "../../domain/analysis/Analyzer.ts";
 import { RegistryAggregator } from "../services/RegistryAggregator.ts";
 import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
+import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";
 
 export class BuildRegistryUseCase {
   constructor(
     private readonly fileReader: FileReader,
     private readonly fileWriter: FileWriter,
     private readonly extractor: FrontMatterExtractor,
-    private readonly analyzer: ClaudeAnalyzer,
+    private readonly analyzer: SchemaAnalyzer | any, // Accept SchemaAnalyzer or any for compatibility
   ) {}
 
   async execute(
