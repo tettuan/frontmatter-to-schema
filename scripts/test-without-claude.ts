@@ -6,8 +6,7 @@ import {
 } from "../src/infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "../src/domain/frontmatter/frontmatter-models.ts";
 import { RegistryAggregator } from "../src/application/services/RegistryAggregator.ts";
-import { AnalysisResult } from "../src/domain/analysis/Analyzer.ts";
-import type { Command } from "../src/domain/core/types.ts";
+import { AnalysisResult, type Command } from "../src/domain/core/types.ts";
 
 async function testWithoutClaude() {
   const PROMPTS_PATH = ".agent/climpt/prompts";
