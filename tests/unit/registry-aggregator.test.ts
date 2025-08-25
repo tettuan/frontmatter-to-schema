@@ -1,6 +1,5 @@
 import { RegistryAggregator } from "../../src/application/services/RegistryAggregator.ts";
-import { AnalysisResult } from "../../src/domain/analysis/Analyzer.ts";
-import type { Command } from "../../src/domain/core/types.ts";
+import { AnalysisResult, type Command } from "../../src/domain/core/types.ts";
 import { assertEquals } from "https://deno.land/std@0.220.0/assert/mod.ts";
 
 Deno.test("RegistryAggregator - should build registry from analysis results", () => {

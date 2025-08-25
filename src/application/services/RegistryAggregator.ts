@@ -1,16 +1,19 @@
-import type { Command, Registry } from "../../domain/core/types.ts";
-import type { AnalysisResult } from "../../domain/analysis/Analyzer.ts";
+import { AnalysisResult, type Command, type Registry } from "../../domain/core/types.ts";
 
 export class RegistryAggregator {
   private commands: Command[] = [];
   private configs = new Set<string>();
 
   addAnalysisResult(result: AnalysisResult): void {
-    this.commands.push(...result.commands);
-
-    result.commands.forEach((cmd) => {
-      this.configs.add(cmd.c1);
-    });
+    // AnalysisResult now has generic data property that could be Command[]
+    const commands = result.data as Command[];
+    if (Array.isArray(commands)) {
+      this.commands.push(...commands);
+      
+      commands.forEach((cmd: Command) => {
+        this.configs.add(cmd.c1);
+      });
+    }
   }
 
   build(): Registry {
