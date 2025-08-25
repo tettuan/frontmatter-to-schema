@@ -43,7 +43,7 @@ and templates is an important requirement."
 2. Separation of functional and non-functional requirements
 3. Domain boundary design documentation
 4. Implemented analysis scripts and robust tests
-5. Two prompts for 'claude -p'
+5. TypeScript processing logic for two-stage analysis
 6. Execution examples using real cases in examples/
 
 # Analysis Process

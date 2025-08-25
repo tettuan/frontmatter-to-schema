@@ -437,9 +437,9 @@ Schemaの定義に従って、適切な形式で出力してください。
 graph TD
     A[Markdownファイル] --> B[フロントマター抽出]
     B --> C[成果B: FrontMatter]
-    C --> D[AI情報抽出<br/>claude -p 1回目]
+    C --> D[TypeScript情報抽出<br/>第1段階]
     D --> E[成果C: ExtractedInfo]
-    E --> F[テンプレート当て込み<br/>claude -p 2回目]
+    E --> F[テンプレート当て込み<br/>第2段階]
     F --> G[成果D: 変換後テンプレート]
     G --> H[StructuredData]
     H --> I[最終成果物Z]
@@ -515,7 +515,7 @@ graph TD
         B[Schema]
         C[フロントマター]
         D[マッピング処理]
-        P[AI処理]
+        P[TypeScript処理]
     end
     
     subgraph "Output"

@@ -208,9 +208,9 @@ Markdownファイル群から索引を自動生成
   - TOML/JSON形式のサポート（Should Have）
   - カスタム区切り文字対応（Could Have）
 
-#### FR2: AI解析機能（2段階処理）
+#### FR2: TypeScript解析機能（2段階処理）
 
-- **説明**: claude -pコマンドによる2段階の柔軟な解析
+- **説明**: TypeScriptによる2段階の柔軟な解析
 - **MoSCoW**: Must Have
 - **詳細**:
   - **第1段階（情報抽出）**:
@@ -229,7 +229,7 @@ Markdownファイル群から索引を自動生成
 - **MoSCoW**: Must Have
 - **詳細**:
   - 解析結果のSchema定義（JSON Schema形式）（必須）
-  - AI解析の両段階でSchemaを参照（必須）
+  - TypeScript解析の両段階でSchemaを参照（必須）
   - Schema検証機能（必須）
   - 外部ファイルからの読み込み（必須）
   - バージョン管理（Should Have）
@@ -239,7 +239,7 @@ Markdownファイル群から索引を自動生成
 - **説明**: 解析テンプレートによる最終出力形式の制御
 - **MoSCoW**: Must Have
 - **詳細**:
-  - claude -pの第2段階で使用される解析テンプレート（必須）
+  - TypeScriptの第2段階で使用される解析テンプレート（必須）
   - JSON形式テンプレート対応（必須）
   - YAML形式テンプレート対応（必須）
   - 外部ファイルからの読み込み（必須）
@@ -343,9 +343,9 @@ Markdownファイル群から索引を自動生成
 
 1. **解析スクリプト**（Deno/TypeScript）- Must Have
 2. **堅牢なテストスイート** - Must Have
-3. **claude -p用プロンプト（2種）** - Must Have
-   - プロンプトA: 情報抽出用（第1段階：成果B→成果C）
-   - プロンプトB: テンプレート当て込み用（第2段階：成果C→成果D）
+3. **TypeScript処理ロジック（2段階）** - Must Have
+   - 第1段階: Schema展開とマッピング（成果B→成果C）
+   - 第2段階: テンプレート変数置換（成果C→成果D）
 4. **実行例（examples/）** - Must Have
    - 実例1: Climpt registry生成
    - 実例2: 記事索引生成
@@ -361,9 +361,9 @@ Markdownファイル群から索引を自動生成
 ### Phase 1: MVP（Minimum Viable Product）
 
 1. フロントマター抽出機能
-2. AI解析機能（2段階処理）
-   - 第1段階：情報抽出（claude -p + プロンプトA）
-   - 第2段階：テンプレート当て込み（claude -p + プロンプトB）
+2. TypeScript解析機能（2段階処理）
+   - 第1段階：情報抽出（Schema展開とマッピング）
+   - 第2段階：テンプレート当て込み（変数置換処理）
 3. JSON形式での出力
 4. 実例1の動作
 

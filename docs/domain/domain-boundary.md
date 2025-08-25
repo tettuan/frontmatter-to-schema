@@ -13,7 +13,7 @@
 1. **フロントマター** - 24回（100%）
 2. **Schema（解析結果のSchema）** - 24回（100%）
 3. **テンプレート（解析テンプレート）** - 24回（100%）
-4. **claude -p（AI解析）** - 24回（100%）
+4. **TypeScript処理** - 24回（100%）
 5. **Markdownファイル** - 20回（83%）
 6. **成果物（A, B, C, D, Z）** - 20回（83%）
 7. **設定管理** - 16回（67%）
@@ -24,7 +24,7 @@
 最短経路分析により、以下を中心骨格として特定：
 
 ```
-Markdownファイル → フロントマター抽出 → AI解析（2段階） → 結果統合 → 索引出力
+Markdownファイル → フロントマター抽出 → TypeScript解析（2段階） → 結果統合 → 索引出力
 ```
 
 ## 2. ドメイン境界設計
@@ -54,32 +54,31 @@ class FrontMatterExtractor {
 - 発行: `FrontMatterExtracted(documentPath, frontMatter)`
 - 購読: なし
 
-#### CD2: AI解析ドメイン（AI Analysis Domain）
+#### CD2: TypeScript解析ドメイン（TypeScript Analysis Domain）
 
-**責務**: claude -pを使用した2段階のAI解析処理
+**責務**: TypeScriptによる2段階の構造化処理
 
 **境界コンテキスト**:
 
-- 入力: フロントマター + 解析結果のSchema + プロンプト
+- 入力: フロントマター + 解析結果のSchema
 - 出力: 構造化データ（成果D）
 - ライフサイクル: 短期（リクエスト単位）
 
 **集約ルート**:
 
 ```typescript
-class AIAnalysisOrchestrator {
+class TypeScriptAnalysisOrchestrator {
   // 第1段階: 情報抽出
   extractInformation(
     frontMatter: FrontMatter,
-    schema: Schema,
-    promptA: Prompt,
+    schema: Schema
   ): ExtractedInfo;
 
   // 第2段階: テンプレート当て込み
   mapToTemplate(
     extractedInfo: ExtractedInfo,
     schema: Schema,
-    promptB: Prompt,
+    template: Template
   ): StructuredData;
 }
 ```
@@ -202,22 +201,6 @@ class ConfigurationManager {
 }
 ```
 
-#### SD3: プロンプト管理ドメイン（Prompt Management Domain）
-
-**責務**: AI解析用プロンプトの管理
-
-**境界コンテキスト**:
-
-- ライフサイクル: 長期（埋め込みまたは外部ファイル）
-
-**集約ルート**:
-
-```typescript
-class PromptManager {
-  getPromptA(): Prompt; // 情報抽出用
-  getPromptB(): Prompt; // テンプレート当て込み用
-}
-```
 
 ### 2.3 汎用サブドメイン
 
@@ -240,10 +223,9 @@ class PromptManager {
 ```mermaid
 graph LR
     A[File System] -->|MarkdownFile| B[FrontMatter Extraction]
-    B -->|FrontMatterExtracted| C[AI Analysis]
+    B -->|FrontMatterExtracted| C[TypeScript Analysis]
     D[Schema Mgmt] -->|Schema| C
     E[Template Mgmt] -->|Template| C
-    F[Prompt Mgmt] -->|Prompts| C
     C -->|DataStructured| G[Result Integration]
     G -->|FinalResult| H[File System]
 ```
@@ -253,7 +235,7 @@ graph LR
 | ドメイン           | ライフサイクル | 結合度 |
 | ------------------ | -------------- | ------ |
 | フロントマター抽出 | 短期（ms）     | 疎結合 |
-| AI解析             | 短期（秒）     | 疎結合 |
+| TypeScript解析     | 短期（秒）     | 疎結合 |
 | Schema管理         | 中期（時間）   | 疎結合 |
 | テンプレート管理   | 中期（時間）   | 疎結合 |
 | 結果統合           | バッチ（分）   | 疎結合 |
@@ -265,10 +247,10 @@ graph LR
 
 ```
 [上流]
-  設定管理 → Schema管理/テンプレート管理/プロンプト管理
+  設定管理 → Schema管理/テンプレート管理
   
 [中流]
-  ファイル管理 → フロントマター抽出 → AI解析 → 結果統合
+  ファイル管理 → フロントマター抽出 → TypeScript解析 → 結果統合
   
 [下流]
   結果統合 → ファイル管理（出力）
@@ -278,10 +260,10 @@ graph LR
 
 | 境界間                               | 統合パターン | 実装方法       |
 | ------------------------------------ | ------------ | -------------- |
-| フロントマター抽出 → AI解析          | イベント駆動 | 非同期イベント |
-| AI解析（第1段階）→ AI解析（第2段階） | パイプライン | 同期呼び出し   |
-| AI解析 → 結果統合                    | イベント駆動 | 非同期イベント |
-| Schema/テンプレート → AI解析         | 共有カーネル | 依存性注入     |
+| フロントマター抽出 → TypeScript解析          | イベント駆動 | 非同期イベント |
+| TypeScript解析（第1段階）→ TypeScript解析（第2段階） | パイプライン | 同期呼び出し   |
+| TypeScript解析 → 結果統合                    | イベント駆動 | 非同期イベント |
+| Schema/テンプレート → TypeScript解析         | 共有カーネル | 依存性注入     |
 
 ## 5. 反腐敗層（ACL）の設計
 
@@ -298,8 +280,8 @@ graph LR
   }
 
   class TypeScriptAdapter implements ProcessingProvider {
-    async analyze(input: string, prompt: string): Promise<string> {
-      // claude -p の実行をラップ
+    async analyze(input: string, schema: JSONSchema): Promise<string> {
+      // TypeScript処理の実行をラップ
     }
   }
   ```
@@ -316,9 +298,9 @@ graph LR
 | イベント名           | 発行元             | 購読先             | ペイロード                |
 | -------------------- | ------------------ | ------------------ | ------------------------- |
 | MarkdownFileFound    | ファイル管理       | フロントマター抽出 | {path, content}           |
-| FrontMatterExtracted | フロントマター抽出 | AI解析             | {path, frontMatter}       |
-| InformationExtracted | AI解析（第1段階）  | AI解析（第2段階）  | {extractedInfo}           |
-| DataStructured       | AI解析（第2段階）  | 結果統合           | {structuredData}          |
+| FrontMatterExtracted | フロントマター抽出 | TypeScript解析     | {path, frontMatter}       |
+| InformationExtracted | TypeScript解析（第1段階）  | TypeScript解析（第2段階）  | {extractedInfo}           |
+| DataStructured       | TypeScript解析（第2段階）  | 結果統合           | {structuredData}          |
 | ResultIntegrated     | 結果統合           | ファイル管理       | {finalResult, outputPath} |
 | ProcessingError      | 各ドメイン         | エラーハンドリング | {domain, error, context}  |
 
@@ -346,7 +328,7 @@ class EventStore {
 - フロントマターは必ずMarkdownファイルの先頭に存在する
 - YAML形式で記述されている
 
-### 7.2 AI解析
+### 7.2 TypeScript解析
 
 - 第1段階の出力（成果C）は第2段階の入力となる
 - 両段階で同じSchemaを参照する
@@ -443,11 +425,11 @@ class AnalysisPipelineService {
 2. Schema管理ドメイン
 3. テンプレート管理ドメイン
 
-### Phase 2: AI統合
+### Phase 2: TypeScript解析統合
 
-1. AI解析ドメイン（2段階処理）
-2. プロンプト管理ドメイン
-3. Claude APIアダプター
+1. TypeScript解析ドメイン（2段階処理）
+2. Schemaマッチング処理
+3. テンプレート変換処理
 
 ### Phase 3: 統合と出力
 
@@ -461,6 +443,6 @@ class AnalysisPipelineService {
 
 1. **高凝集・疎結合**: 各ドメインが単一の責務を持ち、イベント駆動で連携
 2. **柔軟性**: Schema/テンプレートの差し替えが容易
-3. **拡張性**: 新しいAIプロバイダーや出力形式の追加が容易
+3. **拡張性**: 新しい解析ロジックや出力形式の追加が容易
 4. **保守性**: 明確な境界により、変更の影響範囲を限定
 5. **テスタビリティ**: 各ドメインを独立してテスト可能
