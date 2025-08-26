@@ -126,6 +126,7 @@ export type ErrorCode =
   | "DOM999"; // Unexpected error
 
 export const ErrorCodeMap: Record<string, ErrorCode> = {
+  ValidationError: "VAL001",
   EmptyInput: "VAL001",
   InvalidFormat: "VAL002",
   PatternMismatch: "VAL003",

@@ -71,14 +71,14 @@ class TypeScriptAnalysisOrchestrator {
   // 第1段階: 情報抽出
   extractInformation(
     frontMatter: FrontMatter,
-    schema: Schema
+    schema: Schema,
   ): ExtractedInfo;
 
   // 第2段階: テンプレート当て込み
   mapToTemplate(
     extractedInfo: ExtractedInfo,
     schema: Schema,
-    template: Template
+    template: Template,
   ): StructuredData;
 }
 ```
@@ -201,7 +201,6 @@ class ConfigurationManager {
 }
 ```
 
-
 ### 2.3 汎用サブドメイン
 
 #### GD1: ロギング（Logging）
@@ -258,12 +257,12 @@ graph LR
 
 ### 4.2 統合パターン
 
-| 境界間                               | 統合パターン | 実装方法       |
-| ------------------------------------ | ------------ | -------------- |
-| フロントマター抽出 → TypeScript解析          | イベント駆動 | 非同期イベント |
+| 境界間                                               | 統合パターン | 実装方法       |
+| ---------------------------------------------------- | ------------ | -------------- |
+| フロントマター抽出 → TypeScript解析                  | イベント駆動 | 非同期イベント |
 | TypeScript解析（第1段階）→ TypeScript解析（第2段階） | パイプライン | 同期呼び出し   |
-| TypeScript解析 → 結果統合                    | イベント駆動 | 非同期イベント |
-| Schema/テンプレート → TypeScript解析         | 共有カーネル | 依存性注入     |
+| TypeScript解析 → 結果統合                            | イベント駆動 | 非同期イベント |
+| Schema/テンプレート → TypeScript解析                 | 共有カーネル | 依存性注入     |
 
 ## 5. 反腐敗層（ACL）の設計
 
@@ -295,14 +294,14 @@ graph LR
 
 ### 6.1 イベントカタログ
 
-| イベント名           | 発行元             | 購読先             | ペイロード                |
-| -------------------- | ------------------ | ------------------ | ------------------------- |
-| MarkdownFileFound    | ファイル管理       | フロントマター抽出 | {path, content}           |
-| FrontMatterExtracted | フロントマター抽出 | TypeScript解析     | {path, frontMatter}       |
-| InformationExtracted | TypeScript解析（第1段階）  | TypeScript解析（第2段階）  | {extractedInfo}           |
-| DataStructured       | TypeScript解析（第2段階）  | 結果統合           | {structuredData}          |
-| ResultIntegrated     | 結果統合           | ファイル管理       | {finalResult, outputPath} |
-| ProcessingError      | 各ドメイン         | エラーハンドリング | {domain, error, context}  |
+| イベント名           | 発行元                    | 購読先                    | ペイロード                |
+| -------------------- | ------------------------- | ------------------------- | ------------------------- |
+| MarkdownFileFound    | ファイル管理              | フロントマター抽出        | {path, content}           |
+| FrontMatterExtracted | フロントマター抽出        | TypeScript解析            | {path, frontMatter}       |
+| InformationExtracted | TypeScript解析（第1段階） | TypeScript解析（第2段階） | {extractedInfo}           |
+| DataStructured       | TypeScript解析（第2段階） | 結果統合                  | {structuredData}          |
+| ResultIntegrated     | 結果統合                  | ファイル管理              | {finalResult, outputPath} |
+| ProcessingError      | 各ドメイン                | エラーハンドリング        | {domain, error, context}  |
 
 ### 6.2 イベントストア
 

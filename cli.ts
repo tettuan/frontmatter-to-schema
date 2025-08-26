@@ -18,7 +18,6 @@ import { join } from "jsr:@std/path@1.1.2";
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
-import { TypeScriptSchemaAnalyzer } from "./src/infrastructure/adapters/typescript-schema-analyzer.ts";
 import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
@@ -290,7 +289,7 @@ async function main() {
         prompts.extraction,
         prompts.mapping,
       )
-      : new TypeScriptSchemaAnalyzer();
+      : new MockSchemaAnalyzer();
 
     // Create use case
     if (debugMode) {

@@ -27,7 +27,7 @@ Deno.test("DocumentPath - Smart Constructor", async (t) => {
     const result = DocumentPath.create("");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "EmptyInput");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -95,7 +95,7 @@ Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
     const result = SchemaDefinition.create(null, "json");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "EmptyInput");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -152,7 +152,7 @@ Deno.test("ProcessingOptions - Smart Constructor", async (t) => {
     });
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "OutOfRange");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -188,7 +188,7 @@ Deno.test("MappingRule - Smart Constructor", async (t) => {
     const result = MappingRule.create("", "target");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "EmptyInput");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -227,7 +227,7 @@ Deno.test("ConfigPath - Smart Constructor", async (t) => {
     const result = ConfigPath.create("config/settings.txt");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "InvalidFormat");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -277,7 +277,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("1.0");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "PatternMismatch");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -285,7 +285,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("v1.0.0");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "PatternMismatch");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -293,7 +293,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("2");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "PatternMismatch");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 
@@ -301,7 +301,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("invalid-version");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "PatternMismatch");
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 });

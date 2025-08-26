@@ -41,7 +41,7 @@ gh で 適切なラベルをつけてIssueを作って。
 ### ラベル
 
 [bug, ci-failure, duplicate, enhancement, refactor, documentation,
-priority-high]
+high-priority]
 
 ## 近いIssueがある場合:
 

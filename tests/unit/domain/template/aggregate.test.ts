@@ -9,7 +9,7 @@ import { FileTemplateRepository } from "../../../../src/infrastructure/template/
 import {
   Template,
   TemplateDefinition,
-} from "../../../../src/domain/models/template.ts";
+} from "../../../../src/domain/models/domain-models.ts";
 import type { TemplateApplicationContext } from "../../../../src/domain/template/aggregate.ts";
 import {
   AITemplateStrategy,

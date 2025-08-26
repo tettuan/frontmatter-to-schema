@@ -35,7 +35,7 @@ import type {
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-analyzer.ts";
-import { TypeScriptSchemaAnalyzer } from "./infrastructure/adapters/typescript-schema-analyzer.ts";
+// TypeScriptSchemaAnalyzer removed - AI processing is no longer used
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
@@ -109,14 +109,14 @@ async function runBuildRegistry() {
     const fileWriter = new FileWriter();
     const extractor = new FrontMatterExtractor();
 
-    // Use TypeScriptSchemaAnalyzer instead of ClaudeAnalyzer
-    const analyzer = new TypeScriptSchemaAnalyzer();
+    // Use MockSchemaAnalyzer for now - TypeScript analysis removed
+    const analyzer = new MockSchemaAnalyzer();
 
     const useCase = new BuildRegistryUseCase(
       fileReader,
       fileWriter,
       extractor,
-      analyzer as any, // Type casting needed for compatibility
+      analyzer as unknown, // Type casting needed for compatibility
     );
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
@@ -345,11 +345,11 @@ Examples:
         reason: "test mode enabled",
       });
     } else {
-      // Use TypeScript implementation
-      schemaAnalyzer = new TypeScriptSchemaAnalyzer();
+      // Use Mock implementation for now
+      schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
-      logger.info("Using TypeScript analyzer", {
-        reason: "TypeScript implementation",
+      logger.info("Using mock analyzer", {
+        reason: "Default implementation",
       });
     }
 

@@ -9,7 +9,7 @@ import { FileTemplateRepository } from "../../../../src/infrastructure/template/
 import {
   Template,
   TemplateDefinition,
-} from "../../../../src/domain/models/template.ts";
+} from "../../../../src/domain/models/domain-models.ts";
 
 Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
   await t.step("should create valid template paths", () => {

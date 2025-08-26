@@ -1,0 +1,213 @@
+{
+  "version": "1.0.0",
+  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "tools": {
+    "availableConfigs": [
+      "build",
+      "design",
+      "docs",
+      "git",
+      "meta",
+      "refactor",
+      "spec"
+    ],
+    "commands": [
+      {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "test",
+        "description": "Build robust test infrastructure",
+        "usage": "climpt-build robust test -f test_spec.md",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default", "strict"],
+          "input_file": [true],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "code",
+        "description": "Build robust code implementation",
+        "usage": "climpt-build robust code -f requirements.md",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [true],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "boundary",
+        "description": "Define domain boundaries based on concepts",
+        "usage": "echo 'domain concepts' | climpt-design domain boundary -o boundaries.md",
+        "options": {
+          "input": ["default", "code"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [true]
+        }
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "description": "Design domain architecture from boundaries",
+        "usage": "climpt-design domain architecture -f boundaries.md -o architecture.md",
+        "options": {
+          "input": ["default", "core", "detail"],
+          "adaptation": ["default"],
+          "input_file": [true],
+          "stdin": [false],
+          "destination": [true]
+        }
+      },
+      {
+        "c1": "docs",
+        "c2": "generate-robust",
+        "c3": "instruction-doc",
+        "description": "Generate robust instruction documentation",
+        "usage": "echo 'brief instruction' | climpt-docs generate-robust instruction-doc -o doc.md",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [true]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "decide-branch",
+        "c3": "working-branch",
+        "description": "Decide on appropriate working branch",
+        "usage": "echo 'feature description' | climpt-git decide-branch working-branch",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "list-select",
+        "c3": "pr-branch",
+        "description": "List and select PR branches",
+        "usage": "climpt-git list-select pr-branch",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [false],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "group-commit",
+        "c3": "unstaged-changes",
+        "description": "Group unstaged changes into semantic commits",
+        "usage": "climpt-git group-commit unstaged-changes",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [false],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "resolve",
+        "c3": "registered-commands",
+        "description": "Resolve and show registered commands",
+        "usage": "echo 'task description' | climpt-meta resolve registered-commands",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "list",
+        "c3": "available-commands",
+        "description": "List all available commands",
+        "usage": "echo 'scope' | climpt-meta list available-commands",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "description": "Build command registry list",
+        "usage": "climpt-meta build-list command-registry -i claude -o registry.json",
+        "options": {
+          "input": ["default", "claude"],
+          "adaptation": ["default", "registry"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [true]
+        }
+      },
+      {
+        "c1": "refactor",
+        "c2": "ddd",
+        "c3": "architecture",
+        "description": "Refactor architecture using DDD principles",
+        "usage": "climpt-refactor ddd architecture",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [false],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "ddd",
+        "description": "Refactor based on DDD principles",
+        "usage": "echo 'refactor scope' | climpt-refactor basedon ddd -i nextaction",
+        "options": {
+          "input": ["default", "nextaction"],
+          "adaptation": ["default"],
+          "input_file": [false],
+          "stdin": [true],
+          "destination": [false]
+        }
+      },
+      {
+        "c1": "spec",
+        "c2": "analyze",
+        "c3": "quality-metrics",
+        "description": "Analyze specification quality metrics",
+        "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "input_file": [true],
+          "stdin": [false],
+          "destination": [true]
+        }
+      }
+    ]
+  }
+}

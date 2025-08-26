@@ -3,7 +3,7 @@ import {
   createValidationError,
   type ValidationError,
 } from "../shared/errors.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 
 export class TemplateMapper {
   map(

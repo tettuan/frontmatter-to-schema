@@ -116,9 +116,8 @@ export class ProcessDocumentsUseCase {
         error: createError({
           kind: "ConfigurationInvalid",
           errors: [{
-            kind: "InvalidPath",
-            path: config.schemaPath.getValue(),
-            reason,
+            kind: "ValidationError",
+            message: `Schema path ${config.schemaPath.getValue()}: ${reason}`,
           }],
         }),
       };
@@ -172,9 +171,9 @@ export class ProcessDocumentsUseCase {
         error: createError({
           kind: "ConfigurationInvalid",
           errors: [{
-            kind: "InvalidPath",
-            path: config.templatePath.getValue(),
-            reason,
+            kind: "ValidationError",
+            message:
+              `Template path ${config.templatePath.getValue()}: ${reason}`,
           }],
         }),
       };
@@ -242,9 +241,9 @@ export class ProcessDocumentsUseCase {
         error: createError({
           kind: "ConfigurationInvalid",
           errors: [{
-            kind: "InvalidPath",
-            path: config.documentsPath.getValue(),
-            reason,
+            kind: "ValidationError",
+            message:
+              `Documents path ${config.documentsPath.getValue()}: ${reason}`,
           }],
         }),
       };

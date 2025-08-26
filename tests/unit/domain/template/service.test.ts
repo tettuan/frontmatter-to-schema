@@ -9,7 +9,7 @@ import { FileTemplateRepository } from "../../../../src/infrastructure/template/
 import {
   Template,
   TemplateDefinition,
-} from "../../../../src/domain/models/template.ts";
+} from "../../../../src/domain/models/domain-models.ts";
 import type { TemplateRepository } from "../../../../src/domain/template/repository.ts";
 
 Deno.test("TemplateProcessingService - Service Layer Tests", async (t) => {

@@ -472,7 +472,7 @@ export class StructuredData {
 export class TypeScriptAnalysisOrchestrator {
   constructor(
     private readonly schemaMapper: SchemaMapper,
-    private readonly templateProcessor: TemplateProcessor
+    private readonly templateProcessor: TemplateProcessor,
   ) {}
 
   /** 第1段階: 情報抽出（成果B → 成果C） */
@@ -483,7 +483,7 @@ export class TypeScriptAnalysisOrchestrator {
     // Schema展開とマッピング
     const mappingResult = await this.schemaMapper.mapFrontMatterToSchema(
       frontMatter.getParsed(),
-      schema.getSchema()
+      schema.getSchema(),
     );
 
     if (!mappingResult.ok) {
@@ -516,7 +516,7 @@ export class TypeScriptAnalysisOrchestrator {
     const templateResult = await this.templateProcessor.process(
       extractedInfo.getData(),
       template.getContent(),
-      schema.getSchema()
+      schema.getSchema(),
     );
 
     if (!templateResult.ok) {
@@ -570,7 +570,7 @@ export class TypeScriptAnalysisOrchestrator {
 export interface SchemaMapper {
   mapFrontMatterToSchema(
     frontMatter: Record<string, unknown>,
-    schema: object
+    schema: object,
   ): Promise<Result<Record<string, unknown>, MappingError>>;
 }
 
@@ -578,7 +578,7 @@ export interface TemplateProcessor {
   process(
     data: Record<string, unknown>,
     template: string,
-    schema: object
+    schema: object,
   ): Promise<Result<string, ProcessingError>>;
 }
 
@@ -586,7 +586,7 @@ export interface TemplateProcessor {
 export class TypeScriptSchemaMapper implements SchemaMapper {
   async mapFrontMatterToSchema(
     frontMatter: Record<string, unknown>,
-    schema: object
+    schema: object,
   ): Promise<Result<Record<string, unknown>, MappingError>> {
     // Schema展開とマッピングロジック
     // 詳細はdocs/architecture/schema_matching_architecture.ja.md参照
@@ -599,7 +599,7 @@ export class TypeScriptTemplateProcessor implements TemplateProcessor {
   async process(
     data: Record<string, unknown>,
     template: string,
-    schema: object
+    schema: object,
   ): Promise<Result<string, ProcessingError>> {
     // テンプレート変数置換ロジック
     // {SchemaPath}形式の変数を置換

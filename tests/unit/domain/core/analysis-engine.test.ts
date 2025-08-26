@@ -17,7 +17,7 @@ import type { AnalysisContext } from "../../../../src/domain/core/types.ts";
 import {
   FrontMatterContent,
 } from "../../../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../../../src/domain/models/schema.ts";
+import { SchemaDefinition } from "../../../../src/domain/models/domain-models.ts";
 import {
   type AnalysisError,
   createDomainError,

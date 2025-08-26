@@ -18,7 +18,7 @@ import {
   DocumentPath,
   FrontMatterContent,
 } from "../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../src/domain/models/schema.ts";
+import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
 // Note: DocumentPath and DocumentPath replaced with DocumentPath
 import { Registry } from "../../src/domain/core/registry.ts";
 import {

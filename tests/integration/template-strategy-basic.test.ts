@@ -7,7 +7,7 @@ import type { TemplateApplicationContext } from "../../src/domain/template/aggre
 import {
   Template,
   TemplateDefinition,
-} from "../../src/domain/models/template.ts";
+} from "../../src/domain/models/domain-models.ts";
 
 const createTestTemplate = (
   format: "json" | "yaml" | "handlebars" | "custom" = "json",

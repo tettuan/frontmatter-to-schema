@@ -69,8 +69,11 @@ b.抽出した情報を、「解析結果のSchema」を使って、解析テン
 詳しくは `docs/architecture/schema_matching_architecture.ja.md`
 へ記載したため、必ず読むこと。
 
-利用するSchemaとテンプレート:　 registry_command_schema.json
+**利用するSchemaとテンプレート**:　 registry_command_schema.json
 registry_command_template.json
+
+完成したバージョンの参考例： .agent/test-climpt/example-registed_commands.json
+（正解の出力フォーマットではない。Schemaとテンプレートを使った出力例の参考例として、理解の補助に使うだけである。）
 
 ## 抽象化レベル
 

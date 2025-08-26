@@ -4,7 +4,7 @@
 
 import { type AnalysisContext, AnalysisResult } from "../core/types.ts";
 import { DocumentPath } from "../models/value-objects.ts";
-import { SchemaDefinition } from "../models/schema.ts";
+import { SchemaDefinition } from "../models/domain-models.ts";
 // Note: DocumentPath and DocumentPath replaced with DocumentPath
 import type {
   AnalysisEngine,

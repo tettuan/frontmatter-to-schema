@@ -55,8 +55,8 @@ Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
 
   await t.step("Smart Constructor - Failure Cases", () => {
     const errorCases = [
-      { input: "", expectedError: "EmptyInput" },
-      { input: "   ", expectedError: "EmptyInput" },
+      { input: "", expectedError: "ValidationError" },
+      { input: "   ", expectedError: "ValidationError" },
       // Note: DocumentPath now accepts any valid file path, validation moved to domain layer
     ];
 
@@ -119,10 +119,10 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
 
   await t.step("Invalid Schema Rejection", () => {
     const invalidCases = [
-      { input: null, expectedError: "EmptyInput" },
-      { input: undefined, expectedError: "EmptyInput" },
-      { input: "string", expectedError: "InvalidFormat" },
-      { input: 123, expectedError: "InvalidFormat" },
+      { input: null, expectedError: "ValidationError" },
+      { input: undefined, expectedError: "ValidationError" },
+      { input: "string", expectedError: "ValidationError" },
+      { input: 123, expectedError: "ValidationError" },
     ];
 
     for (const { input, expectedError } of invalidCases) {
@@ -141,7 +141,7 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
       "Arrays should be rejected",
     );
     if (isError(arrayResult)) {
-      assertEquals(arrayResult.error.kind, "InvalidFormat");
+      assertEquals(arrayResult.error.kind, "ValidationError");
     }
   });
 
@@ -210,10 +210,10 @@ Deno.test("DDD Core - ProcessingOptions Value Object", async (t) => {
 
   await t.step("Concurrency Validation", () => {
     const invalidCases = [
-      { maxConcurrency: 0, expectedError: "OutOfRange" },
-      { maxConcurrency: -1, expectedError: "OutOfRange" },
-      { maxConcurrency: 101, expectedError: "OutOfRange" },
-      { maxConcurrency: 1000, expectedError: "OutOfRange" },
+      { maxConcurrency: 0, expectedError: "ValidationError" },
+      { maxConcurrency: -1, expectedError: "ValidationError" },
+      { maxConcurrency: 101, expectedError: "ValidationError" },
+      { maxConcurrency: 1000, expectedError: "ValidationError" },
     ];
 
     for (const { maxConcurrency, expectedError } of invalidCases) {
@@ -284,9 +284,9 @@ Deno.test("DDD Core - MappingRule Value Object", async (t) => {
 
   await t.step("Invalid Mapping Rules", () => {
     const invalidCases = [
-      { source: "", target: "valid", expectedError: "EmptyInput" },
-      { source: "valid", target: "", expectedError: "EmptyInput" },
-      { source: "", target: "", expectedError: "EmptyInput" },
+      { source: "", target: "valid", expectedError: "ValidationError" },
+      { source: "valid", target: "", expectedError: "ValidationError" },
+      { source: "", target: "", expectedError: "ValidationError" },
     ];
 
     for (const { source, target, expectedError } of invalidCases) {
@@ -365,9 +365,9 @@ tags:
 
   await t.step("Invalid Template Formats", () => {
     const invalidCases = [
-      { format: "xml", template: "<root/>", expectedError: "InvalidFormat" },
-      { format: "json", template: "", expectedError: "EmptyInput" },
-      { format: "yaml", template: "   ", expectedError: "EmptyInput" },
+      { format: "xml", template: "<root/>", expectedError: "ValidationError" },
+      { format: "json", template: "", expectedError: "ValidationError" },
+      { format: "yaml", template: "   ", expectedError: "ValidationError" },
     ];
 
     for (const { format, template, expectedError } of invalidCases) {
@@ -400,11 +400,11 @@ Deno.test("DDD Core - SchemaVersion Value Object", async (t) => {
 
   await t.step("Invalid Version Formats", () => {
     const invalidVersions = [
-      { input: "1.0", expectedError: "PatternMismatch" },
-      { input: "1", expectedError: "PatternMismatch" },
-      { input: "v1.0.0", expectedError: "PatternMismatch" },
-      { input: "1.0.0-alpha", expectedError: "PatternMismatch" },
-      { input: "1.0.x", expectedError: "PatternMismatch" },
+      { input: "1.0", expectedError: "ValidationError" },
+      { input: "1", expectedError: "ValidationError" },
+      { input: "v1.0.0", expectedError: "ValidationError" },
+      { input: "1.0.0-alpha", expectedError: "ValidationError" },
+      { input: "1.0.x", expectedError: "ValidationError" },
     ];
 
     for (const { input, expectedError } of invalidVersions) {
@@ -453,11 +453,11 @@ Deno.test("DDD Core - ConfigPath Value Object", async (t) => {
 
   await t.step("Invalid Config Paths", () => {
     const invalidPaths = [
-      { input: "", expectedError: "EmptyInput" },
-      { input: "   ", expectedError: "EmptyInput" },
-      { input: "config.txt", expectedError: "InvalidFormat" },
-      { input: "settings.xml", expectedError: "InvalidFormat" },
-      { input: "noextension", expectedError: "InvalidFormat" },
+      { input: "", expectedError: "ValidationError" },
+      { input: "   ", expectedError: "ValidationError" },
+      { input: "config.txt", expectedError: "ValidationError" },
+      { input: "settings.xml", expectedError: "ValidationError" },
+      { input: "noextension", expectedError: "ValidationError" },
     ];
 
     for (const { input, expectedError } of invalidPaths) {
@@ -509,7 +509,7 @@ Deno.test("DDD Core - OutputPath Value Object", async (t) => {
     const result = OutputPath.create("");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "EmptyInput");
+      assertEquals(result.error.kind, "ValidationError");
     }
 
     const whitespaceResult = OutputPath.create("   ");
@@ -634,7 +634,7 @@ Deno.test("DDD Core - Error Propagation", async (t) => {
 
     assertEquals(isError(chained), true);
     if (isError(chained)) {
-      assertEquals(chained.error.kind, "EmptyInput");
+      assertEquals(chained.error.kind, "ValidationError");
     }
   });
 

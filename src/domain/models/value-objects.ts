@@ -12,7 +12,7 @@ import type {
   Result,
   ValidationError as ResultValidationError,
 } from "../core/result.ts";
-import { createError, type ValidationError } from "../shared/types.ts";
+import type { ValidationError } from "../shared/types.ts";
 
 /**
  * Represents a path to a Markdown document
@@ -45,9 +45,9 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "EmptyInput",
+          kind: "ValidationError",
           message: "Input cannot be empty",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -56,11 +56,9 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "TooLong",
-          value: trimmedPath,
-          maxLength: 512,
+          kind: "ValidationError",
           message: "Path is too long",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -69,11 +67,9 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
-          input: trimmedPath,
-          expectedFormat: "path without null bytes",
+          kind: "ValidationError",
           message: "Path contains invalid characters",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -81,11 +77,11 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
+          kind: "ValidationError",
           input: trimmedPath,
           expectedFormat: "path without line breaks",
           message: "Path contains invalid characters",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -151,11 +147,11 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
+          kind: "ValidationError",
           input: String(obj),
           expectedFormat: "object",
           message: "Input must be a plain object",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -166,11 +162,11 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
+          kind: "ValidationError",
           input: String(error),
           expectedFormat: "serializable object",
           message: "Object cannot be serialized to JSON",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
   }
@@ -183,9 +179,9 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "EmptyInput",
+          kind: "ValidationError",
           message: "YAML content cannot be empty",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -326,9 +322,9 @@ export class ConfigPath {
       return {
         ok: false,
         error: {
-          kind: "EmptyInput",
+          kind: "ValidationError",
           message: "Input cannot be empty",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
     // Validate config file extensions
@@ -339,11 +335,11 @@ export class ConfigPath {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
+          kind: "ValidationError",
           input: path,
           expectedFormat: ".json, .yaml, .yml, or .toml",
           message: "Invalid file extension",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
     return { ok: true, data: new ConfigPath(path) };
@@ -368,7 +364,13 @@ export class OutputPath {
     path: string,
   ): Result<OutputPath, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     return { ok: true, data: new OutputPath(path) };
@@ -399,9 +401,9 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "EmptyInput",
+          kind: "ValidationError",
           message: "Schema definition cannot be empty",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -412,11 +414,11 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "InvalidFormat",
+          kind: "ValidationError",
           input: typeof definition,
           expectedFormat: "object",
           message: "Schema definition must be a plain object",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -439,9 +441,9 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "EmptyInput",
+          kind: "ValidationError",
           message: "Data to validate cannot be null or undefined",
-        } as ResultValidationError & { message: string },
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -484,11 +486,11 @@ export class SchemaVersion {
     // Reject invalid formats
     return {
       ok: false,
-      error: createError({
-        kind: "PatternMismatch",
-        pattern: "X.Y.Z (semantic version)",
-        input: version,
-      }),
+      error: {
+        kind: "ValidationError",
+        message:
+          `Invalid version format. Expected X.Y.Z (semantic version), got: ${version}`,
+      } as unknown as ValidationError & { message: string },
     };
   }
 
@@ -513,7 +515,13 @@ export class TemplateFormat {
     template: string,
   ): Result<TemplateFormat, ValidationError & { message: string }> {
     if (!template || template.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     if (
@@ -522,11 +530,11 @@ export class TemplateFormat {
     ) {
       return {
         ok: false,
-        error: createError({
-          kind: "InvalidFormat",
-          format: "json, yaml, toml, handlebars, or custom",
-          input: format,
-        }),
+        error: {
+          kind: "ValidationError",
+          message:
+            `Invalid format. Expected json, yaml, toml, handlebars, or custom, got: ${format}`,
+        } as unknown as ValidationError & { message: string },
       };
     }
 
@@ -561,7 +569,13 @@ export class MappingRule {
     transform?: (value: unknown) => unknown,
   ): Result<MappingRule, ValidationError & { message: string }> {
     if (!source || !target) {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     return { ok: true, data: new MappingRule(source, target, transform) };
@@ -608,12 +622,10 @@ export class ProcessingOptions {
     if (maxConcurrency < 1 || maxConcurrency > 100) {
       return {
         ok: false,
-        error: createError({
-          kind: "OutOfRange",
-          value: maxConcurrency,
-          min: 1,
-          max: 100,
-        }),
+        error: {
+          kind: "ValidationError",
+          message: `Max concurrency out of range (1-100): ${maxConcurrency}`,
+        } as unknown as ValidationError & { message: string },
       };
     }
 

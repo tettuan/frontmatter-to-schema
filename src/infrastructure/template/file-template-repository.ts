@@ -6,7 +6,10 @@
 import type { Result } from "../../domain/core/result.ts";
 import type { ValidationError } from "../../domain/shared/errors.ts";
 import { createValidationError } from "../../domain/shared/errors.ts";
-import { Template, TemplateDefinition } from "../../domain/models/template.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../domain/models/domain-models.ts";
 import type { TemplateRepository } from "../../domain/template/repository.ts";
 import { TemplatePath } from "../../domain/template/repository.ts";
 import { TemplateFormat } from "../../domain/template/format-handlers.ts";

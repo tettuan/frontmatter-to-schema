@@ -14,7 +14,7 @@ import {
   type TemplateDefinition,
 } from "./types.ts";
 import { FrontMatterContent } from "../models/value-objects.ts";
-import type { SchemaDefinition } from "../models/schema.ts";
+import type { SchemaDefinition } from "../models/domain-models.ts";
 import type {
   AnalysisContext as AbstractAnalysisContext,
   SchemaBasedAnalyzer as AbstractSchemaBasedAnalyzer,

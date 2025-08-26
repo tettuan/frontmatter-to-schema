@@ -5,7 +5,7 @@
  * These events enable loose coupling between domains
  */
 
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 
 /**

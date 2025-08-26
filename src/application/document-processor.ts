@@ -5,8 +5,12 @@ import {
   DocumentContent,
   DocumentPath,
 } from "../domain/models/value-objects.ts";
-import { Schema, SchemaDefinition } from "../domain/models/schema.ts";
-import { Template, TemplateDefinition } from "../domain/models/template.ts";
+import {
+  Schema,
+  SchemaDefinition,
+  Template,
+  TemplateDefinition,
+} from "../domain/models/domain-models.ts";
 import {
   BatchTransformationResult,
   ExtractedData,

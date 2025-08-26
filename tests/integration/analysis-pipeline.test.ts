@@ -13,7 +13,7 @@ import {
   DocumentPath,
   type FrontMatterContent,
 } from "../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../src/domain/models/schema.ts";
+import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
 import {

@@ -3,7 +3,7 @@ import {
   createValidationError,
   type ValidationError,
 } from "../shared/errors.ts";
-import type { Schema } from "../models/schema.ts";
+import type { Schema } from "../models/domain-models.ts";
 
 export interface ValidationResult {
   isValid: boolean;
