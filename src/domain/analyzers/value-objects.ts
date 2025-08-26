@@ -62,13 +62,25 @@ export class ToolConfiguration {
       };
     }
 
-    const validTools = ["git", "spec", "test", "code", "docs", "meta", "build", "refactor", "debug"];
+    const validTools = [
+      "git",
+      "spec",
+      "test",
+      "code",
+      "docs",
+      "meta",
+      "build",
+      "refactor",
+      "debug",
+    ];
     if (!validTools.includes(name.toLowerCase())) {
       return {
         ok: false,
         error: createError({
           kind: "ValidationError",
-          message: `Invalid tool name: ${name}. Valid tools: ${validTools.join(", ")}`,
+          message: `Invalid tool name: ${name}. Valid tools: ${
+            validTools.join(", ")
+          }`,
         }),
       };
     }
@@ -140,7 +152,7 @@ export class RegistryCommand {
     // Extract command components from file path
     // e.g., "git/merge-cleanup/develop-branches/f_default.md" -> ["git", "merge-cleanup", "develop-branches"]
     const parts = path.split("/").filter((p) => p && !p.includes("."));
-    
+
     if (parts.length < 3) {
       return {
         ok: false,

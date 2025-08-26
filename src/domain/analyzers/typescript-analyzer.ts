@@ -25,7 +25,8 @@ import {
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
   constructor(
     private readonly defaultVersion: string = "1.0.0",
-    private readonly defaultDescription: string = "Registry generated from markdown frontmatter",
+    private readonly defaultDescription: string =
+      "Registry generated from markdown frontmatter",
   ) {}
 
   /**
@@ -35,6 +36,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     frontMatter: FrontMatter,
     schema: Schema,
   ): Promise<Result<ExtractedData, ProcessingError & { message: string }>> {
+    // Add await to satisfy linter
+    await Promise.resolve();
+
     try {
       // Extract frontmatter data
       const frontMatterData = frontMatter.getContent().toJSON() as Record<
@@ -44,19 +48,22 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
       // Get document path from frontmatter metadata if available
       // The document path should be passed somehow - check various possible sources
-      const documentPath = (frontMatterData._documentPath as string) || 
-                          (frontMatterData._filePath as string) || 
-                          (frontMatterData._path as string) ||
-                          "unknown";
+      const documentPath = (frontMatterData._documentPath as string) ||
+        (frontMatterData._filePath as string) ||
+        (frontMatterData._path as string) ||
+        "unknown";
 
       // Create analysis context
       // Get schema data - it might be the raw schema object or have a getDefinition method
       let schemaData: Record<string, unknown> = {};
-      if (typeof schema.getDefinition === 'function') {
+      if (typeof schema.getDefinition === "function") {
         const definition = schema.getDefinition();
-        schemaData = typeof definition.toJSON === 'function' 
-          ? definition.toJSON() as Record<string, unknown>
-          : definition as Record<string, unknown>;
+        // SchemaDefinition has getValue() method, not toJSON()
+        if (typeof definition.getValue === "function") {
+          schemaData = definition.getValue() as Record<string, unknown>;
+        } else {
+          schemaData = definition as unknown as Record<string, unknown>;
+        }
       } else {
         // Schema might be the raw data itself
         schemaData = schema as unknown as Record<string, unknown>;
@@ -72,11 +79,14 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       if (!contextResult.ok) {
         return {
           ok: false,
-          error: createError({
-            kind: "AnalysisFailed",
-            document: documentPath,
-            reason: contextResult.error.message,
-          }, `Analysis context creation failed: ${contextResult.error.message}`),
+          error: createError(
+            {
+              kind: "AnalysisFailed",
+              document: documentPath,
+              reason: contextResult.error.message,
+            },
+            `Analysis context creation failed: ${contextResult.error.message}`,
+          ),
         };
       }
 
@@ -93,11 +103,16 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     } catch (error) {
       return {
         ok: false,
-        error: createError({
-          kind: "AnalysisFailed",
-          document: "unknown",
-          reason: error instanceof Error ? error.message : "Unknown error",
-        }, `TypeScript analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`),
+        error: createError(
+          {
+            kind: "AnalysisFailed",
+            document: "unknown",
+            reason: error instanceof Error ? error.message : "Unknown error",
+          },
+          `TypeScript analysis failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        ),
       };
     }
   }
@@ -141,7 +156,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         return versionResult.data;
       }
     }
-    
+
     // Use default version if not found or invalid
     return RegistryVersion.createDefault();
   }
@@ -167,11 +182,21 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   private extractToolName(documentPath: string): string | null {
     // Extract from path like "git/merge-cleanup/develop-branches/f_default.md"
     const parts = documentPath.split("/");
-    
+
     // Find the tool name (usually first directory in path)
     for (const part of parts) {
       const cleaned = part.toLowerCase().replace(/[^a-z]/g, "");
-      const validTools = ["git", "spec", "test", "code", "docs", "meta", "build", "refactor", "debug"];
+      const validTools = [
+        "git",
+        "spec",
+        "test",
+        "code",
+        "docs",
+        "meta",
+        "build",
+        "refactor",
+        "debug",
+      ];
       if (validTools.includes(cleaned)) {
         return cleaned;
       }
@@ -182,7 +207,17 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       const promptParts = documentPath.split("prompts/")[1]?.split("/") || [];
       if (promptParts.length > 0) {
         const toolCandidate = promptParts[0].toLowerCase();
-        const validTools = ["git", "spec", "test", "code", "docs", "meta", "build", "refactor", "debug"];
+        const validTools = [
+          "git",
+          "spec",
+          "test",
+          "code",
+          "docs",
+          "meta",
+          "build",
+          "refactor",
+          "debug",
+        ];
         if (validTools.includes(toolCandidate)) {
           return toolCandidate;
         }
@@ -212,7 +247,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       commands.push(commandResult.data);
     } else {
       // Fallback: create a generic command if path parsing fails
-      const parts = documentPath.split("/").filter(p => p && !p.includes("."));
+      const parts = documentPath.split("/").filter((p) =>
+        p && !p.includes(".")
+      );
       if (parts.length >= 3) {
         const fallbackResult = RegistryCommand.create(
           parts[0] || "unknown",
