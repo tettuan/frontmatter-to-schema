@@ -150,8 +150,20 @@ export class RegistryCommand {
     description: string,
   ): Result<RegistryCommand, ValidationError> {
     // Extract command components from file path
-    // e.g., "git/merge-cleanup/develop-branches/f_default.md" -> ["git", "merge-cleanup", "develop-branches"]
-    const parts = path.split("/").filter((p) => p && !p.includes("."));
+    // e.g., ".agent/climpt/prompts/git/merge-cleanup/develop-branches/f_default.md"
+    // -> ["git", "merge-cleanup", "develop-branches"]
+
+    // Look for prompts directory and take path components after it
+    let parts: string[] = [];
+    if (path.includes("prompts/")) {
+      const afterPrompts = path.split("prompts/")[1];
+      if (afterPrompts) {
+        parts = afterPrompts.split("/").filter((p) => p && !p.includes("."));
+      }
+    } else {
+      // Fallback to original logic
+      parts = path.split("/").filter((p) => p && !p.includes("."));
+    }
 
     if (parts.length < 3) {
       return {
@@ -163,8 +175,8 @@ export class RegistryCommand {
       };
     }
 
-    // Take first 3 meaningful parts
-    const [c1, c2, c3] = parts.slice(-4, -1); // Skip filename, take last 3 dirs
+    // Take first 3 meaningful parts after prompts/
+    const [c1, c2, c3] = parts.slice(0, 3);
     return RegistryCommand.create(c1, c2, c3, description);
   }
 
