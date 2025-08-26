@@ -262,7 +262,7 @@ export type DocumentError =
   | { kind: "InvalidDocument"; message: string };
 ```
 
-## 2. AI解析ドメイン
+## 2. TypeScript解析ドメイン
 
 ### 2.1 型定義
 
@@ -468,12 +468,11 @@ export class StructuredData {
 // Aggregate Root
 // ========================================
 
-/** AI解析オーケストレーター - 集約ルート */
-export class AIAnalysisOrchestrator {
+/** TypeScript解析オーケストレーター - 集約ルート */
+export class TypeScriptAnalysisOrchestrator {
   constructor(
-    private readonly aiProvider: AIProvider,
-    private readonly promptA: Prompt,
-    private readonly promptB: Prompt,
+    private readonly schemaMapper: SchemaMapper,
+    private readonly templateProcessor: TemplateProcessor,
   ) {}
 
   /** 第1段階: 情報抽出（成果B → 成果C） */
@@ -481,54 +480,30 @@ export class AIAnalysisOrchestrator {
     frontMatter: FrontMatter,
     schema: AnalysisSchema,
   ): Promise<Result<ExtractedInfo, AnalysisError>> {
-    // プロンプトAをレンダリング
-    const renderResult = this.promptA.render({
-      FRONTMATTER: JSON.stringify(frontMatter.getParsed()),
-      SCHEMA: JSON.stringify(schema.getSchema()),
-    });
+    // Schema展開とマッピング
+    const mappingResult = await this.schemaMapper.mapFrontMatterToSchema(
+      frontMatter.getParsed(),
+      schema.getSchema(),
+    );
 
-    if (!renderResult.ok) {
+    if (!mappingResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "PromptRenderError",
-          message: renderResult.error.variable,
+          kind: "SchemaMappingError",
+          message: mappingResult.error.message,
         },
       };
     }
 
-    // AI解析実行
-    const analysisResult = await this.aiProvider.analyze(renderResult.data);
+    // 結果を成果Cとして生成
+    const metadata: ExtractionMetadata = {
+      extractedAt: new Date(),
+      processingMethod: "TypeScript",
+      schemaVersion: schema.getVersion(),
+    };
 
-    if (!analysisResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "AIAnalysisError",
-          message: analysisResult.error.message,
-        },
-      };
-    }
-
-    // 結果をパースして成果Cを生成
-    try {
-      const parsed = JSON.parse(analysisResult.data);
-      const metadata: ExtractionMetadata = {
-        extractedAt: new Date(),
-        promptUsed: "PromptA",
-        schemaVersion: schema.getVersion(),
-      };
-
-      return ExtractedInfo.create(parsed, metadata);
-    } catch (e) {
-      return {
-        ok: false,
-        error: {
-          kind: "ParseError",
-          message: `Failed to parse AI response: ${e}`,
-        },
-      };
-    }
+    return ExtractedInfo.create(mappingResult.data, metadata);
   }
 
   /** 第2段階: テンプレート当て込み（成果C → 成果D） */
@@ -537,32 +512,19 @@ export class AIAnalysisOrchestrator {
     schema: AnalysisSchema,
     template: Template,
   ): Promise<Result<StructuredData, AnalysisError>> {
-    // プロンプトBをレンダリング - AIがテンプレートに値を埋め込む
-    const renderResult = this.promptB.render({
-      EXTRACTED_DATA: JSON.stringify(extractedInfo.getData()),
-      SCHEMA: JSON.stringify(schema.getSchema()),
-      TEMPLATE: template.getContent(), // テンプレートをそのまま渡す
-    });
+    // TypeScriptでテンプレート処理
+    const templateResult = await this.templateProcessor.process(
+      extractedInfo.getData(),
+      template.getContent(),
+      schema.getSchema(),
+    );
 
-    if (!renderResult.ok) {
+    if (!templateResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "PromptRenderError",
-          message: renderResult.error.variable,
-        },
-      };
-    }
-
-    // AI解析実行 (claude -p 2回目) - テンプレート当て込み
-    const analysisResult = await this.aiProvider.analyze(renderResult.data);
-
-    if (!analysisResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "AIAnalysisError",
-          message: analysisResult.error.message,
+          kind: "TemplateProcessingError",
+          message: templateResult.error.message,
         },
       };
     }
@@ -605,45 +567,43 @@ export class AIAnalysisOrchestrator {
 // ========================================
 
 /** AIプロバイダーインターフェース（反腐敗層） */
-export interface AIProvider {
-  analyze(prompt: string): Promise<Result<string, AIProviderError>>;
-  getProviderName(): string;
-  isAvailable(): Promise<boolean>;
+export interface SchemaMapper {
+  mapFrontMatterToSchema(
+    frontMatter: Record<string, unknown>,
+    schema: object,
+  ): Promise<Result<Record<string, unknown>, MappingError>>;
 }
 
-/** Claude実装（反腐敗層の実装） */
-export class ClaudeAIProvider implements AIProvider {
-  constructor(private readonly commandExecutor: CommandExecutor) {}
+export interface TemplateProcessor {
+  process(
+    data: Record<string, unknown>,
+    template: string,
+    schema: object,
+  ): Promise<Result<string, ProcessingError>>;
+}
 
-  async analyze(prompt: string): Promise<Result<string, AIProviderError>> {
-    try {
-      const result = await this.commandExecutor.execute(
-        "claude",
-        ["-p"],
-        prompt,
-      );
-      if (!result.ok) {
-        return {
-          ok: false,
-          error: { kind: "ExecutionError", message: result.error },
-        };
-      }
-      return { ok: true, data: result.data.stdout };
-    } catch (e) {
-      return {
-        ok: false,
-        error: { kind: "UnexpectedError", message: `Claude API error: ${e}` },
-      };
-    }
+/** TypeScript Schemaマッパー実装 */
+export class TypeScriptSchemaMapper implements SchemaMapper {
+  async mapFrontMatterToSchema(
+    frontMatter: Record<string, unknown>,
+    schema: object,
+  ): Promise<Result<Record<string, unknown>, MappingError>> {
+    // Schema展開とマッピングロジック
+    // 詳細はdocs/architecture/schema_matching_architecture.ja.md参照
+    return { ok: true, data: frontMatter };
   }
+}
 
-  getProviderName(): string {
-    return "Claude";
-  }
-
-  async isAvailable(): Promise<boolean> {
-    const result = await this.commandExecutor.execute("which", ["claude"]);
-    return result.ok;
+/** TypeScriptテンプレートプロセッサー実装 */
+export class TypeScriptTemplateProcessor implements TemplateProcessor {
+  async process(
+    data: Record<string, unknown>,
+    template: string,
+    schema: object,
+  ): Promise<Result<string, ProcessingError>> {
+    // テンプレート変数置換ロジック
+    // {SchemaPath}形式の変数を置換
+    return { ok: true, data: template };
   }
 }
 
@@ -681,7 +641,9 @@ export class DataStructured implements DomainEvent {
 
 export type AnalysisError =
   | { kind: "PromptRenderError"; message: string }
-  | { kind: "AIAnalysisError"; message: string }
+  | { kind: "TypeScriptAnalysisError"; message: string }
+  | { kind: "SchemaMappingError"; message: string }
+  | { kind: "TemplateProcessingError"; message: string }
   | { kind: "ParseError"; message: string }
   | { kind: "SchemaValidationError"; message: string };
 ```

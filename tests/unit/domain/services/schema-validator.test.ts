@@ -3,8 +3,8 @@ import { SchemaValidator } from "../../../../src/domain/services/schema-validato
 import {
   Schema,
   SchemaDefinition,
-} from "../../../../src/domain/models/schema.ts";
-import { isError, isOk } from "../../../../src/domain/shared/result.ts";
+} from "../../../../src/domain/models/domain-models.ts";
+import { isError, isOk } from "../../../../src/domain/core/result.ts";
 
 Deno.test("SchemaValidator", async (t) => {
   const validator = new SchemaValidator();

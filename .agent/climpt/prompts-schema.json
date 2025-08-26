@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "directive": {
+      "type": "string",
+      "description": "Command directive"
+    },
+    "layer": {
+      "type": "string",
+      "description": "Command layer"
+    },
+    "input": {
+      "type": "string",
+      "description": "Input type"
+    },
+    "adaptation": {
+      "type": "string",
+      "description": "Adaptation type"
+    },
+    "description": {
+      "type": "string",
+      "description": "Command description"
+    }
+  },
+  "required": ["directive", "layer"]
+}

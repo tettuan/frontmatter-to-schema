@@ -85,13 +85,9 @@ const documents = await repo.findAll(DocumentPath.create("./docs"));
 External service integrations:
 
 ```typescript
-import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
+import { TypeScriptSchemaAnalyzer } from "./infrastructure/adapters/typescript-schema-analyzer.ts";
 
-const analyzer = new ClaudeSchemaAnalyzer(
-  config,
-  extractionPrompt,
-  mappingPrompt,
-);
+const analyzer = new TypeScriptSchemaAnalyzer();
 const result = await analyzer.analyze(frontMatter, schema);
 ```
 

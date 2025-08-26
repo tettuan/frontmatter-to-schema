@@ -6,18 +6,16 @@ import {
   getErrorCode,
 } from "./error-messages.ts";
 
-export type Result<T, E> =
-  | { ok: true; data: T }
-  | { ok: false; error: E };
+// Import Result type from the canonical location
+import type { Result } from "../core/result.ts";
 
-export type ValidationError =
-  | { kind: "EmptyInput" }
-  | { kind: "InvalidFormat"; format: string; input: string }
-  | { kind: "PatternMismatch"; pattern: string; input: string }
-  | { kind: "OutOfRange"; value: unknown; min?: number; max?: number }
-  | { kind: "InvalidPath"; path: string; reason: string }
-  | { kind: "SchemaValidation"; errors: unknown[] }
-  | { kind: "TemplateValidation"; errors: unknown[] };
+// Re-export for backward compatibility
+export type { Result };
+
+export type ValidationError = {
+  kind: "ValidationError";
+  message: string;
+};
 
 export type ProcessingError =
   | { kind: "ExtractionFailed"; document: string; reason: string }
@@ -57,6 +55,8 @@ function getDefaultMessage(
 ): string {
   const baseMessage = (() => {
     switch (error.kind) {
+      case "ValidationError":
+        return String(error["message"] ?? "Validation failed");
       case "EmptyInput":
         return ErrorMessages.EMPTY_INPUT;
       case "InvalidFormat":
@@ -80,6 +80,10 @@ function getDefaultMessage(
           String(error["path"]),
           String(error["reason"]),
         );
+      case "SchemaValidation":
+        return ErrorMessages.SCHEMA_VALIDATION(error["errors"] as unknown[]);
+      case "TemplateValidation":
+        return ErrorMessages.TEMPLATE_VALIDATION(error["errors"] as unknown[]);
       case "FileNotFound":
         return ErrorMessages.FILE_NOT_FOUND(String(error["path"]));
       case "PermissionDenied":
@@ -94,10 +98,6 @@ function getDefaultMessage(
           String(error["path"]),
           String(error["reason"]),
         );
-      case "SchemaValidation":
-        return ErrorMessages.SCHEMA_VALIDATION(error["errors"] as unknown[]);
-      case "TemplateValidation":
-        return ErrorMessages.TEMPLATE_VALIDATION(error["errors"] as unknown[]);
       case "ExtractionFailed":
         return ErrorMessages.EXTRACTION_FAILED(
           String(error["document"]),

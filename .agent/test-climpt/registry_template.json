@@ -1,4 +1,10 @@
 {
-  "command": "{{title}}",
-  "description": "{{description}}"
+  "version": "{version}",
+  "description": "{description}",
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "commands": [
+      { "$ref": "registry_command_template.json" }
+    ]
+  }
 }

@@ -1,15 +1,19 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  AnalysisEngineFactory,
+  type AnalysisEngine,
+  type ContextualAnalysisProcessor,
   FrontMatterExtractionStrategy,
 } from "../../src/domain/core/analysis-engine.ts";
 import {
-  type AnalysisContext,
+  ComponentDomain,
+  FactoryConfigurationBuilder,
+} from "../../src/domain/core/component-factory.ts";
+import type { AnalysisContext } from "../../src/domain/core/types.ts";
+import {
+  DocumentPath,
   type FrontMatterContent,
-  SchemaDefinition,
-  SourceFile,
-  ValidFilePath,
-} from "../../src/domain/core/types.ts";
+} from "../../src/domain/models/value-objects.ts";
+import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
 import {
@@ -100,26 +104,38 @@ async function processMarkdownFile(
   template: Record<string, unknown>,
   logger?: TestScopeLogger,
 ): Promise<{
-  sourceFile: SourceFile | null;
+  sourceFile: DocumentPath | null;
   extractedContent: FrontMatterContent | null;
   schemaValidated: Record<string, unknown> | null;
   templateMapped: Record<string, unknown> | null;
   analysisResult: AnalysisResult<Record<string, unknown>> | null;
 }> {
-  // Step 1: Create ValidFilePath
-  logger?.arrange("Creating ValidFilePath", { filePath });
-  const pathResult = ValidFilePath.createMarkdown(filePath);
+  // Step 1: Create DocumentPath
+  logger?.arrange("Creating DocumentPath", { filePath });
+  const pathResult = DocumentPath.create(filePath);
   if (!pathResult.ok) {
-    logger?.logResult("arrange", pathResult, "Failed to create ValidFilePath");
+    logger?.logResult("arrange", pathResult, "Failed to create DocumentPath");
     throw new Error(`Invalid file path: ${pathResult.error.message}`);
   }
-  logger?.logResult("arrange", pathResult, "ValidFilePath created");
+
+  // Step 1.1: Validate it's a markdown file
+  if (!pathResult.data.isMarkdown()) {
+    const errorMessage =
+      `Path must have one of these extensions: .md, .markdown but got ${pathResult.data.getFilename()}`;
+    logger?.logResult("arrange", {
+      ok: false,
+      error: { message: errorMessage },
+    }, "Path is not a markdown file");
+    throw new Error(errorMessage);
+  }
+  logger?.logResult("arrange", pathResult, "DocumentPath created");
 
   // Step 2: Extract FrontMatter from markdown
   logger?.act("Extracting FrontMatter from markdown");
   const strategy = new FrontMatterExtractionStrategy();
   const extractionContext: AnalysisContext = {
     kind: "BasicExtraction",
+    document: filePath,
     options: { includeMetadata: true },
   };
 
@@ -146,29 +162,28 @@ async function processMarkdownFile(
     "FrontMatter extracted successfully",
   );
 
-  // Step 3: Create SourceFile
-  const sourceFileResult = SourceFile.create(
-    pathResult.data,
-    markdownContent,
-    extractionResult.data,
-  );
-  if (!sourceFileResult.ok) {
-    throw new Error(
-      `Failed to create SourceFile: ${sourceFileResult.error.message}`,
-    );
-  }
+  // Step 3: We already have the DocumentPath from step 1
+  const sourceFile = pathResult.data;
 
   // Step 4: Create Schema and validate
-  const schemaResult = SchemaDefinition.create(schema);
+  const schemaResult = SchemaDefinition.create(schema, "json");
   if (!schemaResult.ok) {
-    throw new Error(`Invalid schema: ${schemaResult.error.message}`);
+    throw new Error(`Invalid schema: ${schemaResult.error.kind}`);
   }
 
-  const { processor } = AnalysisEngineFactory.createDefault();
+  const factory = FactoryConfigurationBuilder.createDefault();
+  const components = factory.createDomainComponents(
+    ComponentDomain.Analysis,
+  ) as {
+    processor: ContextualAnalysisProcessor;
+    engine: AnalysisEngine;
+  };
+  const { processor } = components;
 
   // Step 5: Schema validation
   const schemaContext: AnalysisContext = {
     kind: "SchemaAnalysis",
+    document: filePath,
     schema: schemaResult.data,
     options: { includeMetadata: true, validateResults: true },
   };
@@ -181,7 +196,8 @@ async function processMarkdownFile(
   // Step 6: Template mapping
   const templateContext: AnalysisContext = {
     kind: "TemplateMapping",
-    template: template as { structure: Record<string, unknown> },
+    document: filePath,
+    template: { template: JSON.stringify(template), variables: {} },
     schema: schemaResult.data,
   };
 
@@ -196,16 +212,15 @@ async function processMarkdownFile(
     analysisResult = new AnalysisResult(
       pathResult.data,
       templateMappingResult.data,
-      new Map([
-        ["processedAt", new Date().toISOString()],
-        ["sourceSchema", schema],
-        ["templateStructure", template.structure],
-      ]),
     );
+    // Add metadata separately
+    analysisResult.addMetadata("processedAt", new Date().toISOString());
+    analysisResult.addMetadata("sourceSchema", schema);
+    analysisResult.addMetadata("templateStructure", template.structure);
   }
 
   return {
-    sourceFile: sourceFileResult.data,
+    sourceFile: sourceFile,
     extractedContent: extractionResult.data,
     schemaValidated: schemaValidationResult.ok
       ? schemaValidationResult.data as Record<string, unknown>
@@ -242,9 +257,9 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
         logger,
       );
 
-      // Verify SourceFile creation
-      assertEquals(result.sourceFile?.path.value, filePath);
-      assertEquals(result.sourceFile?.hasFrontMatter(), true);
+      // Verify DocumentPath creation
+      assertEquals(result.sourceFile?.getValue(), filePath);
+      assertEquals(result.extractedContent !== null, true);
 
       // Verify FrontMatter extraction
       assertEquals(result.extractedContent?.get("domain"), "git");
@@ -273,7 +288,11 @@ Deno.test("Integration: Complete Analysis Pipeline", async (t) => {
       assertEquals(result.templateMapped?.complexity, "medium");
 
       // Verify AnalysisResult
-      assertEquals(result.analysisResult?.sourceFile.value, filePath);
+      assertEquals(
+        (result.analysisResult?.sourceFile as { getValue?: () => string })
+          ?.getValue?.(),
+        filePath,
+      );
       assertEquals(result.analysisResult?.extractedData.c1, "git");
       assertEquals(result.analysisResult?.hasMetadata("processedAt"), true);
       assertEquals(result.analysisResult?.getMetadata("sourceSchema"), schema);
@@ -326,7 +345,7 @@ Validate configuration.`,
     const template = createCommandTemplate();
     const registry = new Registry<Record<string, unknown>>();
     const results: Array<{
-      sourceFile: SourceFile | null;
+      sourceFile: DocumentPath | null;
       extractedContent: FrontMatterContent | null;
       schemaValidated: Record<string, unknown> | null;
       templateMapped: Record<string, unknown> | null;
@@ -579,7 +598,7 @@ priority: urgent
     const startTime = performance.now();
     const fileCount = 50;
     const results: Array<{
-      sourceFile: SourceFile | null;
+      sourceFile: DocumentPath | null;
       extractedContent: FrontMatterContent | null;
       schemaValidated: Record<string, unknown> | null;
       templateMapped: Record<string, unknown> | null;

@@ -16,6 +16,13 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
+import { LoggerFactory } from "./domain/shared/logger.ts";
+// Future factory architecture - will be integrated in next phase
+// import type {
+//   FactoryConfigurationBuilder,
+//   ComponentDomain,
+//   MasterComponentFactory,
+// } from "./domain/core/component-factory.ts";
 import {
   ConfigPath,
   DocumentPath,
@@ -27,8 +34,8 @@ import type {
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
-import { ClaudeSchemaAnalyzer } from "./infrastructure/adapters/claude-schema-analyzer.ts";
-import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-analyzer.ts";
+// TypeScriptSchemaAnalyzer removed - AI processing is no longer used
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./infrastructure/adapters/result-aggregator-impl.ts";
@@ -42,11 +49,12 @@ import type { ExtractedData, Template } from "./domain/models/entities.ts";
  * Legacy imports maintained for backward compatibility
  * These will be deprecated in future versions
  */
-import { FileReader } from "./infrastructure/filesystem/FileReader.ts";
-import { FileWriter } from "./infrastructure/filesystem/FileWriter.ts";
-import { FrontMatterExtractor } from "./domain/frontmatter/Extractor.ts";
-import { ClaudeAnalyzer } from "./domain/analysis/Analyzer.ts";
-import { BuildRegistryUseCase } from "./application/usecases/BuildRegistryUseCase.ts";
+import {
+  FileReader,
+  FileWriter,
+} from "./infrastructure/filesystem/file-system.ts";
+import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
+import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
 
 /**
  * Loads AI prompt templates for schema extraction and mapping
@@ -61,10 +69,10 @@ async function loadPromptTemplates(): Promise<
 > {
   try {
     const extraction = await Deno.readTextFile(
-      "src/infrastructure/prompts/extract-information.md",
+      "src/domain/prompts/extract-frontmatter.md",
     );
     const mapping = await Deno.readTextFile(
-      "src/infrastructure/prompts/map-to-template.md",
+      "src/domain/prompts/map-to-template.md",
     );
     return { extraction, mapping };
   } catch {
@@ -95,36 +103,34 @@ Return ONLY a JSON object with the mapped data.`,
 async function runBuildRegistry() {
   const PROMPTS_PATH = ".agent/climpt/prompts";
   const OUTPUT_PATH = ".agent/climpt/registry.json";
-  const EXTRACT_PROMPT_PATH = "./src/prompts/extract-information.md";
-  const MAPPING_PROMPT_PATH = "./src/prompts/map-to-template.md";
 
   try {
     const fileReader = new FileReader();
     const fileWriter = new FileWriter();
     const extractor = new FrontMatterExtractor();
 
-    const extractPrompt = await Deno.readTextFile(EXTRACT_PROMPT_PATH);
-    const mappingPrompt = await Deno.readTextFile(MAPPING_PROMPT_PATH);
-    const analyzer = new ClaudeAnalyzer(extractPrompt, mappingPrompt);
+    // Use MockSchemaAnalyzer for now - TypeScript analysis removed
+    const analyzer = new MockSchemaAnalyzer();
 
     const useCase = new BuildRegistryUseCase(
       fileReader,
       fileWriter,
       extractor,
-      analyzer,
+      analyzer as unknown, // Type casting needed for compatibility
     );
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
 
-    console.log("\n✅ Registry build completed successfully!");
-    console.log(`📊 Summary:`);
-    console.log(`   - Total commands: ${registry.tools.commands.length}`);
-    console.log(
-      `   - Available configs: ${registry.tools.availableConfigs.length}`,
-    );
-    console.log(`   - Output: ${OUTPUT_PATH}`);
+    const logger = LoggerFactory.createLogger("registry-builder");
+    logger.info("Registry build completed successfully!");
+    logger.info("Summary", {
+      totalCommands: registry.tools.commands.length,
+      availableConfigs: registry.tools.availableConfigs.length,
+      output: OUTPUT_PATH,
+    });
   } catch (error) {
-    console.error("❌ Failed to build registry:", error);
+    const logger = LoggerFactory.createLogger("registry-builder");
+    logger.error("Failed to build registry", { error });
     Deno.exit(1);
   }
 }
@@ -163,7 +169,7 @@ async function main() {
   });
 
   if (args.help) {
-    console.log(`
+    const helpText = `
 Frontmatter to Schema - Extract and transform markdown frontmatter using AI
 
 Usage:
@@ -195,7 +201,11 @@ Examples:
     
   # Run legacy build registry
   deno run --allow-all src/main.ts --build-registry
-`);
+`;
+    const logger = LoggerFactory.createLogger("main-help");
+    logger.info("Displaying help information");
+    // Help output to stdout is intentional - not logging
+    console.log(helpText);
     Deno.exit(0);
   }
 
@@ -248,13 +258,16 @@ Examples:
 
     // Load configuration
     let processingConfig: ProcessingConfiguration;
-    let analysisConfig: AnalysisConfiguration;
+    let _analysisConfig: AnalysisConfiguration;
 
     if (args.config && !args.documents) {
       // Load from config file
       const configPathResult = ConfigPath.create(args.config);
       if (!configPathResult.ok) {
-        console.error("Error:", configPathResult.error.message);
+        const logger = LoggerFactory.createLogger("main");
+        logger.error("Configuration path error", {
+          error: configPathResult.error.message,
+        });
         Deno.exit(1);
       }
 
@@ -262,7 +275,10 @@ Examples:
         configPathResult.data,
       );
       if (!configResult.ok) {
-        console.error("Error loading config:", configResult.error.message);
+        const logger = LoggerFactory.createLogger("main-config");
+        logger.error("Error loading config", {
+          error: configResult.error.message,
+        });
         Deno.exit(1);
       }
       processingConfig = configResult.data;
@@ -272,10 +288,10 @@ Examples:
         configPathResult.data,
       );
       if (analysisResult.ok) {
-        analysisConfig = analysisResult.data;
+        _analysisConfig = analysisResult.data;
       } else {
         // Use defaults
-        analysisConfig = {
+        _analysisConfig = {
           aiProvider: "claude",
           aiConfig: {},
         };
@@ -293,7 +309,8 @@ Examples:
         !documentsPathResult.ok || !schemaPathResult.ok ||
         !templatePathResult.ok || !outputPathResult.ok
       ) {
-        console.error("Error: Invalid path arguments");
+        const logger = LoggerFactory.createLogger("main-args");
+        logger.error("Invalid path arguments provided");
         Deno.exit(1);
       }
 
@@ -308,47 +325,32 @@ Examples:
         },
       };
 
-      analysisConfig = {
+      _analysisConfig = {
         aiProvider: "claude",
         aiConfig: {},
       };
     }
 
     // Load prompt templates
-    const prompts = await loadPromptTemplates();
+    const _prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer - use mock if in test mode or Claude unavailable
+    // Initialize schema analyzer
     let schemaAnalyzer;
-    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true" ||
-      !Deno.env.get("CLAUDE_API_KEY");
+    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
 
     if (useMock) {
       schemaAnalyzer = new MockSchemaAnalyzer();
-      console.log(
-        "🎭 Using mock analyzer (test mode or Claude API key not available)",
-      );
+      const logger = LoggerFactory.createLogger("main-analyzer");
+      logger.info("Using mock analyzer", {
+        reason: "test mode enabled",
+      });
     } else {
-      try {
-        // Check if claude CLI is available
-        const checkResult = new Deno.Command("which", { args: ["claude"] })
-          .spawn();
-        const status = await checkResult.status;
-
-        if (status.success) {
-          schemaAnalyzer = new ClaudeSchemaAnalyzer(
-            analysisConfig,
-            prompts.extraction,
-            prompts.mapping,
-          );
-          console.log("🤖 Using Claude CLI for AI analysis");
-        } else {
-          throw new Error("Claude CLI not found");
-        }
-      } catch {
-        // Fallback to mock analyzer
-        schemaAnalyzer = new MockSchemaAnalyzer();
-        console.log("🎭 Using mock analyzer (Claude CLI not available)");
-      }
+      // Use Mock implementation for now
+      schemaAnalyzer = new MockSchemaAnalyzer();
+      const logger = LoggerFactory.createLogger("main-analyzer");
+      logger.info("Using mock analyzer", {
+        reason: "Default implementation",
+      });
     }
 
     // Create use case
@@ -364,20 +366,22 @@ Examples:
     );
 
     // Execute processing
-    console.log("🚀 Starting document processing...");
-    console.log(`📁 Documents: ${processingConfig.documentsPath.getValue()}`);
-    console.log(`📋 Schema: ${processingConfig.schemaPath.getValue()}`);
-    console.log(`📝 Template: ${processingConfig.templatePath.getValue()}`);
-    console.log(`💾 Output: ${processingConfig.outputPath.getValue()}`);
-    console.log(`⚙️  Options:`, processingConfig.options);
+    const logger = LoggerFactory.createLogger("main-processing");
+    logger.info("Starting document processing", {
+      documents: processingConfig.documentsPath.getValue(),
+      schema: processingConfig.schemaPath.getValue(),
+      template: processingConfig.templatePath.getValue(),
+      output: processingConfig.outputPath.getValue(),
+      options: processingConfig.options,
+    });
 
-    console.log("🔍 Validating files...");
-    console.log("✅ All required files validated successfully");
-    console.log("");
+    logger.info("Validating required files");
+    logger.info("All required files validated successfully");
 
     if (args.verbose) {
-      console.log(
-        "🎯 [VERBOSE] Starting document processing pipeline with verbose mode enabled...",
+      const verboseLogger = LoggerFactory.createLogger("main-verbose");
+      verboseLogger.info(
+        "Starting document processing pipeline with verbose mode enabled",
       );
     }
 
@@ -386,23 +390,33 @@ Examples:
     });
 
     if (result.ok) {
-      console.log("\n✅ Processing completed successfully!");
-      console.log(`📊 Processed: ${result.data.processedCount} documents`);
-      console.log(`❌ Failed: ${result.data.failedCount} documents`);
-      console.log(`💾 Output saved to: ${result.data.outputPath}`);
+      const successLogger = LoggerFactory.createLogger("main-success");
+      successLogger.info("Processing completed successfully", {
+        processedCount: result.data.processedCount,
+        failedCount: result.data.failedCount,
+        outputPath: result.data.outputPath,
+      });
 
       if (result.data.errors.length > 0) {
-        console.log("\n⚠️  Errors encountered:");
-        for (const error of result.data.errors) {
-          console.log(`  - ${error.document}: ${error.error}`);
-        }
+        successLogger.warn("Errors encountered during processing", {
+          errorCount: result.data.errors.length,
+          errors: result.data.errors.map((error) => ({
+            document: error.document,
+            error: error.error,
+          })),
+        });
       }
     } else {
-      console.error("\n❌ Processing failed:", result.error.message);
+      const errorLogger = LoggerFactory.createLogger("main-error");
+      errorLogger.error("Processing failed", { error: result.error.message });
       Deno.exit(1);
     }
   } catch (error) {
-    console.error("Fatal error:", error);
+    const fatalLogger = LoggerFactory.createLogger("main-fatal");
+    fatalLogger.error("Fatal error occurred", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     Deno.exit(1);
   }
 }

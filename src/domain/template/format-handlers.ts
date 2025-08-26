@@ -5,7 +5,7 @@
  * Consolidates duplicate JSON/YAML parsing logic from multiple locations.
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
 
@@ -340,14 +340,53 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
 }
 
 /**
+ * Custom Template Format Handler
+ * Handles custom format templates with simple placeholder replacement
+ */
+export class CustomTemplateHandler implements TemplateFormatHandler {
+  canHandle(format: string): boolean {
+    return format.toLowerCase() === "custom";
+  }
+
+  parse(content: string): Result<unknown, ValidationError> {
+    // Custom format templates are treated as plain text strings
+    return { ok: true, data: content };
+  }
+
+  serialize(data: unknown): Result<string, ValidationError> {
+    // Custom format returns the processed string as-is
+    try {
+      const serialized = typeof data === "string" ? data : String(data);
+      return { ok: true, data: serialized };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createValidationError(
+          `Failed to serialize custom template: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      };
+    }
+  }
+
+  getFormatName(): string {
+    return "Custom";
+  }
+}
+
+/**
  * Template Format Handler Factory
  * Provides centralized access to format handlers
+ *
+ * @deprecated Use TemplateDomainFactory from component-factory.ts for better domain separation
  */
 export class TemplateFormatHandlerFactory {
   private static readonly handlers: TemplateFormatHandler[] = [
     new JSONTemplateHandler(),
     new YAMLTemplateHandler(),
     new HandlebarsTemplateHandler(),
+    new CustomTemplateHandler(),
   ];
 
   /**

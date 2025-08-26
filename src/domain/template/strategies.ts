@@ -7,17 +7,21 @@
  * - Fallback: Native TypeScript processing
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
+
+// Re-export for external use
+export type { TemplateApplicationContext };
 import { TemplateFormatHandlerFactory } from "./format-handlers.ts";
 import {
   type PlaceholderProcessingContext,
   PlaceholderProcessor,
 } from "./placeholder-processor.ts";
+import { LoggerFactory } from "../shared/logger.ts";
 
 /**
  * Strategy interface for template processing
@@ -174,6 +178,21 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
         });
       }
 
+      // Validate that extractedData is an object for placeholder processing
+      if (
+        context.extractedData === null || context.extractedData === undefined ||
+        typeof context.extractedData !== "object" ||
+        Array.isArray(context.extractedData)
+      ) {
+        return Promise.resolve({
+          ok: false,
+          error: createValidationError(
+            `Template processing requires extractedData to be an object, received: ${typeof context
+              .extractedData}`,
+          ),
+        });
+      }
+
       // Process placeholders using unified processor
       const placeholderContext: PlaceholderProcessingContext = {
         data: context.extractedData as Record<string, unknown>,
@@ -203,15 +222,18 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
         case "Success":
           processedData = processResult.processedContent;
           break;
-        case "PartialSuccess":
+        case "PartialSuccess": {
           // Log warning for missing placeholders but continue
-          console.warn(
-            `Template processing completed with missing placeholders: ${
-              processResult.missingPlaceholders.join(", ")
-            }`,
+          const logger = LoggerFactory.createLogger("native-strategy");
+          logger.warn(
+            "Template processing completed with missing placeholders",
+            {
+              missingPlaceholders: processResult.missingPlaceholders,
+            },
           );
           processedData = processResult.processedContent;
           break;
+        }
         case "Failure":
           return Promise.resolve({
             ok: false,
@@ -287,9 +309,11 @@ export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
       }
 
       // Log primary failure (in production, use proper logger)
-      console.warn(
-        `Primary strategy (${this.primary.getName()}) failed: ${result.error.message}`,
-      );
+      const logger = LoggerFactory.createLogger("fallback-strategy");
+      logger.warn("Primary strategy failed, using fallback", {
+        primaryStrategy: this.primary.getName(),
+        error: result.error.message,
+      });
     }
 
     // Fall back to secondary strategy

@@ -8,11 +8,11 @@
  * - Self-validating with business rules embedded
  */
 
-import {
-  createError,
-  type Result,
-  type ValidationError,
-} from "../shared/types.ts";
+import type {
+  Result,
+  ValidationError as ResultValidationError,
+} from "../core/result.ts";
+import type { ValidationError } from "../shared/types.ts";
 
 /**
  * Represents a path to a Markdown document
@@ -39,31 +39,54 @@ export class DocumentPath {
    */
   static create(
     path: string,
-  ): Result<DocumentPath, ValidationError & { message: string }> {
+  ): Result<DocumentPath, ResultValidationError & { message: string }> {
     const trimmedPath = path.trim();
     if (!trimmedPath) {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
-    }
-
-    // Accept both individual markdown files and glob patterns for directories
-    const isValidPath = trimmedPath.endsWith(".md") ||
-      trimmedPath.endsWith(".markdown") ||
-      trimmedPath.endsWith("/*.md") ||
-      trimmedPath.endsWith("/*.markdown") ||
-      trimmedPath.includes("**/*.md") ||
-      trimmedPath.includes("**/*.markdown");
-
-    if (!isValidPath) {
       return {
         ok: false,
-        error: createError({
-          kind: "InvalidFormat",
-          format:
-            "*.md, *.markdown, or directory glob pattern (e.g., dir/*.md)",
-          input: trimmedPath,
-        }),
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ResultValidationError & { message: string },
       };
     }
+
+    // Check for path length limit (similar to filesystem limits)
+    if (trimmedPath.length > 512) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Path is too long",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    // Check for invalid characters
+    if (trimmedPath.includes("\0")) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Path contains invalid characters",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    if (trimmedPath.includes("\r") || trimmedPath.includes("\n")) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          input: trimmedPath,
+          expectedFormat: "path without line breaks",
+          message: "Path contains invalid characters",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    // DocumentPath can represent any file path - validation of markdown files
+    // should happen at the domain level, not in the value object
 
     return { ok: true, data: new DocumentPath(trimmedPath) };
   }
@@ -92,6 +115,15 @@ export class DocumentPath {
     const lastSlash = this.value.lastIndexOf("/");
     return lastSlash >= 0 ? this.value.substring(lastSlash + 1) : this.value;
   }
+
+  /**
+   * Checks if the path represents a markdown file
+   * @returns true if the path ends with .md or .markdown
+   */
+  isMarkdown(): boolean {
+    const lower = this.value.toLowerCase();
+    return lower.endsWith(".md") || lower.endsWith(".markdown");
+  }
 }
 
 export class FrontMatterContent {
@@ -104,16 +136,160 @@ export class FrontMatterContent {
     return { ok: true, data: new FrontMatterContent(content) };
   }
 
+  static fromObject(
+    obj: Record<string, unknown>,
+  ): Result<FrontMatterContent, ResultValidationError & { message: string }> {
+    // Validate that input is actually an object
+    if (
+      obj === null || obj === undefined || typeof obj !== "object" ||
+      Array.isArray(obj)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          input: String(obj),
+          expectedFormat: "object",
+          message: "Input must be a plain object",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    try {
+      const jsonString = JSON.stringify(obj);
+      return { ok: true, data: new FrontMatterContent(jsonString) };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          input: String(error),
+          expectedFormat: "serializable object",
+          message: "Object cannot be serialized to JSON",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+  }
+
+  static fromYaml(
+    yamlContent: string,
+  ): Result<FrontMatterContent, ResultValidationError & { message: string }> {
+    const trimmed = yamlContent.trim();
+    if (!trimmed) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "YAML content cannot be empty",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    // For now, store YAML as-is and let toJSON handle parsing
+    // In a real implementation, we'd parse YAML to JSON
+    return { ok: true, data: new FrontMatterContent(yamlContent) };
+  }
+
   getValue(): string {
     return this.value;
   }
 
   toJSON(): unknown {
     try {
+      // Try to parse as JSON first
       return JSON.parse(this.value);
     } catch {
-      return null;
+      // If not JSON, try to parse as YAML (simplified implementation)
+      return this.parseSimpleYaml(this.value);
     }
+  }
+
+  private parseSimpleYaml(yamlContent: string): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    const lines = yamlContent.split("\n");
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip empty lines and comments
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      // Skip lines without colon
+      if (!trimmed.includes(":")) {
+        continue;
+      }
+
+      const colonIndex = trimmed.indexOf(":");
+      const key = trimmed.substring(0, colonIndex).trim();
+      let valueStr = trimmed.substring(colonIndex + 1).trim();
+
+      // Strip inline comments (anything after #)
+      const commentIndex = valueStr.indexOf("#");
+      if (commentIndex !== -1) {
+        valueStr = valueStr.substring(0, commentIndex).trim();
+      }
+
+      if (key) {
+        result[key] = this.parseYamlValue(valueStr);
+      }
+    }
+
+    return result;
+  }
+
+  private parseYamlValue(value: string): unknown {
+    // Handle arrays in JSON format [item1, item2, ...]
+    if (value.startsWith("[") && value.endsWith("]")) {
+      try {
+        return JSON.parse(value);
+      } catch {
+        // If JSON parsing fails, treat as string
+        return value;
+      }
+    }
+
+    // Remove quotes if present
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      return value.slice(1, -1);
+    }
+
+    // Parse booleans
+    if (value.toLowerCase() === "true") return true;
+    if (value.toLowerCase() === "false") return false;
+
+    // Parse numbers
+    const num = Number(value);
+    if (!isNaN(num) && value !== "") {
+      return num;
+    }
+
+    // Return as string
+    return value;
+  }
+
+  keys(): string[] {
+    const json = this.toJSON();
+    if (json && typeof json === "object" && !Array.isArray(json)) {
+      return Object.keys(json);
+    }
+    return [];
+  }
+
+  get(key: string): unknown {
+    const json = this.toJSON();
+    if (json && typeof json === "object" && !Array.isArray(json)) {
+      return (json as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }
+
+  size(): number {
+    return this.keys().length;
   }
 }
 
@@ -141,9 +317,15 @@ export class ConfigPath {
 
   static create(
     path: string,
-  ): Result<ConfigPath, ValidationError & { message: string }> {
+  ): Result<ConfigPath, ResultValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ResultValidationError & { message: string },
+      };
     }
     // Validate config file extensions
     if (
@@ -152,11 +334,12 @@ export class ConfigPath {
     ) {
       return {
         ok: false,
-        error: createError({
-          kind: "InvalidFormat",
-          format: ".json, .yaml, .yml, or .toml",
+        error: {
+          kind: "ValidationError",
           input: path,
-        }),
+          expectedFormat: ".json, .yaml, .yml, or .toml",
+          message: "Invalid file extension",
+        } as unknown as ResultValidationError & { message: string },
       };
     }
     return { ok: true, data: new ConfigPath(path) };
@@ -181,7 +364,13 @@ export class OutputPath {
     path: string,
   ): Result<OutputPath, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     return { ok: true, data: new OutputPath(path) };
@@ -207,19 +396,29 @@ export class SchemaDefinition {
   static create(
     definition: unknown,
     version: string = "1.0.0",
-  ): Result<SchemaDefinition, ValidationError & { message: string }> {
+  ): Result<SchemaDefinition, ResultValidationError & { message: string }> {
     if (!definition) {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
-    }
-
-    if (typeof definition !== "object") {
       return {
         ok: false,
-        error: createError({
-          kind: "InvalidFormat",
-          format: "object",
+        error: {
+          kind: "ValidationError",
+          message: "Schema definition cannot be empty",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    if (
+      typeof definition !== "object" || definition === null ||
+      Array.isArray(definition)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
           input: typeof definition,
-        }),
+          expectedFormat: "object",
+          message: "Schema definition must be a plain object",
+        } as unknown as ResultValidationError & { message: string },
       };
     }
 
@@ -235,11 +434,22 @@ export class SchemaDefinition {
   }
 
   validate(
-    _data: unknown,
-  ): Result<void, ValidationError & { message: string }> {
-    // Placeholder for schema validation logic
-    // Would integrate with a JSON Schema validator or similar
-    return { ok: true, data: undefined };
+    data: unknown,
+  ): Result<boolean, ResultValidationError & { message: string }> {
+    // Basic validation - reject null/undefined
+    if (data === null || data === undefined) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Data to validate cannot be null or undefined",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    // For now, just return true for any non-null data
+    // In a real implementation, we'd validate against the JSON Schema
+    return { ok: true, data: true };
   }
 }
 
@@ -276,11 +486,11 @@ export class SchemaVersion {
     // Reject invalid formats
     return {
       ok: false,
-      error: createError({
-        kind: "PatternMismatch",
-        pattern: "X.Y.Z (semantic version)",
-        input: version,
-      }),
+      error: {
+        kind: "ValidationError",
+        message:
+          `Invalid version format. Expected X.Y.Z (semantic version), got: ${version}`,
+      } as unknown as ValidationError & { message: string },
     };
   }
 
@@ -305,7 +515,13 @@ export class TemplateFormat {
     template: string,
   ): Result<TemplateFormat, ValidationError & { message: string }> {
     if (!template || template.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     if (
@@ -314,11 +530,11 @@ export class TemplateFormat {
     ) {
       return {
         ok: false,
-        error: createError({
-          kind: "InvalidFormat",
-          format: "json, yaml, toml, handlebars, or custom",
-          input: format,
-        }),
+        error: {
+          kind: "ValidationError",
+          message:
+            `Invalid format. Expected json, yaml, toml, handlebars, or custom, got: ${format}`,
+        } as unknown as ValidationError & { message: string },
       };
     }
 
@@ -353,7 +569,13 @@ export class MappingRule {
     transform?: (value: unknown) => unknown,
   ): Result<MappingRule, ValidationError & { message: string }> {
     if (!source || !target) {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ValidationError & { message: string },
+      };
     }
 
     return { ok: true, data: new MappingRule(source, target, transform) };
@@ -400,12 +622,10 @@ export class ProcessingOptions {
     if (maxConcurrency < 1 || maxConcurrency > 100) {
       return {
         ok: false,
-        error: createError({
-          kind: "OutOfRange",
-          value: maxConcurrency,
-          min: 1,
-          max: 100,
-        }),
+        error: {
+          kind: "ValidationError",
+          message: `Max concurrency out of range (1-100): ${maxConcurrency}`,
+        } as unknown as ValidationError & { message: string },
       };
     }
 

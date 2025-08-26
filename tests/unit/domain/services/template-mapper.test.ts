@@ -4,8 +4,8 @@ import {
   Template,
   TemplateDefinition,
   type TemplateFormat,
-} from "../../../../src/domain/models/template.ts";
-import { isOk } from "../../../../src/domain/shared/result.ts";
+} from "../../../../src/domain/models/domain-models.ts";
+import { isOk } from "../../../../src/domain/core/result.ts";
 
 Deno.test("TemplateMapper", async (t) => {
   const mapper = new TemplateMapper();

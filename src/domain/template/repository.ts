@@ -5,9 +5,9 @@
  * Provides abstraction for template persistence
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 
 /**
  * Template path value object

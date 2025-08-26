@@ -1,16 +1,40 @@
-import type { Command, Registry } from "../../domain/registry/types.ts";
-import type { AnalysisResult } from "../../domain/analysis/AnalysisResult.ts";
+import {
+  AnalysisResult,
+  type Command,
+  type Registry,
+} from "../../domain/core/types.ts";
 
 export class RegistryAggregator {
   private commands: Command[] = [];
   private configs = new Set<string>();
 
-  addAnalysisResult(result: AnalysisResult): void {
-    this.commands.push(...result.commands);
+  addAnalysisResult(result: AnalysisResult | unknown): void {
+    let commands: Command[] = [];
 
-    result.commands.forEach((cmd) => {
-      this.configs.add(cmd.c1);
-    });
+    // Handle test mock analyzer format with direct commands property
+    if (
+      result && typeof result === "object" && "commands" in result &&
+      Array.isArray(result.commands)
+    ) {
+      commands = result.commands;
+    } // Handle AnalysisResult format with data property
+    else if (
+      result && typeof result === "object" && "data" in result &&
+      Array.isArray(result.data)
+    ) {
+      commands = result.data as Command[];
+    } // Handle AnalysisResult instance
+    else if (result instanceof AnalysisResult && Array.isArray(result.data)) {
+      commands = result.data as Command[];
+    }
+
+    if (commands.length > 0) {
+      this.commands.push(...commands);
+
+      commands.forEach((cmd: Command) => {
+        this.configs.add(cmd.c1);
+      });
+    }
   }
 
   build(): Registry {

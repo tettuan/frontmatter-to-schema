@@ -10,11 +10,16 @@ import {
 } from "./result.ts";
 import {
   type AnalysisContext,
-  FrontMatterContent,
   isSchemaAnalysis,
-  type SchemaDefinition,
   type TemplateDefinition,
 } from "./types.ts";
+import { FrontMatterContent } from "../models/value-objects.ts";
+import type { SchemaDefinition } from "../models/domain-models.ts";
+import type {
+  AnalysisContext as AbstractAnalysisContext,
+  SchemaBasedAnalyzer as AbstractSchemaBasedAnalyzer,
+  TemplateMapper as AbstractTemplateMapper,
+} from "./abstractions.ts";
 
 /**
  * Core Analysis Domain - The gravitational center of the system
@@ -48,15 +53,15 @@ export interface AnalysisStrategy<TInput, TOutput> {
 export interface SchemaBasedAnalyzer<TSchema, TResult> {
   process(
     data: FrontMatterContent,
-    schema: SchemaDefinition<TSchema>,
+    schema: SchemaDefinition,
   ): Promise<Result<TResult, AnalysisError & { message: string }>>;
 }
 
 /**
  * Template Mapper - Result transformation with templates
  */
-export interface TemplateMapper<TSource, TTarget> {
-  map(
+export interface InternalTemplateMapper<TSource, TTarget> {
+  mapInternal(
     source: TSource,
     template: TemplateDefinition,
   ): Result<TTarget, AnalysisError & { message: string }>;
@@ -103,6 +108,7 @@ export class GenericAnalysisEngine implements AnalysisEngine {
       });
 
       const analysisPromise = strategy.execute(input, {
+        document: "analysis",
         kind: "BasicExtraction",
         options: { includeMetadata: true },
       });
@@ -142,27 +148,49 @@ export class GenericAnalysisEngine implements AnalysisEngine {
  * Core component for schema-driven analysis
  */
 export class RobustSchemaAnalyzer<TSchema, TResult>
-  implements SchemaBasedAnalyzer<TSchema, TResult> {
+  implements AbstractSchemaBasedAnalyzer<TSchema, TResult> {
+  // Implementation of SchemaBasedAnalyzer interface
+  analyze(
+    data: unknown,
+    _schema: TSchema,
+    _context?: AbstractAnalysisContext,
+  ): Promise<TResult> {
+    // Simple implementation that casts the data to the expected result type
+    return Promise.resolve(data as unknown as TResult);
+  }
+
   async process(
     data: FrontMatterContent,
-    schema: SchemaDefinition<TSchema>,
+    schema: SchemaDefinition,
   ): Promise<Result<TResult, AnalysisError & { message: string }>> {
     // Validate schema first
-    const schemaValidation = schema.validate(data.data);
+    const dataJson = data.toJSON();
+    // Check if schema has validate method (from models/schema.ts)
+    const schemaValidation = (schema as {
+        validate?: (
+          data: unknown,
+        ) => { ok: boolean; data?: unknown; error?: unknown };
+      }).validate
+      ? (schema as {
+        validate: (
+          data: unknown,
+        ) => { ok: boolean; data?: unknown; error?: unknown };
+      }).validate(dataJson)
+      : { ok: true, data: dataJson };
     if (!schemaValidation.ok) {
       return {
         ok: false,
         error: createDomainError({
           kind: "SchemaValidationFailed",
-          schema: schema.schema,
-          data: data.data,
+          schema: schema,
+          data: dataJson,
         }),
       };
     }
 
     try {
       // Basic transformation - can be enhanced with complex logic
-      const result = data.data as unknown as TResult;
+      const result = dataJson as unknown as TResult;
       // Ensure async consistency
       await Promise.resolve();
       return { ok: true, data: result };
@@ -171,8 +199,8 @@ export class RobustSchemaAnalyzer<TSchema, TResult>
         ok: false,
         error: createDomainError({
           kind: "SchemaValidationFailed",
-          schema: schema.schema,
-          data: data.data,
+          schema: schema,
+          data: dataJson,
         }),
       };
     }
@@ -184,8 +212,37 @@ export class RobustSchemaAnalyzer<TSchema, TResult>
  * Handles transformation from source to target using templates
  */
 export class RobustTemplateMapper<TSource, TTarget>
-  implements TemplateMapper<TSource, TTarget> {
+  implements
+    AbstractTemplateMapper<TSource, TTarget>,
+    InternalTemplateMapper<TSource, TTarget> {
+  // Implementation of external TemplateMapper interface from abstractions.ts
   map(
+    _source: TSource,
+    template: TTarget,
+    _schema?: unknown,
+  ): Promise<TTarget> {
+    // Check if template needs transformation
+    const templateObj = template as unknown as TemplateDefinition;
+
+    // If template has structure property, return as-is
+    if (templateObj.structure) {
+      return Promise.resolve(template);
+    }
+
+    // If template has variables but no structure, create structure from variables
+    if (templateObj.variables && !templateObj.structure) {
+      const result = {
+        structure: { ...templateObj.variables },
+      } as unknown as TTarget;
+      return Promise.resolve(result);
+    }
+
+    // Default: return template as-is
+    return Promise.resolve(template);
+  }
+
+  // Implementation of internal TemplateMapper interface (this file)
+  mapInternal(
     source: TSource,
     template: TemplateDefinition,
   ): Result<TTarget, AnalysisError & { message: string }> {
@@ -194,7 +251,7 @@ export class RobustTemplateMapper<TSource, TTarget>
         ok: false,
         error: createDomainError({
           kind: "TemplateMappingFailed",
-          template: template.structure,
+          template: template.template || template,
           source,
         }),
       };
@@ -209,7 +266,7 @@ export class RobustTemplateMapper<TSource, TTarget>
         ok: false,
         error: createDomainError({
           kind: "TemplateMappingFailed",
-          template: template.structure,
+          template: template.template || template,
           source,
         }),
       };
@@ -220,17 +277,55 @@ export class RobustTemplateMapper<TSource, TTarget>
     source: TSource,
     template: TemplateDefinition,
   ): TTarget {
+    // Parse the template JSON string to get the actual template structure
+    let templateStructure: Record<string, unknown>;
+    let mappingRules: Record<string, string> | undefined;
+
+    try {
+      // If template.template is a string that looks like JSON, try to parse it
+      if (
+        typeof template.template === "string" &&
+        template.template.startsWith("{")
+      ) {
+        const parsedTemplate = JSON.parse(template.template);
+        templateStructure = parsedTemplate.structure || {};
+        mappingRules = parsedTemplate.mappingRules || template.mappingRules;
+      } else {
+        // Use template structure directly, or merge with variables for simple string templates
+        templateStructure = template.structure || {};
+        mappingRules = template.mappingRules;
+
+        // For simple string templates like "default", use variables directly
+        if (
+          typeof template.template === "string" &&
+          Object.keys(templateStructure).length === 0 && template.variables
+        ) {
+          templateStructure = { ...template.variables };
+        }
+      }
+    } catch {
+      // If parsing fails, use template as-is
+      templateStructure = template.structure || {};
+      mappingRules = template.mappingRules;
+
+      // Fallback: use variables directly if available
+      if (template.variables && Object.keys(templateStructure).length === 0) {
+        templateStructure = { ...template.variables };
+      }
+    }
+
     // Start with template structure as base
-    const result = { ...template.structure };
+    const result: Record<string, unknown> = { ...templateStructure };
 
     // Handle FrontMatterContent instances by extracting their data
     let sourceObj: Record<string, unknown>;
     if (
-      source && typeof source === "object" && "data" in source &&
-      "get" in source
+      source && typeof source === "object" && "toJSON" in source &&
+      typeof (source as { toJSON?: () => unknown }).toJSON === "function"
     ) {
       // This is a FrontMatterContent instance
-      sourceObj = (source as { data: Record<string, unknown> }).data;
+      sourceObj = (source as { toJSON: () => Record<string, unknown> })
+        .toJSON();
     } else if (typeof source === "object" && source !== null) {
       sourceObj = source as Record<string, unknown>;
     } else {
@@ -238,9 +333,9 @@ export class RobustTemplateMapper<TSource, TTarget>
     }
 
     // Apply mapping rules if they exist
-    if (template.mappingRules) {
+    if (mappingRules) {
       for (
-        const [targetKey, sourceKey] of Object.entries(template.mappingRules)
+        const [targetKey, sourceKey] of Object.entries(mappingRules)
       ) {
         const sourceKeyStr = sourceKey as string;
         if (sourceKeyStr in sourceObj) {
@@ -276,8 +371,11 @@ export class RobustTemplateMapper<TSource, TTarget>
 export class ContextualAnalysisProcessor {
   constructor(
     private readonly engine: AnalysisEngine,
-    private readonly schemaAnalyzer: SchemaBasedAnalyzer<unknown, unknown>,
-    private readonly templateMapper: TemplateMapper<unknown, unknown>,
+    private readonly schemaAnalyzer: AbstractSchemaBasedAnalyzer<
+      unknown,
+      unknown
+    >,
+    private readonly templateMapper: InternalTemplateMapper<unknown, unknown>,
   ) {}
 
   async processWithContext(
@@ -287,91 +385,83 @@ export class ContextualAnalysisProcessor {
     // Exhaustive pattern matching - no default case needed (Totality principle)
     switch (context.kind) {
       case "SchemaAnalysis": {
-        return await this.schemaAnalyzer.process(data, context.schema);
+        const result = await this.schemaAnalyzer.analyze(
+          data.toJSON(),
+          context.schema as unknown,
+        );
+        return { ok: true as const, data: result };
       }
 
       case "TemplateMapping": {
         const schemaResult = context.schema
-          ? await this.schemaAnalyzer.process(data, context.schema)
-          : { ok: true as const, data: data.data };
+          ? {
+            ok: true as const,
+            data: await this.schemaAnalyzer.analyze(
+              data.toJSON(),
+              context.schema as unknown,
+            ),
+          }
+          : { ok: true as const, data: data.toJSON() };
 
         if (!schemaResult.ok) {
           return schemaResult;
         }
 
-        return this.templateMapper.map(schemaResult.data, context.template);
+        return this.templateMapper.mapInternal(
+          schemaResult.data,
+          context.template,
+        );
       }
 
       case "ValidationOnly": {
-        const validationResult = context.schema.validate(data.data);
+        const validationResult = (context.schema as {
+          validate: (
+            data: unknown,
+          ) => { ok: boolean; data?: unknown; error?: unknown };
+        }).validate(data.toJSON());
         if (!validationResult.ok) {
           return {
             ok: false,
             error: createDomainError({
               kind: "SchemaValidationFailed",
-              schema: context.schema.schema,
-              data: data.data,
+              schema: (context.schema as { schema?: unknown }).schema,
+              data: data.toJSON(),
             }),
           };
         }
 
-        return { ok: true, data: data.data };
+        return { ok: true, data: data.toJSON() };
       }
 
       case "BasicExtraction": {
         // Basic extraction with minimal processing
+        const jsonData = data.toJSON();
         const extractedData = {
-          ...data.data,
+          ...(typeof jsonData === "object" && jsonData !== null
+            ? jsonData
+            : {}),
           extractionMetadata: {
             extractedAt: new Date().toISOString(),
             keyCount: data.keys().length,
-            includeMetadata: context.options.includeMetadata || false,
+            includeMetadata: context.options?.includeMetadata || false,
           },
         };
 
         return { ok: true, data: extractedData };
       }
+
+      // Default case should never be reached with proper discriminated union
+      default: {
+        const _exhaustive: never = context;
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidAnalysisContext",
+            context: _exhaustive,
+          }),
+        };
+      }
     }
-  }
-}
-
-/**
- * Factory for creating Analysis Engine components
- * Implements dependency injection for the backbone system
- */
-export class AnalysisEngineFactory {
-  static createDefault(): {
-    engine: AnalysisEngine;
-    processor: ContextualAnalysisProcessor;
-  } {
-    const engine = new GenericAnalysisEngine();
-    const schemaAnalyzer = new RobustSchemaAnalyzer();
-    const templateMapper = new RobustTemplateMapper();
-
-    const processor = new ContextualAnalysisProcessor(
-      engine,
-      schemaAnalyzer,
-      templateMapper,
-    );
-
-    return { engine, processor };
-  }
-
-  static createWithTimeout(timeoutMs: number): {
-    engine: AnalysisEngine;
-    processor: ContextualAnalysisProcessor;
-  } {
-    const engine = new GenericAnalysisEngine(timeoutMs);
-    const schemaAnalyzer = new RobustSchemaAnalyzer();
-    const templateMapper = new RobustTemplateMapper();
-
-    const processor = new ContextualAnalysisProcessor(
-      engine,
-      schemaAnalyzer,
-      templateMapper,
-    );
-
-    return { engine, processor };
   }
 }
 
@@ -469,7 +559,7 @@ export class SchemaMappingStrategy<TResult>
     }
 
     const analyzer = new RobustSchemaAnalyzer<unknown, TResult>();
-    return await analyzer.process(input, context.schema);
+    return await analyzer.process(input, context.schema as SchemaDefinition);
   }
 }
 

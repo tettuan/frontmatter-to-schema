@@ -1,19 +1,29 @@
-import { isOk, type Result } from "../domain/shared/result.ts";
+import { isOk, type Result } from "../domain/core/result.ts";
 import type { DomainError, ValidationError } from "../domain/shared/errors.ts";
-import { Document, DocumentPath } from "../domain/models/document.ts";
-import { Schema, SchemaDefinition } from "../domain/models/schema.ts";
-import { Template, TemplateDefinition } from "../domain/models/template.ts";
+import { Document } from "../domain/models/entities.ts";
+import {
+  DocumentContent,
+  DocumentPath,
+} from "../domain/models/value-objects.ts";
+import {
+  Schema,
+  SchemaDefinition,
+  Template,
+  TemplateDefinition,
+} from "../domain/models/domain-models.ts";
 import {
   BatchTransformationResult,
   ExtractedData,
   TransformationContext,
   TransformationResult,
 } from "../domain/models/transformation.ts";
-import type { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
+import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import type { TemplateMapper } from "../domain/services/template-mapper.ts";
-import type { FileSystemPort } from "../infrastructure/ports/file-system.ts";
-import type { AIAnalyzerPort } from "../infrastructure/ports/ai-analyzer.ts";
+import type {
+  AIAnalyzerPort,
+  FileSystemPort,
+} from "../infrastructure/ports/index.ts";
 import type { ApplicationConfiguration } from "./configuration.ts";
 
 export class DocumentProcessor {
@@ -97,13 +107,30 @@ export class DocumentProcessor {
       config.format,
     );
     if (!definitionResult.ok) {
-      return definitionResult;
+      // Convert ValidationError to DomainError
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: `Schema definition error: ${definitionResult.error.kind}`,
+        },
+      };
     }
 
     const schemaResult = Schema.create(
       "main-schema",
       definitionResult.data,
     );
+    if (!schemaResult.ok) {
+      // Convert ValidationError to DomainError
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: `Schema creation error: ${schemaResult.error.kind}`,
+        },
+      };
+    }
     return schemaResult;
   }
 
@@ -151,18 +178,33 @@ export class DocumentProcessor {
         continue;
       }
 
-      const extractionResult = this.frontMatterExtractor.extract(
-        contentResult.data,
+      // Create DocumentContent from the raw string
+      const contentObj = DocumentContent.create(contentResult.data);
+      if (!contentObj.ok) {
+        continue;
+      }
+
+      // Create a basic document first
+      const basicDoc = Document.create(
+        pathResult.data,
+        null,
+        contentObj.data,
       );
+
+      // Extract frontmatter from the document
+      const extractionResult = this.frontMatterExtractor.extract(basicDoc);
       if (!extractionResult.ok) {
         continue;
       }
 
-      const document = Document.create(
-        pathResult.data,
-        extractionResult.data.frontMatter,
-        extractionResult.data.body,
-      );
+      // Update the document with extracted frontmatter if found
+      const document = extractionResult.data
+        ? Document.create(
+          pathResult.data,
+          extractionResult.data,
+          contentObj.data,
+        )
+        : basicDoc;
       documents.push(document);
     }
 
@@ -204,8 +246,12 @@ export class DocumentProcessor {
         });
       }
     } else if (document.hasFrontMatter()) {
+      const frontMatter = document.getFrontMatter()!;
+      const contentJson = frontMatter.getContent().toJSON();
       extractedData = ExtractedData.create(
-        document.getFrontMatter()!.getParsed(),
+        typeof contentJson === "object" && contentJson !== null
+          ? contentJson as Record<string, unknown>
+          : {},
       );
     } else {
       extractedData = ExtractedData.create({});

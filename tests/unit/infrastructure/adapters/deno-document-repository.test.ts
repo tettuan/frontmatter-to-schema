@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { DenoDocumentRepository } from "../../../../src/infrastructure/adapters/deno-document-repository.ts";
 import { DocumentPath } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/shared/result.ts";
+import { isError, isOk } from "../../../../src/domain/core/result.ts";
 import { join } from "jsr:@std/path";
 
 Deno.test("DenoDocumentRepository", async (t) => {

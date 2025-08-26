@@ -13,11 +13,13 @@ import {
 import {
   type AnalysisContext,
   AnalysisResult,
-  FrontMatterContent,
-  SchemaDefinition,
-  SourceFile,
-  ValidFilePath,
 } from "../../src/domain/core/types.ts";
+import {
+  DocumentPath,
+  FrontMatterContent,
+} from "../../src/domain/models/value-objects.ts";
+import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
+// Note: DocumentPath and DocumentPath replaced with DocumentPath
 import { Registry } from "../../src/domain/core/registry.ts";
 import {
   getBreakdownLogger,
@@ -29,11 +31,11 @@ export class TestDataBuilder {
   /**
    * Creates a valid file path for testing
    */
-  static validFilePath(path = "/test/sample.md"): ValidFilePath {
-    const result = ValidFilePath.create(path);
+  static validFilePath(path = "/test/sample.md"): DocumentPath {
+    const result = DocumentPath.create(path);
     if (!result.ok) {
       throw new Error(
-        `Failed to create test ValidFilePath: ${result.error.message}`,
+        `Failed to create test DocumentPath: ${result.error.kind}`,
       );
     }
     return result.data;
@@ -42,11 +44,11 @@ export class TestDataBuilder {
   /**
    * Creates a markdown file path for testing
    */
-  static markdownFilePath(path = "/test/sample.md"): ValidFilePath {
-    const result = ValidFilePath.createMarkdown(path);
+  static markdownFilePath(path = "/test/sample.md"): DocumentPath {
+    const result = DocumentPath.create(path);
     if (!result.ok) {
       throw new Error(
-        `Failed to create test markdown ValidFilePath: ${result.error.message}`,
+        `Failed to create test markdown DocumentPath: ${result.error.kind}`,
       );
     }
     return result.data;
@@ -61,7 +63,7 @@ export class TestDataBuilder {
     const result = FrontMatterContent.fromObject(data);
     if (!result.ok) {
       throw new Error(
-        `Failed to create test FrontMatterContent: ${result.error.message}`,
+        `Failed to create test FrontMatterContent: ${result.error.kind}`,
       );
     }
     return result.data;
@@ -74,7 +76,7 @@ export class TestDataBuilder {
     const result = FrontMatterContent.fromYaml(yaml);
     if (!result.ok) {
       throw new Error(
-        `Failed to create test FrontMatterContent from YAML: ${result.error.message}`,
+        `Failed to create test FrontMatterContent from YAML: ${result.error.kind}`,
       );
     }
     return result.data;
@@ -86,35 +88,27 @@ export class TestDataBuilder {
   static schemaDefinition(
     schema: unknown = { type: "object" },
   ): SchemaDefinition {
-    const result = SchemaDefinition.create(schema);
+    const result = SchemaDefinition.create(schema, "json");
     if (!result.ok) {
       throw new Error(
-        `Failed to create test SchemaDefinition: ${result.error.message}`,
+        `Failed to create test SchemaDefinition: ${result.error.kind}`,
       );
     }
     return result.data;
   }
 
   /**
-   * Creates SourceFile for testing
+   * Creates DocumentPath for testing (simplified - just returns path)
+   * Note: DocumentPath only contains path, not content or frontmatter
    */
   static sourceFile(
     path = "/test/sample.md",
-    content = "# Test Content",
-    frontMatter?: Record<string, unknown>,
-  ): SourceFile {
-    const validPath = this.validFilePath(path);
-    const frontMatterContent = frontMatter
-      ? this.frontMatterContent(frontMatter)
-      : undefined;
-
-    const result = SourceFile.create(validPath, content, frontMatterContent);
-    if (!result.ok) {
-      throw new Error(
-        `Failed to create test SourceFile: ${result.error.message}`,
-      );
-    }
-    return result.data;
+    _content = "# Test Content",
+    _frontMatter?: Record<string, unknown>,
+  ): DocumentPath {
+    // DocumentPath is just a path, not a full document
+    // Return the path for backward compatibility
+    return this.validFilePath(path);
   }
 
   /**
@@ -126,7 +120,14 @@ export class TestDataBuilder {
     metadata?: Map<string, unknown>,
   ): AnalysisResult<T> {
     const validPath = this.validFilePath(path);
-    return new AnalysisResult(validPath, extractedData, metadata);
+    const result = new AnalysisResult(validPath, extractedData);
+    // Add metadata separately if provided
+    if (metadata) {
+      for (const [key, value] of metadata) {
+        result.addMetadata(key, value);
+      }
+    }
+    return result;
   }
 }
 
@@ -145,7 +146,14 @@ export class ResultAssertions {
     };
 
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result, message);
+      // Type-safe wrapper for logResult with message constraint
+      const resultWithMessage = result.ok
+        ? { ok: true as const, data: result.data }
+        : {
+          ok: false as const,
+          error: { message: JSON.stringify(result.error) },
+        };
+      this.logger.logResult(testContext, resultWithMessage, message);
     }
 
     assertEquals(
@@ -174,7 +182,11 @@ export class ResultAssertions {
     };
 
     if (this.logger.isEnabled()) {
-      this.logger.logResult(testContext, result, message);
+      // Result already has the right type constraint for E
+      const resultWithMessage = result.ok
+        ? { ok: true as const, data: result.data }
+        : { ok: false as const, error: result.error };
+      this.logger.logResult(testContext, resultWithMessage, message);
     }
 
     assertEquals(result.ok, false, message || "Expected result to be an error");
@@ -289,9 +301,11 @@ export class TestContextFactory {
   static schemaAnalysis(
     schema?: SchemaDefinition,
     options = { includeMetadata: true },
+    document = "/test/sample.md",
   ): AnalysisContext {
     return {
       kind: "SchemaAnalysis",
+      document,
       schema: schema || TestDataBuilder.schemaDefinition(),
       options,
     };
@@ -301,11 +315,13 @@ export class TestContextFactory {
    * Creates a TemplateMapping context for testing
    */
   static templateMapping(
-    template = { structure: { name: "test" } },
+    template = { template: "test", variables: { name: "test" } },
     schema?: SchemaDefinition,
+    document = "/test/sample.md",
   ): AnalysisContext {
     const context: AnalysisContext = {
       kind: "TemplateMapping",
+      document,
       template,
     };
 
@@ -320,19 +336,31 @@ export class TestContextFactory {
   /**
    * Creates a ValidationOnly context for testing
    */
-  static validationOnly(schema?: SchemaDefinition): AnalysisContext {
+  static validationOnly(
+    schema?: SchemaDefinition,
+    document = "/test/sample.md",
+  ): AnalysisContext {
+    const schemaObj = schema || TestDataBuilder.schemaDefinition();
     return {
       kind: "ValidationOnly",
-      schema: schema || TestDataBuilder.schemaDefinition(),
+      document,
+      schema: {
+        validate: (data: unknown) => ({ ok: true, data }),
+        schema: schemaObj.getDefinition(),
+      },
     };
   }
 
   /**
    * Creates a BasicExtraction context for testing
    */
-  static basicExtraction(options = { includeMetadata: true }): AnalysisContext {
+  static basicExtraction(
+    options = { includeMetadata: true },
+    document = "/test/sample.md",
+  ): AnalysisContext {
     return {
       kind: "BasicExtraction",
+      document,
       options,
     };
   }

@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "description": "Climpt Command Registry",
+  "tools": {
+    "availableConfigs": [],
+    "commands": []
+  }
+}

@@ -1,16 +1,14 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { Registry } from "../../../../src/domain/core/registry.ts";
-import {
-  AnalysisResult,
-  ValidFilePath,
-} from "../../../../src/domain/core/types.ts";
+import { AnalysisResult } from "../../../../src/domain/core/types.ts";
+import { DocumentPath } from "../../../../src/domain/models/value-objects.ts";
 import { ResultUtils } from "../../../../src/domain/core/result.ts";
 
 Deno.test("Registry", async (t) => {
   await t.step("should add and retrieve results", () => {
     const registry = new Registry<string>();
     const result = new AnalysisResult(
-      ResultUtils.unwrap(ValidFilePath.create("/test.md")),
+      ResultUtils.unwrap(DocumentPath.create("/test.md")),
       "test data",
     );
 
@@ -26,15 +24,15 @@ Deno.test("Registry", async (t) => {
 
     registry.add(
       "a",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/a.md")), 1),
     );
     registry.add(
       "b",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/b.md")), 2),
     );
     registry.add(
       "c",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 3),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/c.md")), 3),
     );
 
     const keys = registry.keys();
@@ -51,15 +49,15 @@ Deno.test("Registry", async (t) => {
 
     registry.add(
       "a",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/a.md")), 10),
     );
     registry.add(
       "b",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/b.md")), 20),
     );
     registry.add(
       "c",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/c.md")), 30),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/c.md")), 30),
     );
 
     const filtered = registry.filter((result) => result.extractedData > 15);
@@ -75,11 +73,11 @@ Deno.test("Registry", async (t) => {
 
     registry.add(
       "a",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 10),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/a.md")), 10),
     );
     registry.add(
       "b",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 20),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/b.md")), 20),
     );
 
     const mapped = registry.map((result) =>
@@ -100,21 +98,21 @@ Deno.test("Registry", async (t) => {
     registry1.add(
       "a",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        ResultUtils.unwrap(DocumentPath.create("/a.md")),
         "data1",
       ),
     );
     registry2.add(
       "b",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        ResultUtils.unwrap(DocumentPath.create("/b.md")),
         "data2",
       ),
     );
     registry2.add(
       "c",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/c.md")),
+        ResultUtils.unwrap(DocumentPath.create("/c.md")),
         "data3",
       ),
     );
@@ -133,14 +131,14 @@ Deno.test("Registry", async (t) => {
     registry.add(
       "key1",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        ResultUtils.unwrap(DocumentPath.create("/a.md")),
         "value1",
       ),
     );
     registry.add(
       "key2",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        ResultUtils.unwrap(DocumentPath.create("/b.md")),
         "value2",
       ),
     );
@@ -156,11 +154,11 @@ Deno.test("Registry", async (t) => {
 
     registry.add(
       "a",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/a.md")), 1),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/a.md")), 1),
     );
     registry.add(
       "b",
-      new AnalysisResult(ResultUtils.unwrap(ValidFilePath.create("/b.md")), 2),
+      new AnalysisResult(ResultUtils.unwrap(DocumentPath.create("/b.md")), 2),
     );
 
     const arr = registry.toArray();
@@ -178,14 +176,14 @@ Deno.test("Registry", async (t) => {
     registry.add(
       "a",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/a.md")),
+        ResultUtils.unwrap(DocumentPath.create("/a.md")),
         "data",
       ),
     );
     registry.add(
       "b",
       new AnalysisResult(
-        ResultUtils.unwrap(ValidFilePath.create("/b.md")),
+        ResultUtils.unwrap(DocumentPath.create("/b.md")),
         "data",
       ),
     );

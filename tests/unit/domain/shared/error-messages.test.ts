@@ -9,7 +9,10 @@ import {
 } from "../../../../src/domain/shared/error-messages.ts";
 
 Deno.test("Error Messages - Error codes are assigned correctly", () => {
-  const emptyError = createError({ kind: "EmptyInput" });
+  const emptyError = createError({
+    kind: "ValidationError",
+    message: "Input cannot be empty",
+  });
   assertEquals(emptyError.code, "VAL001");
   assertExists(emptyError.message);
   assertEquals(emptyError.message, "[VAL001] Input cannot be empty");
@@ -24,21 +27,21 @@ Deno.test("Error Messages - Error codes are assigned correctly", () => {
     "[IO001] File not found: /test/file.txt",
   );
 
+  // PatternMismatch is no longer available, now using ValidationError
   const patternError = createError({
-    kind: "PatternMismatch",
-    pattern: "X.Y.Z",
-    input: "1.0",
+    kind: "ValidationError",
+    message: "Input does not match pattern X.Y.Z: 1.0",
   });
-  assertEquals(patternError.code, "VAL003");
+  assertEquals(patternError.code, "VAL001");
   assertEquals(
     patternError.message,
-    "[VAL003] Input does not match pattern X.Y.Z: 1.0",
+    "[VAL001] Input does not match pattern X.Y.Z: 1.0",
   );
 });
 
 Deno.test("Error Messages - Custom messages override defaults", () => {
   const error = createError(
-    { kind: "EmptyInput" },
+    { kind: "ValidationError", message: "Default message" },
     "Custom empty input message",
   );
   assertEquals(error.code, "VAL001");
@@ -46,7 +49,7 @@ Deno.test("Error Messages - Custom messages override defaults", () => {
 });
 
 Deno.test("Error Messages - Error code mapping", () => {
-  assertEquals(getErrorCode("EmptyInput"), "VAL001");
+  assertEquals(getErrorCode("ValidationError"), "VAL001");
   assertEquals(getErrorCode("FileNotFound"), "IO001");
   assertEquals(getErrorCode("ExtractionFailed"), "PRO001");
   assertEquals(getErrorCode("PromptTooLong"), "AI001");
@@ -128,8 +131,8 @@ Deno.test("Error Messages - Complex error types", () => {
   const configError = createError({
     kind: "ConfigurationInvalid",
     errors: [
-      { kind: "EmptyInput" },
-      { kind: "InvalidPath", path: "/test", reason: "not found" },
+      { kind: "ValidationError", message: "Input cannot be empty" },
+      { kind: "ValidationError", message: "Invalid path: /test - not found" },
     ],
   });
   assertEquals(configError.code, "PRO005");

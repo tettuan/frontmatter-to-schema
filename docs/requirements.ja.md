@@ -2,7 +2,7 @@
 
 1. マークダウンのフロントマターを抽出し、解析する
 2. 解析した結果をSchemaに基づいてテンプレートフォーマットへ当て込み、書き出す
-3. フロントマターの柔軟性のために、解析は `Claude Code SDK` を使う
+3. フロントマターの柔軟性のために、TypeScriptによる構造化処理を使う
 
 ## 目的
 
@@ -36,29 +36,44 @@ Markdownファイルの索引(Index)を作るためである。
 2. 機能要件、非機能要件の分離
 3. ドメイン境界線の設計資料の作成
 4. 実装された解析のスクリプトと堅牢なテスト
-5. 'claude -p' 用のプロンプト2つ
+5. TypeScript処理ロジック（2段階解析）
 6. examples/ に実例を使った実行例が存在する
 
 # 解析の手順
 
-まず、プロンプト一覧を作る。(成果A)
+一覧： まず、プロンプト一覧を作る。(成果A)
 また、最終成果物を空の状態でつくる（最終成果物Z）
 
-成果Aに対し、ループ処理する。全件実施する。
+各コマンド： 成果Aに対し、ループ処理する。全件実施する。
 各ループ内では、プロンプト1つずつを処理する。
 最初にフロントマター部分を抽出する。これはDenoで実施する。(成果B)
-成果Bから、`Claude Code SDK` で解析する（成果C）
-成果Cを元に`Claude Code SDK`で構造データへ当てこむ（成果D） 成果Dを 最終成果物Z
+成果Bから、TypeScriptで解析する（成果C）
+成果Cを元にTypeScriptで構造データへ当てこむ（成果D） 成果Dを 最終成果物Z
 へ統合する 成最終成果物Zを保存する。
 
-## claude -p
+## 一覧の整形
+
+availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
+
+利用するSchemaとテンプレート:　 registry_template.json registry_schema.json
+
+## 個別コマンドの整形
 
 以下の2種類を使い分ける。
 
-a. プロンプトとフロントマターと「解析結果のSchema」を使って情報を抽出する b.
-抽出した情報を、「解析結果のSchema」を使って、解析テンプレートへ当て込む
+a. プロンプトとフロントマターと「解析結果のSchema」を使って情報を抽出する
+b.抽出した情報を、「解析結果のSchema」を使って、解析テンプレートへ当て込む
 
-抽出のためのプロンプトは、TypeScript内部へ埋め込む。
+抽出のための処理は、TypeScriptで行う。
+
+詳しくは `docs/architecture/schema_matching_architecture.ja.md`
+へ記載したため、必ず読むこと。
+
+**利用するSchemaとテンプレート**:　 registry_command_schema.json
+registry_command_template.json
+
+完成したバージョンの参考例： .agent/test-climpt/example-registed_commands.json
+（正解の出力フォーマットではない。Schemaとテンプレートを使った出力例の参考例として、理解の補助に使うだけである。）
 
 ## 抽象化レベル
 
@@ -68,8 +83,7 @@ a. プロンプトとフロントマターと「解析結果のSchema」を使�
 2. 実例1-実例2のSchema例とテンプレート例が変更されても、アプリケーションコードに影響がない
 3. 実例1-実例2の階層情報が変わっても、アプリケーションコードに影響がない
 4. 上記2と3が、設定あるいは引数で解決できている
-5. 最終成果物Zは、`Claude Code SDK`の `b`
-   による成果物を結合した結果とイコールである。
+5. 最終成果物Zは、TypeScript処理による成果物を結合した結果とイコールである。
 
 # 参照すべき情報
 
@@ -95,91 +109,143 @@ a. プロンプトとフロントマターと「解析結果のSchema」を使�
 
 ### 解析結果のSchema：
 
-```json
+```json:registry_schema.json
 {
-  "version": string,           // Registry version (e.g., "1.0.0")
-  "description": string,       // Overall registry description
-  "tools": {
-    // Tool names array - each becomes available as climpt-{name}
-    "availableConfigs": string[],  // ["git", "spec", "test", "code", "docs", "meta"]
-    
-    // Command registry - defines all available C3L commands
-    "commands": [
-      {
-        "c1": string,         // Domain/category (git, spec, test, code, docs, meta)
-        "c2": string,         // Action/directive (create, analyze, execute, etc.)
-        "c3": string,         // Target/layer (refinement-issue, quality-metrics, etc.)
-        "description": string,// Command description
-        "usage": string,      // Usage instructions and examples
-        "options": {          // Available options for this command
-          "input": string[],     // Supported input formats
-          "adaptation": string[], // Processing modes
-          "input_file": boolean[],  // File input support
-          "stdin": boolean[],       // Standard input support
-          "destination": boolean[]  // Output destination support
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Registry Schema",
+  "description": "Schema for registry configuration with tools and commands",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Registry version (e.g., \"1.0.0\")",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Overall registry description"
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool configuration and command registry",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "description": "Tool names array - each becomes available as climpt-{name}",
+          "items": {
+            "type": "string",
+            "enum": ["git", "spec", "test", "code", "docs", "meta"]
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry - defines all available C3L commands",
+          "items": { "$ref": "command.schema.json" }
         }
-      }
-    ]
-  }
+      },
+      "required": ["availableConfigs", "commands"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
+}
+```
+
+```json:registry_command_schema.json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Command Schema",
+  "description": "Schema for a single command definition",
+  "properties": {
+    "c1": {
+      "type": "string",
+      "description": "Domain/category (git, spec, test, code, docs, meta)",
+      "enum": ["git", "spec", "test", "code", "docs", "meta"]
+    },
+    "c2": {
+      "type": "string",
+      "description": "Action/directive (create, analyze, execute, etc.)"
+    },
+    "c3": {
+      "type": "string",
+      "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Command description"
+    },
+    "usage": {
+      "type": "string",
+      "description": "Usage instructions and examples"
+    },
+    "options": {
+      "type": "object",
+      "description": "Available options for this command",
+      "properties": {
+        "input": {
+          "type": "array",
+          "description": "Supported input formats",
+          "items": { "type": "string" }
+        },
+        "adaptation": {
+          "type": "array",
+          "description": "Processing modes",
+          "items": { "type": "string" }
+        },
+        "input_file": {
+          "type": "array",
+          "description": "File input support",
+          "items": { "type": "boolean" }
+        },
+        "stdin": {
+          "type": "array",
+          "description": "Standard input support",
+          "items": { "type": "boolean" }
+        },
+        "destination": {
+          "type": "array",
+          "description": "Output destination support",
+          "items": { "type": "boolean" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["c1", "c2", "c3", "description", "usage", "options"],
+  "additionalProperties": false
 }
 ```
 
 ### 解析結果のテンプレート：
 
-```json
+```json:registry_template.json
 {
-  "version": "1.0.0",
-  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "version": "{version}",
+  "description": "{description}",
   "tools": {
-    "availableConfigs": [
-      "code",
-      "docs",
-      "git",
-      "meta",
-      "spec",
-      "test"
-    ],
+    "availableConfigs": "{tools.availableConfigs}",
     "commands": [
-      // Git commands
-      {
-        "c1": "git",
-        "c2": "create",
-        "c3": "refinement-issue",
-        "description": "Create a refinement issue from requirements documentation",
-        "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md",
-        "options": {
-          "input": ["MD"],
-          "adaptation": ["default", "detailed"],
-          "input_file": [true],
-          "stdin": [false],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "analyze",
-        "c3": "commit-history",
-        "description": "Analyze commit history and generate insights"
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "quality-metrics",
-        "description": "Analyze specification quality and completeness"
-      },
-      {
-        "c1": "spec",
-        "c2": "validate",
-        "c3": "requirements",
-        "description": "Validate requirements against standards"
-      },
-      {
-        "c1": "test",
-        "c2": "execute",
-        "c3": "integration-suite",
-        "description": "Execute integration test suite"
-      }
+      { "$ref": "registry_command_template.json" }
     ]
+  }
+}
+```
+
+```json:registry_command_template.json
+{
+  "c1": "{c1}",
+  "c2": "{c2}",
+  "c3": "{c3}",
+  "description": "{description}",
+  "usage": "{usage}",
+  "options": {
+    "input": "{options.input}",
+    "adaptation": "{options.adaptation}",
+    "input_file": "{options.input_file}",
+    "stdin": "{options.stdin}",
+    "destination": "{options.destination}"
   }
 }
 ```

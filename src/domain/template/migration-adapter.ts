@@ -5,13 +5,13 @@
  * This allows gradual migration to the new consolidated template domain
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 import { TemplateProcessingService } from "./service.ts";
 import { FileTemplateRepository } from "../../infrastructure/template/file-template-repository.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/ai-analyzer.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 /**
  * Adapter for old TemplateMapper interface

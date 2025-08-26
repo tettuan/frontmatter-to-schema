@@ -1,37 +1,51 @@
-# テンプレートへの変数埋め込み
+# TypeScriptによるテンプレート変数埋め込み
 
-TypeScriptでテンプレートを解析する必要はない。 `Claude Code SDK`
-へ、テンプレート当て込みプロンプトと一緒に、テンプレートを渡し、返却結果を受け取るだけである。
+TypeScriptで段階的にテンプレート変換処理を行う。確実で予測可能な変換処理を実装する。
 
-NG：TypeScriptでの当て込み OK： `Claude Code SDK` での変換結果を受け取るだけ
+## TypeScript処理の利点
 
-# テンプレートへの当て込みのプロンプト
+- 決定論的な結果
+- ステップバイステップのデバッグ可能性
+- 型安全性によるエラー防止
+- 高速な処理
 
-プロンプトは、「Schemaで解釈されたデータ」と「テンプレート」を使い、テンプレートへ値を埋め込む指示を行う。
-指示が的確になるように、「Schema」「Schemaで解釈されたデータ」「テンプレート」を使う。
+# TypeScriptでのテンプレート変換フロー
 
-# テンプレートからの変換フロー
+```typescript
+// 1. フロントマター解析
+const frontMatter = extractFrontMatter(markdown);
+const parsedData = parseYAML(frontMatter);
+
+// 2. Schema展開とマッピング
+const schemaMapping = mapToSchema(parsedData, jsonSchema);
+
+// 3. テンプレート変数置換
+const result = applyTemplate(template, schemaMapping);
+```
+
+## 段階的処理による確実性
 
 ```mermaid
 graph TD
-    subgraph Inputs
-        A["テンプレート当て込みのprompt"]
-        B["Schema"]
-        C["テンプレート"]
+    subgraph TypeScript処理
+        A[フロントマター抽出] --> B[YAML解析]
+        B --> C[Schema展開]
+        C --> D[マッピング処理]
+        D --> E[テンプレート変数置換]
+        E --> F[結果検証]
     end
-
-    subgraph claude -p
-        P{"A"}
+    
+    subgraph 入力
+        G[Markdown] --> A
+        H[JSON Schema] --> C
+        I[Template] --> E
     end
-
-    subgraph Output
-        O["変換後テンプレート"]
+    
+    subgraph 出力
+        F --> J[変換済みテンプレート]
+        F --> K[マッピング報告]
+        F --> L[警告・エラー]
     end
-
-    A -- "入力" --> P
-    B -- "入力" --> P
-    C -- "入力" --> P
-    P -- "処理" --> O
 ```
 
-変換後テンプレートは、統合にそのまま利用する。
+変換結果は検証済みで、統合処理にそのまま利用可能。

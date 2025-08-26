@@ -2,11 +2,8 @@
  * Core domain interfaces for pluggable components
  */
 
-import type {
-  AnalysisContext,
-  AnalysisResult,
-  FrontMatterContent,
-} from "./types.ts";
+import type { AnalysisContext, AnalysisResult } from "./types.ts";
+import type { FrontMatterContent } from "../models/value-objects.ts";
 
 /**
  * Interface for frontmatter extraction

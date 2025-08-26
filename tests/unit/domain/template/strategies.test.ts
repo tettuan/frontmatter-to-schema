@@ -12,12 +12,12 @@ import {
 import {
   Template,
   TemplateDefinition,
-} from "../../../../src/domain/models/template.ts";
+} from "../../../../src/domain/models/domain-models.ts";
 import type { TemplateApplicationContext } from "../../../../src/domain/template/aggregate.ts";
 import type {
   AIAnalysisRequest,
   AIAnalyzerPort,
-} from "../../../../src/infrastructure/ports/ai-analyzer.ts";
+} from "../../../../src/infrastructure/ports/index.ts";
 import { createAPIError } from "../../../../src/domain/shared/errors.ts";
 
 // Mock AI Analyzer for testing

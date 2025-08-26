@@ -7,6 +7,7 @@ import {
   type IOError,
   type Result,
 } from "../../domain/shared/types.ts";
+import { LoggerFactory } from "../../domain/shared/logger.ts";
 import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -24,7 +25,10 @@ export class DenoDocumentRepository implements DocumentRepository {
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
 
     if (verboseMode) {
-      console.log(`🔍 [VERBOSE] Searching for documents in: ${pathValue}`);
+      const verboseLogger = LoggerFactory.createLogger(
+        "deno-document-repository",
+      );
+      verboseLogger.info("Searching for documents", { path: pathValue });
     }
 
     // Extract directory from glob pattern (e.g., "dir/*.md" -> "dir")
@@ -35,7 +39,10 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (!dirPath) dirPath = ".";
     }
     if (verboseMode) {
-      console.log(`📂 [VERBOSE] Resolved directory path: ${dirPath}`);
+      const verboseLogger = LoggerFactory.createLogger(
+        "deno-document-repository",
+      );
+      verboseLogger.info("Resolved directory path", { dirPath });
     }
 
     try {
@@ -54,7 +61,10 @@ export class DenoDocumentRepository implements DocumentRepository {
 
       // Walk through directory to find markdown files
       if (verboseMode) {
-        console.log(`🚶 [VERBOSE] Starting directory walk from: ${dirPath}`);
+        const verboseLogger = LoggerFactory.createLogger(
+          "deno-document-repository",
+        );
+        verboseLogger.info("Starting directory walk", { dirPath });
       }
 
       let fileCount = 0;
@@ -65,17 +75,25 @@ export class DenoDocumentRepository implements DocumentRepository {
         })
       ) {
         if (verboseMode) {
-          console.log(
-            `📄 [VERBOSE] Found entry: ${entry.path} (isFile: ${entry.isFile})`,
+          const verboseLogger = LoggerFactory.createLogger(
+            "deno-document-repository",
           );
+          verboseLogger.debug("Found entry", {
+            path: entry.path,
+            isFile: entry.isFile,
+          });
         }
 
         if (entry.isFile) {
           fileCount++;
           if (verboseMode) {
-            console.log(
-              `📖 [VERBOSE] Processing file #${fileCount}: ${entry.path}`,
+            const verboseLogger = LoggerFactory.createLogger(
+              "deno-document-repository",
             );
+            verboseLogger.debug("Processing file", {
+              fileCount,
+              path: entry.path,
+            });
           }
 
           const docPathResult = DocumentPath.create(entry.path);
@@ -84,27 +102,39 @@ export class DenoDocumentRepository implements DocumentRepository {
             if (docResult.ok) {
               documents.push(docResult.data);
               if (verboseMode) {
-                console.log(
-                  `✅ [VERBOSE] Successfully processed file: ${entry.path}`,
+                const verboseLogger = LoggerFactory.createLogger(
+                  "deno-document-repository",
                 );
+                verboseLogger.debug("Successfully processed file", {
+                  path: entry.path,
+                });
               }
             } else if (verboseMode) {
-              console.log(
-                `⚠️ [VERBOSE] Failed to read file: ${entry.path} - ${
-                  docResult.error.message || docResult.error.kind
-                }`,
+              const verboseLogger = LoggerFactory.createLogger(
+                "deno-document-repository",
               );
+              verboseLogger.warn("Failed to read file", {
+                path: entry.path,
+                error: docResult.error.message || docResult.error.kind,
+              });
             }
           } else if (verboseMode) {
-            console.log(`⚠️ [VERBOSE] Invalid document path: ${entry.path}`);
+            const verboseLogger = LoggerFactory.createLogger(
+              "deno-document-repository",
+            );
+            verboseLogger.warn("Invalid document path", { path: entry.path });
           }
         }
       }
 
       if (verboseMode) {
-        console.log(
-          `✅ [VERBOSE] Walk completed. Found ${fileCount} markdown files, successfully processed ${documents.length}`,
+        const verboseLogger = LoggerFactory.createLogger(
+          "deno-document-repository",
         );
+        verboseLogger.info("Walk completed", {
+          fileCount,
+          processedCount: documents.length,
+        });
       }
 
       return { ok: true, data: documents };

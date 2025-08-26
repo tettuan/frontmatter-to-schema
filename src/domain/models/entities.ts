@@ -1,10 +1,6 @@
 // Domain entities following DDD principles
 
-import {
-  createError,
-  type Result,
-  type ValidationError,
-} from "../shared/types.ts";
+import type { Result, ValidationError } from "../shared/types.ts";
 import type {
   DocumentContent,
   DocumentPath,
@@ -21,9 +17,15 @@ export class DocumentId {
 
   static create(
     value: string,
-  ): Result<DocumentId, ValidationError & { message: string }> {
+  ): Result<DocumentId, ValidationError> {
     if (!value || value.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        },
+      };
     }
     return { ok: true, data: new DocumentId(value) };
   }
@@ -46,9 +48,15 @@ export class SchemaId {
 
   static create(
     value: string,
-  ): Result<SchemaId, ValidationError & { message: string }> {
+  ): Result<SchemaId, ValidationError> {
     if (!value || value.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        },
+      };
     }
     return { ok: true, data: new SchemaId(value) };
   }
@@ -67,9 +75,15 @@ export class TemplateId {
 
   static create(
     value: string,
-  ): Result<TemplateId, ValidationError & { message: string }> {
+  ): Result<TemplateId, ValidationError> {
     if (!value || value.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        },
+      };
     }
     return { ok: true, data: new TemplateId(value) };
   }
@@ -88,9 +102,15 @@ export class AnalysisId {
 
   static create(
     value: string,
-  ): Result<AnalysisId, ValidationError & { message: string }> {
+  ): Result<AnalysisId, ValidationError> {
     if (!value || value.trim() === "") {
-      return { ok: false, error: createError({ kind: "EmptyInput" }) };
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        },
+      };
     }
     return { ok: true, data: new AnalysisId(value) };
   }
@@ -205,8 +225,30 @@ export class Schema {
     return this.description;
   }
 
-  validate(data: unknown): Result<void, ValidationError & { message: string }> {
-    return this.definition.validate(data);
+  validate(data: unknown): Result<void, ValidationError> {
+    const result = this.definition.validate(data);
+    if (result.ok) {
+      return { ok: true, data: undefined };
+    }
+
+    // Convert the error from core/result.ts format to shared/types.ts format
+    const coreError = result.error;
+    const sharedError = this.convertErrorFormat(coreError);
+    return { ok: false, error: sharedError };
+  }
+
+  private convertErrorFormat(
+    coreError: { kind: string; [key: string]: unknown },
+  ): ValidationError {
+    // All errors are now ValidationError
+    const message = coreError.message
+      ? String(coreError.message)
+      : "Validation failed";
+
+    return {
+      kind: "ValidationError",
+      message: message,
+    };
   }
 }
 
@@ -244,6 +286,11 @@ export class Template {
   }
 
   applyRules(data: Record<string, unknown>): Record<string, unknown> {
+    // If no mapping rules are defined, return the data as-is
+    if (this.mappingRules.length === 0) {
+      return data;
+    }
+
     const result: Record<string, unknown> = {};
 
     for (const rule of this.mappingRules) {

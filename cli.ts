@@ -15,10 +15,11 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { join } from "jsr:@std/path@1.1.2";
+import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
-import { ClaudeSchemaAnalyzer } from "./src/infrastructure/adapters/claude-schema-analyzer.ts";
-import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-schema-analyzer.ts";
+import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-analyzer.ts";
+import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
@@ -33,8 +34,11 @@ import {
 } from "./src/domain/models/value-objects.ts";
 import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
 
+// Create global CLI logger
+const cliLogger: Logger = LoggerFactory.createLogger("CLI");
+
 function printUsage() {
-  console.log(`
+  cliLogger.info(`
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
 Usage:
@@ -62,10 +66,10 @@ async function loadPromptTemplates(): Promise<
 > {
   try {
     const extraction = await Deno.readTextFile(
-      "src/infrastructure/prompts/extract-information.md",
+      "src/domain/prompts/extract-frontmatter.md",
     );
     const mapping = await Deno.readTextFile(
-      "src/infrastructure/prompts/map-to-template.md",
+      "src/domain/prompts/map-to-template.md",
     );
     return { extraction, mapping };
   } catch {
@@ -96,9 +100,10 @@ async function main() {
   // Debug logging if needed
   const debugMode = Deno.env.get("FRONTMATTER_TO_SCHEMA_DEBUG") === "true" ||
     Deno.env.get("FRONTMATTER_DEBUG") === "true"; // backward compatibility
+  const logger = LoggerFactory.createLogger("cli");
   if (debugMode) {
-    console.log("Raw args:", Deno.args);
-    console.log("Processed args:", processedArgs);
+    logger.debug("Raw args", { args: Deno.args });
+    logger.debug("Processed args", { args: processedArgs });
   }
 
   const args = parseArgs(processedArgs, {
@@ -119,65 +124,58 @@ async function main() {
   const verboseMode = args.verbose || false;
 
   if (!schemaPath || !templatePath) {
-    console.error("Error: --schema and --template options are required");
+    cliLogger.error("Error: --schema and --template options are required");
     printUsage();
     Deno.exit(1);
   }
 
   try {
-    console.log("🚀 Starting frontmatter-to-schema CLI...");
-    console.log(`📁 Markdown directory: ${markdownDir}`);
-    console.log(`📋 Schema: ${schemaPath}`);
-    console.log(`📝 Template: ${templatePath}`);
-    console.log(`💾 Destination: ${destinationDir}`);
+    cliLogger.info("🚀 Starting frontmatter-to-schema CLI...");
+    cliLogger.info(`📁 Markdown directory: ${markdownDir}`);
+    cliLogger.info(`📋 Schema: ${schemaPath}`);
+    cliLogger.info(`📝 Template: ${templatePath}`);
+    cliLogger.info(`💾 Destination: ${destinationDir}`);
 
     // Verbose: Check file existence before processing
     if (verboseMode) {
-      console.log("🔍 [VERBOSE] Validating input files...");
+      logger.debug("Validating input files");
       try {
         const schemaStats = await Deno.stat(schemaPath);
-        console.log(
-          `✅ [VERBOSE] Schema file exists: ${schemaPath} (size: ${
-            (schemaStats.size / 1024).toFixed(1)
-          }KB)`,
-        );
+        logger.debug("Schema file exists", {
+          path: schemaPath,
+          sizeKB: (schemaStats.size / 1024).toFixed(1),
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Schema file check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        logger.debug("Schema file check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       try {
         const templateStats = await Deno.stat(templatePath);
-        console.log(
-          `✅ [VERBOSE] Template file exists: ${templatePath} (size: ${
-            (templateStats.size / 1024).toFixed(1)
-          }KB)`,
-        );
+        logger.debug("Template file exists", {
+          path: templatePath,
+          sizeKB: (templateStats.size / 1024).toFixed(1),
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Template file check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        logger.debug("Template file check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       try {
         const dirStats = await Deno.stat(markdownDir);
-        console.log(
-          `✅ [VERBOSE] Directory exists: ${markdownDir} (isDirectory: ${dirStats.isDirectory})`,
-        );
+        cliLogger.debug("Directory exists", {
+          path: markdownDir,
+          isDirectory: dirStats.isDirectory,
+        });
       } catch (error) {
-        console.log(
-          `❌ [VERBOSE] Directory check failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
+        cliLogger.debug("Directory check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
-      console.log("🔧 [VERBOSE] Creating value objects...");
+      logger.debug("Creating value objects");
     }
 
     // Create value objects
@@ -213,25 +211,25 @@ async function main() {
       !documentsPathResult.ok || !schemaPathResult.ok ||
       !templatePathResult.ok || !outputPathResult.ok
     ) {
-      console.error("Error: Invalid paths provided");
+      cliLogger.error("Error: Invalid paths provided");
       if (!documentsPathResult.ok) {
-        console.error(`  Documents: ${documentsPathResult.error.message}`);
+        cliLogger.error(`  Documents: ${documentsPathResult.error.message}`);
       }
       if (!schemaPathResult.ok) {
-        console.error(`  Schema: ${schemaPathResult.error.message}`);
+        cliLogger.error(`  Schema: ${schemaPathResult.error.message}`);
       }
       if (!templatePathResult.ok) {
-        console.error(`  Template: ${templatePathResult.error.message}`);
+        cliLogger.error(`  Template: ${templatePathResult.error.message}`);
       }
       if (!outputPathResult.ok) {
-        console.error(`  Output: ${outputPathResult.error.message}`);
+        cliLogger.error(`  Output: ${outputPathResult.error.message}`);
       }
       Deno.exit(1);
     }
 
     // Initialize services
     if (verboseMode) {
-      console.log("🏗️ [VERBOSE] Initializing services...");
+      logger.debug("Initializing services");
     }
     const configLoader = new ConfigurationLoader();
     const templateLoader = new TemplateLoader();
@@ -265,18 +263,18 @@ async function main() {
     };
     const resultAggregator = new ResultAggregatorImpl("json");
     if (verboseMode) {
-      console.log("✅ [VERBOSE] Document repository initialized");
-      console.log("✅ [VERBOSE] Template mapper initialized");
-      console.log("✅ [VERBOSE] Result aggregator initialized");
+      logger.debug("Document repository initialized");
+      logger.debug("Template mapper initialized");
+      logger.debug("Result aggregator initialized");
     }
 
     // Load prompts and create analyzer
     if (verboseMode) {
-      console.log("📝 [VERBOSE] Loading prompt templates...");
+      logger.debug("Loading prompt templates");
     }
     const prompts = await loadPromptTemplates();
     if (verboseMode) {
-      console.log("✅ [VERBOSE] Prompt templates loaded successfully");
+      logger.debug("Prompt templates loaded successfully");
     }
     // Set verbose mode for components
     if (verboseMode) {
@@ -292,14 +290,12 @@ async function main() {
         prompts.extraction,
         prompts.mapping,
       )
-      : new ClaudeSchemaAnalyzer(
-        { aiProvider: "claude", aiConfig: {} },
-        prompts.extraction,
-        prompts.mapping,
-      );
+      : createTypeScriptAnalyzer("1.0.0", "Climpt Command Registry");
 
     // Create use case
-    console.log("🎯 [DEBUG] Creating ProcessDocumentsUseCase...");
+    if (debugMode) {
+      cliLogger.debug("🎯 Creating ProcessDocumentsUseCase...");
+    }
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
       documentRepo,
       configLoader,
@@ -312,19 +308,21 @@ async function main() {
     );
 
     // Execute processing
-    console.log("🚀 [DEBUG] Starting document processing...");
-    console.log(`📊 [DEBUG] Processing config: ${
-      JSON.stringify(
-        {
-          documentsPath: documentsPathResult.data.getValue(),
-          schemaPath: schemaPathResult.data.getValue(),
-          templatePath: templatePathResult.data.getValue(),
-          outputPath: outputPathResult.data.getValue(),
-        },
-        null,
-        2,
-      )
-    }`);
+    if (debugMode) {
+      cliLogger.debug("🚀 Starting document processing...");
+      cliLogger.debug(`📊 Processing config: ${
+        JSON.stringify(
+          {
+            documentsPath: documentsPathResult.data.getValue(),
+            schemaPath: schemaPathResult.data.getValue(),
+            templatePath: templatePathResult.data.getValue(),
+            outputPath: outputPathResult.data.getValue(),
+          },
+          null,
+          2,
+        )
+      }`);
+    }
 
     const _startTime = Date.now();
     const processingConfig = {
@@ -338,8 +336,8 @@ async function main() {
       },
     };
 
-    console.log("⚡ Processing documents...");
-    console.log(
+    cliLogger.info("⚡ Processing documents...");
+    cliLogger.info(
       "📝 This may take a moment depending on the number of files and AI processing...",
     );
 
@@ -348,37 +346,37 @@ async function main() {
     });
 
     if (result.ok) {
-      console.log("\n✅ Processing completed successfully!");
-      console.log(`📊 Processed: ${result.data.processedCount} documents`);
-      console.log(`❌ Failed: ${result.data.failedCount} documents`);
-      console.log(`💾 Output saved to: ${result.data.outputPath}`);
+      cliLogger.info("\n✅ Processing completed successfully!");
+      cliLogger.info(`📊 Processed: ${result.data.processedCount} documents`);
+      cliLogger.info(`❌ Failed: ${result.data.failedCount} documents`);
+      cliLogger.info(`💾 Output saved to: ${result.data.outputPath}`);
     } else {
-      console.error("\n❌ Processing failed:", result.error.message);
+      cliLogger.error("\n❌ Processing failed: " + result.error.message);
 
       // Show more details for ConfigurationInvalid errors
       if (
         result.error.kind === "ConfigurationInvalid" && "errors" in result.error
       ) {
-        console.error("\nConfiguration errors:");
+        cliLogger.error("\nConfiguration errors:");
         for (const err of result.error.errors) {
           if ("path" in err && "reason" in err) {
-            console.error(`  - ${err.path}: ${err.reason}`);
+            cliLogger.error(`  - ${err.path}: ${err.reason}`);
           } else {
-            console.error(`  - ${JSON.stringify(err)}`);
+            cliLogger.error(`  - ${JSON.stringify(err)}`);
           }
         }
       }
 
       // Show debug info if debug mode is enabled
       if (debugMode) {
-        console.error("\nDebug info:");
-        console.error(JSON.stringify(result.error, null, 2));
+        cliLogger.debug("\nDebug info:");
+        cliLogger.debug(JSON.stringify(result.error, null, 2));
       }
 
       Deno.exit(1);
     }
   } catch (error) {
-    console.error("Fatal error:", error);
+    cliLogger.error("Fatal error: " + String(error));
     Deno.exit(1);
   }
 }

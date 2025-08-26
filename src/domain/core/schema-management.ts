@@ -329,6 +329,7 @@ export class SchemaSwitcher {
 
 /**
  * Dynamic Pipeline Factory - Creates pipelines based on runtime schema
+ * @deprecated Use PipelineDomainFactory from component-factory.ts for better domain separation
  */
 export class DynamicPipelineFactory {
   constructor(

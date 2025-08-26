@@ -1,12 +1,41 @@
-import { FrontMatterExtractor } from "../../src/domain/frontmatter/Extractor.ts";
+import { FrontMatterExtractor } from "../../src/domain/frontmatter/frontmatter-models.ts";
 import {
   assertEquals,
   assertExists,
 } from "https://deno.land/std@0.220.0/assert/mod.ts";
 
-Deno.test("FrontMatterExtractor - should extract frontmatter", async () => {
+Deno.test("FrontMatterExtractor - should extract frontmatter", () => {
   const extractor = new FrontMatterExtractor();
-  const content = await Deno.readTextFile("./tests/fixtures/sample-prompt.md");
+  const content = `---
+title: Git Refinement Issue Creator
+domain: git
+action: create
+target: refinement-issue
+description: Create a refinement issue from requirements documentation
+tags:
+  - git
+  - issue
+  - refinement
+config:
+  input_formats:
+    - MD
+    - TXT
+  processing_modes:
+    - default
+    - detailed
+  supports:
+    file_input: true
+    stdin_input: false
+    output_destination: true
+usage: |
+  Create refinement issues from requirement documents.
+  Example: climpt-git create refinement-issue -f requirements.md
+---
+
+# Git Refinement Issue Creator
+
+This prompt helps create refinement issues from requirements documentation for
+better project tracking and management.`;
 
   const frontMatter = extractor.extract(content);
 
@@ -25,11 +54,13 @@ Deno.test("FrontMatterExtractor - should return null for no frontmatter", () => 
   assertEquals(frontMatter, null);
 });
 
-Deno.test("FrontMatterExtractor - should detect frontmatter presence", async () => {
+Deno.test("FrontMatterExtractor - should detect frontmatter presence", () => {
   const extractor = new FrontMatterExtractor();
-  const withFrontmatter = await Deno.readTextFile(
-    "./tests/fixtures/sample-prompt.md",
-  );
+  const withFrontmatter = `---
+title: Test Document
+author: John Doe
+---
+# Content here`;
   const withoutFrontmatter = "# Regular markdown";
 
   assertEquals(extractor.hasFrontMatter(withFrontmatter), true);

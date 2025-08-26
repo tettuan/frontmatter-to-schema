@@ -3,16 +3,20 @@
  * Loads templates from the file system
  */
 
-import type { Result } from "../../domain/shared/result.ts";
+import type { Result } from "../../domain/core/result.ts";
 import type { ValidationError } from "../../domain/shared/errors.ts";
 import { createValidationError } from "../../domain/shared/errors.ts";
-import { Template, TemplateDefinition } from "../../domain/models/template.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../domain/models/domain-models.ts";
 import type { TemplateRepository } from "../../domain/template/repository.ts";
 import { TemplatePath } from "../../domain/template/repository.ts";
+import { TemplateFormat } from "../../domain/template/format-handlers.ts";
 import {
-  TemplateFormat,
-  TemplateFormatHandlerFactory,
-} from "../../domain/template/format-handlers.ts";
+  ComponentDomain,
+  FactoryConfigurationBuilder,
+} from "../../domain/core/component-factory.ts";
 
 export class FileTemplateRepository implements TemplateRepository {
   private templateCache = new Map<string, Template>();
@@ -93,11 +97,23 @@ export class FileTemplateRepository implements TemplateRepository {
         `Template loaded from ${filePath}`,
       );
 
-      // Validate template format using format handler
-      const handlerResult = TemplateFormatHandlerFactory.getHandler(format);
-      if (handlerResult.ok) {
+      // Validate template format using format handler from unified factory
+      const factory = FactoryConfigurationBuilder.createDefault();
+      const templateComponents = factory.createDomainComponents(
+        ComponentDomain.Template,
+      ) as {
+        formatHandlers: Map<
+          string,
+          import("../../domain/template/format-handlers.ts").TemplateFormatHandler
+        >;
+      };
+      const handler = templateComponents.formatHandlers.get(
+        format.toLowerCase(),
+      );
+
+      if (handler) {
         // Pre-validate template content
-        const parseResult = handlerResult.data.parse(content);
+        const parseResult = handler.parse(content);
         if (!parseResult.ok) {
           return {
             ok: false,

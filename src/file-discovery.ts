@@ -1,6 +1,6 @@
 import { walk } from "jsr:@std/fs@1/walk";
 import { basename, relative } from "jsr:@std/path@1";
-import type { CommandStructure, PromptFile } from "./types.ts";
+import type { CommandStructure, PromptFile } from "./domain/core/types.ts";
 
 /**
  * Discovers all f_*.md files in the prompts directory

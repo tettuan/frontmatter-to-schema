@@ -1,22 +1,23 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
-import { isError, type Result } from "../domain/shared/result.ts";
+import { isError, type Result } from "../domain/core/result.ts";
 import { type DomainError, errorToString } from "../domain/shared/errors.ts";
 import {
   type ApplicationConfiguration,
   ConfigurationValidator,
 } from "./configuration.ts";
 import { DocumentProcessor } from "./document-processor.ts";
-import { FrontMatterExtractor } from "../domain/services/frontmatter-extractor.ts";
+import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { TemplateMapper } from "../domain/services/template-mapper.ts";
-import { DenoFileSystemAdapter } from "../infrastructure/adapters/deno-file-system.ts";
-import { ClaudeAnalyzerAdapter } from "../infrastructure/adapters/claude-analyzer.ts";
+import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
+import { MockAnalyzer } from "../infrastructure/adapters/mock-analyzer.ts";
+import { LoggerFactory } from "../domain/shared/logger.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
-  private readonly fileSystem = new DenoFileSystemAdapter();
-  private readonly aiAnalyzer = new ClaudeAnalyzerAdapter();
-  private readonly frontMatterExtractor = new FrontMatterExtractor();
+  private readonly fileSystem = new DenoFileSystemProvider();
+  private readonly aiAnalyzer = new MockAnalyzer();
+  private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
   private readonly schemaValidator = new SchemaValidator();
   private readonly templateMapper = new TemplateMapper();
   private readonly processor: DocumentProcessor;
@@ -54,48 +55,59 @@ export class CLI {
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
     if (isError(configResult)) {
-      console.error(
-        `❌ Configuration error: ${errorToString(configResult.error)}`,
-      );
+      const logger = LoggerFactory.createLogger("cli-config");
+      logger.error("Configuration error", {
+        error: errorToString(configResult.error),
+      });
       Deno.exit(1);
     }
 
     const config = configResult.data;
 
     if (parsed.verbose) {
-      console.log("📋 Configuration loaded:");
-      console.log(JSON.stringify(config, null, 2));
+      const verboseLogger = LoggerFactory.createLogger("cli-verbose");
+      verboseLogger.info("Configuration loaded", { config });
     }
 
     // Process documents
-    console.log("🔍 Processing documents...");
+    const processLogger = LoggerFactory.createLogger("cli-process");
+    processLogger.info("Starting document processing");
     const result = await this.processor.processDocuments(config);
 
     if (isError(result)) {
-      console.error(`❌ Processing error: ${errorToString(result.error)}`);
+      const errorLogger = LoggerFactory.createLogger("cli-error");
+      errorLogger.error("Processing error", {
+        error: errorToString(result.error),
+      });
       Deno.exit(1);
     }
 
     const batchResult = result.data;
 
     // Print summary
-    console.log("\n📊 Processing Summary:");
-    console.log(`  ✅ Successful: ${batchResult.getSuccessCount()}`);
-    console.log(`  ❌ Failed: ${batchResult.getErrorCount()}`);
-    console.log(`  📄 Total: ${batchResult.getTotalCount()}`);
+    const summaryLogger = LoggerFactory.createLogger("cli-summary");
+    summaryLogger.info("Processing summary", {
+      successful: batchResult.getSuccessCount(),
+      failed: batchResult.getErrorCount(),
+      total: batchResult.getTotalCount(),
+    });
 
     if (batchResult.hasErrors()) {
-      console.log("\n⚠️  Errors:");
-      for (const error of batchResult.getErrors()) {
-        console.log(
-          `  - ${error.document.getPath().getValue()}: ${
-            errorToString(error.error)
-          }`,
-        );
-      }
+      const errorSummaryLogger = LoggerFactory.createLogger("cli-errors");
+      const errors = batchResult.getErrors().map((error) => ({
+        document: error.document.getPath().getValue(),
+        error: errorToString(error.error),
+      }));
+      errorSummaryLogger.warn("Processing errors encountered", {
+        errorCount: batchResult.getErrorCount(),
+        errors,
+      });
     }
 
-    console.log(`\n✨ Output written to: ${config.output.path}`);
+    const outputLogger = LoggerFactory.createLogger("cli-output");
+    outputLogger.info("Output written successfully", {
+      outputPath: config.output.path,
+    });
   }
 
   private async loadConfiguration(
@@ -190,6 +202,9 @@ export class CLI {
   }
 
   private printHelp(): void {
+    const helpLogger = LoggerFactory.createLogger("cli-help");
+    helpLogger.info("Displaying help information");
+    // Help output to stdout is intentional - not logging
     console.log(`
 Frontmatter to Schema - Markdown Frontmatter Analysis Tool
 

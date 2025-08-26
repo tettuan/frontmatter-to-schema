@@ -6,10 +6,10 @@
  * - Responsible for template loading, validation, and application
  */
 
-import type { Result } from "../shared/result.ts";
+import type { Result } from "../core/result.ts";
 import type { ValidationError } from "../shared/errors.ts";
 import { createValidationError } from "../shared/errors.ts";
-import type { Template } from "../models/template.ts";
+import type { Template } from "../models/domain-models.ts";
 import type { TemplateRepository } from "./repository.ts";
 import type { TemplateProcessingStrategy } from "./strategies.ts";
 import { TemplateAppliedEvent, TemplateLoadedEvent } from "./events.ts";
@@ -40,6 +40,14 @@ export class TemplateAggregate {
   async loadTemplate(
     templateId: string,
   ): Promise<Result<Template, ValidationError>> {
+    // Validate templateId
+    if (!templateId || templateId.trim() === "") {
+      return {
+        ok: false,
+        error: createValidationError("Template ID cannot be empty"),
+      };
+    }
+
     // Check if already loaded
     const cached = this.loadedTemplates.get(templateId);
     if (cached) {
@@ -67,6 +75,16 @@ export class TemplateAggregate {
     templateId: string,
     context: TemplateApplicationContext,
   ): Promise<Result<string, ValidationError>> {
+    // Validate context
+    if (!context) {
+      return {
+        ok: false,
+        error: createValidationError(
+          "Template application context cannot be null",
+        ),
+      };
+    }
+
     // Load template if not cached
     const templateResult = await this.loadTemplate(templateId);
     if (!templateResult.ok) {
