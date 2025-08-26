@@ -1,6 +1,6 @@
 // FrontMatter extractor implementation
 
-import { extract } from "jsr:@std/front-matter@1.0.5/any";
+import { extract } from "jsr:@std/front-matter@1.0.5/yaml";
 import {
   createError,
   type ProcessingError,
@@ -29,15 +29,25 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
 
       const extracted = extract(content);
 
+      // Use attrs (parsed YAML) instead of frontMatter (raw string)
+      const parsedFrontMatter = extracted.attrs;
+
       if (
-        !extracted.frontMatter ||
-        Object.keys(extracted.frontMatter).length === 0
+        !parsedFrontMatter ||
+        typeof parsedFrontMatter !== "object" ||
+        Object.keys(parsedFrontMatter).length === 0
       ) {
         return { ok: true, data: null };
       }
 
+      // Add document path to frontmatter data
+      const enhancedFrontMatter = {
+        ...parsedFrontMatter,
+        _documentPath: document.getPath().getValue(),
+      };
+
       // Convert frontmatter to JSON string
-      const frontMatterStr = JSON.stringify(extracted.frontMatter);
+      const frontMatterStr = JSON.stringify(enhancedFrontMatter);
       const frontMatterContentResult = FrontMatterContent.create(
         frontMatterStr,
       );
