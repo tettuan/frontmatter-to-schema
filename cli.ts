@@ -19,6 +19,7 @@ import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-analyzer.ts";
+import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
@@ -289,7 +290,7 @@ async function main() {
         prompts.extraction,
         prompts.mapping,
       )
-      : new MockSchemaAnalyzer();
+      : createTypeScriptAnalyzer("1.0.0", "Climpt Command Registry");
 
     // Create use case
     if (debugMode) {
