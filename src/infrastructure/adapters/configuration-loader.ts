@@ -455,8 +455,8 @@ export class TemplateLoader implements TemplateRepository {
       const placeholders = this.extractPlaceholders(content);
       for (const placeholder of placeholders) {
         // Create a mapping rule for each placeholder
-        // e.g., {{title}} -> maps from "title" field to "title" in output
-        const fieldName = placeholder.replace(/{{|}}/g, "").trim();
+        // e.g., {{title}} or {title} -> maps from "title" field to "title" in output
+        const fieldName = placeholder.replace(/\{|\}/g, "").trim();
         const ruleResult = MappingRule.create(
           fieldName, // source field from data
           fieldName, // target field in output
@@ -529,13 +529,26 @@ export class TemplateLoader implements TemplateRepository {
   }
 
   private extractPlaceholders(content: string): string[] {
-    // Extract all {{placeholder}} patterns from the template
-    const placeholderRegex = /\{\{([^}]+)\}\}/g;
+    // Extract all {placeholder} or {{placeholder}} patterns from the template
+    // Support both single and double brace formats
+    // Exclude JSON $ref patterns and object/array structures
     const placeholders: string[] = [];
+
+    // First, remove JSON structures that shouldn't be treated as placeholders
+    // This includes $ref and actual JSON object/array content
+    let cleanContent = content;
+
+    // Remove "$ref": "..." patterns
+    cleanContent = cleanContent.replace(/"\$ref"\s*:\s*"[^"]*"/g, "");
+
+    // Now extract placeholders, but only simple variable references
+    // Match {word} or {{word}} or {path.to.field} but not JSON structures
+    const placeholderRegex = /\{([a-zA-Z_][\w.]*)\}|\{\{([a-zA-Z_][\w.]*)\}\}/g;
     let match;
 
-    while ((match = placeholderRegex.exec(content)) !== null) {
-      placeholders.push(match[0]); // Full placeholder including {{}}
+    while ((match = placeholderRegex.exec(cleanContent)) !== null) {
+      // match[0] is the full match, match[1] is single brace content, match[2] is double brace content
+      placeholders.push(match[0]); // Full placeholder including braces
     }
 
     // Return unique placeholders
