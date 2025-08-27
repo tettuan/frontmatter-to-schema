@@ -3,11 +3,23 @@ import {
   type ExtractedData,
   MappedData,
   type Template,
+  type Schema,
 } from "../models/entities.ts";
+import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { ProcessingError } from "../shared/types.ts";
+import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import { TypeScriptAnalysisOrchestrator, type ExtractedInfo, type StructuredData } from "../core/typescript-processing-orchestrator.ts";
+import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 export class TemplateMapper {
+  constructor(
+    private readonly orchestrator?: TypeScriptAnalysisOrchestrator,
+  ) {}
+
+  /**
+   * Legacy method for backward compatibility - single-stage processing
+   */
   map(
     data: ExtractedData,
     template: Template,
@@ -374,5 +386,87 @@ export class TemplateMapper {
     }
 
     return `${indentStr}${String(data)}`;
+  }
+
+  /**
+   * New 2-stage processing method following domain boundary architecture
+   * This replaces the single-stage processing with proper orchestration
+   */
+  async mapWithOrchestrator(
+    frontMatter: FrontMatterContent,
+    schema: Schema,
+    template: Template,
+  ): Promise<Result<MappedData, DomainError & { message: string }>> {
+    if (!this.orchestrator) {
+      return {
+        ok: false,
+        error: {
+          kind: "ReadError",
+          path: "orchestrator",
+          details: "TypeScriptAnalysisOrchestrator not configured",
+          message: "TypeScriptAnalysisOrchestrator not configured",
+        } as DomainError & { message: string },
+      };
+    }
+
+    try {
+      // Stage 1: Extract information from frontmatter + schema
+      const extractionResult = await this.orchestrator.extractInformation(
+        frontMatter,
+        schema,
+      );
+      if (!extractionResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "ExtractionStrategyFailed",
+            strategy: "information_extraction",
+            input: frontMatter,
+            message: `Stage 1 failed: ${extractionResult.error.message}`,
+          } as DomainError & { message: string },
+        };
+      }
+
+      // Stage 2: Map extracted info to template
+      const mappingResult = await this.orchestrator.mapToTemplate(
+        extractionResult.data,
+        schema,
+        template,
+      );
+      if (!mappingResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "TemplateMappingFailed",
+            template: template,
+            source: frontMatter,
+            message: `Stage 2 failed: ${mappingResult.error.message}`,
+          } as DomainError & { message: string },
+        };
+      }
+
+      // Convert StructuredData to MappedData
+      const structuredData = mappingResult.data;
+      try {
+        // Parse the structured content to create mapped data
+        const parsedContent = JSON.parse(structuredData.getContent());
+        const mappedData = MappedData.create(parsedContent);
+        return { ok: true, data: mappedData };
+      } catch (parseError) {
+        // If JSON parsing fails, treat as raw content
+        const mappedData = MappedData.create({ content: structuredData.getContent() });
+        return { ok: true, data: mappedData };
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateMappingFailed",
+          template: template,
+          source: frontMatter,
+          message: `Orchestrator processing failed: ${error}`,
+        } as DomainError & { message: string },
+      };
+    }
   }
 }
