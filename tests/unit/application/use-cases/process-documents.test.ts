@@ -35,6 +35,7 @@ import {
   SchemaDefinition,
   SchemaVersion,
   TemplateFormat,
+  TemplatePath,
 } from "../../../../src/domain/models/value-objects.ts";
 import type {
   DocumentRepository,
@@ -186,7 +187,7 @@ class MockTemplateRepository implements TemplateRepository {
   }
 
   load(
-    path: ConfigPath,
+    path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     if (this.shouldFail) {
       return Promise.resolve({
@@ -472,7 +473,7 @@ function createMockConfig(
   const schemaPathResult = ConfigPath.create("./schema.json");
   if (!schemaPathResult.ok) throw new Error("Failed to create schema path");
 
-  const templatePathResult = ConfigPath.create("./template.json");
+  const templatePathResult = TemplatePath.create("./template.json");
   if (!templatePathResult.ok) throw new Error("Failed to create template path");
 
   const outputPathResult = OutputPath.create("./output.json");

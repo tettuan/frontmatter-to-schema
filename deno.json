@@ -19,7 +19,6 @@
     "@std/testing": "jsr:@std/testing@^1.0.15",
     "jsr:@std/fs": "jsr:@std/fs@1.0.8",
     "jsr:@std/front-matter": "jsr:@std/front-matter@1.0.5",
-    "jsr:@std/cli": "jsr:@std/cli@1.0.9",
-    "jsr:@std/testing": "jsr:@std/testing@1.0.6"
+    "jsr:@std/cli": "jsr:@std/cli@1.0.9"
   }
 }

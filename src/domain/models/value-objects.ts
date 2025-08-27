@@ -361,6 +361,37 @@ export class ConfigPath {
   }
 }
 
+export class TemplatePath {
+  private constructor(private readonly value: string) {}
+
+  static create(
+    path: string,
+  ): Result<TemplatePath, ResultValidationError & { message: string }> {
+    if (!path || path.trim() === "") {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationError",
+          message: "Input cannot be empty",
+        } as unknown as ResultValidationError & { message: string },
+      };
+    }
+
+    return { ok: true, data: new TemplatePath(path) };
+  }
+
+  getValue(): string {
+    return this.value;
+  }
+
+  resolve(basePath: string): string {
+    if (this.value.startsWith("/")) {
+      return this.value;
+    }
+    return `${basePath}/${this.value}`;
+  }
+}
+
 export class OutputPath {
   private constructor(private readonly value: string) {}
 

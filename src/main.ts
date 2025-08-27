@@ -28,6 +28,7 @@ import {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "./domain/models/value-objects.ts";
 import type {
   AnalysisConfiguration,
@@ -313,7 +314,7 @@ Examples:
       // Build config from command line args
       const documentsPathResult = DocumentPath.create(args.documents || ".");
       const schemaPathResult = ConfigPath.create(args.schema || "schema.json");
-      const templatePathResult = ConfigPath.create(
+      const templatePathResult = TemplatePath.create(
         args.template || "template.json",
       );
       const outputPathResult = OutputPath.create(args.output || "output.json");

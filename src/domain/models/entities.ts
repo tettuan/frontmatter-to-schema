@@ -354,6 +354,10 @@ export class ExtractedData {
   has(key: string): boolean {
     return key in this.data;
   }
+
+  toJSON(): Record<string, unknown> {
+    return this.getData();
+  }
 }
 
 export class MappedData {

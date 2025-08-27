@@ -29,6 +29,7 @@ import type {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "../models/value-objects.ts";
 
 /**
@@ -153,7 +154,7 @@ export interface SchemaRepository {
 
 export interface TemplateRepository {
   load(
-    path: ConfigPath,
+    path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>>;
   validate(
     template: Template,
@@ -190,7 +191,7 @@ export interface ConfigurationRepository {
 export interface ProcessingConfiguration {
   documentsPath: DocumentPath;
   schemaPath: ConfigPath;
-  templatePath: ConfigPath;
+  templatePath: TemplatePath;
   outputPath: OutputPath;
   options: {
     parallel?: boolean;

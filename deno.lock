@@ -7,29 +7,20 @@
     "jsr:@std/assert@1.0.9": "1.0.9",
     "jsr:@std/assert@^1.0.13": "1.0.14",
     "jsr:@std/assert@^1.0.14": "1.0.14",
-    "jsr:@std/assert@^1.0.9": "1.0.14",
     "jsr:@std/cli@*": "1.0.21",
     "jsr:@std/cli@1.0.9": "1.0.9",
     "jsr:@std/collections@^1.1.3": "1.1.3",
-    "jsr:@std/data-structures@^1.0.4": "1.0.9",
-    "jsr:@std/data-structures@^1.0.9": "1.0.9",
     "jsr:@std/front-matter@1.0.5": "1.0.5",
-    "jsr:@std/fs@*": "1.0.19",
-    "jsr:@std/fs@1": "1.0.19",
+    "jsr:@std/fs@1": "1.0.8",
     "jsr:@std/fs@1.0.8": "1.0.8",
-    "jsr:@std/fs@^1.0.19": "1.0.19",
-    "jsr:@std/fs@^1.0.6": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.3": "1.0.10",
     "jsr:@std/internal@^1.0.5": "1.0.10",
-    "jsr:@std/internal@^1.0.9": "1.0.10",
     "jsr:@std/path@*": "1.1.2",
     "jsr:@std/path@1": "1.1.2",
     "jsr:@std/path@1.1.2": "1.1.2",
     "jsr:@std/path@^1.0.8": "1.1.2",
-    "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@std/testing@*": "1.0.15",
-    "jsr:@std/testing@1.0.6": "1.0.6",
     "jsr:@std/testing@^1.0.15": "1.0.15",
     "jsr:@std/toml@^1.0.1": "1.0.9",
     "jsr:@std/yaml@1": "1.0.9",
@@ -66,9 +57,6 @@
     "@std/collections@1.1.3": {
       "integrity": "bf8b0818886df6a32b64c7d3b037a425111f28278d69fd0995aeb62777c986b0"
     },
-    "@std/data-structures@1.0.9": {
-      "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
-    },
     "@std/front-matter@1.0.5": {
       "integrity": "abddc64030a33eb5bc524b8c73e7c417cea09177aaeb4abf75a56b540c4b6e60",
       "dependencies": [
@@ -82,13 +70,6 @@
         "jsr:@std/path@^1.0.8"
       ]
     },
-    "@std/fs@1.0.19": {
-      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06",
-      "dependencies": [
-        "jsr:@std/internal@^1.0.9",
-        "jsr:@std/path@^1.1.1"
-      ]
-    },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     },
@@ -98,24 +79,11 @@
         "jsr:@std/internal@^1.0.10"
       ]
     },
-    "@std/testing@1.0.6": {
-      "integrity": "9192ded2d34065f4c959fdc1921fe836770abb9194410c2cc8a0fff4eff5c893",
-      "dependencies": [
-        "jsr:@std/assert@^1.0.9",
-        "jsr:@std/data-structures@^1.0.4",
-        "jsr:@std/fs@^1.0.6",
-        "jsr:@std/internal@^1.0.5",
-        "jsr:@std/path@^1.0.8"
-      ]
-    },
     "@std/testing@1.0.15": {
       "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
       "dependencies": [
         "jsr:@std/assert@^1.0.13",
-        "jsr:@std/data-structures@^1.0.9",
-        "jsr:@std/fs@^1.0.19",
-        "jsr:@std/internal@^1.0.10",
-        "jsr:@std/path@^1.1.1"
+        "jsr:@std/internal@^1.0.10"
       ]
     },
     "@std/toml@1.0.9": {
@@ -467,7 +435,6 @@
       "jsr:@std/cli@1.0.9",
       "jsr:@std/front-matter@1.0.5",
       "jsr:@std/fs@1.0.8",
-      "jsr:@std/testing@1.0.6",
       "jsr:@std/testing@^1.0.15",
       "npm:@anthropic-ai/claude-code@^1.0.89"
     ]
