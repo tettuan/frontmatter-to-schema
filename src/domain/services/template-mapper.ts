@@ -74,7 +74,7 @@ export class TemplateMapper {
       default: {
         // Exhaustive check - TypeScript will error if we miss a case
         const _exhaustiveCheck: never = schemaMode;
-        throw new Error(`Unhandled schema mode: ${(_exhaustiveCheck as any).kind}`);
+        throw new Error(`Unhandled schema mode: ${String(_exhaustiveCheck)}`);
       }
     }
 

@@ -4,12 +4,12 @@ import type {
 } from "../../infrastructure/filesystem/file-system.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
 import { RegistryAggregator } from "../services/RegistryAggregator.ts";
-import { AnalysisResult, type Registry } from "../../domain/core/types.ts";
+import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";
 
 // Discriminated union for analyzer types following totality principle
-export type RegistryAnalyzer = 
+export type RegistryAnalyzer =
   | { kind: "SchemaAnalyzer"; analyzer: SchemaAnalyzer }
   | { kind: "MockAnalyzer"; analyzer: MockAnalyzer }
   | { kind: "NoAnalyzer" };
@@ -59,13 +59,13 @@ export class BuildRegistryUseCase {
           case "NoAnalyzer": {
             continue;
           }
-          
+
           case "MockAnalyzer": {
             const analysisResult = await this.analyzer.analyzer.analyze(
               frontMatter,
               promptFile.path,
             );
-            
+
             if (analysisResult.isValid) {
               aggregator.addAnalysisResult(analysisResult);
               logger.debug("Extracted commands", {
@@ -79,20 +79,25 @@ export class BuildRegistryUseCase {
             }
             break;
           }
-          
+
           case "SchemaAnalyzer": {
             // TODO: Implement proper SchemaAnalyzer usage with Schema parameter
             // For now, skip as we need proper Schema instance
-            logger.debug("SchemaAnalyzer not yet implemented for registry building", {
-              filename: promptFile.filename,
-            });
+            logger.debug(
+              "SchemaAnalyzer not yet implemented for registry building",
+              {
+                filename: promptFile.filename,
+              },
+            );
             continue;
           }
-          
+
           default: {
             // Exhaustive check - TypeScript will error if we miss a case
             const _exhaustiveCheck: never = this.analyzer;
-            throw new Error(`Unhandled analyzer kind: ${(_exhaustiveCheck as any).kind}`);
+            throw new Error(
+              `Unhandled analyzer kind: ${String(_exhaustiveCheck)}`,
+            );
           }
         }
       } catch (error) {

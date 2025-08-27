@@ -16,7 +16,7 @@ import {
   PromptList,
 } from "../../../src/domain/services/prompt-models.ts";
 import type { Command, Registry } from "../../../src/domain/core/types.ts";
-import { AnalysisResult } from "../../../src/domain/core/types.ts";
+// Removed unused AnalysisResult import
 
 // Mock FileReader implementation
 class MockFileReader extends FileReader {
@@ -103,7 +103,10 @@ class MockAnalyzer {
   private shouldSucceed = true;
   private mockCommands: Command[] = [];
 
-  analyze(_frontMatter: FrontMatter, filePath: string): Promise<{ isValid: boolean; commands: unknown[]; }> {
+  analyze(
+    _frontMatter: FrontMatter,
+    filePath: string,
+  ): Promise<{ isValid: boolean; commands: unknown[] }> {
     if (!this.shouldSucceed) {
       throw new Error("Analysis failed");
     }

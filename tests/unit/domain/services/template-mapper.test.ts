@@ -45,7 +45,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -92,7 +94,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData() as Record<
@@ -132,7 +136,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -165,7 +171,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -196,7 +204,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -239,7 +249,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData() as Record<
@@ -274,7 +286,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const rawData = { test: "data" };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -308,7 +322,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const rawData = { items: [{ name: "item1" }] };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -358,7 +374,10 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
           },
         };
 
-        const result = mapper.map(extractedData, template, { kind: "WithSchema", schema });
+        const result = mapper.map(extractedData, template, {
+          kind: "WithSchema",
+          schema,
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -394,7 +413,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const rawData = { existing: "value" };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -422,7 +443,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const rawData = { primitive: "string value" };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), false);
         if (isError(result)) {
           assertEquals(result.error.kind, "TemplateMappingFailed");
@@ -456,7 +479,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -490,7 +515,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -526,7 +553,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();
@@ -560,7 +589,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         };
         const extractedData = ExtractedData.create(rawData);
 
-        const result = mapper.map(extractedData, template, { kind: "NoSchema" });
+        const result = mapper.map(extractedData, template, {
+          kind: "NoSchema",
+        });
         assertEquals(isOk(result), true);
         if (isOk(result)) {
           const mappedDataObj = result.data.getData();

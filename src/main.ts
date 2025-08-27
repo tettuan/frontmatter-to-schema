@@ -364,7 +364,9 @@ Examples:
     const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
 
     if (useMock) {
-      const { MockSchemaAnalyzer } = await import("./infrastructure/adapters/mock-analyzer.ts");
+      const { MockSchemaAnalyzer } = await import(
+        "./infrastructure/adapters/mock-analyzer.ts"
+      );
       schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
       logger.info("Using mock analyzer", {
@@ -372,7 +374,9 @@ Examples:
       });
     } else {
       // Use Mock implementation for now
-      const { MockSchemaAnalyzer } = await import("./infrastructure/adapters/mock-analyzer.ts");
+      const { MockSchemaAnalyzer } = await import(
+        "./infrastructure/adapters/mock-analyzer.ts"
+      );
       schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
       logger.info("Using mock analyzer", {

@@ -145,7 +145,12 @@ export class Document {
     frontMatterState: DocumentFrontMatterState,
     content: DocumentContent,
   ): Document {
-    return new Document(DocumentId.fromPath(path), path, frontMatterState, content);
+    return new Document(
+      DocumentId.fromPath(path),
+      path,
+      frontMatterState,
+      content,
+    );
   }
 
   // Convenience method for backward compatibility during migration
@@ -157,7 +162,12 @@ export class Document {
     const frontMatterState: DocumentFrontMatterState = frontMatter
       ? { kind: "WithFrontMatter", frontMatter }
       : { kind: "NoFrontMatter" };
-    return new Document(DocumentId.fromPath(path), path, frontMatterState, content);
+    return new Document(
+      DocumentId.fromPath(path),
+      path,
+      frontMatterState,
+      content,
+    );
   }
 
   getId(): DocumentId {
@@ -182,7 +192,9 @@ export class Document {
       default: {
         // Exhaustive check - TypeScript will error if we miss a case
         const _exhaustiveCheck: never = this.frontMatterState;
-        throw new Error(`Unhandled frontmatter state: ${(_exhaustiveCheck as any).kind}`);
+        throw new Error(
+          `Unhandled frontmatter state: ${String(_exhaustiveCheck)}`,
+        );
       }
     }
   }
