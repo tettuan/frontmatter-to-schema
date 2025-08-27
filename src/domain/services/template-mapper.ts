@@ -6,12 +6,13 @@ import {
 } from "../models/entities.ts";
 import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import type { SchemaValidationMode } from "./interfaces.ts";
 
 export class TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
-    schema?: unknown,
+    schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }> {
     const format = template.getFormat();
     // For now, assume template format contains JSON definition in template field
@@ -43,25 +44,37 @@ export class TemplateMapper {
       };
     }
 
-    // Perform strict structure validation if schema is provided
-    if (schema) {
-      const alignmentResult = StrictStructureMatcher
-        .validateStructuralAlignment(
-          dataObject,
-          schema,
-          templateStructure,
-        );
+    // Perform strict structure validation using discriminated union
+    switch (schemaMode.kind) {
+      case "WithSchema": {
+        const alignmentResult = StrictStructureMatcher
+          .validateStructuralAlignment(
+            dataObject,
+            schemaMode.schema,
+            templateStructure,
+          );
 
-      if (!alignmentResult.ok) {
-        return {
-          ok: false,
-          error: {
-            kind: "TemplateMappingFailed",
-            template: template,
-            source: data.getData(),
-            message: `Structure mismatch: ${alignmentResult.error.message}`,
-          } as DomainError & { message: string },
-        };
+        if (!alignmentResult.ok) {
+          return {
+            ok: false,
+            error: {
+              kind: "TemplateMappingFailed",
+              template: template,
+              source: data.getData(),
+              message: `Structure mismatch: ${alignmentResult.error.message}`,
+            } as DomainError & { message: string },
+          };
+        }
+        break;
+      }
+      case "NoSchema": {
+        // No schema validation required
+        break;
+      }
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = schemaMode;
+        throw new Error(`Unhandled schema mode: ${(_exhaustiveCheck as any).kind}`);
       }
     }
 

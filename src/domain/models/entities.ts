@@ -13,6 +13,11 @@ import type {
 } from "./value-objects.ts";
 import { StrictStructureMatcher } from "./StrictStructureMatcher.ts";
 
+// Discriminated union for document frontmatter state following totality principle
+export type DocumentFrontMatterState =
+  | { kind: "WithFrontMatter"; frontMatter: FrontMatter }
+  | { kind: "NoFrontMatter" };
+
 // ID value objects
 export class DocumentId {
   private constructor(private readonly value: string) {}
@@ -131,16 +136,28 @@ export class Document {
   constructor(
     private readonly id: DocumentId,
     private readonly path: DocumentPath,
-    private readonly frontMatter: FrontMatter | null,
+    private readonly frontMatterState: DocumentFrontMatterState,
     private readonly content: DocumentContent,
   ) {}
 
   static create(
     path: DocumentPath,
+    frontMatterState: DocumentFrontMatterState,
+    content: DocumentContent,
+  ): Document {
+    return new Document(DocumentId.fromPath(path), path, frontMatterState, content);
+  }
+
+  // Convenience method for backward compatibility during migration
+  static createWithFrontMatter(
+    path: DocumentPath,
     frontMatter: FrontMatter | null,
     content: DocumentContent,
   ): Document {
-    return new Document(DocumentId.fromPath(path), path, frontMatter, content);
+    const frontMatterState: DocumentFrontMatterState = frontMatter
+      ? { kind: "WithFrontMatter", frontMatter }
+      : { kind: "NoFrontMatter" };
+    return new Document(DocumentId.fromPath(path), path, frontMatterState, content);
   }
 
   getId(): DocumentId {
@@ -151,8 +168,23 @@ export class Document {
     return this.path;
   }
 
+  getFrontMatterState(): DocumentFrontMatterState {
+    return this.frontMatterState;
+  }
+
+  // Convenience method for backward compatibility
   getFrontMatter(): FrontMatter | null {
-    return this.frontMatter;
+    switch (this.frontMatterState.kind) {
+      case "WithFrontMatter":
+        return this.frontMatterState.frontMatter;
+      case "NoFrontMatter":
+        return null;
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = this.frontMatterState;
+        throw new Error(`Unhandled frontmatter state: ${(_exhaustiveCheck as any).kind}`);
+      }
+    }
   }
 
   getContent(): DocumentContent {
@@ -160,7 +192,7 @@ export class Document {
   }
 
   hasFrontMatter(): boolean {
-    return this.frontMatter !== null;
+    return this.frontMatterState.kind === "WithFrontMatter";
   }
 }
 
