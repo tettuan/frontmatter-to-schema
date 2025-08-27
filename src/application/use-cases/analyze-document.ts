@@ -1,11 +1,11 @@
 // Analyze single document use case
 
 import {
-  createError,
-  isError,
-  type ProcessingError,
+  createDomainError,
+  type DomainError,
   type Result,
-} from "../../domain/shared/types.ts";
+} from "../../domain/core/result.ts";
+import { isError } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Schema,
@@ -44,7 +44,7 @@ export class AnalyzeDocumentUseCase {
   async execute(
     input: AnalyzeDocumentUseCaseInput,
   ): Promise<
-    Result<AnalyzeDocumentUseCaseOutput, ProcessingError & { message: string }>
+    Result<AnalyzeDocumentUseCaseOutput, DomainError & { message: string }>
   > {
     const { documentPath, schema, template } = input;
 
@@ -53,10 +53,10 @@ export class AnalyzeDocumentUseCase {
     if (isError(documentResult)) {
       return {
         ok: false,
-        error: createError({
-          kind: "ExtractionFailed",
-          document: documentPath.getValue(),
-          reason: "Failed to read document",
+        error: createDomainError({
+          kind: "ReadError",
+          path: documentPath.getValue(),
+          details: "Failed to read document",
         }),
       };
     }
@@ -68,17 +68,18 @@ export class AnalyzeDocumentUseCase {
       return frontMatterResult;
     }
 
-    const frontMatter = frontMatterResult.data;
-    if (!frontMatter) {
+    if (frontMatterResult.data.kind === "NotPresent") {
       return {
         ok: false,
-        error: createError({
-          kind: "ExtractionFailed",
-          document: documentPath.getValue(),
-          reason: "No frontmatter found in document",
+        error: createDomainError({
+          kind: "ExtractionStrategyFailed",
+          strategy: "frontmatter",
+          input: "No frontmatter found in document",
         }),
       };
     }
+
+    const frontMatter = frontMatterResult.data.frontMatter;
 
     // Analyze with schema
     const extractedResult = await this.schemaAnalyzer.analyze(
@@ -88,10 +89,10 @@ export class AnalyzeDocumentUseCase {
     if (isError(extractedResult)) {
       return {
         ok: false,
-        error: createError({
-          kind: "AnalysisFailed",
-          document: documentPath.getValue(),
-          reason: extractedResult.error.message,
+        error: createDomainError({
+          kind: "AIServiceError",
+          service: "schema_analyzer",
+          statusCode: 500,
         }),
       };
     }
@@ -102,10 +103,10 @@ export class AnalyzeDocumentUseCase {
     if (isError(mappedResult)) {
       return {
         ok: false,
-        error: createError({
-          kind: "MappingFailed",
-          document: documentPath.getValue(),
-          reason: mappedResult.error.message,
+        error: createDomainError({
+          kind: "TemplateMappingFailed",
+          template: template,
+          source: extractedData.getData(),
         }),
       };
     }

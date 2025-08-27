@@ -1,12 +1,11 @@
 // Process documents use case - orchestrates the entire document processing pipeline
 
 import {
-  createError,
-  isError,
-  isOk,
-  type ProcessingError,
+  createDomainError,
+  type DomainError,
   type Result,
-} from "../../domain/shared/types.ts";
+} from "../../domain/core/result.ts";
+import { isError, isOk } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Document,
@@ -53,7 +52,7 @@ export class ProcessDocumentsUseCase {
   async execute(
     input: ProcessDocumentsUseCaseInput,
   ): Promise<
-    Result<ProcessDocumentsUseCaseOutput, ProcessingError & { message: string }>
+    Result<ProcessDocumentsUseCaseOutput, DomainError & { message: string }>
   > {
     const { config } = input;
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
@@ -104,21 +103,19 @@ export class ProcessDocumentsUseCase {
       if (schemaResult.error.kind === "FileNotFound") {
         reason = "Schema file not found";
       } else if (
-        schemaResult.error.kind === "ReadError" && schemaResult.error.reason
+        schemaResult.error.kind === "ReadError" && schemaResult.error.details
       ) {
-        reason = `Schema load error: ${schemaResult.error.reason}`;
+        reason = `Schema load error: ${schemaResult.error.details}`;
       } else if (schemaResult.error.message) {
         reason = schemaResult.error.message;
       }
 
       return {
         ok: false,
-        error: createError({
-          kind: "ConfigurationInvalid",
-          errors: [{
-            kind: "ValidationError",
-            message: `Schema path ${config.schemaPath.getValue()}: ${reason}`,
-          }],
+        error: createDomainError({
+          kind: "ReadError",
+          path: config.schemaPath.getValue(),
+          details: reason,
         }),
       };
     }
@@ -159,22 +156,20 @@ export class ProcessDocumentsUseCase {
       if (templateResult.error.kind === "FileNotFound") {
         reason = "Template file not found";
       } else if (
-        templateResult.error.kind === "ReadError" && templateResult.error.reason
+        templateResult.error.kind === "ReadError" &&
+        templateResult.error.details
       ) {
-        reason = `Template load error: ${templateResult.error.reason}`;
+        reason = `Template load error: ${templateResult.error.details}`;
       } else if (templateResult.error.message) {
         reason = templateResult.error.message;
       }
 
       return {
         ok: false,
-        error: createError({
-          kind: "ConfigurationInvalid",
-          errors: [{
-            kind: "ValidationError",
-            message:
-              `Template path ${config.templatePath.getValue()}: ${reason}`,
-          }],
+        error: createDomainError({
+          kind: "ReadError",
+          path: config.templatePath.getValue(),
+          details: reason,
         }),
       };
     }
@@ -229,22 +224,19 @@ export class ProcessDocumentsUseCase {
         reason = "Documents directory not found";
       } else if (
         documentsResult.error.kind === "ReadError" &&
-        documentsResult.error.reason
+        documentsResult.error.details
       ) {
-        reason = `Documents load error: ${documentsResult.error.reason}`;
+        reason = `Documents load error: ${documentsResult.error.details}`;
       } else if (documentsResult.error.message) {
         reason = documentsResult.error.message;
       }
 
       return {
         ok: false,
-        error: createError({
-          kind: "ConfigurationInvalid",
-          errors: [{
-            kind: "ValidationError",
-            message:
-              `Documents path ${config.documentsPath.getValue()}: ${reason}`,
-          }],
+        error: createDomainError({
+          kind: "ReadError",
+          path: config.documentsPath.getValue(),
+          details: reason,
         }),
       };
     }
@@ -276,9 +268,9 @@ export class ProcessDocumentsUseCase {
     if (isError(optionsResult)) {
       return {
         ok: false,
-        error: createError({
-          kind: "ConfigurationInvalid",
-          errors: [optionsResult.error],
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "processing_options",
         }),
       };
     }
@@ -473,9 +465,10 @@ export class ProcessDocumentsUseCase {
     if (isError(saveResult)) {
       return {
         ok: false,
-        error: createError({
-          kind: "AggregationFailed",
-          reason: "Failed to save results",
+        error: createDomainError({
+          kind: "WriteError",
+          path: config.outputPath.getValue(),
+          details: "Failed to save aggregated results",
         }),
       };
     }
@@ -495,7 +488,7 @@ export class ProcessDocumentsUseCase {
     document: Document,
     schema: Schema,
     template: Template,
-  ): Promise<Result<AnalysisResult, ProcessingError & { message: string }>> {
+  ): Promise<Result<AnalysisResult, DomainError & { message: string }>> {
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
     const docPath = document.getPath().getValue();
 
@@ -524,8 +517,7 @@ export class ProcessDocumentsUseCase {
       return frontMatterResult;
     }
 
-    const frontMatter = frontMatterResult.data;
-    if (!frontMatter) {
+    if (frontMatterResult.data.kind === "NotPresent") {
       if (verboseMode) {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-verbose",
@@ -534,13 +526,15 @@ export class ProcessDocumentsUseCase {
       }
       return {
         ok: false,
-        error: createError({
-          kind: "ExtractionFailed",
-          document: document.getPath().getValue(),
-          reason: "No frontmatter found",
+        error: createDomainError({
+          kind: "ExtractionStrategyFailed",
+          strategy: "frontmatter",
+          input: "No frontmatter found in document",
         }),
       };
     }
+
+    const frontMatter = frontMatterResult.data.frontMatter;
 
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(

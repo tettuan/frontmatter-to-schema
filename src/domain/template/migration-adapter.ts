@@ -5,9 +5,7 @@
  * This allows gradual migration to the new consolidated template domain
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
-import { createValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
 import type { Template } from "../models/domain-models.ts";
 import { TemplateProcessingService } from "./service.ts";
 import { FileTemplateRepository } from "../../infrastructure/template/file-template-repository.ts";
@@ -35,7 +33,7 @@ export class TemplateMapperAdapter {
   async map(
     data: unknown,
     template: Template,
-  ): Promise<Result<string, ValidationError>> {
+  ): Promise<Result<string, DomainError>> {
     // Convert old Template to new format
     const templateId = template.getId();
 
@@ -79,7 +77,7 @@ export class AITemplateMapperAdapter {
     extractedData: unknown,
     schema: object,
     template: Template,
-  ): Promise<Result<string, ValidationError>> {
+  ): Promise<Result<string, DomainError>> {
     // Save template to repository
     const repository = new FileTemplateRepository();
     const saveResult = await repository.save(template);
@@ -121,7 +119,7 @@ export class SimpleTemplateMapperAdapter {
       applyRules(data: unknown): unknown;
       getFormat(): { getTemplate(): string; getFormat(): string };
     },
-  ): Promise<Result<{ getData(): unknown }, ValidationError>> {
+  ): Promise<Result<{ getData(): unknown }, DomainError>> {
     try {
       // Extract data
       const rawData = data.getData();
@@ -180,7 +178,11 @@ export class SimpleTemplateMapperAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(`Migration adapter failed: ${error}`),
+        error: {
+          kind: "ProcessingStageError",
+          stage: "migration adapter",
+          error: { kind: "ParseError", input: String(error) },
+        },
       };
     }
   }

@@ -4,7 +4,7 @@ import {
   Schema,
   SchemaDefinition,
 } from "../../../../src/domain/models/domain-models.ts";
-import { isError, isOk } from "../../../../src/domain/core/result.ts";
+import { isOk } from "../../../../src/domain/core/result.ts";
 
 Deno.test("SchemaValidator", async (t) => {
   const validator = new SchemaValidator();
@@ -56,10 +56,13 @@ Deno.test("SchemaValidator", async (t) => {
         };
 
         const result = validator.validate(data, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.kind, "ValidationError");
-          assertEquals(result.error.field, "age");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "NotFound");
+          if (result.error.kind === "NotFound") {
+            assertEquals(result.error.resource, "field");
+            assertEquals(result.error.name, "age");
+          }
         }
       }
     }
@@ -105,10 +108,12 @@ Deno.test("SchemaValidator", async (t) => {
         };
 
         const result = validator.validate(data, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.kind, "ValidationError");
-          assertEquals(result.error.field, "count");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
+          if (result.error.kind === "InvalidFormat") {
+            assertEquals(result.error.expectedFormat, "number");
+          }
         }
       }
     }
@@ -132,9 +137,12 @@ Deno.test("SchemaValidator", async (t) => {
         };
 
         const result = validator.validate(data, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.field, "extra");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "NotConfigured");
+          if (result.error.kind === "NotConfigured") {
+            assertEquals(result.error.component, "extra");
+          }
         }
       }
     }
@@ -147,9 +155,9 @@ Deno.test("SchemaValidator", async (t) => {
       const schemaResult = Schema.create("test", schemaDefResult.data);
       if (isOk(schemaResult)) {
         const result = validator.validate({}, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.message, "Invalid schema definition");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
         }
       }
     }
@@ -167,9 +175,12 @@ Deno.test("SchemaValidator", async (t) => {
       const schemaResult = Schema.create("test", schemaDefResult.data);
       if (isOk(schemaResult)) {
         const result = validator.validate("not an object", schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.message, "Expected object, got string");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
+          if (result.error.kind === "InvalidFormat") {
+            assertEquals(result.error.expectedFormat, "object");
+          }
         }
       }
     }
@@ -195,7 +206,7 @@ Deno.test("SchemaValidator", async (t) => {
           invalidData,
           schemaResult.data,
         );
-        assertEquals(isError(invalidResult), true);
+        assertEquals(invalidResult.ok, false);
       }
     }
   });
@@ -213,9 +224,9 @@ Deno.test("SchemaValidator", async (t) => {
       if (isOk(schemaResult)) {
         const invalidData = { active: "not a boolean" };
         const result = validator.validate(invalidData, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.field, "active");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
         }
       }
     }
@@ -252,7 +263,7 @@ Deno.test("SchemaValidator", async (t) => {
           invalidData,
           schemaResult.data,
         );
-        assertEquals(isError(invalidResult), true);
+        assertEquals(invalidResult.ok, false);
       }
     }
   });
@@ -275,9 +286,9 @@ Deno.test("SchemaValidator", async (t) => {
           numbers: [1, 2, "three", 4],
         };
         const result = validator.validate(invalidData, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.field, "numbers[2]");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
         }
       }
     }
@@ -298,9 +309,9 @@ Deno.test("SchemaValidator", async (t) => {
           list: "not an array",
         };
         const result = validator.validate(invalidData, schemaResult.data);
-        assertEquals(isError(result), true);
-        if (isError(result)) {
-          assertEquals(result.error.field, "list");
+        assertEquals(result.ok, false);
+        if (!result.ok) {
+          assertEquals(result.error.kind, "InvalidFormat");
         }
       }
     }

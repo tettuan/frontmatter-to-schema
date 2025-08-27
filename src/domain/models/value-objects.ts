@@ -45,7 +45,7 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "EmptyInput",
           message: "Input cannot be empty",
         } as unknown as ResultValidationError & { message: string },
       };
@@ -56,7 +56,9 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "TooLong",
+          value: trimmedPath,
+          maxLength: 512,
           message: "Path is too long",
         } as unknown as ResultValidationError & { message: string },
       };
@@ -67,7 +69,9 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "InvalidFormat",
+          input: trimmedPath,
+          expectedFormat: "path without null bytes",
           message: "Path contains invalid characters",
         } as unknown as ResultValidationError & { message: string },
       };
@@ -77,7 +81,7 @@ export class DocumentPath {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "InvalidFormat",
           input: trimmedPath,
           expectedFormat: "path without line breaks",
           message: "Path contains invalid characters",
@@ -147,7 +151,7 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "InvalidFormat",
           input: String(obj),
           expectedFormat: "object",
           message: "Input must be a plain object",
@@ -162,7 +166,7 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "InvalidFormat",
           input: String(error),
           expectedFormat: "serializable object",
           message: "Object cannot be serialized to JSON",
@@ -179,7 +183,7 @@ export class FrontMatterContent {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "EmptyInput",
           message: "YAML content cannot be empty",
         } as unknown as ResultValidationError & { message: string },
       };
@@ -401,7 +405,7 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "EmptyInput",
           message: "Schema definition cannot be empty",
         } as unknown as ResultValidationError & { message: string },
       };
@@ -414,7 +418,7 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "InvalidFormat",
           input: typeof definition,
           expectedFormat: "object",
           message: "Schema definition must be a plain object",
@@ -441,7 +445,7 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
+          kind: "EmptyInput",
           message: "Data to validate cannot be null or undefined",
         } as unknown as ResultValidationError & { message: string },
       };

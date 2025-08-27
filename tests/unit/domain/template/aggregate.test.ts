@@ -130,8 +130,8 @@ Deno.test("TemplateAggregate - Totality Principle Tests", async (t) => {
       assertExists(result.error, "Failed result should have error");
       assertEquals(
         result.error.kind,
-        "ValidationError",
-        "Error should be ValidationError",
+        "FileNotFound",
+        "Error should be FileNotFound",
       );
     }
   });
@@ -156,7 +156,7 @@ Deno.test("TemplateAggregate - Totality Principle Tests", async (t) => {
         assertExists(result.error, "Failed result should have error");
         assertEquals(
           result.error.kind,
-          "ValidationError",
+          "FileNotFound",
           "Error should be ValidationError",
         );
       }

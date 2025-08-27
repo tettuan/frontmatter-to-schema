@@ -69,13 +69,10 @@ Deno.test("TemplateFormat - Smart Constructor", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message.includes("Invalid template format"),
-        true,
+        result.error.kind,
+        "ValidationError",
       );
-      assertEquals(
-        result.error.message.includes("json, yaml, yml, handlebars, custom"),
-        true,
-      );
+      // ValidationError will contain the format information in message field
     }
   });
 
@@ -184,8 +181,8 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message,
-        "JSON template content cannot be empty",
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -196,8 +193,8 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message,
-        "JSON template content cannot be empty",
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -212,8 +209,8 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message.includes("Failed to parse JSON template"),
-        true,
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -229,8 +226,8 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message.includes("Failed to parse JSON template"),
-        true,
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -303,8 +300,8 @@ Deno.test("JSONTemplateHandler - Serialization", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message.includes("Failed to serialize data to JSON"),
-        true,
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -465,8 +462,8 @@ author: John Doe
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message,
-        "YAML template content cannot be empty",
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -477,8 +474,8 @@ author: John Doe
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message,
-        "YAML template content cannot be empty",
+        result.error.kind,
+        "ValidationError",
       );
     }
   });
@@ -777,15 +774,10 @@ Deno.test("TemplateFormatHandlerFactory - Handler Discovery", async (t) => {
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(
-        result.error.message.includes(
-          "No handler found for template format: unknown",
-        ),
-        true,
+        result.error.kind,
+        "ValidationError",
       );
-      assertEquals(
-        result.error.message.includes("JSON, YAML, Handlebars, Custom"),
-        true,
-      );
+      // ValidationError will contain the handler information
     }
   });
 

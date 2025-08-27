@@ -1,5 +1,4 @@
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
 import type { Document } from "./entities.ts";
 import type { Schema, Template } from "./domain-models.ts";
 
@@ -97,7 +96,7 @@ export class TransformationResult {
 
   renderWithTemplate(
     template: Template,
-  ): Result<string, ValidationError> {
+  ): Result<string, DomainError> {
     return template.render(this.validatedData);
   }
 }
@@ -106,13 +105,13 @@ export class BatchTransformationResult {
   private constructor(
     private readonly results: TransformationResult[],
     private readonly errors: Array<
-      { document: Document; error: ValidationError }
+      { document: Document; error: DomainError }
     >,
   ) {}
 
   static create(
     results: TransformationResult[],
-    errors: Array<{ document: Document; error: ValidationError }>,
+    errors: Array<{ document: Document; error: DomainError }>,
   ): BatchTransformationResult {
     return new BatchTransformationResult(results, errors);
   }
@@ -121,7 +120,7 @@ export class BatchTransformationResult {
     return [...this.results];
   }
 
-  getErrors(): Array<{ document: Document; error: ValidationError }> {
+  getErrors(): Array<{ document: Document; error: DomainError }> {
     return [...this.errors];
   }
 

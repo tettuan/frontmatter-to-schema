@@ -43,8 +43,8 @@ This is the body of the document.`);
 
         if (isOk(result)) {
           assertExists(result.data);
-          if (result.data) {
-            const raw = result.data.getRaw();
+          if (result.data.kind === "Extracted") {
+            const raw = result.data.frontMatter.getRaw();
             assertEquals(raw.includes("title: Test Document"), true);
             assertEquals(raw.includes("date: 2024-01-01"), true);
           }
@@ -82,7 +82,10 @@ This is the body of the document.`);
         assertEquals(isOk(result), true);
 
         if (isOk(result)) {
-          assertEquals(result.data, existingFrontMatter);
+          assertEquals(result.data.kind, "Extracted");
+          if (result.data.kind === "Extracted") {
+            assertEquals(result.data.frontMatter, existingFrontMatter);
+          }
         }
       }
     },
@@ -105,7 +108,7 @@ No frontmatter here, just content.`);
       assertEquals(isOk(result), true);
 
       if (isOk(result)) {
-        assertEquals(result.data, null);
+        assertEquals(result.data.kind, "NotPresent");
       }
     }
   });
@@ -130,8 +133,8 @@ Body text here.`);
       assertEquals(isOk(result), true);
 
       if (isOk(result)) {
-        // Empty frontmatter should return null
-        assertEquals(result.data, null);
+        // Empty frontmatter should return discriminated union with NotPresent kind
+        assertEquals(result.data.kind, "NotPresent");
       }
     }
   });
@@ -164,8 +167,8 @@ meta:
 
       if (isOk(result)) {
         assertExists(result.data);
-        if (result.data) {
-          const raw = result.data.getRaw();
+        if (result.data.kind === "Extracted") {
+          const raw = result.data.frontMatter.getRaw();
           assertEquals(raw.includes("author: John Doe"), true);
           assertEquals(raw.includes("value: 42"), true);
         }
@@ -193,7 +196,7 @@ another: value
       const result = extractor.extract(document);
       // Should handle the error gracefully
       if (isError(result)) {
-        assertEquals(result.error.kind, "ExtractionFailed");
+        assertEquals(result.error.kind, "ExtractionStrategyFailed");
       }
     }
   });
@@ -220,8 +223,8 @@ unicode: "测试 🚀"
 
       if (isOk(result)) {
         assertExists(result.data);
-        if (result.data) {
-          const content = result.data.getContent();
+        if (result.data.kind === "Extracted") {
+          const content = result.data.frontMatter.getContent();
           const parsed = content.toJSON();
           if (parsed && typeof parsed === "object") {
             assertEquals("title" in parsed, true);
@@ -262,8 +265,8 @@ numbers:
 
       if (isOk(result)) {
         assertExists(result.data);
-        if (result.data) {
-          const content = result.data.getContent();
+        if (result.data.kind === "Extracted") {
+          const content = result.data.frontMatter.getContent();
           const parsed = content.toJSON();
           if (parsed && typeof parsed === "object") {
             assertEquals("tags" in parsed, true);
@@ -323,8 +326,8 @@ More content`);
 
         if (isOk(result)) {
           // Should only extract the first valid frontmatter section
-          if (result.data) {
-            const raw = result.data.getRaw();
+          if (result.data.kind === "Extracted") {
+            const raw = result.data.frontMatter.getRaw();
             assertEquals(raw.includes("title: First Section"), true);
             assertEquals(raw.includes("This is not frontmatter"), false);
           }

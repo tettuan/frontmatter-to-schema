@@ -3,9 +3,8 @@
  * Loads templates from the file system
  */
 
-import type { Result } from "../../domain/core/result.ts";
-import type { ValidationError } from "../../domain/shared/errors.ts";
-import { createValidationError } from "../../domain/shared/errors.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
 import {
   Template,
   TemplateDefinition,
@@ -23,7 +22,9 @@ export class FileTemplateRepository implements TemplateRepository {
 
   constructor(private readonly basePath: string = "./templates") {}
 
-  async load(templateId: string): Promise<Result<Template, ValidationError>> {
+  async load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>> {
     // Check cache first
     const cached = this.templateCache.get(templateId);
     if (cached) {
@@ -52,17 +53,16 @@ export class FileTemplateRepository implements TemplateRepository {
 
     return {
       ok: false,
-      error: createValidationError(
-        `Template not found: ${templateId}. Searched in: ${
-          possiblePaths.join(", ")
-        }`,
-      ),
+      error: createDomainError({
+        kind: "FileNotFound",
+        path: `${templateId} in [${possiblePaths.join(", ")}]`,
+      }),
     };
   }
 
   async loadFromPath(
     path: TemplatePath,
-  ): Promise<Result<Template, ValidationError>> {
+  ): Promise<Result<Template, DomainError & { message: string }>> {
     try {
       const filePath = path.getValue();
       const content = await Deno.readTextFile(filePath);
@@ -83,7 +83,15 @@ export class FileTemplateRepository implements TemplateRepository {
       // Create template definition
       const definitionResult = TemplateDefinition.create(content, format);
       if (!definitionResult.ok) {
-        return definitionResult;
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ParseError",
+            input: content.substring(0, 50),
+            details:
+              `Template definition error: ${definitionResult.error.kind}`,
+          }),
+        };
       }
 
       // Extract ID from filename
@@ -96,6 +104,16 @@ export class FileTemplateRepository implements TemplateRepository {
         definitionResult.data,
         `Template loaded from ${filePath}`,
       );
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ParseError",
+            input: id,
+            details: `Template creation error: ${templateResult.error.kind}`,
+          }),
+        };
+      }
 
       // Validate template format using format handler from unified factory
       const factory = FactoryConfigurationBuilder.createDefault();
@@ -117,33 +135,41 @@ export class FileTemplateRepository implements TemplateRepository {
         if (!parseResult.ok) {
           return {
             ok: false,
-            error: createValidationError(
-              `Invalid ${format} template format: ${parseResult.error.message}`,
-            ),
+            error: createDomainError({
+              kind: "ParseError",
+              input: content.substring(0, 100),
+              details:
+                `Invalid ${format} template format: ${parseResult.error.message}`,
+            }),
           };
         }
       }
 
-      return templateResult;
+      return { ok: true, data: templateResult.data };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createValidationError(
-            `Template file not found: ${path.getValue()}`,
-          ),
+          error: createDomainError({
+            kind: "FileNotFound",
+            path: path.getValue(),
+          }),
         };
       }
       return {
         ok: false,
-        error: createValidationError(
-          `Failed to load template from ${path.getValue()}: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ReadError",
+          path: path.getValue(),
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
-  async save(template: Template): Promise<Result<void, ValidationError>> {
+  async save(
+    template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>> {
     try {
       const format = template.getDefinition().getFormat();
       const ext = format === "yaml"
@@ -163,9 +189,21 @@ export class FileTemplateRepository implements TemplateRepository {
 
       return { ok: true, data: undefined };
     } catch (error) {
+      const format = template.getDefinition().getFormat();
+      const ext = format === "yaml"
+        ? "yml"
+        : format === "handlebars"
+        ? "hbs"
+        : format;
+      const filePath = `${this.basePath}/${template.getId()}.${ext}`;
+
       return {
         ok: false,
-        error: createValidationError(`Failed to save template: ${error}`),
+        error: createDomainError({
+          kind: "WriteError",
+          path: filePath,
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -179,7 +217,7 @@ export class FileTemplateRepository implements TemplateRepository {
     return result.ok;
   }
 
-  async list(): Promise<Result<string[], ValidationError>> {
+  async list(): Promise<Result<string[], DomainError & { message: string }>> {
     try {
       const templates: string[] = [];
 
@@ -207,7 +245,11 @@ export class FileTemplateRepository implements TemplateRepository {
       }
       return {
         ok: false,
-        error: createValidationError(`Failed to list templates: ${error}`),
+        error: createDomainError({
+          kind: "ReadError",
+          path: this.basePath,
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -218,7 +260,7 @@ export class FileTemplateRepository implements TemplateRepository {
    */
   private determineTemplateFormat(
     extension: string,
-  ): Result<TemplateFormat, ValidationError> {
+  ): Result<TemplateFormat, DomainError & { message: string }> {
     // Map file extensions to template formats
     const extensionMap: Record<string, string> = {
       "json": "json",
@@ -230,7 +272,18 @@ export class FileTemplateRepository implements TemplateRepository {
     };
 
     const formatName = extensionMap[extension] || "custom";
-    return TemplateFormat.create(formatName);
+    const result = TemplateFormat.create(formatName);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: formatName,
+          expectedFormat: "json|yaml|handlebars|custom",
+        }),
+      };
+    }
+    return result;
   }
 
   /**

@@ -1,5 +1,4 @@
-import { isOk, type Result } from "../domain/core/result.ts";
-import type { DomainError, ValidationError } from "../domain/shared/errors.ts";
+import { type DomainError, isOk, type Result } from "../domain/core/result.ts";
 import { Document } from "../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -61,7 +60,7 @@ export class DocumentProcessor {
 
     // Process each document
     const results: TransformationResult[] = [];
-    const errors: Array<{ document: Document; error: ValidationError }> = [];
+    const errors: Array<{ document: Document; error: DomainError }> = [];
 
     for (const document of documents) {
       const transformResult = await this.transformDocument(
@@ -76,7 +75,7 @@ export class DocumentProcessor {
       } else if (config.processing?.continueOnError !== false) {
         errors.push({
           document,
-          error: transformResult.error as ValidationError,
+          error: transformResult.error,
         });
       } else {
         return transformResult;
@@ -111,8 +110,9 @@ export class DocumentProcessor {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: `Schema definition error: ${definitionResult.error.kind}`,
+          kind: "ProcessingStageError",
+          stage: "schema definition",
+          error: definitionResult.error,
         },
       };
     }
@@ -126,8 +126,9 @@ export class DocumentProcessor {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: `Schema creation error: ${schemaResult.error.kind}`,
+          kind: "ProcessingStageError",
+          stage: "schema creation",
+          error: schemaResult.error,
         },
       };
     }
@@ -198,10 +199,10 @@ export class DocumentProcessor {
       }
 
       // Update the document with extracted frontmatter if found
-      const document = extractionResult.data
+      const document = extractionResult.data.kind === "Extracted"
         ? Document.create(
           pathResult.data,
-          extractionResult.data,
+          extractionResult.data.frontMatter,
           contentObj.data,
         )
         : basicDoc;
@@ -234,7 +235,13 @@ export class DocumentProcessor {
       });
 
       if (!analysisResult.ok) {
-        return analysisResult;
+        return {
+          ok: false,
+          error: {
+            kind: "ServiceUnavailable",
+            service: "ai-analyzer",
+          },
+        };
       }
 
       try {
@@ -268,7 +275,13 @@ export class DocumentProcessor {
       });
 
       if (!mappingResult.ok) {
-        return mappingResult;
+        return {
+          ok: false,
+          error: {
+            kind: "ServiceUnavailable",
+            service: "ai-analyzer",
+          },
+        };
       }
 
       try {

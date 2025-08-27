@@ -57,15 +57,18 @@ This is the body content.`;
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(frontMatterData.title, "Test Document");
-      assertEquals(frontMatterData.description, "A test document for TDD");
-      assertEquals(Array.isArray(frontMatterData.tags), true);
-      assertEquals((frontMatterData.tags as unknown[]).length, 3);
-      assertExists(frontMatterData._documentPath); // Path propagation check
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(frontMatterData.title, "Test Document");
+        assertEquals(frontMatterData.description, "A test document for TDD");
+        assertEquals(Array.isArray(frontMatterData.tags), true);
+        assertEquals((frontMatterData.tags as unknown[]).length, 3);
+        assertExists(frontMatterData._documentPath); // Path propagation check
+      }
     },
   );
 
@@ -95,7 +98,7 @@ No frontmatter here, just regular markdown content.`;
       // Assert
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data, null);
+        assertEquals(result.data.kind, "NotPresent");
       }
     },
   );
@@ -127,7 +130,7 @@ No frontmatter here, just regular markdown content.`;
       // Assert
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data, null);
+        assertEquals(result.data.kind, "NotPresent");
       }
     },
   );
@@ -208,19 +211,22 @@ project:
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertExists(frontMatterData.project);
-      const project = frontMatterData.project as Record<string, unknown>;
-      assertEquals(project.name, "FrontMatter Schema");
-      assertEquals(project.version, "2.0.0");
-      assertEquals(Array.isArray(project.dependencies), true);
-      const config = project.config as Record<string, unknown>;
-      const deep = config.deep as Record<string, unknown>;
-      const nested = deep.nested as Record<string, unknown>;
-      assertEquals(nested.value, 42);
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertExists(frontMatterData.project);
+        const project = frontMatterData.project as Record<string, unknown>;
+        assertEquals(project.name, "FrontMatter Schema");
+        assertEquals(project.version, "2.0.0");
+        assertEquals(Array.isArray(project.dependencies), true);
+        const config = project.config as Record<string, unknown>;
+        const deep = config.deep as Record<string, unknown>;
+        const nested = deep.nested as Record<string, unknown>;
+        assertEquals(nested.value, 42);
+      }
     },
   );
 
@@ -259,17 +265,20 @@ multiline: This is a multiline string value that should preserve formatting
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(frontMatterData.title, "日本語タイトル");
-      assertEquals(frontMatterData.emoji, "🚀 🎯 ✅");
-      assertEquals(frontMatterData.special, "Line with quotes and symbols");
-      assertEquals(
-        frontMatterData.multiline,
-        "This is a multiline string value that should preserve formatting",
-      );
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(frontMatterData.title, "日本語タイトル");
+        assertEquals(frontMatterData.emoji, "🚀 🎯 ✅");
+        assertEquals(frontMatterData.special, "Line with quotes and symbols");
+        assertEquals(
+          frontMatterData.multiline,
+          "This is a multiline string value that should preserve formatting",
+        );
+      }
     },
   );
 
@@ -306,11 +315,14 @@ Content`;
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(frontMatterData._documentPath, testPath);
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(frontMatterData._documentPath, testPath);
+      }
     },
   );
 
@@ -353,19 +365,22 @@ Content`;
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(Array.isArray(frontMatterData.tags), true);
-      const tags = frontMatterData.tags as unknown[];
-      assertEquals(tags.length, 3);
-      assertEquals(Array.isArray(frontMatterData.authors), true);
-      const authors = frontMatterData.authors as Record<string, unknown>[];
-      assertEquals(authors[0].name, "Alice");
-      assertEquals(Array.isArray(frontMatterData.numbers), true);
-      const numbers = frontMatterData.numbers as number[];
-      assertEquals(numbers[2], 3);
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(Array.isArray(frontMatterData.tags), true);
+        const tags = frontMatterData.tags as unknown[];
+        assertEquals(tags.length, 3);
+        assertEquals(Array.isArray(frontMatterData.authors), true);
+        const authors = frontMatterData.authors as Record<string, unknown>[];
+        assertEquals(authors[0].name, "Alice");
+        assertEquals(Array.isArray(frontMatterData.numbers), true);
+        const numbers = frontMatterData.numbers as number[];
+        assertEquals(numbers[2], 3);
+      }
     },
   );
 
@@ -404,14 +419,17 @@ Content`;
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(frontMatterData.enabled, true);
-      assertEquals(frontMatterData.disabled, false);
-      assertEquals(frontMatterData.optional, null);
-      assertEquals(frontMatterData.defaulted, null);
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(frontMatterData.enabled, true);
+        assertEquals(frontMatterData.disabled, false);
+        assertEquals(frontMatterData.optional, null);
+        assertEquals(frontMatterData.defaulted, null);
+      }
     },
   );
 
@@ -454,21 +472,24 @@ output_path: /tmp/output
       }
       assertExists(result.data);
 
-      const frontMatterData = result.data!.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
-      assertEquals(frontMatterData.directive, "merge-cleanup");
-      assertEquals(frontMatterData.layer, "develop-branches");
-      assertEquals(frontMatterData.adaptation, "default");
-      assertEquals(
-        frontMatterData.description,
-        "Merge develop branches and cleanup",
-      );
-      assertEquals(
-        frontMatterData._documentPath,
-        ".agent/climpt/prompts/git/merge-cleanup/develop-branches/f_default.md",
-      );
+      if (result.data?.kind === "Extracted") {
+        const frontMatterData = result.data.frontMatter.getContent()
+          .toJSON() as Record<
+            string,
+            unknown
+          >;
+        assertEquals(frontMatterData.directive, "merge-cleanup");
+        assertEquals(frontMatterData.layer, "develop-branches");
+        assertEquals(frontMatterData.adaptation, "default");
+        assertEquals(
+          frontMatterData.description,
+          "Merge develop branches and cleanup",
+        );
+        assertEquals(
+          frontMatterData._documentPath,
+          ".agent/climpt/prompts/git/merge-cleanup/develop-branches/f_default.md",
+        );
+      }
     },
   );
 });
