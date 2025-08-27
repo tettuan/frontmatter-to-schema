@@ -2,8 +2,8 @@ import type { Result } from "../core/result.ts";
 import {
   type ExtractedData,
   MappedData,
-  type Template,
   type Schema,
+  type Template,
 } from "../models/entities.ts";
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { ProcessingError } from "../shared/types.ts";
@@ -453,7 +453,9 @@ export class TemplateMapper {
         return { ok: true, data: mappedData };
       } catch (_parseError) {
         // If JSON parsing fails, treat as raw content
-        const mappedData = MappedData.create({ content: structuredData.getContent() });
+        const mappedData = MappedData.create({
+          content: structuredData.getContent(),
+        });
         return { ok: true, data: mappedData };
       }
     } catch (error) {

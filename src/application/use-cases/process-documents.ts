@@ -548,31 +548,43 @@ export class ProcessDocumentsUseCase {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-helper",
       );
-      verboseLogger.info("Starting 2-stage orchestrated processing", { document: docPath });
+      verboseLogger.info("Starting 2-stage orchestrated processing", {
+        document: docPath,
+      });
     }
-    
+
     // Try new orchestrator approach first, fallback to legacy if not configured
     const mappedResult = await this.templateMapper.mapWithOrchestrator(
       frontMatter.getContent(),
       schema,
       template,
     );
-    
+
     // Check if orchestrator is available, if not fallback to legacy processing
-    if (isError(mappedResult) && (mappedResult.error as { message?: string }).message?.includes("not configured")) {
+    if (
+      isError(mappedResult) &&
+      (mappedResult.error as { message?: string }).message?.includes(
+        "not configured",
+      )
+    ) {
       if (verboseMode) {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        verboseLogger.warn("Orchestrator not configured, falling back to legacy processing", { document: docPath });
+        verboseLogger.warn(
+          "Orchestrator not configured, falling back to legacy processing",
+          { document: docPath },
+        );
       }
-      
+
       // Legacy processing: Analyze with schema
       if (verboseMode) {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        verboseLogger.info("Starting AI analysis (legacy)", { document: docPath });
+        verboseLogger.info("Starting AI analysis (legacy)", {
+          document: docPath,
+        });
       }
       const extractedResult = await this.schemaAnalyzer.analyze(
         frontMatter,
@@ -603,7 +615,9 @@ export class ProcessDocumentsUseCase {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        verboseLogger.info("AI analysis successful (legacy)", { document: docPath });
+        verboseLogger.info("AI analysis successful (legacy)", {
+          document: docPath,
+        });
       }
 
       // Legacy processing: Map to template
@@ -611,7 +625,9 @@ export class ProcessDocumentsUseCase {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        verboseLogger.info("Mapping to template (legacy)", { document: docPath });
+        verboseLogger.info("Mapping to template (legacy)", {
+          document: docPath,
+        });
       }
       const legacyMappedResult = this.templateMapper.map(
         extractedResult.data,
@@ -623,7 +639,9 @@ export class ProcessDocumentsUseCase {
           const errorLogger = LoggerFactory.createLogger(
             "process-documents-helper",
           );
-          errorLogger.error("Template mapping failed (legacy)", { document: docPath });
+          errorLogger.error("Template mapping failed (legacy)", {
+            document: docPath,
+          });
         }
         return legacyMappedResult;
       }
@@ -632,9 +650,11 @@ export class ProcessDocumentsUseCase {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        verboseLogger.info("Template mapping completed (legacy)", { document: docPath });
+        verboseLogger.info("Template mapping completed (legacy)", {
+          document: docPath,
+        });
       }
-      
+
       // Create analysis result with legacy processing
       const analysisResult = AnalysisResult.create(
         document,
@@ -643,16 +663,16 @@ export class ProcessDocumentsUseCase {
       );
       return { ok: true, data: analysisResult };
     }
-    
+
     // Handle orchestrator processing results
     if (isError(mappedResult)) {
       if (verboseMode) {
         const errorLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        errorLogger.error("Orchestrated processing failed", { 
+        errorLogger.error("Orchestrated processing failed", {
           document: docPath,
-          error: mappedResult.error
+          error: mappedResult.error,
         });
       }
       return {
@@ -665,7 +685,9 @@ export class ProcessDocumentsUseCase {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-helper",
       );
-      verboseLogger.info("2-stage orchestrated processing completed", { document: docPath });
+      verboseLogger.info("2-stage orchestrated processing completed", {
+        document: docPath,
+      });
     }
 
     // Create analysis result (orchestrator approach)

@@ -1,10 +1,10 @@
 /**
  * TypeScript Analysis Orchestrator - Domain Boundary Architecture Implementation
- * 
+ *
  * Implements the documented 2-stage TypeScript processing approach from domain-boundary.md:
  * Stage 1: Information extraction from frontmatter + schema
  * Stage 2: Template mapping with extracted information
- * 
+ *
  * This orchestrator follows the CD2: TypeScript Analysis Domain specification.
  */
 
@@ -112,7 +112,7 @@ export interface StructuringMetadata {
 
 /**
  * TypeScript Analysis Orchestrator - implements CD2 domain boundary specification
- * 
+ *
  * Responsible for 2-stage TypeScript processing:
  * 1. extractInformation: frontMatter + schema → ExtractedInfo
  * 2. mapToTemplate: ExtractedInfo + schema + template → StructuredData

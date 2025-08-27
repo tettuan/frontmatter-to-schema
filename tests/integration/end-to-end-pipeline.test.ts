@@ -273,7 +273,7 @@ class MockTemplateMapper implements TemplateMapper {
       ok: false,
       error: createDomainError({
         kind: "ReadError",
-        path: "orchestrator", 
+        path: "orchestrator",
         details: "TypeScriptAnalysisOrchestrator not configured",
       }),
     });
