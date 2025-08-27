@@ -103,7 +103,7 @@ class MockAnalyzer {
   private shouldSucceed = true;
   private mockCommands: Command[] = [];
 
-  analyze(_frontMatter: FrontMatter, filePath: string): Promise<unknown> {
+  analyze(_frontMatter: FrontMatter, filePath: string): Promise<{ isValid: boolean; commands: unknown[]; }> {
     if (!this.shouldSucceed) {
       throw new Error("Analysis failed");
     }
@@ -121,8 +121,6 @@ class MockAnalyzer {
     return Promise.resolve({
       isValid: true,
       commands: commands,
-      sourceFile: filePath,
-      data: commands,
     });
   }
 
@@ -176,7 +174,7 @@ Deno.test({
         mockFileReader,
         mockFileWriter,
         mockExtractor,
-        mockAnalyzer,
+        { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
     };
 
@@ -392,17 +390,19 @@ Deno.test({
       const _originalAnalyze = mockAnalyzer.analyze;
       mockAnalyzer.analyze = (_frontMatter: FrontMatter, filePath: string) => {
         if (filePath.includes("z.md")) {
-          return Promise.resolve(
-            new AnalysisResult(filePath, [
+          return Promise.resolve({
+            isValid: true,
+            commands: [
               createTestCommand("zulu", "zebra", "zone", "Z command"),
-            ]),
-          );
+            ],
+          });
         } else {
-          return Promise.resolve(
-            new AnalysisResult(filePath, [
+          return Promise.resolve({
+            isValid: true,
+            commands: [
               createTestCommand("alpha", "apple", "area", "A command"),
-            ]),
-          );
+            ],
+          });
         }
       };
 
@@ -536,7 +536,7 @@ Deno.test({
         errorFileReader,
         mockFileWriter,
         mockExtractor,
-        mockAnalyzer,
+        { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
 
       // Should propagate the error
@@ -582,7 +582,7 @@ Deno.test({
         mockFileReader,
         errorFileWriter,
         mockExtractor,
-        mockAnalyzer,
+        { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
 
       // Should propagate the error
