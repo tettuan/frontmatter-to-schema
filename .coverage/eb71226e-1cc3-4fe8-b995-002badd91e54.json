@@ -14,7 +14,7 @@
     },
     {
       "functionName": "add",
-      "ranges": [{ "startOffset": 251, "endOffset": 308, "count": 10 }],
+      "ranges": [{ "startOffset": 251, "endOffset": 308, "count": 12 }],
       "isBlockCoverage": true
     },
     {
@@ -79,7 +79,7 @@
     },
     {
       "functionName": "",
-      "ranges": [{ "startOffset": 1937, "endOffset": 1993, "count": 10 }],
+      "ranges": [{ "startOffset": 1937, "endOffset": 1993, "count": 12 }],
       "isBlockCoverage": true
     }
   ]

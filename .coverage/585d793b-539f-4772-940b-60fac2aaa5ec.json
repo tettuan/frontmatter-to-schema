@@ -83,14 +83,14 @@
     },
     {
       "functionName": "toJSON",
-      "ranges": [{ "startOffset": 4779, "endOffset": 5015, "count": 10 }],
+      "ranges": [{ "startOffset": 4779, "endOffset": 5015, "count": 12 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "parseSimpleYaml",
       "ranges": [
-        { "startOffset": 5018, "endOffset": 5870, "count": 10 },
-        { "startOffset": 5144, "endOffset": 5847, "count": 19 },
+        { "startOffset": 5018, "endOffset": 5870, "count": 12 },
+        { "startOffset": 5144, "endOffset": 5847, "count": 21 },
         { "startOffset": 5267, "endOffset": 5294, "count": 0 },
         { "startOffset": 5363, "endOffset": 5390, "count": 0 },
         { "startOffset": 5691, "endOffset": 5763, "count": 0 }
@@ -100,7 +100,7 @@
     {
       "functionName": "parseYamlValue",
       "ranges": [
-        { "startOffset": 5873, "endOffset": 6623, "count": 19 },
+        { "startOffset": 5873, "endOffset": 6623, "count": 21 },
         { "startOffset": 5983, "endOffset": 6005, "count": 0 },
         { "startOffset": 6007, "endOffset": 6157, "count": 0 },
         { "startOffset": 6220, "endOffset": 6242, "count": 0 },

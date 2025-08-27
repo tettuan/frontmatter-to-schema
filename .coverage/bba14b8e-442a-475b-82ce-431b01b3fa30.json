@@ -14,12 +14,12 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 321, "endOffset": 351, "count": 10 }],
+      "ranges": [{ "startOffset": 321, "endOffset": 351, "count": 12 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "AnalysisResult",
-      "ranges": [{ "startOffset": 355, "endOffset": 469, "count": 10 }],
+      "ranges": [{ "startOffset": 355, "endOffset": 469, "count": 12 }],
       "isBlockCoverage": true
     },
     {
@@ -29,7 +29,7 @@
     },
     {
       "functionName": "addMetadata",
-      "ranges": [{ "startOffset": 560, "endOffset": 621, "count": 20 }],
+      "ranges": [{ "startOffset": 560, "endOffset": 621, "count": 24 }],
       "isBlockCoverage": true
     },
     {

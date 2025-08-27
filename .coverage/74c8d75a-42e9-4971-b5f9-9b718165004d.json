@@ -1,5 +1,5 @@
 {
-  "scriptId": "329",
+  "scriptId": "366",
   "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/logger.ts",
   "functions": [
     {
@@ -9,12 +9,12 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 270, "endOffset": 288, "count": 9 }],
+      "ranges": [{ "startOffset": 270, "endOffset": 288, "count": 17 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "ConsoleLogger",
-      "ranges": [{ "startOffset": 292, "endOffset": 391, "count": 9 }],
+      "ranges": [{ "startOffset": 292, "endOffset": 391, "count": 17 }],
       "isBlockCoverage": true
     },
     {
@@ -24,13 +24,13 @@
     },
     {
       "functionName": "info",
-      "ranges": [{ "startOffset": 510, "endOffset": 620, "count": 18 }],
-      "isBlockCoverage": true
+      "ranges": [{ "startOffset": 510, "endOffset": 620, "count": 0 }],
+      "isBlockCoverage": false
     },
     {
       "functionName": "warn",
-      "ranges": [{ "startOffset": 623, "endOffset": 733, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 623, "endOffset": 733, "count": 2 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "error",
@@ -39,18 +39,17 @@
     },
     {
       "functionName": "shouldLog",
-      "ranges": [{ "startOffset": 852, "endOffset": 1014, "count": 18 }],
+      "ranges": [{ "startOffset": 852, "endOffset": 1014, "count": 2 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "log",
       "ranges": [
-        { "startOffset": 1017, "endOffset": 1681, "count": 18 },
+        { "startOffset": 1017, "endOffset": 1681, "count": 2 },
         { "startOffset": 1148, "endOffset": 1152, "count": 0 },
-        { "startOffset": 1185, "endOffset": 1216, "count": 6 },
-        { "startOffset": 1217, "endOffset": 1221, "count": 12 },
+        { "startOffset": 1217, "endOffset": 1221, "count": 0 },
         { "startOffset": 1402, "endOffset": 1465, "count": 0 },
-        { "startOffset": 1540, "endOffset": 1601, "count": 0 },
+        { "startOffset": 1472, "endOffset": 1533, "count": 0 },
         { "startOffset": 1608, "endOffset": 1671, "count": 0 }
       ],
       "isBlockCoverage": true
@@ -88,7 +87,7 @@
     {
       "functionName": "createLogger",
       "ranges": [
-        { "startOffset": 2206, "endOffset": 2434, "count": 9 },
+        { "startOffset": 2206, "endOffset": 2434, "count": 17 },
         { "startOffset": 2334, "endOffset": 2372, "count": 0 },
         { "startOffset": 2419, "endOffset": 2428, "count": 0 }
       ],
