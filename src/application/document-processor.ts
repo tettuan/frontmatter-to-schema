@@ -301,7 +301,7 @@ export class DocumentProcessor {
 
   private async generateOutput(
     batchResult: BatchTransformationResult,
-    template: Template,
+    _template: Template,
     config: { path: string; format: "json" | "yaml" | "markdown" },
   ): Promise<Result<void, DomainError>> {
     const aggregatedData = batchResult.aggregateData();
@@ -311,16 +311,58 @@ export class DocumentProcessor {
       ? aggregatedData
       : { items: aggregatedData };
 
-    const renderResult = this.templateMapper.map(outputData, template);
-    if (!renderResult.ok) {
-      return renderResult;
-    }
+    // For now, bypass template mapping and directly serialize output data
+    // TODO: Integrate new strict structure matching template system
+    const outputString = config.format === "json"
+      ? JSON.stringify(outputData, null, 2)
+      : config.format === "yaml"
+      ? this.convertToYaml(outputData, 0)
+      : JSON.stringify(outputData, null, 2);
 
     const writeResult = await this.fileSystem.writeFile(
       config.path,
-      renderResult.data,
+      outputString,
     );
 
     return writeResult;
+  }
+
+  private convertToYaml(data: unknown, indent: number): string {
+    const indentStr = "  ".repeat(indent);
+
+    if (data === null || data === undefined) {
+      return "null";
+    }
+
+    if (typeof data === "string") {
+      return `"${data.replace(/"/g, '\\"')}"`;
+    }
+
+    if (typeof data === "number" || typeof data === "boolean") {
+      return String(data);
+    }
+
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        return "[]";
+      }
+      return data
+        .map((item) => `${indentStr}- ${this.convertToYaml(item, indent + 1)}`)
+        .join("\n");
+    }
+
+    if (typeof data === "object") {
+      const entries = Object.entries(data as Record<string, unknown>);
+      if (entries.length === 0) {
+        return "{}";
+      }
+      return entries
+        .map(([key, value]) =>
+          `${indentStr}${key}: ${this.convertToYaml(value, indent + 1)}`
+        )
+        .join("\n");
+    }
+
+    return String(data);
   }
 }

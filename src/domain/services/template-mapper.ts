@@ -1,66 +1,151 @@
 import type { Result } from "../core/result.ts";
 import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
-import type { Template } from "../models/domain-models.ts";
+  type ExtractedData,
+  MappedData,
+  type Template,
+} from "../models/entities.ts";
+import type { ProcessingError } from "../shared/types.ts";
+import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
 
 export class TemplateMapper {
   map(
-    data: unknown,
+    data: ExtractedData,
     template: Template,
-  ): Result<string, ValidationError> {
-    const format = template.getDefinition().getFormat();
-    const definition = template.getDefinition().getDefinition();
+    schema?: unknown,
+  ): Result<MappedData, ProcessingError & { message: string }> {
+    const format = template.getFormat();
+    // For now, assume template format contains JSON definition in template field
+    const templateDefinition = format.getTemplate();
 
-    switch (format) {
+    // Parse template definition as JSON to get structure for validation
+    let templateStructure: unknown;
+    try {
+      templateStructure = JSON.parse(templateDefinition);
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "MappingFailed",
+          document: "template",
+          reason: `Invalid template definition JSON: ${error}`,
+          message: `Invalid template definition JSON: ${error}`,
+        } as ProcessingError & { message: string },
+      };
+    }
+
+    // Extract data from ExtractedData
+    const dataObject = data.getData();
+
+    // Perform strict structure validation if schema is provided
+    if (schema) {
+      const alignmentResult = StrictStructureMatcher
+        .validateStructuralAlignment(
+          dataObject,
+          schema,
+          templateStructure,
+        );
+
+      if (!alignmentResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: `Structure mismatch: ${alignmentResult.error.message}`,
+            message: `Structure mismatch: ${alignmentResult.error.message}`,
+          } as ProcessingError & { message: string },
+        };
+      }
+    }
+
+    switch (format.getFormat()) {
       case "json":
-        return this.mapToJson(data, definition);
+        return this.mapToJsonStrict(dataObject, templateStructure);
       case "yaml":
-        return this.mapToYaml(data, definition);
+        return this.mapToYamlStrict(dataObject, templateStructure);
       case "handlebars":
-        return this.mapWithHandlebars(data, definition);
+        return this.mapWithHandlebars(dataObject, templateDefinition);
       case "custom":
-        return this.mapWithCustom(data, definition);
+        return this.mapWithCustomStrict(dataObject, templateStructure);
       default:
         return {
           ok: false,
-          error: createValidationError(
-            `Unsupported template format: ${format}`,
-          ),
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: `Unsupported template format: ${format.getFormat()}`,
+            message: `Unsupported template format: ${format.getFormat()}`,
+          } as ProcessingError & { message: string },
         };
     }
   }
 
-  private mapToJson(
+  private mapToJsonStrict(
     data: unknown,
-    templateDefinition: string,
-  ): Result<string, ValidationError> {
+    templateStructure: unknown,
+  ): Result<MappedData, ProcessingError & { message: string }> {
     try {
-      // Parse template to understand structure
-      const template = JSON.parse(templateDefinition);
-      const result = this.applyDataToTemplate(data, template);
-      return { ok: true, data: JSON.stringify(result, null, 2) };
+      // Apply strict template mapping - only exact structure matches
+      const result = this.applyDataToTemplateStrict(data, templateStructure);
+      if (result === undefined) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: "Data structure does not match template exactly",
+            message: "Data structure does not match template exactly",
+          } as ProcessingError & { message: string },
+        };
+      }
+
+      // Create MappedData from the result
+      const mappedData = MappedData.create(result as Record<string, unknown>);
+      return { ok: true, data: mappedData };
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(`Failed to map to JSON: ${error}`),
+        error: {
+          kind: "MappingFailed",
+          document: "template",
+          reason: `Failed to map to JSON: ${error}`,
+          message: `Failed to map to JSON: ${error}`,
+        } as ProcessingError & { message: string },
       };
     }
   }
 
-  private mapToYaml(
+  private mapToYamlStrict(
     data: unknown,
-    _templateDefinition: string,
-  ): Result<string, ValidationError> {
+    templateStructure: unknown,
+  ): Result<MappedData, ProcessingError & { message: string }> {
     try {
-      // Simple YAML generation (in production, use a proper YAML library)
-      const result = this.convertToYaml(data, 0);
-      return { ok: true, data: result };
+      // Apply strict template mapping then create MappedData
+      const result = this.applyDataToTemplateStrict(data, templateStructure);
+      if (result === undefined) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: "Data structure does not match template exactly",
+            message: "Data structure does not match template exactly",
+          } as ProcessingError & { message: string },
+        };
+      }
+
+      // Create MappedData from the result
+      const mappedData = MappedData.create(result as Record<string, unknown>);
+      return { ok: true, data: mappedData };
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(`Failed to map to YAML: ${error}`),
+        error: {
+          kind: "MappingFailed",
+          document: "template",
+          reason: `Failed to map to YAML: ${error}`,
+          message: `Failed to map to YAML: ${error}`,
+        } as ProcessingError & { message: string },
       };
     }
   }
@@ -68,36 +153,59 @@ export class TemplateMapper {
   private mapWithHandlebars(
     _data: unknown,
     _templateDefinition: string,
-  ): Result<string, ValidationError> {
+  ): Result<MappedData, ProcessingError & { message: string }> {
     // This would use a Handlebars library in production
     return {
       ok: false,
-      error: createValidationError("Handlebars support not yet implemented"),
+      error: {
+        kind: "MappingFailed",
+        document: "template",
+        reason: "Handlebars support not yet implemented",
+        message: "Handlebars support not yet implemented",
+      } as ProcessingError & { message: string },
     };
   }
 
-  private mapWithCustom(
+  private mapWithCustomStrict(
     data: unknown,
-    _templateDefinition: string,
-  ): Result<string, ValidationError> {
+    templateStructure: unknown,
+  ): Result<MappedData, ProcessingError & { message: string }> {
     try {
-      // Custom template processing
-      // For now, just return the data as JSON
-      return { ok: true, data: JSON.stringify(data, null, 2) };
+      // Apply strict template mapping for custom format
+      const result = this.applyDataToTemplateStrict(data, templateStructure);
+      if (result === undefined) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: "Data structure does not match template exactly",
+            message: "Data structure does not match template exactly",
+          } as ProcessingError & { message: string },
+        };
+      }
+
+      // Create MappedData from the result
+      const mappedData = MappedData.create(result as Record<string, unknown>);
+      return { ok: true, data: mappedData };
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
-          `Failed to map with custom template: ${error}`,
-        ),
+        error: {
+          kind: "MappingFailed",
+          document: "template",
+          reason: `Failed to map with custom template: ${error}`,
+          message: `Failed to map with custom template: ${error}`,
+        } as ProcessingError & { message: string },
       };
     }
   }
 
-  private applyDataToTemplate(
+  private applyDataToTemplateStrict(
     data: unknown,
     template: unknown,
   ): unknown {
+    // Strict matching: template and data structures must align exactly
     if (template === null || template === undefined) {
       return data;
     }
@@ -106,27 +214,73 @@ export class TemplateMapper {
       // Check if it's a placeholder
       if (template.startsWith("{{") && template.endsWith("}}")) {
         const path = template.slice(2, -2).trim();
-        return this.getValueByPath(data, path);
+        const value = this.getValueByPathStrict(data, path);
+        // Return undefined if path doesn't exist (no fallbacks)
+        return value;
       }
       return template;
     }
 
     if (Array.isArray(template)) {
-      return template.map((item) => this.applyDataToTemplate(data, item));
+      if (!Array.isArray(data)) {
+        // Structure mismatch - template expects array but data is not array
+        return undefined;
+      }
+
+      // For arrays, both must have the same length for strict matching
+      if (template.length !== data.length) {
+        return undefined;
+      }
+
+      const result = [];
+      for (let i = 0; i < template.length; i++) {
+        const mappedItem = this.applyDataToTemplateStrict(data[i], template[i]);
+        if (mappedItem === undefined && template[i] !== undefined) {
+          return undefined;
+        }
+        result.push(mappedItem);
+      }
+      return result;
     }
 
     if (typeof template === "object") {
-      const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(template)) {
-        result[key] = this.applyDataToTemplate(data, value);
+      if (
+        data === null ||
+        data === undefined ||
+        typeof data !== "object" ||
+        Array.isArray(data)
+      ) {
+        // Structure mismatch - template expects object but data is not object
+        return undefined;
       }
+
+      const result: Record<string, unknown> = {};
+      const dataObj = data as Record<string, unknown>;
+
+      // All template keys must exist in data for strict matching
+      for (const [key, templateValue] of Object.entries(template)) {
+        if (!(key in dataObj)) {
+          // Missing key in data - strict matching fails
+          return undefined;
+        }
+
+        const mappedValue = this.applyDataToTemplateStrict(
+          dataObj[key],
+          templateValue,
+        );
+        if (mappedValue === undefined && templateValue !== undefined) {
+          return undefined;
+        }
+        result[key] = mappedValue;
+      }
+
       return result;
     }
 
     return template;
   }
 
-  private getValueByPath(data: unknown, path: string): unknown {
+  private getValueByPathStrict(data: unknown, path: string): unknown {
     const parts = path.split(".");
     let current = data;
 
@@ -135,9 +289,15 @@ export class TemplateMapper {
         return undefined;
       }
 
-      if (typeof current === "object") {
-        current = (current as Record<string, unknown>)[part];
+      if (typeof current === "object" && !Array.isArray(current)) {
+        const currentObj = current as Record<string, unknown>;
+        // Strict path resolution - must exist in object
+        if (!(part in currentObj)) {
+          return undefined;
+        }
+        current = currentObj[part];
       } else {
+        // Path traversal failed - current is not an object
         return undefined;
       }
     }

@@ -591,14 +591,39 @@ export class MappingRule {
 
   apply(data: Record<string, unknown>): unknown {
     const value = this.getValueByPath(data, this.source);
+
+    // Only return value if it exists in source data (no fallbacks or defaults)
+    if (value === undefined) {
+      return undefined;
+    }
+
     return this.transform ? this.transform(value) : value;
   }
 
   private getValueByPath(obj: Record<string, unknown>, path: string): unknown {
-    return path.split(".").reduce(
-      (acc: unknown, part) => (acc as Record<string, unknown>)?.[part],
-      obj,
-    );
+    // Strict path resolution - return undefined if any part of path is missing
+    const parts = path.split(".");
+    let current: unknown = obj;
+
+    for (const part of parts) {
+      if (
+        current === null ||
+        current === undefined ||
+        typeof current !== "object" ||
+        Array.isArray(current)
+      ) {
+        return undefined;
+      }
+
+      const currentObj = current as Record<string, unknown>;
+      if (!(part in currentObj)) {
+        return undefined;
+      }
+
+      current = currentObj[part];
+    }
+
+    return current;
   }
 }
 

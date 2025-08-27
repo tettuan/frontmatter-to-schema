@@ -73,6 +73,7 @@ export interface TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
+    schema?: unknown,
   ): Result<MappedData, ProcessingError & { message: string }>;
 }
 

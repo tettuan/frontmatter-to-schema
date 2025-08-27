@@ -10,6 +10,7 @@ import type {
   SchemaVersion,
   TemplateFormat,
 } from "./value-objects.ts";
+import { StrictStructureMatcher } from "./StrictStructureMatcher.ts";
 
 // ID value objects
 export class DocumentId {
@@ -285,18 +286,42 @@ export class Template {
     return this.description;
   }
 
-  applyRules(data: Record<string, unknown>): Record<string, unknown> {
-    // If no mapping rules are defined, return the data as-is
+  applyRules(
+    data: Record<string, unknown>,
+    schemaData?: unknown,
+    templateStructure?: unknown,
+  ): Record<string, unknown> {
+    // If strict structure validation is required, perform it first
+    if (schemaData && templateStructure) {
+      const alignmentResult = StrictStructureMatcher
+        .validateStructuralAlignment(
+          data,
+          schemaData,
+          templateStructure,
+        );
+
+      if (!alignmentResult.ok) {
+        // Return empty object if structures don't match exactly
+        return {};
+      }
+    }
+
+    // If no mapping rules are defined, return the data as-is only if structure validation passed
     if (this.mappingRules.length === 0) {
       return data;
     }
 
     const result: Record<string, unknown> = {};
 
+    // Apply mapping rules only if structural alignment is confirmed
     for (const rule of this.mappingRules) {
       const value = rule.apply(data);
       const target = rule.getTarget();
-      this.setValueByPath(result, target, value);
+
+      // Only set value if it exists in the source data (no fallbacks or defaults)
+      if (value !== undefined) {
+        this.setValueByPath(result, target, value);
+      }
     }
 
     return result;

@@ -172,6 +172,10 @@ registry_command_template.json
       "type": "string",
       "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
     },
+    "title": {
+      "type": "string",
+      "description": "Command title"
+    },
     "description": {
       "type": "string",
       "description": "Command description"
@@ -238,6 +242,7 @@ registry_command_template.json
   "c1": "{c1}",
   "c2": "{c2}",
   "c3": "{c3}",
+  "title": "{title}",
   "description": "{description}",
   "usage": "{usage}",
   "options": {
