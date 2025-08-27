@@ -9,8 +9,7 @@ import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { ProcessingError } from "../shared/types.ts";
 import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
-import { TypeScriptAnalysisOrchestrator, type ExtractedInfo, type StructuredData } from "../core/typescript-processing-orchestrator.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
+import type { TypeScriptAnalysisOrchestrator } from "../core/typescript-processing-orchestrator.ts";
 
 export class TemplateMapper {
   constructor(
@@ -452,7 +451,7 @@ export class TemplateMapper {
         const parsedContent = JSON.parse(structuredData.getContent());
         const mappedData = MappedData.create(parsedContent);
         return { ok: true, data: mappedData };
-      } catch (parseError) {
+      } catch (_parseError) {
         // If JSON parsing fails, treat as raw content
         const mappedData = MappedData.create({ content: structuredData.getContent() });
         return { ok: true, data: mappedData };

@@ -286,12 +286,12 @@ export async function main() {
         }
       },
       async mapWithOrchestrator(
-        _frontMatter: any,
-        _schema: any,
-        _template: any,
-      ): Promise<any> {
+        _frontMatter: unknown,
+        _schema: unknown,
+        _template: unknown,
+      ) {
         // Fallback to legacy behavior - orchestrator not configured
-        return {
+        return Promise.resolve({
           ok: false as const,
           error: createDomainError(
             {
@@ -301,7 +301,7 @@ export async function main() {
             },
             "TypeScriptAnalysisOrchestrator not configured",
           ),
-        };
+        });
       },
     };
     const resultAggregator = new ResultAggregatorImpl("json");

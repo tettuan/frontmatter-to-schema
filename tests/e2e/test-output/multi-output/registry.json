@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "tools": {
+        "commands[]": {
+          "description": "Test Description"
+        }
+      }
+    },
+    {
+      "tools": {
+        "commands[]": {
+          "description": "Test Description"
+        }
+      }
+    }
+  ]
+}

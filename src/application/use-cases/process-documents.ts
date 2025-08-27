@@ -559,7 +559,7 @@ export class ProcessDocumentsUseCase {
     );
     
     // Check if orchestrator is available, if not fallback to legacy processing
-    if (isError(mappedResult) && (mappedResult.error as any).message?.includes("not configured")) {
+    if (isError(mappedResult) && (mappedResult.error as { message?: string }).message?.includes("not configured")) {
       if (verboseMode) {
         const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
@@ -671,12 +671,12 @@ export class ProcessDocumentsUseCase {
     // Create analysis result (orchestrator approach)
     // Note: For orchestrator approach, we need to create a dummy ExtractedData
     // since the orchestrator handles both stages internally
-    const dummyExtractedData = {
-      getData: () => ({}), // The orchestrator already processed this
-    };
+    // For orchestrator approach, the extracted data step is internal, so we create a minimal placeholder
+    const { ExtractedData } = await import("../../domain/models/entities.ts");
+    const dummyExtractedData = ExtractedData.create({});
     const analysisResult = AnalysisResult.create(
       document,
-      dummyExtractedData as any, // Type assertion needed for compatibility
+      dummyExtractedData, // Dummy extracted data for orchestrator approach
       mappedResult.data,
     );
 

@@ -269,14 +269,14 @@ class MockTemplateMapper implements TemplateMapper {
     _template: Template,
   ): Promise<Result<MappedData, DomainError & { message: string }>> {
     // Mock implementation - fallback to legacy behavior for tests
-    return {
+    return Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: "ReadError",
         path: "orchestrator", 
         details: "TypeScriptAnalysisOrchestrator not configured",
       }),
-    };
+    });
   }
 }
 
