@@ -4,10 +4,7 @@
  */
 
 import type { Result } from "./result.ts";
-import {
-  type DomainError,
-  createDomainError,
-} from "./result.ts";
+import { createDomainError, type DomainError } from "./result.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Import domain components
@@ -94,13 +91,16 @@ export class TemplateDomainConfig {
     if (!validFormats.includes(defaultFormat)) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: defaultFormat,
-          expectedFormat: validFormats.join(", "),
-        }, `Invalid format: ${defaultFormat}. Must be one of: ${
-          validFormats.join(", ")
-        }`),
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: defaultFormat,
+            expectedFormat: validFormats.join(", "),
+          },
+          `Invalid format: ${defaultFormat}. Must be one of: ${
+            validFormats.join(", ")
+          }`,
+        ),
       };
     }
 
@@ -185,7 +185,9 @@ export type ComponentFactoryResult =
  */
 export interface TotalDomainFactory<T extends ComponentDomain> {
   readonly domain: T;
-  createComponents(): Promise<Result<ComponentFactoryResult, DomainError & { message: string }>>;
+  createComponents(): Promise<
+    Result<ComponentFactoryResult, DomainError & { message: string }>
+  >;
   validateDependencies(): Result<true, DomainError & { message: string }>;
 }
 
@@ -442,7 +444,9 @@ export class TotalMasterComponentFactory {
    */
   createComponents(
     domain: ComponentDomain,
-  ): Promise<Result<ComponentFactoryResult, DomainError & { message: string }>> {
+  ): Promise<
+    Result<ComponentFactoryResult, DomainError & { message: string }>
+  > {
     const factory = this.factories.get(domain.kind);
 
     if (!factory) {
@@ -557,7 +561,10 @@ export class TotalFactoryBuilder {
   /**
    * Build and return the configured master factory
    */
-  build(): Result<TotalMasterComponentFactory, DomainError & { message: string }> {
+  build(): Result<
+    TotalMasterComponentFactory,
+    DomainError & { message: string }
+  > {
     this.logger.info("Building master component factory with totality");
     return { ok: true, data: this.masterFactory };
   }

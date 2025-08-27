@@ -280,7 +280,9 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
           assertEquals(result.error.kind, "TemplateMappingFailed");
           if (result.error.kind === "TemplateMappingFailed") {
             assertEquals(
-              result.error.message?.includes("Invalid template definition JSON"),
+              result.error.message?.includes(
+                "Invalid template definition JSON",
+              ),
               true,
             );
           }
