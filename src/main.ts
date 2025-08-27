@@ -28,6 +28,7 @@ import {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "./domain/models/value-objects.ts";
 import type {
   AnalysisConfiguration,
@@ -35,7 +36,7 @@ import type {
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
-import { MockSchemaAnalyzer } from "./infrastructure/adapters/mock-analyzer.ts";
+// Remove MockSchemaAnalyzer import - will create simple mock inline
 // TypeScriptSchemaAnalyzer removed - AI processing is no longer used
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./infrastructure/adapters/frontmatter-extractor-impl.ts";
@@ -110,14 +111,25 @@ async function runBuildRegistry() {
     const fileWriter = new FileWriter();
     const extractor = new FrontMatterExtractor();
 
-    // Use MockSchemaAnalyzer for now - TypeScript analysis removed
-    const analyzer = new MockSchemaAnalyzer();
+    // Create simple mock analyzer that matches the BuildRegistryUseCase interface
+    const analyzer = {
+      analyze(_frontMatter: unknown, _promptPath: string): Promise<{
+        isValid: boolean;
+        commands: unknown[];
+      }> {
+        // Return empty result for now - registry building disabled
+        return Promise.resolve({
+          isValid: false,
+          commands: [],
+        });
+      },
+    };
 
     const useCase = new BuildRegistryUseCase(
       fileReader,
       fileWriter,
       extractor,
-      analyzer as unknown, // Type casting needed for compatibility
+      { kind: "MockAnalyzer", analyzer }, // Wrap in discriminated union
     );
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
@@ -313,7 +325,7 @@ Examples:
       // Build config from command line args
       const documentsPathResult = DocumentPath.create(args.documents || ".");
       const schemaPathResult = ConfigPath.create(args.schema || "schema.json");
-      const templatePathResult = ConfigPath.create(
+      const templatePathResult = TemplatePath.create(
         args.template || "template.json",
       );
       const outputPathResult = OutputPath.create(args.output || "output.json");
@@ -352,6 +364,9 @@ Examples:
     const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
 
     if (useMock) {
+      const { MockSchemaAnalyzer } = await import(
+        "./infrastructure/adapters/mock-analyzer.ts"
+      );
       schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
       logger.info("Using mock analyzer", {
@@ -359,6 +374,9 @@ Examples:
       });
     } else {
       // Use Mock implementation for now
+      const { MockSchemaAnalyzer } = await import(
+        "./infrastructure/adapters/mock-analyzer.ts"
+      );
       schemaAnalyzer = new MockSchemaAnalyzer();
       const logger = LoggerFactory.createLogger("main-analyzer");
       logger.info("Using mock analyzer", {

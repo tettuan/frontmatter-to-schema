@@ -29,6 +29,7 @@ import type {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "../models/value-objects.ts";
 
 /**
@@ -76,17 +77,23 @@ export interface SchemaAnalyzer {
   ): Promise<Result<ExtractedData, DomainError & { message: string }>>;
 }
 
+// Discriminated union for schema validation following totality principle
+export type SchemaValidationMode =
+  | { kind: "WithSchema"; schema: unknown }
+  | { kind: "NoSchema" };
+
 /**
  * Maps extracted data to a template structure
  *
  * Transforms schema-validated data into the desired output format.
  * The template is injected at runtime for maximum flexibility.
+ * Uses discriminated union for schema validation to follow totality principle.
  */
 export interface TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
-    schema?: unknown,
+    schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }>;
 }
 
@@ -153,7 +160,7 @@ export interface SchemaRepository {
 
 export interface TemplateRepository {
   load(
-    path: ConfigPath,
+    path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>>;
   validate(
     template: Template,
@@ -190,7 +197,7 @@ export interface ConfigurationRepository {
 export interface ProcessingConfiguration {
   documentsPath: DocumentPath;
   schemaPath: ConfigPath;
-  templatePath: ConfigPath;
+  templatePath: TemplatePath;
   outputPath: OutputPath;
   options: {
     parallel?: boolean;

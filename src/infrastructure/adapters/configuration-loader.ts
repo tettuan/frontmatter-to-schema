@@ -10,6 +10,7 @@ import {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "../../domain/models/value-objects.ts";
 import {
   Schema,
@@ -77,7 +78,7 @@ export class ConfigurationLoader
         };
       }
 
-      const templatePathResult = ConfigPath.create(
+      const templatePathResult = TemplatePath.create(
         config.templatePath || config.template_path || "template.json",
       );
       if (!templatePathResult.ok) {
@@ -352,7 +353,7 @@ export class ConfigurationLoader
 // Template repository implementation
 export class TemplateLoader implements TemplateRepository {
   async load(
-    path: ConfigPath,
+    path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     try {
       const templatePath = path.getValue();

@@ -38,7 +38,7 @@ tags:
 This is the body of the document.`);
 
       if (isOk(pathResult) && isOk(contentResult)) {
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           null, // No existing frontmatter
           contentResult.data,
@@ -78,7 +78,7 @@ This is the body of the document.`);
           "title: Existing\ndate: 2024-01-01",
         );
 
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           existingFrontMatter,
           contentResult.data,
@@ -104,7 +104,7 @@ This is the body of the document.`);
 No frontmatter here, just content.`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -129,7 +129,7 @@ No frontmatter here, just content.`);
 Body text here.`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -162,7 +162,7 @@ meta:
 # Complex Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -193,7 +193,7 @@ another: value
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -218,7 +218,7 @@ unicode: "测试 🚀"
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -260,7 +260,7 @@ numbers:
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -292,7 +292,7 @@ numbers:
 This looks like frontmatter but isn't properly formed.`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -321,7 +321,7 @@ This is not frontmatter
 More content`);
 
       if (isOk(pathResult) && isOk(contentResult)) {
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           null,
           contentResult.data,
@@ -369,7 +369,7 @@ config:
 # Deep nested content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -401,7 +401,7 @@ original: value
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -443,7 +443,7 @@ temperature: -5.5
 # Content`);
 
       if (isOk(pathResult) && isOk(contentResult)) {
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           null,
           contentResult.data,
@@ -481,7 +481,7 @@ folded_text: >
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -514,7 +514,7 @@ special: "àáâãäåæçèéêëìíîïñòóôõöøùúûüý"
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -543,7 +543,7 @@ special: "àáâãäåæçèéêëìíîïñòóôõöøùúûüý"
     );
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -577,7 +577,7 @@ because: it comes after content
 More content.`);
 
       if (isOk(pathResult) && isOk(contentResult)) {
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           null,
           contentResult.data,
@@ -604,7 +604,7 @@ thread_safe: true
 # Content`);
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,
@@ -654,7 +654,7 @@ thread_safe: true
       const contentResult = DocumentContent.create(testCase.content);
 
       if (isOk(pathResult) && isOk(contentResult)) {
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           null,
           contentResult.data,
@@ -698,7 +698,7 @@ metadata:
     );
 
     if (isOk(pathResult) && isOk(contentResult)) {
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentResult.data,

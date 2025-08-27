@@ -4,15 +4,16 @@ import {
   MappedData,
   type Template,
 } from "../models/entities.ts";
-import type { ProcessingError } from "../shared/types.ts";
+import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import type { SchemaValidationMode } from "./interfaces.ts";
 
 export class TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
-    schema?: unknown,
-  ): Result<MappedData, ProcessingError & { message: string }> {
+    schemaMode: SchemaValidationMode,
+  ): Result<MappedData, DomainError & { message: string }> {
     const format = template.getFormat();
     // For now, assume template format contains JSON definition in template field
     const templateDefinition = format.getTemplate();
@@ -35,33 +36,45 @@ export class TemplateMapper {
       return {
         ok: false,
         error: {
-          kind: "MappingFailed",
-          document: "template",
-          reason: `Invalid template definition JSON: ${error}`,
+          kind: "TemplateMappingFailed",
+          template: template,
+          source: data.getData(),
           message: `Invalid template definition JSON: ${error}`,
-        } as ProcessingError & { message: string },
+        } as DomainError & { message: string },
       };
     }
 
-    // Perform strict structure validation if schema is provided
-    if (schema) {
-      const alignmentResult = StrictStructureMatcher
-        .validateStructuralAlignment(
-          dataObject,
-          schema,
-          templateStructure,
-        );
+    // Perform strict structure validation using discriminated union
+    switch (schemaMode.kind) {
+      case "WithSchema": {
+        const alignmentResult = StrictStructureMatcher
+          .validateStructuralAlignment(
+            dataObject,
+            schemaMode.schema,
+            templateStructure,
+          );
 
-      if (!alignmentResult.ok) {
-        return {
-          ok: false,
-          error: {
-            kind: "MappingFailed",
-            document: "template",
-            reason: `Structure mismatch: ${alignmentResult.error.message}`,
-            message: `Structure mismatch: ${alignmentResult.error.message}`,
-          } as ProcessingError & { message: string },
-        };
+        if (!alignmentResult.ok) {
+          return {
+            ok: false,
+            error: {
+              kind: "TemplateMappingFailed",
+              template: template,
+              source: data.getData(),
+              message: `Structure mismatch: ${alignmentResult.error.message}`,
+            } as DomainError & { message: string },
+          };
+        }
+        break;
+      }
+      case "NoSchema": {
+        // No schema validation required
+        break;
+      }
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = schemaMode;
+        throw new Error(`Unhandled schema mode: ${String(_exhaustiveCheck)}`);
       }
     }
 
@@ -78,11 +91,11 @@ export class TemplateMapper {
         return {
           ok: false,
           error: {
-            kind: "MappingFailed",
-            document: "template",
-            reason: `Unsupported template format: ${format.getFormat()}`,
+            kind: "TemplateMappingFailed",
+            template: template,
+            source: data.getData(),
             message: `Unsupported template format: ${format.getFormat()}`,
-          } as ProcessingError & { message: string },
+          } as DomainError & { message: string },
         };
     }
   }
@@ -90,7 +103,7 @@ export class TemplateMapper {
   private mapToJsonStrict(
     data: unknown,
     templateStructure: unknown,
-  ): Result<MappedData, ProcessingError & { message: string }> {
+  ): Result<MappedData, DomainError & { message: string }> {
     try {
       // Apply strict template mapping - only exact structure matches
       const result = this.applyDataToTemplateStrict(data, templateStructure);
@@ -98,11 +111,11 @@ export class TemplateMapper {
         return {
           ok: false,
           error: {
-            kind: "MappingFailed",
-            document: "template",
-            reason: "Data structure does not match template exactly",
+            kind: "TemplateMappingFailed",
+            template: templateStructure,
+            source: data,
             message: "Data structure does not match template exactly",
-          } as ProcessingError & { message: string },
+          } as DomainError & { message: string },
         };
       }
 
@@ -113,11 +126,11 @@ export class TemplateMapper {
       return {
         ok: false,
         error: {
-          kind: "MappingFailed",
-          document: "template",
-          reason: `Failed to map to JSON: ${error}`,
+          kind: "TemplateMappingFailed",
+          template: templateStructure,
+          source: data,
           message: `Failed to map to JSON: ${error}`,
-        } as ProcessingError & { message: string },
+        } as DomainError & { message: string },
       };
     }
   }
@@ -125,7 +138,7 @@ export class TemplateMapper {
   private mapToYamlStrict(
     data: unknown,
     templateStructure: unknown,
-  ): Result<MappedData, ProcessingError & { message: string }> {
+  ): Result<MappedData, DomainError & { message: string }> {
     try {
       // Apply strict template mapping then create MappedData
       const result = this.applyDataToTemplateStrict(data, templateStructure);
@@ -133,11 +146,11 @@ export class TemplateMapper {
         return {
           ok: false,
           error: {
-            kind: "MappingFailed",
-            document: "template",
-            reason: "Data structure does not match template exactly",
+            kind: "TemplateMappingFailed",
+            template: templateStructure,
+            source: data,
             message: "Data structure does not match template exactly",
-          } as ProcessingError & { message: string },
+          } as DomainError & { message: string },
         };
       }
 
@@ -148,11 +161,11 @@ export class TemplateMapper {
       return {
         ok: false,
         error: {
-          kind: "MappingFailed",
-          document: "template",
-          reason: `Failed to map to YAML: ${error}`,
+          kind: "TemplateMappingFailed",
+          template: templateStructure,
+          source: data,
           message: `Failed to map to YAML: ${error}`,
-        } as ProcessingError & { message: string },
+        } as DomainError & { message: string },
       };
     }
   }
@@ -160,23 +173,23 @@ export class TemplateMapper {
   private mapWithHandlebars(
     _data: unknown,
     _templateDefinition: string,
-  ): Result<MappedData, ProcessingError & { message: string }> {
+  ): Result<MappedData, DomainError & { message: string }> {
     // This would use a Handlebars library in production
     return {
       ok: false,
       error: {
-        kind: "MappingFailed",
-        document: "template",
-        reason: "Handlebars support not yet implemented",
+        kind: "TemplateMappingFailed",
+        template: _templateDefinition,
+        source: _data,
         message: "Handlebars support not yet implemented",
-      } as ProcessingError & { message: string },
+      } as DomainError & { message: string },
     };
   }
 
   private mapWithCustomStrict(
     data: unknown,
     templateStructure: unknown,
-  ): Result<MappedData, ProcessingError & { message: string }> {
+  ): Result<MappedData, DomainError & { message: string }> {
     try {
       // Apply strict template mapping for custom format
       const result = this.applyDataToTemplateStrict(data, templateStructure);
@@ -184,11 +197,11 @@ export class TemplateMapper {
         return {
           ok: false,
           error: {
-            kind: "MappingFailed",
-            document: "template",
-            reason: "Data structure does not match template exactly",
+            kind: "TemplateMappingFailed",
+            template: templateStructure,
+            source: data,
             message: "Data structure does not match template exactly",
-          } as ProcessingError & { message: string },
+          } as DomainError & { message: string },
         };
       }
 
@@ -199,11 +212,11 @@ export class TemplateMapper {
       return {
         ok: false,
         error: {
-          kind: "MappingFailed",
-          document: "template",
-          reason: `Failed to map with custom template: ${error}`,
+          kind: "TemplateMappingFailed",
+          template: templateStructure,
+          source: data,
           message: `Failed to map with custom template: ${error}`,
-        } as ProcessingError & { message: string },
+        } as DomainError & { message: string },
       };
     }
   }

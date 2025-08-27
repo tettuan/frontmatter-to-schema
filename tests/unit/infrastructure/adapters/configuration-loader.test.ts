@@ -13,6 +13,7 @@ import {
   ConfigPath,
   OutputPath,
   TemplateFormat,
+  TemplatePath,
 } from "../../../../src/domain/models/value-objects.ts";
 import {
   type AggregatedResult,
@@ -247,7 +248,7 @@ Deno.test("ConfigurationLoader - Comprehensive Test Suite", async (t) => {
 
     await t.step("should handle invalid template path", async () => {
       const configPath = join(testDir, "invalid-template-path.json");
-      const config = { templatePath: "invalid.exe" }; // Wrong extension
+      const config = { templatePath: "   " }; // Whitespace-only path is invalid
 
       await Deno.writeTextFile(configPath, JSON.stringify(config, null, 2));
 
@@ -705,7 +706,7 @@ Deno.test("TemplateLoader - Comprehensive Test Suite", async (t) => {
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -733,7 +734,7 @@ Deno.test("TemplateLoader - Comprehensive Test Suite", async (t) => {
           JSON.stringify(template, null, 2),
         );
 
-        const pathResult = ConfigPath.create(templatePath);
+        const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
         const result = await templateLoader.load(pathResult.data);
@@ -767,7 +768,7 @@ format: handlebars
 
       await Deno.writeTextFile(templatePath, yamlContent);
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -789,7 +790,7 @@ content: "Welcome {{user}}!"
 
       await Deno.writeTextFile(templatePath, yamlContent);
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -816,7 +817,7 @@ content: "Welcome {{user}}!"
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
       // ConfigPath might fail for files without extension, so handle both cases
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       if (pathResult.ok) {
         const result = await templateLoader.load(pathResult.data);
         assert(result.ok);
@@ -841,7 +842,7 @@ content: "Fallback to {{yaml}}"
 
         await Deno.writeTextFile(templatePath, yamlContent);
 
-        const pathResult = ConfigPath.create(templatePath);
+        const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
         const result = await templateLoader.load(pathResult.data);
@@ -867,7 +868,7 @@ content: "Fallback to {{yaml}}"
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -891,7 +892,7 @@ content: "Fallback to {{yaml}}"
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -914,7 +915,7 @@ content: "Fallback to {{yaml}}"
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -939,7 +940,7 @@ content: "Fallback to {{yaml}}"
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -968,7 +969,7 @@ content: "Fallback to {{yaml}}"
 
       await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -991,7 +992,7 @@ content: "Fallback to {{yaml}}"
 
     await t.step("should handle file not found", async () => {
       const templatePath = join(testDir, "missing.json");
-      const pathResult = ConfigPath.create(templatePath);
+      const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
       const result = await templateLoader.load(pathResult.data);
@@ -1014,7 +1015,7 @@ content: "Fallback to {{yaml}}"
           "completely invalid content [[[",
         );
 
-        const pathResult = ConfigPath.create(templatePath);
+        const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
         const result = await templateLoader.load(pathResult.data);
@@ -1040,13 +1041,13 @@ content: "Fallback to {{yaml}}"
 
       // Try to simulate permission error by using invalid path structure
       const badPath = join(templatePath, "nested", "invalid");
-      const pathResult = ConfigPath.create(badPath);
+      const pathResult = TemplatePath.create(badPath);
       if (pathResult.ok) {
         const result = await templateLoader.load(pathResult.data);
         assert(!result.ok);
 
         if (!result.ok) {
-          assertEquals(result.error.kind, "FileNotFound");
+          assertEquals(result.error.kind, "ReadError");
         }
       } else {
         // If ConfigPath.create fails, that's also a valid way to handle bad paths

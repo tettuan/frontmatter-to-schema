@@ -31,13 +31,14 @@ import {
   ConfigPath,
   DocumentPath,
   OutputPath,
+  TemplatePath,
 } from "./src/domain/models/value-objects.ts";
 import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
 
 // Create global CLI logger
 const cliLogger: Logger = LoggerFactory.createLogger("CLI");
 
-function printUsage() {
+export function printUsage() {
   cliLogger.info(`
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
@@ -61,7 +62,7 @@ Examples:
 `);
 }
 
-async function loadPromptTemplates(): Promise<
+export async function loadPromptTemplates(): Promise<
   { extraction: string; mapping: string }
 > {
   try {
@@ -87,22 +88,36 @@ Return ONLY a JSON object with the mapped data.`,
   }
 }
 
-async function main() {
+export async function main() {
   // Pre-process args to handle --key=value format
-  const processedArgs = Deno.args.map((arg) => {
-    if (arg.startsWith("--") && arg.includes("=")) {
-      const [key, value] = arg.split("=", 2);
-      return [key, value];
-    }
-    return arg;
-  }).flat();
+  let processedArgs: string[];
+  try {
+    processedArgs = Deno.args.map((arg) => {
+      if (arg.startsWith("--") && arg.includes("=")) {
+        const [key, value] = arg.split("=", 2);
+        return [key, value];
+      }
+      return arg;
+    }).flat();
+  } catch (error) {
+    cliLogger.error(
+      "Fatal error accessing command line arguments: " + String(error),
+    );
+    Deno.exit(1);
+  }
 
   // Debug logging if needed
   const debugMode = Deno.env.get("FRONTMATTER_TO_SCHEMA_DEBUG") === "true" ||
     Deno.env.get("FRONTMATTER_DEBUG") === "true"; // backward compatibility
   const logger = LoggerFactory.createLogger("cli");
   if (debugMode) {
-    logger.debug("Raw args", { args: Deno.args });
+    try {
+      logger.debug("Raw args", { args: Deno.args });
+    } catch (error) {
+      logger.debug("Raw args", {
+        error: "Could not access Deno.args: " + String(error),
+      });
+    }
     logger.debug("Processed args", { args: processedArgs });
   }
 
@@ -187,7 +202,8 @@ async function main() {
         : `${markdownDir}/*.md`,
     );
     const schemaPathResult = ConfigPath.create(schemaPath);
-    const templatePathResult = ConfigPath.create(templatePath);
+    // Template can be any format, not restricted to config file extensions
+    const templatePathResult = TemplatePath.create(templatePath);
 
     // Determine output path - if destination already has an extension, use it as-is
     // Otherwise, append the appropriate extension based on template

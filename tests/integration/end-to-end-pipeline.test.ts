@@ -13,6 +13,7 @@ import {
   SchemaDefinition,
   SchemaVersion,
   TemplateFormat,
+  TemplatePath,
 } from "../../src/domain/models/value-objects.ts";
 import {
   AggregatedResult,
@@ -65,7 +66,7 @@ class MockDocumentRepository implements DocumentRepository {
           }
         }
 
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           frontMatter,
           contentResult.data,
@@ -179,7 +180,7 @@ class MockTemplateRepository implements TemplateRepository {
     }
   }
 
-  async load(_path: ConfigPath) {
+  async load(_path: TemplatePath) {
     await Promise.resolve(); // Required for async interface
     if (!this.template) {
       return {
@@ -384,7 +385,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
     const configResult = {
       documentsPath: DocumentPath.create("/test/docs/dummy.md"),
       schemaPath: ConfigPath.create("schema.json"),
-      templatePath: ConfigPath.create("template.json"),
+      templatePath: TemplatePath.create("template.json"),
       outputPath: OutputPath.create("output.json"),
       options: ProcessingOptions.create({
         parallel: false,
@@ -425,7 +426,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
       documentsPath: (configResult.documentsPath as { data: DocumentPath })
         .data,
       schemaPath: (configResult.schemaPath as { data: ConfigPath }).data,
-      templatePath: (configResult.templatePath as { data: ConfigPath }).data,
+      templatePath: (configResult.templatePath as { data: TemplatePath }).data,
       outputPath: (configResult.outputPath as { data: OutputPath }).data,
       options: {
         parallel: options.isParallel(),
@@ -487,7 +488,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
     const configResult = {
       documentsPath: DocumentPath.create("/test/docs/dummy.md"),
       schemaPath: ConfigPath.create("schema.json"),
-      templatePath: ConfigPath.create("template.json"),
+      templatePath: TemplatePath.create("template.json"),
       outputPath: OutputPath.create("output.json"),
       options: ProcessingOptions.create({
         parallel: false,
@@ -500,7 +501,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
       documentsPath: (configResult.documentsPath as { data: DocumentPath })
         .data,
       schemaPath: (configResult.schemaPath as { data: ConfigPath }).data,
-      templatePath: (configResult.templatePath as { data: ConfigPath }).data,
+      templatePath: (configResult.templatePath as { data: TemplatePath }).data,
       outputPath: (configResult.outputPath as { data: OutputPath }).data,
       options: {
         parallel: options.isParallel(),
@@ -549,7 +550,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
     const configResult = {
       documentsPath: DocumentPath.create("/test/docs/dummy.md"),
       schemaPath: ConfigPath.create("schema.json"),
-      templatePath: ConfigPath.create("template.json"),
+      templatePath: TemplatePath.create("template.json"),
       outputPath: OutputPath.create("output.json"),
       options: ProcessingOptions.create({
         parallel: true, // Enable parallel processing
@@ -563,7 +564,7 @@ Deno.test("Integration: End-to-End Document Processing Pipeline", async (t) => {
       documentsPath: (configResult.documentsPath as { data: DocumentPath })
         .data,
       schemaPath: (configResult.schemaPath as { data: ConfigPath }).data,
-      templatePath: (configResult.templatePath as { data: ConfigPath }).data,
+      templatePath: (configResult.templatePath as { data: TemplatePath }).data,
       outputPath: (configResult.outputPath as { data: OutputPath }).data,
       options: {
         parallel: options.isParallel(),
@@ -636,7 +637,7 @@ Content`,
     const configResult = {
       documentsPath: DocumentPath.create("/test/docs/dummy.md"),
       schemaPath: ConfigPath.create("schema.json"),
-      templatePath: ConfigPath.create("template.json"),
+      templatePath: TemplatePath.create("template.json"),
       outputPath: OutputPath.create("output.json"),
       options: ProcessingOptions.create({
         parallel: false,
@@ -649,7 +650,7 @@ Content`,
       documentsPath: (configResult.documentsPath as { data: DocumentPath })
         .data,
       schemaPath: (configResult.schemaPath as { data: ConfigPath }).data,
-      templatePath: (configResult.templatePath as { data: ConfigPath }).data,
+      templatePath: (configResult.templatePath as { data: TemplatePath }).data,
       outputPath: (configResult.outputPath as { data: OutputPath }).data,
       options: {
         parallel: options.isParallel(),
@@ -696,7 +697,7 @@ Content`,
     const configResult = {
       documentsPath: DocumentPath.create("/test/docs/dummy.md"),
       schemaPath: ConfigPath.create("schema.json"),
-      templatePath: ConfigPath.create("template.json"),
+      templatePath: TemplatePath.create("template.json"),
       outputPath: OutputPath.create("output.json"),
       options: ProcessingOptions.create({}),
     };
@@ -706,7 +707,7 @@ Content`,
       documentsPath: (configResult.documentsPath as { data: DocumentPath })
         .data,
       schemaPath: (configResult.schemaPath as { data: ConfigPath }).data,
-      templatePath: (configResult.templatePath as { data: ConfigPath }).data,
+      templatePath: (configResult.templatePath as { data: TemplatePath }).data,
       outputPath: (configResult.outputPath as { data: OutputPath }).data,
       options: {
         parallel: options.isParallel(),
