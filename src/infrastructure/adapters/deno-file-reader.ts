@@ -1,6 +1,6 @@
 /**
  * Deno implementation of the FileReader interface
- * 
+ *
  * This adapter provides file system access using Deno's built-in APIs,
  * implementing the FileReader interface from the domain layer.
  */

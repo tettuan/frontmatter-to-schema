@@ -1,12 +1,15 @@
 /**
  * Environment configuration adapter
- * 
+ *
  * This adapter reads environment variables and configures domain services accordingly.
  * It acts as a bridge between infrastructure (environment variables) and domain layer.
  */
 
 import { LoggerFactory } from "../../domain/shared/logger.ts";
-import type { LoggerConfiguration, LogLevel } from "../../domain/shared/logger.ts";
+import type {
+  LoggerConfiguration,
+  LogLevel,
+} from "../../domain/shared/logger.ts";
 
 export class EnvironmentConfig {
   /**

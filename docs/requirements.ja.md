@@ -131,10 +131,9 @@ registry_command_template.json
       "properties": {
         "availableConfigs": {
           "type": "array",
-          "description": "Tool names array - each becomes available as climpt-{name}",
+          "description": "Tool names array - each becomes available as climpt-{name}. Should contain unique values from commands[].c1",
           "items": {
-            "type": "string",
-            "enum": ["git", "spec", "test", "code", "docs", "meta"]
+            "type": "string"
           }
         },
         "commands": {
@@ -161,8 +160,7 @@ registry_command_template.json
   "properties": {
     "c1": {
       "type": "string",
-      "description": "Domain/category (git, spec, test, code, docs, meta)",
-      "enum": ["git", "spec", "test", "code", "docs", "meta"]
+      "description": "Domain/category (git, spec, test, code, docs, meta)"
     },
     "c2": {
       "type": "string",

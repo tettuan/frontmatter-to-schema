@@ -1,0 +1,54 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/mock-analyzer.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3700, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 413, "endOffset": 472, "count": 1 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "MockAnalyzer",
+      "ranges": [{ "startOffset": 476, "endOffset": 693, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 696, "endOffset": 961, "count": 34 },
+        { "startOffset": 793, "endOffset": 813, "count": 0 },
+        { "startOffset": 815, "endOffset": 863, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeAI",
+      "ranges": [{ "startOffset": 1009, "endOffset": 1166, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "doAnalyzeAI",
+      "ranges": [{ "startOffset": 1169, "endOffset": 2480, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analyzeSchema",
+      "ranges": [{ "startOffset": 2528, "endOffset": 2719, "count": 34 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "doAnalyzeSchema",
+      "ranges": [
+        { "startOffset": 2722, "endOffset": 3551, "count": 34 },
+        { "startOffset": 3118, "endOffset": 3123, "count": 0 },
+        { "startOffset": 3349, "endOffset": 3547, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

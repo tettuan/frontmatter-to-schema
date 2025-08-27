@@ -104,7 +104,7 @@ export interface ResultAggregator {
 
 /**
  * Infrastructure Service Interfaces
- * 
+ *
  * These interfaces define contracts for infrastructure services,
  * following the Ports and Adapters pattern to abstract infrastructure
  * concerns from the domain layer.
@@ -112,7 +112,7 @@ export interface ResultAggregator {
 
 /**
  * File system reader interface for abstracting file I/O operations
- * 
+ *
  * This interface allows the domain layer to read files without
  * directly depending on the file system implementation.
  */

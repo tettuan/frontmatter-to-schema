@@ -1,0 +1,77 @@
+{
+  "scriptId": "365",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/StrictStructureMatcher.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7428, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeYAMLStructure",
+      "ranges": [
+        { "startOffset": 525, "endOffset": 2780, "count": 5 },
+        { "startOffset": 626, "endOffset": 750, "count": 0 },
+        { "startOffset": 784, "endOffset": 2062, "count": 0 },
+        { "startOffset": 2100, "endOffset": 2120, "count": 2 },
+        { "startOffset": 2122, "endOffset": 2624, "count": 2 },
+        { "startOffset": 2216, "endOffset": 2479, "count": 3 },
+        { "startOffset": 2253, "endOffset": 2275, "count": 0 },
+        { "startOffset": 2385, "endOffset": 2426, "count": 0 },
+        { "startOffset": 2624, "endOffset": 2779, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeSchemaStructure",
+      "ranges": [
+        { "startOffset": 2836, "endOffset": 5094, "count": 3 },
+        { "startOffset": 2951, "endOffset": 3109, "count": 0 },
+        { "startOffset": 3236, "endOffset": 4019, "count": 1 },
+        { "startOffset": 3339, "endOffset": 3514, "count": 0 },
+        { "startOffset": 3609, "endOffset": 3874, "count": 2 },
+        { "startOffset": 3646, "endOffset": 3668, "count": 0 },
+        { "startOffset": 3780, "endOffset": 3821, "count": 0 },
+        { "startOffset": 4019, "endOffset": 4052, "count": 2 },
+        { "startOffset": 4052, "endOffset": 4680, "count": 0 },
+        { "startOffset": 4680, "endOffset": 4939, "count": 2 },
+        { "startOffset": 4939, "endOffset": 5093, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeTemplateStructure",
+      "ranges": [{ "startOffset": 5166, "endOffset": 5287, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "structuresEqual",
+      "ranges": [
+        { "startOffset": 5360, "endOffset": 6155, "count": 4 },
+        { "startOffset": 5427, "endOffset": 5454, "count": 0 },
+        { "startOffset": 5488, "endOffset": 5873, "count": 2 },
+        { "startOffset": 5529, "endOffset": 5541, "count": 0 },
+        { "startOffset": 5582, "endOffset": 5594, "count": 0 },
+        { "startOffset": 5641, "endOffset": 5717, "count": 1 },
+        { "startOffset": 5824, "endOffset": 5859, "count": 0 },
+        { "startOffset": 5867, "endOffset": 5873, "count": 1 },
+        { "startOffset": 5873, "endOffset": 5906, "count": 3 },
+        { "startOffset": 5906, "endOffset": 6134, "count": 0 },
+        { "startOffset": 6134, "endOffset": 6154, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateStructuralAlignment",
+      "ranges": [
+        { "startOffset": 6248, "endOffset": 7425, "count": 1 },
+        { "startOffset": 6428, "endOffset": 6460, "count": 0 },
+        { "startOffset": 6553, "endOffset": 6587, "count": 0 },
+        { "startOffset": 6688, "endOffset": 6724, "count": 0 },
+        { "startOffset": 6879, "endOffset": 7059, "count": 0 },
+        { "startOffset": 7368, "endOffset": 7424, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

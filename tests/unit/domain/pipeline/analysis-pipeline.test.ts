@@ -21,11 +21,11 @@ import type { FileReader } from "../../../../src/domain/services/interfaces.ts";
 // Mock implementations for testing
 class MockFileReader implements FileReader {
   private files = new Map<string, string>();
-  
+
   setFile(path: string, content: string) {
     this.files.set(path, content);
   }
-  
+
   readTextFile(path: string): Promise<string> {
     const content = this.files.get(path);
     if (!content) {
@@ -235,10 +235,10 @@ Deno.test("AnalysisPipeline - Core Pipeline Functionality", async (t) => {
 
     // We can't directly test the private discoverFiles method,
     // but we can test that the pipeline processes only markdown files
-    
+
     // The pipeline should process successfully
     await pipeline.process();
-    
+
     // Since the MockFileDiscovery filters to only .md files matching patterns,
     // and our config specifies "**/*.md", only markdown files should be processed
   });
@@ -312,6 +312,7 @@ Deno.test("AnalysisPipeline - Core Pipeline Functionality", async (t) => {
       new EnhancedMockEngine(),
       mockTransformer,
       multiStrategies,
+      mockFileReader,
     );
 
     // Setup mock response
@@ -369,6 +370,7 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockEngine,
       mockTransformer,
       strategies,
+      mockFileReader,
     );
 
     assertThrows(
@@ -392,6 +394,7 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
         mockEngine,
         mockTransformer,
         strategies,
+        mockFileReader,
       );
 
       assertThrows(
@@ -414,6 +417,7 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockEngine,
       mockTransformer,
       strategies,
+      mockFileReader,
     );
 
     assertThrows(
@@ -435,6 +439,7 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockEngine,
       mockTransformer,
       strategies,
+      mockFileReader,
     );
 
     assertThrows(

@@ -1,0 +1,56 @@
+{
+  "scriptId": "366",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/events.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2074, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 276, "endOffset": 351, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateLoadedEvent",
+      "ranges": [{ "startOffset": 355, "endOffset": 605, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getPayload",
+      "ranges": [{ "startOffset": 608, "endOffset": 788, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 894, "endOffset": 978, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateAppliedEvent",
+      "ranges": [{ "startOffset": 982, "endOffset": 1264, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getPayload",
+      "ranges": [{ "startOffset": 1267, "endOffset": 1454, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1560, "endOffset": 1643, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateProcessingFailedEvent",
+      "ranges": [{ "startOffset": 1647, "endOffset": 1935, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getPayload",
+      "ranges": [{ "startOffset": 1938, "endOffset": 2071, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

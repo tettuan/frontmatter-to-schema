@@ -1,0 +1,275 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/unit/application/BuildRegistryUseCase.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 15212, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 614, "endOffset": 623, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "MockFileReader",
+      "ranges": [{ "startOffset": 627, "endOffset": 700, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readDirectory",
+      "ranges": [{ "startOffset": 703, "endOffset": 850, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 788, "endOffset": 810, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readFile",
+      "ranges": [{ "startOffset": 853, "endOffset": 989, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "exists",
+      "ranges": [{ "startOffset": 992, "endOffset": 1083, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setMockFiles",
+      "ranges": [{ "startOffset": 1086, "endOffset": 1139, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1220, "endOffset": 1236, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "writeJson",
+      "ranges": [{ "startOffset": 1240, "endOffset": 1336, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ensureDir",
+      "ranges": [{ "startOffset": 1339, "endOffset": 1426, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getWrittenData",
+      "ranges": [{ "startOffset": 1429, "endOffset": 1490, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getAllWrittenData",
+      "ranges": [{ "startOffset": 1493, "endOffset": 1564, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "clear",
+      "ranges": [{ "startOffset": 1567, "endOffset": 1607, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1718, "endOffset": 1774, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extract",
+      "ranges": [
+        { "startOffset": 1778, "endOffset": 2011, "count": 13 },
+        { "startOffset": 1836, "endOffset": 1862, "count": 0 },
+        { "startOffset": 1893, "endOffset": 1935, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setReturnFrontMatter",
+      "ranges": [{ "startOffset": 2014, "endOffset": 2089, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setMockFrontMatter",
+      "ranges": [{ "startOffset": 2092, "endOffset": 2169, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2270, "endOffset": 2311, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 2315, "endOffset": 2842, "count": 7 },
+        { "startOffset": 2378, "endOffset": 2427, "count": 0 },
+        { "startOffset": 2498, "endOffset": 2633, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setShouldSucceed",
+      "ranges": [{ "startOffset": 2845, "endOffset": 2906, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setMockCommands",
+      "ranges": [{ "startOffset": 2909, "endOffset": 2974, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createMockPromptFile",
+      "ranges": [{ "startOffset": 3031, "endOffset": 3110, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestCommand",
+      "ranges": [{ "startOffset": 3138, "endOffset": 3212, "count": 13 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "fn",
+      "ranges": [{ "startOffset": 3314, "endOffset": 15207, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setupMocks",
+      "ranges": [{ "startOffset": 3495, "endOffset": 3794, "count": 11 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 3870, "endOffset": 5372, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mockAnalyzer.analyze",
+      "ranges": [
+        { "startOffset": 4341, "endOffset": 4789, "count": 2 },
+        { "startOffset": 4430, "endOffset": 4494, "count": 1 },
+        { "startOffset": 4495, "endOffset": 4573, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 5433, "endOffset": 5757, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 5818, "endOffset": 6788, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mockExtractor.extract",
+      "ranges": [
+        { "startOffset": 6280, "endOffset": 6448, "count": 2 },
+        { "startOffset": 6345, "endOffset": 6447, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 6852, "endOffset": 7968, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mockAnalyzer.analyze",
+      "ranges": [
+        { "startOffset": 7354, "endOffset": 7579, "count": 2 },
+        { "startOffset": 7425, "endOffset": 7578, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8030, "endOffset": 9269, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mockAnalyzer.analyze",
+      "ranges": [
+        { "startOffset": 8527, "endOffset": 8902, "count": 2 },
+        { "startOffset": 8600, "endOffset": 8901, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 9335, "endOffset": 10520, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mockAnalyzer.analyze",
+      "ranges": [
+        { "startOffset": 9743, "endOffset": 10141, "count": 2 },
+        { "startOffset": 9810, "endOffset": 10133, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 10592, "endOffset": 11436, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 11494, "endOffset": 12490, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 12547, "endOffset": 13355, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 13411, "endOffset": 14170, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readDirectory",
+      "ranges": [{ "startOffset": 13544, "endOffset": 13631, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readFile",
+      "ranges": [{ "startOffset": 13640, "endOffset": 13717, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "exists",
+      "ranges": [{ "startOffset": 13726, "endOffset": 13807, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 14046, "endOffset": 14127, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 14226, "endOffset": 15201, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "writeJson",
+      "ranges": [{ "startOffset": 14656, "endOffset": 14742, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ensureDir",
+      "ranges": [{ "startOffset": 14751, "endOffset": 14836, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 15075, "endOffset": 15162, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

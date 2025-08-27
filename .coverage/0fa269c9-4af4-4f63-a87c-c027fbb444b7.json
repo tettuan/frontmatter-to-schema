@@ -1,0 +1,194 @@
+{
+  "scriptId": "340",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/helpers/breakdown-logger.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6909, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 497, "endOffset": 512, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 516, "endOffset": 561, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "BreakdownLogger",
+      "ranges": [
+        { "startOffset": 565, "endOffset": 764, "count": 1 },
+        { "startOffset": 659, "endOffset": 760, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getInstance",
+      "ranges": [
+        { "startOffset": 774, "endOffset": 929, "count": 4 },
+        { "startOffset": 825, "endOffset": 888, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isEnabled",
+      "ranges": [{ "startOffset": 975, "endOffset": 1017, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setEnabled",
+      "ranges": [{ "startOffset": 1087, "endOffset": 1140, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "startTimer",
+      "ranges": [
+        { "startOffset": 1200, "endOffset": 1297, "count": 1 },
+        { "startOffset": 1248, "endOffset": 1296, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "endTimer",
+      "ranges": [{ "startOffset": 1347, "endOffset": 1592, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "debug",
+      "ranges": [{ "startOffset": 1630, "endOffset": 1712, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "info",
+      "ranges": [{ "startOffset": 1750, "endOffset": 1830, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "warn",
+      "ranges": [{ "startOffset": 1870, "endOffset": 1950, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "error",
+      "ranges": [{ "startOffset": 1989, "endOffset": 2071, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "logWithTiming",
+      "ranges": [
+        { "startOffset": 2117, "endOffset": 2449, "count": 1 },
+        { "startOffset": 2197, "endOffset": 2448, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "logPhase",
+      "ranges": [{ "startOffset": 2495, "endOffset": 2685, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "logResult",
+      "ranges": [
+        { "startOffset": 2729, "endOffset": 3061, "count": 2 },
+        { "startOffset": 2797, "endOffset": 3057, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestScope",
+      "ranges": [{ "startOffset": 3122, "endOffset": 3217, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "clear",
+      "ranges": [{ "startOffset": 3257, "endOffset": 3324, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getEntries",
+      "ranges": [{ "startOffset": 3362, "endOffset": 3405, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "exportToJson",
+      "ranges": [{ "startOffset": 3450, "endOffset": 3520, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "log",
+      "ranges": [
+        { "startOffset": 3558, "endOffset": 3807, "count": 6 },
+        { "startOffset": 3625, "endOffset": 3806, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "output",
+      "ranges": [{ "startOffset": 3853, "endOffset": 4568, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 4677, "endOffset": 4705, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TestScopeLogger",
+      "ranges": [{ "startOffset": 4709, "endOffset": 4833, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "arrange",
+      "ranges": [{ "startOffset": 4869, "endOffset": 4965, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "act",
+      "ranges": [{ "startOffset": 4997, "endOffset": 5085, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "assert",
+      "ranges": [{ "startOffset": 5120, "endOffset": 5214, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "cleanup",
+      "ranges": [{ "startOffset": 5250, "endOffset": 5346, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "startTimer",
+      "ranges": [{ "startOffset": 5378, "endOffset": 5454, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "endTimer",
+      "ranges": [{ "startOffset": 5499, "endOffset": 5633, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "logResult",
+      "ranges": [{ "startOffset": 5669, "endOffset": 5779, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createContext",
+      "ranges": [{ "startOffset": 5829, "endOffset": 5945, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getBreakdownLogger",
+      "ranges": [{ "startOffset": 6015, "endOffset": 6088, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "logTestExecution",
+      "ranges": [{ "startOffset": 6198, "endOffset": 6908, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

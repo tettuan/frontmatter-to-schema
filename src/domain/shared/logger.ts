@@ -133,11 +133,11 @@ export class LoggerFactory {
 
   static createLogger(source?: string): Logger {
     const { environment, logLevel } = LoggerFactory.configuration;
-    
+
     if (environment === "production") {
       return new NullLogger();
     }
-    
+
     return new ConsoleLogger(source, logLevel || "info");
   }
 

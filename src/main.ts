@@ -152,7 +152,7 @@ async function runBuildRegistry() {
 async function main() {
   // Initialize environment-based configuration
   EnvironmentConfig.initialize();
-  
+
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],
     boolean: [
