@@ -70,3 +70,7 @@ languages
 # Git
 
 - use gh for Git access.
+
+# Naming Conventions
+
+- use TypeScript and Deno standard.

@@ -1,0 +1,222 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/component-factory-totality.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 10245, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 387, "endOffset": 424, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AnalysisDomainConfig",
+      "ranges": [{ "startOffset": 428, "endOffset": 579, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 589, "endOffset": 966, "count": 13 },
+        { "startOffset": 632, "endOffset": 641, "count": 5 },
+        { "startOffset": 642, "endOffset": 650, "count": 8 },
+        { "startOffset": 672, "endOffset": 691, "count": 11 },
+        { "startOffset": 693, "endOffset": 838, "count": 3 },
+        { "startOffset": 838, "endOffset": 911, "count": 10 },
+        { "startOffset": 911, "endOffset": 928, "count": 2 },
+        { "startOffset": 936, "endOffset": 945, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1071, "endOffset": 1098, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateDomainConfig",
+      "ranges": [{ "startOffset": 1102, "endOffset": 1219, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 1229, "endOffset": 1762, "count": 6 },
+        { "startOffset": 1278, "endOffset": 1293, "count": 3 },
+        { "startOffset": 1294, "endOffset": 1303, "count": 3 },
+        { "startOffset": 1334, "endOffset": 1346, "count": 3 },
+        { "startOffset": 1491, "endOffset": 1658, "count": 1 },
+        { "startOffset": 1658, "endOffset": 1761, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1867, "endOffset": 1907, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PipelineDomainConfig",
+      "ranges": [{ "startOffset": 1911, "endOffset": 2071, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 2081, "endOffset": 2514, "count": 7 },
+        { "startOffset": 2127, "endOffset": 2139, "count": 4 },
+        { "startOffset": 2140, "endOffset": 2144, "count": 3 },
+        { "startOffset": 2177, "endOffset": 2191, "count": 4 },
+        { "startOffset": 2225, "endOffset": 2243, "count": 6 },
+        { "startOffset": 2245, "endOffset": 2391, "count": 2 },
+        { "startOffset": 2391, "endOffset": 2464, "count": 5 },
+        { "startOffset": 2464, "endOffset": 2476, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2611, "endOffset": 2627, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TotalAnalysisDomainFactory",
+      "ranges": [{ "startOffset": 2631, "endOffset": 2791, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 2794, "endOffset": 2992, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 2995, "endOffset": 4115, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 4212, "endOffset": 4228, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TotalTemplateDomainFactory",
+      "ranges": [{ "startOffset": 4232, "endOffset": 4392, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 4395, "endOffset": 4542, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 4545, "endOffset": 5413, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 5510, "endOffset": 5526, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TotalPipelineDomainFactory",
+      "ranges": [{ "startOffset": 5530, "endOffset": 5690, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 5693, "endOffset": 6020, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 6023, "endOffset": 6813, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 6933, "endOffset": 6952, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TotalMasterComponentFactory",
+      "ranges": [{ "startOffset": 6956, "endOffset": 7076, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "registerFactory",
+      "ranges": [
+        { "startOffset": 7120, "endOffset": 7512, "count": 9 },
+        { "startOffset": 7217, "endOffset": 7354, "count": 2 },
+        { "startOffset": 7354, "endOffset": 7511, "count": 7 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [
+        { "startOffset": 7570, "endOffset": 7867, "count": 1 },
+        { "startOffset": 7824, "endOffset": 7866, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createAllComponents",
+      "ranges": [{ "startOffset": 7918, "endOffset": 8232, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 8344, "endOffset": 8367, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TotalFactoryBuilder",
+      "ranges": [{ "startOffset": 8371, "endOffset": 8520, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "withAnalysisDomain",
+      "ranges": [
+        { "startOffset": 8564, "endOffset": 8980, "count": 5 },
+        { "startOffset": 8681, "endOffset": 8715, "count": 1 },
+        { "startOffset": 8715, "endOffset": 8887, "count": 4 },
+        { "startOffset": 8887, "endOffset": 8923, "count": 1 },
+        { "startOffset": 8923, "endOffset": 8979, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "withTemplateDomain",
+      "ranges": [
+        { "startOffset": 9024, "endOffset": 9440, "count": 1 },
+        { "startOffset": 9141, "endOffset": 9175, "count": 0 },
+        { "startOffset": 9347, "endOffset": 9383, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "withPipelineDomain",
+      "ranges": [
+        { "startOffset": 9484, "endOffset": 9900, "count": 1 },
+        { "startOffset": 9601, "endOffset": 9635, "count": 0 },
+        { "startOffset": 9807, "endOffset": 9843, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "build",
+      "ranges": [{ "startOffset": 9965, "endOffset": 10118, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createFactoryBuilder",
+      "ranges": [{ "startOffset": 10173, "endOffset": 10244, "count": 4 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

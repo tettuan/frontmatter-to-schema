@@ -8,7 +8,6 @@ import {
   createProcessingError,
   createValidationError,
   type DomainError,
-  type ValidationError,
 } from "../shared/errors.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
@@ -274,14 +273,14 @@ export class TotalTemplateDomainFactory
     return { ok: true, data: true };
   }
 
-  async createComponents(): Promise<
+  createComponents(): Promise<
     Result<ComponentFactoryResult, DomainError>
   > {
     this.logger.info("Creating template domain components with totality");
 
     const validationResult = this.validateDependencies();
     if (!validationResult.ok) {
-      return validationResult;
+      return Promise.resolve(validationResult);
     }
 
     try {
@@ -291,7 +290,7 @@ export class TotalTemplateDomainFactory
       const formatHandler = {} as TemplateFormatHandler; // TODO: Implement proper handler
       const placeholderProcessor = {} as PlaceholderProcessor; // TODO: Implement proper processor
 
-      return {
+      return Promise.resolve({
         ok: true,
         data: {
           kind: "template",
@@ -300,14 +299,14 @@ export class TotalTemplateDomainFactory
             placeholderProcessor,
           },
         },
-      };
+      });
     } catch (error) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: createProcessingError(
           `Failed to create template components: ${error}`,
         ),
-      };
+      });
     }
   }
 }
@@ -339,14 +338,14 @@ export class TotalPipelineDomainFactory
     return { ok: true, data: true };
   }
 
-  async createComponents(): Promise<
+  createComponents(): Promise<
     Result<ComponentFactoryResult, DomainError>
   > {
     this.logger.info("Creating pipeline domain components with totality");
 
     const validationResult = this.validateDependencies();
     if (!validationResult.ok) {
-      return validationResult;
+      return Promise.resolve(validationResult);
     }
 
     try {
@@ -355,7 +354,7 @@ export class TotalPipelineDomainFactory
       const schemaProcessor = {} as SchemaProcessor;
       const schemaSwitcher = {} as SchemaSwitcher;
 
-      return {
+      return Promise.resolve({
         ok: true,
         data: {
           kind: "pipeline",
@@ -364,14 +363,14 @@ export class TotalPipelineDomainFactory
             schemaSwitcher,
           },
         },
-      };
+      });
     } catch (error) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: createProcessingError(
           `Failed to create pipeline components: ${error}`,
         ),
-      };
+      });
     }
   }
 }
@@ -414,18 +413,18 @@ export class TotalMasterComponentFactory {
   /**
    * Create components for a specific domain
    */
-  async createComponents(
+  createComponents(
     domain: ComponentDomain,
   ): Promise<Result<ComponentFactoryResult, DomainError>> {
     const factory = this.factories.get(domain.kind);
 
     if (!factory) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: createValidationError(
           `No factory registered for domain: ${domain.kind}`,
         ),
-      };
+      });
     }
 
     return factory.createComponents();
@@ -541,4 +540,3 @@ export class TotalFactoryBuilder {
 export function createFactoryBuilder(): TotalFactoryBuilder {
   return new TotalFactoryBuilder();
 }
-

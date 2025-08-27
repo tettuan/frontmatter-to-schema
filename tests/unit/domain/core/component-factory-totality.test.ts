@@ -11,10 +11,7 @@ import {
   PipelineDomainConfig,
   TemplateDomainConfig,
   TotalAnalysisDomainFactory,
-  TotalFactoryBuilder,
   TotalMasterComponentFactory,
-  TotalPipelineDomainFactory,
-  TotalTemplateDomainFactory,
 } from "../../../../src/domain/core/component-factory-totality.ts";
 
 Deno.test("Component Factory with Totality", async (t) => {
@@ -168,12 +165,12 @@ Deno.test("Component Factory with Totality", async (t) => {
       const analysisResult: ComponentFactoryResult = {
         kind: "analysis",
         components: {
-          engine: {} as any,
-          processor: {} as any,
-          schemaAnalyzer: {} as any,
-          templateMapper: {} as any,
+          engine: {} as unknown,
+          processor: {} as unknown,
+          schemaAnalyzer: {} as unknown,
+          templateMapper: {} as unknown,
         },
-      };
+      } as ComponentFactoryResult;
 
       // Type guard works
       if (analysisResult.kind === "analysis") {
@@ -183,10 +180,10 @@ Deno.test("Component Factory with Totality", async (t) => {
       const templateResult: ComponentFactoryResult = {
         kind: "template",
         components: {
-          formatHandler: {} as any,
-          placeholderProcessor: {} as any,
+          formatHandler: {} as unknown,
+          placeholderProcessor: {} as unknown,
         },
-      };
+      } as ComponentFactoryResult;
 
       // Type guard works
       if (templateResult.kind === "template") {
@@ -318,4 +315,3 @@ Deno.test("Component Factory with Totality", async (t) => {
     });
   });
 });
-
