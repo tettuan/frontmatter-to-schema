@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { isError, isOk } from "../../src/domain/shared/types.ts";
+import type { DomainError } from "../../src/domain/core/result.ts";
 import { ProcessDocumentsUseCase } from "../../src/application/use-cases/process-documents.ts";
 import {
   ConfigPath,
@@ -226,17 +227,15 @@ class MockFrontMatterExtractor implements FrontMatterExtractor {
       return {
         ok: false as const,
         error: {
-          kind: "ExtractionFailed" as const,
-          document: document.getPath().getValue(),
-          reason: "No frontmatter found",
+          kind: "NotFound",
           message: "No frontmatter found",
-        },
+        } as DomainError & { message: string },
       };
     }
 
     return {
       ok: true as const,
-      data: frontMatter,
+      data: { kind: "Extracted" as const, frontMatter },
     };
   }
 }
@@ -731,7 +730,7 @@ Content`,
 
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "ConfigurationInvalid");
+      assertEquals(result.error.kind, "ReadError");
     }
   });
 });

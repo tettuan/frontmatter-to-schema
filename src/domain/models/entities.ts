@@ -1,6 +1,7 @@
 // Domain entities following DDD principles
 
-import type { Result, ValidationError } from "../shared/types.ts";
+import type { Result } from "../core/result.ts";
+import type { DomainError } from "../core/result.ts";
 import type {
   DocumentContent,
   DocumentPath,
@@ -18,14 +19,13 @@ export class DocumentId {
 
   static create(
     value: string,
-  ): Result<DocumentId, ValidationError> {
+  ): Result<DocumentId, DomainError> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
     return { ok: true, data: new DocumentId(value) };
@@ -49,14 +49,13 @@ export class SchemaId {
 
   static create(
     value: string,
-  ): Result<SchemaId, ValidationError> {
+  ): Result<SchemaId, DomainError> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
     return { ok: true, data: new SchemaId(value) };
@@ -76,14 +75,13 @@ export class TemplateId {
 
   static create(
     value: string,
-  ): Result<TemplateId, ValidationError> {
+  ): Result<TemplateId, DomainError> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
     return { ok: true, data: new TemplateId(value) };
@@ -103,14 +101,13 @@ export class AnalysisId {
 
   static create(
     value: string,
-  ): Result<AnalysisId, ValidationError> {
+  ): Result<AnalysisId, DomainError> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
     return { ok: true, data: new AnalysisId(value) };
@@ -226,30 +223,14 @@ export class Schema {
     return this.description;
   }
 
-  validate(data: unknown): Result<void, ValidationError> {
+  validate(data: unknown): Result<void, DomainError> {
     const result = this.definition.validate(data);
     if (result.ok) {
       return { ok: true, data: undefined };
     }
 
-    // Convert the error from core/result.ts format to shared/types.ts format
-    const coreError = result.error;
-    const sharedError = this.convertErrorFormat(coreError);
-    return { ok: false, error: sharedError };
-  }
-
-  private convertErrorFormat(
-    coreError: { kind: string; [key: string]: unknown },
-  ): ValidationError {
-    // All errors are now ValidationError
-    const message = coreError.message
-      ? String(coreError.message)
-      : "Validation failed";
-
-    return {
-      kind: "ValidationError",
-      message: message,
-    };
+    // The result from definition.validate is already a DomainError
+    return { ok: false, error: result.error };
   }
 }
 

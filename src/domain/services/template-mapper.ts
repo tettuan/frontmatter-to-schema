@@ -17,8 +17,18 @@ export class TemplateMapper {
     // For now, assume template format contains JSON definition in template field
     const templateDefinition = format.getTemplate();
 
-    // Parse template definition as JSON to get structure for validation
+    // Extract data from ExtractedData
+    const dataObject = data.getData();
+
+    // Parse template definition based on format type
     let templateStructure: unknown;
+
+    // For handlebars format, skip JSON parsing and handle directly
+    if (format.getFormat() === "handlebars") {
+      return this.mapWithHandlebars(dataObject, templateDefinition);
+    }
+
+    // For other formats, parse as JSON to get structure for validation
     try {
       templateStructure = JSON.parse(templateDefinition);
     } catch (error) {
@@ -32,9 +42,6 @@ export class TemplateMapper {
         } as ProcessingError & { message: string },
       };
     }
-
-    // Extract data from ExtractedData
-    const dataObject = data.getData();
 
     // Perform strict structure validation if schema is provided
     if (schema) {
@@ -204,17 +211,21 @@ export class TemplateMapper {
   private applyDataToTemplateStrict(
     data: unknown,
     template: unknown,
+    rootData?: unknown,
   ): unknown {
-    // Strict matching: template and data structures must align exactly
+    // Use rootData for placeholder resolution, fallback to data for backward compatibility
+    const contextData = rootData !== undefined ? rootData : data;
+
+    // Handle null and undefined template values
     if (template === null || template === undefined) {
-      return data;
+      return template; // Return the template value itself, not the data
     }
 
     if (typeof template === "string") {
       // Check if it's a placeholder
       if (template.startsWith("{{") && template.endsWith("}}")) {
         const path = template.slice(2, -2).trim();
-        const value = this.getValueByPathStrict(data, path);
+        const value = this.getValueByPathStrict(contextData, path);
         // Return undefined if path doesn't exist (no fallbacks)
         return value;
       }
@@ -234,7 +245,11 @@ export class TemplateMapper {
 
       const result = [];
       for (let i = 0; i < template.length; i++) {
-        const mappedItem = this.applyDataToTemplateStrict(data[i], template[i]);
+        const mappedItem = this.applyDataToTemplateStrict(
+          data[i],
+          template[i],
+          contextData,
+        );
         if (mappedItem === undefined && template[i] !== undefined) {
           return undefined;
         }
@@ -257,16 +272,13 @@ export class TemplateMapper {
       const result: Record<string, unknown> = {};
       const dataObj = data as Record<string, unknown>;
 
-      // All template keys must exist in data for strict matching
+      // Process all template keys
       for (const [key, templateValue] of Object.entries(template)) {
-        if (!(key in dataObj)) {
-          // Missing key in data - strict matching fails
-          return undefined;
-        }
-
+        // For static values (non-placeholders), we don't need the key in data
         const mappedValue = this.applyDataToTemplateStrict(
-          dataObj[key],
+          dataObj[key], // This might be undefined for static values
           templateValue,
+          contextData,
         );
         if (mappedValue === undefined && templateValue !== undefined) {
           return undefined;
@@ -289,7 +301,14 @@ export class TemplateMapper {
         return undefined;
       }
 
-      if (typeof current === "object" && !Array.isArray(current)) {
+      if (Array.isArray(current)) {
+        // Handle array access by numeric index
+        const index = parseInt(part, 10);
+        if (isNaN(index) || index < 0 || index >= current.length) {
+          return undefined;
+        }
+        current = current[index];
+      } else if (typeof current === "object") {
         const currentObj = current as Record<string, unknown>;
         // Strict path resolution - must exist in object
         if (!(part in currentObj)) {
@@ -297,7 +316,7 @@ export class TemplateMapper {
         }
         current = currentObj[part];
       } else {
-        // Path traversal failed - current is not an object
+        // Path traversal failed - current is not an object or array
         return undefined;
       }
     }

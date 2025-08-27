@@ -1,0 +1,51 @@
+{
+  "scriptId": "359",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/types.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3489, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createError",
+      "ranges": [{ "startOffset": 150, "endOffset": 326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDefaultMessage",
+      "ranges": [{ "startOffset": 327, "endOffset": 2806, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isOk",
+      "ranges": [{ "startOffset": 2836, "endOffset": 2881, "count": 68 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isError",
+      "ranges": [{ "startOffset": 2889, "endOffset": 2938, "count": 108 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "unwrapOr",
+      "ranges": [{ "startOffset": 2946, "endOffset": 3038, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mapResult",
+      "ranges": [{ "startOffset": 3046, "endOffset": 3157, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "flatMapResult",
+      "ranges": [{ "startOffset": 3165, "endOffset": 3250, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "wrapAsync",
+      "ranges": [{ "startOffset": 3258, "endOffset": 3488, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

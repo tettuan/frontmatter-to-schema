@@ -1,0 +1,48 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/use-cases/BuildRegistryUseCase.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3273, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 234, "endOffset": 283, "count": 13 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "BuildRegistryUseCase",
+      "ranges": [{ "startOffset": 287, "endOffset": 478, "count": 13 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 481, "endOffset": 3270, "count": 11 },
+        { "startOffset": 711, "endOffset": 888, "count": 10 },
+        { "startOffset": 888, "endOffset": 2953, "count": 14 },
+        { "startOffset": 1079, "endOffset": 1215, "count": 1 },
+        { "startOffset": 1215, "endOffset": 1326, "count": 13 },
+        { "startOffset": 1327, "endOffset": 1359, "count": 13 },
+        { "startOffset": 1361, "endOffset": 1392, "count": 0 },
+        { "startOffset": 1392, "endOffset": 1526, "count": 13 },
+        { "startOffset": 1526, "endOffset": 1658, "count": 12 },
+        { "startOffset": 1660, "endOffset": 2743, "count": 12 },
+        { "startOffset": 1783, "endOffset": 1814, "count": 10 },
+        { "startOffset": 1816, "endOffset": 2302, "count": 10 },
+        { "startOffset": 1903, "endOffset": 2149, "count": 9 },
+        { "startOffset": 2149, "endOffset": 2290, "count": 1 },
+        { "startOffset": 2302, "endOffset": 2733, "count": 2 },
+        { "startOffset": 2353, "endOffset": 2414, "count": 0 },
+        { "startOffset": 2562, "endOffset": 2566, "count": 0 },
+        { "startOffset": 2752, "endOffset": 2947, "count": 1 },
+        { "startOffset": 2912, "endOffset": 2927, "count": 0 },
+        { "startOffset": 2953, "endOffset": 3053, "count": 10 },
+        { "startOffset": 3053, "endOffset": 3269, "count": 9 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

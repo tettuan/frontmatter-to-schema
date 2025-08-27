@@ -133,8 +133,8 @@ Deno.test("NativeTemplateStrategy - Totality Tests", async (t) => {
           assertEquals(output.required, "{{missing.nested.path}}");
         }
         if (!result.ok) {
-          assertExists(result.error.message);
-          assertEquals(result.error.message.includes("not found"), true);
+          assertExists(result.error);
+          assertEquals(result.error.kind, "NotFound");
         }
       }
     }
@@ -259,10 +259,7 @@ Deno.test("AITemplateStrategy - Integration Tests", async (t) => {
         const result = await strategy.process(template.data, context);
         assertEquals(result.ok, false, "Should handle AI failure");
         if (!result.ok) {
-          assertEquals(
-            result.error.message.includes("AI template processing failed"),
-            true,
-          );
+          assertEquals(result.error.kind, "AIServiceError");
         }
       }
     }
@@ -470,12 +467,7 @@ Deno.test("Strategy Pattern - Boundary Tests", async (t) => {
         const result = await strategy.process(template.data, context);
         assertEquals(result.ok, false);
         if (!result.ok) {
-          assertEquals(
-            result.error.message.includes(
-              "NativeTemplateStrategy cannot handle format",
-            ),
-            true,
-          );
+          assertEquals(result.error.kind, "UnsupportedAnalysisType");
         }
       }
     }

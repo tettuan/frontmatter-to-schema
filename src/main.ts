@@ -17,6 +17,7 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { LoggerFactory } from "./domain/shared/logger.ts";
+import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
 //   FactoryConfigurationBuilder,
@@ -149,6 +150,9 @@ async function runBuildRegistry() {
  * The function ensures proper error handling and clean exit codes.
  */
 async function main() {
+  // Initialize environment-based configuration
+  EnvironmentConfig.initialize();
+
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],
     boolean: [
@@ -229,7 +233,7 @@ Examples:
     // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
     // Note: This is a temporary solution, should be properly injected
     const { MappedData } = await import("./domain/models/entities.ts");
-    const { createError } = await import("./domain/shared/types.ts");
+    const { createDomainError } = await import("./domain/core/result.ts");
 
     const templateMapper = {
       map: (data: ExtractedData, template: Template) => {
@@ -241,13 +245,22 @@ Examples:
         } catch (error) {
           return {
             ok: false as const,
-            error: createError({
-              kind: "MappingFailed" as const,
-              document: "unknown",
-              reason: error instanceof Error
+            error: createDomainError(
+              {
+                kind: "ProcessingStageError",
+                stage: "template mapping",
+                error: {
+                  kind: "InvalidResponse",
+                  service: "template",
+                  response: error instanceof Error
+                    ? error.message
+                    : "Template mapping failed",
+                },
+              },
+              error instanceof Error
                 ? error.message
                 : "Template mapping failed",
-            }),
+            ),
           };
         }
       },

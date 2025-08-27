@@ -1,5 +1,5 @@
-import type { Result } from "../../domain/core/result.ts";
-import type { APIError, IOError } from "../../domain/shared/errors.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
+import type { APIError } from "../../domain/shared/errors.ts";
 
 // File System Port
 export interface FileInfo {
@@ -11,15 +11,15 @@ export interface FileInfo {
 }
 
 export interface FileSystemPort {
-  readFile(path: string): Promise<Result<string, IOError>>;
-  writeFile(path: string, content: string): Promise<Result<void, IOError>>;
-  exists(path: string): Promise<Result<boolean, IOError>>;
+  readFile(path: string): Promise<Result<string, DomainError>>;
+  writeFile(path: string, content: string): Promise<Result<void, DomainError>>;
+  exists(path: string): Promise<Result<boolean, DomainError>>;
   listFiles(
     path: string,
     pattern?: string,
-  ): Promise<Result<FileInfo[], IOError>>;
-  createDirectory(path: string): Promise<Result<void, IOError>>;
-  deleteFile(path: string): Promise<Result<void, IOError>>;
+  ): Promise<Result<FileInfo[], DomainError>>;
+  createDirectory(path: string): Promise<Result<void, DomainError>>;
+  deleteFile(path: string): Promise<Result<void, DomainError>>;
 }
 
 // AI Analyzer Port

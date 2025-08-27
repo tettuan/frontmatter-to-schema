@@ -11,11 +11,10 @@
  */
 
 import type {
-  IOError,
-  ProcessingError,
+  DomainError,
   Result,
-  ValidationError,
-} from "../shared/types.ts";
+  // createDomainError, // Unused import removed
+} from "../core/result.ts";
 import type {
   AggregatedResult,
   AnalysisResult,
@@ -33,6 +32,20 @@ import type {
 } from "../models/value-objects.ts";
 
 /**
+ * Discriminated Union Types
+ * These types represent different states of processing results following the totality principle
+ */
+
+/**
+ * Result type for FrontMatter extraction that eliminates null returns
+ * - Extracted: Document contains valid frontmatter
+ * - NotPresent: Document has no frontmatter (valid state, not an error)
+ */
+export type FrontMatterExtractionResult =
+  | { kind: "Extracted"; frontMatter: FrontMatter }
+  | { kind: "NotPresent" };
+
+/**
  * Core Domain Services
  * These services encapsulate domain logic that doesn't naturally fit within entities
  */
@@ -41,12 +54,12 @@ import type {
  * Extracts frontmatter metadata from markdown documents
  *
  * Responsible for parsing YAML/TOML frontmatter from document content.
- * Returns null if no frontmatter is present (which is a valid state).
+ * Returns a discriminated union indicating either extracted frontmatter or no frontmatter present.
  */
 export interface FrontMatterExtractor {
   extract(
     document: Document,
-  ): Result<FrontMatter | null, ProcessingError & { message: string }>;
+  ): Result<FrontMatterExtractionResult, DomainError & { message: string }>;
 }
 
 /**
@@ -60,7 +73,7 @@ export interface SchemaAnalyzer {
   analyze(
     frontMatter: FrontMatter,
     schema: Schema,
-  ): Promise<Result<ExtractedData, ProcessingError & { message: string }>>;
+  ): Promise<Result<ExtractedData, DomainError & { message: string }>>;
 }
 
 /**
@@ -74,7 +87,7 @@ export interface TemplateMapper {
     data: ExtractedData,
     template: Template,
     schema?: unknown,
-  ): Result<MappedData, ProcessingError & { message: string }>;
+  ): Result<MappedData, DomainError & { message: string }>;
 }
 
 /**
@@ -86,7 +99,25 @@ export interface TemplateMapper {
 export interface ResultAggregator {
   aggregate(
     results: AnalysisResult[],
-  ): Result<AggregatedResult, ProcessingError & { message: string }>;
+  ): Result<AggregatedResult, DomainError & { message: string }>;
+}
+
+/**
+ * Infrastructure Service Interfaces
+ *
+ * These interfaces define contracts for infrastructure services,
+ * following the Ports and Adapters pattern to abstract infrastructure
+ * concerns from the domain layer.
+ */
+
+/**
+ * File system reader interface for abstracting file I/O operations
+ *
+ * This interface allows the domain layer to read files without
+ * directly depending on the file system implementation.
+ */
+export interface FileReader {
+  readTextFile(path: string): Promise<string>;
 }
 
 /**
@@ -103,54 +134,56 @@ export interface ResultAggregator {
 export interface DocumentRepository {
   findAll(
     path: DocumentPath,
-  ): Promise<Result<Document[], IOError & { message: string }>>;
+  ): Promise<Result<Document[], DomainError & { message: string }>>;
   findByPattern(
     pattern: string,
     basePath?: string,
-  ): Promise<Result<Document[], IOError & { message: string }>>;
+  ): Promise<Result<Document[], DomainError & { message: string }>>;
   read(
     path: DocumentPath,
-  ): Promise<Result<Document, IOError & { message: string }>>;
+  ): Promise<Result<Document, DomainError & { message: string }>>;
 }
 
 export interface SchemaRepository {
   load(
     path: ConfigPath,
-  ): Promise<Result<Schema, IOError & { message: string }>>;
-  validate(schema: Schema): Result<void, ValidationError & { message: string }>;
+  ): Promise<Result<Schema, DomainError & { message: string }>>;
+  validate(schema: Schema): Result<void, DomainError & { message: string }>;
 }
 
 export interface TemplateRepository {
   load(
     path: ConfigPath,
-  ): Promise<Result<Template, IOError & { message: string }>>;
+  ): Promise<Result<Template, DomainError & { message: string }>>;
   validate(
     template: Template,
-  ): Result<void, ValidationError & { message: string }>;
+  ): Result<void, DomainError & { message: string }>;
 }
 
 export interface ResultRepository {
   save(
     result: AggregatedResult,
     path: OutputPath,
-  ): Promise<Result<void, IOError & { message: string }>>;
+  ): Promise<Result<void, DomainError & { message: string }>>;
   append(
     result: AnalysisResult,
     path: OutputPath,
-  ): Promise<Result<void, IOError & { message: string }>>;
+  ): Promise<Result<void, DomainError & { message: string }>>;
 }
 
 // Configuration repository
 export interface ConfigurationRepository {
   loadProcessingConfig(
     path: ConfigPath,
-  ): Promise<Result<ProcessingConfiguration, IOError & { message: string }>>;
+  ): Promise<
+    Result<ProcessingConfiguration, DomainError & { message: string }>
+  >;
   loadAnalysisConfig(
     path: ConfigPath,
-  ): Promise<Result<AnalysisConfiguration, IOError & { message: string }>>;
+  ): Promise<Result<AnalysisConfiguration, DomainError & { message: string }>>;
   validate(
     config: ProcessingConfiguration | AnalysisConfiguration,
-  ): Result<void, ValidationError & { message: string }>;
+  ): Result<void, DomainError & { message: string }>;
 }
 
 // Configuration types

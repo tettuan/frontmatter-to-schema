@@ -6,9 +6,8 @@
  * - Responsible for template loading, validation, and application
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
-import { createValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { Template } from "../models/domain-models.ts";
 import type { TemplateRepository } from "./repository.ts";
 import type { TemplateProcessingStrategy } from "./strategies.ts";
@@ -39,12 +38,15 @@ export class TemplateAggregate {
    */
   async loadTemplate(
     templateId: string,
-  ): Promise<Result<Template, ValidationError>> {
+  ): Promise<Result<Template, DomainError>> {
     // Validate templateId
     if (!templateId || templateId.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("Template ID cannot be empty"),
+        error: createDomainError(
+          { kind: "EmptyInput" },
+          "Template ID cannot be empty",
+        ),
       };
     }
 
@@ -74,12 +76,13 @@ export class TemplateAggregate {
   async applyTemplate(
     templateId: string,
     context: TemplateApplicationContext,
-  ): Promise<Result<string, ValidationError>> {
+  ): Promise<Result<string, DomainError>> {
     // Validate context
     if (!context) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          { kind: "EmptyInput" },
           "Template application context cannot be null",
         ),
       };
@@ -98,7 +101,12 @@ export class TemplateAggregate {
     if (templateFormat !== "custom" && templateFormat !== context.format) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: templateFormat,
+            expectedFormat: context.format,
+          },
           `Template format mismatch: template is ${templateFormat}, requested ${context.format}`,
         ),
       };

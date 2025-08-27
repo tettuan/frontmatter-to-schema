@@ -1,13 +1,9 @@
-import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
 import type { Schema } from "../models/domain-models.ts";
 
 export interface ValidationResult {
   isValid: boolean;
-  errors: ValidationError[];
+  errors: DomainError[];
   validatedData: unknown;
 }
 
@@ -15,7 +11,7 @@ export class SchemaValidator {
   validate(
     data: unknown,
     schema: Schema,
-  ): Result<unknown, ValidationError> {
+  ): Result<unknown, DomainError> {
     // This is a simplified validator
     // In production, this would use a proper JSON Schema validator
     const schemaDefinition = schema.getDefinition().getDefinition();
@@ -23,7 +19,11 @@ export class SchemaValidator {
     if (typeof schemaDefinition !== "object" || schemaDefinition === null) {
       return {
         ok: false,
-        error: createValidationError("Invalid schema definition"),
+        error: {
+          kind: "InvalidFormat",
+          input: String(schemaDefinition),
+          expectedFormat: "object",
+        },
       };
     }
 
@@ -43,11 +43,15 @@ export class SchemaValidator {
   private validateObject(
     data: unknown,
     schema: Record<string, unknown>,
-  ): Result<unknown, ValidationError> {
+  ): Result<unknown, DomainError> {
     if (typeof data !== "object" || data === null) {
       return {
         ok: false,
-        error: createValidationError("Expected object, got " + typeof data),
+        error: {
+          kind: "InvalidFormat",
+          input: String(data),
+          expectedFormat: "object",
+        },
       };
     }
 
@@ -63,10 +67,7 @@ export class SchemaValidator {
         if (!(field in dataObj)) {
           return {
             ok: false,
-            error: createValidationError(
-              `Missing required field: ${field}`,
-              field,
-            ),
+            error: { kind: "NotFound", resource: "field", name: field },
           };
         }
       }
@@ -89,10 +90,7 @@ export class SchemaValidator {
         } else if (schema["additionalProperties"] === false) {
           return {
             ok: false,
-            error: createValidationError(
-              `Unexpected field: ${key}`,
-              key,
-            ),
+            error: { kind: "NotConfigured", component: key },
           };
         } else {
           validatedData[key] = value;
@@ -109,7 +107,7 @@ export class SchemaValidator {
     value: unknown,
     schema: Record<string, unknown>,
     fieldName: string,
-  ): Result<unknown, ValidationError> {
+  ): Result<unknown, DomainError> {
     const type = schema["type"] as string | undefined;
 
     if (!type) {
@@ -121,11 +119,11 @@ export class SchemaValidator {
         if (typeof value !== "string") {
           return {
             ok: false,
-            error: createValidationError(
-              `Field ${fieldName} must be a string`,
-              fieldName,
-              value,
-            ),
+            error: {
+              kind: "InvalidFormat",
+              input: String(value),
+              expectedFormat: "string",
+            },
           };
         }
         break;
@@ -135,11 +133,11 @@ export class SchemaValidator {
         if (typeof value !== "number") {
           return {
             ok: false,
-            error: createValidationError(
-              `Field ${fieldName} must be a number`,
-              fieldName,
-              value,
-            ),
+            error: {
+              kind: "InvalidFormat",
+              input: String(value),
+              expectedFormat: "number",
+            },
           };
         }
         break;
@@ -148,11 +146,11 @@ export class SchemaValidator {
         if (typeof value !== "boolean") {
           return {
             ok: false,
-            error: createValidationError(
-              `Field ${fieldName} must be a boolean`,
-              fieldName,
-              value,
-            ),
+            error: {
+              kind: "InvalidFormat",
+              input: String(value),
+              expectedFormat: "boolean",
+            },
           };
         }
         break;
@@ -161,11 +159,11 @@ export class SchemaValidator {
         if (!Array.isArray(value)) {
           return {
             ok: false,
-            error: createValidationError(
-              `Field ${fieldName} must be an array`,
-              fieldName,
-              value,
-            ),
+            error: {
+              kind: "InvalidFormat",
+              input: String(value),
+              expectedFormat: "array",
+            },
           };
         }
 

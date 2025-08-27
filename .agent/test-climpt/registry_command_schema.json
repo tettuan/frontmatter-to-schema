@@ -6,8 +6,7 @@
   "properties": {
     "c1": {
       "type": "string",
-      "description": "Domain/category (git, spec, test, code, docs, meta)",
-      "enum": ["git", "spec", "test", "code", "docs", "meta"]
+      "description": "Domain/category (git, spec, test, code, docs, meta)"
     },
     "c2": {
       "type": "string",

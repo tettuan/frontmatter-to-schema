@@ -46,7 +46,19 @@ Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
       assertEquals(result.ok, false, `Should reject invalid path: ${path}`);
       if (!result.ok) {
         assertExists(result.error);
-        assertEquals(result.error.kind, "ValidationError");
+        // Should be one of the DomainError kinds: EmptyInput, InvalidFormat, FileExtensionMismatch
+        const expectedKinds = [
+          "EmptyInput",
+          "InvalidFormat",
+          "FileExtensionMismatch",
+        ];
+        assertEquals(
+          expectedKinds.includes(result.error.kind),
+          true,
+          `Expected error kind to be one of ${
+            expectedKinds.join(", ")
+          }, got ${result.error.kind}`,
+        );
       }
     }
   });
@@ -121,8 +133,8 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
     const result = await repo.load("non-existent-template");
     assertEquals(result.ok, false, "Should fail to load non-existent template");
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
-      assertEquals(result.error.message.includes("not found"), true);
+      assertEquals(result.error.kind, "FileNotFound");
+      // FileNotFound is a specific error kind
     }
   });
 
@@ -254,7 +266,7 @@ Deno.test("FileTemplateRepository - Error Handling Tests", async (t) => {
         const result = await repo.save(template.data);
         assertEquals(result.ok, false, "Should fail with permission error");
         if (!result.ok) {
-          assertExists(result.error.message);
+          assertExists(result.error.kind);
         }
       }
     }

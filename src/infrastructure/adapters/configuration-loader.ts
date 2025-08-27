@@ -1,8 +1,11 @@
 // Configuration loader implementation
 
-import type { Result } from "../../domain/core/result.ts";
-import type { IOError, ValidationError } from "../../domain/shared/types.ts";
-import { createError } from "../../domain/shared/types.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
+// Removed unused imports: ValidationError, IOError
+// Removed unused import: createError
+
+// Use unified DomainError approach - no conversion needed
 import {
   ConfigPath,
   DocumentPath,
@@ -37,7 +40,9 @@ export class ConfigurationLoader
   implements ConfigurationRepository, SchemaRepository, ResultRepository {
   async loadProcessingConfig(
     path: ConfigPath,
-  ): Promise<Result<ProcessingConfiguration, IOError & { message: string }>> {
+  ): Promise<
+    Result<ProcessingConfiguration, DomainError & { message: string }>
+  > {
     try {
       const configPath = path.getValue();
       const content = await Deno.readTextFile(configPath);
@@ -50,12 +55,11 @@ export class ConfigurationLoader
       if (!documentsPathResult.ok) {
         return {
           ok: false,
-          error: {
-            kind: "ReadError" as const,
+          error: createDomainError({
+            kind: "ReadError",
             path: configPath,
-            reason: "Invalid documents path",
-            message: `Invalid documents path in config: ${configPath}`,
-          },
+            details: "Invalid documents path",
+          }),
         };
       }
 
@@ -65,12 +69,11 @@ export class ConfigurationLoader
       if (!schemaPathResult.ok) {
         return {
           ok: false,
-          error: {
-            kind: "ReadError" as const,
+          error: createDomainError({
+            kind: "ReadError",
             path: configPath,
-            reason: "Invalid schema path",
-            message: `Invalid schema path in config: ${configPath}`,
-          },
+            details: "Invalid schema path",
+          }),
         };
       }
 
@@ -80,12 +83,11 @@ export class ConfigurationLoader
       if (!templatePathResult.ok) {
         return {
           ok: false,
-          error: {
-            kind: "ReadError" as const,
+          error: createDomainError({
+            kind: "ReadError",
             path: configPath,
-            reason: "Invalid template path",
-            message: `Invalid template path in config: ${configPath}`,
-          },
+            details: "Invalid template path",
+          }),
         };
       }
 
@@ -95,12 +97,11 @@ export class ConfigurationLoader
       if (!outputPathResult.ok) {
         return {
           ok: false,
-          error: {
-            kind: "ReadError" as const,
+          error: createDomainError({
+            kind: "ReadError",
             path: configPath,
-            reason: "Invalid output path",
-            message: `Invalid output path in config: ${configPath}`,
-          },
+            details: "Invalid output path",
+          }),
         };
       }
 
@@ -121,15 +122,18 @@ export class ConfigurationLoader
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: path.getValue() }),
+          error: createDomainError({
+            kind: "FileNotFound",
+            path: path.getValue(),
+          }),
         };
       }
       return {
         ok: false,
-        error: createError({
+        error: createDomainError({
           kind: "ReadError",
           path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
+          details: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }
@@ -137,7 +141,7 @@ export class ConfigurationLoader
 
   async loadAnalysisConfig(
     path: ConfigPath,
-  ): Promise<Result<AnalysisConfiguration, IOError & { message: string }>> {
+  ): Promise<Result<AnalysisConfiguration, DomainError & { message: string }>> {
     try {
       const configPath = path.getValue();
       const content = await Deno.readTextFile(configPath);
@@ -166,15 +170,18 @@ export class ConfigurationLoader
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: path.getValue() }),
+          error: createDomainError({
+            kind: "FileNotFound",
+            path: path.getValue(),
+          }),
         };
       }
       return {
         ok: false,
-        error: createError({
+        error: createDomainError({
           kind: "ReadError",
           path: path.getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
+          details: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }
@@ -182,7 +189,7 @@ export class ConfigurationLoader
 
   async load(
     path: ConfigPath,
-  ): Promise<Result<Schema, IOError & { message: string }>> {
+  ): Promise<Result<Schema, DomainError & { message: string }>> {
     try {
       const schemaPath = path.getValue();
       let content: string;
@@ -193,10 +200,10 @@ export class ConfigurationLoader
         if (error instanceof Deno.errors.NotFound) {
           return {
             ok: false,
-            error: createError({
+            error: createDomainError({
               kind: "FileNotFound",
               path: schemaPath,
-            }, `Schema file not found: ${schemaPath}`),
+            }),
           };
         }
         throw error;
@@ -208,13 +215,13 @@ export class ConfigurationLoader
       } catch (error) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: schemaPath,
-            reason: `Invalid JSON: ${
+            details: `Invalid JSON: ${
               error instanceof Error ? error.message : "Unknown error"
             }`,
-          }, `Failed to parse schema JSON from ${schemaPath}`),
+          }),
         };
       }
 
@@ -223,11 +230,11 @@ export class ConfigurationLoader
       if (!idResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: schemaPath,
-            reason: "Invalid schema ID",
-          }, "Schema contains invalid ID field"),
+            details: "Invalid schema ID",
+          }),
         };
       }
 
@@ -238,11 +245,11 @@ export class ConfigurationLoader
       if (!definitionResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: schemaPath,
-            reason: "Invalid schema definition",
-          }, "Schema structure is invalid"),
+            details: "Invalid schema definition",
+          }),
         };
       }
 
@@ -252,11 +259,11 @@ export class ConfigurationLoader
       if (!versionResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: schemaPath,
-            reason: "Invalid schema version",
-          }, "Schema version format is invalid"),
+            details: "Invalid schema version",
+          }),
         };
       }
 
@@ -271,16 +278,11 @@ export class ConfigurationLoader
     } catch (error) {
       return {
         ok: false,
-        error: createError(
-          {
-            kind: "ReadError",
-            path: path.getValue(),
-            reason: error instanceof Error ? error.message : "Unknown error",
-          },
-          `Unexpected error loading schema: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        ),
+        error: createDomainError({
+          kind: "ReadError",
+          path: path.getValue(),
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -291,7 +293,7 @@ export class ConfigurationLoader
       | AnalysisConfiguration
       | Schema
       | Template,
-  ): Result<void, ValidationError & { message: string }> {
+  ): Result<void, DomainError & { message: string }> {
     // Basic validation - can be extended
     return { ok: true, data: undefined };
   }
@@ -299,7 +301,7 @@ export class ConfigurationLoader
   async save(
     result: AggregatedResult,
     path: OutputPath,
-  ): Promise<Result<void, IOError & { message: string }>> {
+  ): Promise<Result<void, DomainError & { message: string }>> {
     try {
       const output = result.toOutput();
       await Deno.writeTextFile(path.getValue(), output);
@@ -308,24 +310,20 @@ export class ConfigurationLoader
       if (error instanceof Deno.errors.PermissionDenied) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "PermissionDenied",
             path: path.getValue(),
-          }, `Permission denied: ${path.getValue()}`),
+            operation: "write",
+          }),
         };
       }
       return {
         ok: false,
-        error: createError(
-          {
-            kind: "WriteError",
-            path: path.getValue(),
-            reason: error instanceof Error ? error.message : "Unknown error",
-          },
-          `Write error: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        ),
+        error: createDomainError({
+          kind: "WriteError",
+          path: path.getValue(),
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -333,7 +331,7 @@ export class ConfigurationLoader
   async append(
     result: AnalysisResult,
     path: OutputPath,
-  ): Promise<Result<void, IOError & { message: string }>> {
+  ): Promise<Result<void, DomainError & { message: string }>> {
     try {
       const data = result.getMappedData().toJSON();
       await Deno.writeTextFile(path.getValue(), `${data}\n`, { append: true });
@@ -341,16 +339,11 @@ export class ConfigurationLoader
     } catch (error) {
       return {
         ok: false,
-        error: createError(
-          {
-            kind: "WriteError",
-            path: path.getValue(),
-            reason: error instanceof Error ? error.message : "Unknown error",
-          },
-          `Write error: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        ),
+        error: createDomainError({
+          kind: "WriteError",
+          path: path.getValue(),
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
@@ -360,7 +353,7 @@ export class ConfigurationLoader
 export class TemplateLoader implements TemplateRepository {
   async load(
     path: ConfigPath,
-  ): Promise<Result<Template, IOError & { message: string }>> {
+  ): Promise<Result<Template, DomainError & { message: string }>> {
     try {
       const templatePath = path.getValue();
       let content: string;
@@ -371,10 +364,10 @@ export class TemplateLoader implements TemplateRepository {
         if (error instanceof Deno.errors.NotFound) {
           return {
             ok: false,
-            error: createError({
+            error: createDomainError({
               kind: "FileNotFound",
               path: templatePath,
-            }, `Template file not found: ${templatePath}`),
+            }),
           };
         }
         throw error;
@@ -409,11 +402,11 @@ export class TemplateLoader implements TemplateRepository {
       if (!idResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: templatePath,
-            reason: "Invalid template ID",
-          }, "Invalid template ID"),
+            details: "Invalid template ID",
+          }),
         };
       }
 
@@ -421,11 +414,11 @@ export class TemplateLoader implements TemplateRepository {
       if (!formatResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: templatePath,
-            reason: "Invalid template format",
-          }, "Invalid template format"),
+            details: "Invalid template format",
+          }),
         };
       }
 
@@ -484,23 +477,18 @@ export class TemplateLoader implements TemplateRepository {
     } catch (error) {
       return {
         ok: false,
-        error: createError(
-          {
-            kind: "ReadError",
-            path: path.getValue(),
-            reason: error instanceof Error ? error.message : "Unknown error",
-          },
-          `Unexpected error loading template: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        ),
+        error: createDomainError({
+          kind: "ReadError",
+          path: path.getValue(),
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
       };
     }
   }
 
   validate(
     _template: Template,
-  ): Result<void, ValidationError & { message: string }> {
+  ): Result<void, DomainError & { message: string }> {
     // Basic validation
     return { ok: true, data: undefined };
   }

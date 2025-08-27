@@ -1,0 +1,71 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/configuration-loader.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 13758, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "loadProcessingConfig",
+      "ranges": [{ "startOffset": 590, "endOffset": 3247, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "loadAnalysisConfig",
+      "ranges": [
+        { "startOffset": 3250, "endOffset": 4663, "count": 1 },
+        { "startOffset": 3527, "endOffset": 3533, "count": 0 },
+        { "startOffset": 3629, "endOffset": 3653, "count": 0 },
+        { "startOffset": 3801, "endOffset": 3812, "count": 0 },
+        { "startOffset": 3876, "endOffset": 3909, "count": 0 },
+        { "startOffset": 3951, "endOffset": 3971, "count": 0 },
+        { "startOffset": 4021, "endOffset": 4028, "count": 0 },
+        { "startOffset": 4082, "endOffset": 4088, "count": 0 },
+        { "startOffset": 4185, "endOffset": 4659, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "load",
+      "ranges": [{ "startOffset": 4666, "endOffset": 6931, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 6934, "endOffset": 7057, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "save",
+      "ranges": [{ "startOffset": 7060, "endOffset": 7789, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "append",
+      "ranges": [{ "startOffset": 7792, "endOffset": 8302, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "load",
+      "ranges": [{ "startOffset": 8375, "endOffset": 11918, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 11921, "endOffset": 12028, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseYAML",
+      "ranges": [{ "startOffset": 12031, "endOffset": 12640, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractPlaceholders",
+      "ranges": [{ "startOffset": 12643, "endOffset": 13755, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

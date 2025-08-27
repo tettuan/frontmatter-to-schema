@@ -1,0 +1,30 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/frontmatter-extractor-impl.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3002, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extract",
+      "ranges": [
+        { "startOffset": 345, "endOffset": 2999, "count": 10 },
+        { "startOffset": 454, "endOffset": 1005, "count": 0 },
+        { "startOffset": 1191, "endOffset": 1309, "count": 1 },
+        { "startOffset": 1309, "endOffset": 1499, "count": 9 },
+        { "startOffset": 1499, "endOffset": 1539, "count": 7 },
+        { "startOffset": 1540, "endOffset": 1586, "count": 7 },
+        { "startOffset": 1588, "endOffset": 1706, "count": 1 },
+        { "startOffset": 1706, "endOffset": 2114, "count": 7 },
+        { "startOffset": 2114, "endOffset": 2354, "count": 0 },
+        { "startOffset": 2354, "endOffset": 2507, "count": 7 },
+        { "startOffset": 2508, "endOffset": 2512, "count": 0 },
+        { "startOffset": 2732, "endOffset": 2995, "count": 1 },
+        { "startOffset": 2952, "endOffset": 2969, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

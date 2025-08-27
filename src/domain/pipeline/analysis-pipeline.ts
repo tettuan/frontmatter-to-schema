@@ -14,6 +14,7 @@ import type {
   PipelineConfig,
   Transformer,
 } from "../core/interfaces.ts";
+import type { FileReader } from "../services/interfaces.ts";
 import { Registry } from "../core/registry.ts";
 import { LoggerFactory } from "../shared/logger.ts";
 
@@ -30,6 +31,7 @@ export class AnalysisPipeline<TOutput = unknown> {
     private readonly engine: AnalysisEngine,
     private readonly transformer: Transformer<unknown, TOutput>,
     private readonly strategies: Map<string, AnalysisStrategy>,
+    private readonly fileReader: FileReader,
   ) {}
 
   /**
@@ -89,7 +91,7 @@ export class AnalysisPipeline<TOutput = unknown> {
     const path = pathResult.data;
 
     // Read file content
-    const content = await Deno.readTextFile(filePath);
+    const content = await this.fileReader.readTextFile(filePath);
 
     // Extract frontmatter
     const frontMatter = await this.extractor.extract(content);
@@ -189,6 +191,7 @@ export class PipelineBuilder<TOutput = unknown> {
   private engine?: AnalysisEngine;
   private transformer?: Transformer<unknown, TOutput>;
   private strategies = new Map<string, AnalysisStrategy>();
+  private fileReader?: FileReader;
 
   withInputPatterns(patterns: string[]): this {
     if (!this.config.input) {
@@ -240,6 +243,11 @@ export class PipelineBuilder<TOutput = unknown> {
     return this;
   }
 
+  withFileReader(reader: FileReader): this {
+    this.fileReader = reader;
+    return this;
+  }
+
   withOutputFormat(format: string): this {
     if (!this.config.output) {
       this.config.output = { format, destination: "" };
@@ -286,6 +294,9 @@ export class PipelineBuilder<TOutput = unknown> {
     if (!this.transformer) {
       throw new Error("Transformer is required");
     }
+    if (!this.fileReader) {
+      throw new Error("FileReader is required");
+    }
 
     // Complete config with defaults
     const completeConfig: PipelineConfig = {
@@ -302,6 +313,7 @@ export class PipelineBuilder<TOutput = unknown> {
       this.engine,
       this.transformer,
       this.strategies,
+      this.fileReader,
     );
   }
 }

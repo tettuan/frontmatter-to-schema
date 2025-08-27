@@ -5,8 +5,8 @@
  * Provides abstraction for template persistence
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { Template } from "../models/domain-models.ts";
 
 /**
@@ -16,24 +16,27 @@ import type { Template } from "../models/domain-models.ts";
 export class TemplatePath {
   private constructor(private readonly value: string) {}
 
-  static create(path: string): Result<TemplatePath, ValidationError> {
+  static create(
+    path: string,
+  ): Result<TemplatePath, DomainError & { message: string }> {
     if (typeof path !== "string") {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Template path must be a string",
-        },
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(path),
+          expectedFormat: "string",
+        }),
       };
     }
 
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Template path cannot be empty",
-        },
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "path",
+        }),
       };
     }
 
@@ -47,13 +50,11 @@ export class TemplatePath {
       if (!ext || !validExtensions.includes(ext)) {
         return {
           ok: false,
-          error: {
-            kind: "ValidationError",
-            message:
-              `Invalid template file extension: ${ext}. Valid extensions: ${
-                validExtensions.join(", ")
-              }`,
-          },
+          error: createDomainError({
+            kind: "FileExtensionMismatch",
+            path: normalized,
+            expected: validExtensions,
+          }),
         };
       }
     }
@@ -81,17 +82,23 @@ export interface TemplateRepository {
   /**
    * Load a template by ID
    */
-  load(templateId: string): Promise<Result<Template, ValidationError>>;
+  load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>>;
 
   /**
    * Load a template from a specific path
    */
-  loadFromPath(path: TemplatePath): Promise<Result<Template, ValidationError>>;
+  loadFromPath(
+    path: TemplatePath,
+  ): Promise<Result<Template, DomainError & { message: string }>>;
 
   /**
    * Save a template
    */
-  save(template: Template): Promise<Result<void, ValidationError>>;
+  save(
+    template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>>;
 
   /**
    * Check if a template exists
@@ -101,5 +108,5 @@ export interface TemplateRepository {
   /**
    * List all available template IDs
    */
-  list(): Promise<Result<string[], ValidationError>>;
+  list(): Promise<Result<string[], DomainError & { message: string }>>;
 }

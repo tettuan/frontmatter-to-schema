@@ -5,8 +5,7 @@
  * Consolidates the functionality from multiple template mappers
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
 import {
   TemplateAggregate,
   type TemplateApplicationContext,
@@ -58,15 +57,14 @@ export class TemplateProcessingService {
     data: unknown,
     schema: object,
     format: "json" | "yaml" | "markdown" = "json",
-  ): Promise<Result<string, ValidationError>> {
+  ): Promise<Result<string, DomainError>> {
     // Validate inputs
     if (!templateId || templateId.trim() === "") {
       return {
         ok: false,
         error: {
-          kind: "ValidationError" as const,
-          message: "Template ID cannot be empty",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
 
@@ -74,9 +72,8 @@ export class TemplateProcessingService {
       return {
         ok: false,
         error: {
-          kind: "ValidationError" as const,
-          message: "Data cannot be null or undefined",
-        },
+          kind: "EmptyInput",
+        } as DomainError,
       };
     }
 
@@ -86,10 +83,10 @@ export class TemplateProcessingService {
       return {
         ok: false,
         error: {
-          kind: "ValidationError" as const,
-          message:
-            `Invalid format: ${format}. Must be one of: json, yaml, markdown`,
-        },
+          kind: "InvalidFormat",
+          input: format,
+          expectedFormat: "json, yaml, or markdown",
+        } as DomainError,
       };
     }
 

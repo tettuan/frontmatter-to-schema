@@ -1,0 +1,41 @@
+{
+  "scriptId": "362",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/errors.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1529, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createValidationError",
+      "ranges": [{ "startOffset": 7, "endOffset": 143, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createProcessingError",
+      "ranges": [{ "startOffset": 151, "endOffset": 269, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createIOError",
+      "ranges": [{ "startOffset": 277, "endOffset": 403, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createAPIError",
+      "ranges": [{ "startOffset": 411, "endOffset": 549, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createConfigurationError",
+      "ranges": [{ "startOffset": 557, "endOffset": 681, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "errorToString",
+      "ranges": [{ "startOffset": 689, "endOffset": 1528, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

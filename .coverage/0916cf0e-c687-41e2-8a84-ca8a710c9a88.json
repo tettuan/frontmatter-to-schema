@@ -1,0 +1,166 @@
+{
+  "scriptId": "373",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/error-messages.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7068, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "INVALID_FORMAT",
+      "ranges": [{ "startOffset": 167, "endOffset": 235, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "PATTERN_MISMATCH",
+      "ranges": [{ "startOffset": 257, "endOffset": 326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "OUT_OF_RANGE",
+      "ranges": [{ "startOffset": 344, "endOffset": 712, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "INVALID_PATH",
+      "ranges": [{ "startOffset": 730, "endOffset": 781, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "SCHEMA_VALIDATION",
+      "ranges": [{ "startOffset": 804, "endOffset": 871, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "TEMPLATE_VALIDATION",
+      "ranges": [{ "startOffset": 896, "endOffset": 965, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "EXTRACTION_FAILED",
+      "ranges": [{ "startOffset": 1011, "endOffset": 1090, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "ANALYSIS_FAILED",
+      "ranges": [{ "startOffset": 1111, "endOffset": 1182, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "MAPPING_FAILED",
+      "ranges": [{ "startOffset": 1202, "endOffset": 1269, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "AGGREGATION_FAILED",
+      "ranges": [{ "startOffset": 1293, "endOffset": 1343, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "CONFIGURATION_INVALID",
+      "ranges": [{ "startOffset": 1370, "endOffset": 1437, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "FILE_NOT_FOUND",
+      "ranges": [{ "startOffset": 1472, "endOffset": 1505, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "PERMISSION_DENIED",
+      "ranges": [{ "startOffset": 1528, "endOffset": 1564, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "READ_ERROR",
+      "ranges": [{ "startOffset": 1580, "endOffset": 1631, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "WRITE_ERROR",
+      "ranges": [{ "startOffset": 1648, "endOffset": 1703, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "PROMPT_TOO_LONG",
+      "ranges": [{ "startOffset": 1739, "endOffset": 1814, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "API_ERROR",
+      "ranges": [{ "startOffset": 1829, "endOffset": 1912, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "RATE_LIMITED",
+      "ranges": [{ "startOffset": 1930, "endOffset": 2047, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "INVALID_RESPONSE",
+      "ranges": [{ "startOffset": 2069, "endOffset": 2132, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "SCHEMA_FILE_NOT_FOUND",
+      "ranges": [{ "startOffset": 2187, "endOffset": 2227, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "TEMPLATE_FILE_NOT_FOUND",
+      "ranges": [{ "startOffset": 2256, "endOffset": 2298, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "INVALID_JSON_IN_SCHEMA",
+      "ranges": [{ "startOffset": 2326, "endOffset": 2393, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "NO_FRONTMATTER_FOUND",
+      "ranges": [{ "startOffset": 2716, "endOffset": 2765, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "DOCUMENTS_DIR_NOT_FOUND",
+      "ranges": [{ "startOffset": 2794, "endOffset": 2842, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "FAILED_TO_FIND_DOCUMENTS",
+      "ranges": [{ "startOffset": 2872, "endOffset": 2936, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "FAILED_TO_LOAD_SCHEMA",
+      "ranges": [{ "startOffset": 2963, "endOffset": 3026, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "FAILED_TO_LOAD_TEMPLATE",
+      "ranges": [{ "startOffset": 3055, "endOffset": 3120, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "UNEXPECTED_ERROR",
+      "ranges": [{ "startOffset": 3142, "endOffset": 3202, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getErrorCode",
+      "ranges": [{ "startOffset": 3813, "endOffset": 3895, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "formatErrorMessage",
+      "ranges": [{ "startOffset": 3903, "endOffset": 4036, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getBaseMessage",
+      "ranges": [{ "startOffset": 4037, "endOffset": 7067, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -162,7 +162,7 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
       const logger = LoggerFactory.createLogger("generic-pipeline");
       logger.warn("Failed to list files in directory", {
         directory,
-        error: fileListResult.error.message,
+        error: fileListResult.error.kind,
       });
       return [];
     }
@@ -182,7 +182,7 @@ export class FrontMatterAnalysisPipeline<TSchema, TTemplate>
           const logger = LoggerFactory.createLogger("generic-pipeline");
           logger.warn("Failed to read file content", {
             path: fileInfo.path,
-            error: contentResult.error.message,
+            error: contentResult.error.kind,
           });
           continue;
         }

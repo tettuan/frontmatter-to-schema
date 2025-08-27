@@ -55,8 +55,8 @@ Deno.test("DDD Core - DocumentPath Value Object", async (t) => {
 
   await t.step("Smart Constructor - Failure Cases", () => {
     const errorCases = [
-      { input: "", expectedError: "ValidationError" },
-      { input: "   ", expectedError: "ValidationError" },
+      { input: "", expectedError: "EmptyInput" },
+      { input: "   ", expectedError: "EmptyInput" },
       // Note: DocumentPath now accepts any valid file path, validation moved to domain layer
     ];
 
@@ -119,10 +119,10 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
 
   await t.step("Invalid Schema Rejection", () => {
     const invalidCases = [
-      { input: null, expectedError: "ValidationError" },
-      { input: undefined, expectedError: "ValidationError" },
-      { input: "string", expectedError: "ValidationError" },
-      { input: 123, expectedError: "ValidationError" },
+      { input: null, expectedError: "EmptyInput" },
+      { input: undefined, expectedError: "EmptyInput" },
+      { input: "string", expectedError: "InvalidFormat" },
+      { input: 123, expectedError: "InvalidFormat" },
     ];
 
     for (const { input, expectedError } of invalidCases) {
@@ -141,7 +141,7 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
       "Arrays should be rejected",
     );
     if (isError(arrayResult)) {
-      assertEquals(arrayResult.error.kind, "ValidationError");
+      assertEquals(arrayResult.error.kind, "InvalidFormat");
     }
   });
 
@@ -634,7 +634,7 @@ Deno.test("DDD Core - Error Propagation", async (t) => {
 
     assertEquals(isError(chained), true);
     if (isError(chained)) {
-      assertEquals(chained.error.kind, "ValidationError");
+      assertEquals(chained.error.kind, "EmptyInput");
     }
   });
 

@@ -3,11 +3,8 @@
  * Consolidates mock-ai-analyzer and mock-schema-analyzer
  */
 
-import type { Result } from "../../domain/shared/types.ts";
-import {
-  createError,
-  type ProcessingError,
-} from "../../domain/shared/types.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
 import {
   ExtractedData,
   type FrontMatter,
@@ -41,13 +38,13 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
   async analyze(
     frontMatter: FrontMatter,
     schema: Schema,
-  ): Promise<Result<ExtractedData, ProcessingError & { message: string }>>;
+  ): Promise<Result<ExtractedData, DomainError & { message: string }>>;
   async analyze(
     arg1: AIAnalysisRequest | FrontMatter,
     arg2?: Schema,
   ): Promise<
     | Result<AIAnalysisResponse, APIError>
-    | Result<ExtractedData, ProcessingError & { message: string }>
+    | Result<ExtractedData, DomainError & { message: string }>
   > {
     // Check if this is an AI analyzer call
     if ("prompt" in arg1 && "content" in arg1) {
@@ -115,11 +112,11 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
           },
         },
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
         error: createAPIError(
-          error instanceof Error ? error.message : "Mock AI analysis failed",
+          _error instanceof Error ? _error.message : "Mock AI analysis failed",
         ),
       };
     }
@@ -131,7 +128,7 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
   private async analyzeSchema(
     frontMatter: FrontMatter,
     _schema: Schema,
-  ): Promise<Result<ExtractedData, ProcessingError & { message: string }>> {
+  ): Promise<Result<ExtractedData, DomainError & { message: string }>> {
     // Use Promise.resolve to satisfy linter's require-await rule
     return await Promise.resolve(this.doAnalyzeSchema(frontMatter, _schema));
   }
@@ -139,7 +136,7 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
   private doAnalyzeSchema(
     frontMatter: FrontMatter,
     _schema: Schema,
-  ): Result<ExtractedData, ProcessingError & { message: string }> {
+  ): Result<ExtractedData, DomainError & { message: string }> {
     try {
       // Parse frontmatter content
       const frontMatterData = frontMatter.getContent().toJSON() as Record<
@@ -161,15 +158,13 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
         ok: true,
         data: ExtractedData.create(mockExtractedData),
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createError({
-          kind: "AnalysisFailed",
-          document: "mock",
-          reason: error instanceof Error
-            ? error.message
-            : "Mock analysis failed",
+        error: createDomainError({
+          kind: "AIServiceError",
+          service: "mock",
+          statusCode: 500,
         }),
       };
     }

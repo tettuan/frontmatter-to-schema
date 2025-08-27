@@ -1,6 +1,5 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
-import { isError, type Result } from "../domain/core/result.ts";
-import { type DomainError, errorToString } from "../domain/shared/errors.ts";
+import type { DomainError, Result } from "../domain/core/result.ts";
 import {
   type ApplicationConfiguration,
   ConfigurationValidator,
@@ -54,10 +53,10 @@ export class CLI {
 
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
-    if (isError(configResult)) {
+    if (!configResult.ok) {
       const logger = LoggerFactory.createLogger("cli-config");
       logger.error("Configuration error", {
-        error: errorToString(configResult.error),
+        error: String(configResult.error.kind),
       });
       Deno.exit(1);
     }
@@ -74,10 +73,10 @@ export class CLI {
     processLogger.info("Starting document processing");
     const result = await this.processor.processDocuments(config);
 
-    if (isError(result)) {
+    if (!result.ok) {
       const errorLogger = LoggerFactory.createLogger("cli-error");
       errorLogger.error("Processing error", {
-        error: errorToString(result.error),
+        error: String(result.error.kind),
       });
       Deno.exit(1);
     }
@@ -96,7 +95,7 @@ export class CLI {
       const errorSummaryLogger = LoggerFactory.createLogger("cli-errors");
       const errors = batchResult.getErrors().map((error) => ({
         document: error.document.getPath().getValue(),
-        error: errorToString(error.error),
+        error: String(error.error.kind),
       }));
       errorSummaryLogger.warn("Processing errors encountered", {
         errorCount: batchResult.getErrorCount(),
@@ -117,19 +116,27 @@ export class CLI {
     if (args.config) {
       const configPath = args.config as string;
       const fileResult = await this.fileSystem.readFile(configPath);
-      if (isError(fileResult)) {
+      if (!fileResult.ok) {
         return fileResult;
       }
 
       try {
         const config = JSON.parse(fileResult.data);
-        return this.configValidator.validate(config);
+        const result = this.configValidator.validate(config);
+        if (!result.ok) {
+          return {
+            ok: false,
+            error: { kind: "ConfigurationError", config: config },
+          };
+        }
+        return result;
       } catch (error) {
         return {
           ok: false,
           error: {
-            kind: "ConfigurationError",
-            message: `Failed to parse configuration file: ${error}`,
+            kind: "ParseError",
+            input: String(error),
+            details: "Failed to parse configuration file",
           },
         };
       }
@@ -149,7 +156,7 @@ export class CLI {
     if (args.schema) {
       const schemaPath = args.schema as string;
       const fileResult = await this.fileSystem.readFile(schemaPath);
-      if (isError(fileResult)) {
+      if (!fileResult.ok) {
         return fileResult;
       }
 
@@ -171,7 +178,7 @@ export class CLI {
     if (args.template) {
       const templatePath = args.template as string;
       const fileResult = await this.fileSystem.readFile(templatePath);
-      if (isError(fileResult)) {
+      if (!fileResult.ok) {
         return fileResult;
       }
 
@@ -198,7 +205,14 @@ export class CLI {
       };
     }
 
-    return this.configValidator.validate(config);
+    const result = this.configValidator.validate(config);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: { kind: "ConfigurationError", config: config },
+      };
+    }
+    return result;
   }
 
   private printHelp(): void {
