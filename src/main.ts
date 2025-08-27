@@ -17,6 +17,7 @@
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { LoggerFactory } from "./domain/shared/logger.ts";
+import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
 //   FactoryConfigurationBuilder,
@@ -149,6 +150,9 @@ async function runBuildRegistry() {
  * The function ensures proper error handling and clean exit codes.
  */
 async function main() {
+  // Initialize environment-based configuration
+  EnvironmentConfig.initialize();
+  
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],
     boolean: [

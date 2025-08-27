@@ -108,23 +108,37 @@ export class NullLogger implements Logger {
 }
 
 /**
+ * Configuration for the logger factory
+ */
+export interface LoggerConfiguration {
+  environment?: "production" | "development" | "test";
+  logLevel?: LogLevel;
+}
+
+/**
  * Logger factory following DDD principles
  */
 export class LoggerFactory {
   private static instance: Logger | null = null;
+  private static configuration: LoggerConfiguration = {
+    environment: "development",
+    logLevel: "info",
+  };
+
+  static configure(config: LoggerConfiguration): void {
+    LoggerFactory.configuration = config;
+    // Reset instance to apply new configuration
+    LoggerFactory.instance = null;
+  }
 
   static createLogger(source?: string): Logger {
-    // Try to check environment, but fallback gracefully if not allowed
-    try {
-      if (Deno.env.get("NODE_ENV") === "production") {
-        return new NullLogger();
-      }
-      const minLevel = (Deno.env.get("LOG_LEVEL") as LogLevel) || "info";
-      return new ConsoleLogger(source, minLevel);
-    } catch {
-      // If we can't access env vars, default to info level console logger
-      return new ConsoleLogger(source, "info");
+    const { environment, logLevel } = LoggerFactory.configuration;
+    
+    if (environment === "production") {
+      return new NullLogger();
     }
+    
+    return new ConsoleLogger(source, logLevel || "info");
   }
 
   static getDefaultLogger(): Logger {
