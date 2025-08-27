@@ -78,17 +78,23 @@ export interface SchemaAnalyzer {
   ): Promise<Result<ExtractedData, DomainError & { message: string }>>;
 }
 
+// Discriminated union for schema validation following totality principle
+export type SchemaValidationMode =
+  | { kind: "WithSchema"; schema: unknown }
+  | { kind: "NoSchema" };
+
 /**
  * Maps extracted data to a template structure
  *
  * Transforms schema-validated data into the desired output format.
  * The template is injected at runtime for maximum flexibility.
+ * Uses discriminated union for schema validation to follow totality principle.
  */
 export interface TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
-    schema?: unknown,
+    schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }>;
 
   /**

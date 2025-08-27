@@ -444,7 +444,7 @@ function createMockDocument(path: string, hasFrontMatter = true): Document {
     frontMatter = FrontMatter.create(fmContent, "title: Test\ntags: [test]");
   }
 
-  return Document.create(docPath, frontMatter, content);
+  return Document.createWithFrontMatter(docPath, frontMatter, content);
 }
 
 function createMockSchema(): Schema {

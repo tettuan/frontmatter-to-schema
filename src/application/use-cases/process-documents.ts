@@ -664,7 +664,18 @@ export class ProcessDocumentsUseCase {
       return { ok: true, data: analysisResult };
     }
 
-    // Handle orchestrator processing results
+    // Map to template
+    if (verboseMode) {
+      const verboseLogger = LoggerFactory.createLogger(
+        "process-documents-helper",
+      );
+      verboseLogger.info("Mapping to template", { document: docPath });
+    }
+    const mappedResult = this.templateMapper.map(
+      extractedResult.data,
+      template,
+      { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
+    );
     if (isError(mappedResult)) {
       if (verboseMode) {
         const errorLogger = LoggerFactory.createLogger(

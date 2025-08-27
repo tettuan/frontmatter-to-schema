@@ -67,7 +67,7 @@ class MockDocumentRepository implements DocumentRepository {
           }
         }
 
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           frontMatter,
           contentResult.data,

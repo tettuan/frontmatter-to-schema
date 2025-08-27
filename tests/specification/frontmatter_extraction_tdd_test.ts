@@ -45,7 +45,11 @@ This is the body content.`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -90,7 +94,11 @@ No frontmatter here, just regular markdown content.`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -122,7 +130,11 @@ No frontmatter here, just regular markdown content.`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -157,7 +169,11 @@ invalid: : : multiple colons
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -199,7 +215,11 @@ project:
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -253,7 +273,11 @@ multiline: This is a multiline string value that should preserve formatting
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -303,7 +327,11 @@ Content`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -353,7 +381,11 @@ Content`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -407,7 +439,11 @@ Content`;
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
@@ -460,7 +496,11 @@ output_path: /tmp/output
         throw new Error("Failed to create test data");
       }
 
-      const doc = Document.create(pathResult.data, null, contentResult.data);
+      const doc = Document.createWithFrontMatter(
+        pathResult.data,
+        null,
+        contentResult.data,
+      );
 
       // Act
       const result = extractor.extract(doc);
