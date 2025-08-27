@@ -598,6 +598,7 @@ export class ProcessDocumentsUseCase {
     const mappedResult = this.templateMapper.map(
       extractedResult.data,
       template,
+      schema.getDefinition().getValue(), // Pass schema for strict structure matching
     );
     if (isError(mappedResult)) {
       if (verboseMode) {
