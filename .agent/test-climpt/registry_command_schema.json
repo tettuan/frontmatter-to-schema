@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
     },
+    "title": {
+      "type": "string",
+      "description": "Command title"
+    },
     "description": {
       "type": "string",
       "description": "Command description"
