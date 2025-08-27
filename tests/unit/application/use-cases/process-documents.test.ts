@@ -365,6 +365,25 @@ class MockTemplateMapper implements TemplateMapper {
     }
     return { ok: true, data: this.mockData };
   }
+
+  async mapWithOrchestrator(
+    _frontMatter: FrontMatterContent,
+    _schema: Schema,
+    _template: Template,
+  ): Promise<Result<MappedData, DomainError & { message: string }>> {
+    // Mock implementation - fallback to legacy behavior for tests
+    if (this.shouldFail) {
+      return await Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "ReadError",
+          path: "orchestrator",
+          details: "TypeScriptAnalysisOrchestrator not configured",
+        }),
+      });
+    }
+    return await Promise.resolve({ ok: true, data: this.mockData });
+  }
 }
 
 class MockResultAggregator implements ResultAggregator {

@@ -543,43 +543,125 @@ export class ProcessDocumentsUseCase {
       verboseLogger.info("Frontmatter extracted", { document: docPath });
     }
 
-    // Analyze with schema
+    // Process with 2-stage TypeScript Analysis Orchestrator
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-helper",
       );
-      verboseLogger.info("Starting AI analysis", { document: docPath });
-    }
-    const extractedResult = await this.schemaAnalyzer.analyze(
-      frontMatter,
-      schema,
-    );
-    if (verboseMode) {
-      const debugLogger = LoggerFactory.createLogger(
-        "process-documents-debug",
-      );
-      debugLogger.info("AI analysis result", {
+      verboseLogger.info("Starting 2-stage orchestrated processing", {
         document: docPath,
-        result: extractedResult,
       });
     }
-    if (isError(extractedResult)) {
+
+    // Try new orchestrator approach first, fallback to legacy if not configured
+    const mappedResult = await this.templateMapper.mapWithOrchestrator(
+      frontMatter.getContent(),
+      schema,
+      template,
+    );
+
+    // Check if orchestrator is available, if not fallback to legacy processing
+    if (
+      isError(mappedResult) &&
+      (mappedResult.error as { message?: string }).message?.includes(
+        "not configured",
+      )
+    ) {
       if (verboseMode) {
-        const errorLogger = LoggerFactory.createLogger(
+        const verboseLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        errorLogger.error("AI analysis failed", {
+        verboseLogger.warn(
+          "Orchestrator not configured, falling back to legacy processing",
+          { document: docPath },
+        );
+      }
+
+      // Legacy processing: Analyze with schema
+      if (verboseMode) {
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-helper",
+        );
+        verboseLogger.info("Starting AI analysis (legacy)", {
           document: docPath,
-          error: extractedResult.error,
         });
       }
-      return extractedResult;
-    }
-    if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
-        "process-documents-helper",
+      const extractedResult = await this.schemaAnalyzer.analyze(
+        frontMatter,
+        schema,
       );
-      verboseLogger.info("AI analysis successful", { document: docPath });
+      if (verboseMode) {
+        const debugLogger = LoggerFactory.createLogger(
+          "process-documents-debug",
+        );
+        debugLogger.info("AI analysis result (legacy)", {
+          document: docPath,
+          result: extractedResult,
+        });
+      }
+      if (isError(extractedResult)) {
+        if (verboseMode) {
+          const errorLogger = LoggerFactory.createLogger(
+            "process-documents-helper",
+          );
+          errorLogger.error("AI analysis failed (legacy)", {
+            document: docPath,
+            error: extractedResult.error,
+          });
+        }
+        return extractedResult;
+      }
+      if (verboseMode) {
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-helper",
+        );
+        verboseLogger.info("AI analysis successful (legacy)", {
+          document: docPath,
+        });
+      }
+
+      // Legacy processing: Map to template
+      if (verboseMode) {
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-helper",
+        );
+        verboseLogger.info("Mapping to template (legacy)", {
+          document: docPath,
+        });
+      }
+      const legacyMappedResult = this.templateMapper.map(
+        extractedResult.data,
+        template,
+        schema.getDefinition().getValue(), // Pass schema for strict structure matching
+      );
+      if (isError(legacyMappedResult)) {
+        if (verboseMode) {
+          const errorLogger = LoggerFactory.createLogger(
+            "process-documents-helper",
+          );
+          errorLogger.error("Template mapping failed (legacy)", {
+            document: docPath,
+          });
+        }
+        return legacyMappedResult;
+      }
+
+      if (verboseMode) {
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-helper",
+        );
+        verboseLogger.info("Template mapping completed (legacy)", {
+          document: docPath,
+        });
+      }
+
+      // Create analysis result with legacy processing
+      const analysisResult = AnalysisResult.create(
+        document,
+        extractedResult.data,
+        legacyMappedResult.data,
+      );
+      return { ok: true, data: analysisResult };
     }
 
     // Map to template
@@ -599,22 +681,35 @@ export class ProcessDocumentsUseCase {
         const errorLogger = LoggerFactory.createLogger(
           "process-documents-helper",
         );
-        errorLogger.error("Template mapping failed", { document: docPath });
+        errorLogger.error("Orchestrated processing failed", {
+          document: docPath,
+          error: mappedResult.error,
+        });
       }
-      return mappedResult;
+      return {
+        ok: false,
+        error: mappedResult.error as DomainError & { message: string },
+      };
     }
 
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-helper",
       );
-      verboseLogger.info("Template mapping completed", { document: docPath });
+      verboseLogger.info("2-stage orchestrated processing completed", {
+        document: docPath,
+      });
     }
 
-    // Create analysis result
+    // Create analysis result (orchestrator approach)
+    // Note: For orchestrator approach, we need to create a dummy ExtractedData
+    // since the orchestrator handles both stages internally
+    // For orchestrator approach, the extracted data step is internal, so we create a minimal placeholder
+    const { ExtractedData } = await import("../../domain/models/entities.ts");
+    const dummyExtractedData = ExtractedData.create({});
     const analysisResult = AnalysisResult.create(
       document,
-      extractedResult.data,
+      dummyExtractedData, // Dummy extracted data for orchestrator approach
       mappedResult.data,
     );
 

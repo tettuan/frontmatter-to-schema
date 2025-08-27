@@ -285,6 +285,24 @@ export async function main() {
           };
         }
       },
+      async mapWithOrchestrator(
+        _frontMatter: unknown,
+        _schema: unknown,
+        _template: unknown,
+      ) {
+        // Fallback to legacy behavior - orchestrator not configured
+        return await Promise.resolve({
+          ok: false as const,
+          error: createDomainError(
+            {
+              kind: "ReadError",
+              path: "orchestrator",
+              details: "TypeScriptAnalysisOrchestrator not configured",
+            },
+            "TypeScriptAnalysisOrchestrator not configured",
+          ),
+        });
+      },
     };
     const resultAggregator = new ResultAggregatorImpl("json");
     if (verboseMode) {
