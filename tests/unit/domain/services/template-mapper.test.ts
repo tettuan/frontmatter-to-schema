@@ -135,7 +135,7 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
+          assertEquals(result.error.kind, "TemplateMappingFailed");
         }
       }
     });
@@ -277,10 +277,10 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
-          if (result.error.kind === "MappingFailed") {
+          assertEquals(result.error.kind, "TemplateMappingFailed");
+          if (result.error.kind === "TemplateMappingFailed") {
             assertEquals(
-              result.error.reason?.includes("Invalid template definition JSON"),
+              result.error.message?.includes("Invalid template definition JSON"),
               true,
             );
           }
@@ -309,10 +309,10 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
-          if (result.error.kind === "MappingFailed") {
+          assertEquals(result.error.kind, "TemplateMappingFailed");
+          if (result.error.kind === "TemplateMappingFailed") {
             assertEquals(
-              result.error.reason,
+              result.error.message,
               "Handlebars support not yet implemented",
             );
           }
@@ -359,10 +359,10 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template, schema);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
-          if (result.error.kind === "MappingFailed") {
+          assertEquals(result.error.kind, "TemplateMappingFailed");
+          if (result.error.kind === "TemplateMappingFailed") {
             assertEquals(
-              result.error.reason?.includes("Structure mismatch"),
+              result.error.message?.includes("Structure mismatch"),
               true,
             );
           }
@@ -395,7 +395,7 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
+          assertEquals(result.error.kind, "TemplateMappingFailed");
         }
       }
     });
@@ -423,7 +423,7 @@ Deno.test("TemplateMapper - Core Functionality", async (t) => {
         const result = mapper.map(extractedData, template);
         assertEquals(isOk(result), false);
         if (isError(result)) {
-          assertEquals(result.error.kind, "MappingFailed");
+          assertEquals(result.error.kind, "TemplateMappingFailed");
         }
       }
     });
