@@ -5,10 +5,9 @@
 
 import type { Result } from "./result.ts";
 import {
-  createProcessingError,
-  createValidationError,
   type DomainError,
-} from "../shared/errors.ts";
+  createDomainError,
+} from "./result.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Import domain components
@@ -55,9 +54,12 @@ export class AnalysisDomainConfig {
     if (timeout < 0 || timeout > 600000) {
       return {
         ok: false,
-        error: createValidationError(
-          `Timeout must be between 0 and 600000ms, got ${timeout}`,
-        ),
+        error: createDomainError({
+          kind: "OutOfRange",
+          value: timeout,
+          min: 0,
+          max: 600000,
+        }, `Timeout must be between 0 and 600000ms, got ${timeout}`),
       };
     }
 
@@ -92,11 +94,13 @@ export class TemplateDomainConfig {
     if (!validFormats.includes(defaultFormat)) {
       return {
         ok: false,
-        error: createValidationError(
-          `Invalid format: ${defaultFormat}. Must be one of: ${
-            validFormats.join(", ")
-          }`,
-        ),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: defaultFormat,
+          expectedFormat: validFormats.join(", "),
+        }, `Invalid format: ${defaultFormat}. Must be one of: ${
+          validFormats.join(", ")
+        }`),
       };
     }
 
@@ -128,9 +132,12 @@ export class PipelineDomainConfig {
     if (maxRetries < 0 || maxRetries > 10) {
       return {
         ok: false,
-        error: createValidationError(
-          `Max retries must be between 0 and 10, got ${maxRetries}`,
-        ),
+        error: createDomainError({
+          kind: "OutOfRange",
+          value: maxRetries,
+          min: 0,
+          max: 10,
+        }, `Max retries must be between 0 and 10, got ${maxRetries}`),
       };
     }
 
@@ -246,9 +253,15 @@ export class TotalAnalysisDomainFactory
     } catch (error) {
       return {
         ok: false,
-        error: createProcessingError(
-          `Failed to create analysis components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "analysis component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create analysis components: ${error}`),
       };
     }
   }
@@ -303,9 +316,15 @@ export class TotalTemplateDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createProcessingError(
-          `Failed to create template components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "template component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create template components: ${error}`),
       });
     }
   }
@@ -367,9 +386,15 @@ export class TotalPipelineDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createProcessingError(
-          `Failed to create pipeline components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "pipeline component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create pipeline components: ${error}`),
       });
     }
   }
@@ -398,9 +423,11 @@ export class TotalMasterComponentFactory {
     if (this.factories.has(key)) {
       return {
         ok: false,
-        error: createValidationError(
-          `Factory for domain '${key}' already registered`,
-        ),
+        error: createDomainError({
+          kind: "InvalidState",
+          expected: "unregistered domain factory",
+          actual: `domain '${key}' already registered`,
+        }, `Factory for domain '${key}' already registered`),
       };
     }
 
@@ -421,9 +448,11 @@ export class TotalMasterComponentFactory {
     if (!factory) {
       return Promise.resolve({
         ok: false,
-        error: createValidationError(
-          `No factory registered for domain: ${domain.kind}`,
-        ),
+        error: createDomainError({
+          kind: "NotFound",
+          resource: "factory",
+          name: domain.kind,
+        }, `No factory registered for domain: ${domain.kind}`),
       });
     }
 
