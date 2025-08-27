@@ -186,7 +186,7 @@ export class DocumentProcessor {
       }
 
       // Create a basic document first
-      const basicDoc = Document.create(
+      const basicDoc = Document.createWithFrontMatter(
         pathResult.data,
         null,
         contentObj.data,
@@ -200,7 +200,7 @@ export class DocumentProcessor {
 
       // Update the document with extracted frontmatter if found
       const document = extractionResult.data.kind === "Extracted"
-        ? Document.create(
+        ? Document.createWithFrontMatter(
           pathResult.data,
           extractionResult.data.frontMatter,
           contentObj.data,
