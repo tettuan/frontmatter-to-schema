@@ -269,7 +269,7 @@ class MockTemplateMapper implements TemplateMapper {
     _template: Template,
   ): Promise<Result<MappedData, DomainError & { message: string }>> {
     // Mock implementation - fallback to legacy behavior for tests
-    return Promise.resolve({
+    return await Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: "ReadError",

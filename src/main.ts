@@ -271,7 +271,7 @@ Examples:
         _template: unknown,
       ) {
         // Fallback to legacy behavior - orchestrator not configured
-        return Promise.resolve({
+        return await Promise.resolve({
           ok: false as const,
           error: createDomainError(
             {

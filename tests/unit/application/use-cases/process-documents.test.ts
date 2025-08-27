@@ -75,7 +75,7 @@ class MockDocumentRepository implements DocumentRepository {
     path: DocumentPath,
   ): Promise<Result<Document[], DomainError & { message: string }>> {
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -95,7 +95,7 @@ class MockDocumentRepository implements DocumentRepository {
   ): Promise<Result<Document[], DomainError & { message: string }>> {
     const pathResult = DocumentPath.create(basePath || ".");
     if (!pathResult.ok) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "InvalidPath",
@@ -111,7 +111,7 @@ class MockDocumentRepository implements DocumentRepository {
   ): Promise<Result<Document, DomainError & { message: string }>> {
     const doc = this.documents.get(path.getValue());
     if (!doc) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -144,7 +144,7 @@ class MockSchemaRepository implements SchemaRepository {
     path: ConfigPath,
   ): Promise<Result<Schema, DomainError & { message: string }>> {
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -153,7 +153,7 @@ class MockSchemaRepository implements SchemaRepository {
       });
     }
     if (!this.mockSchema) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -190,7 +190,7 @@ class MockTemplateRepository implements TemplateRepository {
     path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -199,7 +199,7 @@ class MockTemplateRepository implements TemplateRepository {
       });
     }
     if (!this.mockTemplate) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
@@ -239,7 +239,7 @@ class MockResultRepository implements ResultRepository {
     _path: OutputPath,
   ): Promise<Result<void, DomainError & { message: string }>> {
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "WriteError",
@@ -318,7 +318,7 @@ class MockSchemaAnalyzer implements SchemaAnalyzer {
     _schema: Schema,
   ): Promise<Result<ExtractedData, DomainError & { message: string }>> {
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "SchemaValidationFailed",
@@ -327,7 +327,7 @@ class MockSchemaAnalyzer implements SchemaAnalyzer {
         }),
       });
     }
-    return Promise.resolve({ ok: true, data: this.mockData });
+    return await Promise.resolve({ ok: true, data: this.mockData });
   }
 }
 
@@ -373,7 +373,7 @@ class MockTemplateMapper implements TemplateMapper {
   ): Promise<Result<MappedData, DomainError & { message: string }>> {
     // Mock implementation - fallback to legacy behavior for tests
     if (this.shouldFail) {
-      return Promise.resolve({
+      return await Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "ReadError",
@@ -382,7 +382,7 @@ class MockTemplateMapper implements TemplateMapper {
         }),
       });
     }
-    return Promise.resolve({ ok: true, data: this.mockData });
+    return await Promise.resolve({ ok: true, data: this.mockData });
   }
 }
 
