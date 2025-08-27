@@ -265,6 +265,24 @@ Examples:
           };
         }
       },
+      async mapWithOrchestrator(
+        _frontMatter: any,
+        _schema: any,
+        _template: any,
+      ): Promise<any> {
+        // Fallback to legacy behavior - orchestrator not configured
+        return {
+          ok: false as const,
+          error: createDomainError(
+            {
+              kind: "ReadError",
+              path: "orchestrator",
+              details: "TypeScriptAnalysisOrchestrator not configured",
+            },
+            "TypeScriptAnalysisOrchestrator not configured",
+          ),
+        };
+      },
     };
     const resultAggregator = new ResultAggregatorImpl(
       args.format as "json" | "yaml",

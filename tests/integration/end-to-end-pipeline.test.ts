@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { isError, isOk } from "../../src/domain/shared/types.ts";
-import type { DomainError } from "../../src/domain/core/result.ts";
+import type { DomainError, Result } from "../../src/domain/core/result.ts";
+import { createDomainError } from "../../src/domain/core/result.ts";
 import { ProcessDocumentsUseCase } from "../../src/application/use-cases/process-documents.ts";
 import {
   ConfigPath,
@@ -260,6 +261,22 @@ class MockTemplateMapper implements TemplateMapper {
     const mapped = template.applyRules(sourceData);
 
     return { ok: true as const, data: MappedData.create(mapped) };
+  }
+
+  async mapWithOrchestrator(
+    _frontMatter: FrontMatterContent,
+    _schema: Schema,
+    _template: Template,
+  ): Promise<Result<MappedData, DomainError & { message: string }>> {
+    // Mock implementation - fallback to legacy behavior for tests
+    return {
+      ok: false,
+      error: createDomainError({
+        kind: "ReadError",
+        path: "orchestrator", 
+        details: "TypeScriptAnalysisOrchestrator not configured",
+      }),
+    };
   }
 }
 
