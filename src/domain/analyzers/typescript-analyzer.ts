@@ -3,8 +3,8 @@
  * Following DDD principles and Totality
  */
 
-import type { Result } from "../shared/types.ts";
-import { createError, type ProcessingError } from "../shared/types.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import {
   ExtractedData,
   type FrontMatter,
@@ -35,7 +35,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   async analyze(
     frontMatter: FrontMatter,
     schema: Schema,
-  ): Promise<Result<ExtractedData, ProcessingError & { message: string }>> {
+  ): Promise<Result<ExtractedData, DomainError & { message: string }>> {
     // Add await to satisfy linter
     await Promise.resolve();
 
@@ -79,11 +79,15 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       if (!contextResult.ok) {
         return {
           ok: false,
-          error: createError(
+          error: createDomainError(
             {
-              kind: "AnalysisFailed",
-              document: documentPath,
-              reason: contextResult.error.message,
+              kind: "ProcessingStageError",
+              stage: "analysis context",
+              error: {
+                kind: "InvalidResponse",
+                service: "analysis",
+                response: contextResult.error.message,
+              } as DomainError,
             },
             `Analysis context creation failed: ${contextResult.error.message}`,
           ),
@@ -103,11 +107,17 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     } catch (error) {
       return {
         ok: false,
-        error: createError(
+        error: createDomainError(
           {
-            kind: "AnalysisFailed",
-            document: "unknown",
-            reason: error instanceof Error ? error.message : "Unknown error",
+            kind: "ProcessingStageError",
+            stage: "TypeScript analysis",
+            error: {
+              kind: "InvalidResponse",
+              service: "analyzer",
+              response: error instanceof Error
+                ? error.message
+                : "Unknown error",
+            } as DomainError,
           },
           `TypeScript analysis failed: ${
             error instanceof Error ? error.message : "Unknown error"

@@ -80,7 +80,8 @@ Deno.test("TemplateProcessingService - Service Layer Tests", async (t) => {
     );
     assertEquals(result.ok, false, "Should fail for non-existent template");
     if (!result.ok) {
-      assertEquals(result.error.message.includes("not found"), true);
+      // DomainError doesn't have .message, check the error kind instead
+      assertEquals(result.error.kind, "FileNotFound");
     }
   });
 
@@ -515,7 +516,8 @@ Deno.test("TemplateProcessingService - Error Recovery Tests", async (t) => {
     const result = await failingService.processTemplate("test", {}, {}, "json");
     assertEquals(result.ok, false, "Should handle repository failure");
     if (!result.ok) {
-      assertEquals(result.error.message.includes("Repository error"), true);
+      // Check for appropriate error kind instead of message
+      assertEquals(result.error.kind, "ValidationError");
     }
   });
 

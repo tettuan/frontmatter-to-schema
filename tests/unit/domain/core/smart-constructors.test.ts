@@ -21,8 +21,8 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
-      assertEquals(result.error.message, "Input cannot be empty");
+      assertEquals(result.error.kind, "EmptyInput");
+      // EmptyInput error doesn't have a message property
     }
   });
 
@@ -31,7 +31,7 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -41,7 +41,7 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "TooLong");
     }
   });
 
@@ -50,7 +50,7 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -59,7 +59,7 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -68,7 +68,7 @@ Deno.test("DocumentPath Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -166,7 +166,7 @@ count: 42`;
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -175,7 +175,7 @@ count: 42`;
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -278,7 +278,7 @@ zero: 0`;
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -289,7 +289,7 @@ zero: 0`;
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -300,7 +300,7 @@ zero: 0`;
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -382,7 +382,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -394,7 +394,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -406,7 +406,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -418,7 +418,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -460,7 +460,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
       const validationResult = schemaResult.data.validate(null);
       assertEquals(validationResult.ok, false);
       if (!validationResult.ok) {
-        assertEquals(validationResult.error.kind, "ValidationError");
+        assertEquals(validationResult.error.kind, "EmptyInput");
       }
     }
   });
@@ -473,7 +473,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
       const validationResult = schemaResult.data.validate(undefined);
       assertEquals(validationResult.ok, false);
       if (!validationResult.ok) {
-        assertEquals(validationResult.error.kind, "ValidationError");
+        assertEquals(validationResult.error.kind, "EmptyInput");
       }
     }
   });

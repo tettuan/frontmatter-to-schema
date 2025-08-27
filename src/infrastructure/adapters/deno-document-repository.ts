@@ -2,11 +2,9 @@
 
 import { walk } from "jsr:@std/fs@1.0.8/walk";
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
-import {
-  createError,
-  type IOError,
-  type Result,
-} from "../../domain/shared/types.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
+// Removed unused imports: createError, IOError
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
@@ -19,7 +17,7 @@ import type { DocumentRepository } from "../../domain/services/interfaces.ts";
 export class DenoDocumentRepository implements DocumentRepository {
   async findAll(
     path: DocumentPath,
-  ): Promise<Result<Document[], IOError & { message: string }>> {
+  ): Promise<Result<Document[], DomainError & { message: string }>> {
     const documents: Document[] = [];
     const pathValue = path.getValue();
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
@@ -51,10 +49,10 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (!stat.isDirectory) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: dirPath,
-            reason: "Path is not a directory",
+            details: "Path is not a directory",
           }),
         };
       }
@@ -142,21 +140,25 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: dirPath }),
+          error: createDomainError({ kind: "FileNotFound", path: dirPath }),
         };
       }
       if (error instanceof Deno.errors.PermissionDenied) {
         return {
           ok: false,
-          error: createError({ kind: "PermissionDenied", path: dirPath }),
+          error: createDomainError({
+            kind: "PermissionDenied",
+            path: dirPath,
+            operation: "read",
+          }),
         };
       }
       return {
         ok: false,
-        error: createError({
+        error: createDomainError({
           kind: "ReadError",
           path: dirPath,
-          reason: error instanceof Error ? error.message : "Unknown error",
+          details: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }
@@ -165,7 +167,7 @@ export class DenoDocumentRepository implements DocumentRepository {
   async findByPattern(
     pattern: string,
     basePath: string = ".",
-  ): Promise<Result<Document[], IOError & { message: string }>> {
+  ): Promise<Result<Document[], DomainError & { message: string }>> {
     const documents: Document[] = [];
     const regex = new RegExp(pattern);
 
@@ -192,10 +194,10 @@ export class DenoDocumentRepository implements DocumentRepository {
     } catch (error) {
       return {
         ok: false,
-        error: createError({
+        error: createDomainError({
           kind: "ReadError",
           path: basePath,
-          reason: error instanceof Error ? error.message : "Unknown error",
+          details: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }
@@ -203,7 +205,7 @@ export class DenoDocumentRepository implements DocumentRepository {
 
   async read(
     path: DocumentPath,
-  ): Promise<Result<Document, IOError & { message: string }>> {
+  ): Promise<Result<Document, DomainError & { message: string }>> {
     const filePath = path.getValue();
 
     try {
@@ -243,10 +245,10 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (!documentContentResult.ok) {
         return {
           ok: false,
-          error: createError({
+          error: createDomainError({
             kind: "ReadError",
             path: filePath,
-            reason: "Invalid document content",
+            details: "Invalid document content",
           }),
         };
       }
@@ -261,21 +263,25 @@ export class DenoDocumentRepository implements DocumentRepository {
       if (error instanceof Deno.errors.NotFound) {
         return {
           ok: false,
-          error: createError({ kind: "FileNotFound", path: filePath }),
+          error: createDomainError({ kind: "FileNotFound", path: filePath }),
         };
       }
       if (error instanceof Deno.errors.PermissionDenied) {
         return {
           ok: false,
-          error: createError({ kind: "PermissionDenied", path: filePath }),
+          error: createDomainError({
+            kind: "PermissionDenied",
+            path: filePath,
+            operation: "read",
+          }),
         };
       }
       return {
         ok: false,
-        error: createError({
+        error: createDomainError({
           kind: "ReadError",
           path: filePath,
-          reason: error instanceof Error ? error.message : "Unknown error",
+          details: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }

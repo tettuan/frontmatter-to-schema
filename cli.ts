@@ -238,7 +238,7 @@ async function main() {
     // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
     // Note: This is a temporary solution, should be properly injected
     const { MappedData } = await import("./src/domain/models/entities.ts");
-    const { createError } = await import("./src/domain/shared/types.ts");
+    const { createDomainError } = await import("./src/domain/core/result.ts");
 
     const templateMapper = {
       map: (data: ExtractedData, template: Template) => {
@@ -250,13 +250,22 @@ async function main() {
         } catch (error) {
           return {
             ok: false as const,
-            error: createError({
-              kind: "MappingFailed" as const,
-              document: "unknown",
-              reason: error instanceof Error
+            error: createDomainError(
+              {
+                kind: "ProcessingStageError",
+                stage: "template mapping",
+                error: {
+                  kind: "InvalidResponse",
+                  service: "template",
+                  response: error instanceof Error
+                    ? error.message
+                    : "Template mapping failed",
+                },
+              },
+              error instanceof Error
                 ? error.message
                 : "Template mapping failed",
-            }),
+            ),
           };
         }
       },
@@ -355,15 +364,12 @@ async function main() {
 
       // Show more details for ConfigurationInvalid errors
       if (
-        result.error.kind === "ConfigurationInvalid" && "errors" in result.error
+        result.error.kind === "ConfigurationMissing" &&
+        "requiredConfig" in result.error
       ) {
         cliLogger.error("\nConfiguration errors:");
-        for (const err of result.error.errors) {
-          if ("path" in err && "reason" in err) {
-            cliLogger.error(`  - ${err.path}: ${err.reason}`);
-          } else {
-            cliLogger.error(`  - ${JSON.stringify(err)}`);
-          }
+        for (const config of result.error.requiredConfig) {
+          cliLogger.error(`  - Missing: ${config}`);
         }
       }
 

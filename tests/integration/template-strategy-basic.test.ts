@@ -21,7 +21,7 @@ const createTestTemplate = (
   const definitionResult = TemplateDefinition.create(templateContent, format);
   if (!definitionResult.ok) {
     throw new Error(
-      `Failed to create template definition: ${definitionResult.error.message}`,
+      `Failed to create template definition: ${definitionResult.error.kind}`,
     );
   }
 
@@ -32,7 +32,7 @@ const createTestTemplate = (
   );
   if (!templateResult.ok) {
     throw new Error(
-      `Failed to create template: ${templateResult.error.message}`,
+      `Failed to create template: ${templateResult.error.kind}`,
     );
   }
 
@@ -131,8 +131,8 @@ describe("Integration: Template Strategy Basic Tests", () => {
       // Native strategy expects data to be an object for placeholders
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "ValidationError");
-        assertExists(result.error.message);
+        assertEquals(result.error.kind, "InvalidFormat");
+        assertExists(result.error);
       }
     });
 

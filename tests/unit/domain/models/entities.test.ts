@@ -22,7 +22,7 @@ import {
   SchemaVersion,
   TemplateFormat,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/shared/types.ts";
+import { isOk } from "../../../../src/domain/shared/types.ts";
 
 // Helper functions to create test value objects
 const createDocumentPath = (path: string) => {
@@ -74,18 +74,18 @@ Deno.test("DocumentId - Smart Constructor", async (t) => {
   await t.step("should reject empty value", () => {
     const result = DocumentId.create("");
 
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
   await t.step("should reject whitespace-only value", () => {
     const result = DocumentId.create("   ");
 
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -121,9 +121,9 @@ Deno.test("SchemaId - Smart Constructor", async (t) => {
   await t.step("should reject empty value", () => {
     const result = SchemaId.create("");
 
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -150,9 +150,9 @@ Deno.test("TemplateId - Smart Constructor", async (t) => {
   await t.step("should reject empty value", () => {
     const result = TemplateId.create("");
 
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 });
@@ -303,7 +303,7 @@ Deno.test("Schema - Entity Creation and Validation", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 });

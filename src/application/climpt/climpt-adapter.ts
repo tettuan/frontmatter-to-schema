@@ -14,8 +14,7 @@ import type {
   FileInfo,
   FileSystemPort,
 } from "../../infrastructure/ports/index.ts";
-import type { Result } from "../../domain/core/result.ts";
-import { createIOError, type IOError } from "../../domain/shared/errors.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import {
   ComponentDomain,
@@ -113,18 +112,14 @@ export class ClaudeCLIService implements ExternalAnalysisService {
  * Deno file system provider
  */
 export class DenoFileSystemProvider implements FileSystemPort {
-  async readFile(path: string): Promise<Result<string, IOError>> {
+  async readFile(path: string): Promise<Result<string, DomainError>> {
     try {
       const content = await Deno.readTextFile(path);
       return { ok: true, data: content };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createIOError(
-          `Failed to read file: ${error}`,
-          path,
-          "read",
-        ),
+        error: { kind: "FileNotFound", path },
       };
     }
   }
@@ -132,7 +127,7 @@ export class DenoFileSystemProvider implements FileSystemPort {
   async writeFile(
     path: string,
     content: string,
-  ): Promise<Result<void, IOError>> {
+  ): Promise<Result<void, DomainError>> {
     try {
       // Ensure directory exists
       const dir = path.split("/").slice(0, -1).join("/");
@@ -142,33 +137,25 @@ export class DenoFileSystemProvider implements FileSystemPort {
 
       await Deno.writeTextFile(path, content);
       return { ok: true, data: undefined };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createIOError(
-          `Failed to write file: ${error}`,
-          path,
-          "write",
-        ),
+        error: { kind: "PermissionDenied", path, operation: "write" },
       };
     }
   }
 
-  async exists(path: string): Promise<Result<boolean, IOError>> {
+  async exists(path: string): Promise<Result<boolean, DomainError>> {
     try {
       await Deno.stat(path);
       return { ok: true, data: true };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
+    } catch (_error) {
+      if (_error instanceof Deno.errors.NotFound) {
         return { ok: true, data: false };
       }
       return {
         ok: false,
-        error: createIOError(
-          `Failed to check file existence: ${error}`,
-          path,
-          "read",
-        ),
+        error: { kind: "PermissionDenied", path, operation: "read" },
       };
     }
   }
@@ -176,7 +163,7 @@ export class DenoFileSystemProvider implements FileSystemPort {
   async listFiles(
     path: string,
     pattern?: string,
-  ): Promise<Result<FileInfo[], IOError>> {
+  ): Promise<Result<FileInfo[], DomainError>> {
     try {
       const files: FileInfo[] = [];
 
@@ -194,46 +181,34 @@ export class DenoFileSystemProvider implements FileSystemPort {
       }
 
       return { ok: true, data: files };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createIOError(
-          `Failed to list files: ${error}`,
-          path,
-          "read",
-        ),
+        error: { kind: "PermissionDenied", path, operation: "read" },
       };
     }
   }
 
-  async createDirectory(path: string): Promise<Result<void, IOError>> {
+  async createDirectory(path: string): Promise<Result<void, DomainError>> {
     try {
       await Deno.mkdir(path, { recursive: true });
       return { ok: true, data: undefined };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createIOError(
-          `Failed to create directory: ${error}`,
-          path,
-          "write",
-        ),
+        error: { kind: "PermissionDenied", path, operation: "write" },
       };
     }
   }
 
-  async deleteFile(path: string): Promise<Result<void, IOError>> {
+  async deleteFile(path: string): Promise<Result<void, DomainError>> {
     try {
       await Deno.remove(path);
       return { ok: true, data: undefined };
-    } catch (error) {
+    } catch (_error) {
       return {
         ok: false,
-        error: createIOError(
-          `Failed to delete file: ${error}`,
-          path,
-          "delete",
-        ),
+        error: { kind: "PermissionDenied", path, operation: "delete" },
       };
     }
   }
@@ -244,7 +219,7 @@ export class DenoFileSystemProvider implements FileSystemPort {
     if (result.ok) {
       return result.data.map((f) => f.name); // Return just the name, not full path
     }
-    throw new Error(`Failed to read directory: ${result.error.message}`);
+    throw new Error(`Failed to read directory: ${result.error.kind}`);
   }
 }
 

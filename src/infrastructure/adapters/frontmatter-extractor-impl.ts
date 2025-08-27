@@ -2,21 +2,37 @@
 
 import { extract } from "jsr:@std/front-matter@1.0.5/yaml";
 import {
-  createError,
-  type ProcessingError,
+  createDomainError,
+  type DomainError,
   type Result,
-} from "../../domain/shared/types.ts";
+} from "../../domain/core/result.ts";
 import { type Document, FrontMatter } from "../../domain/models/entities.ts";
 import { FrontMatterContent } from "../../domain/models/value-objects.ts";
-import type { FrontMatterExtractor } from "../../domain/services/interfaces.ts";
+import type {
+  FrontMatterExtractionResult,
+  FrontMatterExtractor,
+} from "../../domain/services/interfaces.ts";
 
 export class FrontMatterExtractorImpl implements FrontMatterExtractor {
   extract(
     document: Document,
-  ): Result<FrontMatter | null, ProcessingError & { message: string }> {
+  ): Result<FrontMatterExtractionResult, DomainError & { message: string }> {
     // If document already has frontmatter, return it
     if (document.hasFrontMatter()) {
-      return { ok: true, data: document.getFrontMatter() };
+      const frontMatter = document.getFrontMatter();
+      // Safety check: hasFrontMatter() should guarantee non-null
+      if (!frontMatter) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ExtractionStrategyFailed",
+            strategy: "frontmatter",
+            input:
+              "Document reports hasFrontMatter() but getFrontMatter() returned null",
+          }),
+        };
+      }
+      return { ok: true, data: { kind: "Extracted", frontMatter } };
     }
 
     try {
@@ -24,7 +40,7 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
 
       // Check if content has frontmatter markers before attempting extraction
       if (!content.startsWith("---\n")) {
-        return { ok: true, data: null };
+        return { ok: true, data: { kind: "NotPresent" } };
       }
 
       const extracted = extract(content);
@@ -37,7 +53,7 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
         typeof parsedFrontMatter !== "object" ||
         Object.keys(parsedFrontMatter).length === 0
       ) {
-        return { ok: true, data: null };
+        return { ok: true, data: { kind: "NotPresent" } };
       }
 
       // Add document path to frontmatter data
@@ -55,10 +71,10 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
       if (!frontMatterContentResult.ok) {
         return {
           ok: false,
-          error: createError({
-            kind: "ExtractionFailed",
-            document: document.getPath().getValue(),
-            reason: "Invalid frontmatter content",
+          error: createDomainError({
+            kind: "ExtractionStrategyFailed",
+            strategy: "frontmatter",
+            input: document.getPath().getValue(),
           }),
         };
       }
@@ -72,14 +88,14 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
         rawFrontMatter,
       );
 
-      return { ok: true, data: frontMatter };
+      return { ok: true, data: { kind: "Extracted", frontMatter } };
     } catch (error) {
       return {
         ok: false,
-        error: createError({
-          kind: "ExtractionFailed",
-          document: document.getPath().getValue(),
-          reason: error instanceof Error ? error.message : "Unknown error",
+        error: createDomainError({
+          kind: "ExtractionStrategyFailed",
+          strategy: "frontmatter",
+          input: error instanceof Error ? error.message : "Unknown error",
         }),
       };
     }

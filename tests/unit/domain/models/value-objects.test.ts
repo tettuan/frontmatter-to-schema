@@ -10,7 +10,7 @@ import {
   SchemaVersion,
   TemplateFormat,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/shared/types.ts";
+import { isOk } from "../../../../src/domain/shared/types.ts";
 
 Deno.test("DocumentPath - Smart Constructor", async (t) => {
   await t.step("should create valid path", () => {
@@ -25,9 +25,9 @@ Deno.test("DocumentPath - Smart Constructor", async (t) => {
 
   await t.step("should reject empty path", () => {
     const result = DocumentPath.create("");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -93,9 +93,9 @@ Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
 
   await t.step("should reject invalid definition", () => {
     const result = SchemaDefinition.create(null, "json");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -150,8 +150,8 @@ Deno.test("ProcessingOptions - Smart Constructor", async (t) => {
     const result = ProcessingOptions.create({
       maxConcurrency: 0,
     });
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
@@ -160,7 +160,7 @@ Deno.test("ProcessingOptions - Smart Constructor", async (t) => {
     const result = ProcessingOptions.create({
       maxConcurrency: -1,
     });
-    assertEquals(isError(result), true);
+    assertEquals(result.ok, false);
   });
 });
 
@@ -186,15 +186,18 @@ Deno.test("MappingRule - Smart Constructor", async (t) => {
 
   await t.step("should reject empty source", () => {
     const result = MappingRule.create("", "target");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
 
   await t.step("should reject empty target", () => {
     const result = MappingRule.create("source", "");
-    assertEquals(isError(result), true);
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "ValidationError");
+    }
   });
 
   await t.step("should handle nested path extraction", () => {
@@ -225,8 +228,8 @@ Deno.test("ConfigPath - Smart Constructor", async (t) => {
 
   await t.step("should reject non-json/yaml paths", () => {
     const result = ConfigPath.create("config/settings.txt");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
@@ -255,7 +258,7 @@ Deno.test("OutputPath - Smart Constructor", async (t) => {
 
   await t.step("should reject empty path", () => {
     const result = OutputPath.create("");
-    assertEquals(isError(result), true);
+    assertEquals(result.ok, false);
   });
 });
 
@@ -275,32 +278,32 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
 
   await t.step("should reject major.minor format (requires X.Y.Z)", () => {
     const result = SchemaVersion.create("1.0");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
 
   await t.step("should reject version with v prefix", () => {
     const result = SchemaVersion.create("v1.0.0");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
 
   await t.step("should reject single number version", () => {
     const result = SchemaVersion.create("2");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
 
   await t.step("should reject invalid format", () => {
     const result = SchemaVersion.create("invalid-version");
-    assertEquals(isError(result), true);
-    if (isError(result)) {
+    assertEquals(result.ok, false);
+    if (!result.ok) {
       assertEquals(result.error.kind, "ValidationError");
     }
   });
@@ -331,6 +334,6 @@ Deno.test("TemplateFormat - Smart Constructor", async (t) => {
 
   await t.step("should reject empty definition", () => {
     const result = TemplateFormat.create("json", "");
-    assertEquals(isError(result), true);
+    assertEquals(result.ok, false);
   });
 });

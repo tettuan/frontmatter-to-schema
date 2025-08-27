@@ -3,8 +3,7 @@
  * Reduces file count by combining related models
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
 
 // ============= Schema Models =============
 
@@ -19,14 +18,11 @@ export class SchemaDefinition {
   static create(
     definition: unknown,
     format: SchemaFormat,
-  ): Result<SchemaDefinition, ValidationError & { message: string }> {
+  ): Result<SchemaDefinition, DomainError> {
     if (!definition) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Schema definition cannot be empty",
-        } as ValidationError & { message: string },
+        error: { kind: "EmptyInput", field: "definition" },
       };
     }
 
@@ -37,9 +33,10 @@ export class SchemaDefinition {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: "Schema definition must be a plain object",
-        } as ValidationError & { message: string },
+          kind: "InvalidFormat",
+          input: String(definition),
+          expectedFormat: "object",
+        },
       };
     }
 
@@ -56,15 +53,12 @@ export class SchemaDefinition {
 
   validate(
     data: unknown,
-  ): Result<boolean, ValidationError & { message: string }> {
+  ): Result<boolean, DomainError> {
     // Basic validation - reject null/undefined
     if (data === null || data === undefined) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Data to validate cannot be null or undefined",
-        } as ValidationError & { message: string },
+        error: { kind: "EmptyInput", field: "data" },
       };
     }
 
@@ -85,14 +79,11 @@ export class Schema {
     id: string,
     definition: SchemaDefinition,
     description?: string,
-  ): Result<Schema, ValidationError> {
+  ): Result<Schema, DomainError> {
     if (!id || id.trim().length === 0) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Schema ID cannot be empty",
-        },
+        error: { kind: "EmptyInput", field: "id" },
       };
     }
 
@@ -116,7 +107,7 @@ export class Schema {
 
   validate(
     data: unknown,
-  ): Result<boolean, ValidationError & { message: string }> {
+  ): Result<boolean, DomainError> {
     return this.definition.validate(data);
   }
 }
@@ -134,14 +125,11 @@ export class TemplateDefinition {
   static create(
     definition: string,
     format: TemplateFormat,
-  ): Result<TemplateDefinition, ValidationError> {
+  ): Result<TemplateDefinition, DomainError> {
     if (!definition || definition.trim().length === 0) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Template definition cannot be empty",
-        },
+        error: { kind: "EmptyInput", field: "definition" },
       };
     }
 
@@ -171,14 +159,11 @@ export class Template {
     id: string,
     definition: TemplateDefinition,
     description?: string,
-  ): Result<Template, ValidationError> {
+  ): Result<Template, DomainError> {
     if (!id || id.trim().length === 0) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Template ID cannot be empty",
-        },
+        error: { kind: "EmptyInput", field: "id" },
       };
     }
 
@@ -200,7 +185,7 @@ export class Template {
     return this.description;
   }
 
-  render(data: unknown): Result<string, ValidationError> {
+  render(data: unknown): Result<string, DomainError> {
     // This would be implemented by specific renderers
     // For now, we return a JSON string
     try {
@@ -209,8 +194,9 @@ export class Template {
       return {
         ok: false,
         error: {
-          kind: "ValidationError",
-          message: `Failed to render template: ${error}`,
+          kind: "ParseError",
+          input: String(data),
+          details: String(error),
         },
       };
     }

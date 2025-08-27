@@ -214,7 +214,7 @@ Deno.test("TemplateMapper", async (t) => {
         assertEquals(isOk(result), false);
         if (!isOk(result)) {
           assertEquals(
-            result.error.message,
+            result.error.kind,
             "Handlebars support not yet implemented",
           );
         }
