@@ -48,7 +48,7 @@ export class AnalysisDomainConfig {
     externalService?: ExternalAnalysisService;
     prompts?: PromptConfiguration;
     timeout?: number;
-  }): Result<AnalysisDomainConfig, DomainError> {
+  }): Result<AnalysisDomainConfig, DomainError & { message: string }> {
     const timeout = params?.timeout ?? 30000;
 
     if (timeout < 0 || timeout > 600000) {
@@ -86,7 +86,7 @@ export class TemplateDomainConfig {
   static create(params?: {
     defaultFormat?: string;
     strictMode?: boolean;
-  }): Result<TemplateDomainConfig, DomainError> {
+  }): Result<TemplateDomainConfig, DomainError & { message: string }> {
     const defaultFormat = params?.defaultFormat ?? "json";
     const strictMode = params?.strictMode ?? true;
 
@@ -125,7 +125,7 @@ export class PipelineDomainConfig {
     schemaPath?: string;
     cacheEnabled?: boolean;
     maxRetries?: number;
-  }): Result<PipelineDomainConfig, DomainError> {
+  }): Result<PipelineDomainConfig, DomainError & { message: string }> {
     const maxRetries = params?.maxRetries ?? 3;
     const cacheEnabled = params?.cacheEnabled ?? false;
 
@@ -185,8 +185,8 @@ export type ComponentFactoryResult =
  */
 export interface TotalDomainFactory<T extends ComponentDomain> {
   readonly domain: T;
-  createComponents(): Promise<Result<ComponentFactoryResult, DomainError>>;
-  validateDependencies(): Result<true, DomainError>;
+  createComponents(): Promise<Result<ComponentFactoryResult, DomainError & { message: string }>>;
+  validateDependencies(): Result<true, DomainError & { message: string }>;
 }
 
 /**
@@ -203,7 +203,7 @@ export class TotalAnalysisDomainFactory
     this.logger = LoggerFactory.createLogger("analysis-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating analysis domain dependencies");
 
     // All validations passed in smart constructor
@@ -211,7 +211,7 @@ export class TotalAnalysisDomainFactory
   }
 
   async createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating analysis domain components with totality");
 
@@ -281,13 +281,13 @@ export class TotalTemplateDomainFactory
     this.logger = LoggerFactory.createLogger("template-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating template domain dependencies");
     return { ok: true, data: true };
   }
 
   createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating template domain components with totality");
 
@@ -344,7 +344,7 @@ export class TotalPipelineDomainFactory
     this.logger = LoggerFactory.createLogger("pipeline-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating pipeline domain dependencies");
 
     if (this.domain.config.schemaPath) {
@@ -358,7 +358,7 @@ export class TotalPipelineDomainFactory
   }
 
   createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating pipeline domain components with totality");
 
@@ -417,7 +417,7 @@ export class TotalMasterComponentFactory {
    */
   registerFactory(
     factory: TotalDomainFactory<ComponentDomain>,
-  ): Result<true, DomainError> {
+  ): Result<true, DomainError & { message: string }> {
     const key = factory.domain.kind;
 
     if (this.factories.has(key)) {
@@ -442,7 +442,7 @@ export class TotalMasterComponentFactory {
    */
   createComponents(
     domain: ComponentDomain,
-  ): Promise<Result<ComponentFactoryResult, DomainError>> {
+  ): Promise<Result<ComponentFactoryResult, DomainError & { message: string }>> {
     const factory = this.factories.get(domain.kind);
 
     if (!factory) {
@@ -463,7 +463,7 @@ export class TotalMasterComponentFactory {
    * Create all registered components
    */
   async createAllComponents(): Promise<
-    Result<ComponentFactoryResult[], DomainError>
+    Result<ComponentFactoryResult[], DomainError & { message: string }>
   > {
     const results: ComponentFactoryResult[] = [];
 
@@ -496,7 +496,7 @@ export class TotalFactoryBuilder {
    */
   withAnalysisDomain(
     params?: Parameters<typeof AnalysisDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = AnalysisDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -517,7 +517,7 @@ export class TotalFactoryBuilder {
    */
   withTemplateDomain(
     params?: Parameters<typeof TemplateDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = TemplateDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -538,7 +538,7 @@ export class TotalFactoryBuilder {
    */
   withPipelineDomain(
     params?: Parameters<typeof PipelineDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = PipelineDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -557,7 +557,7 @@ export class TotalFactoryBuilder {
   /**
    * Build and return the configured master factory
    */
-  build(): Result<TotalMasterComponentFactory, DomainError> {
+  build(): Result<TotalMasterComponentFactory, DomainError & { message: string }> {
     this.logger.info("Building master component factory with totality");
     return { ok: true, data: this.masterFactory };
   }
