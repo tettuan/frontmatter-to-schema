@@ -6,6 +6,7 @@ import {
 } from "../models/entities.ts";
 import type { ProcessingError } from "../shared/types.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import { isObject, validateMappingResult } from "../shared/type-guards.ts";
 
 export class TemplateMapper {
   map(
@@ -106,8 +107,21 @@ export class TemplateMapper {
         };
       }
 
-      // Create MappedData from the result
-      const mappedData = MappedData.create(result as Record<string, unknown>);
+      // Create MappedData from the result - use type guard for safety
+      const resultValidation = validateMappingResult(result, "JSON mapping");
+      if (!resultValidation.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: `Invalid mapping result: ${resultValidation.error.message}`,
+            message:
+              `Invalid mapping result: ${resultValidation.error.message}`,
+          } as ProcessingError & { message: string },
+        };
+      }
+      const mappedData = MappedData.create(resultValidation.data);
       return { ok: true, data: mappedData };
     } catch (error) {
       return {
@@ -141,8 +155,21 @@ export class TemplateMapper {
         };
       }
 
-      // Create MappedData from the result
-      const mappedData = MappedData.create(result as Record<string, unknown>);
+      // Create MappedData from the result - use type guard for safety
+      const resultValidation = validateMappingResult(result, "YAML mapping");
+      if (!resultValidation.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: `Invalid mapping result: ${resultValidation.error.message}`,
+            message:
+              `Invalid mapping result: ${resultValidation.error.message}`,
+          } as ProcessingError & { message: string },
+        };
+      }
+      const mappedData = MappedData.create(resultValidation.data);
       return { ok: true, data: mappedData };
     } catch (error) {
       return {
@@ -192,8 +219,21 @@ export class TemplateMapper {
         };
       }
 
-      // Create MappedData from the result
-      const mappedData = MappedData.create(result as Record<string, unknown>);
+      // Create MappedData from the result - use type guard for safety
+      const resultValidation = validateMappingResult(result, "custom mapping");
+      if (!resultValidation.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "MappingFailed",
+            document: "template",
+            reason: `Invalid mapping result: ${resultValidation.error.message}`,
+            message:
+              `Invalid mapping result: ${resultValidation.error.message}`,
+          } as ProcessingError & { message: string },
+        };
+      }
+      const mappedData = MappedData.create(resultValidation.data);
       return { ok: true, data: mappedData };
     } catch (error) {
       return {
@@ -270,7 +310,12 @@ export class TemplateMapper {
       }
 
       const result: Record<string, unknown> = {};
-      const dataObj = data as Record<string, unknown>;
+
+      // Use type guard instead of unsafe assertion
+      if (!isObject(data)) {
+        return undefined;
+      }
+      const dataObj = data;
 
       // Process all template keys
       for (const [key, templateValue] of Object.entries(template)) {
@@ -309,12 +354,15 @@ export class TemplateMapper {
         }
         current = current[index];
       } else if (typeof current === "object") {
-        const currentObj = current as Record<string, unknown>;
-        // Strict path resolution - must exist in object
-        if (!(part in currentObj)) {
+        // Use type guard instead of unsafe assertion
+        if (!isObject(current)) {
           return undefined;
         }
-        current = currentObj[part];
+        // Strict path resolution - must exist in object
+        if (!(part in current)) {
+          return undefined;
+        }
+        current = current[part];
       } else {
         // Path traversal failed - current is not an object or array
         return undefined;
@@ -356,7 +404,11 @@ export class TemplateMapper {
     }
 
     if (typeof data === "object") {
-      const entries = Object.entries(data as Record<string, unknown>);
+      // Use type guard instead of unsafe assertion
+      if (!isObject(data)) {
+        return `${indentStr}null`;
+      }
+      const entries = Object.entries(data);
       if (entries.length === 0) {
         return `${indentStr}{}`;
       }
