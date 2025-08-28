@@ -6,10 +6,8 @@ title: Climpt Registry.json Generation
 description: Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.
 usage: climpt-meta build-list command-registry -a=registry -o registry.json
 options:
-  input: ["scan"]
-  adaptation: ["default", "registry"]
-  input_file: [false]
-  stdin: [false]
+  input: ["default"]
+  adaptation: ["registry"]
   destination: [true]
 ---
 

@@ -21,21 +21,11 @@
         "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
         "usage": "climpt-design domain boundary --input=\"原案テキスト\"\n原案をもとにドメイン駆動設計の境界線分析を行い、境界線を設計します。\n",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default"
-          ],
           "input_file": [
             true
           ],
           "stdin": [
             true
-          ],
-          "destination": [
-            false
           ]
         }
       },
@@ -47,10 +37,6 @@
         "description": "コードベースをもとに、ドメイン境界線を引く。",
         "usage": "climpt-design domain boundary -a=code --input=\"ソースコード\"\n実装コードを分析してドメイン境界線を設計します。\n",
         "options": {
-          "input": [
-            "code",
-            "file"
-          ],
           "adaptation": [
             "code"
           ],
@@ -59,9 +45,6 @@
           ],
           "stdin": [
             true
-          ],
-          "destination": [
-            false
           ]
         }
       },
@@ -73,10 +56,6 @@
         "description": "Performs domain design based on domain boundary information and related materials.",
         "usage": "climpt-design domain architecture -f boundary_info.md -o design_output/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
           "adaptation": [
             "default",
             "core",
@@ -84,9 +63,6 @@
           ],
           "input_file": [
             true
-          ],
-          "stdin": [
-            false
           ],
           "destination": [
             true
@@ -101,10 +77,6 @@
         "description": "Core domain architecture design with focus on central concepts and detailed domain-specific implementation.",
         "usage": "climpt-design domain architecture -a=core -f domain_info.md -o core_design/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
           "adaptation": [
             "default",
             "core",
@@ -112,9 +84,6 @@
           ],
           "input_file": [
             true
-          ],
-          "stdin": [
-            false
           ],
           "destination": [
             true
@@ -129,10 +98,6 @@
         "description": "Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.",
         "usage": "climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
           "adaptation": [
             "default",
             "core",
@@ -140,9 +105,6 @@
           ],
           "input_file": [
             true
-          ],
-          "stdin": [
-            false
           ],
           "destination": [
             true
@@ -157,18 +119,8 @@
         "description": "Break down and structure requirements through process decomposition and user flow analysis.",
         "usage": "climpt-spec analyze-structure requirements -f requirements.md -o structured_output/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default"
-          ],
           "input_file": [
             true
-          ],
-          "stdin": [
-            false
           ],
           "destination": [
             true
@@ -183,17 +135,7 @@
         "description": "Analyze specification quality and completeness metrics",
         "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default"
-          ],
           "input_file": [
-            true
-          ],
-          "stdin": [
             true
           ],
           "destination": [
@@ -209,16 +151,6 @@
         "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
         "usage": "climpt-meta resolve registered-commands -i=content -o command_output.txt",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default"
-          ],
-          "input_file": [
-            false
-          ],
           "stdin": [
             true
           ],
@@ -235,18 +167,6 @@
         "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
         "usage": "climpt-meta build-list command-registry -o registered-commands.md",
         "options": {
-          "input": [
-            "scan"
-          ],
-          "adaptation": [
-            "default"
-          ],
-          "input_file": [
-            false
-          ],
-          "stdin": [
-            false
-          ],
           "destination": [
             true
           ]
@@ -261,17 +181,10 @@
         "usage": "climpt-meta build-list command-registry -a=registry -o registry.json",
         "options": {
           "input": [
-            "scan"
+            "default"
           ],
           "adaptation": [
-            "default",
             "registry"
-          ],
-          "input_file": [
-            false
-          ],
-          "stdin": [
-            false
           ],
           "destination": [
             true
@@ -287,18 +200,10 @@
         "usage": "climpt-meta build-list command-registry -a=claude -o tools-list.md",
         "options": {
           "input": [
-            "scan"
-          ],
-          "adaptation": [
-            "default",
-            "registry",
             "claude"
           ],
-          "input_file": [
-            false
-          ],
-          "stdin": [
-            false
+          "adaptation": [
+            "claude"
           ],
           "destination": [
             true
@@ -313,15 +218,6 @@
         "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
         "usage": "climpt-docs generate-robust instruction-doc -i=description -o instruction.md",
         "options": {
-          "input": [
-            "text"
-          ],
-          "adaptation": [
-            "default"
-          ],
-          "input_file": [
-            false
-          ],
           "stdin": [
             true
           ],
@@ -338,14 +234,6 @@
         "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
         "usage": "climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default",
-            "strict"
-          ],
           "input_file": [
             true
           ],
@@ -366,11 +254,9 @@
         "usage": "climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/",
         "options": {
           "input": [
-            "text",
-            "file"
+            "default"
           ],
           "adaptation": [
-            "default",
             "strict"
           ],
           "input_file": [
@@ -392,13 +278,6 @@
         "description": "Constructs robust and resilient code/API based on domain-driven design and totality principles.",
         "usage": "climpt-build robust code -f requirements.md -i=additional_instructions -o code_output/",
         "options": {
-          "input": [
-            "text",
-            "file"
-          ],
-          "adaptation": [
-            "default"
-          ],
           "input_file": [
             true
           ],

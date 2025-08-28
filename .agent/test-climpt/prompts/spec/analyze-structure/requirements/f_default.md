@@ -6,10 +6,7 @@ title: Requirements Structure Analysis
 description: Break down and structure requirements through process decomposition and user flow analysis.
 usage: climpt-spec analyze-structure requirements -f requirements.md -o structured_output/
 options:
-  input: ["text", "file"]
-  adaptation: ["default"]
   input_file: [true]
-  stdin: [false]
   destination: [true]
 ---
 

@@ -6,8 +6,6 @@ title: Robust Code Construction
 description: Constructs robust and resilient code/API based on domain-driven design and totality principles.
 usage: climpt-build robust code -f requirements.md -i=additional_instructions -o code_output/
 options:
-  input: ["text", "file"]
-  adaptation: ["default"]
   input_file: [true]
   stdin: [true]
   destination: [true]
