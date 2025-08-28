@@ -12,10 +12,7 @@ import {
 import type { TemplateRepository } from "../../domain/template/repository.ts";
 import { TemplatePath } from "../../domain/template/repository.ts";
 import { TemplateFormat } from "../../domain/template/format-handlers.ts";
-import {
-  ComponentDomain,
-  FactoryConfigurationBuilder,
-} from "../../domain/core/component-factory.ts";
+import { ComponentRegistry } from "../../domain/core/component-registry.ts";
 
 export class FileTemplateRepository implements TemplateRepository {
   private templateCache = new Map<string, Template>();
@@ -115,21 +112,13 @@ export class FileTemplateRepository implements TemplateRepository {
         };
       }
 
-      // Validate template format using format handler from unified factory
-      const factory = FactoryConfigurationBuilder.createDefault();
-      const templateComponents = factory.createDomainComponents(
-        ComponentDomain.Template,
-      ) as {
-        formatHandlers: Map<
-          string,
-          import("../../domain/template/format-handlers.ts").TemplateFormatHandler
-        >;
-      };
-      const handler = templateComponents.formatHandlers.get(
+      // Validate template format using simplified component registry
+      const handlerResult = ComponentRegistry.getFormatHandler(
         format.toLowerCase(),
       );
 
-      if (handler) {
+      if (handlerResult.ok) {
+        const handler = handlerResult.data;
         // Pre-validate template content
         const parseResult = handler.parse(content);
         if (!parseResult.ok) {
