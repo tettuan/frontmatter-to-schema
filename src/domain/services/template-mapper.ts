@@ -10,6 +10,9 @@ import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
 import type { SchemaValidationMode } from "./interfaces.ts";
 import type { TypeScriptAnalysisOrchestrator } from "../core/typescript-processing-orchestrator.ts";
+import { TemplateReference } from "../models/template-reference.ts";
+import type { ITemplateRepository } from "../repositories/template-repository.ts";
+import { TemplatePath } from "../repositories/template-repository.ts";
 
 // Smart Constructor for DomainError with message
 function createTemplateMappingError(
@@ -101,6 +104,7 @@ class ValidatedMappingResult {
 export class TemplateMapper {
   constructor(
     private readonly orchestrator?: TypeScriptAnalysisOrchestrator,
+    private readonly templateRepository?: ITemplateRepository,
   ) {}
 
   /**
@@ -306,6 +310,40 @@ export class TemplateMapper {
     }
   }
 
+  /**
+   * Apply data to template using Totality principle - returns Result<T,E>
+   * This is the preferred method following DDD patterns
+   */
+  private applyDataToTemplate(
+    data: unknown,
+    template: unknown,
+    rootData?: unknown,
+  ): Result<unknown, DomainError & { message: string }> {
+    try {
+      const result = this.applyDataToTemplateStrict(data, template, rootData);
+      if (result === undefined) {
+        return {
+          ok: false,
+          error: createTemplateMappingError(
+            template,
+            data,
+            "Template structure does not match data structure",
+          ),
+        };
+      }
+      return { ok: true, data: result };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createTemplateMappingError(
+          template,
+          data,
+          `Template processing failed: ${error}`,
+        ),
+      };
+    }
+  }
+
   private applyDataToTemplateStrict(
     data: unknown,
     template: unknown,
@@ -320,14 +358,82 @@ export class TemplateMapper {
     }
 
     if (typeof template === "string") {
-      // Check if it's a placeholder
-      if (template.startsWith("{{") && template.endsWith("}}")) {
-        const path = template.slice(2, -2).trim();
-        const value = this.getValueByPathStrict(contextData, path);
-        // Return undefined if path doesn't exist (no fallbacks)
-        return value;
+      // Use TemplateReference to parse and handle different template types
+      const refResult = TemplateReference.create(template);
+      if (!refResult.ok) {
+        // If template reference parsing fails, treat as literal
+        return template;
       }
-      return template;
+
+      const templateRef = refResult.data;
+
+      // Handle different template reference types
+      switch (templateRef.getType().kind) {
+        case "placeholder": {
+          const pathResult = templateRef.getPath();
+          if (!pathResult.ok) {
+            return undefined;
+          }
+          const value = this.getValueByPathStrict(contextData, pathResult.data);
+          return value;
+        }
+        case "file_reference": {
+          const pathResult = templateRef.getPath();
+          if (!pathResult.ok) {
+            return undefined;
+          }
+
+          // Load referenced template file if repository is available
+          if (this.templateRepository) {
+            const templatePathResult = TemplatePath.create(pathResult.data);
+            if (templatePathResult.ok) {
+              // Note: This is a sync method but template loading is async
+              // In a real implementation, this would need to be restructured
+              // For now, return placeholder indicating async processing needed
+              return { __async_template_loading__: pathResult.data };
+            }
+          }
+
+          // Fallback: return the path itself as placeholder
+          return pathResult.data;
+        }
+        case "array_item": {
+          const pathResult = templateRef.getPath();
+          if (!pathResult.ok) {
+            return undefined;
+          }
+
+          // Array item templates should be applied when processing array data
+          if (Array.isArray(data)) {
+            const result = [];
+            for (const item of data) {
+              // Load template file for each array item if repository available
+              if (this.templateRepository) {
+                const templatePathResult = TemplatePath.create(pathResult.data);
+                if (templatePathResult.ok) {
+                  // Note: This needs async restructuring in real implementation
+                  result.push({
+                    __async_array_template__: pathResult.data,
+                    item,
+                  });
+                  continue;
+                }
+              }
+
+              // Fallback: return item as-is
+              result.push(item);
+            }
+            return result;
+          }
+
+          // If data is not array, this template reference doesn't apply
+          return undefined;
+        }
+        case "literal": {
+          const literalResult = templateRef.getLiteralValue();
+          return literalResult.ok ? literalResult.data : template;
+        }
+      }
     }
 
     if (Array.isArray(template)) {
@@ -336,24 +442,43 @@ export class TemplateMapper {
         return undefined;
       }
 
-      // For arrays, both must have the same length for strict matching
-      if (template.length !== data.length) {
-        return undefined;
-      }
-
-      const result = [];
-      for (let i = 0; i < template.length; i++) {
-        const mappedItem = this.applyDataToTemplateStrict(
-          data[i],
-          template[i],
-          contextData,
-        );
-        if (mappedItem === undefined && template[i] !== undefined) {
+      // Handle template arrays - distinguish between fixed-length and dynamic arrays
+      if (template.length === 1) {
+        // Single template item - apply to all data items (dynamic array processing)
+        const templateItem = template[0];
+        const result = [];
+        for (const dataItem of data) {
+          const mappedItem = this.applyDataToTemplateStrict(
+            dataItem,
+            templateItem,
+            contextData,
+          );
+          if (mappedItem === undefined && templateItem !== undefined) {
+            return undefined;
+          }
+          result.push(mappedItem);
+        }
+        return result;
+      } else {
+        // Multiple template items - strict length matching (fixed array processing)
+        if (template.length !== data.length) {
           return undefined;
         }
-        result.push(mappedItem);
+
+        const result = [];
+        for (let i = 0; i < template.length; i++) {
+          const mappedItem = this.applyDataToTemplateStrict(
+            data[i],
+            template[i],
+            contextData,
+          );
+          if (mappedItem === undefined && template[i] !== undefined) {
+            return undefined;
+          }
+          result.push(mappedItem);
+        }
+        return result;
       }
-      return result;
     }
 
     if (isRecordObject(template)) {

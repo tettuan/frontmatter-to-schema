@@ -633,7 +633,7 @@ export class ProcessDocumentsUseCase {
       const legacyMappedResult = this.templateMapper.map(
         extractedResult.data,
         template,
-        schema.getDefinition().getValue(), // Pass schema for strict structure matching
+        { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
       );
       if (isError(legacyMappedResult)) {
         if (verboseMode) {
@@ -665,18 +665,7 @@ export class ProcessDocumentsUseCase {
       return { ok: true, data: analysisResult };
     }
 
-    // Map to template
-    if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
-        "process-documents-helper",
-      );
-      verboseLogger.info("Mapping to template", { document: docPath });
-    }
-    const mappedResult = this.templateMapper.map(
-      extractedResult.data,
-      template,
-      { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
-    );
+    // If we reach here, orchestrator succeeded
     if (isError(mappedResult)) {
       if (verboseMode) {
         const errorLogger = LoggerFactory.createLogger(
