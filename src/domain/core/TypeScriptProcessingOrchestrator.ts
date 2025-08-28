@@ -2,11 +2,8 @@
  * TypeScript Processing Orchestrator
  */
 
-import type { Result } from "./result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError, Result } from "./result.ts";
+import { createDomainError } from "./result.ts";
 import { LoggerFactory } from "../shared/logger.ts";
 
 import {
@@ -62,7 +59,7 @@ export class TypeScriptProcessingOrchestrator {
    */
   process(
     request: ProcessingRequest,
-  ): Promise<Result<ProcessingResult, ValidationError>> {
+  ): Promise<Result<ProcessingResult, DomainError & { message: string }>> {
     const logger = LoggerFactory.createLogger("typescript-orchestrator");
     const verbose = request.options?.verbose || false;
     const warnings: string[] = [];
@@ -83,7 +80,12 @@ export class TypeScriptProcessingOrchestrator {
       if (!extractionResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createValidationError(
+          error: createDomainError(
+            {
+              kind: "ProcessingStageError",
+              stage: "frontmatter_extraction",
+              error: extractionResult.error,
+            },
             `Frontmatter extraction failed: ${extractionResult.error.message}`,
           ),
         });
@@ -108,9 +110,11 @@ export class TypeScriptProcessingOrchestrator {
       if (!mappingResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createValidationError(
-            `Schema mapping failed: ${mappingResult.error.message}`,
-          ),
+          error: createDomainError({
+            kind: "ProcessingStageError",
+            stage: "schema_mapping",
+            error: mappingResult.error,
+          }, `Schema mapping failed: ${mappingResult.error.message}`),
         });
       }
 
@@ -145,9 +149,11 @@ export class TypeScriptProcessingOrchestrator {
       if (!schemaExpansionResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createValidationError(
-            `Schema expansion failed: ${schemaExpansionResult.error.message}`,
-          ),
+          error: createDomainError({
+            kind: "ProcessingStageError",
+            stage: "schema_expansion",
+            error: schemaExpansionResult.error,
+          }, `Schema expansion failed: ${schemaExpansionResult.error.message}`),
         });
       }
       const schemaProperties = schemaExpansionResult.data;
@@ -166,9 +172,11 @@ export class TypeScriptProcessingOrchestrator {
       if (!templateResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createValidationError(
-            `Template processing failed: ${templateResult.error.message}`,
-          ),
+          error: createDomainError({
+            kind: "ProcessingStageError",
+            stage: "template_processing",
+            error: templateResult.error,
+          }, `Template processing failed: ${templateResult.error.message}`),
         });
       }
 
@@ -225,9 +233,10 @@ export class TypeScriptProcessingOrchestrator {
 
       return Promise.resolve({
         ok: false,
-        error: createValidationError(
-          `Processing pipeline failed: ${errorMessage}`,
-        ),
+        error: createDomainError({
+          kind: "PipelineTimeout",
+          timeoutMs: 30000,
+        }, `Processing pipeline failed: ${errorMessage}`),
       });
     }
   }
@@ -235,18 +244,27 @@ export class TypeScriptProcessingOrchestrator {
   /**
    * Validate that the processing request is well-formed
    */
-  validateRequest(request: ProcessingRequest): Result<void, ValidationError> {
+  validateRequest(
+    request: ProcessingRequest,
+  ): Result<void, DomainError & { message: string }> {
     if (!request.content || typeof request.content !== "string") {
       return {
         ok: false,
-        error: createValidationError("Content must be a non-empty string"),
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "content",
+        }, "Content must be a non-empty string"),
       };
     }
 
     if (!request.schema || typeof request.schema !== "object") {
       return {
         ok: false,
-        error: createValidationError("Schema must be an object"),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: typeof request.schema,
+          expectedFormat: "object",
+        }, "Schema must be an object"),
       };
     }
 
@@ -255,9 +273,10 @@ export class TypeScriptProcessingOrchestrator {
     ) {
       return {
         ok: false,
-        error: createValidationError(
-          "Template content must be a non-empty string",
-        ),
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "templateContent",
+        }, "Template content must be a non-empty string"),
       };
     }
 
@@ -270,7 +289,7 @@ export class TypeScriptProcessingOrchestrator {
    */
   extractTemplateVariables(
     templateContent: string,
-  ): Result<string[], ValidationError> {
+  ): Result<string[], DomainError & { message: string }> {
     return this.frontMatterExtractor.extractTemplateVariables(templateContent);
   }
 
@@ -278,7 +297,9 @@ export class TypeScriptProcessingOrchestrator {
    * Expand schema into flat properties
    * Utility method for external usage
    */
-  expandSchema(schema: unknown): Result<SchemaProperty[], ValidationError> {
+  expandSchema(
+    schema: unknown,
+  ): Result<SchemaProperty[], DomainError & { message: string }> {
     return this.schemaMatcher.expandSchema(schema);
   }
 }

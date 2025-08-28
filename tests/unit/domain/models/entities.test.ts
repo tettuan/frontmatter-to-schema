@@ -22,7 +22,7 @@ import {
   SchemaVersion,
   TemplateFormat,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isOk } from "../../../../src/domain/shared/types.ts";
+import { isOk } from "../../../../src/domain/core/result.ts";
 
 // Helper functions to create test value objects
 const createDocumentPath = (path: string) => {

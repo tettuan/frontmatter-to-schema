@@ -8,11 +8,8 @@
  * - Self-validating with business rules embedded
  */
 
-import type {
-  Result,
-  ValidationError as ResultValidationError,
-} from "../core/result.ts";
-import type { ValidationError } from "../shared/types.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 /**
  * Represents a path to a Markdown document
@@ -39,15 +36,14 @@ export class DocumentPath {
    */
   static create(
     path: string,
-  ): Result<DocumentPath, ResultValidationError & { message: string }> {
+  ): Result<DocumentPath, DomainError & { message: string }> {
     const trimmedPath = path.trim();
     if (!trimmedPath) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-          message: "Input cannot be empty",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Input cannot be empty"),
       };
     }
 
@@ -55,12 +51,11 @@ export class DocumentPath {
     if (trimmedPath.length > 512) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "TooLong",
           value: trimmedPath,
           maxLength: 512,
-          message: "Path is too long",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Path is too long"),
       };
     }
 
@@ -68,24 +63,22 @@ export class DocumentPath {
     if (trimmedPath.includes("\0")) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "InvalidFormat",
           input: trimmedPath,
           expectedFormat: "path without null bytes",
-          message: "Path contains invalid characters",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Path contains invalid characters"),
       };
     }
 
     if (trimmedPath.includes("\r") || trimmedPath.includes("\n")) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "InvalidFormat",
           input: trimmedPath,
           expectedFormat: "path without line breaks",
-          message: "Path contains invalid characters",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Path contains invalid characters"),
       };
     }
 
@@ -135,14 +128,14 @@ export class FrontMatterContent {
 
   static create(
     content: string,
-  ): Result<FrontMatterContent, ValidationError & { message: string }> {
+  ): Result<FrontMatterContent, DomainError & { message: string }> {
     // Allow empty content for frontmatter (documents may have empty frontmatter)
     return { ok: true, data: new FrontMatterContent(content) };
   }
 
   static fromObject(
     obj: Record<string, unknown>,
-  ): Result<FrontMatterContent, ResultValidationError & { message: string }> {
+  ): Result<FrontMatterContent, DomainError & { message: string }> {
     // Validate that input is actually an object
     if (
       obj === null || obj === undefined || typeof obj !== "object" ||
@@ -150,12 +143,11 @@ export class FrontMatterContent {
     ) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "InvalidFormat",
           input: String(obj),
           expectedFormat: "object",
-          message: "Input must be a plain object",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Input must be a plain object"),
       };
     }
 
@@ -165,27 +157,25 @@ export class FrontMatterContent {
     } catch (error) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "InvalidFormat",
           input: String(error),
           expectedFormat: "serializable object",
-          message: "Object cannot be serialized to JSON",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Object cannot be serialized to JSON"),
       };
     }
   }
 
   static fromYaml(
     yamlContent: string,
-  ): Result<FrontMatterContent, ResultValidationError & { message: string }> {
+  ): Result<FrontMatterContent, DomainError & { message: string }> {
     const trimmed = yamlContent.trim();
     if (!trimmed) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-          message: "YAML content cannot be empty",
-        } as unknown as ResultValidationError & { message: string },
+        }, "YAML content cannot be empty"),
       };
     }
 
@@ -302,7 +292,7 @@ export class DocumentContent {
 
   static create(
     content: string,
-  ): Result<DocumentContent, ValidationError & { message: string }> {
+  ): Result<DocumentContent, DomainError & { message: string }> {
     return { ok: true, data: new DocumentContent(content) };
   }
 
@@ -321,14 +311,13 @@ export class ConfigPath {
 
   static create(
     path: string,
-  ): Result<ConfigPath, ResultValidationError & { message: string }> {
+  ): Result<ConfigPath, DomainError & { message: string }> {
     if (!path || path.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        } as unknown as ResultValidationError & { message: string },
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Input cannot be empty"),
       };
     }
     // Validate config file extensions
@@ -338,12 +327,11 @@ export class ConfigPath {
     ) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
+        error: createDomainError({
+          kind: "InvalidFormat",
           input: path,
           expectedFormat: ".json, .yaml, .yml, or .toml",
-          message: "Invalid file extension",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Invalid file extension"),
       };
     }
     return { ok: true, data: new ConfigPath(path) };
@@ -366,14 +354,13 @@ export class TemplatePath {
 
   static create(
     path: string,
-  ): Result<TemplatePath, ResultValidationError & { message: string }> {
+  ): Result<TemplatePath, DomainError & { message: string }> {
     if (!path || path.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        } as unknown as ResultValidationError & { message: string },
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Input cannot be empty"),
       };
     }
 
@@ -397,14 +384,13 @@ export class OutputPath {
 
   static create(
     path: string,
-  ): Result<OutputPath, ValidationError & { message: string }> {
+  ): Result<OutputPath, DomainError & { message: string }> {
     if (!path || path.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        } as unknown as ValidationError & { message: string },
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Input cannot be empty"),
       };
     }
 
@@ -431,14 +417,13 @@ export class SchemaDefinition {
   static create(
     definition: unknown,
     version: string = "1.0.0",
-  ): Result<SchemaDefinition, ResultValidationError & { message: string }> {
+  ): Result<SchemaDefinition, DomainError & { message: string }> {
     if (!definition) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-          message: "Schema definition cannot be empty",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Schema definition cannot be empty"),
       };
     }
 
@@ -448,12 +433,11 @@ export class SchemaDefinition {
     ) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "InvalidFormat",
           input: typeof definition,
           expectedFormat: "object",
-          message: "Schema definition must be a plain object",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Schema definition must be a plain object"),
       };
     }
 
@@ -470,15 +454,14 @@ export class SchemaDefinition {
 
   validate(
     data: unknown,
-  ): Result<boolean, ResultValidationError & { message: string }> {
+  ): Result<boolean, DomainError & { message: string }> {
     // Basic validation - reject null/undefined
     if (data === null || data === undefined) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-          message: "Data to validate cannot be null or undefined",
-        } as unknown as ResultValidationError & { message: string },
+        }, "Data to validate cannot be null or undefined"),
       };
     }
 
@@ -497,7 +480,7 @@ export class SchemaVersion {
 
   static create(
     version: string,
-  ): Result<SchemaVersion, ValidationError & { message: string }> {
+  ): Result<SchemaVersion, DomainError & { message: string }> {
     // Strict semantic versioning validation
     // Only accept proper semantic version format: X.Y.Z
     const trimmedVersion = version.trim();
@@ -521,11 +504,14 @@ export class SchemaVersion {
     // Reject invalid formats
     return {
       ok: false,
-      error: {
-        kind: "ValidationError",
-        message:
-          `Invalid version format. Expected X.Y.Z (semantic version), got: ${version}`,
-      } as unknown as ValidationError & { message: string },
+      error: createDomainError(
+        {
+          kind: "InvalidFormat",
+          input: version,
+          expectedFormat: "X.Y.Z (semantic version)",
+        },
+        `Invalid version format. Expected X.Y.Z (semantic version), got: ${version}`,
+      ),
     };
   }
 
@@ -548,14 +534,13 @@ export class TemplateFormat {
   static create(
     format: string,
     template: string,
-  ): Result<TemplateFormat, ValidationError & { message: string }> {
+  ): Result<TemplateFormat, DomainError & { message: string }> {
     if (!template || template.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        } as unknown as ValidationError & { message: string },
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Input cannot be empty"),
       };
     }
 
@@ -565,11 +550,14 @@ export class TemplateFormat {
     ) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message:
-            `Invalid format. Expected json, yaml, toml, handlebars, or custom, got: ${format}`,
-        } as unknown as ValidationError & { message: string },
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: format,
+            expectedFormat: "json, yaml, toml, handlebars, or custom",
+          },
+          `Invalid format. Expected json, yaml, toml, handlebars, or custom, got: ${format}`,
+        ),
       };
     }
 
@@ -602,14 +590,13 @@ export class MappingRule {
     source: string,
     target: string,
     transform?: (value: unknown) => unknown,
-  ): Result<MappingRule, ValidationError & { message: string }> {
+  ): Result<MappingRule, DomainError & { message: string }> {
     if (!source || !target) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Input cannot be empty",
-        } as unknown as ValidationError & { message: string },
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Input cannot be empty"),
       };
     }
 
@@ -674,7 +661,7 @@ export class ProcessingOptions {
     parallel?: boolean;
     maxConcurrency?: number;
     continueOnError?: boolean;
-  }): Result<ProcessingOptions, ValidationError & { message: string }> {
+  }): Result<ProcessingOptions, DomainError & { message: string }> {
     const parallel = options.parallel ?? true;
     const maxConcurrency = options.maxConcurrency ?? 5;
     const continueOnError = options.continueOnError ?? false;
@@ -682,10 +669,12 @@ export class ProcessingOptions {
     if (maxConcurrency < 1 || maxConcurrency > 100) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: `Max concurrency out of range (1-100): ${maxConcurrency}`,
-        } as unknown as ValidationError & { message: string },
+        error: createDomainError({
+          kind: "OutOfRange",
+          value: maxConcurrency,
+          min: 1,
+          max: 100,
+        }, `Max concurrency out of range (1-100): ${maxConcurrency}`),
       };
     }
 

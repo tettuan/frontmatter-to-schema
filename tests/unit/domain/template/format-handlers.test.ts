@@ -70,7 +70,7 @@ Deno.test("TemplateFormat - Smart Constructor", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "InvalidFormat",
       );
       // ValidationError will contain the format information in message field
     }
@@ -182,7 +182,7 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "EmptyInput",
       );
     }
   });
@@ -194,7 +194,7 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "EmptyInput",
       );
     }
   });
@@ -210,7 +210,7 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "ParseError",
       );
     }
   });
@@ -227,7 +227,7 @@ Deno.test("JSONTemplateHandler - Parsing", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "ParseError",
       );
     }
   });
@@ -301,7 +301,7 @@ Deno.test("JSONTemplateHandler - Serialization", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "InvalidFormat",
       );
     }
   });
@@ -463,7 +463,7 @@ author: John Doe
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "EmptyInput",
       );
     }
   });
@@ -475,7 +475,7 @@ author: John Doe
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "EmptyInput",
       );
     }
   });
@@ -775,9 +775,9 @@ Deno.test("TemplateFormatHandlerFactory - Handler Discovery", async (t) => {
     if (!result.ok) {
       assertEquals(
         result.error.kind,
-        "ValidationError",
+        "NotFound",
       );
-      // ValidationError will contain the handler information
+      // NotFound error will contain the handler information
     }
   });
 

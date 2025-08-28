@@ -3,8 +3,8 @@
  * Following Totality principles - all constructors return Result types
  */
 
-import type { Result, ValidationError } from "../shared/types.ts";
-import { createError } from "../shared/types.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 /**
  * Registry Version value object
@@ -13,15 +13,18 @@ import { createError } from "../shared/types.ts";
 export class RegistryVersion {
   private constructor(private readonly value: string) {}
 
-  static create(value: string): Result<RegistryVersion, ValidationError> {
+  static create(
+    value: string,
+  ): Result<RegistryVersion, DomainError & { message: string }> {
     const semverPattern = /^\d+\.\d+\.\d+$/;
     if (!semverPattern.test(value)) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: `Invalid version format: ${value}. Expected format: X.Y.Z`,
-        }),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: value,
+          expectedFormat: "X.Y.Z",
+        }, `Invalid version format: ${value}. Expected format: X.Y.Z`),
       };
     }
     return { ok: true, data: new RegistryVersion(value) };
@@ -51,14 +54,13 @@ export class ToolConfiguration {
 
   static create(
     name: string,
-  ): Result<ToolConfiguration, ValidationError> {
+  ): Result<ToolConfiguration, DomainError & { message: string }> {
     if (!name || name.trim() === "") {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: "Tool name cannot be empty",
-        }),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Tool name cannot be empty"),
       };
     }
 
@@ -76,12 +78,11 @@ export class ToolConfiguration {
     if (!validTools.includes(name.toLowerCase())) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: `Invalid tool name: ${name}. Valid tools: ${
-            validTools.join(", ")
-          }`,
-        }),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: name,
+          expectedFormat: validTools.join(", "),
+        }, `Invalid tool name: ${name}. Valid tools: ${validTools.join(", ")}`),
       };
     }
 
@@ -113,24 +114,22 @@ export class RegistryCommand {
     c2: string,
     c3: string,
     description: string,
-  ): Result<RegistryCommand, ValidationError> {
+  ): Result<RegistryCommand, DomainError & { message: string }> {
     if (!c1 || !c2 || !c3) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: "Command components (c1, c2, c3) cannot be empty",
-        }),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Command components (c1, c2, c3) cannot be empty"),
       };
     }
 
     if (!description || description.trim() === "") {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: "Command description cannot be empty",
-        }),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Command description cannot be empty"),
       };
     }
 
@@ -148,7 +147,7 @@ export class RegistryCommand {
   static createFromPath(
     path: string,
     description: string,
-  ): Result<RegistryCommand, ValidationError> {
+  ): Result<RegistryCommand, DomainError & { message: string }> {
     // Extract command components from file path
     // e.g., ".agent/climpt/prompts/git/merge-cleanup/develop-branches/f_default.md"
     // -> ["git", "merge-cleanup", "develop-branches"]
@@ -168,10 +167,11 @@ export class RegistryCommand {
     if (parts.length < 3) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: `Cannot extract command from path: ${path}`,
-        }),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: path,
+          expectedFormat: "path with at least 3 components after prompts/",
+        }, `Cannot extract command from path: ${path}`),
       };
     }
 
@@ -222,24 +222,22 @@ export class AnalysisContext {
     frontMatterData: Record<string, unknown>,
     schemaData: Record<string, unknown>,
     templateData: Record<string, unknown>,
-  ): Result<AnalysisContext, ValidationError> {
+  ): Result<AnalysisContext, DomainError & { message: string }> {
     if (!documentPath) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: "Document path cannot be empty",
-        }),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Document path cannot be empty"),
       };
     }
 
     if (!frontMatterData || Object.keys(frontMatterData).length === 0) {
       return {
         ok: false,
-        error: createError({
-          kind: "ValidationError",
-          message: "FrontMatter data cannot be empty",
-        }),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "FrontMatter data cannot be empty"),
       };
     }
 

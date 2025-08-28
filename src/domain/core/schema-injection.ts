@@ -3,11 +3,7 @@
  * Enables runtime schema injection and switching for complete variability
  */
 
-import {
-  createDomainError,
-  type Result,
-  type ValidationError,
-} from "./result.ts";
+import { createDomainError, type DomainError, type Result } from "./result.ts";
 
 /**
  * Schema Context - Runtime injected schema information
@@ -25,7 +21,7 @@ export class SchemaContext {
     id: string,
     schema: unknown,
     validationRules?: unknown[],
-  ): Result<SchemaContext, ValidationError & { message: string }> {
+  ): Result<SchemaContext, DomainError & { message: string }> {
     if (!id || id.trim() === "") {
       return {
         ok: false,
@@ -75,7 +71,7 @@ export class TemplateContext {
     id: string,
     template: unknown,
     format: "json" | "yaml" | "xml" = "json",
-  ): Result<TemplateContext, ValidationError & { message: string }> {
+  ): Result<TemplateContext, DomainError & { message: string }> {
     if (!id || id.trim() === "") {
       return {
         ok: false,
@@ -114,7 +110,7 @@ export class PromptContext {
   static create(
     extractionPrompt: string,
     mappingPrompt: string,
-  ): Result<PromptContext, ValidationError & { message: string }> {
+  ): Result<PromptContext, DomainError & { message: string }> {
     if (!extractionPrompt || extractionPrompt.trim() === "") {
       return {
         ok: false,
@@ -167,7 +163,7 @@ export type ActiveSchema =
   | {
     kind: "Failed";
     name: string;
-    error: ValidationError & { message: string };
+    error: DomainError & { message: string };
     failedAt: Date;
   }
   | {
@@ -189,7 +185,7 @@ export class RuntimeSchemaInjector {
   injectSchema(
     name: string,
     schema: unknown,
-  ): Result<SchemaContext, ValidationError & { message: string }> {
+  ): Result<SchemaContext, DomainError & { message: string }> {
     const contextResult = SchemaContext.create(name, schema);
     if (!contextResult.ok) {
       return contextResult;
@@ -206,7 +202,7 @@ export class RuntimeSchemaInjector {
     name: string,
     template: unknown,
     format?: "json" | "yaml" | "xml",
-  ): Result<TemplateContext, ValidationError & { message: string }> {
+  ): Result<TemplateContext, DomainError & { message: string }> {
     const contextResult = TemplateContext.create(name, template, format);
     if (!contextResult.ok) {
       return contextResult;
@@ -223,7 +219,7 @@ export class RuntimeSchemaInjector {
     name: string,
     extractionPrompt: string,
     mappingPrompt: string,
-  ): Result<PromptContext, ValidationError & { message: string }> {
+  ): Result<PromptContext, DomainError & { message: string }> {
     const contextResult = PromptContext.create(
       extractionPrompt,
       mappingPrompt,
@@ -241,7 +237,7 @@ export class RuntimeSchemaInjector {
    */
   activate(
     name: string,
-  ): Result<ActiveSchema, ValidationError & { message: string }> {
+  ): Result<ActiveSchema, DomainError & { message: string }> {
     const schemaContext = this.schemaCache.get(name);
     const templateContext = this.templateCache.get(name);
     const promptContext = this.promptCache.get(name);
@@ -367,7 +363,7 @@ export class SchemaInjectionContainer {
   /**
    * Resolve a bound value
    */
-  resolve<T>(key: string): Result<T, ValidationError & { message: string }> {
+  resolve<T>(key: string): Result<T, DomainError & { message: string }> {
     const value = this.bindings.get(key);
     if (value === undefined) {
       return {
