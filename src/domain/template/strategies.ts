@@ -12,7 +12,7 @@ import {
   createDomainError,
   createProcessingStageError,
 } from "../core/result.ts";
-import type { Template } from "../models/domain-models.ts";
+import type { Template } from "../models/entities.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
@@ -65,7 +65,7 @@ export class AITemplateStrategy implements TemplateProcessingStrategy {
       content: JSON.stringify({
         extractedData: context.extractedData,
         schema: context.schema,
-        template: template.getDefinition().getDefinition(),
+        template: template.getFormat().getTemplate(),
         format: context.format,
       }),
       prompt,
@@ -116,7 +116,7 @@ ${JSON.stringify(context.extractedData, null, 2)}
 ${JSON.stringify(context.schema, null, 2)}
 
 3. テンプレート:
-${template.getDefinition().getDefinition()}
+${template.getFormat().getTemplate()}
 
 【処理指示】
 - Schemaで解釈されたデータをテンプレートに当て込んでください
@@ -148,7 +148,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
     template: Template,
     context: TemplateApplicationContext,
   ): Promise<Result<string, DomainError>> {
-    const format = template.getDefinition().getFormat();
+    const format = template.getFormat().getFormat();
 
     // Check if this strategy can handle the template format
     if (!this.canHandle(template)) {
@@ -175,7 +175,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       }
 
       const handler = handlerResult.data;
-      const templateContent = template.getDefinition().getDefinition();
+      const templateContent = template.getFormat().getTemplate();
 
       // Parse template using format handler
       const parseResult = handler.parse(templateContent);
@@ -315,7 +315,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
   }
 
   canHandle(template: Template): boolean {
-    const format = template.getDefinition().getFormat();
+    const format = template.getFormat().getFormat();
     // Native strategy can handle json, yaml, and custom formats
     return ["json", "yaml", "custom"].includes(format);
   }

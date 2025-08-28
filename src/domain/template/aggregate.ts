@@ -8,8 +8,8 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import type { Template } from "../models/domain-models.ts";
-import type { TemplateRepository } from "./repository.ts";
+import type { Template } from "../models/entities.ts";
+import type { TemplateRepository } from "../services/interfaces.ts";
 import type { TemplateProcessingStrategy } from "./strategies.ts";
 import { TemplateAppliedEvent, TemplateLoadedEvent } from "./events.ts";
 
@@ -97,7 +97,7 @@ export class TemplateAggregate {
     const template = templateResult.data;
 
     // Validate template format matches requested format
-    const templateFormat = template.getDefinition().getFormat();
+    const templateFormat = template.getFormat().getFormat();
     if (templateFormat !== "custom" && templateFormat !== context.format) {
       return {
         ok: false,

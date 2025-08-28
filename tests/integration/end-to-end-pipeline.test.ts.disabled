@@ -181,15 +181,15 @@ class MockTemplateRepository implements TemplateRepository {
     }
   }
 
-  async load(_path: TemplatePath) {
+  async load(templateId: string) {
     await Promise.resolve(); // Required for async interface
-    if (!this.template) {
+    if (!this.template || this.template.getId().getValue() !== templateId) {
       return {
         ok: false as const,
         error: {
-          kind: "ReadError" as const,
-          path: _path.getValue(),
-          reason: "Template not found",
+          kind: "NotFound" as const,
+          resource: "template",
+          name: templateId,
           message: "Template not found",
         },
       };
@@ -197,7 +197,59 @@ class MockTemplateRepository implements TemplateRepository {
     return { ok: true as const, data: this.template };
   }
 
-  validate(_template: Template) {
+  async loadFromPath(path: TemplatePath) {
+    await Promise.resolve(); // Required for async interface
+    if (!this.template) {
+      return {
+        ok: false as const,
+        error: {
+          kind: "NotFound" as const,
+          resource: "template",
+          name: path.getValue(),
+          message: "Template not found",
+        },
+      };
+    }
+    return { ok: true as const, data: this.template };
+  }
+
+  async save(template: Template) {
+    await Promise.resolve();
+    this.template = template;
+    return { ok: true as const, data: undefined };
+  }
+
+  async exists(templateId: string): Promise<boolean> {
+    await Promise.resolve();
+    return this.template !== null && this.template.getId().getValue() === templateId;
+  }
+
+  async list() {
+    await Promise.resolve();
+    if (this.template) {
+      return {
+        ok: true as const,
+        data: [this.template.getId().getValue()],
+      };
+    }
+    return {
+      ok: true as const,
+      data: [],
+    };
+  }
+
+  validate(template: Template) {
+    // Basic validation - just check if template exists
+    if (!template) {
+      return {
+        ok: false as const,
+        error: {
+          kind: "EmptyInput" as const,
+          field: "template",
+          message: "Template is required",
+        },
+      };
+    }
     return { ok: true as const, data: undefined };
   }
 }

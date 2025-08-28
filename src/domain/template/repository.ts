@@ -7,7 +7,6 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import type { Template } from "../models/domain-models.ts";
 
 /**
  * Template path value object
@@ -72,41 +71,4 @@ export class TemplatePath {
   toString(): string {
     return this.value;
   }
-}
-
-/**
- * Repository interface for Template aggregate
- * Implementations handle actual storage/retrieval
- */
-export interface TemplateRepository {
-  /**
-   * Load a template by ID
-   */
-  load(
-    templateId: string,
-  ): Promise<Result<Template, DomainError & { message: string }>>;
-
-  /**
-   * Load a template from a specific path
-   */
-  loadFromPath(
-    path: TemplatePath,
-  ): Promise<Result<Template, DomainError & { message: string }>>;
-
-  /**
-   * Save a template
-   */
-  save(
-    template: Template,
-  ): Promise<Result<void, DomainError & { message: string }>>;
-
-  /**
-   * Check if a template exists
-   */
-  exists(templateId: string): Promise<boolean>;
-
-  /**
-   * List all available template IDs
-   */
-  list(): Promise<Result<string[], DomainError & { message: string }>>;
 }

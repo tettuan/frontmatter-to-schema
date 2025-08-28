@@ -7,7 +7,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createProcessingStageError } from "../core/result.ts";
-import type { Template } from "../models/domain-models.ts";
+import type { Template } from "../models/entities.ts";
 import { TemplateProcessingService } from "./service.ts";
 import { FileTemplateRepository } from "../../infrastructure/template/file-template-repository.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
@@ -47,10 +47,10 @@ export class TemplateMapperAdapter {
 
     // Process using new service
     return this.service.processTemplate(
-      templateId,
+      templateId.getValue(),
       data,
       {}, // Empty schema for backward compatibility
-      template.getDefinition().getFormat() as "json" | "yaml",
+      template.getFormat().getFormat() as "json" | "yaml",
     );
   }
 }
@@ -88,10 +88,10 @@ export class AITemplateMapperAdapter {
 
     // Process using new service
     return this.service.processTemplate(
-      template.getId(),
+      template.getId().getValue(),
       extractedData,
       schema,
-      template.getDefinition().getFormat() as "json" | "yaml",
+      template.getFormat().getFormat() as "json" | "yaml",
     );
   }
 }

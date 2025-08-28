@@ -353,6 +353,23 @@ export class ConfigurationLoader
 // Template repository implementation
 export class TemplateLoader implements TemplateRepository {
   async load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>> {
+    // For TemplateLoader, we treat templateId as a direct path
+    const pathResult = TemplatePath.create(templateId);
+    if (!pathResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidPath",
+          path: templateId,
+        }),
+      };
+    }
+    return await this.loadFromPath(pathResult.data);
+  }
+
+  async loadFromPath(
     path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     try {
@@ -485,6 +502,35 @@ export class TemplateLoader implements TemplateRepository {
         }),
       };
     }
+  }
+
+  save(
+    _template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>> {
+    // Not implemented for TemplateLoader - this is primarily a read-only loader
+    return Promise.resolve({
+      ok: false,
+      error: createDomainError({
+        kind: "NotConfigured",
+        component: "TemplateLoader save functionality",
+      }),
+    });
+  }
+
+  exists(_templateId: string): Promise<boolean> {
+    // Not implemented for TemplateLoader
+    return Promise.resolve(false);
+  }
+
+  list(): Promise<Result<string[], DomainError & { message: string }>> {
+    // Not implemented for TemplateLoader
+    return Promise.resolve({
+      ok: false,
+      error: createDomainError({
+        kind: "NotConfigured",
+        component: "TemplateLoader list functionality",
+      }),
+    });
   }
 
   validate(
