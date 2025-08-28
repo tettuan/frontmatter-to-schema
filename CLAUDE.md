@@ -112,6 +112,15 @@ deno task ci
 - Integration tests must validate real workflows
 - E2E tests must cover main CLI use cases
 
+### Test Documentation
+
+For detailed testing guidelines and best practices:
+
+- **[Test Overview](docs/tests/README.md)**: Comprehensive testing strategy and architecture
+- **[Testing Guidelines](docs/tests/testing_guidelines.md)**: Detailed TDD practices and implementation guide
+- **[Comprehensive Test Strategy](docs/testing/comprehensive-test-strategy.md)**: Overall testing approach
+- **[Schema Test Specification](docs/test-specifications/schema-matching-test-spec.md)**: Schema validation testing details
+
 # Git
 
 - use gh for Git access.
