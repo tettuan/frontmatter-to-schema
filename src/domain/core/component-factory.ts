@@ -3,8 +3,7 @@
  * Consolidates factory responsibilities following DDD domain boundaries
  */
 
-import type { Result } from "./result.ts";
-import type { ValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "./result.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Analysis Domain Factories
@@ -55,7 +54,7 @@ export const enum ComponentDomain {
 export interface DomainComponentFactory<TDomain extends ComponentDomain> {
   readonly domain: TDomain;
   createComponents(): unknown;
-  validateDependencies(): Result<boolean, ValidationError>;
+  validateDependencies(): Result<boolean, DomainError & { message: string }>;
 }
 
 /**
@@ -128,7 +127,7 @@ export class AnalysisDomainFactory
     };
   }
 
-  validateDependencies(): Result<boolean, ValidationError> {
+  validateDependencies(): Result<boolean, DomainError & { message: string }> {
     this.logger.debug("Validating analysis domain dependencies");
     // Basic validation - can be enhanced
     return { ok: true, data: true };
@@ -188,7 +187,7 @@ export class TemplateDomainFactory
     };
   }
 
-  validateDependencies(): Result<boolean, ValidationError> {
+  validateDependencies(): Result<boolean, DomainError & { message: string }> {
     this.logger.debug("Validating template domain dependencies");
     return { ok: true, data: true };
   }
@@ -236,7 +235,7 @@ export class PipelineDomainFactory
     };
   }
 
-  validateDependencies(): Result<boolean, ValidationError> {
+  validateDependencies(): Result<boolean, DomainError & { message: string }> {
     this.logger.debug("Validating pipeline domain dependencies");
     return { ok: true, data: true };
   }

@@ -3,6 +3,8 @@
  * Extracts frontmatter data according to a provided schema
  */
 
+import { isObject } from "../shared/type-guards.ts";
+
 interface SchemaDefinition {
   version?: {
     type: string;
@@ -90,8 +92,7 @@ export function extractFrontmatterToSchema(
   // Extract tools if present in frontmatter
   if (schema.tools && frontmatterData.tools !== undefined) {
     const tools = frontmatterData.tools;
-    if (typeof tools === "object" && tools !== null) {
-      const toolsData = tools as Record<string, unknown>;
+    if (isObject(tools)) {
       result.tools = {
         availableConfigs: null,
         commands: null,
@@ -100,9 +101,9 @@ export function extractFrontmatterToSchema(
       // Extract availableConfigs
       if (
         schema.tools.properties?.availableConfigs &&
-        toolsData.availableConfigs !== undefined
+        tools.availableConfigs !== undefined
       ) {
-        const configs = toolsData.availableConfigs;
+        const configs = tools.availableConfigs;
         if (Array.isArray(configs)) {
           const validConfigs: string[] = [];
           for (const config of configs) {
@@ -127,9 +128,9 @@ export function extractFrontmatterToSchema(
 
       // Extract commands
       if (
-        schema.tools.properties?.commands && toolsData.commands !== undefined
+        schema.tools.properties?.commands && tools.commands !== undefined
       ) {
-        const commands = toolsData.commands;
+        const commands = tools.commands;
         if (Array.isArray(commands)) {
           result.tools.commands = commands;
         }
@@ -204,22 +205,21 @@ export function extractAccordingToSchema(
       result[schemaKey] = frontmatterData[schemaKey];
     } else {
       // Check if it's an object with nested properties
-      if (typeof schemaValue === "object" && schemaValue !== null) {
-        const schemaProp = schemaValue as Record<string, unknown>;
-        if (schemaProp.type === "object" && schemaProp.properties) {
+      if (isObject(schemaValue)) {
+        if (schemaValue.type === "object" && schemaValue.properties) {
           // Initialize nested object with null values
           const nestedObj: Record<string, unknown> = {};
-          for (
-            const nestedKey of Object.keys(
-              schemaProp.properties as Record<string, unknown>,
-            )
-          ) {
-            nestedObj[nestedKey] = null;
+          // Safely access properties if it's an object
+          const properties = schemaValue.properties;
+          if (isObject(properties)) {
+            for (const nestedKey of Object.keys(properties)) {
+              nestedObj[nestedKey] = null;
+            }
           }
           result[schemaKey] = nestedObj;
-        } else if (schemaProp.type === "array") {
+        } else if (schemaValue.type === "array") {
           result[schemaKey] = null;
-        } else if (schemaProp.type === "string") {
+        } else if (schemaValue.type === "string") {
           result[schemaKey] = null;
         }
       }

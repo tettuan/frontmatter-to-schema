@@ -26,7 +26,7 @@ import {
 } from "../../../../src/domain/models/entities.ts";
 import type { Result } from "../../../../src/domain/core/result.ts";
 import type { DomainError } from "../../../../src/domain/core/result.ts";
-import type { APIError } from "../../../../src/domain/shared/errors.ts";
+import type { ExternalServiceError } from "../../../../src/domain/core/result.ts";
 
 // Test helpers
 function createTestSchema(): Schema {
@@ -108,7 +108,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -133,7 +133,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -156,7 +156,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -177,7 +177,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -197,7 +197,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -218,7 +218,7 @@ Deno.test("MockAnalyzer - AI Analysis", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Assert
     assert(result.ok);
@@ -419,7 +419,7 @@ Deno.test("MockAnalyzer - Error Handling", async (t) => {
     // Act
     const result = await analyzer.analyze(
       request,
-    ) as Result<AIAnalysisResponse, APIError>;
+    ) as Result<AIAnalysisResponse, ExternalServiceError>;
 
     // Restore original stringify
     JSON.stringify = originalStringify;
@@ -428,7 +428,9 @@ Deno.test("MockAnalyzer - Error Handling", async (t) => {
     assert(!result.ok);
     assertExists(result.error);
     assert("message" in result.error);
-    assert(result.error.message.includes("Stringify error"));
+    assert(
+      (result.error as { message: string }).message.includes("Stringify error"),
+    );
   });
 
   await t.step("handles schema analysis error gracefully", async () => {

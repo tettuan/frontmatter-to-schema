@@ -5,9 +5,8 @@
  * Consolidates duplicate JSON/YAML parsing logic from multiple locations.
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
-import { createValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 /**
  * Common interface for template format handling
@@ -22,12 +21,12 @@ export interface TemplateFormatHandler {
   /**
    * Parse template content into structured data
    */
-  parse(content: string): Result<unknown, ValidationError>;
+  parse(content: string): Result<unknown, DomainError & { message: string }>;
 
   /**
    * Serialize structured data back to template format
    */
-  serialize(data: unknown): Result<string, ValidationError>;
+  serialize(data: unknown): Result<string, DomainError & { message: string }>;
 
   /**
    * Get the format name for logging/debugging
@@ -42,7 +41,9 @@ export interface TemplateFormatHandler {
 export class TemplateFormat {
   private constructor(readonly value: string) {}
 
-  static create(format: string): Result<TemplateFormat, ValidationError> {
+  static create(
+    format: string,
+  ): Result<TemplateFormat, DomainError & { message: string }> {
     const validFormats = ["json", "yaml", "yml", "handlebars", "custom"];
 
     if (validFormats.includes(format.toLowerCase())) {
@@ -51,7 +52,12 @@ export class TemplateFormat {
 
     return {
       ok: false,
-      error: createValidationError(
+      error: createDomainError(
+        {
+          kind: "InvalidFormat",
+          input: format,
+          expectedFormat: validFormats.join(", "),
+        },
         `Invalid template format "${format}". Valid formats: ${
           validFormats.join(", ")
         }`,
@@ -77,11 +83,13 @@ export class JSONTemplateHandler implements TemplateFormatHandler {
     return format.toLowerCase() === "json";
   }
 
-  parse(content: string): Result<unknown, ValidationError> {
+  parse(content: string): Result<unknown, DomainError & { message: string }> {
     if (!content || content.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("JSON template content cannot be empty"),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "JSON template content cannot be empty"),
       };
     }
 
@@ -91,7 +99,12 @@ export class JSONTemplateHandler implements TemplateFormatHandler {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: content,
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to parse JSON template: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -100,14 +113,19 @@ export class JSONTemplateHandler implements TemplateFormatHandler {
     }
   }
 
-  serialize(data: unknown): Result<string, ValidationError> {
+  serialize(data: unknown): Result<string, DomainError & { message: string }> {
     try {
       const serialized = JSON.stringify(data, null, 2);
       return { ok: true, data: serialized };
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: String(data),
+            expectedFormat: "serializable object",
+          },
           `Failed to serialize data to JSON: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -132,11 +150,13 @@ export class YAMLTemplateHandler implements TemplateFormatHandler {
     return lowercaseFormat === "yaml" || lowercaseFormat === "yml";
   }
 
-  parse(content: string): Result<unknown, ValidationError> {
+  parse(content: string): Result<unknown, DomainError & { message: string }> {
     if (!content || content.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("YAML template content cannot be empty"),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "YAML template content cannot be empty"),
       };
     }
 
@@ -146,7 +166,12 @@ export class YAMLTemplateHandler implements TemplateFormatHandler {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: content,
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to parse YAML template: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -155,14 +180,19 @@ export class YAMLTemplateHandler implements TemplateFormatHandler {
     }
   }
 
-  serialize(data: unknown): Result<string, ValidationError> {
+  serialize(data: unknown): Result<string, DomainError & { message: string }> {
     try {
       const yaml = this.dataToYaml(data, 0);
       return { ok: true, data: yaml };
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: String(data),
+            expectedFormat: "serializable data",
+          },
           `Failed to serialize data to YAML: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -310,12 +340,12 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
       format.toLowerCase() === "hbs";
   }
 
-  parse(content: string): Result<unknown, ValidationError> {
+  parse(content: string): Result<unknown, DomainError & { message: string }> {
     // For now, treat as plain text
     return { ok: true, data: content };
   }
 
-  serialize(data: unknown): Result<string, ValidationError> {
+  serialize(data: unknown): Result<string, DomainError & { message: string }> {
     // For now, convert to JSON string representation
     try {
       const serialized = typeof data === "string"
@@ -325,7 +355,12 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: String(data),
+            expectedFormat: "serializable data",
+          },
           `Failed to serialize handlebars template: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -348,12 +383,12 @@ export class CustomTemplateHandler implements TemplateFormatHandler {
     return format.toLowerCase() === "custom";
   }
 
-  parse(content: string): Result<unknown, ValidationError> {
+  parse(content: string): Result<unknown, DomainError & { message: string }> {
     // Custom format templates are treated as plain text strings
     return { ok: true, data: content };
   }
 
-  serialize(data: unknown): Result<string, ValidationError> {
+  serialize(data: unknown): Result<string, DomainError & { message: string }> {
     // Custom format returns the processed string as-is
     try {
       const serialized = typeof data === "string" ? data : String(data);
@@ -361,7 +396,12 @@ export class CustomTemplateHandler implements TemplateFormatHandler {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: String(data),
+            expectedFormat: "convertible to string",
+          },
           `Failed to serialize custom template: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -394,7 +434,7 @@ export class TemplateFormatHandlerFactory {
    */
   static getHandler(
     format: string,
-  ): Result<TemplateFormatHandler, ValidationError> {
+  ): Result<TemplateFormatHandler, DomainError & { message: string }> {
     const handler = this.handlers.find((h) => h.canHandle(format));
 
     if (handler) {
@@ -403,7 +443,12 @@ export class TemplateFormatHandlerFactory {
 
     return {
       ok: false,
-      error: createValidationError(
+      error: createDomainError(
+        {
+          kind: "NotFound",
+          resource: "template format handler",
+          name: format,
+        },
         `No handler found for template format: ${format}. Available formats: ${
           this.handlers.map((h) => h.getFormatName()).join(", ")
         }`,

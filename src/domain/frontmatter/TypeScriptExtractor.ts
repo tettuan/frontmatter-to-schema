@@ -3,11 +3,8 @@
  */
 
 import { extract as extractFrontMatter } from "jsr:@std/front-matter@1.0.5/any";
-import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 export interface FrontMatterData {
   readonly data: Record<string, unknown>;
@@ -20,15 +17,20 @@ export class TypeScriptFrontMatterExtractor {
    * Extract frontmatter from text content
    * Phase 1: Frontmatter extraction only (separate from schema matching)
    */
-  extract(content: string): Result<FrontMatterData, ValidationError> {
+  extract(
+    content: string,
+  ): Result<FrontMatterData, DomainError & { message: string }> {
     try {
       // Extract frontmatter using std library
       const extracted = extractFrontMatter(content);
 
-      if (!extracted || typeof extracted.attrs !== "object") {
+      if (!extracted || !this.isValidFrontMatterAttrs(extracted.attrs)) {
         return {
           ok: false,
-          error: createValidationError("No valid frontmatter found in content"),
+          error: createDomainError({
+            kind: "NotFound",
+            resource: "frontmatter",
+          }, "No valid frontmatter found in content"),
         };
       }
 
@@ -36,7 +38,7 @@ export class TypeScriptFrontMatterExtractor {
       const rawFrontMatter = this.extractRawFrontMatter(content);
 
       const frontMatterData: FrontMatterData = {
-        data: extracted.attrs as Record<string, unknown>,
+        data: extracted.attrs, // Now safely validated
         body: extracted.body,
         rawFrontMatter,
       };
@@ -48,13 +50,29 @@ export class TypeScriptFrontMatterExtractor {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: content,
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to extract frontmatter: ${
             error instanceof Error ? error.message : String(error)
           }`,
         ),
       };
     }
+  }
+
+  /**
+   * Type guard to validate frontmatter attributes
+   */
+  private isValidFrontMatterAttrs(
+    attrs: unknown,
+  ): attrs is Record<string, unknown> {
+    return typeof attrs === "object" &&
+      attrs !== null &&
+      !Array.isArray(attrs);
   }
 
   /**
@@ -91,7 +109,7 @@ export class TypeScriptFrontMatterExtractor {
    */
   extractTemplateVariables(
     templateContent: string,
-  ): Result<string[], ValidationError> {
+  ): Result<string[], DomainError & { message: string }> {
     try {
       // Regular expression to match {SchemaPath} format variables
       const variablePattern = /\{([^}]+)\}/g;
@@ -112,7 +130,12 @@ export class TypeScriptFrontMatterExtractor {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: templateContent,
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to extract template variables: ${
             error instanceof Error ? error.message : String(error)
           }`,

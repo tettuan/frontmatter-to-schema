@@ -17,6 +17,10 @@ import {
   RegistryData,
   RegistryVersion,
 } from "./value-objects.ts";
+import {
+  asObjectRecord,
+  validateJsonParseResult,
+} from "../shared/type-guards.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
@@ -40,33 +44,68 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     await Promise.resolve();
 
     try {
-      // Extract frontmatter data
-      const frontMatterData = frontMatter.getContent().toJSON() as Record<
-        string,
-        unknown
-      >;
+      // Extract frontmatter data with safe type checking
+      const frontMatterJson = frontMatter.getContent().toJSON();
+      const frontMatterResult = validateJsonParseResult(
+        frontMatterJson,
+        "frontmatter",
+      );
+      if (!frontMatterResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "ProcessingStageError",
+              stage: "frontmatter extraction",
+              error: {
+                kind: "InvalidResponse",
+                service: "frontmatter",
+                response: String(frontMatterResult.error.kind),
+              } as DomainError,
+            },
+            `TypeScript analysis failed: ${frontMatterResult.error.kind}`,
+          ),
+        };
+      }
+      const frontMatterData = frontMatterResult.data;
 
-      // Get document path from frontmatter metadata if available
-      // The document path should be passed somehow - check various possible sources
-      const documentPath = (frontMatterData._documentPath as string) ||
-        (frontMatterData._filePath as string) ||
-        (frontMatterData._path as string) ||
+      // Get document path from frontmatter metadata if available with safe property access
+      const documentPath = (typeof frontMatterData._documentPath === "string" &&
+        frontMatterData._documentPath) ||
+        (typeof frontMatterData._filePath === "string" &&
+          frontMatterData._filePath) ||
+        (typeof frontMatterData._path === "string" && frontMatterData._path) ||
         "unknown";
 
-      // Create analysis context
-      // Get schema data - it might be the raw schema object or have a getDefinition method
+      // Create analysis context - get schema data safely
       let schemaData: Record<string, unknown> = {};
       if (typeof schema.getDefinition === "function") {
         const definition = schema.getDefinition();
         // SchemaDefinition has getValue() method, not toJSON()
         if (typeof definition.getValue === "function") {
-          schemaData = definition.getValue() as Record<string, unknown>;
+          const schemaValue = definition.getValue();
+          const schemaResult = asObjectRecord(schemaValue, "schema definition");
+          if (schemaResult.ok) {
+            schemaData = schemaResult.data;
+          } else {
+            // Fallback to empty schema if conversion fails
+            schemaData = {};
+          }
         } else {
-          schemaData = definition as unknown as Record<string, unknown>;
+          const definitionResult = asObjectRecord(
+            definition,
+            "schema definition object",
+          );
+          if (definitionResult.ok) {
+            schemaData = definitionResult.data;
+          }
         }
       } else {
         // Schema might be the raw data itself
-        schemaData = schema as unknown as Record<string, unknown>;
+        const rawSchemaResult = asObjectRecord(schema, "raw schema");
+        if (rawSchemaResult.ok) {
+          schemaData = rawSchemaResult.data;
+        }
       }
 
       const contextResult = AnalysisContext.create(

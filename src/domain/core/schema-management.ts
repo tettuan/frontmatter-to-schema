@@ -3,11 +3,7 @@
  * Manages loading, switching, and lifecycle of schemas at runtime
  */
 
-import {
-  createDomainError,
-  type Result,
-  type ValidationError,
-} from "./result.ts";
+import { createDomainError, type DomainError, type Result } from "./result.ts";
 import {
   type ActiveSchema,
   type PromptContext,
@@ -35,7 +31,7 @@ export class ValidSchema {
     schema: unknown,
     template: unknown,
     prompts: { extraction: string; mapping: string },
-  ): Result<ValidSchema, ValidationError & { message: string }> {
+  ): Result<ValidSchema, DomainError & { message: string }> {
     if (!name || name.trim() === "") {
       return {
         ok: false,
@@ -98,7 +94,7 @@ export class SchemaLoader {
    */
   async loadSchema(
     path: string,
-  ): Promise<Result<unknown, ValidationError & { message: string }>> {
+  ): Promise<Result<unknown, DomainError & { message: string }>> {
     if (!this.fileSystem) {
       return {
         ok: false,
@@ -130,7 +126,7 @@ export class SchemaLoader {
    */
   async loadTemplate(
     path: string,
-  ): Promise<Result<unknown, ValidationError & { message: string }>> {
+  ): Promise<Result<unknown, DomainError & { message: string }>> {
     if (!this.fileSystem) {
       return {
         ok: false,
@@ -173,7 +169,7 @@ export class SchemaLoader {
   ): Promise<
     Result<
       { extraction: string; mapping: string },
-      ValidationError & { message: string }
+      DomainError & { message: string }
     >
   > {
     if (!this.fileSystem) {
@@ -210,7 +206,7 @@ export class SchemaLoader {
    */
   validateSchemaFormat(
     schema: unknown,
-  ): Result<ValidSchema, ValidationError & { message: string }> {
+  ): Result<ValidSchema, DomainError & { message: string }> {
     // Basic validation - check if it's an object with expected structure
     if (!schema || typeof schema !== "object") {
       return {
@@ -244,7 +240,7 @@ export class SchemaSwitcher {
    */
   registerSchema(
     validSchema: ValidSchema,
-  ): Result<void, ValidationError & { message: string }> {
+  ): Result<void, DomainError & { message: string }> {
     // Inject all components
     const schemaResult = this.injector.injectSchema(
       validSchema.name,
@@ -280,7 +276,7 @@ export class SchemaSwitcher {
    */
   switchToSchema(
     schemaName: string,
-  ): Result<ActiveSchema, ValidationError & { message: string }> {
+  ): Result<ActiveSchema, DomainError & { message: string }> {
     if (!this.availableSchemas.has(schemaName)) {
       return {
         ok: false,
@@ -343,7 +339,7 @@ export class DynamicPipelineFactory {
   async createPipeline(
     config: ExecutionConfiguration,
   ): Promise<
-    Result<ExecutablePipeline, ValidationError & { message: string }>
+    Result<ExecutablePipeline, DomainError & { message: string }>
   > {
     // Load and register schema
     const loader = new SchemaLoader(config.fileSystem);
@@ -437,7 +433,7 @@ export class ExecutablePipeline {
    * Execute the pipeline once
    */
   async execute(): Promise<
-    Result<PipelineOutput, ValidationError & { message: string }>
+    Result<PipelineOutput, DomainError & { message: string }>
   > {
     if (this.executed) {
       return {
@@ -603,5 +599,5 @@ export interface SchemaProcessor {
     schemaContext: SchemaContext,
     templateContext: TemplateContext,
     promptContext: PromptContext,
-  ): Promise<Result<unknown, ValidationError & { message: string }>>;
+  ): Promise<Result<unknown, DomainError & { message: string }>>;
 }

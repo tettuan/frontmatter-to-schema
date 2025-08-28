@@ -78,7 +78,7 @@ Deno.test("StrictStructureMatcher - YAML Structure Analysis", async (t) => {
     const result = StrictStructureMatcher.analyzeYAMLStructure(mixedArray);
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
       assertEquals(
         result.error.message.includes("inconsistent structures"),
         true,
@@ -167,7 +167,7 @@ Deno.test("StrictStructureMatcher - Schema Structure Analysis", async (t) => {
       );
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "ValidationError");
+        assertEquals(result.error.kind, "InvalidFormat");
         // The actual message varies based on input type, just check it contains expected parts
         assertEquals(
           result.error.message.includes("Schema must be an object") ||
@@ -199,7 +199,7 @@ Deno.test("StrictStructureMatcher - Schema Structure Analysis", async (t) => {
       const result = StrictStructureMatcher.analyzeSchemaStructure(schema);
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "ValidationError");
+        assertEquals(result.error.kind, "InvalidFormat");
         assertEquals(
           result.error.message.includes("Unsupported schema type"),
           true,
@@ -433,7 +433,7 @@ Deno.test("StrictStructureMatcher - Structural Alignment Validation", async (t) 
       );
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "ValidationError");
+        assertEquals(result.error.kind, "TemplateMappingFailed");
         assertEquals(
           result.error.message.includes(
             "Schema structure does not match Template",
@@ -462,7 +462,7 @@ Deno.test("StrictStructureMatcher - Structural Alignment Validation", async (t) 
     );
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "SchemaValidationFailed");
       assertEquals(
         result.error.message.includes("YAML structure does not match Schema"),
         true,
@@ -487,7 +487,7 @@ Deno.test("StrictStructureMatcher - Structural Alignment Validation", async (t) 
     );
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "TemplateMappingFailed");
       assertEquals(
         result.error.message.includes(
           "Schema structure does not match Template",
@@ -561,7 +561,7 @@ Deno.test("StrictStructureMatcher - Structural Alignment Validation", async (t) 
     );
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -577,7 +577,7 @@ Deno.test("StrictStructureMatcher - Structural Alignment Validation", async (t) 
     );
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
