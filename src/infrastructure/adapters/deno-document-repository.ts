@@ -211,8 +211,12 @@ export class DenoDocumentRepository implements DocumentRepository {
     try {
       const content = await Deno.readTextFile(filePath);
 
-      // Try to extract frontmatter
-      let frontMatter: FrontMatter | null = null;
+      // Extract frontmatter using discriminated union for totality
+      type FrontMatterExtractionResult =
+        | { kind: "Present"; frontMatter: FrontMatter }
+        | { kind: "Absent" };
+
+      let frontMatterResult: FrontMatterExtractionResult = { kind: "Absent" };
       let bodyContent = content;
 
       try {
@@ -230,15 +234,17 @@ export class DenoDocumentRepository implements DocumentRepository {
             // Get raw frontmatter section
             const rawFrontMatter =
               content.match(/^---\n([\s\S]*?)\n---/)?.[1] || "";
-            frontMatter = FrontMatter.create(
+            const frontMatter = FrontMatter.create(
               frontMatterContentResult.data,
               rawFrontMatter,
             );
+            frontMatterResult = { kind: "Present", frontMatter };
           }
         }
         bodyContent = extracted.body;
       } catch {
         // If frontmatter extraction fails, treat entire content as body
+        frontMatterResult = { kind: "Absent" };
       }
 
       const documentContentResult = DocumentContent.create(bodyContent);
@@ -252,6 +258,11 @@ export class DenoDocumentRepository implements DocumentRepository {
           }),
         };
       }
+
+      // Create document using discriminated union result
+      const frontMatter = frontMatterResult.kind === "Present"
+        ? frontMatterResult.frontMatter
+        : null;
 
       const document = Document.createWithFrontMatter(
         path,
