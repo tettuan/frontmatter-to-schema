@@ -92,7 +92,6 @@ export class FileTemplateRepository implements TemplateRepository {
         };
       }
 
-<<<<<<< HEAD
       // For now, create empty mapping rules - this should be improved to parse template content
       const mappingRules: MappingRule[] = [];
 
@@ -118,31 +117,6 @@ export class FileTemplateRepository implements TemplateRepository {
       // TODO: Add format validation back when needed
 
       return { ok: true, data: template };
-=======
-      // Validate template format using simplified component registry
-      const handlerResult = ComponentRegistry.getFormatHandler(
-        format.toLowerCase(),
-      );
-
-      if (handlerResult.ok) {
-        const handler = handlerResult.data;
-        // Pre-validate template content
-        const parseResult = handler.parse(content);
-        if (!parseResult.ok) {
-          return {
-            ok: false,
-            error: createDomainError({
-              kind: "ParseError",
-              input: content.substring(0, 100),
-              details:
-                `Invalid ${format} template format: ${parseResult.error.message}`,
-            }),
-          };
-        }
-      }
-
-      return { ok: true, data: templateResult.data };
->>>>>>> feature/ddd-totality-refactoring
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         return {

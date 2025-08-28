@@ -4,7 +4,10 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
-import { createProcessingStageError } from "../core/result.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+} from "../core/result.ts";
 import {
   ExtractedData,
   type FrontMatter,
