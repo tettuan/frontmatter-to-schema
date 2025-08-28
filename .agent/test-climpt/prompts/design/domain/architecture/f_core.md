@@ -6,8 +6,8 @@ title: Core Domain Architecture Design
 description: Core domain architecture design with focus on central concepts and detailed domain-specific implementation.
 usage: climpt-design domain architecture -a=core -f domain_info.md -o core_design/
 options:
-  adaptation: ["default", "core", "detail"]
-  input_file: [true]
+  input: ["core"]
+  file: [true]
   destination: [true]
 ---
 

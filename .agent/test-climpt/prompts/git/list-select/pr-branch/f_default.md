@@ -6,10 +6,6 @@ title: List and Select PR/Branch for Next Work
 description: Lists existing PRs and branches to help select the next work target based on priority and status.
 usage: climpt-git list-select pr-branch -o selection_output.md
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

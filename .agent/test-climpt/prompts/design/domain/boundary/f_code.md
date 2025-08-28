@@ -8,9 +8,10 @@ usage: |
   climpt-design domain boundary -a=code --input="ソースコード"
   実装コードを分析してドメイン境界線を設計します。
 options:
-  adaptation: ["code"]
-  input_file: [true]
+  input: ["code"]
+  file: [true]
   stdin: [true]
+  destination: [true]
 ---
 
 # ドメイン境界線の設計

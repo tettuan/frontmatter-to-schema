@@ -6,8 +6,8 @@ title: Detailed Domain Architecture Design
 description: Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.
 usage: climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/
 options:
-  adaptation: ["default", "core", "detail"]
-  input_file: [true]
+  input: ["detail"]
+  file: [true]
   destination: [true]
 ---
 

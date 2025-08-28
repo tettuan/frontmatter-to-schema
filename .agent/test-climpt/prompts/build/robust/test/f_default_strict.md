@@ -6,9 +6,8 @@ title: Robust and Resilient Test Construction Guide
 description: Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.
 usage: climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/
 options:
-  input: ["default"]
   adaptation: ["strict"]
-  input_file: [true]
+  file: [true]
   stdin: [true]
   destination: [true]
 ---

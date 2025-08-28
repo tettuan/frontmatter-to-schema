@@ -6,10 +6,6 @@ title: Deep Project Analysis and Issue Identification
 description: Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.
 usage: climpt-debug analyze-deep project-issues -o project_analysis.md
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

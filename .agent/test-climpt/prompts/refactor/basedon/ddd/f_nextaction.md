@@ -6,9 +6,7 @@ title: Domain-Driven Design Next Action Execution
 description: Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.
 usage: climpt-refactor basedon ddd -a=nextaction -i=next_action_instructions --uv-scope="execution scope"
 options:
-  input: ["text"]
-  adaptation: ["default", "nextaction"]
-  input_file: [false]
+  input: ["nextaction"]
   stdin: [true]
   destination: [true]
 ---

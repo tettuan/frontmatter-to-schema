@@ -6,7 +6,7 @@ title: Robust Test Construction
 description: Constructs robust and resilient tests based on domain-driven design and totality principles.
 usage: climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/
 options:
-  input_file: [true]
+  file: [true]
   stdin: [true]
   destination: [true]
 ---

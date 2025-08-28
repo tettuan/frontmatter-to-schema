@@ -8,8 +8,9 @@ usage: |
   climpt-design domain boundary --input="原案テキスト"
   原案をもとにドメイン駆動設計の境界線分析を行い、境界線を設計します。
 options:
-  input_file: [true]
+  file: [true]
   stdin: [true]
+  destination: [true]
 ---
 
 # ドメイン境界線の設計
