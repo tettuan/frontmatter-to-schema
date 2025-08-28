@@ -1,0 +1,41 @@
+{
+  "scriptId": "366",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/repositories/template-repository.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1370, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 246, "endOffset": 250, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplatePath",
+      "ranges": [{ "startOffset": 254, "endOffset": 298, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 308, "endOffset": 1165, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getPath",
+      "ranges": [{ "startOffset": 1168, "endOffset": 1205, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toString",
+      "ranges": [{ "startOffset": 1208, "endOffset": 1246, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isTemplatePath",
+      "ranges": [{ "startOffset": 1295, "endOffset": 1369, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

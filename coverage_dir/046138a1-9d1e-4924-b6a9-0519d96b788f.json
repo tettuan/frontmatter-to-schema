@@ -1,0 +1,60 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/frontmatter/frontmatter-models.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 929, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 70, "endOffset": 81, "count": 22 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "FrontMatter",
+      "ranges": [{ "startOffset": 85, "endOffset": 154, "count": 22 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get",
+      "ranges": [{ "startOffset": 157, "endOffset": 198, "count": 42 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "has",
+      "ranges": [{ "startOffset": 201, "endOffset": 244, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "toJson",
+      "ranges": [{ "startOffset": 247, "endOffset": 308, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 349, "endOffset": 389, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extract",
+      "ranges": [
+        { "startOffset": 393, "endOffset": 846, "count": 24 },
+        { "startOffset": 483, "endOffset": 508, "count": 18 },
+        { "startOffset": 510, "endOffset": 536, "count": 6 },
+        { "startOffset": 536, "endOffset": 622, "count": 18 },
+        { "startOffset": 622, "endOffset": 668, "count": 4 },
+        { "startOffset": 668, "endOffset": 749, "count": 14 },
+        { "startOffset": 749, "endOffset": 754, "count": 0 },
+        { "startOffset": 763, "endOffset": 842, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "hasFrontMatter",
+      "ranges": [{ "startOffset": 849, "endOffset": 926, "count": 13 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

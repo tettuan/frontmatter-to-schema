@@ -548,6 +548,17 @@ export class ProcessDocumentsUseCase {
         "process-documents-helper",
       );
       verboseLogger.info("Frontmatter extracted", { document: docPath });
+      // Add detailed debug logging for frontmatter content
+      const debugLogger = StructuredLogger.getServiceLogger(
+        "process-documents-debug",
+      );
+      debugLogger.info("Frontmatter content", {
+        document: docPath,
+        frontmatterData: frontMatter.toObject(),
+        frontmatterKeys: Object.keys(
+          frontMatter.toObject() as Record<string, unknown>,
+        ),
+      });
     }
 
     // Analyze with schema
@@ -625,6 +636,14 @@ export class ProcessDocumentsUseCase {
       );
       verboseLogger.info("Template mapping completed", {
         document: docPath,
+      });
+      // Add debug logging for mapped result
+      const debugLogger = StructuredLogger.getServiceLogger(
+        "process-documents-debug",
+      );
+      debugLogger.info("Template mapped result", {
+        document: docPath,
+        mappedData: mappedResult.data.getData(),
       });
     }
 

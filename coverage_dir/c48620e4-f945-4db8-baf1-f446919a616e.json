@@ -1,0 +1,45 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/integration/template-array-processing-simple.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 9709, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 496, "endOffset": 9375, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 565, "endOffset": 707, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 773, "endOffset": 1836, "count": 1 },
+        { "startOffset": 1625, "endOffset": 1632, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 1903, "endOffset": 3806, "count": 1 },
+        { "startOffset": 2024, "endOffset": 2031, "count": 0 },
+        { "startOffset": 2941, "endOffset": 2948, "count": 0 },
+        { "startOffset": 3204, "endOffset": 3211, "count": 0 },
+        { "startOffset": 3637, "endOffset": 3644, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "_createMockAnalysisResult",
+      "ranges": [{ "startOffset": 9437, "endOffset": 9708, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

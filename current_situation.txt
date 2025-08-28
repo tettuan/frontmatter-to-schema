@@ -1,3 +1,5 @@
-CI fully passing with all 241 tests green. Created PR #434 fixing frontmatter parsing issues where deno-document-repository used wrong extract property. Removed AI components, fixed lint/format issues. Closed 4 bug issues as resolved. Develop branch ahead of origin by 7 commits ready to push. One open issue #430 about test coverage remains but is unrelated refactoring work.
+## Current Situation & Things To Be Done
 
-TODO: Push develop branch to origin. Review and merge PR #434 to main. Check if additional integration tests needed for YAML/JSON conversion edge cases. Consider documentation updates for removed AI features.
+**Status**: Issue #437 created - Registry template mapping fails. The frontmatter-to-schema generates individual results per file instead of single aggregated registry. Root cause: missing aggregation logic for multi-document processing. CI passing (271 tests).
+
+**Priority Actions**: Fix aggregation in process-documents use case to collect unique c1 values for availableConfigs and combine all commands into single array. Must aggregate data before template mapping stage.
