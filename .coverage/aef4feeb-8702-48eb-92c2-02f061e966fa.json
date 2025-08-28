@@ -1,0 +1,178 @@
+{
+  "scriptId": "365",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/format-handlers.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 10454, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 406, "endOffset": 411, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateFormat",
+      "ranges": [{ "startOffset": 415, "endOffset": 462, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 472, "endOffset": 1023, "count": 1 },
+        { "startOffset": 756, "endOffset": 1022, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 1026, "endOffset": 1065, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "equals",
+      "ranges": [{ "startOffset": 1068, "endOffset": 1126, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [{ "startOffset": 1294, "endOffset": 1361, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parse",
+      "ranges": [
+        { "startOffset": 1364, "endOffset": 2048, "count": 1 },
+        { "startOffset": 1424, "endOffset": 1590, "count": 0 },
+        { "startOffset": 1911, "endOffset": 1926, "count": 0 },
+        { "startOffset": 2011, "endOffset": 2026, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "serialize",
+      "ranges": [{ "startOffset": 2051, "endOffset": 2529, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormatName",
+      "ranges": [{ "startOffset": 2532, "endOffset": 2572, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [
+        { "startOffset": 2788, "endOffset": 2929, "count": 2 },
+        { "startOffset": 2896, "endOffset": 2924, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parse",
+      "ranges": [{ "startOffset": 2932, "endOffset": 3627, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "serialize",
+      "ranges": [{ "startOffset": 3630, "endOffset": 4089, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormatName",
+      "ranges": [{ "startOffset": 4092, "endOffset": 4132, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseYAMLContent",
+      "ranges": [{ "startOffset": 4254, "endOffset": 5373, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseYAMLValue",
+      "ranges": [{ "startOffset": 5480, "endOffset": 5932, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "dataToYaml",
+      "ranges": [{ "startOffset": 6037, "endOffset": 7321, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [
+        { "startOffset": 7441, "endOffset": 7548, "count": 1 },
+        { "startOffset": 7510, "endOffset": 7543, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parse",
+      "ranges": [{ "startOffset": 7551, "endOffset": 7663, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "serialize",
+      "ranges": [{ "startOffset": 7666, "endOffset": 8237, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormatName",
+      "ranges": [{ "startOffset": 8240, "endOffset": 8286, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [{ "startOffset": 8441, "endOffset": 8510, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parse",
+      "ranges": [{ "startOffset": 8513, "endOffset": 8654, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "serialize",
+      "ranges": [{ "startOffset": 8657, "endOffset": 9213, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormatName",
+      "ranges": [{ "startOffset": 9216, "endOffset": 9258, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 9499, "endOffset": 9653, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getHandler",
+      "ranges": [
+        { "startOffset": 9711, "endOffset": 10188, "count": 3 },
+        { "startOffset": 9886, "endOffset": 10187, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 9771, "endOffset": 9795, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 10140, "endOffset": 10162, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getAllHandlers",
+      "ranges": [{ "startOffset": 10240, "endOffset": 10305, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSupportedFormats",
+      "ranges": [{ "startOffset": 10356, "endOffset": 10451, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

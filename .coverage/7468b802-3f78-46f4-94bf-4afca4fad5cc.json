@@ -1,0 +1,163 @@
+{
+  "scriptId": "368",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/placeholder-processor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 10517, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 431, "endOffset": 446, "count": 16 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PlaceholderPattern",
+      "ranges": [{ "startOffset": 450, "endOffset": 531, "count": 16 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 541, "endOffset": 1646, "count": 16 },
+        { "startOffset": 760, "endOffset": 897, "count": 0 },
+        { "startOffset": 906, "endOffset": 1041, "count": 0 },
+        { "startOffset": 1050, "endOffset": 1355, "count": 0 },
+        { "startOffset": 1370, "endOffset": 1642, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getPattern",
+      "ranges": [{ "startOffset": 1649, "endOffset": 1692, "count": 375 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getName",
+      "ranges": [{ "startOffset": 1695, "endOffset": 1732, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "process",
+      "ranges": [
+        { "startOffset": 2059, "endOffset": 2732, "count": 16 },
+        { "startOffset": 2196, "endOffset": 2281, "count": 0 },
+        { "startOffset": 2449, "endOffset": 2728, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processContent",
+      "ranges": [
+        { "startOffset": 2855, "endOffset": 3736, "count": 16 },
+        { "startOffset": 3212, "endOffset": 3316, "count": 14 },
+        { "startOffset": 3316, "endOffset": 3345, "count": 2 },
+        { "startOffset": 3345, "endOffset": 3632, "count": 0 },
+        { "startOffset": 3632, "endOffset": 3735, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 3061, "endOffset": 3092, "count": 124 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processRecursive",
+      "ranges": [
+        { "startOffset": 3835, "endOffset": 4550, "count": 139 },
+        { "startOffset": 3950, "endOffset": 4056, "count": 126 },
+        { "startOffset": 4056, "endOffset": 4089, "count": 13 },
+        { "startOffset": 4089, "endOffset": 4209, "count": 0 },
+        { "startOffset": 4209, "endOffset": 4265, "count": 13 },
+        { "startOffset": 4267, "endOffset": 4489, "count": 13 },
+        { "startOffset": 4351, "endOffset": 4462, "count": 123 },
+        { "startOffset": 4489, "endOffset": 4549, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 4116, "endOffset": 4201, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processStringContent",
+      "ranges": [
+        { "startOffset": 4691, "endOffset": 6037, "count": 126 },
+        { "startOffset": 4942, "endOffset": 5480, "count": 123 },
+        { "startOffset": 5158, "endOffset": 5242, "count": 121 },
+        { "startOffset": 5225, "endOffset": 5230, "count": 0 },
+        { "startOffset": 5242, "endOffset": 5466, "count": 2 },
+        { "startOffset": 5480, "endOffset": 6036, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 5578, "endOffset": 5983, "count": 3 },
+        { "startOffset": 5760, "endOffset": 5765, "count": 0 },
+        { "startOffset": 5775, "endOffset": 5977, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isSinglePlaceholder",
+      "ranges": [
+        { "startOffset": 6106, "endOffset": 6285, "count": 126 },
+        { "startOffset": 6231, "endOffset": 6254, "count": 125 },
+        { "startOffset": 6255, "endOffset": 6280, "count": 124 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractPlaceholderPath",
+      "ranges": [
+        { "startOffset": 6359, "endOffset": 6603, "count": 123 },
+        { "startOffset": 6592, "endOffset": 6598, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getValueByPath",
+      "ranges": [
+        { "startOffset": 6740, "endOffset": 8158, "count": 126 },
+        { "startOffset": 6806, "endOffset": 6967, "count": 0 },
+        { "startOffset": 7056, "endOffset": 8098, "count": 127 },
+        { "startOffset": 7111, "endOffset": 7391, "count": 0 },
+        { "startOffset": 7431, "endOffset": 7730, "count": 0 },
+        { "startOffset": 7784, "endOffset": 8065, "count": 2 },
+        { "startOffset": 8065, "endOffset": 8098, "count": 125 },
+        { "startOffset": 8098, "endOffset": 8157, "count": 124 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createMustacheProcessor",
+      "ranges": [{ "startOffset": 8536, "endOffset": 8606, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createDollarProcessor",
+      "ranges": [{ "startOffset": 8693, "endOffset": 8761, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createPercentProcessor",
+      "ranges": [{ "startOffset": 8848, "endOffset": 8917, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractPlaceholders",
+      "ranges": [{ "startOffset": 9082, "endOffset": 9745, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validatePlaceholders",
+      "ranges": [{ "startOffset": 9830, "endOffset": 10514, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

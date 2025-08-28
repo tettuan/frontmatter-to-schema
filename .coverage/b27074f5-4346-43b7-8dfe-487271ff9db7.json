@@ -1,0 +1,114 @@
+{
+  "scriptId": "368",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/cli.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 0, "endOffset": 13732, "count": 1 },
+        { "startOffset": 13718, "endOffset": 13731, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "printUsage",
+      "ranges": [{ "startOffset": 1669, "endOffset": 2605, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "loadPromptTemplates",
+      "ranges": [
+        { "startOffset": 2613, "endOffset": 3284, "count": 6 },
+        { "startOffset": 2752, "endOffset": 2895, "count": 5 },
+        { "startOffset": 2895, "endOffset": 3282, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "main",
+      "ranges": [
+        { "startOffset": 3292, "endOffset": 13695, "count": 9 },
+        { "startOffset": 3646, "endOffset": 3770, "count": 1 },
+        { "startOffset": 3770, "endOffset": 3875, "count": 8 },
+        { "startOffset": 3875, "endOffset": 3922, "count": 6 },
+        { "startOffset": 4019, "endOffset": 4305, "count": 2 },
+        { "startOffset": 4104, "endOffset": 4230, "count": 0 },
+        { "startOffset": 4305, "endOffset": 4518, "count": 8 },
+        { "startOffset": 4518, "endOffset": 4540, "count": 7 },
+        { "startOffset": 4542, "endOffset": 4599, "count": 2 },
+        { "startOffset": 4586, "endOffset": 4589, "count": 1 },
+        { "startOffset": 4590, "endOffset": 4593, "count": 1 },
+        { "startOffset": 4599, "endOffset": 4761, "count": 6 },
+        { "startOffset": 4798, "endOffset": 4806, "count": 4 },
+        { "startOffset": 4826, "endOffset": 4842, "count": 4 },
+        { "startOffset": 4844, "endOffset": 4961, "count": 2 },
+        { "startOffset": 4961, "endOffset": 5328, "count": 4 },
+        { "startOffset": 5328, "endOffset": 6557, "count": 2 },
+        { "startOffset": 5444, "endOffset": 5751, "count": 1 },
+        { "startOffset": 5716, "endOffset": 5731, "count": 0 },
+        { "startOffset": 5824, "endOffset": 6139, "count": 1 },
+        { "startOffset": 6104, "endOffset": 6119, "count": 0 },
+        { "startOffset": 6206, "endOffset": 6505, "count": 1 },
+        { "startOffset": 6470, "endOffset": 6485, "count": 0 },
+        { "startOffset": 6557, "endOffset": 6819, "count": 4 },
+        { "startOffset": 6820, "endOffset": 6833, "count": 0 },
+        { "startOffset": 6834, "endOffset": 6857, "count": 4 },
+        { "startOffset": 7277, "endOffset": 7312, "count": 4 },
+        { "startOffset": 7313, "endOffset": 7347, "count": 4 },
+        { "startOffset": 7348, "endOffset": 7383, "count": 4 },
+        { "startOffset": 7385, "endOffset": 7427, "count": 0 },
+        { "startOffset": 7427, "endOffset": 7662, "count": 4 },
+        { "startOffset": 7525, "endOffset": 7533, "count": 0 },
+        { "startOffset": 7662, "endOffset": 7778, "count": 4 },
+        { "startOffset": 7779, "endOffset": 7804, "count": 4 },
+        { "startOffset": 7805, "endOffset": 7828, "count": 4 },
+        { "startOffset": 7830, "endOffset": 8384, "count": 0 },
+        { "startOffset": 8384, "endOffset": 8433, "count": 4 },
+        { "startOffset": 8433, "endOffset": 8485, "count": 2 },
+        { "startOffset": 8485, "endOffset": 10426, "count": 4 },
+        { "startOffset": 10426, "endOffset": 10592, "count": 2 },
+        { "startOffset": 10592, "endOffset": 10654, "count": 4 },
+        { "startOffset": 10654, "endOffset": 10709, "count": 2 },
+        { "startOffset": 10709, "endOffset": 10780, "count": 4 },
+        { "startOffset": 10780, "endOffset": 10847, "count": 2 },
+        { "startOffset": 10847, "endOffset": 10908, "count": 4 },
+        { "startOffset": 10908, "endOffset": 10971, "count": 2 },
+        { "startOffset": 10971, "endOffset": 11051, "count": 4 },
+        { "startOffset": 11051, "endOffset": 11102, "count": 0 },
+        { "startOffset": 11165, "endOffset": 11280, "count": 4 },
+        { "startOffset": 11281, "endOffset": 11343, "count": 0 },
+        { "startOffset": 11387, "endOffset": 11459, "count": 2 },
+        { "startOffset": 11459, "endOffset": 11700, "count": 4 },
+        { "startOffset": 11700, "endOffset": 12079, "count": 2 },
+        { "startOffset": 12079, "endOffset": 12676, "count": 4 },
+        { "startOffset": 12676, "endOffset": 12969, "count": 0 },
+        { "startOffset": 12969, "endOffset": 13597, "count": 4 },
+        { "startOffset": 13164, "endOffset": 13199, "count": 0 },
+        { "startOffset": 13201, "endOffset": 13384, "count": 0 },
+        { "startOffset": 13456, "endOffset": 13571, "count": 2 },
+        { "startOffset": 13602, "endOffset": 13693, "count": 4 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 3430, "endOffset": 3632, "count": 20 },
+        { "startOffset": 3470, "endOffset": 3490, "count": 14 },
+        { "startOffset": 3492, "endOffset": 3608, "count": 11 },
+        { "startOffset": 3608, "endOffset": 3631, "count": 9 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "map",
+      "ranges": [{ "startOffset": 9050, "endOffset": 9882, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mapWithOrchestrator",
+      "ranges": [{ "startOffset": 9890, "endOffset": 10334, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

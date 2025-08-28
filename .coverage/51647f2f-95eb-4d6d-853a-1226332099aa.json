@@ -1,0 +1,38 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/frontmatter-extractor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 5352, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractFrontmatterToSchema",
+      "ranges": [{ "startOffset": 345, "endOffset": 2711, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseFrontmatterAndExtract",
+      "ranges": [{ "startOffset": 2932, "endOffset": 3492, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractAccordingToSchema",
+      "ranges": [
+        { "startOffset": 3754, "endOffset": 5351, "count": 6 },
+        { "startOffset": 4319, "endOffset": 5332, "count": 14 },
+        { "startOffset": 4354, "endOffset": 4363, "count": 1 },
+        { "startOffset": 4363, "endOffset": 4577, "count": 13 },
+        { "startOffset": 4577, "endOffset": 4638, "count": 3 },
+        { "startOffset": 4638, "endOffset": 5328, "count": 10 },
+        { "startOffset": 4852, "endOffset": 4876, "count": 3 },
+        { "startOffset": 4878, "endOffset": 5141, "count": 3 },
+        { "startOffset": 5036, "endOffset": 5090, "count": 5 },
+        { "startOffset": 5141, "endOffset": 5314, "count": 7 },
+        { "startOffset": 5180, "endOffset": 5227, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

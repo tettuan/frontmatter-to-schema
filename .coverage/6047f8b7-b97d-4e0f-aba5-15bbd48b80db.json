@@ -1,0 +1,146 @@
+{
+  "scriptId": "369",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/component-factory.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 9488, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 838, "endOffset": 1081, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1217, "endOffset": 1274, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AnalysisDomainFactory",
+      "ranges": [{ "startOffset": 1278, "endOffset": 1534, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 1537, "endOffset": 2798, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 2801, "endOffset": 2990, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3123, "endOffset": 3152, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateDomainFactory",
+      "ranges": [{ "startOffset": 3156, "endOffset": 3240, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 3243, "endOffset": 4285, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 4288, "endOffset": 4435, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 4568, "endOffset": 4594, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PipelineDomainFactory",
+      "ranges": [{ "startOffset": 4598, "endOffset": 4744, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createComponents",
+      "ranges": [{ "startOffset": 4747, "endOffset": 5254, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateDependencies",
+      "ranges": [{ "startOffset": 5257, "endOffset": 5404, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 5536, "endOffset": 5555, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "MasterComponentFactory",
+      "ranges": [{ "startOffset": 5559, "endOffset": 5673, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "registerFactory",
+      "ranges": [{ "startOffset": 5717, "endOffset": 5872, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createDomainComponents",
+      "ranges": [{ "startOffset": 5930, "endOffset": 6650, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createAllComponents",
+      "ranges": [{ "startOffset": 6713, "endOffset": 7465, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFactory",
+      "ranges": [{ "startOffset": 7515, "endOffset": 7578, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getRegisteredDomains",
+      "ranges": [{ "startOffset": 7624, "endOffset": 7698, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 7834, "endOffset": 7857, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "FactoryConfigurationBuilder",
+      "ranges": [{ "startOffset": 7861, "endOffset": 8006, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "withAnalysisDomain",
+      "ranges": [{ "startOffset": 8058, "endOffset": 8306, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "withTemplateDomain",
+      "ranges": [{ "startOffset": 8358, "endOffset": 8560, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "withPipelineDomain",
+      "ranges": [{ "startOffset": 8612, "endOffset": 8826, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "build",
+      "ranges": [{ "startOffset": 8880, "endOffset": 9057, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createDefault",
+      "ranges": [{ "startOffset": 9130, "endOffset": 9268, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

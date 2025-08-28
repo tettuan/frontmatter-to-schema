@@ -1,0 +1,96 @@
+{
+  "scriptId": "375",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/placeholder-processor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 10517, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 431, "endOffset": 446, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PlaceholderPattern",
+      "ranges": [{ "startOffset": 450, "endOffset": 531, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 541, "endOffset": 1646, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getPattern",
+      "ranges": [{ "startOffset": 1649, "endOffset": 1692, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getName",
+      "ranges": [{ "startOffset": 1695, "endOffset": 1732, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "process",
+      "ranges": [{ "startOffset": 2059, "endOffset": 2732, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processContent",
+      "ranges": [{ "startOffset": 2855, "endOffset": 3736, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processRecursive",
+      "ranges": [{ "startOffset": 3835, "endOffset": 4550, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processStringContent",
+      "ranges": [{ "startOffset": 4691, "endOffset": 6037, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isSinglePlaceholder",
+      "ranges": [{ "startOffset": 6106, "endOffset": 6285, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractPlaceholderPath",
+      "ranges": [{ "startOffset": 6359, "endOffset": 6603, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValueByPath",
+      "ranges": [{ "startOffset": 6740, "endOffset": 8158, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createMustacheProcessor",
+      "ranges": [{ "startOffset": 8536, "endOffset": 8606, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createDollarProcessor",
+      "ranges": [{ "startOffset": 8693, "endOffset": 8761, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createPercentProcessor",
+      "ranges": [{ "startOffset": 8848, "endOffset": 8917, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractPlaceholders",
+      "ranges": [{ "startOffset": 9082, "endOffset": 9745, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validatePlaceholders",
+      "ranges": [{ "startOffset": 9830, "endOffset": 10514, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

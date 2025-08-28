@@ -1,0 +1,74 @@
+{
+  "scriptId": "362",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/result.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7041, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createDomainError",
+      "ranges": [
+        { "startOffset": 287, "endOffset": 392, "count": 38 },
+        { "startOffset": 355, "endOffset": 387, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDefaultErrorMessage",
+      "ranges": [{ "startOffset": 492, "endOffset": 4981, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mapResult",
+      "ranges": [{ "startOffset": 5089, "endOffset": 5218, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "flatMapResult",
+      "ranges": [{ "startOffset": 5301, "endOffset": 5394, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mapErrorResult",
+      "ranges": [{ "startOffset": 5471, "endOffset": 5607, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "combineResults",
+      "ranges": [{ "startOffset": 5676, "endOffset": 5862, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "unwrapResult",
+      "ranges": [{ "startOffset": 5958, "endOffset": 6209, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "unwrapOrResult",
+      "ranges": [{ "startOffset": 6278, "endOffset": 6375, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "chain",
+      "ranges": [{ "startOffset": 6648, "endOffset": 6687, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "all",
+      "ranges": [{ "startOffset": 6696, "endOffset": 6730, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isSuccess",
+      "ranges": [{ "startOffset": 6794, "endOffset": 6827, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isFailure",
+      "ranges": [{ "startOffset": 6889, "endOffset": 6923, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

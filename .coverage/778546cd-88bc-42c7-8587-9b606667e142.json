@@ -1,0 +1,351 @@
+{
+  "scriptId": "382",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/value-objects.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 15471, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 757, "endOffset": 762, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "DocumentPath",
+      "ranges": [{ "startOffset": 766, "endOffset": 813, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1010, "endOffset": 2395, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 2437, "endOffset": 2476, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDirectory",
+      "ranges": [{ "startOffset": 2589, "endOffset": 2729, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFilename",
+      "ranges": [{ "startOffset": 2832, "endOffset": 2980, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isMarkdown",
+      "ranges": [{ "startOffset": 3102, "endOffset": 3229, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3268, "endOffset": 3273, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "FrontMatterContent",
+      "ranges": [{ "startOffset": 3277, "endOffset": 3324, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 3334, "endOffset": 3517, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromObject",
+      "ranges": [{ "startOffset": 3527, "endOffset": 4332, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromYaml",
+      "ranges": [{ "startOffset": 4342, "endOffset": 4789, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 4792, "endOffset": 4831, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toJSON",
+      "ranges": [{ "startOffset": 4834, "endOffset": 5070, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseSimpleYaml",
+      "ranges": [{ "startOffset": 5073, "endOffset": 5925, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseYamlValue",
+      "ranges": [{ "startOffset": 5928, "endOffset": 6678, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "keys",
+      "ranges": [{ "startOffset": 6681, "endOffset": 6846, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "get",
+      "ranges": [{ "startOffset": 6849, "endOffset": 7015, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "size",
+      "ranges": [{ "startOffset": 7018, "endOffset": 7061, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 7097, "endOffset": 7102, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "DocumentContent",
+      "ranges": [{ "startOffset": 7106, "endOffset": 7153, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 7163, "endOffset": 7261, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 7264, "endOffset": 7303, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getLines",
+      "ranges": [{ "startOffset": 7306, "endOffset": 7357, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 7427, "endOffset": 7432, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ConfigPath",
+      "ranges": [{ "startOffset": 7436, "endOffset": 7483, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 7493, "endOffset": 8156, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 8159, "endOffset": 8198, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolve",
+      "ranges": [{ "startOffset": 8201, "endOffset": 8333, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 8366, "endOffset": 8371, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplatePath",
+      "ranges": [{ "startOffset": 8375, "endOffset": 8422, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 8432, "endOffset": 8709, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 8712, "endOffset": 8751, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolve",
+      "ranges": [{ "startOffset": 8754, "endOffset": 8886, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 8917, "endOffset": 8922, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "OutputPath",
+      "ranges": [{ "startOffset": 8926, "endOffset": 8973, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 8983, "endOffset": 9258, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 9261, "endOffset": 9300, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "withExtension",
+      "ranges": [{ "startOffset": 9303, "endOffset": 9438, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 9507, "endOffset": 9523, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaDefinition",
+      "ranges": [{ "startOffset": 9527, "endOffset": 9611, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 9621, "endOffset": 10275, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 10278, "endOffset": 10317, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getVersion",
+      "ranges": [{ "startOffset": 10320, "endOffset": 10363, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 10366, "endOffset": 10832, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 10866, "endOffset": 10889, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaVersion",
+      "ranges": [{ "startOffset": 10893, "endOffset": 11002, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 11012, "endOffset": 11826, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toString",
+      "ranges": [{ "startOffset": 11829, "endOffset": 11901, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isCompatibleWith",
+      "ranges": [{ "startOffset": 11904, "endOffset": 11972, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 12041, "endOffset": 12059, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateFormat",
+      "ranges": [{ "startOffset": 12063, "endOffset": 12153, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 12163, "endOffset": 12900, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 12903, "endOffset": 12944, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTemplate",
+      "ranges": [{ "startOffset": 12947, "endOffset": 12992, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 13024, "endOffset": 13053, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "MappingRule",
+      "ranges": [{ "startOffset": 13057, "endOffset": 13184, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 13194, "endOffset": 13503, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSource",
+      "ranges": [{ "startOffset": 13506, "endOffset": 13547, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTarget",
+      "ranges": [{ "startOffset": 13550, "endOffset": 13591, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "apply",
+      "ranges": [{ "startOffset": 13594, "endOffset": 13869, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValueByPath",
+      "ranges": [{ "startOffset": 13872, "endOffset": 14381, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 14455, "endOffset": 14500, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ProcessingOptions",
+      "ranges": [{ "startOffset": 14504, "endOffset": 14679, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 14689, "endOffset": 15296, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isParallel",
+      "ranges": [{ "startOffset": 15299, "endOffset": 15343, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getMaxConcurrency",
+      "ranges": [{ "startOffset": 15346, "endOffset": 15403, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "shouldContinueOnError",
+      "ranges": [{ "startOffset": 15406, "endOffset": 15468, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

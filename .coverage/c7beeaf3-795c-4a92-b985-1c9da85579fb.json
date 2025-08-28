@@ -1,0 +1,36 @@
+{
+  "scriptId": "366",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/StrictStructureMatcher.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7920, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeYAMLStructure",
+      "ranges": [{ "startOffset": 580, "endOffset": 2939, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analyzeSchemaStructure",
+      "ranges": [{ "startOffset": 2995, "endOffset": 5425, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analyzeTemplateStructure",
+      "ranges": [{ "startOffset": 5497, "endOffset": 5618, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "structuresEqual",
+      "ranges": [{ "startOffset": 5691, "endOffset": 6486, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateStructuralAlignment",
+      "ranges": [{ "startOffset": 6579, "endOffset": 7917, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

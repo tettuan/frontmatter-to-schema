@@ -1,0 +1,110 @@
+{
+  "scriptId": "365",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/strategies.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 9434, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 646, "endOffset": 656, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AITemplateStrategy",
+      "ranges": [{ "startOffset": 660, "endOffset": 722, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "process",
+      "ranges": [{ "startOffset": 725, "endOffset": 1481, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [{ "startOffset": 1484, "endOffset": 1569, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getName",
+      "ranges": [{ "startOffset": 1572, "endOffset": 1620, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "buildPrompt",
+      "ranges": [{ "startOffset": 1623, "endOffset": 2141, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2376, "endOffset": 2396, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "NativeTemplateStrategy",
+      "ranges": [{ "startOffset": 2400, "endOffset": 2478, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "process",
+      "ranges": [
+        { "startOffset": 2481, "endOffset": 7682, "count": 29 },
+        { "startOffset": 2663, "endOffset": 2900, "count": 0 },
+        { "startOffset": 3070, "endOffset": 3361, "count": 0 },
+        { "startOffset": 3606, "endOffset": 3899, "count": 1 },
+        { "startOffset": 3899, "endOffset": 4056, "count": 28 },
+        { "startOffset": 4057, "endOffset": 4101, "count": 28 },
+        { "startOffset": 4102, "endOffset": 4141, "count": 28 },
+        { "startOffset": 4143, "endOffset": 4494, "count": 0 },
+        { "startOffset": 4494, "endOffset": 4827, "count": 28 },
+        { "startOffset": 4827, "endOffset": 5286, "count": 0 },
+        { "startOffset": 5286, "endOffset": 5455, "count": 28 },
+        { "startOffset": 5455, "endOffset": 5545, "count": 27 },
+        { "startOffset": 5554, "endOffset": 5988, "count": 1 },
+        { "startOffset": 5997, "endOffset": 6478, "count": 0 },
+        { "startOffset": 6486, "endOffset": 6629, "count": 28 },
+        { "startOffset": 6629, "endOffset": 7091, "count": 0 },
+        { "startOffset": 7091, "endOffset": 7192, "count": 28 },
+        { "startOffset": 7192, "endOffset": 7678, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [{ "startOffset": 7685, "endOffset": 7912, "count": 29 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getName",
+      "ranges": [{ "startOffset": 7915, "endOffset": 7967, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 8090, "endOffset": 8109, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "CompositeTemplateStrategy",
+      "ranges": [{ "startOffset": 8113, "endOffset": 8206, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "process",
+      "ranges": [{ "startOffset": 8209, "endOffset": 9216, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "canHandle",
+      "ranges": [{ "startOffset": 9219, "endOffset": 9326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getName",
+      "ranges": [{ "startOffset": 9329, "endOffset": 9431, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

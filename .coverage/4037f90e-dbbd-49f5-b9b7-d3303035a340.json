@@ -1,0 +1,55 @@
+{
+  "scriptId": "372",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/use-cases/process-documents.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 19917, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 424, "endOffset": 560, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ProcessDocumentsUseCase",
+      "ranges": [{ "startOffset": 564, "endOffset": 1032, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 1035, "endOffset": 13585, "count": 4 },
+        { "startOffset": 1186, "endOffset": 1515, "count": 0 },
+        { "startOffset": 1556, "endOffset": 1752, "count": 0 },
+        { "startOffset": 1846, "endOffset": 2075, "count": 0 },
+        { "startOffset": 2132, "endOffset": 2429, "count": 0 },
+        { "startOffset": 2573, "endOffset": 2624, "count": 0 },
+        { "startOffset": 2783, "endOffset": 2875, "count": 0 },
+        { "startOffset": 3071, "endOffset": 13584, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8122, "endOffset": 8153, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8629, "endOffset": 9669, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 12236, "endOffset": 12335, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processDocument",
+      "ranges": [{ "startOffset": 13588, "endOffset": 19914, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

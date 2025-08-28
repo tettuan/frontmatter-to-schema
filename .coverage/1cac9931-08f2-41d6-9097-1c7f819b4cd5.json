@@ -1,0 +1,26 @@
+{
+  "scriptId": "373",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/deno-document-repository.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 8172, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "findAll",
+      "ranges": [{ "startOffset": 550, "endOffset": 4939, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "findByPattern",
+      "ranges": [{ "startOffset": 4942, "endOffset": 5937, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "read",
+      "ranges": [{ "startOffset": 5940, "endOffset": 8169, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

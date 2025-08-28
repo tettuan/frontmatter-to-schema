@@ -1,0 +1,90 @@
+{
+  "scriptId": "366",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/TypeScriptTemplateProcessor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7724, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 216, "endOffset": 336, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processTemplate",
+      "ranges": [
+        { "startOffset": 417, "endOffset": 3023, "count": 9 },
+        { "startOffset": 745, "endOffset": 795, "count": 0 },
+        { "startOffset": 1084, "endOffset": 2486, "count": 23 },
+        { "startOffset": 1208, "endOffset": 1394, "count": 15 },
+        { "startOffset": 1394, "endOffset": 2478, "count": 8 },
+        { "startOffset": 1440, "endOffset": 1891, "count": 1 },
+        { "startOffset": 1564, "endOffset": 1879, "count": 0 },
+        { "startOffset": 1891, "endOffset": 2468, "count": 7 },
+        { "startOffset": 2066, "endOffset": 2201, "count": 0 },
+        { "startOffset": 2693, "endOffset": 3019, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveVariable",
+      "ranges": [
+        { "startOffset": 3103, "endOffset": 4010, "count": 23 },
+        { "startOffset": 3285, "endOffset": 3452, "count": 8 },
+        { "startOffset": 3452, "endOffset": 3571, "count": 15 },
+        { "startOffset": 3571, "endOffset": 3644, "count": 0 },
+        { "startOffset": 3644, "endOffset": 3892, "count": 15 },
+        { "startOffset": 3690, "endOffset": 3764, "count": 0 },
+        { "startOffset": 3813, "endOffset": 3844, "count": 0 },
+        { "startOffset": 3892, "endOffset": 4009, "count": 15 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 3242, "endOffset": 3266, "count": 71 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "formatArray",
+      "ranges": [{ "startOffset": 4013, "endOffset": 4331, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "formatObject",
+      "ranges": [{ "startOffset": 4334, "endOffset": 4755, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractTemplateVariables",
+      "ranges": [
+        { "startOffset": 4758, "endOffset": 5566, "count": 9 },
+        { "startOffset": 4972, "endOffset": 5142, "count": 23 },
+        { "startOffset": 5215, "endOffset": 5562, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "escapeRegExp",
+      "ranges": [{ "startOffset": 5569, "endOffset": 5653, "count": 22 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveComplexSchemaPath",
+      "ranges": [{ "startOffset": 5743, "endOffset": 6324, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveArraySchemaPath",
+      "ranges": [{ "startOffset": 6327, "endOffset": 7525, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveIndexedSchemaPath",
+      "ranges": [{ "startOffset": 7528, "endOffset": 7721, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import {
 } from "../models/entities.ts";
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { DomainError } from "../core/result.ts";
-import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import { StrictStructureMatcher } from "../models/strict-structure-matcher.ts";
 import type { SchemaValidationMode } from "./interfaces.ts";
 import type { TypeScriptAnalysisOrchestrator } from "../core/typescript-processing-orchestrator.ts";
 
