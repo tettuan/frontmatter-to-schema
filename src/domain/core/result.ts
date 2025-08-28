@@ -30,7 +30,10 @@ export type ValidationError =
   | { kind: "NotFound"; resource: string; name?: string; key?: string }
   | { kind: "NotConfigured"; component: string }
   | { kind: "AlreadyExecuted"; pipeline: string }
-  | { kind: "InvalidState"; expected: string; actual: string };
+  | { kind: "InvalidState"; expected: string; actual: string }
+  | { kind: "InvalidStateTransition"; from: string; to: string }
+  | { kind: "DocumentMismatch" }
+  | { kind: "InvalidInput"; field: string };
 
 // Analysis domain specific errors
 export type AnalysisError =
@@ -118,6 +121,12 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Pipeline ${error.pipeline} has already been executed`;
     case "InvalidState":
       return `Invalid state: expected ${error.expected}, got ${error.actual}`;
+    case "InvalidStateTransition":
+      return `Invalid state transition: cannot transition from ${error.from} to ${error.to}`;
+    case "DocumentMismatch":
+      return "Document ID mismatch in processing state";
+    case "InvalidInput":
+      return `Invalid input for field: ${error.field}`;
 
     // Analysis errors
     case "SchemaValidationFailed":
