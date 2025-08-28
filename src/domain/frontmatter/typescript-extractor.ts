@@ -24,7 +24,7 @@ export class TypeScriptFrontMatterExtractor {
       // Extract frontmatter using std library
       const extracted = extractFrontMatter(content);
 
-      if (!extracted || typeof extracted.attrs !== "object") {
+      if (!extracted || !this.isValidFrontMatterAttrs(extracted.attrs)) {
         return {
           ok: false,
           error: createDomainError({
@@ -38,7 +38,7 @@ export class TypeScriptFrontMatterExtractor {
       const rawFrontMatter = this.extractRawFrontMatter(content);
 
       const frontMatterData: FrontMatterData = {
-        data: extracted.attrs as Record<string, unknown>,
+        data: extracted.attrs, // Now safely validated
         body: extracted.body,
         rawFrontMatter,
       };
@@ -62,6 +62,17 @@ export class TypeScriptFrontMatterExtractor {
         ),
       };
     }
+  }
+
+  /**
+   * Type guard to validate frontmatter attributes
+   */
+  private isValidFrontMatterAttrs(
+    attrs: unknown,
+  ): attrs is Record<string, unknown> {
+    return typeof attrs === "object" &&
+      attrs !== null &&
+      !Array.isArray(attrs);
   }
 
   /**

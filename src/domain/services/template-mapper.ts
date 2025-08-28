@@ -98,6 +98,93 @@ class ValidatedMappingResult {
   }
 }
 
+// Smart Constructor for DomainError with message
+function createTemplateMappingError(
+  template: unknown,
+  source: unknown,
+  message: string,
+): DomainError & { message: string } {
+  return {
+    kind: "TemplateMappingFailed",
+    template,
+    source,
+    message,
+  };
+}
+
+// Type guard for Record<string, unknown>
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Smart Constructor for validated template structure
+class ValidatedTemplateStructure {
+  private constructor(readonly structure: Record<string, unknown>) {}
+
+  static create(
+    jsonString: string,
+  ): Result<ValidatedTemplateStructure, DomainError & { message: string }> {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!isRecordObject(parsed)) {
+        return {
+          ok: false,
+          error: createTemplateMappingError(
+            jsonString,
+            parsed,
+            "Template definition must be a JSON object",
+          ),
+        };
+      }
+      return {
+        ok: true,
+        data: new ValidatedTemplateStructure(parsed),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createTemplateMappingError(
+          jsonString,
+          null,
+          `Invalid template definition JSON: ${error}`,
+        ),
+      };
+    }
+  }
+
+  getStructure(): Record<string, unknown> {
+    return this.structure;
+  }
+}
+
+// Smart Constructor for validated mapping result
+class ValidatedMappingResult {
+  private constructor(readonly result: Record<string, unknown>) {}
+
+  static create(
+    value: unknown,
+  ): Result<ValidatedMappingResult, DomainError & { message: string }> {
+    if (!isRecordObject(value)) {
+      return {
+        ok: false,
+        error: createTemplateMappingError(
+          value,
+          value,
+          "Mapping result must be a valid object",
+        ),
+      };
+    }
+    return {
+      ok: true,
+      data: new ValidatedMappingResult(value),
+    };
+  }
+
+  getResult(): Record<string, unknown> {
+    return this.result;
+  }
+}
+
 export class TemplateMapper {
   constructor(
     private readonly orchestrator?: TypeScriptAnalysisOrchestrator,

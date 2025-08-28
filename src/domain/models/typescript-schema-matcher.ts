@@ -30,6 +30,20 @@ export interface MappedSchemaData {
 
 export class TypeScriptSchemaMatcher {
   /**
+   * Type guard for Record<string, unknown>
+   */
+  private isRecordObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Type guard for string array
+   */
+  private isStringArray(value: unknown): value is string[] {
+    return Array.isArray(value) &&
+      value.every((item) => typeof item === "string");
+  }
+  /**
    * Phase 2-1: Schema expansion - recursively traverse JSON Schema
    * Expand schema into flat path + type information structure
    */
@@ -48,9 +62,13 @@ export class TypeScriptSchemaMatcher {
         };
       }
 
+      // Validated above that schema is an object
       const schemaObj = schema as Record<string, unknown>;
       const properties: SchemaProperty[] = [];
-      const required = (schemaObj.required as string[]) || [];
+
+      // Safely extract required array with validation
+      const requiredValue = schemaObj.required;
+      const required = this.isStringArray(requiredValue) ? requiredValue : [];
 
       this.expandSchemaRecursive(schemaObj, "", properties, required);
 
@@ -133,15 +151,24 @@ export class TypeScriptSchemaMatcher {
     _parentPath = "",
   ): void {
     if (obj.type === "object" && obj.properties) {
-      const props = obj.properties as Record<string, unknown>;
-      const objRequired = (obj.required as string[]) || required;
+      // Validate properties is a proper object
+      if (!this.isRecordObject(obj.properties)) {
+        return; // Skip invalid properties
+      }
+      const props = obj.properties;
+
+      // Safely extract required array with validation
+      const objRequiredValue = obj.required;
+      const objRequired = this.isStringArray(objRequiredValue)
+        ? objRequiredValue
+        : required;
 
       for (const [key, value] of Object.entries(props)) {
         const newPath = currentPath ? `${currentPath}.${key}` : key;
         const isRequired = objRequired.includes(key);
 
-        if (value && typeof value === "object") {
-          const valueObj = value as Record<string, unknown>;
+        if (this.isRecordObject(value)) {
+          const valueObj = value;
 
           if (valueObj.type === "array" && valueObj.items) {
             // Handle array properties
@@ -154,9 +181,9 @@ export class TypeScriptSchemaMatcher {
             });
 
             // If array items are objects, expand them too
-            if (valueObj.items && typeof valueObj.items === "object") {
+            if (this.isRecordObject(valueObj.items)) {
               this.expandSchemaRecursive(
-                valueObj.items as Record<string, unknown>,
+                valueObj.items,
                 `${arrayPath}`,
                 properties,
                 [],
@@ -176,8 +203,12 @@ export class TypeScriptSchemaMatcher {
             // Simple property
             properties.push({
               path: newPath,
-              type: valueObj.type as string || "unknown",
-              description: valueObj.description as string,
+              type: typeof valueObj.type === "string"
+                ? valueObj.type
+                : "unknown",
+              description: typeof valueObj.description === "string"
+                ? valueObj.description
+                : undefined,
               required: isRequired,
             });
           }
@@ -198,21 +229,21 @@ export class TypeScriptSchemaMatcher {
       if (Array.isArray(value)) {
         flattened[`${newKey}[]`] = value;
         value.forEach((item, index) => {
-          if (item && typeof item === "object") {
+          if (this.isRecordObject(item)) {
             Object.assign(
               flattened,
               this.flattenFrontMatterData(
-                item as Record<string, unknown>,
+                item,
                 `${newKey}[${index}]`,
               ),
             );
           }
         });
-      } else if (value && typeof value === "object") {
+      } else if (this.isRecordObject(value)) {
         Object.assign(
           flattened,
           this.flattenFrontMatterData(
-            value as Record<string, unknown>,
+            value,
             newKey,
           ),
         );
@@ -384,7 +415,16 @@ export class TypeScriptSchemaMatcher {
       if (!(key in current)) {
         current[key] = {};
       }
-      current = current[key] as Record<string, unknown>;
+
+      // Validate the next level is a proper object before proceeding
+      const nextLevel = current[key];
+      if (!this.isRecordObject(nextLevel)) {
+        current[key] = {};
+        // We just created this object, so it's safe to assert
+        current = current[key] as Record<string, unknown>;
+      } else {
+        current = nextLevel;
+      }
     }
 
     const finalKey = keys[keys.length - 1].replace(/\[\]$/, "");
