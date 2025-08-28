@@ -5,9 +5,8 @@
  * Consolidates duplicate placeholder processing from SimpleTemplateMapper and NativeTemplateStrategy.
  */
 
-import type { Result } from "../core/result.ts";
-import type { ValidationError } from "../shared/errors.ts";
-import { createValidationError } from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 /**
  * Smart Constructor for Placeholder Pattern validation
@@ -18,7 +17,7 @@ export class PlaceholderPattern {
 
   static create(
     patternType: PlaceholderPatternType,
-  ): Result<PlaceholderPattern, ValidationError> {
+  ): Result<PlaceholderPattern, DomainError & { message: string }> {
     try {
       switch (patternType) {
         case "mustache":
@@ -39,15 +38,21 @@ export class PlaceholderPattern {
         default:
           return {
             ok: false,
-            error: createValidationError(
-              `Unsupported placeholder pattern type: ${patternType}`,
-            ),
+            error: createDomainError({
+              kind: "InvalidFormat",
+              input: patternType,
+              expectedFormat: "mustache, dollar, or percent",
+            }, `Unsupported placeholder pattern type: ${patternType}`),
           };
       }
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidRegex",
+            pattern: patternType,
+          },
           `Failed to create placeholder pattern: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -90,7 +95,7 @@ export type PlaceholderProcessingResult =
     processedContent: unknown;
     missingPlaceholders: string[];
   }
-  | { kind: "Failure"; error: ValidationError };
+  | { kind: "Failure"; error: DomainError & { message: string } };
 
 /**
  * Unified Placeholder Processor
@@ -104,7 +109,7 @@ export class PlaceholderProcessor {
   process(
     templateContent: unknown,
     context: PlaceholderProcessingContext,
-  ): Result<PlaceholderProcessingResult, ValidationError> {
+  ): Result<PlaceholderProcessingResult, DomainError & { message: string }> {
     const patternResult = PlaceholderPattern.create(context.patternType);
     if (!patternResult.ok) {
       return {
@@ -124,7 +129,11 @@ export class PlaceholderProcessor {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidAnalysisContext",
+            context: templateContent,
+          },
           `Placeholder processing failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -165,7 +174,12 @@ export class PlaceholderProcessor {
     if (context.strictMode) {
       return {
         kind: "Failure",
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "NotFound",
+            resource: "placeholders",
+            name: missingPlaceholders.join(", "),
+          },
           `Missing placeholders in strict mode: ${
             missingPlaceholders.join(", ")
           }`,
@@ -314,11 +328,13 @@ export class PlaceholderProcessor {
   public getValueByPath(
     data: Record<string, unknown>,
     path: string,
-  ): Result<unknown, ValidationError> {
+  ): Result<unknown, DomainError & { message: string }> {
     if (!path || path.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("Placeholder path cannot be empty"),
+        error: createDomainError({
+          kind: "EmptyInput",
+        }, "Placeholder path cannot be empty"),
       };
     }
 
@@ -329,16 +345,24 @@ export class PlaceholderProcessor {
       if (current === null || current === undefined) {
         return {
           ok: false,
-          error: createValidationError(
-            `Path "${path}" not found: value is null/undefined at "${part}"`,
-          ),
+          error: createDomainError({
+            kind: "NotFound",
+            resource: "path",
+            name: path,
+            key: part,
+          }, `Path "${path}" not found: value is null/undefined at "${part}"`),
         };
       }
 
       if (typeof current !== "object") {
         return {
           ok: false,
-          error: createValidationError(
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: typeof current,
+              expectedFormat: "object",
+            },
             `Path "${path}" not found: expected object at "${part}" but got ${typeof current}`,
           ),
         };
@@ -348,9 +372,12 @@ export class PlaceholderProcessor {
       if (!(part in obj)) {
         return {
           ok: false,
-          error: createValidationError(
-            `Path "${path}" not found: property "${part}" does not exist`,
-          ),
+          error: createDomainError({
+            kind: "NotFound",
+            resource: "property",
+            name: part,
+            key: path,
+          }, `Path "${path}" not found: property "${part}" does not exist`),
         };
       }
 
@@ -400,7 +427,7 @@ export class PlaceholderUtils {
   static extractPlaceholders(
     content: string,
     patternType: PlaceholderPatternType = "mustache",
-  ): Result<string[], ValidationError> {
+  ): Result<string[], DomainError & { message: string }> {
     const patternResult = PlaceholderPattern.create(patternType);
     if (!patternResult.ok) {
       return patternResult;
@@ -428,7 +455,7 @@ export class PlaceholderUtils {
   static validatePlaceholders(
     placeholders: string[],
     data: Record<string, unknown>,
-  ): Result<void, ValidationError> {
+  ): Result<void, DomainError & { message: string }> {
     const processor = new PlaceholderProcessor();
     const missing: string[] = [];
 
@@ -443,9 +470,11 @@ export class PlaceholderUtils {
     if (missing.length > 0) {
       return {
         ok: false,
-        error: createValidationError(
-          `Missing required placeholders: ${missing.join(", ")}`,
-        ),
+        error: createDomainError({
+          kind: "NotFound",
+          resource: "placeholders",
+          name: missing.join(", "),
+        }, `Missing required placeholders: ${missing.join(", ")}`),
       };
     }
 

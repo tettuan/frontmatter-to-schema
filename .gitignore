@@ -143,3 +143,6 @@ vite.config.ts.timestamp-*
 .agent/drafts/articles/**
 tests/integration/claude-api-integration.test.ts
 .serena/
+
+# Temporary development files
+tmp/

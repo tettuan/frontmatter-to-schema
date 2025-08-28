@@ -75,7 +75,8 @@ export class AITemplateStrategy implements TemplateProcessingStrategy {
           {
             kind: "AIServiceError",
             service: "AI template processor",
-            statusCode: result.error.statusCode,
+            statusCode: (result.error as { statusCode?: number }).statusCode ||
+              undefined,
           },
           `AI template processing failed: ${result.error.message}`,
         ),

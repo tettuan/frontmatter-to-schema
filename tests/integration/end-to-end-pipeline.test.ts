@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { isError, isOk } from "../../src/domain/shared/types.ts";
+import { isError, isOk } from "../../src/domain/core/result.ts";
 import type { DomainError, Result } from "../../src/domain/core/result.ts";
 import { createDomainError } from "../../src/domain/core/result.ts";
 import { ProcessDocumentsUseCase } from "../../src/application/use-cases/process-documents.ts";

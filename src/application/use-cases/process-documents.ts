@@ -3,9 +3,10 @@
 import {
   createDomainError,
   type DomainError,
+  isError,
+  isOk,
   type Result,
 } from "../../domain/core/result.ts";
-import { isError, isOk } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Document,

@@ -3,9 +3,9 @@
 import {
   createDomainError,
   type DomainError,
+  isError,
   type Result,
 } from "../../domain/core/result.ts";
-import { isError } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Schema,

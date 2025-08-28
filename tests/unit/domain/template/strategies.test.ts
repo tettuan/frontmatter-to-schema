@@ -18,7 +18,7 @@ import type {
   AIAnalysisRequest,
   AIAnalyzerPort,
 } from "../../../../src/infrastructure/ports/index.ts";
-import { createAPIError } from "../../../../src/domain/shared/errors.ts";
+import { createDomainError } from "../../../../src/domain/core/result.ts";
 
 // Mock AI Analyzer for testing
 class MockAIAnalyzer implements AIAnalyzerPort {
@@ -43,7 +43,11 @@ class MockAIAnalyzer implements AIAnalyzerPort {
     }
     return Promise.resolve({
       ok: false as const,
-      error: createAPIError("AI processing failed", 500),
+      error: createDomainError({
+        kind: "AIServiceError",
+        service: "mock-ai",
+        statusCode: 500,
+      }, "AI processing failed"),
     });
   }
 }
