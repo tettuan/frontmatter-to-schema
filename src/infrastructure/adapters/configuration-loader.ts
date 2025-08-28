@@ -352,7 +352,26 @@ export class ConfigurationLoader
 
 // Template repository implementation
 export class TemplateLoader implements TemplateRepository {
+  /**
+   * Load a template by ID - for now, treats ID as file path
+   */
   async load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>> {
+    const pathResult = TemplatePath.create(templateId);
+    if (!pathResult.ok) {
+      return {
+        ok: false,
+        error: pathResult.error,
+      };
+    }
+    return await this.loadFromPath(pathResult.data);
+  }
+
+  /**
+   * Load a template from a specific path
+   */
+  async loadFromPath(
     path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     try {
@@ -487,11 +506,60 @@ export class TemplateLoader implements TemplateRepository {
     }
   }
 
+  /**
+   * Validate a template structure and format
+   */
   validate(
     _template: Template,
   ): Result<void, DomainError & { message: string }> {
-    // Basic validation
+    // Basic validation - could be extended with more comprehensive checks
     return { ok: true, data: undefined };
+  }
+
+  /**
+   * Save a template - not implemented in this adapter
+   */
+  async save(
+    _template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>> {
+    return {
+      ok: false,
+      error: createDomainError({
+        kind: "NotConfigured",
+        component: "TemplateLoader.save",
+      }, "Save operation not implemented in TemplateLoader"),
+    };
+  }
+
+  /**
+   * Check if a template exists at the given path
+   */
+  async exists(templateId: string): Promise<boolean> {
+    try {
+      const pathResult = TemplatePath.create(templateId);
+      if (!pathResult.ok) {
+        return false;
+      }
+      
+      const filePath = pathResult.data.getValue();
+      await Deno.stat(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * List all available template IDs - not implemented in this adapter
+   */
+  async list(): Promise<Result<string[], DomainError & { message: string }>> {
+    return {
+      ok: false,
+      error: createDomainError({
+        kind: "NotConfigured",
+        component: "TemplateLoader.list",
+      }, "List operation not implemented in TemplateLoader"),
+    };
   }
 
   private parseYAML(content: string): unknown {

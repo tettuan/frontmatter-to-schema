@@ -349,33 +349,100 @@ export class ConfigPath {
   }
 }
 
+/**
+ * Represents a path to a template file
+ *
+ * Business Rules:
+ * - Path must not be empty
+ * - Must have valid template extension (json, yaml, yml, hbs, template)
+ * - Path normalization (backslashes converted to forward slashes)
+ * - Immutable after creation
+ *
+ * @example
+ * const result = TemplatePath.create("templates/output.hbs");
+ * if (result.ok) {
+ *   console.log(result.data.getValue()); // "templates/output.hbs"
+ * }
+ */
 export class TemplatePath {
   private constructor(private readonly value: string) {}
 
+  /**
+   * Creates a validated TemplatePath instance
+   *
+   * @param path - The template file path to validate
+   * @returns Result containing either a valid TemplatePath or validation error
+   */
   static create(
     path: string,
   ): Result<TemplatePath, DomainError & { message: string }> {
-    if (!path || path.trim() === "") {
+    if (typeof path !== "string") {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: String(path),
+          expectedFormat: "string",
+        }, "Path must be a string"),
+      };
+    }
+
+    if (!path || path.trim().length === 0) {
       return {
         ok: false,
         error: createDomainError({
           kind: "EmptyInput",
-        }, "Input cannot be empty"),
+        }, "Path cannot be empty"),
       };
     }
 
-    return { ok: true, data: new TemplatePath(path) };
+    // Normalize path
+    const normalized = path.trim().replace(/\\/g, "/");
+
+    // Validate extension if file path
+    if (normalized.includes(".")) {
+      const ext = normalized.split(".").pop()?.toLowerCase();
+      const validExtensions = ["json", "yaml", "yml", "hbs", "template"];
+      if (!ext || !validExtensions.includes(ext)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "FileExtensionMismatch",
+            path: normalized,
+            expected: validExtensions,
+          }, `Invalid template file extension. Expected: ${validExtensions.join(", ")}`),
+        };
+      }
+    }
+
+    return {
+      ok: true,
+      data: new TemplatePath(normalized),
+    };
   }
 
+  /**
+   * Gets the raw path value
+   */
   getValue(): string {
     return this.value;
   }
 
+  /**
+   * Resolves relative path against a base path
+   */
   resolve(basePath: string): string {
     if (this.value.startsWith("/")) {
       return this.value;
     }
     return `${basePath}/${this.value}`;
+  }
+
+  /**
+   * String representation of the path
+   */
+  toString(): string {
+    return this.value;
   }
 }
 

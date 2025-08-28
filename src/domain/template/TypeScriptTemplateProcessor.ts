@@ -8,7 +8,7 @@ import { createDomainError } from "../core/result.ts";
 import type {
   MappedSchemaData,
   SchemaMatchResult,
-} from "../models/TypeScriptSchemaMatcher.ts";
+} from "../models/typescript-schema-matcher.ts";
 
 export interface ProcessedTemplate {
   readonly content: string;

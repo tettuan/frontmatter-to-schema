@@ -5,7 +5,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import type { FrontMatterData } from "../frontmatter/TypeScriptExtractor.ts";
+import type { FrontMatterData } from "../frontmatter/typescript-extractor.ts";
 
 export interface SchemaProperty {
   readonly path: string;

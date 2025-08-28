@@ -5,7 +5,7 @@ import {
   type Template,
 } from "../models/entities.ts";
 import type { DomainError } from "../core/result.ts";
-import { StrictStructureMatcher } from "../models/StrictStructureMatcher.ts";
+import { StrictStructureMatcher } from "../models/strict-structure-matcher.ts";
 import type { SchemaValidationMode } from "./interfaces.ts";
 
 // Smart Constructor for DomainError with message

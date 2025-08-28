@@ -9,12 +9,12 @@ import { LoggerFactory } from "../shared/logger.ts";
 import {
   type FrontMatterData,
   TypeScriptFrontMatterExtractor,
-} from "../frontmatter/TypeScriptExtractor.ts";
+} from "../frontmatter/typescript-extractor.ts";
 import {
   type MappedSchemaData,
   type SchemaProperty,
   TypeScriptSchemaMatcher,
-} from "../models/TypeScriptSchemaMatcher.ts";
+} from "../models/typescript-schema-matcher.ts";
 import {
   type ProcessedTemplate,
   type TemplateProcessingOptions,

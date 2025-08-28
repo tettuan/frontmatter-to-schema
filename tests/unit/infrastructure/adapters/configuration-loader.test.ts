@@ -709,7 +709,7 @@ Deno.test("TemplateLoader - Comprehensive Test Suite", async (t) => {
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -737,7 +737,7 @@ Deno.test("TemplateLoader - Comprehensive Test Suite", async (t) => {
         const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
-        const result = await templateLoader.load(pathResult.data);
+        const result = await templateLoader.loadFromPath(pathResult.data);
         assert(result.ok);
 
         if (result.ok) {
@@ -771,7 +771,7 @@ format: handlebars
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -793,7 +793,7 @@ content: "Welcome {{user}}!"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -819,7 +819,7 @@ content: "Welcome {{user}}!"
       // ConfigPath might fail for files without extension, so handle both cases
       const pathResult = TemplatePath.create(templatePath);
       if (pathResult.ok) {
-        const result = await templateLoader.load(pathResult.data);
+        const result = await templateLoader.loadFromPath(pathResult.data);
         assert(result.ok);
 
         if (result.ok) {
@@ -845,7 +845,7 @@ content: "Fallback to {{yaml}}"
         const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
-        const result = await templateLoader.load(pathResult.data);
+        const result = await templateLoader.loadFromPath(pathResult.data);
         assert(result.ok);
 
         if (result.ok) {
@@ -871,7 +871,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -895,7 +895,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -918,7 +918,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -943,7 +943,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -972,7 +972,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(result.ok);
 
       if (result.ok) {
@@ -995,7 +995,7 @@ content: "Fallback to {{yaml}}"
       const pathResult = TemplatePath.create(templatePath);
       assert(pathResult.ok);
 
-      const result = await templateLoader.load(pathResult.data);
+      const result = await templateLoader.loadFromPath(pathResult.data);
       assert(!result.ok);
 
       if (!result.ok) {
@@ -1018,7 +1018,7 @@ content: "Fallback to {{yaml}}"
         const pathResult = TemplatePath.create(templatePath);
         assert(pathResult.ok);
 
-        const result = await templateLoader.load(pathResult.data);
+        const result = await templateLoader.loadFromPath(pathResult.data);
         // YAML parser might be more lenient, but this content could still fail
         // Let's handle both cases
         if (result.ok) {
@@ -1043,7 +1043,7 @@ content: "Fallback to {{yaml}}"
       const badPath = join(templatePath, "nested", "invalid");
       const pathResult = TemplatePath.create(badPath);
       if (pathResult.ok) {
-        const result = await templateLoader.load(pathResult.data);
+        const result = await templateLoader.loadFromPath(pathResult.data);
         assert(!result.ok);
 
         if (!result.ok) {

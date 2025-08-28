@@ -56,7 +56,7 @@ import {
   FileWriter,
 } from "./infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
-import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
+import { BuildRegistryUseCase } from "./application/use-cases/build-registry-use-case.ts";
 
 /**
  * Loads AI prompt templates for schema extraction and mapping

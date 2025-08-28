@@ -3,7 +3,7 @@ import type {
   FileWriter,
 } from "../../infrastructure/filesystem/file-system.ts";
 import type { FrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
-import { RegistryAggregator } from "../services/RegistryAggregator.ts";
+import { RegistryAggregator } from "../services/registry-aggregator.ts";
 import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";

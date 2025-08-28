@@ -11,7 +11,7 @@ import {
 import {
   type ProcessingRequest,
   TypeScriptProcessingOrchestrator,
-} from "../../../../src/domain/core/TypeScriptProcessingOrchestrator.ts";
+} from "../../../../src/domain/core/typescript-processing-orchestrator.ts";
 
 Deno.test("TypeScriptProcessingOrchestrator - Core Functionality", async (t) => {
   const orchestrator = new TypeScriptProcessingOrchestrator();

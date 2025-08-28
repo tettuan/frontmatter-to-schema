@@ -11,7 +11,7 @@ import type {
   SchemaVersion,
   TemplateFormat,
 } from "./value-objects.ts";
-import { StrictStructureMatcher } from "./StrictStructureMatcher.ts";
+import { StrictStructureMatcher } from "./strict-structure-matcher.ts";
 
 // Discriminated union for document frontmatter state following totality principle
 export type DocumentFrontMatterState =

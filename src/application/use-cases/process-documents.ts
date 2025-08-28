@@ -131,7 +131,7 @@ export class ProcessDocumentsUseCase {
         templatePath: config.templatePath.getValue(),
       });
     }
-    const templateResult = await this.templateRepo.load(config.templatePath);
+    const templateResult = await this.templateRepo.loadFromPath(config.templatePath);
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-verbose",

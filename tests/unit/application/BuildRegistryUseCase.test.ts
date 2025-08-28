@@ -2,7 +2,7 @@ import {
   assertEquals,
   assertRejects,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { BuildRegistryUseCase } from "../../../src/application/use-cases/BuildRegistryUseCase.ts";
+import { BuildRegistryUseCase } from "../../../src/application/use-cases/build-registry-use-case.ts";
 import {
   FileReader,
   FileWriter,

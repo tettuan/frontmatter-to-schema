@@ -158,13 +158,48 @@ export interface SchemaRepository {
   validate(schema: Schema): Result<void, DomainError & { message: string }>;
 }
 
+/**
+ * Repository interface for Template aggregate following DDD pattern
+ * Provides abstraction for template persistence and validation
+ */
 export interface TemplateRepository {
+  /**
+   * Load a template by ID
+   */
   load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>>;
+
+  /**
+   * Load a template from a specific path
+   */
+  loadFromPath(
     path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>>;
+
+  /**
+   * Save a template
+   */
+  save(
+    template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>>;
+
+  /**
+   * Validate a template structure and format
+   */
   validate(
     template: Template,
   ): Result<void, DomainError & { message: string }>;
+
+  /**
+   * Check if a template exists
+   */
+  exists(templateId: string): Promise<boolean>;
+
+  /**
+   * List all available template IDs
+   */
+  list(): Promise<Result<string[], DomainError & { message: string }>>;
 }
 
 export interface ResultRepository {

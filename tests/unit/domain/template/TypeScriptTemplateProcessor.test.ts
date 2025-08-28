@@ -6,7 +6,7 @@ import {
 import type {
   MappedSchemaData,
   SchemaMatchResult,
-} from "../../../../src/domain/models/TypeScriptSchemaMatcher.ts";
+} from "../../../../src/domain/models/typescript-schema-matcher.ts";
 
 describe("TypeScriptTemplateProcessor", () => {
   let processor: TypeScriptTemplateProcessor;
