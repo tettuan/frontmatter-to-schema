@@ -42,7 +42,7 @@
           "description": "Processing modes",
           "items": { "type": "string" }
         },
-        "input_file": {
+        "file": {
           "type": "array",
           "description": "File input support",
           "items": { "type": "boolean" }

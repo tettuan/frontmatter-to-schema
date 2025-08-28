@@ -8,7 +8,7 @@
   "options": {
     "input": "{options.input}",
     "adaptation": "{options.adaptation}",
-    "input_file": "{options.input_file}",
+    "file": "{options.file}",
     "stdin": "{options.stdin}",
     "destination": "{options.destination}"
   }
