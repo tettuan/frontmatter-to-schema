@@ -1,9 +1,16 @@
 ---
-title: climpt実行コマンドを構築するclimpt
-description: 渡された内容に相応しい climpt-* を構築し、示す。
+c1: meta
+c2: resolve
+c3: registered-commands
+title: Climpt Command Builder
+description: Constructs and recommends appropriate climpt-* commands based on provided content and requirements.
+usage: climpt-meta resolve registered-commands -i=content -o command_output.txt
 options:
-  input_text: 使いたいファイルリストや内容。
-Notice: この指示書をAgentは選択はしない。ユーザー実行のみ許可。
+  input: ["text", "file"]
+  adaptation: ["default"]
+  input_file: [false]
+  stdin: [true]
+  destination: [true]
 ---
 
 # Climpt CLI　コマンド作成指示書

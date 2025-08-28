@@ -1,9 +1,16 @@
 ---
-title: Climpt プロンプト作成指示書
-description: 短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める。
+c1: docs
+c2: generate-robust
+c3: instruction-doc
+title: Robust Instruction Document Generator
+description: Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.
+usage: climpt-docs generate-robust instruction-doc -i=description -o instruction.md
 options:
-  text_input: 指示したい内容を記載する
-  destination_path: 出力先
+  input: ["text"]
+  adaptation: ["default"]
+  input_file: [false]
+  stdin: [true]
+  destination: [true]
 ---
 
 これは「指示書作成」の指示である。以下の記述に従い、指示書を作成して。

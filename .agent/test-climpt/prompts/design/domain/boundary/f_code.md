@@ -1,6 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: boundary
+title: コードベースドメイン境界線設計
 description: コードベースをもとに、ドメイン境界線を引く。
+usage: |
+  climpt-design domain boundary -a=code --input="ソースコード"
+  実装コードを分析してドメイン境界線を設計します。
+options:
+  input: ["code", "file"]
+  adaptation: ["code"]
+  input_file: [true]
+  stdin: [true]
+  destination: [false]
 ---
 
 # ドメイン境界線の設計

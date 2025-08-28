@@ -1,8 +1,16 @@
 ---
-title: testを強固に構築する
+c1: build
+c2: robust
+c3: test
+title: Robust Test Construction
+description: Constructs robust and resilient tests based on domain-driven design and totality principles.
+usage: climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/
 options:
-  input_text_file: 強固に構築すべき機能要件
-  input_text: 強固な構築に向けた追加指示
+  input: ["text", "file"]
+  adaptation: ["default", "strict"]
+  input_file: [true]
+  stdin: [true]
+  destination: [true]
 ---
 
 # テスト 強固構築

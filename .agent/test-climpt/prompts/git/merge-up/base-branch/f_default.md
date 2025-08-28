@@ -1,8 +1,16 @@
 ---
-title: 作業ブランチ間のマージ処理
-description: 作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。
-properties:
-  C3L-Version: 0.3
+c1: git
+c2: merge-up
+c3: base-branch
+title: Merge Processing Between Working Branches
+description: Merges derived working branches back into their original base working branches.
+usage: climpt-git merge-up base-branch -o merge_status.md
+options:
+  input: ["scan"]
+  adaptation: ["default"]
+  input_file: [false]
+  stdin: [false]
+  destination: [true]
 ---
 
 # 指示書: 作業ブランチ間のマージ処理

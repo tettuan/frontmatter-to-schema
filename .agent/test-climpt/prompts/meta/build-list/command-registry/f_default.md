@@ -1,5 +1,16 @@
 ---
-title: Climpt 実行可能コマンドの一覧作成
+c1: meta
+c2: build-list
+c3: command-registry
+title: Climpt Executable Commands List Builder
+description: Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.
+usage: climpt-meta build-list command-registry -o registered-commands.md
+options:
+  input: ["scan"]
+  adaptation: ["default"]
+  input_file: [false]
+  stdin: [false]
+  destination: [true]
 ---
 
 # 実施事項
