@@ -10,7 +10,6 @@ import { createProcessingStageError } from "../core/result.ts";
 import type { Template } from "../models/entities.ts";
 import { TemplateProcessingService } from "./service.ts";
 import { FileTemplateRepository } from "../../infrastructure/template/file-template-repository.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 /**
  * Adapter for old TemplateMapper interface
@@ -19,11 +18,10 @@ import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 export class TemplateMapperAdapter {
   private service: TemplateProcessingService;
 
-  constructor(aiAnalyzer?: AIAnalyzerPort) {
+  constructor() {
     const repository = new FileTemplateRepository();
     this.service = new TemplateProcessingService({
       repository,
-      aiAnalyzer,
       preferAI: false, // Use native strategy for backward compatibility
     });
   }
@@ -62,12 +60,11 @@ export class TemplateMapperAdapter {
 export class AITemplateMapperAdapter {
   private service: TemplateProcessingService;
 
-  constructor(private readonly aiAnalyzer: AIAnalyzerPort) {
+  constructor() {
     const repository = new FileTemplateRepository();
     this.service = new TemplateProcessingService({
       repository,
-      aiAnalyzer,
-      preferAI: true, // Use AI strategy
+      preferAI: false, // AI strategy has been removed, use native
     });
   }
 

@@ -12,17 +12,13 @@ import {
 } from "./aggregate.ts";
 import type { TemplateRepository } from "../services/interfaces.ts";
 import {
-  AITemplateStrategy,
-  CompositeTemplateStrategy,
   NativeTemplateStrategy,
   type TemplateProcessingStrategy,
 } from "./strategies.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 import type { EventStore } from "./events.ts";
 
 export interface TemplateServiceConfig {
   repository: TemplateRepository;
-  aiAnalyzer?: AIAnalyzerPort;
   eventStore?: EventStore;
   preferAI?: boolean; // Default true
 }
@@ -130,24 +126,11 @@ export class TemplateProcessingService {
    * Create the appropriate processing strategy based on configuration
    */
   private createStrategy(
-    config: TemplateServiceConfig,
+    _config: TemplateServiceConfig,
   ): TemplateProcessingStrategy {
+    // Always use native strategy as AI has been removed
     const nativeStrategy = new NativeTemplateStrategy();
-
-    if (!config.aiAnalyzer) {
-      // No AI analyzer available, use native only
-      return nativeStrategy;
-    }
-
-    const aiStrategy = new AITemplateStrategy(config.aiAnalyzer);
-
-    if (config.preferAI !== false) {
-      // Default: AI primary, native fallback
-      return new CompositeTemplateStrategy(aiStrategy, nativeStrategy);
-    } else {
-      // Native primary, AI fallback
-      return new CompositeTemplateStrategy(nativeStrategy, aiStrategy);
-    }
+    return nativeStrategy;
   }
 }
 
@@ -156,13 +139,11 @@ export class TemplateProcessingService {
  */
 export function createTemplateService(
   repository: TemplateRepository,
-  aiAnalyzer?: AIAnalyzerPort,
   eventStore?: EventStore,
 ): TemplateProcessingService {
   return new TemplateProcessingService({
     repository,
-    aiAnalyzer,
     eventStore,
-    preferAI: true,
+    preferAI: false,
   });
 }

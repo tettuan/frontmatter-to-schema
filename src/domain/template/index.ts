@@ -25,11 +25,7 @@ export type {
 } from "./events.ts";
 
 // Strategy exports
-export {
-  AITemplateStrategy,
-  CompositeTemplateStrategy,
-  NativeTemplateStrategy,
-} from "./strategies.ts";
+export { NativeTemplateStrategy } from "./strategies.ts";
 export type { TemplateProcessingStrategy } from "./strategies.ts";
 
 // Service exports

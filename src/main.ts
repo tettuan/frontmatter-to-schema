@@ -252,7 +252,7 @@ Examples:
     // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
     // Note: This is a temporary solution, should be properly injected
     const { MappedData } = await import("./domain/models/entities.ts");
-    const { createDomainError, createProcessingStageError } = await import(
+    const { createProcessingStageError } = await import(
       "./domain/core/result.ts"
     );
 
@@ -281,24 +281,6 @@ Examples:
             ),
           };
         }
-      },
-      async mapWithOrchestrator(
-        _frontMatter: unknown,
-        _schema: unknown,
-        _template: unknown,
-      ) {
-        // Fallback to legacy behavior - orchestrator not configured
-        return await Promise.resolve({
-          ok: false as const,
-          error: createDomainError(
-            {
-              kind: "ReadError",
-              path: "orchestrator",
-              details: "TypeScriptAnalysisOrchestrator not configured",
-            },
-            "TypeScriptAnalysisOrchestrator not configured",
-          ),
-        });
       },
     };
     const resultAggregator = new ResultAggregatorImpl(
@@ -382,30 +364,16 @@ Examples:
     // Load prompt templates
     const _prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer
-    let schemaAnalyzer;
-    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
-
-    if (useMock) {
-      const { MockSchemaAnalyzer } = await import(
-        "./infrastructure/adapters/mock-analyzer.ts"
-      );
-      schemaAnalyzer = new MockSchemaAnalyzer();
-      const logger = defaultLoggingService.getLogger("main-analyzer");
-      logger.info("Using mock analyzer", {
-        reason: "test mode enabled",
-      });
-    } else {
-      // Use Mock implementation for now
-      const { MockSchemaAnalyzer } = await import(
-        "./infrastructure/adapters/mock-analyzer.ts"
-      );
-      schemaAnalyzer = new MockSchemaAnalyzer();
-      const logger = defaultLoggingService.getLogger("main-analyzer");
-      logger.info("Using mock analyzer", {
-        reason: "Default implementation",
-      });
-    }
+    // Initialize schema analyzer using TypeScript analyzer
+    const { createTypeScriptAnalyzer } = await import(
+      "./domain/analyzers/typescript-analyzer.ts"
+    );
+    const schemaAnalyzer = createTypeScriptAnalyzer(
+      "1.0.0",
+      "Main Application",
+    );
+    const analyzerLogger = defaultLoggingService.getLogger("main-analyzer");
+    analyzerLogger.info("Using TypeScript analyzer");
 
     // Create use case
     const processDocumentsUseCase = new ProcessDocumentsUseCase(

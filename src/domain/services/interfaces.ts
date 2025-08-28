@@ -28,7 +28,7 @@ import type { Template } from "../models/entities.ts";
 import type {
   ConfigPath,
   DocumentPath,
-  FrontMatterContent,
+  FrontMatterContent as _FrontMatterContent,
   OutputPath,
   TemplatePath,
 } from "../models/value-objects.ts";
@@ -96,16 +96,6 @@ export interface TemplateMapper {
     template: Template,
     schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }>;
-
-  /**
-   * New 2-stage processing method using TypeScriptAnalysisOrchestrator
-   * Following domain boundary architecture specification
-   */
-  mapWithOrchestrator(
-    frontMatter: FrontMatterContent,
-    schema: Schema,
-    template: Template,
-  ): Promise<Result<MappedData, DomainError & { message: string }>>;
 }
 
 /**

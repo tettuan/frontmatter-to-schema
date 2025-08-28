@@ -14,7 +14,6 @@ import {
 } from "../core/result.ts";
 import type { Template } from "../models/entities.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 // Re-export for external use
 export type { TemplateApplicationContext };
@@ -46,90 +45,6 @@ export interface TemplateProcessingStrategy {
    * Get strategy name for logging/debugging
    */
   getName(): string;
-}
-
-/**
- * AI-based template processing strategy (Primary)
- * Delegates template application to Claude AI
- */
-export class AITemplateStrategy implements TemplateProcessingStrategy {
-  constructor(private readonly aiAnalyzer: AIAnalyzerPort) {}
-
-  async process(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): Promise<Result<string, DomainError>> {
-    const prompt = this.buildPrompt(template, context);
-
-    const result = await this.aiAnalyzer.analyze({
-      content: JSON.stringify({
-        extractedData: context.extractedData,
-        schema: context.schema,
-        template: template.getFormat().getTemplate(),
-        format: context.format,
-      }),
-      prompt,
-    });
-
-    if (!result.ok) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "AIServiceError",
-            service: "AI template processor",
-            statusCode: (result.error as { statusCode?: number }).statusCode ||
-              undefined,
-          },
-          `AI template processing failed: ${result.error.message}`,
-        ),
-      };
-    }
-
-    return {
-      ok: true,
-      data: result.data.result,
-    };
-  }
-
-  canHandle(_template: Template): boolean {
-    // AI can handle all template formats
-    return true;
-  }
-
-  getName(): string {
-    return "AITemplateStrategy";
-  }
-
-  private buildPrompt(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): string {
-    return `
-テンプレートへの値の当て込み処理を実行してください。
-
-【入力情報】
-1. Schemaで解釈されたデータ:
-${JSON.stringify(context.extractedData, null, 2)}
-
-2. Schema定義:
-${JSON.stringify(context.schema, null, 2)}
-
-3. テンプレート:
-${template.getFormat().getTemplate()}
-
-【処理指示】
-- Schemaで解釈されたデータをテンプレートに当て込んでください
-- テンプレート内の変数プレースホルダーを、対応する値で正確に置き換えてください
-- Schema定義に従って、データの形式を適切に変換してください
-- 出力形式: ${context.format}
-- 変数が見つからない場合は、プレースホルダーをそのまま残してください
-
-【出力要件】
-- 完全に置換されたテンプレートを出力してください
-- 形式は${context.format}形式で出力してください
-`;
-  }
 }
 
 /**
@@ -332,61 +247,4 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
   // - getValueByPath: replaced by PlaceholderProcessor
   // - convertToYaml: replaced by YAMLTemplateHandler
   // - dataToYaml: replaced by YAMLTemplateHandler
-}
-
-/**
- * Composite strategy that tries AI first, then falls back to native
- */
-export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
-  constructor(
-    private readonly primary: TemplateProcessingStrategy,
-    private readonly fallback: TemplateProcessingStrategy,
-  ) {}
-
-  async process(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): Promise<Result<string, DomainError>> {
-    // Try primary strategy first
-    if (this.primary.canHandle(template)) {
-      const result = await this.primary.process(template, context);
-      if (result.ok) {
-        return result;
-      }
-
-      // Log primary failure (in production, use proper logger)
-      const logger = StructuredLogger.getStageLogger("fallback-strategy");
-      logger.warn("Primary strategy failed, using fallback", {
-        primaryStrategy: this.primary.getName(),
-        error: result.error,
-      });
-    }
-
-    // Fall back to secondary strategy
-    if (this.fallback.canHandle(template)) {
-      return this.fallback.process(template, context);
-    }
-
-    return {
-      ok: false,
-      error: createProcessingStageError(
-        "composite strategy",
-        {
-          kind: "ResourceExhausted",
-          resource: "template strategies",
-          limit: 2,
-        } as DomainError,
-        "No suitable strategy found for template processing",
-      ),
-    };
-  }
-
-  canHandle(template: Template): boolean {
-    return this.primary.canHandle(template) ||
-      this.fallback.canHandle(template);
-  }
-
-  getName(): string {
-    return `CompositeStrategy(${this.primary.getName()}, ${this.fallback.getName()})`;
-  }
 }
