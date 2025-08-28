@@ -70,7 +70,9 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
       let parsed: Record<string, unknown>;
       try {
         const jsonResult = JSON.parse(request.content);
-        parsed = this.validateRecordObject(jsonResult) ? jsonResult : { content: request.content };
+        parsed = this.validateRecordObject(jsonResult)
+          ? jsonResult
+          : { content: request.content };
       } catch {
         // If not JSON, use as-is
         parsed = { content: request.content };
@@ -143,7 +145,9 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
     try {
       // Parse frontmatter content
       const frontMatterJson = frontMatter.getContent().toJSON();
-      const frontMatterData = this.validateRecordObject(frontMatterJson) ? frontMatterJson : {};
+      const frontMatterData = this.validateRecordObject(frontMatterJson)
+        ? frontMatterJson
+        : {};
 
       // Create mock extracted data based on frontmatter
       const mockExtractedData = {
@@ -174,7 +178,9 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
   /**
    * Type guard to validate that a value is a Record<string, unknown>
    */
-  private validateRecordObject(value: unknown): value is Record<string, unknown> {
+  private validateRecordObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 }

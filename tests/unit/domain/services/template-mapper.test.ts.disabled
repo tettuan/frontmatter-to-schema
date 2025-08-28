@@ -8,53 +8,56 @@ import { assertEquals } from "jsr:@std/assert";
 import { TemplateMapper } from "../../../../src/domain/services/template-mapper.ts";
 import {
   ExtractedData,
-  Template,
   TemplateId,
 } from "../../../../src/domain/models/entities.ts";
+import { Template, TemplateDefinition } from "../../../../src/domain/models/domain-models.ts";
 import { TemplateFormat } from "../../../../src/domain/models/value-objects.ts";
 import { isError, isOk } from "../../../../src/domain/core/result.ts";
+
+// Helper function to create templates for testing
+function createTestTemplate(id: string, content: string, format: "json" | "yaml" | "handlebars" | "custom", description = "Test template"): Template {
+  const templateDefResult = TemplateDefinition.create(content, format);
+  if (!isOk(templateDefResult)) {
+    throw new Error("Failed to create template definition");
+  }
+  
+  const templateResult = Template.create(id, templateDefResult.data, description);
+  if (!isOk(templateResult)) {
+    throw new Error("Failed to create template");
+  }
+  
+  return templateResult.data;
+}
 
 Deno.test("TemplateMapper - Core Functionality", async (t) => {
   const mapper = new TemplateMapper();
 
   await t.step("JSON Format Mapping", async (t) => {
     await t.step("should map data to JSON template successfully", () => {
-      const templateFormatResult = TemplateFormat.create(
-        "json",
-        JSON.stringify({
-          name: "{{name}}",
-          age: "{{age}}",
-          active: true,
-        }),
-      );
+      const templateContent = JSON.stringify({
+        name: "{{name}}",
+        age: "{{age}}",
+        active: true,
+      });
 
-      const templateIdResult = TemplateId.create("test");
+      const template = createTestTemplate("test", templateContent, "json");
 
-      if (isOk(templateFormatResult) && isOk(templateIdResult)) {
-        const template = Template.create(
-          templateIdResult.data,
-          templateFormatResult.data,
-          [],
-          "Test template",
-        );
+      const rawData = {
+        name: "John",
+        age: 30,
+        active: false, // This will be overridden by template's static value
+      };
+      const extractedData = ExtractedData.create(rawData);
 
-        const rawData = {
-          name: "John",
-          age: 30,
-          active: false, // This will be overridden by template's static value
-        };
-        const extractedData = ExtractedData.create(rawData);
-
-        const result = mapper.map(extractedData, template, {
-          kind: "NoSchema",
-        });
-        assertEquals(isOk(result), true);
-        if (isOk(result)) {
-          const mappedDataObj = result.data.getData();
-          assertEquals(mappedDataObj.name, "John");
-          assertEquals(mappedDataObj.age, 30);
-          assertEquals(mappedDataObj.active, true);
-        }
+      const result = mapper.map(extractedData, template, {
+        kind: "NoSchema",
+      });
+      assertEquals(isOk(result), true);
+      if (isOk(result)) {
+        const mappedDataObj = result.data.getData();
+        assertEquals(mappedDataObj.name, "John");
+        assertEquals(mappedDataObj.age, 30);
+        assertEquals(mappedDataObj.active, true);
       }
     });
 

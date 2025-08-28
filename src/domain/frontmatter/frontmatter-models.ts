@@ -52,7 +52,9 @@ export class FrontMatterExtractor {
    * Extract frontmatter with totality principle (returns Result type)
    * New method that follows totality principles while maintaining backward compatibility
    */
-  extractSafe(content: string): Result<FrontMatter, DomainError & { message: string }> {
+  extractSafe(
+    content: string,
+  ): Result<FrontMatter, DomainError & { message: string }> {
     const match = content.match(this.frontMatterRegex);
 
     if (!match || match[1] === undefined) {
@@ -88,7 +90,9 @@ export class FrontMatterExtractor {
         error: createDomainError({
           kind: "ParseError",
           input: raw,
-          details: error instanceof Error ? error.message : "Unknown YAML parse error",
+          details: error instanceof Error
+            ? error.message
+            : "Unknown YAML parse error",
         }, "Failed to parse YAML frontmatter"),
       };
     }
@@ -101,7 +105,9 @@ export class FrontMatterExtractor {
   /**
    * Type guard to validate that a value is a Record<string, unknown>
    */
-  private validateRecordObject(value: unknown): value is Record<string, unknown> {
+  private validateRecordObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 }

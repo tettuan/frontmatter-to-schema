@@ -11,8 +11,8 @@ import {
   AnalysisResult,
   type Document,
   type Schema,
-  type Template,
 } from "../../domain/models/entities.ts";
+import type { Template } from "../../domain/models/domain-models.ts";
 import { ProcessingOptions } from "../../domain/models/value-objects.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type {
@@ -131,7 +131,9 @@ export class ProcessDocumentsUseCase {
         templatePath: config.templatePath.getValue(),
       });
     }
-    const templateResult = await this.templateRepo.loadFromPath(config.templatePath);
+    const templateResult = await this.templateRepo.loadFromPath(
+      config.templatePath,
+    );
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(
         "process-documents-verbose",

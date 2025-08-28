@@ -33,6 +33,7 @@ import {
 import type {
   AnalysisConfiguration,
   ProcessingConfiguration,
+  SchemaValidationMode,
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
@@ -45,7 +46,8 @@ import {
   ConfigurationLoader,
   TemplateLoader,
 } from "./infrastructure/adapters/configuration-loader.ts";
-import type { ExtractedData, Template } from "./domain/models/entities.ts";
+import type { ExtractedData } from "./domain/models/entities.ts";
+import type { Template } from "./domain/models/domain-models.ts";
 
 /**
  * Legacy imports maintained for backward compatibility
@@ -248,11 +250,31 @@ Examples:
     const { createDomainError } = await import("./domain/core/result.ts");
 
     const templateMapper = {
-      map: (data: ExtractedData, template: Template) => {
+      map: (
+        data: ExtractedData,
+        template: Template,
+        _schemaMode: SchemaValidationMode,
+      ) => {
         try {
-          // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData());
-          const mappedData = MappedData.create(mappedResult);
+          // Use domain-models Template.render() method instead of entities applyRules()
+          const renderResult = template.render(data.getData());
+          if (!renderResult.ok) {
+            return {
+              ok: false as const,
+              error: createDomainError(
+                {
+                  kind: "ProcessingStageError",
+                  stage: "template rendering",
+                  error: renderResult.error,
+                },
+                "Template rendering failed",
+              ),
+            };
+          }
+
+          // Parse the rendered JSON string back to object for MappedData
+          const parsedResult = JSON.parse(renderResult.data);
+          const mappedData = MappedData.create(parsedResult);
           return { ok: true as const, data: mappedData };
         } catch (error) {
           return {

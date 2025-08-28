@@ -33,7 +33,9 @@ import {
   OutputPath,
   TemplatePath,
 } from "./src/domain/models/value-objects.ts";
-import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
+import type { ExtractedData } from "./src/domain/models/entities.ts";
+import type { Template } from "./src/domain/models/domain-models.ts";
+import type { SchemaValidationMode } from "./src/domain/services/interfaces.ts";
 
 // Create global CLI logger
 const cliLogger: Logger = LoggerFactory.createLogger("CLI");
@@ -137,6 +139,11 @@ export async function main() {
   const templatePath = args.template;
   const destinationDir = args.destination || markdownDir;
   const verboseMode = args.verbose || false;
+
+  // Set verbose mode environment variable early, before any potential early exits
+  if (verboseMode) {
+    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
+  }
 
   if (!schemaPath || !templatePath) {
     cliLogger.error("Error: --schema and --template options are required");
@@ -257,11 +264,31 @@ export async function main() {
     const { createDomainError } = await import("./src/domain/core/result.ts");
 
     const templateMapper = {
-      map: (data: ExtractedData, template: Template) => {
+      map: (
+        data: ExtractedData,
+        template: Template,
+        _schemaMode: SchemaValidationMode,
+      ) => {
         try {
-          // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData());
-          const mappedData = MappedData.create(mappedResult);
+          // Use domain-models Template.render() method instead of entities applyRules()
+          const renderResult = template.render(data.getData());
+          if (!renderResult.ok) {
+            return {
+              ok: false as const,
+              error: createDomainError(
+                {
+                  kind: "ProcessingStageError",
+                  stage: "template rendering",
+                  error: renderResult.error,
+                },
+                "Template rendering failed",
+              ),
+            };
+          }
+
+          // Parse the rendered JSON string back to object for MappedData
+          const parsedResult = JSON.parse(renderResult.data);
+          const mappedData = MappedData.create(parsedResult);
           return { ok: true as const, data: mappedData };
         } catch (error) {
           return {
@@ -301,10 +328,7 @@ export async function main() {
     if (verboseMode) {
       logger.debug("Prompt templates loaded successfully");
     }
-    // Set verbose mode for components
-    if (verboseMode) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    }
+    // Verbose mode environment variable already set earlier
 
     const useMock =
       Deno.env.get("FRONTMATTER_TO_SCHEMA_TEST_MODE") === "true" ||

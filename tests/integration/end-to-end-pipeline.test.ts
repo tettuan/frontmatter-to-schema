@@ -7,12 +7,10 @@ import {
   DocumentContent,
   DocumentPath,
   FrontMatterContent,
-  MappingRule,
   OutputPath,
   ProcessingOptions,
   SchemaDefinition,
   SchemaVersion,
-  TemplateFormat,
   TemplatePath,
 } from "../../src/domain/models/value-objects.ts";
 import {
@@ -24,9 +22,12 @@ import {
   MappedData,
   Schema,
   SchemaId,
-  Template,
   TemplateId,
 } from "../../src/domain/models/entities.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../src/domain/models/domain-models.ts";
 import type {
   DocumentRepository,
   FrontMatterExtractor,
@@ -35,6 +36,7 @@ import type {
   ResultRepository,
   SchemaAnalyzer,
   SchemaRepository,
+  SchemaValidationMode,
   TemplateMapper,
   TemplateRepository,
 } from "../../src/domain/services/interfaces.ts";
@@ -152,42 +154,36 @@ class MockTemplateRepository implements TemplateRepository {
   constructor(
     format: string,
     templateContent: string,
-    mappingRules: Record<string, string>,
+    _mappingRules: Record<string, string>,
   ) {
-    const formatResult = TemplateFormat.create(
-      format as "json" | "yaml" | "handlebars" | "custom",
-      templateContent,
-    );
-    if (isOk(formatResult)) {
-      const idResult = TemplateId.create("test-template");
-      if (isOk(idResult)) {
-        // Create MappingRule objects from the mapping rules
-        const rules: MappingRule[] = [];
-        for (const [target, source] of Object.entries(mappingRules)) {
-          const ruleResult = MappingRule.create(source, target);
-          if (isOk(ruleResult)) {
-            rules.push(ruleResult.data);
-          }
-        }
-
-        this.template = Template.create(
-          idResult.data,
-          formatResult.data,
-          rules,
+    const idResult = TemplateId.create("test-template");
+    if (isOk(idResult)) {
+      // Use new domain-models API
+      const templateDefResult = TemplateDefinition.create(
+        templateContent,
+        format as "json" | "yaml" | "custom",
+      );
+      if (isOk(templateDefResult)) {
+        const templateResult = Template.create(
+          idResult.data.getValue(),
+          templateDefResult.data,
           "Test template for integration tests",
         );
+        if (isOk(templateResult)) {
+          this.template = templateResult.data;
+        }
       }
     }
   }
 
-  async load(_path: TemplatePath) {
+  async load(templateId: string) {
     await Promise.resolve(); // Required for async interface
     if (!this.template) {
       return {
         ok: false as const,
         error: {
           kind: "ReadError" as const,
-          path: _path.getValue(),
+          path: templateId,
           reason: "Template not found",
           message: "Template not found",
         },
@@ -196,8 +192,27 @@ class MockTemplateRepository implements TemplateRepository {
     return { ok: true as const, data: this.template };
   }
 
+  loadFromPath(path: TemplatePath) {
+    return Promise.resolve(this.load(path.getValue()));
+  }
+
+  save(_template: Template) {
+    return Promise.resolve({ ok: true as const, data: undefined });
+  }
+
   validate(_template: Template) {
     return { ok: true as const, data: undefined };
+  }
+
+  exists(_templateId: string) {
+    return Promise.resolve(this.template !== null);
+  }
+
+  list() {
+    return Promise.resolve({
+      ok: true as const,
+      data: this.template ? ["test-template"] : [],
+    });
   }
 }
 
@@ -254,11 +269,32 @@ class MockSchemaAnalyzer implements SchemaAnalyzer {
 }
 
 class MockTemplateMapper implements TemplateMapper {
-  map(data: ExtractedData, template: Template) {
-    // Use template's built-in mapping
+  map(
+    data: ExtractedData,
+    template: Template,
+    _schemaMode: SchemaValidationMode,
+  ) {
+    // Use template's render method with the new domain-models API
     const sourceData = data.getData();
-    const mapped = template.applyRules(sourceData);
+    const renderResult = template.render(sourceData);
 
+    if (!renderResult.ok) {
+      return {
+        ok: false as const,
+        error: {
+          kind: "ProcessingStageError" as const,
+          stage: "template rendering",
+          error: renderResult.error,
+          message: `Template rendering failed: ${
+            (renderResult.error as { message?: string }).message ||
+            renderResult.error.kind || "Unknown error"
+          }`,
+        },
+      };
+    }
+
+    // Parse the rendered JSON string back to object
+    const mapped = JSON.parse(renderResult.data);
     return { ok: true as const, data: MappedData.create(mapped) };
   }
 }

@@ -16,9 +16,13 @@ import {
   Schema,
   SchemaId,
   SchemaVersion,
-  Template,
   TemplateId,
 } from "../../domain/models/entities.ts";
+import {
+  Template,
+  TemplateDefinition,
+  type TemplateFormat as TemplateFormatType,
+} from "../../domain/models/domain-models.ts";
 import {
   MappingRule,
   SchemaDefinition,
@@ -486,14 +490,39 @@ export class TemplateLoader implements TemplateRepository {
         }
       }
 
-      const template = Template.create(
-        idResult.data,
-        formatResult.data,
-        mappingRules,
+      // Create TemplateDefinition first
+      const templateDefResult = TemplateDefinition.create(
+        content,
+        format as TemplateFormatType,
+      );
+      if (!templateDefResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ParseError",
+            input: content.substring(0, 50),
+            details: "Invalid template definition",
+          }),
+        };
+      }
+
+      const templateResult = Template.create(
+        idResult.data.getValue(),
+        templateDefResult.data,
         (data.description as string) || "",
       );
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ParseError",
+            input: idResult.data.getValue(),
+            details: "Failed to create template",
+          }),
+        };
+      }
 
-      return { ok: true, data: template };
+      return { ok: true, data: templateResult.data };
     } catch (error) {
       return {
         ok: false,
@@ -519,16 +548,16 @@ export class TemplateLoader implements TemplateRepository {
   /**
    * Save a template - not implemented in this adapter
    */
-  async save(
+  save(
     _template: Template,
   ): Promise<Result<void, DomainError & { message: string }>> {
-    return {
+    return Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: "NotConfigured",
         component: "TemplateLoader.save",
       }, "Save operation not implemented in TemplateLoader"),
-    };
+    });
   }
 
   /**
@@ -540,7 +569,7 @@ export class TemplateLoader implements TemplateRepository {
       if (!pathResult.ok) {
         return false;
       }
-      
+
       const filePath = pathResult.data.getValue();
       await Deno.stat(filePath);
       return true;
@@ -552,14 +581,14 @@ export class TemplateLoader implements TemplateRepository {
   /**
    * List all available template IDs - not implemented in this adapter
    */
-  async list(): Promise<Result<string[], DomainError & { message: string }>> {
-    return {
+  list(): Promise<Result<string[], DomainError & { message: string }>> {
+    return Promise.resolve({
       ok: false,
       error: createDomainError({
         kind: "NotConfigured",
         component: "TemplateLoader.list",
       }, "List operation not implemented in TemplateLoader"),
-    };
+    });
   }
 
   private parseYAML(content: string): unknown {

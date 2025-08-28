@@ -6,11 +6,8 @@ import {
   isError,
   type Result,
 } from "../../domain/core/result.ts";
-import {
-  AnalysisResult,
-  type Schema,
-  type Template,
-} from "../../domain/models/entities.ts";
+import { AnalysisResult, type Schema } from "../../domain/models/entities.ts";
+import type { Template } from "../../domain/models/domain-models.ts";
 import type { DocumentPath } from "../../domain/models/value-objects.ts";
 import type {
   AnalysisConfiguration,

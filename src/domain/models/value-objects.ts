@@ -406,11 +406,16 @@ export class TemplatePath {
       if (!ext || !validExtensions.includes(ext)) {
         return {
           ok: false,
-          error: createDomainError({
-            kind: "FileExtensionMismatch",
-            path: normalized,
-            expected: validExtensions,
-          }, `Invalid template file extension. Expected: ${validExtensions.join(", ")}`),
+          error: createDomainError(
+            {
+              kind: "FileExtensionMismatch",
+              path: normalized,
+              expected: validExtensions,
+            },
+            `Invalid template file extension. Expected: ${
+              validExtensions.join(", ")
+            }`,
+          ),
         };
       }
     }

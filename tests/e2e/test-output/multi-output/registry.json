@@ -1,18 +1,16 @@
 {
   "results": [
     {
-      "tools": {
-        "commands[]": {
-          "description": "Test Description"
-        }
-      }
+      "title": "Test Title",
+      "description": "Test Description",
+      "_mock": true,
+      "_processedAt": "2025-08-28T04:36:49.795Z"
     },
     {
-      "tools": {
-        "commands[]": {
-          "description": "Test Description"
-        }
-      }
+      "title": "Test Title",
+      "description": "Test Description",
+      "_mock": true,
+      "_processedAt": "2025-08-28T04:36:49.795Z"
     }
   ]
 }

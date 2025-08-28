@@ -23,8 +23,8 @@ import type {
   FrontMatter,
   MappedData,
   Schema,
-  Template,
 } from "../models/entities.ts";
+import type { Template } from "../models/domain-models.ts";
 import type {
   ConfigPath,
   DocumentPath,

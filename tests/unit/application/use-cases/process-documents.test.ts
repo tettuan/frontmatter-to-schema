@@ -22,19 +22,20 @@ import {
   MappedData,
   Schema,
   SchemaId,
-  Template,
   TemplateId,
 } from "../../../../src/domain/models/entities.ts";
+import {
+  Template,
+  TemplateDefinition,
+} from "../../../../src/domain/models/domain-models.ts";
 import {
   ConfigPath,
   DocumentContent,
   DocumentPath,
   FrontMatterContent,
-  type MappingRule,
   OutputPath,
   SchemaDefinition,
   SchemaVersion,
-  TemplateFormat,
   TemplatePath,
 } from "../../../../src/domain/models/value-objects.ts";
 import type {
@@ -187,14 +188,14 @@ class MockTemplateRepository implements TemplateRepository {
   }
 
   load(
-    path: TemplatePath,
+    templateId: string,
   ): Promise<Result<Template, DomainError & { message: string }>> {
     if (this.shouldFail) {
       return Promise.resolve({
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
-          path: path.getValue(),
+          path: templateId,
         }),
       });
     }
@@ -203,7 +204,7 @@ class MockTemplateRepository implements TemplateRepository {
         ok: false,
         error: createDomainError({
           kind: "FileNotFound",
-          path: path.getValue(),
+          path: templateId,
         }),
       });
     }
@@ -214,6 +215,30 @@ class MockTemplateRepository implements TemplateRepository {
     _template: Template,
   ): Result<void, DomainError & { message: string }> {
     return { ok: true, data: undefined };
+  }
+
+  loadFromPath(
+    path: TemplatePath,
+  ): Promise<Result<Template, DomainError & { message: string }>> {
+    // For mock, just call load with path string
+    return Promise.resolve(this.load(path.getValue()));
+  }
+
+  save(
+    _template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>> {
+    return Promise.resolve({ ok: true, data: undefined });
+  }
+
+  exists(_templateId: string): Promise<boolean> {
+    return Promise.resolve(this.mockTemplate !== undefined);
+  }
+
+  list(): Promise<Result<string[], DomainError & { message: string }>> {
+    return Promise.resolve({
+      ok: true,
+      data: this.mockTemplate ? ["test-template"] : [],
+    });
   }
 }
 
@@ -358,7 +383,7 @@ class MockTemplateMapper implements TemplateMapper {
         ok: false,
         error: createDomainError({
           kind: "TemplateMappingFailed",
-          template: template.getFormat(),
+          template: template.getDefinition().getFormat(),
           source: data.getData(),
         }),
       };
@@ -454,12 +479,22 @@ function createMockTemplate(): Template {
   if (!templateIdResult.ok) throw new Error("Failed to create template ID");
   const templateId = templateIdResult.data;
 
-  const formatResult = TemplateFormat.create("handlebars", "{{ name }}");
-  if (!formatResult.ok) throw new Error("Failed to create template format");
-  const format = formatResult.data;
+  // Create TemplateDefinition using the new domain-models API
+  const templateDefResult = TemplateDefinition.create("{{ name }}", "json");
+  if (!templateDefResult.ok) {
+    throw new Error("Failed to create template definition");
+  }
+  const templateDef = templateDefResult.data;
 
-  const rules: MappingRule[] = [];
-  return Template.create(templateId, format, rules, "Test template");
+  // Use the new 3-parameter Template.create signature
+  const templateResult = Template.create(
+    templateId.getValue(),
+    templateDef,
+    "Test template",
+  );
+  if (!templateResult.ok) throw new Error("Failed to create template");
+
+  return templateResult.data;
 }
 
 function createMockConfig(

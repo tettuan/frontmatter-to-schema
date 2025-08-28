@@ -9,8 +9,8 @@ import {
   Template,
   TemplateDefinition,
 } from "../../domain/models/domain-models.ts";
-import type { TemplateRepository } from "../../domain/template/repository.ts";
-import { TemplatePath } from "../../domain/template/repository.ts";
+import type { TemplateRepository } from "../../domain/services/interfaces.ts";
+import { TemplatePath } from "../../domain/models/value-objects.ts";
 import { TemplateFormat } from "../../domain/template/format-handlers.ts";
 import {
   ComponentDomain,
@@ -298,5 +298,58 @@ export class FileTemplateRepository implements TemplateRepository {
    */
   static isSupportedExtension(extension: string): boolean {
     return this.getSupportedExtensions().includes(extension.toLowerCase());
+  }
+
+  /**
+   * Validate a template structure and format
+   */
+  validate(
+    template: Template,
+  ): Result<void, DomainError & { message: string }> {
+    try {
+      // Basic template validation
+      const definition = template.getDefinition();
+      const format = definition.getFormat();
+
+      // Validate the template definition content
+      const templateContent = definition.getDefinition();
+      if (!templateContent || templateContent.trim().length === 0) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "EmptyInput",
+          }, "Template definition cannot be empty"),
+        };
+      }
+
+      // Format-specific validation
+      if (format === "json") {
+        try {
+          JSON.parse(templateContent);
+        } catch {
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "ParseError",
+              input: templateContent,
+            }, "Invalid JSON template format"),
+          };
+        }
+      }
+
+      return { ok: true, data: undefined };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: template.getId(),
+            expectedFormat: "valid template",
+          },
+          error instanceof Error ? error.message : "Template validation failed",
+        ),
+      };
+    }
   }
 }

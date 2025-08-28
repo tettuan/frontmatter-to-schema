@@ -1,9 +1,6 @@
 import type { Result } from "../core/result.ts";
-import {
-  type ExtractedData,
-  MappedData,
-  type Template,
-} from "../models/entities.ts";
+import { type ExtractedData, MappedData } from "../models/entities.ts";
+import type { Template } from "../models/domain-models.ts";
 import type { DomainError } from "../core/result.ts";
 import { StrictStructureMatcher } from "../models/strict-structure-matcher.ts";
 import type { SchemaValidationMode } from "./interfaces.ts";
@@ -101,12 +98,13 @@ export class TemplateMapper {
     template: Template,
     schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }> {
-    const format = template.getFormat();
-    const templateDefinition = format.getTemplate();
+    const templateDef = template.getDefinition();
+    const format = templateDef.getFormat();
+    const templateDefinition = templateDef.getDefinition();
     const dataObject = data.getData();
 
     // For handlebars format, skip JSON parsing and handle directly
-    if (format.getFormat() === "handlebars") {
+    if (format === "handlebars") {
       return this.mapWithHandlebars(dataObject, templateDefinition);
     }
 
@@ -153,13 +151,11 @@ export class TemplateMapper {
       }
     }
 
-    switch (format.getFormat()) {
+    switch (format) {
       case "json":
         return this.mapToJsonStrict(dataObject, templateStructure);
       case "yaml":
         return this.mapToYamlStrict(dataObject, templateStructure);
-      case "handlebars":
-        return this.mapWithHandlebars(dataObject, templateDefinition);
       case "custom":
         return this.mapWithCustomStrict(dataObject, templateStructure);
       default:
@@ -168,7 +164,7 @@ export class TemplateMapper {
           error: createTemplateMappingError(
             template,
             data.getData(),
-            `Unsupported template format: ${format.getFormat()}`,
+            `Unsupported template format: ${format}`,
           ),
         };
     }
