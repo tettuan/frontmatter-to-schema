@@ -105,7 +105,7 @@ export class FileTemplateRepository implements TemplateRepository {
 
       // Validate template format using format handler from unified factory
       const factory = FactoryConfigurationBuilder.createDefault();
-      const _templateComponents = factory.createDomainComponents(
+      const templateComponents = factory.createDomainComponents(
         ComponentDomain.Template,
       ) as {
         formatHandlers: Map<
@@ -113,8 +113,30 @@ export class FileTemplateRepository implements TemplateRepository {
           import("../../domain/template/format-handlers.ts").TemplateFormatHandler
         >;
       };
-      // Note: Validation temporarily disabled for simplified implementation
-      // TODO: Add format validation back when needed
+
+      // Re-enabled format validation for proper template processing
+      const formatName = formatResult.data.getFormat();
+      const formatHandler = templateComponents.formatHandlers.get(formatName);
+
+      if (formatHandler) {
+        const validationResult = formatHandler.parse(content);
+        if (!validationResult.ok) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: content.substring(0, 100) + "...", // Truncate for readability
+                expectedFormat: formatName,
+              },
+              `Template format validation failed: ${validationResult.error.message}`,
+            ),
+          };
+        }
+      } else {
+        // If no handler is available, log a warning but continue (for custom formats)
+        console.warn(`No format handler available for format: ${formatName}`);
+      }
 
       return { ok: true, data: template };
     } catch (error) {

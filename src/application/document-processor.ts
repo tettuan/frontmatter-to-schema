@@ -274,6 +274,8 @@ export class DocumentProcessor {
 
     // For now, bypass template mapping and directly serialize output data
     // TODO: Integrate new strict structure matching template system
+    // Note: Template integration was attempted but requires resolving type compatibility issues
+    // between transformation.ts and entities.ts ExtractedData/Template types
     const outputString = config.format === "json"
       ? JSON.stringify(outputData, null, 2)
       : config.format === "yaml"
