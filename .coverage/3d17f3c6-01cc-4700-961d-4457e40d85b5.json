@@ -1,0 +1,118 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/analyzers/typescript-analyzer.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 8074, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 609, "endOffset": 645, "count": 34 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TypeScriptAnalyzer",
+      "ranges": [{ "startOffset": 649, "endOffset": 852, "count": 34 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 926, "endOffset": 4350, "count": 46 },
+        { "startOffset": 1282, "endOffset": 1713, "count": 1 },
+        { "startOffset": 1713, "endOffset": 1937, "count": 43 },
+        { "startOffset": 1937, "endOffset": 1969, "count": 29 },
+        { "startOffset": 1970, "endOffset": 2047, "count": 15 },
+        { "startOffset": 2019, "endOffset": 2047, "count": 1 },
+        { "startOffset": 2048, "endOffset": 2117, "count": 14 },
+        { "startOffset": 2093, "endOffset": 2117, "count": 1 },
+        { "startOffset": 2118, "endOffset": 2130, "count": 13 },
+        { "startOffset": 2271, "endOffset": 2998, "count": 42 },
+        { "startOffset": 2443, "endOffset": 2785, "count": 41 },
+        { "startOffset": 2667, "endOffset": 2775, "count": 0 },
+        { "startOffset": 2785, "endOffset": 2990, "count": 1 },
+        { "startOffset": 2998, "endOffset": 3219, "count": 1 },
+        { "startOffset": 3219, "endOffset": 3348, "count": 43 },
+        { "startOffset": 3348, "endOffset": 3673, "count": 0 },
+        { "startOffset": 3673, "endOffset": 3970, "count": 43 },
+        { "startOffset": 3970, "endOffset": 4346, "count": 2 },
+        { "startOffset": 4196, "endOffset": 4211, "count": 1 },
+        { "startOffset": 4212, "endOffset": 4229, "count": 1 },
+        { "startOffset": 4295, "endOffset": 4310, "count": 1 },
+        { "startOffset": 4311, "endOffset": 4328, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "transformToRegistry",
+      "ranges": [
+        { "startOffset": 4417, "endOffset": 5141, "count": 43 },
+        { "startOffset": 4904, "endOffset": 4928, "count": 20 },
+        { "startOffset": 4929, "endOffset": 4933, "count": 23 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractVersion",
+      "ranges": [
+        { "startOffset": 5187, "endOffset": 5516, "count": 43 },
+        { "startOffset": 5271, "endOffset": 5417, "count": 4 },
+        { "startOffset": 5367, "endOffset": 5411, "count": 3 },
+        { "startOffset": 5417, "endOffset": 5515, "count": 40 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractDescription",
+      "ranges": [
+        { "startOffset": 5571, "endOffset": 5784, "count": 86 },
+        { "startOffset": 5691, "endOffset": 5704, "count": 76 },
+        { "startOffset": 5705, "endOffset": 5720, "count": 6 },
+        { "startOffset": 5721, "endOffset": 5747, "count": 4 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractToolName",
+      "ranges": [
+        { "startOffset": 5839, "endOffset": 7009, "count": 43 },
+        { "startOffset": 6083, "endOffset": 6413, "count": 83 },
+        { "startOffset": 6374, "endOffset": 6407, "count": 20 },
+        { "startOffset": 6413, "endOffset": 6500, "count": 23 },
+        { "startOffset": 6500, "endOffset": 6988, "count": 1 },
+        { "startOffset": 6574, "endOffset": 6579, "count": 0 },
+        { "startOffset": 6931, "endOffset": 6974, "count": 0 },
+        { "startOffset": 6988, "endOffset": 7008, "count": 23 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createCommands",
+      "ranges": [
+        { "startOffset": 7078, "endOffset": 7864, "count": 43 },
+        { "startOffset": 7367, "endOffset": 7415, "count": 12 },
+        { "startOffset": 7415, "endOffset": 7839, "count": 31 },
+        { "startOffset": 7598, "endOffset": 7833, "count": 6 },
+        { "startOffset": 7663, "endOffset": 7675, "count": 0 },
+        { "startOffset": 7686, "endOffset": 7698, "count": 0 },
+        { "startOffset": 7709, "endOffset": 7721, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 7540, "endOffset": 7566, "count": 75 },
+        { "startOffset": 7547, "endOffset": 7566, "count": 65 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTypeScriptAnalyzer",
+      "ranges": [{ "startOffset": 7931, "endOffset": 8073, "count": 2 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

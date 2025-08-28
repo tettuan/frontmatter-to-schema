@@ -1,0 +1,148 @@
+{
+  "scriptId": "335",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/output-formatter.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6821, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 313, "endOffset": 343, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "FormattedOutput",
+      "ranges": [{ "startOffset": 347, "endOffset": 477, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 487, "endOffset": 1102, "count": 2 },
+        { "startOffset": 550, "endOffset": 782, "count": 0 },
+        { "startOffset": 814, "endOffset": 1001, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getContent",
+      "ranges": [{ "startOffset": 1105, "endOffset": 1148, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 1151, "endOffset": 1192, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTimestamp",
+      "ranges": [{ "startOffset": 1195, "endOffset": 1242, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "OutputFormatter",
+      "ranges": [{ "startOffset": 1370, "endOffset": 1385, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1457, "endOffset": 1541, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "format",
+      "ranges": [
+        { "startOffset": 1614, "endOffset": 2700, "count": 2 },
+        { "startOffset": 1751, "endOffset": 1840, "count": 1 },
+        { "startOffset": 1849, "endOffset": 1942, "count": 1 },
+        { "startOffset": 1951, "endOffset": 2038, "count": 0 },
+        { "startOffset": 2047, "endOffset": 2137, "count": 0 },
+        { "startOffset": 2146, "endOffset": 2382, "count": 0 },
+        { "startOffset": 2451, "endOffset": 2696, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "formatToJson",
+      "ranges": [{ "startOffset": 2749, "endOffset": 2828, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "formatToYaml",
+      "ranges": [{ "startOffset": 2877, "endOffset": 2964, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "formatToXml",
+      "ranges": [{ "startOffset": 3035, "endOffset": 3188, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "formatToCsv",
+      "ranges": [{ "startOffset": 3258, "endOffset": 3595, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "objectToYaml",
+      "ranges": [
+        { "startOffset": 3659, "endOffset": 4888, "count": 14 },
+        { "startOffset": 3792, "endOffset": 3820, "count": 0 },
+        { "startOffset": 3854, "endOffset": 4050, "count": 8 },
+        { "startOffset": 3969, "endOffset": 4026, "count": 0 },
+        { "startOffset": 4050, "endOffset": 4110, "count": 6 },
+        { "startOffset": 4112, "endOffset": 4145, "count": 0 },
+        { "startOffset": 4145, "endOffset": 4174, "count": 6 },
+        { "startOffset": 4174, "endOffset": 4345, "count": 2 },
+        { "startOffset": 4204, "endOffset": 4234, "count": 0 },
+        { "startOffset": 4345, "endOffset": 4393, "count": 4 },
+        { "startOffset": 4395, "endOffset": 4860, "count": 4 },
+        { "startOffset": 4472, "endOffset": 4502, "count": 0 },
+        { "startOffset": 4860, "endOffset": 4887, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 4256, "endOffset": 4326, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 4528, "endOffset": 4841, "count": 9 },
+        { "startOffset": 4584, "endOffset": 4601, "count": 3 },
+        { "startOffset": 4602, "endOffset": 4626, "count": 3 },
+        { "startOffset": 4628, "endOffset": 4728, "count": 1 },
+        { "startOffset": 4728, "endOffset": 4833, "count": 8 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "objectToXml",
+      "ranges": [{ "startOffset": 4944, "endOffset": 5823, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "prettifyXml",
+      "ranges": [{ "startOffset": 5894, "endOffset": 6057, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "flattenObject",
+      "ranges": [{ "startOffset": 6121, "endOffset": 6619, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isFormattedOutput",
+      "ranges": [{ "startOffset": 6652, "endOffset": 6732, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isOutputFormatter",
+      "ranges": [{ "startOffset": 6740, "endOffset": 6820, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}
