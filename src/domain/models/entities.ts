@@ -527,6 +527,10 @@ export class AggregatedResult {
     return this.timestamp;
   }
 
+  /**
+   * Legacy method for backward compatibility - simple array wrapping
+   * @deprecated Use StructuredAggregator + OutputFormatter for proper template array processing
+   */
   toOutput(): string {
     const data = this.results.map((r) => r.getMappedData().getData());
 
@@ -536,6 +540,14 @@ export class AggregatedResult {
       // Simplified YAML - would use proper YAML library
       return `results:\n${data.map((d) => this.objectToYAML(d, 1)).join("\n")}`;
     }
+  }
+
+  /**
+   * Get raw data for processing by StructuredAggregator
+   * This method provides access to the underlying data for domain services
+   */
+  getRawData(): unknown[] {
+    return this.results.map((r) => r.getMappedData().getData());
   }
 
   private objectToYAML(obj: unknown, indent: number): string {
