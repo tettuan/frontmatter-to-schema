@@ -19,7 +19,8 @@ export class SchemaValidator {
    * Type guard for string array
    */
   private isStringArray(value: unknown): value is string[] {
-    return Array.isArray(value) && value.every(item => typeof item === "string");
+    return Array.isArray(value) &&
+      value.every((item) => typeof item === "string");
   }
   validate(
     data: unknown,
@@ -79,15 +80,15 @@ export class SchemaValidator {
 
     // We already validated data is an object above
     const dataObj = data as Record<string, unknown>;
-    
+
     // Safely extract properties with type validation
-    const properties = this.isRecordObject(schema["properties"]) 
-      ? schema["properties"] 
+    const properties = this.isRecordObject(schema["properties"])
+      ? schema["properties"]
       : undefined;
-    
+
     // Safely extract required fields with type validation
-    const required = this.isStringArray(schema["required"]) 
-      ? schema["required"] 
+    const required = this.isStringArray(schema["required"])
+      ? schema["required"]
       : undefined;
 
     // Check required fields

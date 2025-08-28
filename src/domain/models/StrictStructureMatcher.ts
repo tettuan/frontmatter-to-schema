@@ -27,7 +27,9 @@ export class StrictStructureMatcher {
   /**
    * Type guard for Record<string, unknown>
    */
-  private static isRecordObject(value: unknown): value is Record<string, unknown> {
+  private static isRecordObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
   /**
@@ -185,11 +187,15 @@ export class StrictStructureMatcher {
 
     // Handle schema type with safe extraction
     const schemaTypeValue = schema.type;
-    const schemaType = typeof schemaTypeValue === "string" ? schemaTypeValue : "unknown";
+    const schemaType = typeof schemaTypeValue === "string"
+      ? schemaTypeValue
+      : "unknown";
 
     if (schemaType === "object") {
       const propertiesValue = schema.properties;
-      const properties = this.isRecordObject(propertiesValue) ? propertiesValue : undefined;
+      const properties = this.isRecordObject(propertiesValue)
+        ? propertiesValue
+        : undefined;
 
       if (!properties || typeof properties !== "object") {
         return {

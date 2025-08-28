@@ -118,7 +118,8 @@ export function validateJsonParseResult(
   ) {
     return {
       ok: false,
-      error: createDomainError({kind: "InvalidFormat", input: "", expectedFormat: ""},
+      error: createDomainError(
+        { kind: "InvalidFormat", input: "", expectedFormat: "" },
         `Expected JSON object but got primitive ${typeof value}${
           context ? ` in ${context}` : ""
         }`,
@@ -162,7 +163,8 @@ export function safeObjectTraversal(
     if (!isObject(current)) {
       return {
         ok: false,
-        error: createDomainError({kind: "InvalidFormat", input: "", expectedFormat: ""},
+        error: createDomainError(
+          { kind: "InvalidFormat", input: "", expectedFormat: "" },
           `Expected object at path '${
             path.slice(0, i).join(".")
           }' but got ${typeof current} in ${currentContext}`,
@@ -173,7 +175,8 @@ export function safeObjectTraversal(
     if (!(part in current)) {
       return {
         ok: false,
-        error: createDomainError({kind: "InvalidFormat", input: "", expectedFormat: ""},
+        error: createDomainError(
+          { kind: "InvalidFormat", input: "", expectedFormat: "" },
           `Property '${part}' not found at path '${
             path.slice(0, i).join(".")
           }' in ${currentContext}`,
@@ -197,7 +200,8 @@ export function validateObjectArray(
   if (!Array.isArray(value)) {
     return {
       ok: false,
-      error: createDomainError({kind: "InvalidFormat", input: "", expectedFormat: ""},
+      error: createDomainError(
+        { kind: "InvalidFormat", input: "", expectedFormat: "" },
         `Expected array but got ${typeof value}${
           context ? ` in ${context}` : ""
         }`,

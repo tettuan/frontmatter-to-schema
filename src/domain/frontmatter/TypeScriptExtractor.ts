@@ -67,10 +67,12 @@ export class TypeScriptFrontMatterExtractor {
   /**
    * Type guard to validate frontmatter attributes
    */
-  private isValidFrontMatterAttrs(attrs: unknown): attrs is Record<string, unknown> {
-    return typeof attrs === "object" && 
-           attrs !== null && 
-           !Array.isArray(attrs);
+  private isValidFrontMatterAttrs(
+    attrs: unknown,
+  ): attrs is Record<string, unknown> {
+    return typeof attrs === "object" &&
+      attrs !== null &&
+      !Array.isArray(attrs);
   }
 
   /**

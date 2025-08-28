@@ -40,7 +40,8 @@ export class TypeScriptSchemaMatcher {
    * Type guard for string array
    */
   private isStringArray(value: unknown): value is string[] {
-    return Array.isArray(value) && value.every(item => typeof item === "string");
+    return Array.isArray(value) &&
+      value.every((item) => typeof item === "string");
   }
   /**
    * Phase 2-1: Schema expansion - recursively traverse JSON Schema
@@ -64,7 +65,7 @@ export class TypeScriptSchemaMatcher {
       // Validated above that schema is an object
       const schemaObj = schema as Record<string, unknown>;
       const properties: SchemaProperty[] = [];
-      
+
       // Safely extract required array with validation
       const requiredValue = schemaObj.required;
       const required = this.isStringArray(requiredValue) ? requiredValue : [];
@@ -155,10 +156,12 @@ export class TypeScriptSchemaMatcher {
         return; // Skip invalid properties
       }
       const props = obj.properties;
-      
+
       // Safely extract required array with validation
       const objRequiredValue = obj.required;
-      const objRequired = this.isStringArray(objRequiredValue) ? objRequiredValue : required;
+      const objRequired = this.isStringArray(objRequiredValue)
+        ? objRequiredValue
+        : required;
 
       for (const [key, value] of Object.entries(props)) {
         const newPath = currentPath ? `${currentPath}.${key}` : key;
@@ -200,8 +203,12 @@ export class TypeScriptSchemaMatcher {
             // Simple property
             properties.push({
               path: newPath,
-              type: typeof valueObj.type === "string" ? valueObj.type : "unknown",
-              description: typeof valueObj.description === "string" ? valueObj.description : undefined,
+              type: typeof valueObj.type === "string"
+                ? valueObj.type
+                : "unknown",
+              description: typeof valueObj.description === "string"
+                ? valueObj.description
+                : undefined,
               required: isRequired,
             });
           }
@@ -408,7 +415,7 @@ export class TypeScriptSchemaMatcher {
       if (!(key in current)) {
         current[key] = {};
       }
-      
+
       // Validate the next level is a proper object before proceeding
       const nextLevel = current[key];
       if (!this.isRecordObject(nextLevel)) {
