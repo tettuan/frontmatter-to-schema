@@ -4,7 +4,7 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
-import { createDomainError } from "../core/result.ts";
+import { createProcessingStageError } from "../core/result.ts";
 import {
   ExtractedData,
   type FrontMatter,
@@ -79,16 +79,13 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       if (!contextResult.ok) {
         return {
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "analysis context",
             {
-              kind: "ProcessingStageError",
-              stage: "analysis context",
-              error: {
-                kind: "InvalidResponse",
-                service: "analysis",
-                response: contextResult.error.message,
-              } as DomainError,
-            },
+              kind: "InvalidResponse",
+              service: "analysis",
+              response: contextResult.error.message,
+            } as DomainError,
             `Analysis context creation failed: ${contextResult.error.message}`,
           ),
         };
@@ -107,18 +104,13 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError(
+        error: createProcessingStageError(
+          "TypeScript analysis",
           {
-            kind: "ProcessingStageError",
-            stage: "TypeScript analysis",
-            error: {
-              kind: "InvalidResponse",
-              service: "analyzer",
-              response: error instanceof Error
-                ? error.message
-                : "Unknown error",
-            } as DomainError,
-          },
+            kind: "InvalidResponse",
+            service: "analyzer",
+            response: error instanceof Error ? error.message : "Unknown error",
+          } as DomainError,
           `TypeScript analysis failed: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,

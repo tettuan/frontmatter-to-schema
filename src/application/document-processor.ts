@@ -1,4 +1,9 @@
-import { type DomainError, isOk, type Result } from "../domain/core/result.ts";
+import {
+  createProcessingStageError,
+  type DomainError,
+  isOk,
+  type Result,
+} from "../domain/core/result.ts";
 import { Document } from "../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -109,11 +114,10 @@ export class DocumentProcessor {
       // Convert ValidationError to DomainError
       return {
         ok: false,
-        error: {
-          kind: "ProcessingStageError",
-          stage: "schema definition",
-          error: definitionResult.error,
-        },
+        error: createProcessingStageError(
+          "schema definition",
+          definitionResult.error,
+        ),
       };
     }
 
@@ -125,11 +129,10 @@ export class DocumentProcessor {
       // Convert ValidationError to DomainError
       return {
         ok: false,
-        error: {
-          kind: "ProcessingStageError",
-          stage: "schema creation",
-          error: schemaResult.error,
-        },
+        error: createProcessingStageError(
+          "schema creation",
+          schemaResult.error,
+        ),
       };
     }
     return schemaResult;
