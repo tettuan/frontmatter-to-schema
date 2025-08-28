@@ -8,7 +8,10 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
-import { createDomainError } from "../core/result.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+} from "../core/result.ts";
 import type { Template } from "../models/domain-models.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
@@ -20,7 +23,7 @@ import {
   type PlaceholderProcessingContext,
   PlaceholderProcessor,
 } from "./placeholder-processor.ts";
-import { LoggerFactory } from "../shared/logger.ts";
+import { StructuredLogger } from "../shared/logger.ts";
 
 /**
  * Strategy interface for template processing
@@ -225,16 +228,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       if (!placeholderResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "placeholder processing",
             {
-              kind: "ProcessingStageError",
-              stage: "placeholder processing",
-              error: {
-                kind: "InvalidResponse",
-                service: "placeholder processor",
-                response: placeholderResult.error.message,
-              } as DomainError,
-            },
+              kind: "InvalidResponse",
+              service: "placeholder processor",
+              response: placeholderResult.error.message,
+            } as DomainError,
             `Placeholder processing failed: ${placeholderResult.error.message}`,
           ),
         });
@@ -250,7 +250,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
           break;
         case "PartialSuccess": {
           // Log warning for missing placeholders but continue
-          const logger = LoggerFactory.createLogger("native-strategy");
+          const logger = StructuredLogger.getStageLogger("native-strategy");
           logger.warn(
             "Template processing completed with missing placeholders",
             {
@@ -263,16 +263,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
         case "Failure":
           return Promise.resolve({
             ok: false,
-            error: createDomainError(
+            error: createProcessingStageError(
+              "placeholder processing",
               {
-                kind: "ProcessingStageError",
-                stage: "placeholder processing",
-                error: {
-                  kind: "InvalidResponse",
-                  service: "placeholder processor",
-                  response: processResult.error.message,
-                } as DomainError,
-              },
+                kind: "InvalidResponse",
+                service: "placeholder processor",
+                response: processResult.error.message,
+              } as DomainError,
               `Placeholder processing failed: ${processResult.error.message}`,
             ),
           });
@@ -283,16 +280,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       if (!serializeResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "template serialization",
             {
-              kind: "ProcessingStageError",
-              stage: "template serialization",
-              error: {
-                kind: "InvalidResponse",
-                service: "template serializer",
-                response: serializeResult.error.message,
-              } as DomainError,
-            },
+              kind: "InvalidResponse",
+              service: "template serializer",
+              response: serializeResult.error.message,
+            } as DomainError,
             `Failed to serialize processed template: ${serializeResult.error.message}`,
           ),
         });
@@ -305,16 +299,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createDomainError(
+        error: createProcessingStageError(
+          "native template processing",
           {
-            kind: "ProcessingStageError",
-            stage: "native template processing",
-            error: {
-              kind: "InvalidResponse",
-              service: "native",
-              response: error instanceof Error ? error.message : String(error),
-            } as DomainError,
-          },
+            kind: "InvalidResponse",
+            service: "native",
+            response: error instanceof Error ? error.message : String(error),
+          } as DomainError,
           `Native template processing failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -364,7 +355,7 @@ export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
       }
 
       // Log primary failure (in production, use proper logger)
-      const logger = LoggerFactory.createLogger("fallback-strategy");
+      const logger = StructuredLogger.getStageLogger("fallback-strategy");
       logger.warn("Primary strategy failed, using fallback", {
         primaryStrategy: this.primary.getName(),
         error: result.error,
@@ -378,16 +369,13 @@ export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
 
     return {
       ok: false,
-      error: createDomainError(
+      error: createProcessingStageError(
+        "composite strategy",
         {
-          kind: "ProcessingStageError",
-          stage: "composite strategy",
-          error: {
-            kind: "ResourceExhausted",
-            resource: "template strategies",
-            limit: 2,
-          } as DomainError,
-        },
+          kind: "ResourceExhausted",
+          resource: "template strategies",
+          limit: 2,
+        } as DomainError,
         "No suitable strategy found for template processing",
       ),
     };

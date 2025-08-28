@@ -15,7 +15,7 @@ import {
   type Template,
 } from "../../domain/models/entities.ts";
 import { ProcessingOptions } from "../../domain/models/value-objects.ts";
-import { LoggerFactory } from "../../domain/shared/logger.ts";
+import { StructuredLogger } from "../../domain/shared/logger.ts";
 import type {
   DocumentRepository,
   FrontMatterExtractor,
@@ -60,7 +60,7 @@ export class ProcessDocumentsUseCase {
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
 
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Starting document processing pipeline", {
@@ -72,7 +72,7 @@ export class ProcessDocumentsUseCase {
 
     // Load schema
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Loading schema", {
@@ -81,7 +81,7 @@ export class ProcessDocumentsUseCase {
     }
     const schemaResult = await this.schemaRepo.load(config.schemaPath);
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Schema loaded", {
@@ -91,7 +91,7 @@ export class ProcessDocumentsUseCase {
     }
     if (isError(schemaResult)) {
       if (verboseMode) {
-        const errorLogger = LoggerFactory.createLogger(
+        const errorLogger = StructuredLogger.getServiceLogger(
           "process-documents-error",
         );
         errorLogger.error("Schema load error", {
@@ -125,7 +125,7 @@ export class ProcessDocumentsUseCase {
 
     // Load template
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Loading template", {
@@ -134,7 +134,7 @@ export class ProcessDocumentsUseCase {
     }
     const templateResult = await this.templateRepo.load(config.templatePath);
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Template loaded", {
@@ -144,7 +144,7 @@ export class ProcessDocumentsUseCase {
     }
     if (isError(templateResult)) {
       if (verboseMode) {
-        const errorLogger = LoggerFactory.createLogger(
+        const errorLogger = StructuredLogger.getServiceLogger(
           "process-documents-error",
         );
         errorLogger.error("Template load error", {
@@ -179,7 +179,7 @@ export class ProcessDocumentsUseCase {
 
     // Find all documents
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Scanning for markdown files", {
@@ -190,7 +190,7 @@ export class ProcessDocumentsUseCase {
       config.documentsPath,
     );
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Document search result", {
@@ -200,7 +200,7 @@ export class ProcessDocumentsUseCase {
     }
     if (documentsResult.ok) {
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.info("Found markdown files", {
@@ -211,7 +211,7 @@ export class ProcessDocumentsUseCase {
     }
     if (isError(documentsResult)) {
       if (verboseMode) {
-        const errorLogger = LoggerFactory.createLogger(
+        const errorLogger = StructuredLogger.getServiceLogger(
           "process-documents-error",
         );
         errorLogger.error("Document search error", {
@@ -247,7 +247,7 @@ export class ProcessDocumentsUseCase {
     // Check if any documents were found
     if (documents.length === 0) {
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.warn(
@@ -283,7 +283,7 @@ export class ProcessDocumentsUseCase {
     const errors: Array<{ document: string; error: string }> = [];
 
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Starting document processing", {
@@ -293,7 +293,9 @@ export class ProcessDocumentsUseCase {
     }
 
     // Display processing list
-    const processLogger = LoggerFactory.createLogger("process-documents-main");
+    const processLogger = StructuredLogger.getServiceLogger(
+      "process-documents-main",
+    );
     const documentPaths = documents.map((doc) => doc.getPath().getValue());
     processLogger.info("Processing document list", {
       documentCount: documents.length,
@@ -303,7 +305,7 @@ export class ProcessDocumentsUseCase {
     if (options.isParallel()) {
       // Parallel processing
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.info("Creating parallel processing promises", {
@@ -313,13 +315,13 @@ export class ProcessDocumentsUseCase {
 
       const promises = documents.map((doc) => {
         const docPath = doc.getPath().getValue();
-        const startLogger = LoggerFactory.createLogger(
+        const startLogger = StructuredLogger.getServiceLogger(
           "process-documents-main",
         );
         startLogger.info("Starting document processing", { docPath });
 
         if (verboseMode) {
-          const verboseLogger = LoggerFactory.createLogger(
+          const verboseLogger = StructuredLogger.getServiceLogger(
             "process-documents-verbose",
           );
           verboseLogger.info("Creating promise for document", {
@@ -328,7 +330,7 @@ export class ProcessDocumentsUseCase {
         }
         return this.processDocument(doc, schema, template)
           .then((result) => {
-            const resultLogger = LoggerFactory.createLogger(
+            const resultLogger = StructuredLogger.getServiceLogger(
               "process-documents-result",
             );
             if (isOk(result)) {
@@ -346,7 +348,7 @@ export class ProcessDocumentsUseCase {
       });
 
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.info("Waiting for all promises to complete", {
@@ -357,7 +359,7 @@ export class ProcessDocumentsUseCase {
       const outcomes = await Promise.all(promises);
 
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.info("All promises completed, processing outcomes");
@@ -381,14 +383,14 @@ export class ProcessDocumentsUseCase {
       // Sequential processing
       for (const doc of documents) {
         const docPath = doc.getPath().getValue();
-        const startLogger = LoggerFactory.createLogger(
+        const startLogger = StructuredLogger.getServiceLogger(
           "process-documents-sequential",
         );
         startLogger.info("Starting document processing", { document: docPath });
 
         const result = await this.processDocument(doc, schema, template);
 
-        const resultLogger = LoggerFactory.createLogger(
+        const resultLogger = StructuredLogger.getServiceLogger(
           "process-documents-sequential",
         );
         if (isOk(result)) {
@@ -407,7 +409,7 @@ export class ProcessDocumentsUseCase {
           });
 
           if (!options.shouldContinueOnError()) {
-            const stopLogger = LoggerFactory.createLogger(
+            const stopLogger = StructuredLogger.getServiceLogger(
               "process-documents-control",
             );
             stopLogger.warn("Stopping due to error", {
@@ -421,12 +423,12 @@ export class ProcessDocumentsUseCase {
 
     // Check if any results were processed
     if (results.length === 0) {
-      const summaryLogger = LoggerFactory.createLogger(
+      const summaryLogger = StructuredLogger.getServiceLogger(
         "process-documents-summary",
       );
       summaryLogger.warn("No documents were successfully processed");
       if (errors.length > 0) {
-        const errorSummaryLogger = LoggerFactory.createLogger(
+        const errorSummaryLogger = StructuredLogger.getServiceLogger(
           "process-documents-summary",
         );
         errorSummaryLogger.error("Failed documents summary", {
@@ -440,7 +442,7 @@ export class ProcessDocumentsUseCase {
     }
 
     // Aggregate results
-    const aggregationLogger = LoggerFactory.createLogger(
+    const aggregationLogger = StructuredLogger.getServiceLogger(
       "process-documents-main",
     );
     aggregationLogger.info("Aggregating results", {
@@ -448,7 +450,9 @@ export class ProcessDocumentsUseCase {
     });
     const aggregateResult = this.resultAggregator.aggregate(results);
     if (isError(aggregateResult)) {
-      const errorLogger = LoggerFactory.createLogger("process-documents-error");
+      const errorLogger = StructuredLogger.getServiceLogger(
+        "process-documents-error",
+      );
       errorLogger.error("Aggregation failed", {
         errorMessage: aggregateResult.error.message,
       });
@@ -495,7 +499,7 @@ export class ProcessDocumentsUseCase {
     const docPath = document.getPath().getValue();
 
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Processing document", { docPath });
@@ -503,7 +507,7 @@ export class ProcessDocumentsUseCase {
 
     // Extract frontmatter
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
       verboseLogger.info("Extracting frontmatter", { docPath });
@@ -511,7 +515,7 @@ export class ProcessDocumentsUseCase {
     const frontMatterResult = this.frontMatterExtractor.extract(document);
     if (isError(frontMatterResult)) {
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.error("Frontmatter extraction failed", { docPath });
@@ -521,7 +525,7 @@ export class ProcessDocumentsUseCase {
 
     if (frontMatterResult.data.kind === "NotPresent") {
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
         verboseLogger.warn("No frontmatter found", { docPath });
@@ -539,7 +543,7 @@ export class ProcessDocumentsUseCase {
     const frontMatter = frontMatterResult.data.frontMatter;
 
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-helper",
       );
       verboseLogger.info("Frontmatter extracted", { document: docPath });
@@ -547,7 +551,7 @@ export class ProcessDocumentsUseCase {
 
     // Process with 2-stage TypeScript Analysis Orchestrator
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-helper",
       );
       verboseLogger.info("Starting 2-stage orchestrated processing", {
@@ -566,7 +570,7 @@ export class ProcessDocumentsUseCase {
     if (!isError(orchestratorResult)) {
       // Orchestrator succeeded - create analysis result directly
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.info("Orchestrator processing completed successfully", {
@@ -599,7 +603,7 @@ export class ProcessDocumentsUseCase {
       )
     ) {
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.warn(
@@ -610,7 +614,7 @@ export class ProcessDocumentsUseCase {
 
       // Legacy processing: Analyze with schema
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.info("Starting AI analysis (legacy)", {
@@ -622,7 +626,7 @@ export class ProcessDocumentsUseCase {
         schema,
       );
       if (verboseMode) {
-        const debugLogger = LoggerFactory.createLogger(
+        const debugLogger = StructuredLogger.getServiceLogger(
           "process-documents-debug",
         );
         debugLogger.info("AI analysis result (legacy)", {
@@ -632,7 +636,7 @@ export class ProcessDocumentsUseCase {
       }
       if (isError(extractedResult)) {
         if (verboseMode) {
-          const errorLogger = LoggerFactory.createLogger(
+          const errorLogger = StructuredLogger.getServiceLogger(
             "process-documents-helper",
           );
           errorLogger.error("AI analysis failed (legacy)", {
@@ -643,7 +647,7 @@ export class ProcessDocumentsUseCase {
         return extractedResult;
       }
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.info("AI analysis successful (legacy)", {
@@ -653,7 +657,7 @@ export class ProcessDocumentsUseCase {
 
       // Legacy processing: Map to template
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.info("Mapping to template (legacy)", {
@@ -667,7 +671,7 @@ export class ProcessDocumentsUseCase {
       );
       if (isError(legacyMappedResult)) {
         if (verboseMode) {
-          const errorLogger = LoggerFactory.createLogger(
+          const errorLogger = StructuredLogger.getServiceLogger(
             "process-documents-helper",
           );
           errorLogger.error("Template mapping failed (legacy)", {
@@ -678,7 +682,7 @@ export class ProcessDocumentsUseCase {
       }
 
       if (verboseMode) {
-        const verboseLogger = LoggerFactory.createLogger(
+        const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-helper",
         );
         verboseLogger.info("Template mapping completed (legacy)", {
@@ -697,7 +701,7 @@ export class ProcessDocumentsUseCase {
 
     // If we reach here, orchestrator failed with a different error
     if (verboseMode) {
-      const errorLogger = LoggerFactory.createLogger(
+      const errorLogger = StructuredLogger.getServiceLogger(
         "process-documents-helper",
       );
       errorLogger.error("Orchestrator processing failed", {

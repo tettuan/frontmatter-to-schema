@@ -11,8 +11,7 @@ import {
   Template,
   TemplateId,
 } from "../../../../src/domain/models/entities.ts";
-import { TemplateFormat } from "../../../../src/domain/models/value-objects.ts";
-import { isError, isOk } from "../../../../src/domain/core/result.ts";
+import { isError, isOk, TemplateFormat } from "../../../../src/domain/index.ts";
 
 Deno.test("TemplateMapper - Core Functionality", async (t) => {
   const mapper = new TemplateMapper();

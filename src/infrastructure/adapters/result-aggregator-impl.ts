@@ -1,7 +1,10 @@
 // Result aggregator implementation
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
-import { createDomainError } from "../../domain/core/result.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+} from "../../domain/core/result.ts";
 import {
   AggregatedResult,
   type AnalysisResult,
@@ -20,11 +23,10 @@ export class ResultAggregatorImpl implements ResultAggregator {
       if (results.length === 0) {
         return {
           ok: false,
-          error: createDomainError({
-            kind: "ProcessingStageError",
-            stage: "aggregation",
-            error: createDomainError({ kind: "EmptyInput" }),
-          }),
+          error: createProcessingStageError(
+            "aggregation",
+            createDomainError({ kind: "EmptyInput" }),
+          ),
         };
       }
 
@@ -33,15 +35,14 @@ export class ResultAggregatorImpl implements ResultAggregator {
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "ProcessingStageError",
-          stage: "aggregation",
-          error: createDomainError({
+        error: createProcessingStageError(
+          "aggregation",
+          createDomainError({
             kind: "ReadError",
             path: "aggregation",
             details: error instanceof Error ? error.message : "Unknown error",
           }),
-        }),
+        ),
       };
     }
   }

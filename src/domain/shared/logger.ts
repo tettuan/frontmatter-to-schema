@@ -149,5 +149,42 @@ export class LoggerFactory {
   }
 }
 
+/**
+ * Structured logger for common domain operations to reduce code duplication
+ * Addresses AI-complexity-control violation by providing pre-configured loggers
+ */
+export class StructuredLogger {
+  private static readonly commonLoggers = new Map<string, Logger>();
+
+  static getStageLogger(stage: string): Logger {
+    if (!this.commonLoggers.has(stage)) {
+      this.commonLoggers.set(
+        stage,
+        LoggerFactory.createLogger(`stage-${stage}`),
+      );
+    }
+    return this.commonLoggers.get(stage)!;
+  }
+
+  static getDomainLogger(domain: string): Logger {
+    if (!this.commonLoggers.has(domain)) {
+      this.commonLoggers.set(domain, LoggerFactory.createLogger(domain));
+    }
+    return this.commonLoggers.get(domain)!;
+  }
+
+  static getServiceLogger(service: string): Logger {
+    if (!this.commonLoggers.has(service)) {
+      this.commonLoggers.set(service, LoggerFactory.createLogger(service));
+    }
+    return this.commonLoggers.get(service)!;
+  }
+
+  // Clear cached loggers when configuration changes
+  static clearCache(): void {
+    this.commonLoggers.clear();
+  }
+}
+
 // Default logger instance for convenience
 export const logger = LoggerFactory.getDefaultLogger();

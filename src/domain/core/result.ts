@@ -78,6 +78,27 @@ export const createDomainError = <E extends DomainError>(
   message: customMessage || getDefaultErrorMessage(error),
 });
 
+// Specialized helper for ProcessingStageError to reduce code duplication
+export const createProcessingStageError = (
+  stage: string,
+  underlyingError: DomainError,
+  customMessage?: string,
+): PipelineError & { message: string } => {
+  const error: PipelineError = {
+    kind: "ProcessingStageError",
+    stage,
+    error: underlyingError,
+  };
+
+  return createDomainError(
+    error,
+    customMessage ||
+      `Error in processing stage "${stage}": ${
+        getDefaultErrorMessage(underlyingError)
+      }`,
+  );
+};
+
 // Default error messages for comprehensive error reporting
 export const getDefaultErrorMessage = (error: DomainError): string => {
   switch (error.kind) {
