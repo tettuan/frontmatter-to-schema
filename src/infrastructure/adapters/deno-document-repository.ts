@@ -221,19 +221,21 @@ export class DenoDocumentRepository implements DocumentRepository {
 
       try {
         const extracted = extract(content);
+        // Use attrs (parsed object) instead of frontMatter (raw string)
         if (
-          extracted.frontMatter && Object.keys(extracted.frontMatter).length > 0
+          extracted.attrs && typeof extracted.attrs === "object" &&
+          Object.keys(extracted.attrs).length > 0
         ) {
-          // Convert frontmatter to string representation
-          const frontMatterStr = JSON.stringify(extracted.frontMatter);
-          const frontMatterContentResult = FrontMatterContent.create(
-            frontMatterStr,
+          // Create FrontMatterContent from the parsed object
+          const frontMatterContentResult = FrontMatterContent.fromObject(
+            extracted.attrs as Record<string, unknown>,
           );
 
           if (frontMatterContentResult.ok) {
-            // Get raw frontmatter section
-            const rawFrontMatter =
-              content.match(/^---\n([\s\S]*?)\n---/)?.[1] || "";
+            // Get raw frontmatter section - extracted.frontMatter contains the raw YAML
+            const rawFrontMatter = typeof extracted.frontMatter === "string"
+              ? extracted.frontMatter
+              : "";
             const frontMatter = FrontMatter.create(
               frontMatterContentResult.data,
               rawFrontMatter,

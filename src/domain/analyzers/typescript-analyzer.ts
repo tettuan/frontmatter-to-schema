@@ -20,10 +20,7 @@ import {
   RegistryData,
   RegistryVersion,
 } from "./value-objects.ts";
-import {
-  asObjectRecord,
-  validateJsonParseResult,
-} from "../shared/type-guards.ts";
+import { asObjectRecord } from "../shared/type-guards.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
@@ -49,28 +46,65 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     try {
       // Extract frontmatter data with safe type checking
       const frontMatterJson = frontMatter.getContent().toJSON();
-      const frontMatterResult = validateJsonParseResult(
-        frontMatterJson,
-        "frontmatter",
-      );
-      if (!frontMatterResult.ok) {
+
+      // Handle case where frontmatter might be empty or a string
+      let frontMatterData: Record<string, unknown>;
+      if (
+        typeof frontMatterJson === "object" && frontMatterJson !== null &&
+        !Array.isArray(frontMatterJson)
+      ) {
+        frontMatterData = frontMatterJson as Record<string, unknown>;
+      } else if (typeof frontMatterJson === "string") {
+        // Try to parse string as YAML/JSON
+        try {
+          const parsed = JSON.parse(frontMatterJson);
+          if (
+            typeof parsed === "object" && parsed !== null &&
+            !Array.isArray(parsed)
+          ) {
+            frontMatterData = parsed;
+          } else {
+            // If parsed but not an object, return error
+            return {
+              ok: false,
+              error: createDomainError(
+                {
+                  kind: "InvalidFormat",
+                  input: String(frontMatterJson),
+                  expectedFormat: "object",
+                },
+                `FrontMatter must be an object, got ${typeof parsed}`,
+              ),
+            };
+          }
+        } catch {
+          // If can't parse, return error
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: String(frontMatterJson),
+                expectedFormat: "valid JSON/YAML object",
+              },
+              `Failed to parse frontmatter content`,
+            ),
+          };
+        }
+      } else {
+        // Other types are not valid
         return {
           ok: false,
           error: createDomainError(
             {
-              kind: "ProcessingStageError",
-              stage: "frontmatter extraction",
-              error: {
-                kind: "InvalidResponse",
-                service: "frontmatter",
-                response: String(frontMatterResult.error.kind),
-              } as DomainError,
+              kind: "InvalidFormat",
+              input: String(frontMatterJson),
+              expectedFormat: "object",
             },
-            `TypeScript analysis failed: ${frontMatterResult.error.kind}`,
+            `FrontMatter must be an object, got ${typeof frontMatterJson}`,
           ),
         };
       }
-      const frontMatterData = frontMatterResult.data;
 
       // Get document path from frontmatter metadata if available with safe property access
       const documentPath = (typeof frontMatterData._documentPath === "string" &&

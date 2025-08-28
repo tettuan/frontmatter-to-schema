@@ -62,10 +62,9 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
         _documentPath: document.getPath().getValue(),
       };
 
-      // Convert frontmatter to JSON string
-      const frontMatterStr = JSON.stringify(enhancedFrontMatter);
-      const frontMatterContentResult = FrontMatterContent.create(
-        frontMatterStr,
+      // Use fromObject instead of create with JSON string
+      const frontMatterContentResult = FrontMatterContent.fromObject(
+        enhancedFrontMatter as Record<string, unknown>,
       );
 
       if (!frontMatterContentResult.ok) {
