@@ -9,7 +9,11 @@
  */
 
 import type { Result } from "../core/result.ts";
-import { createDomainError, type DomainError } from "../core/result.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+  type DomainError,
+} from "../core/result.ts";
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { Schema, Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
@@ -159,14 +163,11 @@ export class TypeScriptAnalysisOrchestrator {
       if (!result.ok) {
         return {
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "information_extraction",
             {
-              kind: "ProcessingStageError",
-              stage: "information_extraction",
-              error: {
-                kind: "AIServiceError",
-                service: "ai-analyzer",
-              },
+              kind: "AIServiceError",
+              service: "ai-analyzer",
             },
             `Stage 1 (Information extraction) failed: ${result.error.message}`,
           ),
@@ -186,15 +187,12 @@ export class TypeScriptAnalysisOrchestrator {
     } catch (e) {
       return {
         ok: false,
-        error: createDomainError(
+        error: createProcessingStageError(
+          "information_extraction",
           {
-            kind: "ProcessingStageError",
-            stage: "information_extraction",
-            error: {
-              kind: "InvalidResponse",
-              service: "ai-analyzer",
-              response: `Parse error: ${e}`,
-            },
+            kind: "InvalidResponse",
+            service: "ai-analyzer",
+            response: `Parse error: ${e}`,
           },
           `Stage 1 failed to parse extraction result: ${e}`,
         ),
@@ -236,14 +234,11 @@ export class TypeScriptAnalysisOrchestrator {
       if (!result.ok) {
         return {
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "template_mapping",
             {
-              kind: "ProcessingStageError",
-              stage: "template_mapping",
-              error: {
-                kind: "AIServiceError",
-                service: "ai-analyzer",
-              },
+              kind: "AIServiceError",
+              service: "ai-analyzer",
             },
             `Stage 2 (Template mapping) failed: ${result.error.message}`,
           ),
@@ -267,15 +262,12 @@ export class TypeScriptAnalysisOrchestrator {
     } catch (e) {
       return {
         ok: false,
-        error: createDomainError(
+        error: createProcessingStageError(
+          "template_mapping",
           {
-            kind: "ProcessingStageError",
-            stage: "template_mapping",
-            error: {
-              kind: "InvalidResponse",
-              service: "ai-analyzer",
-              response: `Processing error: ${e}`,
-            },
+            kind: "InvalidResponse",
+            service: "ai-analyzer",
+            response: `Processing error: ${e}`,
           },
           `Stage 2 failed to process template mapping: ${e}`,
         ),

@@ -6,6 +6,7 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
+import { createProcessingStageError } from "../core/result.ts";
 import type { Template } from "../models/domain-models.ts";
 import { TemplateProcessingService } from "./service.ts";
 import { FileTemplateRepository } from "../../infrastructure/template/file-template-repository.ts";
@@ -178,11 +179,11 @@ export class SimpleTemplateMapperAdapter {
     } catch (error) {
       return {
         ok: false,
-        error: {
-          kind: "ProcessingStageError",
-          stage: "migration adapter",
-          error: { kind: "ParseError", input: String(error) },
-        },
+        error: createProcessingStageError(
+          "migration adapter",
+          { kind: "ParseError", input: String(error) },
+          `Migration adapter failed: ${error}`,
+        ),
       };
     }
   }

@@ -4,7 +4,11 @@
  */
 
 import type { Result } from "./result.ts";
-import { createDomainError, type DomainError } from "./result.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+  type DomainError,
+} from "./result.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Import domain components
@@ -255,15 +259,15 @@ export class TotalAnalysisDomainFactory
     } catch (error) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "ProcessingStageError",
-          stage: "analysis component creation",
-          error: {
+        error: createProcessingStageError(
+          "analysis component creation",
+          {
             kind: "InvalidResponse",
             service: "component-factory",
             response: error instanceof Error ? error.message : String(error),
           },
-        }, `Failed to create analysis components: ${error}`),
+          `Failed to create analysis components: ${error}`,
+        ),
       };
     }
   }
@@ -318,15 +322,15 @@ export class TotalTemplateDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createDomainError({
-          kind: "ProcessingStageError",
-          stage: "template component creation",
-          error: {
+        error: createProcessingStageError(
+          "template component creation",
+          {
             kind: "InvalidResponse",
             service: "component-factory",
             response: error instanceof Error ? error.message : String(error),
           },
-        }, `Failed to create template components: ${error}`),
+          `Failed to create template components: ${error}`,
+        ),
       });
     }
   }
@@ -388,15 +392,15 @@ export class TotalPipelineDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createDomainError({
-          kind: "ProcessingStageError",
-          stage: "pipeline component creation",
-          error: {
+        error: createProcessingStageError(
+          "pipeline component creation",
+          {
             kind: "InvalidResponse",
             service: "component-factory",
             response: error instanceof Error ? error.message : String(error),
           },
-        }, `Failed to create pipeline components: ${error}`),
+          `Failed to create pipeline components: ${error}`,
+        ),
       });
     }
   }
