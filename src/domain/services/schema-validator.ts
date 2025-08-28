@@ -8,6 +8,19 @@ export interface ValidationResult {
 }
 
 export class SchemaValidator {
+  /**
+   * Type guard for Record<string, unknown>
+   */
+  private isRecordObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Type guard for string array
+   */
+  private isStringArray(value: unknown): value is string[] {
+    return Array.isArray(value) && value.every(item => typeof item === "string");
+  }
   validate(
     data: unknown,
     schema: Schema,
@@ -27,11 +40,20 @@ export class SchemaValidator {
       };
     }
 
+    // Validate schema definition is a proper object
+    if (!this.isRecordObject(schemaDefinition)) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          input: String(schemaDefinition),
+          expectedFormat: "object",
+        },
+      };
+    }
+
     // For now, we'll do basic type checking
-    const result = this.validateObject(
-      data,
-      schemaDefinition as Record<string, unknown>,
-    );
+    const result = this.validateObject(data, schemaDefinition);
 
     if (!result.ok) {
       return result;
@@ -55,11 +77,18 @@ export class SchemaValidator {
       };
     }
 
+    // We already validated data is an object above
     const dataObj = data as Record<string, unknown>;
-    const properties = schema["properties"] as
-      | Record<string, unknown>
-      | undefined;
-    const required = schema["required"] as string[] | undefined;
+    
+    // Safely extract properties with type validation
+    const properties = this.isRecordObject(schema["properties"]) 
+      ? schema["properties"] 
+      : undefined;
+    
+    // Safely extract required fields with type validation
+    const required = this.isStringArray(schema["required"]) 
+      ? schema["required"] 
+      : undefined;
 
     // Check required fields
     if (required) {
@@ -79,7 +108,18 @@ export class SchemaValidator {
 
       for (const [key, value] of Object.entries(dataObj)) {
         if (key in properties) {
-          const fieldSchema = properties[key] as Record<string, unknown>;
+          const fieldSchemaValue = properties[key];
+          if (!this.isRecordObject(fieldSchemaValue)) {
+            return {
+              ok: false,
+              error: {
+                kind: "InvalidFormat",
+                input: String(fieldSchemaValue),
+                expectedFormat: "object schema",
+              },
+            };
+          }
+          const fieldSchema = fieldSchemaValue;
           const validationResult = this.validateField(value, fieldSchema, key);
 
           if (!validationResult.ok) {
@@ -108,7 +148,8 @@ export class SchemaValidator {
     schema: Record<string, unknown>,
     fieldName: string,
   ): Result<unknown, DomainError> {
-    const type = schema["type"] as string | undefined;
+    const typeValue = schema["type"];
+    const type = typeof typeValue === "string" ? typeValue : undefined;
 
     if (!type) {
       return { ok: true, data: value };
@@ -168,7 +209,8 @@ export class SchemaValidator {
         }
 
         // Validate array items if schema is provided
-        const items = schema["items"] as Record<string, unknown> | undefined;
+        const itemsValue = schema["items"];
+        const items = this.isRecordObject(itemsValue) ? itemsValue : undefined;
         if (items) {
           const validatedArray: unknown[] = [];
           for (let i = 0; i < value.length; i++) {

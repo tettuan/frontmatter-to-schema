@@ -5,8 +5,8 @@
  * Follows the Totality principle by returning Result types with proper error handling.
  */
 
-import type { Result } from "../core/result.ts";
-import { createValidationError, type ValidationError } from "./errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 /**
  * Checks if a value is a non-null object
@@ -21,11 +21,16 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 export function asObjectRecord(
   value: unknown,
   context?: string,
-): Result<Record<string, unknown>, ValidationError> {
+): Result<Record<string, unknown>, DomainError> {
   if (!isObject(value)) {
     return {
       ok: false,
-      error: createValidationError(
+      error: createDomainError(
+        {
+          kind: "InvalidFormat",
+          input: typeof value,
+          expectedFormat: "object",
+        },
         `Expected object but got ${typeof value}${
           context ? ` in ${context}` : ""
         }`,
@@ -42,11 +47,16 @@ export function getObjectProperty(
   obj: Record<string, unknown>,
   key: string,
   context?: string,
-): Result<unknown, ValidationError> {
+): Result<unknown, DomainError> {
   if (!(key in obj)) {
     return {
       ok: false,
-      error: createValidationError(
+      error: createDomainError(
+        {
+          kind: "NotFound",
+          resource: "property",
+          name: key,
+        },
         `Property '${key}' not found${context ? ` in ${context}` : ""}`,
       ),
     };
@@ -61,7 +71,7 @@ export function getObjectPropertyAsObject(
   obj: Record<string, unknown>,
   key: string,
   context?: string,
-): Result<Record<string, unknown>, ValidationError> {
+): Result<Record<string, unknown>, DomainError> {
   const propertyResult = getObjectProperty(obj, key, context);
   if (!propertyResult.ok) {
     return propertyResult;
@@ -76,7 +86,7 @@ export function getObjectPropertyAsObject(
 export function validateMappingResult(
   value: unknown,
   context?: string,
-): Result<Record<string, unknown>, ValidationError> {
+): Result<Record<string, unknown>, DomainError> {
   if (value === null || value === undefined) {
     return {
       ok: false,
@@ -97,7 +107,7 @@ export function validateMappingResult(
 export function validateJsonParseResult(
   value: unknown,
   context?: string,
-): Result<Record<string, unknown>, ValidationError> {
+): Result<Record<string, unknown>, DomainError> {
   if (
     typeof value === "string" || typeof value === "number" ||
     typeof value === "boolean"
@@ -136,7 +146,7 @@ export function safeObjectTraversal(
   obj: unknown,
   path: string[],
   context?: string,
-): Result<unknown, ValidationError> {
+): Result<unknown, DomainError> {
   let current = obj;
 
   for (let i = 0; i < path.length; i++) {
@@ -179,7 +189,7 @@ export function safeObjectTraversal(
 export function validateObjectArray(
   value: unknown,
   context?: string,
-): Result<Record<string, unknown>[], ValidationError> {
+): Result<Record<string, unknown>[], DomainError> {
   if (!Array.isArray(value)) {
     return {
       ok: false,
