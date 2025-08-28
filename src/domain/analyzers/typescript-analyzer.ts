@@ -60,10 +60,10 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
               error: {
                 kind: "InvalidResponse",
                 service: "frontmatter",
-                response: frontMatterResult.error.message,
+                response: String(frontMatterResult.error.kind),
               } as DomainError,
             },
-            `TypeScript analysis failed: ${frontMatterResult.error.message}`,
+            `TypeScript analysis failed: ${frontMatterResult.error.kind}`,
           ),
         };
       }
