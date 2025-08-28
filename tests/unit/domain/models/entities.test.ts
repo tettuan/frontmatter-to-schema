@@ -22,7 +22,7 @@ import {
   SchemaVersion,
   TemplateFormat,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isOk } from "../../../../src/domain/shared/types.ts";
+import { isOk } from "../../../../src/domain/core/result.ts";
 
 // Helper functions to create test value objects
 const createDocumentPath = (path: string) => {
@@ -199,7 +199,7 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
       "title: Test\nauthor: John",
     );
 
-    const document = Document.create(path, frontMatter, content);
+    const document = Document.createWithFrontMatter(path, frontMatter, content);
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
@@ -214,7 +214,7 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
       "# Simple Document\n\nNo frontmatter here.",
     );
 
-    const document = Document.create(path, null, content);
+    const document = Document.createWithFrontMatter(path, null, content);
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
@@ -226,7 +226,7 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
     const path = createDocumentPath("/unique/path/document.md");
     const content = createDocumentContent("Content");
 
-    const document = Document.create(path, null, content);
+    const document = Document.createWithFrontMatter(path, null, content);
 
     assertEquals(document.getId().getValue(), "/unique/path/document.md");
   });
@@ -558,7 +558,7 @@ Deno.test("AnalysisResult - Creation and Getters", async (t) => {
   const createTestAnalysisResult = () => {
     const path = createDocumentPath("/test/analysis.md");
     const content = createDocumentContent("Test content");
-    const document = Document.create(path, null, content);
+    const document = Document.createWithFrontMatter(path, null, content);
 
     const extractedData = ExtractedData.create({
       title: "Extracted Title",
@@ -606,7 +606,7 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
     for (let i = 0; i < count; i++) {
       const path = createDocumentPath(`/test/doc${i}.md`);
       const content = createDocumentContent(`Document ${i} content`);
-      const document = Document.create(path, null, content);
+      const document = Document.createWithFrontMatter(path, null, content);
 
       const extractedData = ExtractedData.create({
         title: `Title ${i}`,

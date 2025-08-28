@@ -1,8 +1,8 @@
-import type { Result } from "../domain/core/result.ts";
 import {
-  type ConfigurationError,
-  createConfigurationError,
-} from "../domain/shared/errors.ts";
+  createDomainError,
+  type DomainError,
+  type Result,
+} from "../domain/core/result.ts";
 
 export interface InputConfiguration {
   path: string;
@@ -42,11 +42,14 @@ export interface ApplicationConfiguration {
 export class ConfigurationValidator {
   validate(
     config: unknown,
-  ): Result<ApplicationConfiguration, ConfigurationError> {
+  ): Result<ApplicationConfiguration, DomainError & { message: string }> {
     if (!config || typeof config !== "object") {
       return {
         ok: false,
-        error: createConfigurationError("Configuration must be an object"),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config,
+        }, "Configuration must be an object"),
       };
     }
 
@@ -56,19 +59,20 @@ export class ConfigurationValidator {
     if (!obj.input || typeof obj.input !== "object") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Missing or invalid 'input' configuration",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: obj.input,
+        }, "Missing or invalid 'input' configuration"),
       };
     }
     const input = obj.input as Record<string, unknown>;
     if (!input.path || typeof input.path !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Input path is required and must be a string",
-          "input.path",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: input.path,
+        }, "Input path is required and must be a string"),
       };
     }
 
@@ -76,28 +80,29 @@ export class ConfigurationValidator {
     if (!obj.schema || typeof obj.schema !== "object") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Missing or invalid 'schema' configuration",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: obj.schema,
+        }, "Missing or invalid 'schema' configuration"),
       };
     }
     const schema = obj.schema as Record<string, unknown>;
     if (!schema.definition) {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Schema definition is required",
-          "schema.definition",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: schema.definition,
+        }, "Schema definition is required"),
       };
     }
     if (!schema.format || typeof schema.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Schema format is required",
-          "schema.format",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: schema.format,
+        }, "Schema format is required"),
       };
     }
 
@@ -105,28 +110,29 @@ export class ConfigurationValidator {
     if (!obj.template || typeof obj.template !== "object") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Missing or invalid 'template' configuration",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: obj.template,
+        }, "Missing or invalid 'template' configuration"),
       };
     }
     const template = obj.template as Record<string, unknown>;
     if (!template.definition || typeof template.definition !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Template definition is required and must be a string",
-          "template.definition",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: template.definition,
+        }, "Template definition is required and must be a string"),
       };
     }
     if (!template.format || typeof template.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Template format is required",
-          "template.format",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: template.format,
+        }, "Template format is required"),
       };
     }
 
@@ -134,28 +140,29 @@ export class ConfigurationValidator {
     if (!obj.output || typeof obj.output !== "object") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Missing or invalid 'output' configuration",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: obj.output,
+        }, "Missing or invalid 'output' configuration"),
       };
     }
     const output = obj.output as Record<string, unknown>;
     if (!output.path || typeof output.path !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Output path is required and must be a string",
-          "output.path",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: output.path,
+        }, "Output path is required and must be a string"),
       };
     }
     if (!output.format || typeof output.format !== "string") {
       return {
         ok: false,
-        error: createConfigurationError(
-          "Output format is required",
-          "output.format",
-        ),
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: output.format,
+        }, "Output format is required"),
       };
     }
 

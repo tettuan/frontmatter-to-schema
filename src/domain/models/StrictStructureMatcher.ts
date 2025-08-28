@@ -10,7 +10,8 @@
  * Only perfect structural alignment enables template processing.
  */
 
-import type { Result, ValidationError } from "../shared/types.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 
 export interface StructureNode {
   readonly path: string;
@@ -29,7 +30,7 @@ export class StrictStructureMatcher {
   static analyzeYAMLStructure(
     yamlData: unknown,
     basePath = "",
-  ): Result<StructureNode, ValidationError> {
+  ): Result<StructureNode, DomainError & { message: string }> {
     if (yamlData === null || yamlData === undefined) {
       return {
         ok: true,
@@ -76,11 +77,14 @@ export class StrictStructureMatcher {
         ) {
           return {
             ok: false,
-            error: {
-              kind: "ValidationError",
-              message:
-                `Array elements have inconsistent structures at ${basePath}[${i}]`,
-            },
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: `${basePath}[${i}]`,
+                expectedFormat: "consistent array element structure",
+              },
+              `Array elements have inconsistent structures at ${basePath}[${i}]`,
+            ),
           };
         }
       }
@@ -140,14 +144,15 @@ export class StrictStructureMatcher {
   static analyzeSchemaStructure(
     schemaData: unknown,
     basePath = "",
-  ): Result<StructureNode, ValidationError> {
+  ): Result<StructureNode, DomainError & { message: string }> {
     if (typeof schemaData !== "object" || schemaData === null) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Schema must be an object",
-        },
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: typeof schemaData,
+          expectedFormat: "object",
+        }, "Schema must be an object"),
       };
     }
 
@@ -237,10 +242,11 @@ export class StrictStructureMatcher {
 
     return {
       ok: false,
-      error: {
-        kind: "ValidationError",
-        message: `Unsupported schema type: ${schemaType}`,
-      },
+      error: createDomainError({
+        kind: "InvalidFormat",
+        input: schemaType,
+        expectedFormat: "string, number, boolean, null, object, or array",
+      }, `Unsupported schema type: ${schemaType}`),
     };
   }
 
@@ -250,7 +256,7 @@ export class StrictStructureMatcher {
   static analyzeTemplateStructure(
     templateData: unknown,
     basePath = "",
-  ): Result<StructureNode, ValidationError> {
+  ): Result<StructureNode, DomainError & { message: string }> {
     return this.analyzeYAMLStructure(templateData, basePath);
   }
 
@@ -298,7 +304,7 @@ export class StrictStructureMatcher {
     yamlData: unknown,
     schemaData: unknown,
     templateData: unknown,
-  ): Result<boolean, ValidationError> {
+  ): Result<boolean, DomainError & { message: string }> {
     // Analyze each structure
     const yamlResult = this.analyzeYAMLStructure(yamlData);
     if (!yamlResult.ok) {
@@ -323,10 +329,11 @@ export class StrictStructureMatcher {
     if (!yamlSchemaMatch) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "YAML structure does not match Schema structure",
-        },
+        error: createDomainError({
+          kind: "SchemaValidationFailed",
+          schema: schemaResult.data,
+          data: yamlResult.data,
+        }, "YAML structure does not match Schema structure"),
       };
     }
 
@@ -337,10 +344,11 @@ export class StrictStructureMatcher {
     if (!schemaTemplateMatch) {
       return {
         ok: false,
-        error: {
-          kind: "ValidationError",
-          message: "Schema structure does not match Template structure",
-        },
+        error: createDomainError({
+          kind: "TemplateMappingFailed",
+          template: templateResult.data,
+          source: schemaResult.data,
+        }, "Schema structure does not match Template structure"),
       };
     }
 

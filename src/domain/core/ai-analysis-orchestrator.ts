@@ -16,10 +16,8 @@
  */
 
 import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { Schema, Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
@@ -36,11 +34,15 @@ export class ExtractedInfo {
   static create(
     rawData: unknown,
     metadata: ExtractionMetadata,
-  ): Result<ExtractedInfo, ValidationError> {
+  ): Result<ExtractedInfo, DomainError & { message: string }> {
     if (!rawData || typeof rawData !== "object") {
       return {
         ok: false,
-        error: createValidationError("Extracted data must be an object"),
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: typeof rawData,
+          expectedFormat: "object",
+        }, "Extracted data must be an object"),
       };
     }
 
@@ -73,11 +75,14 @@ export class StructuredData {
     appliedContent: string,
     templateName: string,
     metadata: StructuringMetadata,
-  ): Result<StructuredData, ValidationError> {
+  ): Result<StructuredData, DomainError & { message: string }> {
     if (!appliedContent || appliedContent.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("Applied template content is empty"),
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "appliedTemplateContent",
+        }, "Applied template content is empty"),
       };
     }
 
@@ -130,7 +135,7 @@ export class AIAnalysisOrchestrator {
   async extractInformation(
     frontMatter: FrontMatterContent,
     schema: Schema,
-  ): Promise<Result<ExtractedInfo, ValidationError>> {
+  ): Promise<Result<ExtractedInfo, DomainError & { message: string }>> {
     // Extract schema definition and version from Schema entity
     const schemaDefinition = schema.getDefinition();
     const schemaVersion = schema.getVersion();
@@ -153,9 +158,11 @@ export class AIAnalysisOrchestrator {
     if (!result.ok) {
       return {
         ok: false,
-        error: createValidationError(
-          `Information extraction failed: ${result.error.message}`,
-        ),
+        error: createDomainError({
+          kind: "ExtractionStrategyFailed",
+          strategy: "ai_extraction",
+          input: frontMatter,
+        }, `Information extraction failed: ${result.error.message}`),
       };
     }
 
@@ -172,9 +179,11 @@ export class AIAnalysisOrchestrator {
     } catch (e) {
       return {
         ok: false,
-        error: createValidationError(
-          `Failed to parse extraction result: ${e}`,
-        ),
+        error: createDomainError({
+          kind: "ParseError",
+          input: String(result.data),
+          details: String(e),
+        }, `Failed to parse extraction result: ${e}`),
       };
     }
   }
@@ -186,7 +195,7 @@ export class AIAnalysisOrchestrator {
     extractedInfo: ExtractedInfo,
     schema: Schema,
     template: Template,
-  ): Promise<Result<StructuredData, ValidationError>> {
+  ): Promise<Result<StructuredData, DomainError & { message: string }>> {
     // Extract schema definition from Schema entity
     const schemaDefinition = schema.getDefinition();
 
@@ -210,9 +219,11 @@ export class AIAnalysisOrchestrator {
     if (!result.ok) {
       return {
         ok: false,
-        error: createValidationError(
-          `Template application failed: ${result.error.message}`,
-        ),
+        error: createDomainError({
+          kind: "TemplateMappingFailed",
+          template: template,
+          source: extractedInfo,
+        }, `Template application failed: ${result.error.message}`),
       };
     }
 
@@ -239,7 +250,7 @@ export class AIAnalysisOrchestrator {
     frontMatter: FrontMatterContent,
     schema: Schema,
     template: Template,
-  ): Promise<Result<StructuredData, ValidationError>> {
+  ): Promise<Result<StructuredData, DomainError & { message: string }>> {
     // Stage 1: Information extraction
     const extractionResult = await this.extractInformation(
       frontMatter,

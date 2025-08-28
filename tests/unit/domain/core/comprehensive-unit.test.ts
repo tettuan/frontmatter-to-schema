@@ -1,12 +1,12 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
+import type { Result } from "../../../../src/domain/core/result.ts";
 import {
-  createError,
+  createDomainError,
   flatMapResult,
   isError,
   isOk,
   mapResult,
-  type Result,
-} from "../../../../src/domain/shared/types.ts";
+} from "../../../../src/domain/core/result.ts";
 import {
   ConfigPath,
   DocumentPath,
@@ -210,10 +210,10 @@ Deno.test("DDD Core - ProcessingOptions Value Object", async (t) => {
 
   await t.step("Concurrency Validation", () => {
     const invalidCases = [
-      { maxConcurrency: 0, expectedError: "ValidationError" },
-      { maxConcurrency: -1, expectedError: "ValidationError" },
-      { maxConcurrency: 101, expectedError: "ValidationError" },
-      { maxConcurrency: 1000, expectedError: "ValidationError" },
+      { maxConcurrency: 0, expectedError: "OutOfRange" },
+      { maxConcurrency: -1, expectedError: "OutOfRange" },
+      { maxConcurrency: 101, expectedError: "OutOfRange" },
+      { maxConcurrency: 1000, expectedError: "OutOfRange" },
     ];
 
     for (const { maxConcurrency, expectedError } of invalidCases) {
@@ -284,9 +284,9 @@ Deno.test("DDD Core - MappingRule Value Object", async (t) => {
 
   await t.step("Invalid Mapping Rules", () => {
     const invalidCases = [
-      { source: "", target: "valid", expectedError: "ValidationError" },
-      { source: "valid", target: "", expectedError: "ValidationError" },
-      { source: "", target: "", expectedError: "ValidationError" },
+      { source: "", target: "valid", expectedError: "EmptyInput" },
+      { source: "valid", target: "", expectedError: "EmptyInput" },
+      { source: "", target: "", expectedError: "EmptyInput" },
     ];
 
     for (const { source, target, expectedError } of invalidCases) {
@@ -365,9 +365,9 @@ tags:
 
   await t.step("Invalid Template Formats", () => {
     const invalidCases = [
-      { format: "xml", template: "<root/>", expectedError: "ValidationError" },
-      { format: "json", template: "", expectedError: "ValidationError" },
-      { format: "yaml", template: "   ", expectedError: "ValidationError" },
+      { format: "xml", template: "<root/>", expectedError: "InvalidFormat" },
+      { format: "json", template: "", expectedError: "EmptyInput" },
+      { format: "yaml", template: "   ", expectedError: "EmptyInput" },
     ];
 
     for (const { format, template, expectedError } of invalidCases) {
@@ -400,11 +400,11 @@ Deno.test("DDD Core - SchemaVersion Value Object", async (t) => {
 
   await t.step("Invalid Version Formats", () => {
     const invalidVersions = [
-      { input: "1.0", expectedError: "ValidationError" },
-      { input: "1", expectedError: "ValidationError" },
-      { input: "v1.0.0", expectedError: "ValidationError" },
-      { input: "1.0.0-alpha", expectedError: "ValidationError" },
-      { input: "1.0.x", expectedError: "ValidationError" },
+      { input: "1.0", expectedError: "InvalidFormat" },
+      { input: "1", expectedError: "InvalidFormat" },
+      { input: "v1.0.0", expectedError: "InvalidFormat" },
+      { input: "1.0.0-alpha", expectedError: "InvalidFormat" },
+      { input: "1.0.x", expectedError: "InvalidFormat" },
     ];
 
     for (const { input, expectedError } of invalidVersions) {
@@ -453,11 +453,11 @@ Deno.test("DDD Core - ConfigPath Value Object", async (t) => {
 
   await t.step("Invalid Config Paths", () => {
     const invalidPaths = [
-      { input: "", expectedError: "ValidationError" },
-      { input: "   ", expectedError: "ValidationError" },
-      { input: "config.txt", expectedError: "ValidationError" },
-      { input: "settings.xml", expectedError: "ValidationError" },
-      { input: "noextension", expectedError: "ValidationError" },
+      { input: "", expectedError: "EmptyInput" },
+      { input: "   ", expectedError: "EmptyInput" },
+      { input: "config.txt", expectedError: "InvalidFormat" },
+      { input: "settings.xml", expectedError: "InvalidFormat" },
+      { input: "noextension", expectedError: "InvalidFormat" },
     ];
 
     for (const { input, expectedError } of invalidPaths) {
@@ -509,7 +509,7 @@ Deno.test("DDD Core - OutputPath Value Object", async (t) => {
     const result = OutputPath.create("");
     assertEquals(isError(result), true);
     if (isError(result)) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
 
     const whitespaceResult = OutputPath.create("   ");
@@ -581,9 +581,13 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
     const flatMapped = flatMapResult(
       result,
       (n) =>
-        n > 5
-          ? { ok: true, data: n * 2 }
-          : { ok: false, error: createError({ kind: "OutOfRange" }) },
+        n > 5 ? { ok: true, data: n * 2 } : {
+          ok: false,
+          error: createDomainError(
+            { kind: "OutOfRange", value: n },
+            "Value out of range",
+          ),
+        },
     );
 
     assertEquals(isOk(flatMapped), true);
@@ -597,9 +601,13 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
     const flatMapped = flatMapResult(
       result,
       (n) =>
-        n > 5
-          ? { ok: true, data: n * 2 }
-          : { ok: false, error: createError({ kind: "OutOfRange" }) },
+        n > 5 ? { ok: true, data: n * 2 } : {
+          ok: false,
+          error: createDomainError(
+            { kind: "OutOfRange", value: n },
+            "Value out of range",
+          ),
+        },
     );
 
     assertEquals(isError(flatMapped), true);
@@ -609,13 +617,16 @@ Deno.test("DDD Core - Result Type Utilities", async (t) => {
   });
 
   await t.step("Map Error Result", () => {
-    const error = createError({ kind: "ValidationError", message: "test" });
+    const error = createDomainError(
+      { kind: "EmptyInput", field: "test" },
+      "test",
+    );
     const result: Result<number, typeof error> = { ok: false, error };
 
     const mapped = mapResult(result, (n: number) => n * 2);
     assertEquals(isError(mapped), true);
     if (isError(mapped)) {
-      assertEquals(mapped.error.kind, "ValidationError");
+      assertEquals(mapped.error.kind, "EmptyInput");
     }
   });
 });

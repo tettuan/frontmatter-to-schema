@@ -1,5 +1,4 @@
 import type { DomainError, Result } from "../../domain/core/result.ts";
-import type { APIError } from "../../domain/shared/errors.ts";
 
 // File System Port
 export interface FileInfo {
@@ -43,5 +42,5 @@ export interface AIAnalysisResponse {
 export interface AIAnalyzerPort {
   analyze(
     request: AIAnalysisRequest,
-  ): Promise<Result<AIAnalysisResponse, APIError>>;
+  ): Promise<Result<AIAnalysisResponse, DomainError & { message: string }>>;
 }

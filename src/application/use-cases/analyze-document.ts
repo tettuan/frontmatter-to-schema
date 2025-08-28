@@ -3,9 +3,9 @@
 import {
   createDomainError,
   type DomainError,
+  isError,
   type Result,
 } from "../../domain/core/result.ts";
-import { isError } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Schema,
@@ -99,7 +99,10 @@ export class AnalyzeDocumentUseCase {
     const extractedData = extractedResult.data;
 
     // Map to template
-    const mappedResult = this.templateMapper.map(extractedData, template);
+    const mappedResult = this.templateMapper.map(extractedData, template, {
+      kind: "WithSchema",
+      schema: schema.getDefinition(),
+    });
     if (isError(mappedResult)) {
       return {
         ok: false,

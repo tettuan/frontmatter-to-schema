@@ -3,11 +3,8 @@
  * Phase 3: Template variable replacement using schema paths
  */
 
-import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type {
   MappedSchemaData,
   SchemaMatchResult,
@@ -40,7 +37,7 @@ export class TypeScriptTemplateProcessor {
     templateContent: string,
     mappedData: MappedSchemaData,
     options: Partial<TemplateProcessingOptions> = {},
-  ): Result<ProcessedTemplate, ValidationError> {
+  ): Result<ProcessedTemplate, DomainError & { message: string }> {
     try {
       const processingOptions = { ...this.defaultOptions, ...options };
 
@@ -79,9 +76,11 @@ export class TypeScriptTemplateProcessor {
             if (processingOptions.handleMissingRequired === "error") {
               return {
                 ok: false,
-                error: createValidationError(
-                  `Required template variable not found: ${variable}`,
-                ),
+                error: createDomainError({
+                  kind: "NotFound",
+                  resource: "template variable",
+                  name: variable,
+                }, `Required template variable not found: ${variable}`),
               };
             }
           } else {
@@ -116,7 +115,11 @@ export class TypeScriptTemplateProcessor {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidAnalysisContext",
+            context: { templateContent, mappedData },
+          },
           `Failed to process template: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -203,7 +206,7 @@ export class TypeScriptTemplateProcessor {
 
   private extractTemplateVariables(
     templateContent: string,
-  ): Result<string[], ValidationError> {
+  ): Result<string[], DomainError & { message: string }> {
     try {
       const variablePattern = /\{([^}]+)\}/g;
       const variables: string[] = [];
@@ -223,7 +226,12 @@ export class TypeScriptTemplateProcessor {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: templateContent,
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to extract template variables: ${
             error instanceof Error ? error.message : String(error)
           }`,

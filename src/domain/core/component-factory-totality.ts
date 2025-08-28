@@ -4,11 +4,7 @@
  */
 
 import type { Result } from "./result.ts";
-import {
-  createProcessingError,
-  createValidationError,
-  type DomainError,
-} from "../shared/errors.ts";
+import { createDomainError, type DomainError } from "./result.ts";
 import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
 // Import domain components
@@ -49,15 +45,18 @@ export class AnalysisDomainConfig {
     externalService?: ExternalAnalysisService;
     prompts?: PromptConfiguration;
     timeout?: number;
-  }): Result<AnalysisDomainConfig, DomainError> {
+  }): Result<AnalysisDomainConfig, DomainError & { message: string }> {
     const timeout = params?.timeout ?? 30000;
 
     if (timeout < 0 || timeout > 600000) {
       return {
         ok: false,
-        error: createValidationError(
-          `Timeout must be between 0 and 600000ms, got ${timeout}`,
-        ),
+        error: createDomainError({
+          kind: "OutOfRange",
+          value: timeout,
+          min: 0,
+          max: 600000,
+        }, `Timeout must be between 0 and 600000ms, got ${timeout}`),
       };
     }
 
@@ -84,7 +83,7 @@ export class TemplateDomainConfig {
   static create(params?: {
     defaultFormat?: string;
     strictMode?: boolean;
-  }): Result<TemplateDomainConfig, DomainError> {
+  }): Result<TemplateDomainConfig, DomainError & { message: string }> {
     const defaultFormat = params?.defaultFormat ?? "json";
     const strictMode = params?.strictMode ?? true;
 
@@ -92,7 +91,12 @@ export class TemplateDomainConfig {
     if (!validFormats.includes(defaultFormat)) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: defaultFormat,
+            expectedFormat: validFormats.join(", "),
+          },
           `Invalid format: ${defaultFormat}. Must be one of: ${
             validFormats.join(", ")
           }`,
@@ -121,16 +125,19 @@ export class PipelineDomainConfig {
     schemaPath?: string;
     cacheEnabled?: boolean;
     maxRetries?: number;
-  }): Result<PipelineDomainConfig, DomainError> {
+  }): Result<PipelineDomainConfig, DomainError & { message: string }> {
     const maxRetries = params?.maxRetries ?? 3;
     const cacheEnabled = params?.cacheEnabled ?? false;
 
     if (maxRetries < 0 || maxRetries > 10) {
       return {
         ok: false,
-        error: createValidationError(
-          `Max retries must be between 0 and 10, got ${maxRetries}`,
-        ),
+        error: createDomainError({
+          kind: "OutOfRange",
+          value: maxRetries,
+          min: 0,
+          max: 10,
+        }, `Max retries must be between 0 and 10, got ${maxRetries}`),
       };
     }
 
@@ -178,8 +185,10 @@ export type ComponentFactoryResult =
  */
 export interface TotalDomainFactory<T extends ComponentDomain> {
   readonly domain: T;
-  createComponents(): Promise<Result<ComponentFactoryResult, DomainError>>;
-  validateDependencies(): Result<true, DomainError>;
+  createComponents(): Promise<
+    Result<ComponentFactoryResult, DomainError & { message: string }>
+  >;
+  validateDependencies(): Result<true, DomainError & { message: string }>;
 }
 
 /**
@@ -196,7 +205,7 @@ export class TotalAnalysisDomainFactory
     this.logger = LoggerFactory.createLogger("analysis-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating analysis domain dependencies");
 
     // All validations passed in smart constructor
@@ -204,7 +213,7 @@ export class TotalAnalysisDomainFactory
   }
 
   async createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating analysis domain components with totality");
 
@@ -246,9 +255,15 @@ export class TotalAnalysisDomainFactory
     } catch (error) {
       return {
         ok: false,
-        error: createProcessingError(
-          `Failed to create analysis components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "analysis component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create analysis components: ${error}`),
       };
     }
   }
@@ -268,13 +283,13 @@ export class TotalTemplateDomainFactory
     this.logger = LoggerFactory.createLogger("template-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating template domain dependencies");
     return { ok: true, data: true };
   }
 
   createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating template domain components with totality");
 
@@ -303,9 +318,15 @@ export class TotalTemplateDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createProcessingError(
-          `Failed to create template components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "template component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create template components: ${error}`),
       });
     }
   }
@@ -325,7 +346,7 @@ export class TotalPipelineDomainFactory
     this.logger = LoggerFactory.createLogger("pipeline-factory-total");
   }
 
-  validateDependencies(): Result<true, DomainError> {
+  validateDependencies(): Result<true, DomainError & { message: string }> {
     this.logger.debug("Validating pipeline domain dependencies");
 
     if (this.domain.config.schemaPath) {
@@ -339,7 +360,7 @@ export class TotalPipelineDomainFactory
   }
 
   createComponents(): Promise<
-    Result<ComponentFactoryResult, DomainError>
+    Result<ComponentFactoryResult, DomainError & { message: string }>
   > {
     this.logger.info("Creating pipeline domain components with totality");
 
@@ -367,9 +388,15 @@ export class TotalPipelineDomainFactory
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createProcessingError(
-          `Failed to create pipeline components: ${error}`,
-        ),
+        error: createDomainError({
+          kind: "ProcessingStageError",
+          stage: "pipeline component creation",
+          error: {
+            kind: "InvalidResponse",
+            service: "component-factory",
+            response: error instanceof Error ? error.message : String(error),
+          },
+        }, `Failed to create pipeline components: ${error}`),
       });
     }
   }
@@ -392,15 +419,17 @@ export class TotalMasterComponentFactory {
    */
   registerFactory(
     factory: TotalDomainFactory<ComponentDomain>,
-  ): Result<true, DomainError> {
+  ): Result<true, DomainError & { message: string }> {
     const key = factory.domain.kind;
 
     if (this.factories.has(key)) {
       return {
         ok: false,
-        error: createValidationError(
-          `Factory for domain '${key}' already registered`,
-        ),
+        error: createDomainError({
+          kind: "InvalidState",
+          expected: "unregistered domain factory",
+          actual: `domain '${key}' already registered`,
+        }, `Factory for domain '${key}' already registered`),
       };
     }
 
@@ -415,15 +444,19 @@ export class TotalMasterComponentFactory {
    */
   createComponents(
     domain: ComponentDomain,
-  ): Promise<Result<ComponentFactoryResult, DomainError>> {
+  ): Promise<
+    Result<ComponentFactoryResult, DomainError & { message: string }>
+  > {
     const factory = this.factories.get(domain.kind);
 
     if (!factory) {
       return Promise.resolve({
         ok: false,
-        error: createValidationError(
-          `No factory registered for domain: ${domain.kind}`,
-        ),
+        error: createDomainError({
+          kind: "NotFound",
+          resource: "factory",
+          name: domain.kind,
+        }, `No factory registered for domain: ${domain.kind}`),
       });
     }
 
@@ -434,7 +467,7 @@ export class TotalMasterComponentFactory {
    * Create all registered components
    */
   async createAllComponents(): Promise<
-    Result<ComponentFactoryResult[], DomainError>
+    Result<ComponentFactoryResult[], DomainError & { message: string }>
   > {
     const results: ComponentFactoryResult[] = [];
 
@@ -467,7 +500,7 @@ export class TotalFactoryBuilder {
    */
   withAnalysisDomain(
     params?: Parameters<typeof AnalysisDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = AnalysisDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -488,7 +521,7 @@ export class TotalFactoryBuilder {
    */
   withTemplateDomain(
     params?: Parameters<typeof TemplateDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = TemplateDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -509,7 +542,7 @@ export class TotalFactoryBuilder {
    */
   withPipelineDomain(
     params?: Parameters<typeof PipelineDomainConfig.create>[0],
-  ): Result<TotalFactoryBuilder, DomainError> {
+  ): Result<TotalFactoryBuilder, DomainError & { message: string }> {
     const configResult = PipelineDomainConfig.create(params);
     if (!configResult.ok) {
       return configResult;
@@ -528,7 +561,10 @@ export class TotalFactoryBuilder {
   /**
    * Build and return the configured master factory
    */
-  build(): Result<TotalMasterComponentFactory, DomainError> {
+  build(): Result<
+    TotalMasterComponentFactory,
+    DomainError & { message: string }
+  > {
     this.logger.info("Building master component factory with totality");
     return { ok: true, data: this.masterFactory };
   }

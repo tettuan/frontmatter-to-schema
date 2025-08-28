@@ -3,11 +3,8 @@
  * Phase 2: Schema mapping phase implementation
  */
 
-import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { FrontMatterData } from "../frontmatter/TypeScriptExtractor.ts";
 
 export interface SchemaProperty {
@@ -36,12 +33,18 @@ export class TypeScriptSchemaMatcher {
    * Phase 2-1: Schema expansion - recursively traverse JSON Schema
    * Expand schema into flat path + type information structure
    */
-  expandSchema(schema: unknown): Result<SchemaProperty[], ValidationError> {
+  expandSchema(
+    schema: unknown,
+  ): Result<SchemaProperty[], DomainError & { message: string }> {
     try {
       if (!schema || typeof schema !== "object") {
         return {
           ok: false,
-          error: createValidationError("Schema must be an object"),
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: typeof schema,
+            expectedFormat: "object",
+          }, "Schema must be an object"),
         };
       }
 
@@ -58,7 +61,12 @@ export class TypeScriptSchemaMatcher {
     } catch (error) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ParseError",
+            input: String(schema),
+            details: error instanceof Error ? error.message : String(error),
+          },
           `Failed to expand schema: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -73,7 +81,7 @@ export class TypeScriptSchemaMatcher {
   mapToSchema(
     frontMatterData: FrontMatterData,
     schema: unknown,
-  ): Result<MappedSchemaData, ValidationError> {
+  ): Result<MappedSchemaData, DomainError & { message: string }> {
     // First expand the schema
     const schemaExpansionResult = this.expandSchema(schema);
     if (!schemaExpansionResult.ok) {

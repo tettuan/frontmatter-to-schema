@@ -16,8 +16,6 @@ import type {
   AIAnalysisResponse,
   AIAnalyzerPort,
 } from "../ports/index.ts";
-import type { APIError } from "../../domain/shared/errors.ts";
-import { createAPIError } from "../../domain/shared/errors.ts";
 
 /**
  * Unified mock analyzer that can act as both AI and Schema analyzer
@@ -34,7 +32,7 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
    */
   async analyze(
     request: AIAnalysisRequest,
-  ): Promise<Result<AIAnalysisResponse, APIError>>;
+  ): Promise<Result<AIAnalysisResponse, DomainError & { message: string }>>;
   async analyze(
     frontMatter: FrontMatter,
     schema: Schema,
@@ -43,7 +41,7 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
     arg1: AIAnalysisRequest | FrontMatter,
     arg2?: Schema,
   ): Promise<
-    | Result<AIAnalysisResponse, APIError>
+    | Result<AIAnalysisResponse, DomainError & { message: string }>
     | Result<ExtractedData, DomainError & { message: string }>
   > {
     // Check if this is an AI analyzer call
@@ -59,14 +57,14 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
    */
   private async analyzeAI(
     request: AIAnalysisRequest,
-  ): Promise<Result<AIAnalysisResponse, APIError>> {
+  ): Promise<Result<AIAnalysisResponse, DomainError & { message: string }>> {
     // Use Promise.resolve to satisfy linter's require-await rule
     return await Promise.resolve(this.doAnalyzeAI(request));
   }
 
   private doAnalyzeAI(
     request: AIAnalysisRequest,
-  ): Result<AIAnalysisResponse, APIError> {
+  ): Result<AIAnalysisResponse, DomainError & { message: string }> {
     try {
       // Parse content if it's JSON
       let parsed: Record<string, unknown>;
@@ -115,7 +113,11 @@ export class MockAnalyzer implements AIAnalyzerPort, SchemaAnalyzer {
     } catch (_error) {
       return {
         ok: false,
-        error: createAPIError(
+        error: createDomainError(
+          {
+            kind: "AIServiceError",
+            service: "mock",
+          },
           _error instanceof Error ? _error.message : "Mock AI analysis failed",
         ),
       };

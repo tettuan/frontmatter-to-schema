@@ -253,7 +253,7 @@ export class DenoDocumentRepository implements DocumentRepository {
         };
       }
 
-      const document = Document.create(
+      const document = Document.createWithFrontMatter(
         path,
         frontMatter,
         documentContentResult.data,

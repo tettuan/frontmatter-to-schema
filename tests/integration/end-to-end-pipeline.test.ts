@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { isError, isOk } from "../../src/domain/shared/types.ts";
+import { isError, isOk } from "../../src/domain/core/result.ts";
 import type { DomainError } from "../../src/domain/core/result.ts";
 import { ProcessDocumentsUseCase } from "../../src/application/use-cases/process-documents.ts";
 import {
@@ -66,7 +66,7 @@ class MockDocumentRepository implements DocumentRepository {
           }
         }
 
-        const document = Document.create(
+        const document = Document.createWithFrontMatter(
           pathResult.data,
           frontMatter,
           contentResult.data,

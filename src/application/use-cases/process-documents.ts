@@ -3,9 +3,10 @@
 import {
   createDomainError,
   type DomainError,
+  isError,
+  isOk,
   type Result,
 } from "../../domain/core/result.ts";
-import { isError, isOk } from "../../domain/shared/types.ts";
 import {
   AnalysisResult,
   type Document,
@@ -592,7 +593,7 @@ export class ProcessDocumentsUseCase {
     const mappedResult = this.templateMapper.map(
       extractedResult.data,
       template,
-      schema.getDefinition().getValue(), // Pass schema for strict structure matching
+      { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
     );
     if (isError(mappedResult)) {
       if (verboseMode) {

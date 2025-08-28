@@ -10,7 +10,7 @@ import {
   SchemaVersion,
   TemplateFormat,
 } from "../../../../src/domain/models/value-objects.ts";
-import { isOk } from "../../../../src/domain/shared/types.ts";
+import { isOk } from "../../../../src/domain/core/result.ts";
 
 Deno.test("DocumentPath - Smart Constructor", async (t) => {
   await t.step("should create valid path", () => {
@@ -152,7 +152,7 @@ Deno.test("ProcessingOptions - Smart Constructor", async (t) => {
     });
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "OutOfRange");
     }
   });
 
@@ -188,7 +188,7 @@ Deno.test("MappingRule - Smart Constructor", async (t) => {
     const result = MappingRule.create("", "target");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -196,7 +196,7 @@ Deno.test("MappingRule - Smart Constructor", async (t) => {
     const result = MappingRule.create("source", "");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "EmptyInput");
     }
   });
 
@@ -230,7 +230,7 @@ Deno.test("ConfigPath - Smart Constructor", async (t) => {
     const result = ConfigPath.create("config/settings.txt");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -280,7 +280,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("1.0");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -288,7 +288,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("v1.0.0");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -296,7 +296,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("2");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
@@ -304,7 +304,7 @@ Deno.test("SchemaVersion - Smart Constructor", async (t) => {
     const result = SchemaVersion.create("invalid-version");
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "ValidationError");
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 });

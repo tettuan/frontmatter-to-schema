@@ -27,7 +27,7 @@ function createMockAnalysisResult(
   const contentResult = DocumentContent.create("Test content");
   assert(pathResult.ok && contentResult.ok);
 
-  const document = Document.create(
+  const document = Document.createWithFrontMatter(
     pathResult.data,
     null, // no frontmatter
     contentResult.data,
