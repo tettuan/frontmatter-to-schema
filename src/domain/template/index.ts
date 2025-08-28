@@ -9,8 +9,8 @@ export { TemplateAggregate } from "./aggregate.ts";
 export type { TemplateApplicationContext } from "./aggregate.ts";
 
 // Repository exports
-export type { TemplateRepository } from "./repository.ts";
-export { TemplatePath } from "./repository.ts";
+export type { TemplateRepository } from "../services/interfaces.ts";
+export { TemplatePath } from "../models/value-objects.ts";
 
 // Event exports
 export {

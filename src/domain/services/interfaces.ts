@@ -170,9 +170,40 @@ export interface SchemaRepository {
 }
 
 export interface TemplateRepository {
+  /**
+   * Load a template by ID (searches common template locations)
+   */
   load(
+    templateId: string,
+  ): Promise<Result<Template, DomainError & { message: string }>>;
+
+  /**
+   * Load a template from a specific path
+   */
+  loadFromPath(
     path: TemplatePath,
   ): Promise<Result<Template, DomainError & { message: string }>>;
+
+  /**
+   * Save a template
+   */
+  save(
+    template: Template,
+  ): Promise<Result<void, DomainError & { message: string }>>;
+
+  /**
+   * Check if a template exists
+   */
+  exists(templateId: string): Promise<boolean>;
+
+  /**
+   * List all available template IDs
+   */
+  list(): Promise<Result<string[], DomainError & { message: string }>>;
+
+  /**
+   * Validate a template
+   */
   validate(
     template: Template,
   ): Result<void, DomainError & { message: string }>;

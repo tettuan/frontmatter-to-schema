@@ -10,7 +10,7 @@ import {
   TemplateAggregate,
   type TemplateApplicationContext,
 } from "./aggregate.ts";
-import type { TemplateRepository } from "./repository.ts";
+import type { TemplateRepository } from "../services/interfaces.ts";
 import {
   AITemplateStrategy,
   CompositeTemplateStrategy,

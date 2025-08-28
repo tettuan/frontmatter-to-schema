@@ -14,9 +14,13 @@ import {
 import { FileTemplateRepository } from "../../../../src/infrastructure/template/file-template-repository.ts";
 import {
   Template,
-  TemplateDefinition,
-} from "../../../../src/domain/models/domain-models.ts";
-import { TemplatePath } from "../../../../src/domain/template/repository.ts";
+  TemplateId,
+} from "../../../../src/domain/models/entities.ts";
+import {
+  TemplateFormat,
+  MappingRule,
+  TemplatePath,
+} from "../../../../src/domain/models/value-objects.ts";
 import type { TemplateFormat as _TemplateFormat } from "../../../../src/domain/template/format-handlers.ts";
 
 // Test data and helpers
@@ -88,6 +92,23 @@ function createValidHandlebarsTemplate(): string {
 {{#each properties}}
 - {{name}}: {{type}}
 {{/each}}`;
+}
+
+// Helper function to create templates with proper entities API
+function createTestTemplate(id: string, format: "json" | "yaml" | "handlebars" | "custom", content: string, description = ""): Template {
+  const templateIdResult = TemplateId.create(id);
+  const templateFormatResult = TemplateFormat.create(format, content);
+  
+  if (!templateIdResult.ok || !templateFormatResult.ok) {
+    throw new Error(`Failed to create template: ${id}`);
+  }
+  
+  return Template.create(
+    templateIdResult.data,
+    templateFormatResult.data,
+    [], // empty mapping rules for test
+    description,
+  );
 }
 
 Deno.test("FileTemplateRepository - Constructor and Configuration", async (t) => {
@@ -185,8 +206,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "test-json");
-    assertEquals(result.data.getDefinition().getFormat(), "json");
+    assertEquals(result.data.getId().getValue(), "test-json");
+    assertEquals(result.data.getFormat().getFormat(), "json");
 
     // Cleanup
     await teardown();
@@ -207,8 +228,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "test-yaml");
-    assertEquals(result.data.getDefinition().getFormat(), "yaml");
+    assertEquals(result.data.getId().getValue(), "test-yaml");
+    assertEquals(result.data.getFormat().getFormat(), "yaml");
 
     // Cleanup
     await teardown();
@@ -226,8 +247,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "test-yml");
-    assertEquals(result.data.getDefinition().getFormat(), "yaml");
+    assertEquals(result.data.getId().getValue(), "test-yml");
+    assertEquals(result.data.getFormat().getFormat(), "yaml");
 
     // Cleanup
     await teardown();
@@ -245,8 +266,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "test-hbs");
-    assertEquals(result.data.getDefinition().getFormat(), "handlebars");
+    assertEquals(result.data.getId().getValue(), "test-hbs");
+    assertEquals(result.data.getFormat().getFormat(), "handlebars");
 
     // Cleanup
     await teardown();
@@ -267,8 +288,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "test-custom");
-    assertEquals(result.data.getDefinition().getFormat(), "custom");
+    assertEquals(result.data.getId().getValue(), "test-custom");
+    assertEquals(result.data.getFormat().getFormat(), "custom");
 
     // Cleanup
     await teardown();
@@ -292,8 +313,8 @@ Deno.test("FileTemplateRepository - Template Loading", async (t) => {
       // Assert
       assert(result.ok);
       assertExists(result.data);
-      assertEquals(result.data.getId(), "multi-ext");
-      assertEquals(result.data.getDefinition().getFormat(), "yaml");
+      assertEquals(result.data.getId().getValue(), "multi-ext");
+      assertEquals(result.data.getFormat().getFormat(), "yaml");
 
       // Cleanup
       await teardown();
@@ -383,7 +404,7 @@ Deno.test("FileTemplateRepository - Direct Path Loading", async (t) => {
     // Assert
     assert(result.ok);
     assertExists(result.data);
-    assertEquals(result.data.getId(), "direct-load");
+    assertEquals(result.data.getId().getValue(), "direct-load");
 
     // Cleanup
     await teardown();
@@ -460,20 +481,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
   await t.step("saves JSON template successfully", async () => {
     // Arrange
     await setup();
-    const definition = TemplateDefinition.create(
-      createValidJsonTemplate(),
-      "json",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "save-json",
-      definition.data,
+      "json",
+      createValidJsonTemplate(),
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const result = await repository.save(template.data);
+    const result = await repository.save(template);
 
     // Assert
     assert(result.ok);
@@ -490,20 +506,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
   await t.step("saves YAML template successfully", async () => {
     // Arrange
     await setup();
-    const definition = TemplateDefinition.create(
-      createValidYamlTemplate(),
-      "yaml",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "save-yaml",
-      definition.data,
+      "yaml",
+      createValidYamlTemplate(),
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const result = await repository.save(template.data);
+    const result = await repository.save(template);
 
     // Assert
     assert(result.ok);
@@ -520,20 +531,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
   await t.step("saves Handlebars template successfully", async () => {
     // Arrange
     await setup();
-    const definition = TemplateDefinition.create(
-      createValidHandlebarsTemplate(),
-      "handlebars",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "save-hbs",
-      definition.data,
+      "handlebars",
+      createValidHandlebarsTemplate(),
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const result = await repository.save(template.data);
+    const result = await repository.save(template);
 
     // Assert
     assert(result.ok);
@@ -551,17 +557,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
     // Arrange
     await setup();
     const customContent = "Custom template: {{value}}";
-    const definition = TemplateDefinition.create(customContent, "custom");
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "save-custom",
-      definition.data,
+      "custom",
+      customContent,
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const result = await repository.save(template.data);
+    const result = await repository.save(template);
 
     // Assert
     assert(result.ok);
@@ -578,20 +582,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
   await t.step("updates template cache after save", async () => {
     // Arrange
     await setup();
-    const definition = TemplateDefinition.create(
-      createValidJsonTemplate(),
-      "json",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "cache-test",
-      definition.data,
+      "json",
+      createValidJsonTemplate(),
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const saveResult = await repository.save(template.data);
+    const saveResult = await repository.save(template);
     assert(saveResult.ok);
 
     // Load from cache (should not read file again)
@@ -599,7 +598,7 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
 
     // Assert
     assert(loadResult.ok);
-    assertEquals(loadResult.data.getId(), "cache-test");
+    assertEquals(loadResult.data.getId().getValue(), "cache-test");
 
     // Cleanup
     await teardown();
@@ -612,20 +611,15 @@ Deno.test("FileTemplateRepository - Template Saving", async (t) => {
     const invalidRepo = new FileTemplateRepository(
       "/invalid/path/that/does/not/exist",
     );
-    const definition = TemplateDefinition.create(
-      createValidJsonTemplate(),
-      "json",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "error-test",
-      definition.data,
+      "json",
+      createValidJsonTemplate(),
       "Test template",
     );
-    assert(template.ok);
 
     // Act
-    const result = await invalidRepo.save(template.data);
+    const result = await invalidRepo.save(template);
 
     // Assert
     assert(!result.ok);
@@ -978,20 +972,15 @@ Deno.test("FileTemplateRepository - Integration Tests", async (t) => {
   await t.step("full workflow: save, load, exists, list", async () => {
     // Arrange
     await setup();
-    const definition = TemplateDefinition.create(
-      createValidJsonTemplate(),
-      "json",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "workflow-test",
-      definition.data,
+      "json",
+      createValidJsonTemplate(),
       "Integration test",
     );
-    assert(template.ok);
 
     // Act & Assert - Save
-    const saveResult = await repository.save(template.data);
+    const saveResult = await repository.save(template);
     assert(saveResult.ok);
 
     // Act & Assert - Exists
@@ -1001,7 +990,7 @@ Deno.test("FileTemplateRepository - Integration Tests", async (t) => {
     // Act & Assert - Load
     const loadResult = await repository.load("workflow-test");
     assert(loadResult.ok);
-    assertEquals(loadResult.data.getId(), "workflow-test");
+    assertEquals(loadResult.data.getId().getValue(), "workflow-test");
 
     // Act & Assert - List
     const listResult = await repository.list();
@@ -1020,18 +1009,13 @@ Deno.test("FileTemplateRepository - Integration Tests", async (t) => {
 
     // Act - Concurrent saves
     for (let i = 0; i < 5; i++) {
-      const definition = TemplateDefinition.create(
-        createValidJsonTemplate(),
-        "json",
-      );
-      assert(definition.ok);
-      const template = Template.create(
+      const template = createTestTemplate(
         `concurrent-${i}`,
-        definition.data,
+        "json",
+        createValidJsonTemplate(),
         `Template ${i}`,
       );
-      assert(template.ok);
-      promises.push(repository.save(template.data));
+        promises.push(repository.save(template));
     }
 
     const saveResults = await Promise.all(promises);
@@ -1094,30 +1078,28 @@ Deno.test("FileTemplateRepository - Integration Tests", async (t) => {
         description: "Content with emojis 🚀 and\nnewlines\tand tabs",
         unicode: "🌟 ⭐ ✨",
       });
-      const definition = TemplateDefinition.create(specialContent, "json");
-      assert(definition.ok);
-      const template = Template.create(
+      const template = createTestTemplate(
         "special-chars",
-        definition.data,
+        "json",
+        specialContent,
         "Special chars template",
       );
-      assert(template.ok);
-
+  
       // Act
-      const saveResult = await repository.save(template.data);
+      const saveResult = await repository.save(template);
       assert(saveResult.ok);
 
       const loadResult = await repository.load("special-chars");
 
       // Assert
       assert(loadResult.ok);
-      assertEquals(loadResult.data.getId(), "special-chars");
+      assertEquals(loadResult.data.getId().getValue(), "special-chars");
       assertStringIncludes(
-        loadResult.data.getDefinition().getDefinition(),
+        loadResult.data.getFormat().getTemplate(),
         "特殊文字",
       );
       assertStringIncludes(
-        loadResult.data.getDefinition().getDefinition(),
+        loadResult.data.getFormat().getTemplate(),
         "🚀",
       );
 
@@ -1143,29 +1125,24 @@ Deno.test("FileTemplateRepository - Integration Tests", async (t) => {
       };
     }
 
-    const definition = TemplateDefinition.create(
-      JSON.stringify(largeContent),
-      "json",
-    );
-    assert(definition.ok);
-    const template = Template.create(
+    const template = createTestTemplate(
       "large-template",
-      definition.data,
+      "json",
+      JSON.stringify(largeContent),
       "Large template",
     );
-    assert(template.ok);
 
     // Act
-    const saveResult = await repository.save(template.data);
+    const saveResult = await repository.save(template);
     assert(saveResult.ok);
 
     const loadResult = await repository.load("large-template");
 
     // Assert
     assert(loadResult.ok);
-    assertEquals(loadResult.data.getId(), "large-template");
+    assertEquals(loadResult.data.getId().getValue(), "large-template");
     assertStringIncludes(
-      loadResult.data.getDefinition().getDefinition(),
+      loadResult.data.getFormat().getTemplate(),
       "prop999",
     );
 

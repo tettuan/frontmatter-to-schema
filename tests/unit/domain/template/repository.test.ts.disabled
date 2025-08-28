@@ -8,8 +8,29 @@ import { TemplatePath } from "../../../../src/domain/template/repository.ts";
 import { FileTemplateRepository } from "../../../../src/infrastructure/template/file-template-repository.ts";
 import {
   Template,
-  TemplateDefinition,
-} from "../../../../src/domain/models/domain-models.ts";
+  TemplateId,
+} from "../../../../src/domain/models/entities.ts";
+import {
+  TemplateFormat,
+  MappingRule,
+} from "../../../../src/domain/models/value-objects.ts";
+
+// Helper function to create templates with proper entities API
+function createTestTemplate(id: string, format: "json" | "yaml" | "handlebars" | "custom", content: string, description = ""): Template {
+  const templateIdResult = TemplateId.create(id);
+  const templateFormatResult = TemplateFormat.create(format, content);
+  
+  if (!templateIdResult.ok || !templateFormatResult.ok) {
+    throw new Error(`Failed to create template: ${id}`);
+  }
+  
+  return Template.create(
+    templateIdResult.data,
+    templateFormatResult.data,
+    [], // empty mapping rules for test
+    description,
+  );
+}
 
 Deno.test("TemplatePath - Smart Constructor Tests", async (t) => {
   await t.step("should create valid template paths", () => {
@@ -102,31 +123,23 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
   const repo = new FileTemplateRepository(testDir);
 
   await t.step("should save and load templates", async () => {
-    const templateDef = TemplateDefinition.create(
-      JSON.stringify({ test: "{{value}}" }),
-      "json",
-    );
-
-    if (templateDef.ok) {
-      const template = Template.create(
+      const template = createTestTemplate(
         "save-load-test",
-        templateDef.data,
+        "json",
+        JSON.stringify({ test: "{{value}}" }),
         "Test template",
       );
-      if (template.ok) {
         // Save template
-        const saveResult = await repo.save(template.data);
+        const saveResult = await repo.save(template);
         assertEquals(saveResult.ok, true, "Should save template successfully");
 
         // Load template
         const loadResult = await repo.load("save-load-test");
         assertEquals(loadResult.ok, true, "Should load template successfully");
         if (loadResult.ok) {
-          assertEquals(loadResult.data.getId(), "save-load-test");
-          assertEquals(loadResult.data.getDefinition().getFormat(), "json");
+          assertEquals(loadResult.data.getId().getValue(), "save-load-test");
+          assertEquals(loadResult.data.getFormat().getFormat(), "json");
         }
-      }
-    }
   });
 
   await t.step("should handle non-existent templates", async () => {
@@ -139,27 +152,23 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
   });
 
   await t.step("should check template existence", async () => {
-    const templateDef = TemplateDefinition.create("test", "yaml");
-    if (templateDef.ok) {
-      const template = Template.create(
+      const template = createTestTemplate(
         "exists-test",
-        templateDef.data,
+        "yaml",
+        "test",
         "Exists test",
       );
-      if (template.ok) {
-        await repo.save(template.data);
+      await repo.save(template);
 
-        const exists1 = await repo.exists("exists-test");
-        assertEquals(exists1, true, "Should exist after saving");
+      const exists1 = await repo.exists("exists-test");
+      assertEquals(exists1, true, "Should exist after saving");
 
-        const exists2 = await repo.exists("does-not-exist");
-        assertEquals(
-          exists2,
-          false,
-          "Should not exist for non-existent template",
-        );
-      }
-    }
+      const exists2 = await repo.exists("does-not-exist");
+      assertEquals(
+        exists2,
+        false,
+        "Should not exist for non-existent template",
+      );
   });
 
   await t.step("should list all templates", async () => {
@@ -232,7 +241,7 @@ Deno.test("FileTemplateRepository - Repository Pattern Tests", async (t) => {
       if (def.ok) {
         const template = Template.create(id, def.data, `${format} template`);
         if (template.ok) {
-          const saveResult = await repo.save(template.data);
+          const saveResult = await repo.save(template);
           assertEquals(saveResult.ok, true, `Should save ${format} template`);
 
           const loadResult = await repo.load(id);
@@ -339,7 +348,7 @@ Deno.test("Repository Pattern - Abstraction Tests", async (t) => {
     if (templateDef.ok) {
       const template = Template.create("test", templateDef.data, "test");
       if (template.ok) {
-        const saveResult = await repo.save(template.data);
+        const saveResult = await repo.save(template);
         assertExists(saveResult.ok, "save should return Result");
       }
     }
