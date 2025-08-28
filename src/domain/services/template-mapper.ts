@@ -499,7 +499,8 @@ export class TemplateMapper {
             kind: "ExtractionStrategyFailed",
             strategy: "information_extraction",
             input: frontMatter,
-            message: `Stage 1 failed: ${extractionResult.error.message}`,
+            // Note: DomainError doesn't always have message, using error type information instead
+            message: `Stage 1 failed: ${extractionResult.error.kind}`, // Use error kind for consistent reporting
           } as DomainError & { message: string },
         };
       }
@@ -517,7 +518,8 @@ export class TemplateMapper {
             kind: "TemplateMappingFailed",
             template: template,
             source: frontMatter,
-            message: `Stage 2 failed: ${mappingResult.error.message}`,
+            // Note: DomainError doesn't always have message, using error type information instead
+            message: `Stage 2 failed: ${mappingResult.error.kind}`, // Use error kind for consistent reporting
           } as DomainError & { message: string },
         };
       }

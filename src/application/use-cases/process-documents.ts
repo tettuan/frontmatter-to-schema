@@ -10,6 +10,7 @@ import {
 import {
   AnalysisResult,
   type Document,
+  ExtractedData,
   type Schema,
   type Template,
 } from "../../domain/models/entities.ts";
@@ -555,16 +556,45 @@ export class ProcessDocumentsUseCase {
     }
 
     // Try new orchestrator approach first, fallback to legacy if not configured
-    const mappedResult = await this.templateMapper.mapWithOrchestrator(
+    const orchestratorResult = await this.templateMapper.mapWithOrchestrator(
       frontMatter.getContent(),
       schema,
       template,
     );
 
+    // Check orchestrator result
+    if (!isError(orchestratorResult)) {
+      // Orchestrator succeeded - create analysis result directly
+      if (verboseMode) {
+        const verboseLogger = LoggerFactory.createLogger(
+          "process-documents-helper",
+        );
+        verboseLogger.info("Orchestrator processing completed successfully", {
+          document: docPath,
+        });
+      }
+
+      // For orchestrator success, we need to extract data for the analysis result
+      // Since orchestrator returns MappedData directly, we need to create a dummy ExtractedData
+      // This is a temporary solution until we refactor the analysis result structure
+      const dummyExtractedData = ExtractedData.create(
+        frontMatter.getContent().getValue() as unknown as Record<
+          string,
+          unknown
+        >,
+      );
+      const analysisResult = AnalysisResult.create(
+        document,
+        dummyExtractedData,
+        orchestratorResult.data,
+      );
+      return { ok: true, data: analysisResult };
+    }
+
     // Check if orchestrator is available, if not fallback to legacy processing
     if (
-      isError(mappedResult) &&
-      (mappedResult.error as { message?: string }).message?.includes(
+      isError(orchestratorResult) &&
+      (orchestratorResult.error as { message?: string }).message?.includes(
         "not configured",
       )
     ) {
@@ -633,7 +663,7 @@ export class ProcessDocumentsUseCase {
       const legacyMappedResult = this.templateMapper.map(
         extractedResult.data,
         template,
-        schema.getDefinition().getValue(), // Pass schema for strict structure matching
+        { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
       );
       if (isError(legacyMappedResult)) {
         if (verboseMode) {
@@ -665,64 +695,16 @@ export class ProcessDocumentsUseCase {
       return { ok: true, data: analysisResult };
     }
 
-    // Map to template
+    // If we reach here, orchestrator failed with a different error
     if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
+      const errorLogger = LoggerFactory.createLogger(
         "process-documents-helper",
       );
-      verboseLogger.info("Mapping to template", { document: docPath });
-    }
-    const mappedResult = this.templateMapper.map(
-      extractedResult.data,
-      template,
-      { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
-    );
-    if (isError(mappedResult)) {
-      if (verboseMode) {
-        const errorLogger = LoggerFactory.createLogger(
-          "process-documents-helper",
-        );
-        errorLogger.error("Orchestrated processing failed", {
-          document: docPath,
-          error: mappedResult.error,
-        });
-      }
-      return {
-        ok: false,
-        error: mappedResult.error as DomainError & { message: string },
-      };
-    }
-
-    if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
-        "process-documents-helper",
-      );
-      verboseLogger.info("2-stage orchestrated processing completed", {
+      errorLogger.error("Orchestrator processing failed", {
         document: docPath,
+        error: orchestratorResult.error,
       });
     }
-
-    // Create analysis result (orchestrator approach)
-    // Note: For orchestrator approach, we need to create a dummy ExtractedData
-    // since the orchestrator handles both stages internally
-    // For orchestrator approach, the extracted data step is internal, so we create a minimal placeholder
-    const { ExtractedData } = await import("../../domain/models/entities.ts");
-    const dummyExtractedData = ExtractedData.create({});
-    const analysisResult = AnalysisResult.create(
-      document,
-      dummyExtractedData, // Dummy extracted data for orchestrator approach
-      mappedResult.data,
-    );
-
-    if (verboseMode) {
-      const verboseLogger = LoggerFactory.createLogger(
-        "process-documents-helper",
-      );
-      verboseLogger.info("Document processing completed", {
-        document: docPath,
-      });
-    }
-
-    return { ok: true, data: analysisResult };
+    return orchestratorResult; // Return the orchestrator error
   }
 }

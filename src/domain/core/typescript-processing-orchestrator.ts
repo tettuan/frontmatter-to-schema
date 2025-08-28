@@ -9,10 +9,7 @@
  */
 
 import type { Result } from "../core/result.ts";
-import {
-  createValidationError,
-  type ValidationError,
-} from "../shared/errors.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { Schema, Template } from "../models/entities.ts";
 import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
@@ -30,11 +27,14 @@ export class ExtractedInfo {
   static create(
     rawData: unknown,
     metadata: ExtractionMetadata,
-  ): Result<ExtractedInfo, ValidationError> {
+  ): Result<ExtractedInfo, DomainError> {
     if (!rawData || typeof rawData !== "object") {
       return {
         ok: false,
-        error: createValidationError("Extracted data must be an object"),
+        error: createDomainError(
+          { kind: "EmptyInput", field: "data" },
+          "Extracted data must be an object",
+        ),
       };
     }
 
@@ -68,11 +68,14 @@ export class StructuredData {
     content: string,
     templateName: string,
     metadata: StructuringMetadata,
-  ): Result<StructuredData, ValidationError> {
+  ): Result<StructuredData, DomainError> {
     if (!content || content.trim() === "") {
       return {
         ok: false,
-        error: createValidationError("Structured content cannot be empty"),
+        error: createDomainError(
+          { kind: "EmptyInput", field: "content" },
+          "Structured content cannot be empty",
+        ),
       };
     }
 
@@ -132,7 +135,7 @@ export class TypeScriptAnalysisOrchestrator {
   async extractInformation(
     frontMatter: FrontMatterContent,
     schema: Schema,
-  ): Promise<Result<ExtractedInfo, ValidationError>> {
+  ): Promise<Result<ExtractedInfo, DomainError>> {
     try {
       // Extract schema definition and version from Schema entity
       const schemaDefinition = schema.getDefinition();
@@ -156,7 +159,15 @@ export class TypeScriptAnalysisOrchestrator {
       if (!result.ok) {
         return {
           ok: false,
-          error: createValidationError(
+          error: createDomainError(
+            {
+              kind: "ProcessingStageError",
+              stage: "information_extraction",
+              error: {
+                kind: "AIServiceError",
+                service: "ai-analyzer",
+              },
+            },
             `Stage 1 (Information extraction) failed: ${result.error.message}`,
           ),
         };
@@ -175,7 +186,16 @@ export class TypeScriptAnalysisOrchestrator {
     } catch (e) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ProcessingStageError",
+            stage: "information_extraction",
+            error: {
+              kind: "InvalidResponse",
+              service: "ai-analyzer",
+              response: `Parse error: ${e}`,
+            },
+          },
           `Stage 1 failed to parse extraction result: ${e}`,
         ),
       };
@@ -191,7 +211,7 @@ export class TypeScriptAnalysisOrchestrator {
     extractedInfo: ExtractedInfo,
     schema: Schema,
     template: Template,
-  ): Promise<Result<StructuredData, ValidationError>> {
+  ): Promise<Result<StructuredData, DomainError>> {
     try {
       // Extract schema definition from Schema entity
       const schemaDefinition = schema.getDefinition();
@@ -216,7 +236,15 @@ export class TypeScriptAnalysisOrchestrator {
       if (!result.ok) {
         return {
           ok: false,
-          error: createValidationError(
+          error: createDomainError(
+            {
+              kind: "ProcessingStageError",
+              stage: "template_mapping",
+              error: {
+                kind: "AIServiceError",
+                service: "ai-analyzer",
+              },
+            },
             `Stage 2 (Template mapping) failed: ${result.error.message}`,
           ),
         };
@@ -239,7 +267,16 @@ export class TypeScriptAnalysisOrchestrator {
     } catch (e) {
       return {
         ok: false,
-        error: createValidationError(
+        error: createDomainError(
+          {
+            kind: "ProcessingStageError",
+            stage: "template_mapping",
+            error: {
+              kind: "InvalidResponse",
+              service: "ai-analyzer",
+              response: `Processing error: ${e}`,
+            },
+          },
           `Stage 2 failed to process template mapping: ${e}`,
         ),
       };
@@ -253,7 +290,7 @@ export class TypeScriptAnalysisOrchestrator {
     frontMatter: FrontMatterContent,
     schema: Schema,
     template: Template,
-  ): Promise<Result<StructuredData, ValidationError>> {
+  ): Promise<Result<StructuredData, DomainError>> {
     // Stage 1: Information extraction
     const extractionResult = await this.extractInformation(frontMatter, schema);
     if (!extractionResult.ok) {
