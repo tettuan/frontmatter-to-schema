@@ -33,6 +33,8 @@ import type {
   TemplatePath,
 } from "../models/value-objects.ts";
 
+// Totality-compliant configuration types are re-exported below
+
 /**
  * Discriminated Union Types
  * These types represent different states of processing results following the totality principle
@@ -226,6 +228,11 @@ export interface ConfigurationRepository {
 }
 
 // Configuration types
+/**
+ * @deprecated Use TotalityProcessingConfig from configuration-totality.ts instead
+ * This interface violates totality principles with optional properties in options
+ * Migration: Use ProcessingModeFactory and DocumentProcessingRequest.create()
+ */
 export interface ProcessingConfiguration {
   documentsPath: DocumentPath;
   schemaPath: ConfigPath;
@@ -238,6 +245,11 @@ export interface ProcessingConfiguration {
   };
 }
 
+/**
+ * @deprecated Use AIProviderConfig and PromptConfig from configuration-totality.ts instead
+ * This interface violates totality principles with multiple optional properties
+ * Migration: Use AIProviderConfigFactory and PromptConfigFactory
+ */
 export interface AnalysisConfiguration {
   promptsPath?: ConfigPath;
   extractionPrompt?: string;
@@ -250,6 +262,28 @@ export interface AnalysisConfiguration {
     temperature?: number;
   };
 }
+
+/**
+ * Totality-compliant configuration interfaces
+ * These replace the deprecated interfaces above
+ */
+
+// Re-export totality-compliant types for convenience
+export type {
+  AIProviderConfig,
+  DocumentProcessingRequest,
+  ProcessingConfiguration as TotalityProcessingConfig,
+  ProcessingMode,
+  PromptConfig,
+} from "../models/configuration-totality.ts";
+
+// Re-export factory classes for configuration creation
+export {
+  AIProviderConfigFactory,
+  ConfigurationMigrationAdapter,
+  ProcessingModeFactory,
+  PromptConfigFactory,
+} from "../models/configuration-totality.ts";
 
 // Domain event interfaces (for future event sourcing)
 export interface DomainEvent {
