@@ -17,6 +17,81 @@ import type { FrontMatter } from "../models/entities.ts";
 import type { AnalysisResult } from "../models/entities.ts";
 
 /**
+ * Command data structure following Totality principles
+ * Flexible interface to support different command data formats
+ */
+export interface CommandData {
+  readonly c1?: string; // Configuration parameter
+  // Optional registry-style properties
+  readonly version?: string;
+  readonly description?: string;
+  readonly tools?: {
+    readonly availableConfigs: readonly string[];
+  };
+  // Optional simple-style properties
+  readonly name?: string;
+}
+
+/**
+ * Type guard to validate and normalize CommandData structure
+ */
+export function isCommandData(obj: unknown): obj is CommandData {
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+
+  const data = obj as Record<string, unknown>;
+
+  // c1 must be string if present
+  if (data.c1 !== undefined && typeof data.c1 !== "string") {
+    return false;
+  }
+
+  // Check for RegistryCommand structure (has version and tools)
+  if (data.version !== undefined || data.tools !== undefined) {
+    return (
+      (data.version === undefined || typeof data.version === "string") &&
+      (data.description === undefined ||
+        typeof data.description === "string") &&
+      (data.tools === undefined || (
+        typeof data.tools === "object" &&
+        data.tools !== null &&
+        Array.isArray((data.tools as Record<string, unknown>).availableConfigs)
+      ))
+    );
+  }
+
+  // Check for SimpleCommand structure (has name)
+  if (data.name !== undefined) {
+    if (typeof data.name !== "string") return false;
+    if (
+      data.description !== undefined && typeof data.description !== "string"
+    ) return false;
+    return true;
+  }
+
+  // Check for description-only command
+  if (data.description !== undefined) {
+    return typeof data.description === "string";
+  }
+
+  // At minimum must be an object with valid optional fields
+  return true;
+}
+
+/**
+ * Registry data object interface following Totality principles
+ */
+export interface RegistryDataObject {
+  readonly version: string;
+  readonly description: string;
+  readonly tools: {
+    readonly availableConfigs: readonly string[];
+    readonly commands: readonly CommandData[];
+  };
+}
+
+/**
  * Registry data structure discriminated union
  */
 export type RegistryStructure =
@@ -37,7 +112,7 @@ export interface RegistryTools {
  */
 export class Command {
   private constructor(
-    private readonly data: Record<string, unknown>,
+    private readonly data: CommandData,
     private readonly config?: string,
   ) {}
 
@@ -45,25 +120,25 @@ export class Command {
     frontMatter: FrontMatter,
   ): Result<Command, DomainError> {
     try {
-      const data = frontMatter.toObject();
+      const rawData = frontMatter.toObject();
 
-      if (typeof data !== "object" || data === null) {
+      if (!isCommandData(rawData)) {
         return {
           ok: false,
           error: createDomainError({
             kind: "InvalidFormat",
-            input: String(data),
-            expectedFormat: "object",
-          }, "FrontMatter data must be an object"),
+            input: JSON.stringify(rawData),
+            expectedFormat:
+              "CommandData structure with version, description, and tools",
+          }, "FrontMatter must contain valid command data structure"),
         };
       }
 
-      const objectData = data as Record<string, unknown>;
-      const config = "c1" in objectData ? String(objectData.c1) : undefined;
+      const config = rawData.c1;
 
       return {
         ok: true,
-        data: new Command(objectData, config),
+        data: new Command(rawData, config),
       };
     } catch (error) {
       return {
@@ -81,10 +156,22 @@ export class Command {
   }
 
   static fromObject(
-    data: Record<string, unknown>,
+    data: unknown,
   ): Result<Command, DomainError> {
     try {
-      const config = "c1" in data ? String(data.c1) : undefined;
+      if (!isCommandData(data)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: JSON.stringify(data),
+            expectedFormat:
+              "CommandData structure with version, description, and tools",
+          }, "Object must contain valid command data structure"),
+        };
+      }
+
+      const config = data.c1;
       return {
         ok: true,
         data: new Command(data, config),
@@ -95,13 +182,13 @@ export class Command {
         error: createDomainError({
           kind: "InvalidFormat",
           input: JSON.stringify(data),
-          expectedFormat: "valid object",
+          expectedFormat: "valid CommandData object",
         }, `Failed to create command from object: ${error}`),
       };
     }
   }
 
-  getData(): Record<string, unknown> {
+  getData(): CommandData {
     return { ...this.data };
   }
 
@@ -176,7 +263,7 @@ export class RegistryData {
     };
   }
 
-  toObject(): Record<string, unknown> {
+  toObject(): RegistryDataObject {
     return {
       version: this.version,
       description: this.description,
@@ -325,9 +412,7 @@ export class RegistryAggregationService {
         const commands: Command[] = [];
         for (const item of structure.data) {
           if (typeof item === "object" && item !== null) {
-            const commandResult = Command.fromObject(
-              item as Record<string, unknown>,
-            );
+            const commandResult = Command.fromObject(item);
             if (commandResult.ok) {
               commands.push(commandResult.data);
             }
