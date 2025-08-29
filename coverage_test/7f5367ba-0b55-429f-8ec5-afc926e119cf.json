@@ -1,0 +1,54 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/use-cases/build-registry-use-case.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7890, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 413, "endOffset": 462, "count": 13 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "BuildRegistryUseCase",
+      "ranges": [{ "startOffset": 466, "endOffset": 657, "count": 13 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 660, "endOffset": 5050, "count": 11 },
+        { "startOffset": 890, "endOffset": 1067, "count": 10 },
+        { "startOffset": 1067, "endOffset": 4733, "count": 14 },
+        { "startOffset": 1258, "endOffset": 1394, "count": 1 },
+        { "startOffset": 1394, "endOffset": 1528, "count": 13 },
+        { "startOffset": 1528, "endOffset": 1598, "count": 0 },
+        { "startOffset": 1609, "endOffset": 2239, "count": 13 },
+        { "startOffset": 1748, "endOffset": 1791, "count": 12 },
+        { "startOffset": 1791, "endOffset": 2055, "count": 11 },
+        { "startOffset": 2055, "endOffset": 2204, "count": 1 },
+        { "startOffset": 2204, "endOffset": 2239, "count": 12 },
+        { "startOffset": 2250, "endOffset": 4249, "count": 0 },
+        { "startOffset": 4260, "endOffset": 4513, "count": 0 },
+        { "startOffset": 4532, "endOffset": 4727, "count": 1 },
+        { "startOffset": 4692, "endOffset": 4707, "count": 0 },
+        { "startOffset": 4733, "endOffset": 4833, "count": 10 },
+        { "startOffset": 4833, "endOffset": 5049, "count": 9 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createDefaultCliSchema",
+      "ranges": [{ "startOffset": 5193, "endOffset": 6815, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "convertFrontMatterSafely",
+      "ranges": [{ "startOffset": 6981, "endOffset": 7887, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

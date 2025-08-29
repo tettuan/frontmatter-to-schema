@@ -1,0 +1,71 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/frontmatter-extractor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 5414, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractFrontmatterToSchema",
+      "ranges": [
+        { "startOffset": 398, "endOffset": 2689, "count": 18 },
+        { "startOffset": 611, "endOffset": 651, "count": 8 },
+        { "startOffset": 653, "endOffset": 1023, "count": 7 },
+        { "startOffset": 737, "endOffset": 1019, "count": 6 },
+        { "startOffset": 812, "endOffset": 964, "count": 2 },
+        { "startOffset": 909, "endOffset": 956, "count": 1 },
+        { "startOffset": 964, "endOffset": 1013, "count": 4 },
+        { "startOffset": 1100, "endOffset": 1144, "count": 6 },
+        { "startOffset": 1146, "endOffset": 1293, "count": 6 },
+        { "startOffset": 1242, "endOffset": 1289, "count": 5 },
+        { "startOffset": 1358, "endOffset": 1396, "count": 7 },
+        { "startOffset": 1398, "endOffset": 2670, "count": 7 },
+        { "startOffset": 1466, "endOffset": 2666, "count": 6 },
+        { "startOffset": 1641, "endOffset": 1680, "count": 4 },
+        { "startOffset": 1682, "endOffset": 2413, "count": 4 },
+        { "startOffset": 1844, "endOffset": 2284, "count": 13 },
+        { "startOffset": 1890, "endOffset": 2272, "count": 8 },
+        { "startOffset": 2061, "endOffset": 2192, "count": 3 },
+        { "startOffset": 2112, "endOffset": 2176, "count": 2 },
+        { "startOffset": 2192, "endOffset": 2258, "count": 5 },
+        { "startOffset": 2324, "endOffset": 2395, "count": 3 },
+        { "startOffset": 2484, "endOffset": 2515, "count": 2 },
+        { "startOffset": 2517, "endOffset": 2660, "count": 2 },
+        { "startOffset": 2597, "endOffset": 2652, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseFrontmatterAndExtract",
+      "ranges": [
+        { "startOffset": 2910, "endOffset": 3470, "count": 4 },
+        { "startOffset": 3158, "endOffset": 3406, "count": 13 },
+        { "startOffset": 3224, "endOffset": 3402, "count": 9 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractAccordingToSchema",
+      "ranges": [
+        { "startOffset": 3732, "endOffset": 5413, "count": 9 },
+        { "startOffset": 4006, "endOffset": 4129, "count": 8 },
+        { "startOffset": 4297, "endOffset": 5394, "count": 16 },
+        { "startOffset": 4332, "endOffset": 4341, "count": 1 },
+        { "startOffset": 4341, "endOffset": 4555, "count": 15 },
+        { "startOffset": 4555, "endOffset": 4616, "count": 8 },
+        { "startOffset": 4616, "endOffset": 5390, "count": 7 },
+        { "startOffset": 4713, "endOffset": 5384, "count": 6 },
+        { "startOffset": 4757, "endOffset": 4782, "count": 1 },
+        { "startOffset": 4784, "endOffset": 5201, "count": 1 },
+        { "startOffset": 5080, "endOffset": 5138, "count": 2 },
+        { "startOffset": 5201, "endOffset": 5376, "count": 5 },
+        { "startOffset": 5241, "endOffset": 5288, "count": 1 },
+        { "startOffset": 5288, "endOffset": 5376, "count": 4 },
+        { "startOffset": 5329, "endOffset": 5376, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}
