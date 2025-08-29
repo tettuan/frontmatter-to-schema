@@ -251,7 +251,7 @@ class MockTemplateRepository implements TemplateRepository {
     return Promise.resolve({ ok: true, data: undefined });
   }
 
-  exists(templateId: string): Promise<boolean> {
+  exists(_templateId: string): Promise<boolean> {
     return Promise.resolve(this.mockTemplate !== undefined);
   }
 
@@ -413,7 +413,7 @@ class MockTemplateMapper implements TemplateMapper {
   map(
     data: ExtractedData,
     template: Template,
-    schemaMode: SchemaValidationMode,
+    _schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }> {
     if (this.shouldFail) {
       return {
