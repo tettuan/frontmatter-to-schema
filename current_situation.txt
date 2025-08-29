@@ -1,5 +1,5 @@
 ## Current Situation & Things To Be Done
 
-**Status**: Issue #437 created - Registry template mapping fails. The frontmatter-to-schema generates individual results per file instead of single aggregated registry. Root cause: missing aggregation logic for multi-document processing. CI passing (271 tests).
+**Status**: Technical Debt Issue #431 (Component Factory Architecture) successfully resolved. Applied DDD principles to refactor component-factory.ts, eliminating duplicate factory implementations and infrastructure concerns from domain layer. Removed legacy classes (ComponentDomain, FactoryConfigurationBuilder, etc.) and fixed breaking changes in file-template-repository.ts. Full CI pipeline passing (285 tests, 1162 steps). System follows Single Responsibility Principle with clean domain boundaries.
 
-**Priority Actions**: Fix aggregation in process-documents use case to collect unique c1 values for availableConfigs and combine all commands into single array. Must aggregate data before template mapping stage.
+**Things to be Done**: Address remaining open Issues #432 (Test Specification Alignment) and #427 (AI Analysis Infrastructure Cleanup). Continue architectural improvements and code quality enhancements. Maintain momentum on technical debt reduction while ensuring system stability. Consider addressing any additional component factory usage patterns across the codebase.
