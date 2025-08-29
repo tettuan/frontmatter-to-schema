@@ -1,0 +1,59 @@
+{
+  "scriptId": "337",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/prompt-models.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 521, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 28, "endOffset": 43, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PromptFile",
+      "ranges": [{ "startOffset": 47, "endOffset": 128, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get filename",
+      "ranges": [
+        { "startOffset": 131, "endOffset": 196, "count": 28 },
+        { "startOffset": 186, "endOffset": 191, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get hasContent",
+      "ranges": [{ "startOffset": 199, "endOffset": 257, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 288, "endOffset": 298, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "add",
+      "ranges": [{ "startOffset": 302, "endOffset": 344, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getAll",
+      "ranges": [{ "startOffset": 347, "endOffset": 401, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get count",
+      "ranges": [{ "startOffset": 404, "endOffset": 451, "count": 10 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "filter",
+      "ranges": [{ "startOffset": 454, "endOffset": 518, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

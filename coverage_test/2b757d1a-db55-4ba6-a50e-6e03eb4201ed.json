@@ -1,0 +1,154 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/domain-models.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3723, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 146, "endOffset": 166, "count": 32 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaDefinition",
+      "ranges": [{ "startOffset": 170, "endOffset": 266, "count": 32 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 276, "endOffset": 831, "count": 38 },
+        { "startOffset": 326, "endOffset": 463, "count": 2 },
+        { "startOffset": 463, "endOffset": 503, "count": 36 },
+        { "startOffset": 503, "endOffset": 525, "count": 33 },
+        { "startOffset": 526, "endOffset": 554, "count": 33 },
+        { "startOffset": 556, "endOffset": 738, "count": 4 },
+        { "startOffset": 738, "endOffset": 830, "count": 32 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDefinition",
+      "ranges": [{ "startOffset": 834, "endOffset": 883, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 886, "endOffset": 927, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validate",
+      "ranges": [
+        { "startOffset": 930, "endOffset": 1354, "count": 21 },
+        { "startOffset": 1017, "endOffset": 1038, "count": 19 },
+        { "startOffset": 1040, "endOffset": 1171, "count": 4 },
+        { "startOffset": 1171, "endOffset": 1353, "count": 17 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1381, "endOffset": 1412, "count": 18 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "Schema",
+      "ranges": [{ "startOffset": 1416, "endOffset": 1549, "count": 18 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 1559, "endOffset": 1864, "count": 20 },
+        { "startOffset": 1609, "endOffset": 1634, "count": 19 },
+        { "startOffset": 1636, "endOffset": 1765, "count": 2 },
+        { "startOffset": 1765, "endOffset": 1863, "count": 18 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getId",
+      "ranges": [{ "startOffset": 1867, "endOffset": 1900, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDefinition",
+      "ranges": [{ "startOffset": 1903, "endOffset": 1952, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 1955, "endOffset": 2006, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 2009, "endOffset": 2072, "count": 12 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2111, "endOffset": 2131, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateDefinition",
+      "ranges": [{ "startOffset": 2135, "endOffset": 2231, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 2241, "endOffset": 2564, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDefinition",
+      "ranges": [{ "startOffset": 2567, "endOffset": 2616, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 2619, "endOffset": 2660, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2689, "endOffset": 2720, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "Template",
+      "ranges": [{ "startOffset": 2724, "endOffset": 2857, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 2867, "endOffset": 3174, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getId",
+      "ranges": [{ "startOffset": 3177, "endOffset": 3210, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDefinition",
+      "ranges": [{ "startOffset": 3213, "endOffset": 3262, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 3265, "endOffset": 3316, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "render",
+      "ranges": [{ "startOffset": 3319, "endOffset": 3720, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

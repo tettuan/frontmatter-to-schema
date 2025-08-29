@@ -1,0 +1,15 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/unit/main.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 0, "endOffset": 747, "count": 1 },
+        { "startOffset": 346, "endOffset": 623, "count": 3 },
+        { "startOffset": 626, "endOffset": 746, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

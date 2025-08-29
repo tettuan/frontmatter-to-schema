@@ -1,0 +1,122 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/structured-aggregator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6861, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 410, "endOffset": 452, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AggregatedStructure",
+      "ranges": [{ "startOffset": 456, "endOffset": 622, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 632, "endOffset": 1124, "count": 11 },
+        { "startOffset": 700, "endOffset": 732, "count": 10 },
+        { "startOffset": 733, "endOffset": 760, "count": 10 },
+        { "startOffset": 762, "endOffset": 1008, "count": 2 },
+        { "startOffset": 1008, "endOffset": 1123, "count": 9 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getStructure",
+      "ranges": [{ "startOffset": 1127, "endOffset": 1191, "count": 8 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getStrategy",
+      "ranges": [{ "startOffset": 1194, "endOffset": 1239, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getTemplateStructure",
+      "ranges": [{ "startOffset": 1242, "endOffset": 1305, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "StructuredAggregator",
+      "ranges": [{ "startOffset": 1444, "endOffset": 1459, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1531, "endOffset": 1620, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeTemplateStructure",
+      "ranges": [
+        { "startOffset": 1699, "endOffset": 3085, "count": 5 },
+        { "startOffset": 1973, "endOffset": 2028, "count": 4 },
+        { "startOffset": 2028, "endOffset": 2314, "count": 1 },
+        { "startOffset": 2314, "endOffset": 2370, "count": 3 },
+        { "startOffset": 2371, "endOffset": 2395, "count": 3 },
+        { "startOffset": 2397, "endOffset": 2681, "count": 1 },
+        { "startOffset": 2681, "endOffset": 2815, "count": 2 },
+        { "startOffset": 2815, "endOffset": 3081, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "aggregate",
+      "ranges": [
+        { "startOffset": 3168, "endOffset": 4284, "count": 8 },
+        { "startOffset": 3248, "endOffset": 3441, "count": 1 },
+        { "startOffset": 3441, "endOffset": 3616, "count": 7 },
+        { "startOffset": 3616, "endOffset": 3943, "count": 9 },
+        { "startOffset": 3790, "endOffset": 3842, "count": 0 },
+        { "startOffset": 3943, "endOffset": 4032, "count": 7 },
+        { "startOffset": 4032, "endOffset": 4280, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeObjectStructure",
+      "ranges": [
+        { "startOffset": 4360, "endOffset": 5063, "count": 3 },
+        { "startOffset": 4531, "endOffset": 4946, "count": 11 },
+        { "startOffset": 4565, "endOffset": 4605, "count": 3 },
+        { "startOffset": 4605, "endOffset": 4940, "count": 8 },
+        { "startOffset": 4641, "endOffset": 4658, "count": 1 },
+        { "startOffset": 4660, "endOffset": 4737, "count": 1 },
+        { "startOffset": 4737, "endOffset": 4940, "count": 7 },
+        { "startOffset": 4773, "endOffset": 4796, "count": 6 },
+        { "startOffset": 4798, "endOffset": 4893, "count": 5 },
+        { "startOffset": 4893, "endOffset": 4940, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mergeIntoStructure",
+      "ranges": [
+        { "startOffset": 5134, "endOffset": 6716, "count": 10 },
+        { "startOffset": 5340, "endOffset": 5662, "count": 7 },
+        { "startOffset": 5419, "endOffset": 5465, "count": 5 },
+        { "startOffset": 5511, "endOffset": 5578, "count": 5 },
+        { "startOffset": 5578, "endOffset": 5648, "count": 2 },
+        { "startOffset": 5762, "endOffset": 6273, "count": 14 },
+        { "startOffset": 5850, "endOffset": 5977, "count": 8 },
+        { "startOffset": 5988, "endOffset": 6008, "count": 4 },
+        { "startOffset": 6019, "endOffset": 6249, "count": 6 },
+        { "startOffset": 6160, "endOffset": 6230, "count": 4 },
+        { "startOffset": 6408, "endOffset": 6693, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isAggregatedStructure",
+      "ranges": [{ "startOffset": 6772, "endOffset": 6860, "count": 5 }],
+      "isBlockCoverage": true
+    }
+  ]
+}
