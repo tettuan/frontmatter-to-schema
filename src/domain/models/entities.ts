@@ -18,6 +18,11 @@ export type DocumentFrontMatterState =
   | { kind: "WithFrontMatter"; frontMatter: FrontMatter }
   | { kind: "NoFrontMatter" };
 
+// Discriminated union for document frontmatter state following totality principle
+export type DocumentFrontMatterState =
+  | { kind: "WithFrontMatter"; frontMatter: FrontMatter }
+  | { kind: "NoFrontMatter" };
+
 // ID value objects
 export class DocumentId {
   private constructor(private readonly value: string) {}
