@@ -277,12 +277,14 @@ Deno.test("CLI: Template mapper fallback implementation", () => {
     return {
       map: (
         data: { getData: () => unknown },
-        template: { applyRules?: (data: unknown) => unknown },
+        template: {
+          applyRules?: (data: unknown, mode: { kind: string }) => unknown;
+        },
       ) => {
         try {
           // Simplified mapping logic
           const mappedResult = template.applyRules
-            ? template.applyRules(data.getData())
+            ? template.applyRules(data.getData(), { kind: "SimpleMapping" })
             : data.getData();
 
           return {
@@ -312,7 +314,7 @@ Deno.test("CLI: Template mapper fallback implementation", () => {
   };
 
   const mockTemplate = {
-    applyRules: (data: unknown) => ({
+    applyRules: (data: unknown, _mode: { kind: string }) => ({
       result: (data as { test: string }).test,
     }),
   };
@@ -322,7 +324,7 @@ Deno.test("CLI: Template mapper fallback implementation", () => {
 
   // Test error handling
   const errorTemplate = {
-    applyRules: () => {
+    applyRules: (_data: unknown, _mode: { kind: string }) => {
       throw new Error("Template error");
     },
   };

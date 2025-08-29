@@ -1,0 +1,532 @@
+{
+  "results": [
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Execute integration test suite",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "コードベースをもとに、ドメイン境界線を引く。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "ドメイン境界情報などを元に、ドメイン設計を行う。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "ドメイン境界情報をもとに、中心概念について、設計を行う。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Analyze specification quality and completeness",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Analyze project dependencies and their relationships",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "要求をブレイクダウンし構造化する",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Analyze specification quality and completeness metrics",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "渡された内容に相応しい climpt-* を構築し、示す。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Climpt 実行可能コマンドの一覧作成",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Generate documentation from code comments and structure",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "testを強固に構築する",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "強固で堅牢なテスト構築指示書",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "APIを強固に構築する",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Test",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "git branch の新規立ち上げ判断と、新ブランチ作成",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "現存のPRとブランチをリスト化して、次に作業する対象を選ぶ",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Git関連ブランチ探索とマージ処理実行",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "問題点をまとめ、次の修正指示をGitのIssueへ登録する",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "mergeされていないブランチを全てdevelopへ統合し、マージ後に削除。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "意味的近さでコミットを分けて実施する",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Analyze git commit history and generate insights",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Create a refinement issue from requirements documentation",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Climpt Command Registry",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Climpt Command Registry",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "ドメイン駆動設計と全域性（Totality）に基づくリファクタリング",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Create a refinement issue from requirements documentation",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    }
+  ]
+}

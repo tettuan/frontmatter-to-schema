@@ -260,8 +260,26 @@ Examples:
       map: (data: ExtractedData, template: Template) => {
         try {
           // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData());
-          const mappedData = MappedData.create(mappedResult);
+          const mappedResult = template.applyRules(data.getData(), {
+            kind: "SimpleMapping",
+          });
+
+          if (!mappedResult.ok) {
+            return {
+              ok: false as const,
+              error: createProcessingStageError(
+                "template mapping",
+                {
+                  kind: "TemplateMappingFailed",
+                  template: template.getId().getValue(),
+                  source: data.getData(),
+                },
+                mappedResult.error.message,
+              ),
+            };
+          }
+
+          const mappedData = MappedData.create(mappedResult.data);
           return { ok: true as const, data: mappedData };
         } catch (error) {
           return {

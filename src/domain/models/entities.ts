@@ -2,6 +2,7 @@
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type {
   DocumentContent,
   DocumentPath,
@@ -12,11 +13,42 @@ import type {
   TemplateFormat,
 } from "./value-objects.ts";
 import { StrictStructureMatcher } from "./strict-structure-matcher.ts";
+import { PropertyPath, PropertyPathNavigator } from "./property-path.ts";
 
 // Discriminated union for document frontmatter state following totality principle
 export type DocumentFrontMatterState =
   | { kind: "WithFrontMatter"; frontMatter: FrontMatter }
   | { kind: "NoFrontMatter" };
+
+// Discriminated union for template application modes following totality principle
+export type TemplateApplicationMode =
+  | {
+    kind: "WithStructuralValidation";
+    schemaData: unknown;
+    templateStructure: unknown;
+  }
+  | { kind: "SimpleMapping" };
+
+// Discriminated union for validated data following totality principle
+export type ValidatedData<T = unknown> =
+  | {
+    kind: "Valid";
+    data: T;
+    metadata: ValidationMetadata;
+  }
+  | {
+    kind: "PartiallyValid";
+    validData: Partial<T>;
+    invalidFields: Array<{ field: string; error: string }>;
+    metadata: ValidationMetadata;
+  };
+
+// Validation metadata
+export interface ValidationMetadata {
+  schemaId: string;
+  schemaVersion: string;
+  validatedAt: Date;
+}
 
 // ID value objects
 export class DocumentId {
@@ -182,7 +214,40 @@ export class Document {
     return this.frontMatterState;
   }
 
-  // Convenience method for backward compatibility
+  /**
+   * Get front matter as a Result type following totality principle
+   * This method eliminates null returns and provides explicit error handling
+   */
+  getFrontMatterResult(): Result<FrontMatter, DomainError> {
+    switch (this.frontMatterState.kind) {
+      case "WithFrontMatter":
+        return { ok: true, data: this.frontMatterState.frontMatter };
+      case "NoFrontMatter":
+        return {
+          ok: false,
+          error: {
+            kind: "NoFrontMatterPresent",
+          } as DomainError,
+        };
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = this.frontMatterState;
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidState",
+            expected: "WithFrontMatter or NoFrontMatter",
+            actual: String(_exhaustiveCheck),
+          } as DomainError,
+        };
+      }
+    }
+  }
+
+  /**
+   * @deprecated Use getFrontMatterResult() instead for totality compliance
+   * This method will be removed in a future version
+   */
   getFrontMatter(): FrontMatter | null {
     switch (this.frontMatterState.kind) {
       case "WithFrontMatter":
@@ -267,24 +332,66 @@ export class Schema {
     return this.description;
   }
 
-  validate(data: unknown): Result<void, DomainError> {
+  /**
+   * Validate data against schema and return typed, validated data
+   * Following totality principle - returns validated data instead of void
+   */
+  validate<T = unknown>(data: unknown): Result<ValidatedData<T>, DomainError> {
     const result = this.definition.validate(data);
+    if (result.ok) {
+      // Return validated data with metadata
+      return {
+        ok: true,
+        data: {
+          kind: "Valid",
+          data: data as T,
+          metadata: {
+            schemaId: this.id.getValue(),
+            schemaVersion: this.version.toString(),
+            validatedAt: new Date(),
+          },
+        },
+      };
+    }
+
+    // Return validation failure with partial data if possible
+    return {
+      ok: false,
+      error: result.error,
+    };
+  }
+
+  /**
+   * @deprecated Use validate() instead for typed data returns
+   * This method will be removed in a future version
+   */
+  validateLegacy(data: unknown): Result<void, DomainError> {
+    const result = this.validate(data);
     if (result.ok) {
       return { ok: true, data: undefined };
     }
-
-    // The result from definition.validate is already a DomainError
     return { ok: false, error: result.error };
   }
 }
 
 export class Template {
+  private readonly pathNavigator: PropertyPathNavigator;
+
   constructor(
     private readonly id: TemplateId,
     private readonly format: TemplateFormat,
     private readonly mappingRules: MappingRule[],
     private readonly description: string,
-  ) {}
+  ) {
+    // Initialize PropertyPathNavigator service
+    const navigatorResult = PropertyPathNavigator.create();
+    if (!navigatorResult.ok) {
+      throw new Error(
+        `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
+      );
+    }
+    this.pathNavigator = navigatorResult.data;
+  }
 
   static create(
     id: TemplateId,
@@ -313,27 +420,46 @@ export class Template {
 
   applyRules(
     data: Record<string, unknown>,
-    schemaData?: unknown,
-    templateStructure?: unknown,
-  ): Record<string, unknown> {
+    mode: TemplateApplicationMode,
+  ): Result<Record<string, unknown>, DomainError & { message: string }> {
     // If strict structure validation is required, perform it first
-    if (schemaData && templateStructure) {
-      const alignmentResult = StrictStructureMatcher
-        .validateStructuralAlignment(
-          data,
-          schemaData,
-          templateStructure,
-        );
+    switch (mode.kind) {
+      case "WithStructuralValidation": {
+        const alignmentResult = StrictStructureMatcher
+          .validateStructuralAlignment(
+            data,
+            mode.schemaData,
+            mode.templateStructure,
+          );
 
-      if (!alignmentResult.ok) {
-        // Return empty object if structures don't match exactly
-        return {};
+        if (!alignmentResult.ok) {
+          // Return error if structures don't match exactly
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "TemplateMappingFailed",
+              template: mode.templateStructure,
+              source: mode.schemaData,
+            }, "Data structure does not align with template structure"),
+          };
+        }
+        break;
+      }
+      case "SimpleMapping":
+        // No structural validation needed
+        break;
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = mode;
+        throw new Error(
+          `Unhandled template application mode: ${String(_exhaustiveCheck)}`,
+        );
       }
     }
 
     // If no mapping rules are defined, return the data as-is only if structure validation passed
     if (this.mappingRules.length === 0) {
-      return data;
+      return { ok: true, data };
     }
 
     const result: Record<string, unknown> = {};
@@ -345,37 +471,113 @@ export class Template {
 
       // Only set value if it exists in the source data (no fallbacks or defaults)
       if (value !== undefined) {
-        this.setValueByPath(result, target, value);
+        const setResult = this.setValueByPath(result, target, value);
+        if (!setResult.ok) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "TemplateMappingFailed",
+                template: target,
+                source: data,
+              },
+              `Failed to set value at path '${target}': ${setResult.error.message}`,
+            ),
+          };
+        }
       }
     }
 
-    return result;
+    return { ok: true, data: result };
   }
 
+  /**
+   * @deprecated Use applyRules(data, mode) with TemplateApplicationMode instead
+   * This method will be removed in a future version
+   */
+  applyRulesLegacy(
+    data: Record<string, unknown>,
+    schemaData?: unknown,
+    templateStructure?: unknown,
+  ): Record<string, unknown> {
+    const mode: TemplateApplicationMode = (schemaData && templateStructure)
+      ? { kind: "WithStructuralValidation", schemaData, templateStructure }
+      : { kind: "SimpleMapping" };
+
+    const result = this.applyRules(data, mode);
+    if (!result.ok) {
+      // For backward compatibility, return empty object on error
+      // In future versions, this method should be removed entirely
+      return {};
+    }
+
+    return result.data;
+  }
+
+  /**
+   * Set value by path using PropertyPathNavigator for totality compliance
+   * Returns Result type instead of void to handle all error cases explicitly
+   */
   private setValueByPath(
     obj: Record<string, unknown>,
     path: string,
     value: unknown,
-  ): void {
-    const parts = path.split(".");
-    const last = parts.pop()!;
-
-    let current: Record<string, unknown> = obj as Record<string, unknown>;
-    for (const part of parts) {
-      if (!(part in current)) {
-        current[part] = {};
-      }
-      const next = current[part];
-      if (typeof next === "object" && next !== null && !Array.isArray(next)) {
-        current = next as Record<string, unknown>;
-      } else {
-        // If the path doesn't lead to an object, create one
-        current[part] = {};
-        current = current[part] as Record<string, unknown>;
-      }
+  ): Result<void, DomainError & { message: string }> {
+    // Create PropertyPath with validation
+    const propertyPathResult = PropertyPath.create(path);
+    if (!propertyPathResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: path,
+          expectedFormat: "valid.property.path",
+        }, `Invalid property path: ${propertyPathResult.error.message}`),
+      };
     }
 
-    current[last] = value;
+    // Use PropertyPathNavigator for safe assignment
+    const assignmentResult = this.pathNavigator.assign(
+      obj,
+      propertyPathResult.data,
+      value,
+    );
+
+    if (!assignmentResult.ok) {
+      return assignmentResult;
+    }
+
+    // Handle specific assignment results
+    switch (assignmentResult.data.kind) {
+      case "Success":
+      case "PathCreated":
+        // Both are successful outcomes
+        return { ok: true, data: undefined };
+      case "TypeConflict":
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: assignmentResult.data.existingType,
+              expectedFormat: "object",
+            },
+            `Type conflict at path segment '${assignmentResult.data.conflictSegment}': expected object, got ${assignmentResult.data.existingType}`,
+          ),
+        };
+      default: {
+        // Exhaustive check - TypeScript will error if we miss a case
+        const _exhaustiveCheck: never = assignmentResult.data;
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidState",
+            expected: "Success, PathCreated, or TypeConflict",
+            actual: String(_exhaustiveCheck),
+          }, `Unhandled assignment result: ${String(_exhaustiveCheck)}`),
+        };
+      }
+    }
   }
 }
 
@@ -528,96 +730,17 @@ export class AggregatedResult {
   }
 
   /**
-   * Legacy method for backward compatibility - simple array wrapping
-   * @deprecated Use StructuredAggregator + OutputFormatter for proper template array processing
+   * Get output formatted as string using domain services
+   * @deprecated Use domain services directly for proper separation of concerns
    */
   toOutput(): string {
+    // Simple fallback for backward compatibility
+    // In practice, callers should use RegistryAggregationService + OutputFormatter
     const data = this.results.map((r) => r.getMappedData().getData());
 
     if (this.format === "json") {
-      // Check if this is a registry structure with tools.commands array
-      if (data.length > 0 && data[0] && typeof data[0] === "object") {
-        const firstItem = data[0] as Record<string, unknown>;
-
-        // Check if this looks like a registry structure with version/tools
-        if ("version" in firstItem && "tools" in firstItem) {
-          // This is the problematic case - each doc was mapped to full registry structure
-          // We need to extract the original frontmatter data from each result
-          const registry: Record<string, unknown> = {
-            version: "1.0.0",
-            description: "Command Registry from frontmatter documents",
-            tools: {
-              availableConfigs: [],
-              commands: [],
-            },
-          };
-
-          // Collect unique c1 values and commands from ORIGINAL extracted data
-          const c1Values = new Set<string>();
-          const commands: Record<string, unknown>[] = [];
-
-          // Process each result using the RAW frontmatter data
-          for (const result of this.results) {
-            const document = result.getDocument();
-            const frontMatter = document.getFrontMatter();
-
-            if (frontMatter) {
-              const frontMatterData = frontMatter.toObject();
-
-              if (
-                typeof frontMatterData === "object" && frontMatterData !== null
-              ) {
-                // Add the raw frontmatter data as a command
-                commands.push(frontMatterData as Record<string, unknown>);
-
-                // Collect c1 value if present
-                if ("c1" in frontMatterData) {
-                  c1Values.add(String(frontMatterData.c1));
-                }
-              }
-            }
-          }
-
-          // Set availableConfigs from unique c1 values
-          (registry.tools as Record<string, unknown>).availableConfigs = Array
-            .from(c1Values);
-          (registry.tools as Record<string, unknown[]>).commands = commands;
-
-          return JSON.stringify(registry, null, 2);
-        } else if ("c1" in firstItem) {
-          // This looks like individual commands, wrap them in registry structure
-          const registry: Record<string, unknown> = {
-            version: "1.0.0",
-            description: "Command Registry",
-            tools: {
-              availableConfigs: [],
-              commands: [],
-            },
-          };
-
-          // Collect unique c1 values
-          const c1Values = new Set<string>();
-
-          // Add all items as commands
-          for (const item of data) {
-            if (typeof item === "object" && item !== null && "c1" in item) {
-              (registry.tools as Record<string, unknown[]>).commands.push(item);
-              c1Values.add(String((item as Record<string, unknown>).c1));
-            }
-          }
-
-          // Set availableConfigs from unique c1 values
-          (registry.tools as Record<string, unknown>).availableConfigs = Array
-            .from(c1Values);
-
-          return JSON.stringify(registry, null, 2);
-        }
-      }
-
-      // Default behavior for non-registry structures
       return JSON.stringify({ results: data }, null, 2);
     } else {
-      // Simplified YAML - would use proper YAML library
       return `results:\n${data.map((d) => this.objectToYAML(d, 1)).join("\n")}`;
     }
   }
