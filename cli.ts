@@ -18,7 +18,6 @@ import { join } from "jsr:@std/path@1.1.2";
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
-import { MockSchemaAnalyzer } from "./src/infrastructure/adapters/mock-analyzer.ts";
 import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
@@ -285,6 +284,24 @@ export async function main() {
           };
         }
       },
+      async mapWithOrchestrator(
+        _frontMatter: unknown,
+        _schema: unknown,
+        _template: unknown,
+      ) {
+        // Fallback to legacy behavior - orchestrator not configured
+        return await Promise.resolve({
+          ok: false as const,
+          error: createDomainError(
+            {
+              kind: "ReadError",
+              path: "orchestrator",
+              details: "TypeScriptAnalysisOrchestrator not configured",
+            },
+            "TypeScriptAnalysisOrchestrator not configured",
+          ),
+        });
+      },
     };
     const resultAggregator = new ResultAggregatorImpl("json");
     if (verboseMode) {
@@ -297,7 +314,7 @@ export async function main() {
     if (verboseMode) {
       logger.debug("Loading prompt templates");
     }
-    const prompts = await loadPromptTemplates();
+    const _prompts = await loadPromptTemplates();
     if (verboseMode) {
       logger.debug("Prompt templates loaded successfully");
     }
@@ -306,16 +323,10 @@ export async function main() {
       Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
     }
 
-    const useMock =
-      Deno.env.get("FRONTMATTER_TO_SCHEMA_TEST_MODE") === "true" ||
-      Deno.env.get("FRONTMATTER_TEST_MODE") === "true"; // backward compatibility
-    const schemaAnalyzer = useMock
-      ? new MockSchemaAnalyzer(
-        { aiProvider: "mock", aiConfig: {} },
-        prompts.extraction,
-        prompts.mapping,
-      )
-      : createTypeScriptAnalyzer("1.0.0", "Climpt Command Registry");
+    const schemaAnalyzer = createTypeScriptAnalyzer(
+      "1.0.0",
+      "Climpt Command Registry",
+    );
 
     // Create use case
     if (debugMode) {

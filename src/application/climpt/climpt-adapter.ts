@@ -15,11 +15,9 @@ import type {
   FileSystemPort,
 } from "../../infrastructure/ports/index.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
-import { LoggerFactory } from "../../domain/shared/logger.ts";
-import {
-  ComponentDomain,
-  FactoryConfigurationBuilder,
-} from "../../domain/core/component-factory.ts";
+import type { Logger } from "../../domain/shared/logger.ts";
+import type { LoggerProvider } from "../../domain/core/logging-service.ts";
+// Removed complex factory imports - using direct creation instead
 import {
   FrontMatterAnalysisPipeline,
   type FrontMatterInput,
@@ -312,6 +310,15 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<
   ClimptRegistrySchema,
   ClimptRegistrySchema
 > {
+  constructor(
+    config: FrontMatterPipelineConfig<
+      ClimptRegistrySchema,
+      ClimptRegistrySchema
+    >,
+    private readonly loggerProvider?: LoggerProvider,
+  ) {
+    super(config);
+  }
   async processAndSave(
     promptsDir: string,
     outputPath: string,
@@ -407,7 +414,15 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<
       errors?: string[];
     };
 
-    const logger = LoggerFactory.createLogger("climpt-summary");
+    const logger = this.loggerProvider?.getLogger("climpt-summary") ??
+      // Fallback for backward compatibility
+      {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      } as Logger;
+
     logger.info("Processing summary", {
       totalFiles: summaryObj.totalFiles ?? "N/A",
       processedFiles: summaryObj.processedFiles ?? "N/A",
@@ -436,6 +451,7 @@ export class ClimptPipelineFactory {
     templatePath?: string,
     extractPromptPath?: string,
     mapPromptPath?: string,
+    loggerProvider?: LoggerProvider,
   ): Promise<ClimptAnalysisPipeline> {
     // Initialize services and providers
     const claudeService = new ClaudeCLIService();
@@ -454,22 +470,7 @@ export class ClimptPipelineFactory {
       configProvider.getPrompts(),
     ]);
 
-    // Create analysis processor using unified factory
-    const masterFactory = new FactoryConfigurationBuilder()
-      .withAnalysisDomain({ externalService: claudeService, prompts })
-      .withTemplateDomain()
-      .build();
-
-    // Get analysis components from unified factory
-    const analysisComponents = masterFactory.createDomainComponents(
-      ComponentDomain.Analysis,
-    );
-
-    // Components are created by the factory but we'll use the SchemaAnalysisFactory directly
-    // for consistent processor creation
-    const _analysisComponents = analysisComponents;
-
-    // Create proper SchemaAnalysisProcessor
+    // Direct processor creation - simpler and more direct than factory pattern
     const analysisProcessor = SchemaAnalysisFactory.createProcessor(
       claudeService,
       prompts,
@@ -490,59 +491,12 @@ export class ClimptPipelineFactory {
     };
 
     // Create ClimptAnalysisPipeline with the unified configuration
-    return new ClimptAnalysisPipeline(config);
+    return new ClimptAnalysisPipeline(config, loggerProvider);
   }
 
   static async createDefault(): Promise<ClimptAnalysisPipeline> {
     return await this.create();
   }
 
-  /**
-   * Create with unified factory components pre-configured
-   */
-  static async createWithUnifiedFactory(
-    masterFactory: {
-      createDomainComponents(domain: string): unknown;
-    },
-    schemaPath?: string,
-    templatePath?: string,
-  ): Promise<ClimptAnalysisPipeline> {
-    const claudeService = new ClaudeCLIService();
-    const fileSystem = new DenoFileSystemProvider();
-    const configProvider = new ClimptConfigurationProvider(
-      schemaPath,
-      templatePath,
-    );
-
-    const [schema, template, prompts] = await Promise.all([
-      configProvider.getSchema(),
-      configProvider.getTemplate(),
-      configProvider.getPrompts(),
-    ]);
-
-    // Use pre-configured components from master factory
-    const _analysisComponents = masterFactory.createDomainComponents(
-      ComponentDomain.Analysis,
-    );
-
-    const analysisProcessor = SchemaAnalysisFactory.createProcessor(
-      claudeService,
-      prompts,
-      schema,
-      template,
-    );
-
-    const config: FrontMatterPipelineConfig<
-      ClimptRegistrySchema,
-      ClimptRegistrySchema
-    > = {
-      schema,
-      template,
-      prompts,
-      fileSystem,
-      analysisProcessor,
-    };
-
-    return new ClimptAnalysisPipeline(config);
-  }
+  // Removed createWithUnifiedFactory method - deprecated factory pattern eliminated
 }

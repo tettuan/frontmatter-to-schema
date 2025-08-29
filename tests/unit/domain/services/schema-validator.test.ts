@@ -4,7 +4,7 @@ import {
   Schema,
   SchemaDefinition,
 } from "../../../../src/domain/models/domain-models.ts";
-import { isOk } from "../../../../src/domain/core/result.ts";
+import { isOk } from "../../../../src/domain/index.ts";
 
 Deno.test("SchemaValidator", async (t) => {
   const validator = new SchemaValidator();

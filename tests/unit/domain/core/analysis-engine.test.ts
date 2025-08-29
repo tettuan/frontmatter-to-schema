@@ -1,6 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  type AnalysisEngine,
   type AnalysisStrategy,
   ContextualAnalysisProcessor,
   FrontMatterExtractionStrategy,
@@ -9,10 +8,7 @@ import {
   RobustTemplateMapper,
   SchemaMappingStrategy,
 } from "../../../../src/domain/core/analysis-engine.ts";
-import {
-  ComponentDomain,
-  FactoryConfigurationBuilder,
-} from "../../../../src/domain/core/component-factory.ts";
+// Removed factory imports - testing direct component creation instead
 import type { AnalysisContext } from "../../../../src/domain/core/types.ts";
 import {
   FrontMatterContent,
@@ -489,41 +485,8 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
   );
 });
 
-Deno.test("AnalysisDomainFactory via FactoryConfigurationBuilder", async (t) => {
-  await t.step("should create default components", () => {
-    const factory = FactoryConfigurationBuilder.createDefault();
-    const components = factory.createDomainComponents(
-      ComponentDomain.Analysis,
-    ) as {
-      engine: AnalysisEngine;
-      processor: ContextualAnalysisProcessor;
-    };
-
-    assertEquals(components.engine instanceof GenericAnalysisEngine, true);
-    assertEquals(
-      components.processor instanceof ContextualAnalysisProcessor,
-      true,
-    );
-  });
-
-  await t.step("should create components with custom configuration", () => {
-    const factory = new FactoryConfigurationBuilder()
-      .withAnalysisDomain()
-      .build();
-    const components = factory.createDomainComponents(
-      ComponentDomain.Analysis,
-    ) as {
-      engine: AnalysisEngine;
-      processor: ContextualAnalysisProcessor;
-    };
-
-    assertEquals(components.engine instanceof GenericAnalysisEngine, true);
-    assertEquals(
-      components.processor instanceof ContextualAnalysisProcessor,
-      true,
-    );
-  });
-});
+// Removed AnalysisDomainFactory test - factory pattern simplified to direct component creation
+// Components are now created directly where needed, eliminating unnecessary abstraction
 
 Deno.test("FrontMatterExtractionStrategy", async (t) => {
   await t.step("should extract frontmatter from markdown content", async () => {
@@ -678,15 +641,15 @@ Deno.test("SchemaMappingStrategy", async (t) => {
 
 Deno.test("Integration: Complete Analysis Workflow", async (t) => {
   await t.step("should perform complete analysis workflow", async () => {
-    // Create components
-    const factory = FactoryConfigurationBuilder.createDefault();
-    const components = factory.createDomainComponents(
-      ComponentDomain.Analysis,
-    ) as {
-      engine: AnalysisEngine;
-      processor: ContextualAnalysisProcessor;
-    };
-    const { engine: _engine, processor } = components;
+    // Create components directly - simpler than factory pattern
+    const engine = new GenericAnalysisEngine();
+    const schemaAnalyzer = new RobustSchemaAnalyzer();
+    const templateMapper = new RobustTemplateMapper();
+    const processor = new ContextualAnalysisProcessor(
+      engine,
+      schemaAnalyzer,
+      templateMapper,
+    );
 
     // Create test data
     const data = createTestFrontMatterContent({
@@ -789,14 +752,15 @@ This is the markdown content.`;
         );
         assertEquals(extractionResult.data.get("published"), true);
 
-        // Process with ContextualAnalysisProcessor
-        const factory = FactoryConfigurationBuilder.createDefault();
-        const components = factory.createDomainComponents(
-          ComponentDomain.Analysis,
-        ) as {
-          processor: ContextualAnalysisProcessor;
-        };
-        const { processor } = components;
+        // Process with ContextualAnalysisProcessor - direct creation
+        const engine = new GenericAnalysisEngine();
+        const schemaAnalyzer = new RobustSchemaAnalyzer();
+        const templateMapper = new RobustTemplateMapper();
+        const processor = new ContextualAnalysisProcessor(
+          engine,
+          schemaAnalyzer,
+          templateMapper,
+        );
         const processResult = await processor.processWithContext(
           extractionResult.data,
           context,

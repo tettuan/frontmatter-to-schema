@@ -1,5 +1,12 @@
 ---
-title:プロジェクト全体の深掘り調査と修正タスク洗い出し
+c1: debug
+c2: analyze-deep
+c3: project-issues
+title: Deep Project Analysis and Issue Identification
+description: Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.
+usage: climpt-debug analyze-deep project-issues -o project_analysis.md
+options:
+  destination: [true]
 ---
 
 # 指示:

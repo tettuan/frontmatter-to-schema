@@ -5,8 +5,8 @@
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { StrictStructureMatcher } from "../../../../src/domain/models/StrictStructureMatcher.ts";
-import type { StructureNode } from "../../../../src/domain/models/StrictStructureMatcher.ts";
+import { StrictStructureMatcher } from "../../../../src/domain/models/strict-structure-matcher.ts";
+import type { StructureNode } from "../../../../src/domain/models/strict-structure-matcher.ts";
 
 Deno.test("StrictStructureMatcher - YAML Structure Analysis", async (t) => {
   await t.step("should analyze null and undefined values", () => {

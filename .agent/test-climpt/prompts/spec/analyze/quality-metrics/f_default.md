@@ -1,7 +1,13 @@
 ---
+c1: spec
+c2: analyze
+c3: quality-metrics
 title: Analyze Specification Quality
 description: Analyze specification quality and completeness metrics
 usage: climpt-spec analyze quality-metrics -f spec.md -o report.json
+options:
+  file: [true]
+  destination: [true]
 ---
 
 # Specification Quality Analysis

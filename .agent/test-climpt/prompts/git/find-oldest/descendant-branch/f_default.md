@@ -1,7 +1,12 @@
 ---
-title: Git関連ブランチ探索とマージ処理実行
-properties:
-  C3L-Version: 0.5
+c1: git
+c2: find-oldest
+c3: descendant-branch
+title: Git Related Branch Discovery and Merge Processing
+description: Discovers related Git branches and executes merge processing based on branch relationships and age.
+usage: climpt-git find-oldest descendant-branch -o merge_plan.md
+options:
+  destination: [true]
 ---
 
 # 指示書:Git関連ブランチ探索とマージ処理実行

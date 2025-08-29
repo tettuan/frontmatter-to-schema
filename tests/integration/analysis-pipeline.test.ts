@@ -1,13 +1,12 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
-  type AnalysisEngine,
-  type ContextualAnalysisProcessor,
+  ContextualAnalysisProcessor as ContextualAnalysisProcessorImpl,
   FrontMatterExtractionStrategy,
+  GenericAnalysisEngine,
+  RobustSchemaAnalyzer,
+  RobustTemplateMapper,
 } from "../../src/domain/core/analysis-engine.ts";
-import {
-  ComponentDomain,
-  FactoryConfigurationBuilder,
-} from "../../src/domain/core/component-factory.ts";
+// Removed factory imports - integration test simplified to use direct component creation
 import type { AnalysisContext } from "../../src/domain/core/types.ts";
 import {
   DocumentPath,
@@ -171,14 +170,15 @@ async function processMarkdownFile(
     throw new Error(`Invalid schema: ${schemaResult.error.kind}`);
   }
 
-  const factory = FactoryConfigurationBuilder.createDefault();
-  const components = factory.createDomainComponents(
-    ComponentDomain.Analysis,
-  ) as {
-    processor: ContextualAnalysisProcessor;
-    engine: AnalysisEngine;
-  };
-  const { processor } = components;
+  // Direct component creation - simpler than factory pattern
+  const engine = new GenericAnalysisEngine();
+  const schemaAnalyzer = new RobustSchemaAnalyzer();
+  const templateMapper = new RobustTemplateMapper();
+  const processor = new ContextualAnalysisProcessorImpl(
+    engine,
+    schemaAnalyzer,
+    templateMapper,
+  );
 
   // Step 5: Schema validation
   const schemaContext: AnalysisContext = {

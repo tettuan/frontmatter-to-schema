@@ -16,7 +16,10 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
-import { LoggerFactory } from "./domain/shared/logger.ts";
+import {
+  defaultLoggingService,
+  LoggingServiceFactory,
+} from "./domain/core/logging-service.ts";
 import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
@@ -56,7 +59,7 @@ import {
   FileWriter,
 } from "./infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
-import { BuildRegistryUseCase } from "./application/use-cases/BuildRegistryUseCase.ts";
+import { BuildRegistryUseCase } from "./application/use-cases/build-registry-use-case.ts";
 
 /**
  * Loads AI prompt templates for schema extraction and mapping
@@ -134,7 +137,7 @@ async function runBuildRegistry() {
 
     const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
 
-    const logger = LoggerFactory.createLogger("registry-builder");
+    const logger = defaultLoggingService.getLogger("registry-builder");
     logger.info("Registry build completed successfully!");
     logger.info("Summary", {
       totalCommands: registry.tools.commands.length,
@@ -142,7 +145,7 @@ async function runBuildRegistry() {
       output: OUTPUT_PATH,
     });
   } catch (error) {
-    const logger = LoggerFactory.createLogger("registry-builder");
+    const logger = defaultLoggingService.getLogger("registry-builder");
     logger.error("Failed to build registry", { error });
     Deno.exit(1);
   }
@@ -164,6 +167,10 @@ async function runBuildRegistry() {
 async function main() {
   // Initialize environment-based configuration
   EnvironmentConfig.initialize();
+
+  // Initialize centralized logging service
+  const loggingService = LoggingServiceFactory.createDevelopmentService();
+  const mainLogger = loggingService.getLogger("main");
 
   const args = parseArgs(Deno.args, {
     string: ["config", "documents", "schema", "template", "output", "format"],
@@ -218,7 +225,7 @@ Examples:
   # Run legacy build registry
   deno run --allow-all src/main.ts --build-registry
 `;
-    const logger = LoggerFactory.createLogger("main-help");
+    const logger = defaultLoggingService.getLogger("main-help");
     logger.info("Displaying help information");
     // Help output to stdout is intentional - not logging
     console.log(helpText);
@@ -245,7 +252,9 @@ Examples:
     // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
     // Note: This is a temporary solution, should be properly injected
     const { MappedData } = await import("./domain/models/entities.ts");
-    const { createDomainError } = await import("./domain/core/result.ts");
+    const { createProcessingStageError } = await import(
+      "./domain/core/result.ts"
+    );
 
     const templateMapper = {
       map: (data: ExtractedData, template: Template) => {
@@ -257,17 +266,14 @@ Examples:
         } catch (error) {
           return {
             ok: false as const,
-            error: createDomainError(
+            error: createProcessingStageError(
+              "template mapping",
               {
-                kind: "ProcessingStageError",
-                stage: "template mapping",
-                error: {
-                  kind: "InvalidResponse",
-                  service: "template",
-                  response: error instanceof Error
-                    ? error.message
-                    : "Template mapping failed",
-                },
+                kind: "InvalidResponse",
+                service: "template",
+                response: error instanceof Error
+                  ? error.message
+                  : "Template mapping failed",
               },
               error instanceof Error
                 ? error.message
@@ -289,8 +295,7 @@ Examples:
       // Load from config file
       const configPathResult = ConfigPath.create(args.config);
       if (!configPathResult.ok) {
-        const logger = LoggerFactory.createLogger("main");
-        logger.error("Configuration path error", {
+        mainLogger.error("Configuration path error", {
           error: configPathResult.error.message,
         });
         Deno.exit(1);
@@ -300,7 +305,7 @@ Examples:
         configPathResult.data,
       );
       if (!configResult.ok) {
-        const logger = LoggerFactory.createLogger("main-config");
+        const logger = defaultLoggingService.getLogger("main-config");
         logger.error("Error loading config", {
           error: configResult.error.message,
         });
@@ -334,7 +339,7 @@ Examples:
         !documentsPathResult.ok || !schemaPathResult.ok ||
         !templatePathResult.ok || !outputPathResult.ok
       ) {
-        const logger = LoggerFactory.createLogger("main-args");
+        const logger = defaultLoggingService.getLogger("main-args");
         logger.error("Invalid path arguments provided");
         Deno.exit(1);
       }
@@ -359,30 +364,16 @@ Examples:
     // Load prompt templates
     const _prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer
-    let schemaAnalyzer;
-    const useMock = Deno.env.get("FRONTMATTER_USE_MOCK") === "true";
-
-    if (useMock) {
-      const { MockSchemaAnalyzer } = await import(
-        "./infrastructure/adapters/mock-analyzer.ts"
-      );
-      schemaAnalyzer = new MockSchemaAnalyzer();
-      const logger = LoggerFactory.createLogger("main-analyzer");
-      logger.info("Using mock analyzer", {
-        reason: "test mode enabled",
-      });
-    } else {
-      // Use Mock implementation for now
-      const { MockSchemaAnalyzer } = await import(
-        "./infrastructure/adapters/mock-analyzer.ts"
-      );
-      schemaAnalyzer = new MockSchemaAnalyzer();
-      const logger = LoggerFactory.createLogger("main-analyzer");
-      logger.info("Using mock analyzer", {
-        reason: "Default implementation",
-      });
-    }
+    // Initialize schema analyzer using TypeScript analyzer
+    const { createTypeScriptAnalyzer } = await import(
+      "./domain/analyzers/typescript-analyzer.ts"
+    );
+    const schemaAnalyzer = createTypeScriptAnalyzer(
+      "1.0.0",
+      "Main Application",
+    );
+    const analyzerLogger = defaultLoggingService.getLogger("main-analyzer");
+    analyzerLogger.info("Using TypeScript analyzer");
 
     // Create use case
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
@@ -397,7 +388,7 @@ Examples:
     );
 
     // Execute processing
-    const logger = LoggerFactory.createLogger("main-processing");
+    const logger = defaultLoggingService.getLogger("main-processing");
     logger.info("Starting document processing", {
       documents: processingConfig.documentsPath.getValue(),
       schema: processingConfig.schemaPath.getValue(),
@@ -410,7 +401,7 @@ Examples:
     logger.info("All required files validated successfully");
 
     if (args.verbose) {
-      const verboseLogger = LoggerFactory.createLogger("main-verbose");
+      const verboseLogger = defaultLoggingService.getLogger("main-verbose");
       verboseLogger.info(
         "Starting document processing pipeline with verbose mode enabled",
       );
@@ -421,7 +412,7 @@ Examples:
     });
 
     if (result.ok) {
-      const successLogger = LoggerFactory.createLogger("main-success");
+      const successLogger = defaultLoggingService.getLogger("main-success");
       successLogger.info("Processing completed successfully", {
         processedCount: result.data.processedCount,
         failedCount: result.data.failedCount,
@@ -438,12 +429,12 @@ Examples:
         });
       }
     } else {
-      const errorLogger = LoggerFactory.createLogger("main-error");
+      const errorLogger = defaultLoggingService.getLogger("main-error");
       errorLogger.error("Processing failed", { error: result.error.message });
       Deno.exit(1);
     }
   } catch (error) {
-    const fatalLogger = LoggerFactory.createLogger("main-fatal");
+    const fatalLogger = defaultLoggingService.getLogger("main-fatal");
     fatalLogger.error("Fatal error occurred", {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

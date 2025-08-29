@@ -1,9 +1,15 @@
 ---
-title: 強固で堅牢なテスト構築指示書
+c1: build
+c2: robust
+c3: test
+title: Robust and Resilient Test Construction Guide
+description: Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.
+usage: climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/
 options:
-  input_text_file: テスト対象機能の仕様書PATH
-  input_text: 追加テスト要件または特別な考慮事項
-  uv-test-scope: テスト対象範囲（unit/integration/e2e）
+  adaptation: ["strict"]
+  file: [true]
+  stdin: [true]
+  destination: [true]
 ---
 
 # 強固で堅牢なテスト構築指示書

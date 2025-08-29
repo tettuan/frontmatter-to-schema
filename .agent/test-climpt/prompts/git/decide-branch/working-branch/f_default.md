@@ -1,6 +1,12 @@
 ---
-title: git branch の新規立ち上げ判断と、新ブランチ作成
-input_text: 今回の作業内容を30文字以内で指定
+c1: git
+c2: decide-branch
+c3: working-branch
+title: Git Branch Creation Decision and New Branch Setup
+description: Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.
+usage: climpt-git decide-branch working-branch -i="work description within 30 chars"
+options:
+  stdin: [true]
 ---
 
 指示「採用ステップ」に基づき、どのGitブランチ名を採用するか、定める。採用ステップを実行した後に、ブランチの作成判断と移動を行うこと。そのまま現在のブランチを採用する可能性もある。

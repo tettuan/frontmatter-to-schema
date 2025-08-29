@@ -1,8 +1,13 @@
 ---
-title:
-description: ドメイン境界情報などを元に、ドメイン設計を行う。
+c1: design
+c2: domain
+c3: architecture
+title: Domain Architecture Design
+description: Performs domain design based on domain boundary information and related materials.
+usage: climpt-design domain architecture -f boundary_info.md -o design_output/
 options:
-  input_text_file: ドメイン境界線情報
+  file: [true]
+  destination: [true]
 ---
 
 # ドメイン設計

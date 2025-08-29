@@ -1,6 +1,14 @@
 ---
-title:
-description: ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。
+c1: design
+c2: domain
+c3: architecture
+title: Detailed Domain Architecture Design
+description: Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.
+usage: climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/
+options:
+  input: ["detail"]
+  file: [true]
+  destination: [true]
 ---
 
 # ドメイン設計

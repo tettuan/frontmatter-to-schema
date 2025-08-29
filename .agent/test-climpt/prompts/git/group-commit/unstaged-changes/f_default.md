@@ -1,7 +1,12 @@
 ---
-title: 意味的近さでコミットを分けて実施する
-properties:
-  C3L-Version: 0.3
+c1: git
+c2: group-commit
+c3: unstaged-changes
+title: Group Commits by Semantic Proximity
+description: Groups Git commits based on semantic proximity of file changes and creates organized commit units.
+usage: climpt-git group-commit unstaged-changes -o commit_plan.md
+options:
+  destination: [true]
 ---
 
 # 指示

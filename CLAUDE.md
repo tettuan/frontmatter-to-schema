@@ -65,7 +65,65 @@ languages
 
 # Tests
 
-- use `*_test.ts` filename for test file.
+## Test Strategy
+
+This project follows a comprehensive testing strategy aligned with DDD, TDD, and
+Totality principles:
+
+### Test Structure
+
+- **Unit Tests**: Domain logic, value objects, and business rules
+- **Integration Tests**: Cross-boundary component interactions
+- **E2E Tests**: Complete CLI workflows and user scenarios
+- **File Convention**: Use `*_test.ts` filename for all test files
+
+### Coverage Standards
+
+- **Minimum Coverage**: 80% line coverage maintained
+- **Target Coverage**: 80.1% achieved (281 tests passing)
+- **Focus Areas**: Domain models, use cases, and critical business logic
+- **Exclusions**: Infrastructure adapters may have lower coverage
+
+### Test Categories
+
+1. **Domain Tests**: Core business logic validation
+2. **Service Tests**: Application service behavior verification
+3. **Repository Tests**: Data access layer validation
+4. **Pipeline Tests**: End-to-end processing workflows
+5. **CLI Tests**: Command-line interface functionality
+
+### Test Execution
+
+```bash
+# Run all tests
+deno test --allow-all
+
+# Run with coverage
+deno task test:coverage
+
+# Run CI pipeline (includes tests)
+deno task ci
+```
+
+### Quality Gates
+
+- All tests must pass before merge
+- Coverage must not decrease below 80%
+- Integration tests must validate real workflows
+- E2E tests must cover main CLI use cases
+
+### Test Documentation
+
+For detailed testing guidelines and best practices:
+
+- **[Test Overview](docs/tests/README.md)**: Comprehensive testing strategy and
+  architecture
+- **[Testing Guidelines](docs/tests/testing_guidelines.md)**: Detailed TDD
+  practices and implementation guide
+- **[Comprehensive Test Strategy](docs/testing/comprehensive-test-strategy.md)**:
+  Overall testing approach
+- **[Schema Test Specification](docs/test-specifications/schema-matching-test-spec.md)**:
+  Schema validation testing details
 
 # Git
 

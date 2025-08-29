@@ -1,9 +1,13 @@
 ---
-title: 修正指示を文書化する
-description: 問題点をまとめ、次の修正指示をGitのIssueへ登録する
-usage: climpt-git document fix-instruction
+c1: git
+c2: document
+c3: fix-instruction
+title: Document Fix Instructions
+description: Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.
+usage: climpt-git document fix-instruction -i="problem description and fix direction"
 options:
-  input_text: 問題の内容と修正の方向性など
+  stdin: [true]
+  destination: [true]
 ---
 
 # 指示:「修正指示を文書化しIssueへ登録する」

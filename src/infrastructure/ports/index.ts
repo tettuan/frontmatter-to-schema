@@ -20,27 +20,3 @@ export interface FileSystemPort {
   createDirectory(path: string): Promise<Result<void, DomainError>>;
   deleteFile(path: string): Promise<Result<void, DomainError>>;
 }
-
-// AI Analyzer Port
-export interface AIAnalysisRequest {
-  content: string;
-  prompt: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
-
-export interface AIAnalysisResponse {
-  result: string;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
-
-export interface AIAnalyzerPort {
-  analyze(
-    request: AIAnalysisRequest,
-  ): Promise<Result<AIAnalysisResponse, DomainError & { message: string }>>;
-}

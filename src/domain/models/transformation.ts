@@ -1,6 +1,7 @@
 import type { DomainError, Result } from "../core/result.ts";
 import type { Document } from "./entities.ts";
-import type { Schema, Template } from "./domain-models.ts";
+import type { Template } from "./entities.ts";
+import type { Schema } from "./domain-models.ts";
 
 export class ExtractedData {
   private constructor(
@@ -97,7 +98,24 @@ export class TransformationResult {
   renderWithTemplate(
     template: Template,
   ): Result<string, DomainError> {
-    return template.render(this.validatedData);
+    try {
+      const result = template.applyRules(
+        this.validatedData as Record<string, unknown>,
+      );
+      return {
+        ok: true,
+        data: JSON.stringify(result),
+      };
+    } catch (_error) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateMappingFailed" as const,
+          template: "Template rendering",
+          source: this.validatedData,
+        },
+      };
+    }
   }
 }
 

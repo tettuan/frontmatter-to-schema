@@ -1,8 +1,13 @@
 ---
-title: 要求をブレイクダウンし構造化する
+c1: spec
+c2: analyze-structure
+c3: requirements
+title: Requirements Structure Analysis
+description: Break down and structure requirements through process decomposition and user flow analysis.
+usage: climpt-spec analyze-structure requirements -f requirements.md -o structured_output/
 options:
-  destination_path: 出力先
-  input_text_file: 要求のファイル
+  file: [true]
+  destination: [true]
 ---
 
 # 指示: 要求をブレイクダウンし構造化する

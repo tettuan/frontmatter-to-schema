@@ -211,34 +211,42 @@ export class DenoDocumentRepository implements DocumentRepository {
     try {
       const content = await Deno.readTextFile(filePath);
 
-      // Try to extract frontmatter
-      let frontMatter: FrontMatter | null = null;
+      // Extract frontmatter using discriminated union for totality
+      type FrontMatterExtractionResult =
+        | { kind: "Present"; frontMatter: FrontMatter }
+        | { kind: "Absent" };
+
+      let frontMatterResult: FrontMatterExtractionResult = { kind: "Absent" };
       let bodyContent = content;
 
       try {
         const extracted = extract(content);
+        // Use attrs (parsed object) instead of frontMatter (raw string)
         if (
-          extracted.frontMatter && Object.keys(extracted.frontMatter).length > 0
+          extracted.attrs && typeof extracted.attrs === "object" &&
+          Object.keys(extracted.attrs).length > 0
         ) {
-          // Convert frontmatter to string representation
-          const frontMatterStr = JSON.stringify(extracted.frontMatter);
-          const frontMatterContentResult = FrontMatterContent.create(
-            frontMatterStr,
+          // Create FrontMatterContent from the parsed object
+          const frontMatterContentResult = FrontMatterContent.fromObject(
+            extracted.attrs as Record<string, unknown>,
           );
 
           if (frontMatterContentResult.ok) {
-            // Get raw frontmatter section
-            const rawFrontMatter =
-              content.match(/^---\n([\s\S]*?)\n---/)?.[1] || "";
-            frontMatter = FrontMatter.create(
+            // Get raw frontmatter section - extracted.frontMatter contains the raw YAML
+            const rawFrontMatter = typeof extracted.frontMatter === "string"
+              ? extracted.frontMatter
+              : "";
+            const frontMatter = FrontMatter.create(
               frontMatterContentResult.data,
               rawFrontMatter,
             );
+            frontMatterResult = { kind: "Present", frontMatter };
           }
         }
         bodyContent = extracted.body;
       } catch {
         // If frontmatter extraction fails, treat entire content as body
+        frontMatterResult = { kind: "Absent" };
       }
 
       const documentContentResult = DocumentContent.create(bodyContent);
@@ -252,6 +260,11 @@ export class DenoDocumentRepository implements DocumentRepository {
           }),
         };
       }
+
+      // Create document using discriminated union result
+      const frontMatter = frontMatterResult.kind === "Present"
+        ? frontMatterResult.frontMatter
+        : null;
 
       const document = Document.createWithFrontMatter(
         path,

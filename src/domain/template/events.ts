@@ -5,7 +5,7 @@
  * These events enable loose coupling between domains
  */
 
-import type { Template } from "../models/domain-models.ts";
+import type { Template } from "../models/entities.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
 
 /**
@@ -39,7 +39,7 @@ export class TemplateLoadedEvent implements DomainEvent {
   getPayload() {
     return {
       templateId: this.templateId,
-      format: this.template.getDefinition().getFormat(),
+      format: this.template.getFormat().getFormat(),
       description: this.template.getDescription(),
     };
   }

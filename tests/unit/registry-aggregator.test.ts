@@ -1,4 +1,4 @@
-import { RegistryAggregator } from "../../src/application/services/RegistryAggregator.ts";
+import { RegistryAggregator } from "../../src/application/services/registry-aggregator.ts";
 import { AnalysisResult, type Command } from "../../src/domain/core/types.ts";
 import { assertEquals } from "https://deno.land/std@0.220.0/assert/mod.ts";
 

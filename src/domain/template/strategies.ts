@@ -8,10 +8,12 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
-import { createDomainError } from "../core/result.ts";
-import type { Template } from "../models/domain-models.ts";
+import {
+  createDomainError,
+  createProcessingStageError,
+} from "../core/result.ts";
+import type { Template } from "../models/entities.ts";
 import type { TemplateApplicationContext } from "./aggregate.ts";
-import type { AIAnalyzerPort } from "../../infrastructure/ports/index.ts";
 
 // Re-export for external use
 export type { TemplateApplicationContext };
@@ -20,7 +22,7 @@ import {
   type PlaceholderProcessingContext,
   PlaceholderProcessor,
 } from "./placeholder-processor.ts";
-import { LoggerFactory } from "../shared/logger.ts";
+import { StructuredLogger } from "../shared/logger.ts";
 
 /**
  * Strategy interface for template processing
@@ -46,90 +48,6 @@ export interface TemplateProcessingStrategy {
 }
 
 /**
- * AI-based template processing strategy (Primary)
- * Delegates template application to Claude AI
- */
-export class AITemplateStrategy implements TemplateProcessingStrategy {
-  constructor(private readonly aiAnalyzer: AIAnalyzerPort) {}
-
-  async process(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): Promise<Result<string, DomainError>> {
-    const prompt = this.buildPrompt(template, context);
-
-    const result = await this.aiAnalyzer.analyze({
-      content: JSON.stringify({
-        extractedData: context.extractedData,
-        schema: context.schema,
-        template: template.getDefinition().getDefinition(),
-        format: context.format,
-      }),
-      prompt,
-    });
-
-    if (!result.ok) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "AIServiceError",
-            service: "AI template processor",
-            statusCode: (result.error as { statusCode?: number }).statusCode ||
-              undefined,
-          },
-          `AI template processing failed: ${result.error.message}`,
-        ),
-      };
-    }
-
-    return {
-      ok: true,
-      data: result.data.result,
-    };
-  }
-
-  canHandle(_template: Template): boolean {
-    // AI can handle all template formats
-    return true;
-  }
-
-  getName(): string {
-    return "AITemplateStrategy";
-  }
-
-  private buildPrompt(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): string {
-    return `
-テンプレートへの値の当て込み処理を実行してください。
-
-【入力情報】
-1. Schemaで解釈されたデータ:
-${JSON.stringify(context.extractedData, null, 2)}
-
-2. Schema定義:
-${JSON.stringify(context.schema, null, 2)}
-
-3. テンプレート:
-${template.getDefinition().getDefinition()}
-
-【処理指示】
-- Schemaで解釈されたデータをテンプレートに当て込んでください
-- テンプレート内の変数プレースホルダーを、対応する値で正確に置き換えてください
-- Schema定義に従って、データの形式を適切に変換してください
-- 出力形式: ${context.format}
-- 変数が見つからない場合は、プレースホルダーをそのまま残してください
-
-【出力要件】
-- 完全に置換されたテンプレートを出力してください
-- 形式は${context.format}形式で出力してください
-`;
-  }
-}
-
-/**
  * Native TypeScript template processing strategy (Fallback)
  * Processes templates using shared common infrastructure
  * Updated to use TemplateFormatHandler and PlaceholderProcessor
@@ -145,7 +63,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
     template: Template,
     context: TemplateApplicationContext,
   ): Promise<Result<string, DomainError>> {
-    const format = template.getDefinition().getFormat();
+    const format = template.getFormat().getFormat();
 
     // Check if this strategy can handle the template format
     if (!this.canHandle(template)) {
@@ -172,7 +90,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       }
 
       const handler = handlerResult.data;
-      const templateContent = template.getDefinition().getDefinition();
+      const templateContent = template.getFormat().getTemplate();
 
       // Parse template using format handler
       const parseResult = handler.parse(templateContent);
@@ -225,16 +143,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       if (!placeholderResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "placeholder processing",
             {
-              kind: "ProcessingStageError",
-              stage: "placeholder processing",
-              error: {
-                kind: "InvalidResponse",
-                service: "placeholder processor",
-                response: placeholderResult.error.message,
-              } as DomainError,
-            },
+              kind: "InvalidResponse",
+              service: "placeholder processor",
+              response: placeholderResult.error.message,
+            } as DomainError,
             `Placeholder processing failed: ${placeholderResult.error.message}`,
           ),
         });
@@ -250,7 +165,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
           break;
         case "PartialSuccess": {
           // Log warning for missing placeholders but continue
-          const logger = LoggerFactory.createLogger("native-strategy");
+          const logger = StructuredLogger.getStageLogger("native-strategy");
           logger.warn(
             "Template processing completed with missing placeholders",
             {
@@ -263,16 +178,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
         case "Failure":
           return Promise.resolve({
             ok: false,
-            error: createDomainError(
+            error: createProcessingStageError(
+              "placeholder processing",
               {
-                kind: "ProcessingStageError",
-                stage: "placeholder processing",
-                error: {
-                  kind: "InvalidResponse",
-                  service: "placeholder processor",
-                  response: processResult.error.message,
-                } as DomainError,
-              },
+                kind: "InvalidResponse",
+                service: "placeholder processor",
+                response: processResult.error.message,
+              } as DomainError,
               `Placeholder processing failed: ${processResult.error.message}`,
             ),
           });
@@ -283,16 +195,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
       if (!serializeResult.ok) {
         return Promise.resolve({
           ok: false,
-          error: createDomainError(
+          error: createProcessingStageError(
+            "template serialization",
             {
-              kind: "ProcessingStageError",
-              stage: "template serialization",
-              error: {
-                kind: "InvalidResponse",
-                service: "template serializer",
-                response: serializeResult.error.message,
-              } as DomainError,
-            },
+              kind: "InvalidResponse",
+              service: "template serializer",
+              response: serializeResult.error.message,
+            } as DomainError,
             `Failed to serialize processed template: ${serializeResult.error.message}`,
           ),
         });
@@ -305,16 +214,13 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
     } catch (error) {
       return Promise.resolve({
         ok: false,
-        error: createDomainError(
+        error: createProcessingStageError(
+          "native template processing",
           {
-            kind: "ProcessingStageError",
-            stage: "native template processing",
-            error: {
-              kind: "InvalidResponse",
-              service: "native",
-              response: error instanceof Error ? error.message : String(error),
-            } as DomainError,
-          },
+            kind: "InvalidResponse",
+            service: "native",
+            response: error instanceof Error ? error.message : String(error),
+          } as DomainError,
           `Native template processing failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -324,7 +230,7 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
   }
 
   canHandle(template: Template): boolean {
-    const format = template.getDefinition().getFormat();
+    const format = template.getFormat().getFormat();
     // Native strategy can handle json, yaml, and custom formats
     return ["json", "yaml", "custom"].includes(format);
   }
@@ -341,64 +247,4 @@ export class NativeTemplateStrategy implements TemplateProcessingStrategy {
   // - getValueByPath: replaced by PlaceholderProcessor
   // - convertToYaml: replaced by YAMLTemplateHandler
   // - dataToYaml: replaced by YAMLTemplateHandler
-}
-
-/**
- * Composite strategy that tries AI first, then falls back to native
- */
-export class CompositeTemplateStrategy implements TemplateProcessingStrategy {
-  constructor(
-    private readonly primary: TemplateProcessingStrategy,
-    private readonly fallback: TemplateProcessingStrategy,
-  ) {}
-
-  async process(
-    template: Template,
-    context: TemplateApplicationContext,
-  ): Promise<Result<string, DomainError>> {
-    // Try primary strategy first
-    if (this.primary.canHandle(template)) {
-      const result = await this.primary.process(template, context);
-      if (result.ok) {
-        return result;
-      }
-
-      // Log primary failure (in production, use proper logger)
-      const logger = LoggerFactory.createLogger("fallback-strategy");
-      logger.warn("Primary strategy failed, using fallback", {
-        primaryStrategy: this.primary.getName(),
-        error: result.error,
-      });
-    }
-
-    // Fall back to secondary strategy
-    if (this.fallback.canHandle(template)) {
-      return this.fallback.process(template, context);
-    }
-
-    return {
-      ok: false,
-      error: createDomainError(
-        {
-          kind: "ProcessingStageError",
-          stage: "composite strategy",
-          error: {
-            kind: "ResourceExhausted",
-            resource: "template strategies",
-            limit: 2,
-          } as DomainError,
-        },
-        "No suitable strategy found for template processing",
-      ),
-    };
-  }
-
-  canHandle(template: Template): boolean {
-    return this.primary.canHandle(template) ||
-      this.fallback.canHandle(template);
-  }
-
-  getName(): string {
-    return `CompositeStrategy(${this.primary.getName()}, ${this.fallback.getName()})`;
-  }
 }

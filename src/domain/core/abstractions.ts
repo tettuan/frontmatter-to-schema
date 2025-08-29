@@ -67,13 +67,13 @@ export interface PromptConfiguration {
 }
 
 /**
- * Result of the analysis process with metadata
+ * Result of the analysis process with metadata - totality-compliant
  */
 export interface ProcessingResult<T> {
   data: T;
   metadata: Map<string, unknown>;
   isValid: boolean;
-  errors?: string[];
+  errors: string[]; // Always present for totality - empty array if no errors
 }
 
 /**

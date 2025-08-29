@@ -1,9 +1,14 @@
 ---
-title:
-description:
+c1: refactor
+c2: basedon
+c3: ddd
+title: Domain-Driven Design Next Action Execution
+description: Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.
+usage: climpt-refactor basedon ddd -a=nextaction -i=next_action_instructions --uv-scope="execution scope"
 options:
-  uv-scope: 実行済の結果から導き出したネクストアクションを進める。その際に、基本事項を維持した状態で、次アクションを指示する。
-  input_text: ネクストアクションの指示書
+  input: ["nextaction"]
+  stdin: [true]
+  destination: [true]
 ---
 
 # プロジェクト: {uv-scope}のドメイン駆動設計と全域性（Totality）の融合完成

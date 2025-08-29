@@ -1,8 +1,14 @@
 ---
-title: APIを強固に構築する
+c1: build
+c2: robust
+c3: code
+title: Robust Code Construction
+description: Constructs robust and resilient code/API based on domain-driven design and totality principles.
+usage: climpt-build robust code -f requirements.md -i=additional_instructions -o code_output/
 options:
-  input_text_file: 強固に構築すべき機能要件
-  input_text: 強固な構築に向けた追加指示
+  file: [true]
+  stdin: [true]
+  destination: [true]
 ---
 
 # API 強固構築
