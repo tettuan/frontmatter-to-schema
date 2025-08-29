@@ -9,9 +9,12 @@ import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";
 import { Schema, SchemaId } from "../../domain/models/entities.ts";
 import {
+  FrontMatterContent,
   SchemaDefinition,
   SchemaVersion,
 } from "../../domain/models/value-objects.ts";
+import { FrontMatter } from "../../domain/models/entities.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -89,11 +92,18 @@ export class BuildRegistryUseCase {
             // Create default CLI schema for registry building
             const schema = this.createDefaultCliSchema();
 
-            // Convert frontmatter from frontmatter-models interface to entities interface
-            // The SchemaAnalyzer expects an entities.FrontMatter, but extractor returns frontmatter-models.FrontMatter
-            // We need to properly cast this since they have compatible structures
-            const frontMatterData =
-              frontMatter as unknown as import("../../domain/models/entities.ts").FrontMatter;
+            // Convert frontmatter following Totality principle with type-safe transformation
+            const frontMatterConversionResult = this.convertFrontMatterSafely(
+              frontMatter,
+            );
+            if (!frontMatterConversionResult.ok) {
+              logger.debug("FrontMatter conversion failed", {
+                filename: promptFile.filename,
+                error: frontMatterConversionResult.error,
+              });
+              break;
+            }
+            const frontMatterData = frontMatterConversionResult.data;
 
             const analysisResult = await this.analyzer.analyzer.analyze(
               frontMatterData,
@@ -207,5 +217,51 @@ export class BuildRegistryUseCase {
       schemaVersion.data,
       "Schema for CLI command registry building from prompt frontmatter",
     );
+  }
+
+  /**
+   * Type-safe conversion from frontmatter-models.FrontMatter to entities.FrontMatter
+   * Following Totality principle to eliminate unsafe type casting
+   */
+  private convertFrontMatterSafely(
+    sourceFrontMatter:
+      import("../../domain/frontmatter/frontmatter-models.ts").FrontMatter,
+  ): Result<
+    import("../../domain/models/entities.ts").FrontMatter,
+    DomainError
+  > {
+    try {
+      // Create FrontMatterContent from the source data using smart constructor
+      const contentResult = FrontMatterContent.fromObject(
+        sourceFrontMatter.data,
+      );
+      if (!contentResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidState",
+            expected: "valid FrontMatterContent",
+            actual: "conversion failed",
+          } as DomainError,
+        };
+      }
+
+      // Create the target FrontMatter instance
+      const targetFrontMatter = new FrontMatter(
+        contentResult.data,
+        sourceFrontMatter.raw,
+      );
+
+      return { ok: true, data: targetFrontMatter };
+    } catch (_error) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateMappingFailed",
+          template: "FrontMatter conversion",
+          source: sourceFrontMatter.data,
+        } as DomainError,
+      };
+    }
   }
 }
