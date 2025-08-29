@@ -33,10 +33,7 @@ import {
   OutputPath,
   TemplatePath,
 } from "./domain/models/value-objects.ts";
-import type {
-  AnalysisConfiguration,
-  ProcessingConfiguration,
-} from "./domain/services/interfaces.ts";
+import type { ProcessingConfiguration } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 // Remove MockSchemaAnalyzer import - will create simple mock inline
@@ -307,7 +304,6 @@ Examples:
 
     // Load configuration
     let processingConfig: ProcessingConfiguration;
-    let _analysisConfig: AnalysisConfiguration;
 
     if (args.config && !args.documents) {
       // Load from config file
@@ -330,20 +326,6 @@ Examples:
         Deno.exit(1);
       }
       processingConfig = configResult.data;
-
-      // Try to load analysis config
-      const analysisResult = await configLoader.loadAnalysisConfig(
-        configPathResult.data,
-      );
-      if (analysisResult.ok) {
-        _analysisConfig = analysisResult.data;
-      } else {
-        // Use defaults
-        _analysisConfig = {
-          aiProvider: "claude",
-          aiConfig: {},
-        };
-      }
     } else {
       // Build config from command line args
       const documentsPathResult = DocumentPath.create(args.documents || ".");
@@ -371,11 +353,6 @@ Examples:
           parallel: args.parallel,
           continueOnError: args["continue-on-error"],
         },
-      };
-
-      _analysisConfig = {
-        aiProvider: "claude",
-        aiConfig: {},
       };
     }
 
