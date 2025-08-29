@@ -25,7 +25,6 @@ import {
   TemplateFormat,
 } from "../../domain/models/value-objects.ts";
 import type {
-  AnalysisConfiguration,
   ConfigurationRepository,
   ProcessingConfiguration,
   ResultRepository,
@@ -119,54 +118,6 @@ export class ConfigurationLoader
       };
 
       return { ok: true, data: processingConfig };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "FileNotFound",
-            path: path.getValue(),
-          }),
-        };
-      }
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ReadError",
-          path: path.getValue(),
-          details: error instanceof Error ? error.message : "Unknown error",
-        }),
-      };
-    }
-  }
-
-  async loadAnalysisConfig(
-    path: ConfigPath,
-  ): Promise<Result<AnalysisConfiguration, DomainError & { message: string }>> {
-    try {
-      const configPath = path.getValue();
-      const content = await Deno.readTextFile(configPath);
-      const config = JSON.parse(content);
-
-      const promptsPathResult = config.promptsPath
-        ? ConfigPath.create(config.promptsPath)
-        : null;
-      const analysisConfig: AnalysisConfiguration = {
-        promptsPath: promptsPathResult && promptsPathResult.ok
-          ? promptsPathResult.data
-          : undefined,
-        extractionPrompt: config.extractionPrompt,
-        mappingPrompt: config.mappingPrompt,
-        aiProvider: config.aiProvider || "claude",
-        aiConfig: {
-          apiKey: config.aiConfig?.apiKey || Deno.env.get("CLAUDE_API_KEY"),
-          model: config.aiConfig?.model || "claude-3-sonnet",
-          maxTokens: config.aiConfig?.maxTokens || 4000,
-          temperature: config.aiConfig?.temperature || 0.7,
-        },
-      };
-
-      return { ok: true, data: analysisConfig };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         return {
@@ -291,7 +242,6 @@ export class ConfigurationLoader
   validate(
     _config:
       | ProcessingConfiguration
-      | AnalysisConfiguration
       | Schema
       | Template,
   ): Result<void, DomainError & { message: string }> {

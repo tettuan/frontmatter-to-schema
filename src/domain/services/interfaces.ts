@@ -217,11 +217,8 @@ export interface ConfigurationRepository {
   ): Promise<
     Result<ProcessingConfiguration, DomainError & { message: string }>
   >;
-  loadAnalysisConfig(
-    path: ConfigPath,
-  ): Promise<Result<AnalysisConfiguration, DomainError & { message: string }>>;
   validate(
-    config: ProcessingConfiguration | AnalysisConfiguration,
+    config: ProcessingConfiguration,
   ): Result<void, DomainError & { message: string }>;
 }
 
@@ -235,19 +232,6 @@ export interface ProcessingConfiguration {
     parallel?: boolean;
     maxConcurrency?: number;
     continueOnError?: boolean;
-  };
-}
-
-export interface AnalysisConfiguration {
-  promptsPath?: ConfigPath;
-  extractionPrompt?: string;
-  mappingPrompt?: string;
-  aiProvider: "claude" | "openai" | "local" | "mock";
-  aiConfig: {
-    apiKey?: string;
-    model?: string;
-    maxTokens?: number;
-    temperature?: number;
   };
 }
 
