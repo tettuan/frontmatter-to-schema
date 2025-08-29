@@ -1,0 +1,36 @@
+{
+  "results": [
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Test registry document 1",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "kind": "TemplateMappingFailed",
+        "template": "tools.commands[].description",
+        "source": {
+          "version": "1.0.0",
+          "description": "Test registry document 2",
+          "tools": {
+            "availableConfigs": [],
+            "commands": []
+          }
+        },
+        "message": "Failed to set value at path 'tools.commands[].description': Invalid property path: Invalid path segments: commands[]"
+      }
+    }
+  ]
+}
