@@ -6,10 +6,6 @@ title: Merge to Develop and Clean Up Unnecessary Branches
 description: Merges all unmerged branches into develop and deletes them after successful merge operations.
 usage: climpt-git merge-cleanup develop-branches -o cleanup_report.md
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

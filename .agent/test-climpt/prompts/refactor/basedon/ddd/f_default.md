@@ -6,10 +6,6 @@ title: Domain-Driven Design and Totality-Based Refactoring
 description: Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.
 usage: climpt-refactor basedon ddd -o refactor_plan.md
 options:
-  input: ["scan"]
-  adaptation: ["default", "nextaction"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

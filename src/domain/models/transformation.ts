@@ -101,10 +101,19 @@ export class TransformationResult {
     try {
       const result = template.applyRules(
         this.validatedData as Record<string, unknown>,
+        { kind: "SimpleMapping" },
       );
+
+      if (!result.ok) {
+        return {
+          ok: false,
+          error: result.error,
+        };
+      }
+
       return {
         ok: true,
-        data: JSON.stringify(result),
+        data: JSON.stringify(result.data),
       };
     } catch (_error) {
       return {

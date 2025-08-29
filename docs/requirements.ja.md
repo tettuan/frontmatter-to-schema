@@ -44,20 +44,39 @@ Markdownファイルの索引(Index)を作るためである。
 一覧： まず、プロンプト一覧を作る。(成果A)
 また、最終成果物を空の状態でつくる（最終成果物Z）
 
-各コマンド： 成果Aに対し、ループ処理する。全件実施する。
+各コマンド： 成果Aのなかの繰り返し部分に相当する。
+コマンド単位でループ処理する。コマンド全件に対して実施する。
 各ループ内では、プロンプト1つずつを処理する。
-最初にフロントマター部分を抽出する。これはDenoで実施する。(成果B)
+最初にフロントマター部分を抽出する。これはTypeScriptで実施する。(成果B)
 成果Bから、TypeScriptで解析する（成果C）
-成果Cを元にTypeScriptで構造データへ当てこむ（成果D） 成果Dを 最終成果物Z
-へ統合する 成最終成果物Zを保存する。
+成果Cを元にTypeScriptで構造データへ当てこむ（成果D） 成果Dを
+最終成果物Zへ統合する 成最終成果物Zを保存する。
+
+```text
+- 一覧
+  - コマンド繰り返し項目()
+```
+
+結果、以下のような構造になる。 出力:
+
+```text
+- 一覧
+  - コマンド
+  - コマンド
+  - コマンド
+```
 
 ## 一覧の整形
 
 availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
 
 利用するSchemaとテンプレート:　 registry_template.json registry_schema.json
+なお、一覧1個に対し、個別コマンドn個の関係である。
+（つまりregistry_schema.jsonファイルは、役割的にはidnex_schema.jsonと同じ意味である。）
 
 ## 個別コマンドの整形
+
+一覧1個に対し、個別コマンドn個の関係である。
 
 以下の2種類を使い分ける。
 
@@ -139,7 +158,7 @@ registry_command_template.json
         "commands": {
           "type": "array",
           "description": "Command registry - defines all available C3L commands",
-          "items": { "$ref": "command.schema.json" }
+          "items": { "$ref": "registry_command_schema.json" }
         }
       },
       "required": ["availableConfigs", "commands"],
@@ -229,7 +248,7 @@ registry_command_template.json
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
     "commands": [
-      { "$ref": "registry_command_template.json" }
+      // ここにregistry_command_template.jsonの繰り返しが入る。
     ]
   }
 }

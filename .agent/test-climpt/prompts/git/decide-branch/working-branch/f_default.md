@@ -6,11 +6,7 @@ title: Git Branch Creation Decision and New Branch Setup
 description: Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.
 usage: climpt-git decide-branch working-branch -i="work description within 30 chars"
 options:
-  input: ["text"]
-  adaptation: ["default"]
-  input_file: [false]
   stdin: [true]
-  destination: [false]
 ---
 
 指示「採用ステップ」に基づき、どのGitブランチ名を採用するか、定める。採用ステップを実行した後に、ブランチの作成判断と移動を行うこと。そのまま現在のブランチを採用する可能性もある。

@@ -6,10 +6,6 @@ title: Git Related Branch Discovery and Merge Processing
 description: Discovers related Git branches and executes merge processing based on branch relationships and age.
 usage: climpt-git find-oldest descendant-branch -o merge_plan.md
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

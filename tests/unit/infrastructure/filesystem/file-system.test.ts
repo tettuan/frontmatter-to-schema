@@ -36,7 +36,7 @@ async function cleanup(paths: string[]): Promise<void> {
 }
 
 Deno.test("FileReader", async (t) => {
-  const testDir = "./test_file_reader_temp";
+  const testDir = "/tmp/test_file_reader_temp_" + Date.now();
   const testFilePaths: string[] = [];
 
   // Setup helper

@@ -259,7 +259,9 @@ export async function main() {
       map: (data: ExtractedData, template: Template) => {
         try {
           // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData());
+          const mappedResult = template.applyRules(data.getData(), {
+            kind: "SimpleMapping",
+          });
           const mappedData = MappedData.create(mappedResult);
           return { ok: true as const, data: mappedData };
         } catch (error) {

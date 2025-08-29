@@ -6,9 +6,6 @@ title: Robust Instruction Document Generator
 description: Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.
 usage: climpt-docs generate-robust instruction-doc -i=description -o instruction.md
 options:
-  input: ["text"]
-  adaptation: ["default"]
-  input_file: [false]
   stdin: [true]
   destination: [true]
 ---

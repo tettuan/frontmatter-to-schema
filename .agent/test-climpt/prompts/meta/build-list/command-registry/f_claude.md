@@ -6,10 +6,7 @@ title: Climpt Available Commands List Generation (Claude Code Version)
 description: Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.
 usage: climpt-meta build-list command-registry -a=claude -o tools-list.md
 options:
-  input: ["scan"]
-  adaptation: ["default", "registry", "claude"]
-  input_file: [false]
-  stdin: [false]
+  input: ["claude"]
   destination: [true]
 ---
 

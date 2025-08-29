@@ -361,12 +361,18 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
       content: "Article content here",
     };
 
-    const result = template.applyRules(inputData);
+    const result = template.applyRules(inputData, { kind: "SimpleMapping" });
 
-    assertEquals(typeof result, "object");
+    // Verify it's a Result type and successful
+    if (!isOk(result)) {
+      throw new Error(
+        `Expected successful result, got error: ${result.error.message}`,
+      );
+    }
 
     // Check nested path structure created by applyRules
-    const document = result.document as Record<string, unknown>;
+    const resultData = result.data;
+    const document = resultData.document as Record<string, unknown>;
     assertEquals(document.title, "Test Article");
 
     const metadata = document.metadata as Record<string, unknown>;
@@ -379,15 +385,21 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
       content: "Only content, no title or author",
     };
 
-    const result = template.applyRules(inputData);
+    const result = template.applyRules(inputData, { kind: "SimpleMapping" });
 
-    // Debug the result structure
-    console.log("applyRules result:", JSON.stringify(result, null, 2));
+    // Verify it's a Result type and successful
+    if (!isOk(result)) {
+      throw new Error(
+        `Expected successful result, got error: ${result.error.message}`,
+      );
+    }
+
+    const resultData = result.data;
 
     // With strict structure matching, when no data matches template paths, result should be empty
     // or contain undefined values for non-existent paths
-    if (result.document) {
-      const document = result.document as Record<string, unknown>;
+    if (resultData.document) {
+      const document = resultData.document as Record<string, unknown>;
       assertEquals(document.title, undefined);
 
       if (document.metadata) {
@@ -396,7 +408,7 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
       }
     } else {
       // If document is not created due to missing data, that's also acceptable
-      assertEquals(result.document, undefined);
+      assertEquals(resultData.document, undefined);
     }
   });
 
@@ -421,10 +433,18 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
     const template = Template.create(idResult.data, formatObj, mappingRules);
     const inputData = { tag: "javascript" };
 
-    const result = template.applyRules(inputData);
+    const result = template.applyRules(inputData, { kind: "SimpleMapping" });
+
+    // Verify it's a Result type and successful
+    if (!isOk(result)) {
+      throw new Error(
+        `Expected successful result, got error: ${result.error.message}`,
+      );
+    }
 
     // Check that nested path was created correctly
-    const metadata = result.metadata as Record<string, unknown>;
+    const resultData = result.data;
+    const metadata = resultData.metadata as Record<string, unknown>;
     const classification = metadata.classification as Record<string, unknown>;
     const tags = classification.tags as Record<string, unknown>;
     assertEquals(tags.primary, "javascript");

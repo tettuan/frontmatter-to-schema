@@ -6,10 +6,6 @@ title: Merge Processing Between Working Branches
 description: Merges derived working branches back into their original base working branches.
 usage: climpt-git merge-up base-branch -o merge_status.md
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

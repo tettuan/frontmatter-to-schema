@@ -1,15 +1,16 @@
 /**
- * Simplified Component Factory - Addresses Issue #402
- * Removes dead code and unnecessary abstractions following AI complexity control principles
+ * Domain Analysis Component Factory - Issue #431 Resolution
  *
- * Previous version had 0% branch coverage indicating over-engineering.
- * This version follows YAGNI principle and entropy reduction.
+ * Follows DDD principles and AI complexity control:
+ * - Single Responsibility: Only creates domain analysis components
+ * - Domain Purity: No infrastructure dependencies in domain layer
+ * - Explicit Dependencies: Clear component relationships
+ * - Entropy Reduction: Eliminates unnecessary abstractions
  */
 
 import type { DomainError, Result } from "./result.ts";
-import { type Logger, LoggerFactory } from "../shared/logger.ts";
 
-// Core analysis components - direct imports without factory indirection
+// Core analysis components - direct imports following DDD aggregate pattern
 import {
   type AnalysisEngine,
   ContextualAnalysisProcessor,
@@ -19,29 +20,17 @@ import {
 } from "./analysis-engine.ts";
 
 /**
- * Domain Component Categories - maintained for compatibility
- * @deprecated Legacy enum, use strings directly
- */
-export const enum ComponentDomain {
-  Analysis = "analysis",
-  Template = "template",
-  Pipeline = "pipeline",
-  Infrastructure = "infrastructure",
-}
-
-/**
- * Simplified Component Factory
- * Creates components directly without unnecessary abstraction layers
+ * Analysis Component Aggregate Factory
+ *
+ * Creates analysis domain components as a cohesive aggregate.
+ * Follows DDD principles by keeping domain logic pure and focused.
  */
 export class ComponentFactory {
-  private readonly logger: Logger;
-
-  constructor() {
-    this.logger = LoggerFactory.createLogger("component-factory");
-  }
-
   /**
-   * Creates analysis components directly - no conditional logic needed
+   * Creates analysis components with explicit dependencies
+   *
+   * Pure function following Totality principle - no side effects.
+   * Infrastructure concerns (logging) moved to application layer.
    */
   createAnalysisComponents(): {
     engine: AnalysisEngine;
@@ -49,12 +38,12 @@ export class ComponentFactory {
     schemaAnalyzer: RobustSchemaAnalyzer<unknown, unknown>;
     templateMapper: RobustTemplateMapper<unknown, unknown>;
   } {
-    this.logger.info("Creating analysis components");
-
+    // Direct instantiation following DDD aggregate pattern
     const engine = new GenericAnalysisEngine();
     const schemaAnalyzer = new RobustSchemaAnalyzer<unknown, unknown>();
     const templateMapper = new RobustTemplateMapper<unknown, unknown>();
 
+    // Aggregate root construction with clear dependencies
     const processor = new ContextualAnalysisProcessor(
       engine,
       schemaAnalyzer,
@@ -70,66 +59,20 @@ export class ComponentFactory {
   }
 
   /**
-   * Validates basic factory state - always returns success for simplicity
-   * Removes complex conditional validation that was never tested
+   * Domain invariant validation
+   *
+   * Returns Result for proper error handling following Totality principle.
+   * Domain validation is always valid for this simple factory aggregate.
    */
   validate(): Result<boolean, DomainError & { message: string }> {
     return { ok: true, data: true };
   }
-
-  /**
-   * Legacy compatibility method for domain component creation
-   * @deprecated Use createAnalysisComponents() directly
-   */
-  createDomainComponents(domain: ComponentDomain): unknown {
-    switch (domain) {
-      case ComponentDomain.Analysis:
-        return this.createAnalysisComponents();
-      case ComponentDomain.Template:
-      case ComponentDomain.Pipeline:
-      case ComponentDomain.Infrastructure:
-      default:
-        // Return empty object for unsupported domains
-        return {};
-    }
-  }
 }
 
 /**
- * Default instance for application use
- * Eliminates need for complex factory configuration
+ * Default factory instance for application layer use
+ *
+ * Eliminates complex configuration following AI complexity control principles.
+ * Application layer can inject this into use cases as needed.
  */
 export const defaultComponentFactory = new ComponentFactory();
-
-// Legacy compatibility classes - deprecated but maintained for gradual migration
-/** @deprecated Use ComponentFactory directly */
-export class AnalysisDomainFactory extends ComponentFactory {}
-
-/** @deprecated Use ComponentFactory directly */
-export class TemplateDomainFactory extends ComponentFactory {}
-
-/** @deprecated Use ComponentFactory directly */
-export class PipelineDomainFactory extends ComponentFactory {}
-
-/** @deprecated Use ComponentFactory directly */
-export class MasterComponentFactory extends ComponentFactory {}
-
-/** @deprecated Use ComponentFactory directly */
-export class FactoryConfigurationBuilder extends ComponentFactory {
-  /**
-   * Create a default configuration - simplified to return ComponentFactory instance
-   * @deprecated Use defaultComponentFactory directly instead
-   */
-  static createDefault(): ComponentFactory {
-    return new ComponentFactory();
-  }
-}
-
-// Legacy namespace for backward compatibility
-export const ComponentFactories = {
-  AnalysisDomainFactory,
-  TemplateDomainFactory,
-  PipelineDomainFactory,
-  MasterComponentFactory,
-  FactoryConfigurationBuilder,
-};

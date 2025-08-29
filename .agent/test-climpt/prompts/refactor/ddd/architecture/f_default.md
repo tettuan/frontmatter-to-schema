@@ -6,10 +6,6 @@ title: Domain-Driven Design Architecture Refactoring
 description: Refactors project architecture based on domain-driven design principles and redesigns domain architecture.
 usage: climpt-refactor ddd architecture --uv-scope="domain architecture redesign"
 options:
-  input: ["scan"]
-  adaptation: ["default"]
-  input_file: [false]
-  stdin: [false]
   destination: [true]
 ---
 

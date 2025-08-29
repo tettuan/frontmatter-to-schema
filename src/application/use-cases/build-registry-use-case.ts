@@ -7,6 +7,14 @@ import { RegistryAggregator } from "../services/registry-aggregator.ts";
 import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
 import type { SchemaAnalyzer } from "../../domain/services/interfaces.ts";
+import { Schema, SchemaId } from "../../domain/models/entities.ts";
+import {
+  FrontMatterContent,
+  SchemaDefinition,
+  SchemaVersion,
+} from "../../domain/models/value-objects.ts";
+import { FrontMatter } from "../../domain/models/entities.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -81,15 +89,54 @@ export class BuildRegistryUseCase {
           }
 
           case "SchemaAnalyzer": {
-            // TODO: Implement proper SchemaAnalyzer usage with Schema parameter
-            // For now, skip as we need proper Schema instance
-            logger.debug(
-              "SchemaAnalyzer not yet implemented for registry building",
-              {
-                filename: promptFile.filename,
-              },
+            // Create default CLI schema for registry building
+            const schema = this.createDefaultCliSchema();
+
+            // Convert frontmatter following Totality principle with type-safe transformation
+            const frontMatterConversionResult = this.convertFrontMatterSafely(
+              frontMatter,
             );
-            continue;
+            if (!frontMatterConversionResult.ok) {
+              logger.debug("FrontMatter conversion failed", {
+                filename: promptFile.filename,
+                error: frontMatterConversionResult.error,
+              });
+              break;
+            }
+            const frontMatterData = frontMatterConversionResult.data;
+
+            const analysisResult = await this.analyzer.analyzer.analyze(
+              frontMatterData,
+              schema,
+            );
+
+            if (analysisResult.ok) {
+              // The SchemaAnalyzer returns ExtractedData, which we need to transform
+              // into the format expected by the aggregator
+              const extractedData = analysisResult.data;
+              const data = extractedData.getData();
+
+              // Check if the extracted data contains command information
+              if (data && typeof data === "object" && "commands" in data) {
+                aggregator.addAnalysisResult(data);
+                logger.debug("Extracted commands via SchemaAnalyzer", {
+                  filename: promptFile.filename,
+                  commandCount: Array.isArray(data.commands)
+                    ? data.commands.length
+                    : 0,
+                });
+              } else {
+                logger.debug("No command data found in analysis result", {
+                  filename: promptFile.filename,
+                });
+              }
+            } else {
+              logger.debug("SchemaAnalyzer failed", {
+                filename: promptFile.filename,
+                error: analysisResult.error.message,
+              });
+            }
+            break;
           }
 
           default: {
@@ -118,5 +165,103 @@ export class BuildRegistryUseCase {
     });
 
     return registry;
+  }
+
+  /**
+   * Create a default schema for CLI registry building
+   * This schema defines the expected structure for CLI prompt frontmatter
+   */
+  private createDefaultCliSchema(): Schema {
+    const schemaId = SchemaId.create("cli-registry-schema");
+    if (!schemaId.ok) {
+      throw new Error("Failed to create schema ID");
+    }
+
+    const schemaVersion = SchemaVersion.create("1.0.0");
+    if (!schemaVersion.ok) {
+      throw new Error("Failed to create schema version");
+    }
+
+    // Define the expected structure for CLI prompt frontmatter
+    const cliSchemaDefinition = {
+      type: "object",
+      properties: {
+        c1: { type: "string", description: "First command component (domain)" },
+        c2: {
+          type: "string",
+          description: "Second command component (action)",
+        },
+        c3: { type: "string", description: "Third command component (target)" },
+        title: { type: "string", description: "Human-readable command title" },
+        description: { type: "string", description: "Command description" },
+        usage: { type: "string", description: "Usage example" },
+        options: {
+          type: "object",
+          description: "Available command options",
+        },
+      },
+      required: ["c1", "c2", "c3"],
+    };
+
+    const schemaDefinition = SchemaDefinition.create(
+      cliSchemaDefinition,
+      "1.0.0",
+    );
+    if (!schemaDefinition.ok) {
+      throw new Error("Failed to create schema definition");
+    }
+
+    return Schema.create(
+      schemaId.data,
+      schemaDefinition.data,
+      schemaVersion.data,
+      "Schema for CLI command registry building from prompt frontmatter",
+    );
+  }
+
+  /**
+   * Type-safe conversion from frontmatter-models.FrontMatter to entities.FrontMatter
+   * Following Totality principle to eliminate unsafe type casting
+   */
+  private convertFrontMatterSafely(
+    sourceFrontMatter:
+      import("../../domain/frontmatter/frontmatter-models.ts").FrontMatter,
+  ): Result<
+    import("../../domain/models/entities.ts").FrontMatter,
+    DomainError
+  > {
+    try {
+      // Create FrontMatterContent from the source data using smart constructor
+      const contentResult = FrontMatterContent.fromObject(
+        sourceFrontMatter.data,
+      );
+      if (!contentResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidState",
+            expected: "valid FrontMatterContent",
+            actual: "conversion failed",
+          } as DomainError,
+        };
+      }
+
+      // Create the target FrontMatter instance
+      const targetFrontMatter = new FrontMatter(
+        contentResult.data,
+        sourceFrontMatter.raw,
+      );
+
+      return { ok: true, data: targetFrontMatter };
+    } catch (_error) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateMappingFailed",
+          template: "FrontMatter conversion",
+          source: sourceFrontMatter.data,
+        } as DomainError,
+      };
+    }
   }
 }

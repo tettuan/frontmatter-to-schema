@@ -6,10 +6,7 @@ title: Analyze Specification Quality
 description: Analyze specification quality and completeness metrics
 usage: climpt-spec analyze quality-metrics -f spec.md -o report.json
 options:
-  input: ["text", "file"]
-  adaptation: ["default"]
-  input_file: [true]
-  stdin: [true]
+  file: [true]
   destination: [true]
 ---
 

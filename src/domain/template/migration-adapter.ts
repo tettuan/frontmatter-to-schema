@@ -114,14 +114,40 @@ export class SimpleTemplateMapperAdapter {
   async map(
     data: { getData(): unknown },
     template: {
-      applyRules(data: unknown): unknown;
+      applyRules(
+        data: unknown,
+        mode: { kind: "SimpleMapping" } | {
+          kind: "WithStructuralValidation";
+          schemaData: unknown;
+          templateStructure: unknown;
+        },
+      ): Result<Record<string, unknown>, DomainError>;
       getFormat(): { getTemplate(): string; getFormat(): string };
     },
   ): Promise<Result<{ getData(): unknown }, DomainError>> {
     try {
       // Extract data
       const rawData = data.getData();
-      const mappedData = template.applyRules(rawData);
+      const mappedResult = template.applyRules(rawData, {
+        kind: "SimpleMapping",
+      });
+
+      if (!mappedResult.ok) {
+        return {
+          ok: false,
+          error: createProcessingStageError(
+            "template mapping",
+            {
+              kind: "TemplateMappingFailed",
+              template: String(rawData),
+              source: rawData,
+            },
+            `Template mapping failed: ${mappedResult.error.kind}`,
+          ),
+        };
+      }
+
+      const mappedData = mappedResult.data;
 
       // Create a proper Template object
       const { TemplateDefinition, Template: TemplateClass } = await import(
