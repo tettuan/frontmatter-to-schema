@@ -193,7 +193,7 @@ export class ConfigurationLoader
       }
 
       const definitionResult = SchemaDefinition.create(
-        data.properties || data,
+        data,
         (data.version as string) || "1.0.0",
       );
       if (!definitionResult.ok) {

@@ -411,6 +411,7 @@ export class OutputPath {
 export class SchemaDefinition {
   private constructor(
     private readonly value: unknown,
+    private readonly rawDefinition: unknown,
     private readonly version: string,
   ) {}
 
@@ -441,11 +442,21 @@ export class SchemaDefinition {
       };
     }
 
-    return { ok: true, data: new SchemaDefinition(definition, version) };
+    // Store both raw and processed versions
+    // The raw definition preserves the original JSON schema structure
+    const rawCopy = JSON.parse(JSON.stringify(definition));
+    return {
+      ok: true,
+      data: new SchemaDefinition(definition, rawCopy, version),
+    };
   }
 
   getValue(): unknown {
     return this.value;
+  }
+
+  getRawDefinition(): unknown {
+    return this.rawDefinition;
   }
 
   getVersion(): string {

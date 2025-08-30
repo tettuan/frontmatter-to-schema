@@ -167,15 +167,13 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         };
       }
 
-      const context = contextResult.data;
+      const _context = contextResult.data;
 
-      // Transform frontmatter to registry structure
-      const registryData = this.transformToRegistry(context);
-
-      // Return as ExtractedData
+      // Pass through the raw frontmatter data without transformation
+      // The template will handle the mapping
       return {
         ok: true,
-        data: ExtractedData.create(registryData.toJSON()),
+        data: ExtractedData.create(frontMatterData),
       };
     } catch (error) {
       return {
