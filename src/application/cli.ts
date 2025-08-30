@@ -7,7 +7,7 @@ import {
 import { DocumentProcessor } from "./document-processor.ts";
 import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { SchemaValidator } from "../domain/services/schema-validator.ts";
-import { TemplateMapper } from "../domain/services/template-mapper.ts";
+import { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 
@@ -16,15 +16,25 @@ export class CLI {
   private readonly fileSystem = new DenoFileSystemProvider();
   private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
   private readonly schemaValidator = new SchemaValidator();
-  private readonly templateMapper = new TemplateMapper();
+  private readonly templateProcessor: UnifiedTemplateProcessor;
   private readonly processor: DocumentProcessor;
 
   constructor() {
+    const templateProcessorResult = UnifiedTemplateProcessor.create();
+    if ("kind" in templateProcessorResult) {
+      throw new Error(
+        `Failed to create template processor: ${
+          String(templateProcessorResult.kind)
+        }`,
+      );
+    }
+    this.templateProcessor = templateProcessorResult;
+
     this.processor = new DocumentProcessor(
       this.fileSystem,
       this.frontMatterExtractor,
       this.schemaValidator,
-      this.templateMapper,
+      this.templateProcessor,
     );
   }
 

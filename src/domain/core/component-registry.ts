@@ -10,8 +10,7 @@ import { createDomainError, type DomainError } from "./result.ts";
 // Direct imports without factory abstractions
 import { TemplateFormatHandlerFactory } from "../template/format-handlers.ts";
 import type { TemplateFormatHandler } from "../template/format-handlers.ts";
-import { PlaceholderProcessorFactory } from "../template/placeholder-processor.ts";
-import type { PlaceholderProcessor } from "../template/placeholder-processor.ts";
+import { UnifiedTemplateProcessor } from "../template/unified-template-processor.ts";
 
 /**
  * Template Components - Direct access without factory complexity
@@ -19,11 +18,7 @@ import type { PlaceholderProcessor } from "../template/placeholder-processor.ts"
  */
 export interface TemplateComponents {
   formatHandlers: Map<string, TemplateFormatHandler>;
-  placeholderProcessors: {
-    mustache: PlaceholderProcessor;
-    dollar: PlaceholderProcessor;
-    percent: PlaceholderProcessor;
-  };
+  templateProcessor: UnifiedTemplateProcessor;
 }
 
 /**
@@ -62,16 +57,17 @@ export class ComponentRegistry {
       }
     }
 
-    // Create placeholder processors - direct creation
-    const placeholderProcessors = {
-      mustache: PlaceholderProcessorFactory.createMustacheProcessor(),
-      dollar: PlaceholderProcessorFactory.createDollarProcessor(),
-      percent: PlaceholderProcessorFactory.createPercentProcessor(),
-    };
+    // Create unified template processor
+    const templateProcessorResult = UnifiedTemplateProcessor.create();
+    if ("kind" in templateProcessorResult) {
+      throw new Error(
+        `Failed to create template processor: ${templateProcessorResult.kind}`,
+      );
+    }
 
     return {
       formatHandlers,
-      placeholderProcessors,
+      templateProcessor: templateProcessorResult,
     };
   }
 
@@ -99,14 +95,12 @@ export class ComponentRegistry {
   }
 
   /**
-   * Get specific placeholder processor
-   * Simplified interface for common use case
+   * Get template processor
+   * Simplified interface for template processing
    */
-  static getPlaceholderProcessor(
-    type: "mustache" | "dollar" | "percent",
-  ): PlaceholderProcessor {
+  static getTemplateProcessor(): UnifiedTemplateProcessor {
     const components = ComponentRegistry.getTemplateComponents();
-    return components.placeholderProcessors[type];
+    return components.templateProcessor;
   }
 
   /**
@@ -123,5 +117,5 @@ export class ComponentRegistry {
  */
 export const TemplateServices = {
   getFormatHandler: ComponentRegistry.getFormatHandler,
-  getPlaceholderProcessor: ComponentRegistry.getPlaceholderProcessor,
+  getTemplateProcessor: ComponentRegistry.getTemplateProcessor,
 };
