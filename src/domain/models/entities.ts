@@ -244,26 +244,6 @@ export class Document {
     }
   }
 
-  /**
-   * @deprecated Use getFrontMatterResult() instead for totality compliance
-   * This method will be removed in a future version
-   */
-  getFrontMatter(): FrontMatter | null {
-    switch (this.frontMatterState.kind) {
-      case "WithFrontMatter":
-        return this.frontMatterState.frontMatter;
-      case "NoFrontMatter":
-        return null;
-      default: {
-        // Exhaustive check - TypeScript will error if we miss a case
-        const _exhaustiveCheck: never = this.frontMatterState;
-        throw new Error(
-          `Unhandled frontmatter state: ${String(_exhaustiveCheck)}`,
-        );
-      }
-    }
-  }
-
   getContent(): DocumentContent {
     return this.content;
   }
@@ -359,18 +339,6 @@ export class Schema {
       ok: false,
       error: result.error,
     };
-  }
-
-  /**
-   * @deprecated Use validate() instead for typed data returns
-   * This method will be removed in a future version
-   */
-  validateLegacy(data: unknown): Result<void, DomainError> {
-    const result = this.validate(data);
-    if (result.ok) {
-      return { ok: true, data: undefined };
-    }
-    return { ok: false, error: result.error };
   }
 }
 
@@ -489,29 +457,6 @@ export class Template {
     }
 
     return { ok: true, data: result };
-  }
-
-  /**
-   * @deprecated Use applyRules(data, mode) with TemplateApplicationMode instead
-   * This method will be removed in a future version
-   */
-  applyRulesLegacy(
-    data: Record<string, unknown>,
-    schemaData?: unknown,
-    templateStructure?: unknown,
-  ): Record<string, unknown> {
-    const mode: TemplateApplicationMode = (schemaData && templateStructure)
-      ? { kind: "WithStructuralValidation", schemaData, templateStructure }
-      : { kind: "SimpleMapping" };
-
-    const result = this.applyRules(data, mode);
-    if (!result.ok) {
-      // For backward compatibility, return empty object on error
-      // In future versions, this method should be removed entirely
-      return {};
-    }
-
-    return result.data;
   }
 
   /**
@@ -727,102 +672,6 @@ export class AggregatedResult {
 
   getTimestamp(): Date {
     return this.timestamp;
-  }
-
-  /**
-   * Get output formatted as string using domain services
-   * @deprecated Use domain services directly for proper separation of concerns
-   */
-  toOutput(): string {
-    // Simple fallback for backward compatibility
-    // In practice, callers should use RegistryAggregationService + OutputFormatter
-    const data = this.results.map((r) => r.getMappedData().getData());
-
-    if (this.format === "json") {
-      // Check if this is a registry structure with tools.commands array
-      if (data.length > 0 && data[0] && typeof data[0] === "object") {
-        const firstItem = data[0] as Record<string, unknown>;
-
-        // Check if this looks like a registry structure with version/tools
-        if ("version" in firstItem && "tools" in firstItem) {
-          // This is the problematic case - each doc was mapped to full registry structure
-          // We need to extract the original frontmatter data from each result
-          const registry: Record<string, unknown> = {
-            version: "1.0.0",
-            description: "Command Registry from frontmatter documents",
-            tools: {
-              availableConfigs: [],
-              commands: [],
-            },
-          };
-
-          // Collect unique c1 values and commands from ORIGINAL extracted data
-          const c1Values = new Set<string>();
-          const commands: Record<string, unknown>[] = [];
-
-          // Process each result using the RAW frontmatter data
-          for (const result of this.results) {
-            const document = result.getDocument();
-            const frontMatter = document.getFrontMatter();
-
-            if (frontMatter) {
-              const frontMatterData = frontMatter.toObject();
-
-              if (
-                typeof frontMatterData === "object" && frontMatterData !== null
-              ) {
-                // Add the raw frontmatter data as a command
-                commands.push(frontMatterData as Record<string, unknown>);
-
-                // Collect c1 value if present
-                if ("c1" in frontMatterData) {
-                  c1Values.add(String(frontMatterData.c1));
-                }
-              }
-            }
-          }
-
-          // Set availableConfigs from unique c1 values
-          (registry.tools as Record<string, unknown>).availableConfigs = Array
-            .from(c1Values);
-          (registry.tools as Record<string, unknown[]>).commands = commands;
-
-          return JSON.stringify(registry, null, 2);
-        } else if ("c1" in firstItem) {
-          // This looks like individual commands, wrap them in registry structure
-          const registry: Record<string, unknown> = {
-            version: "1.0.0",
-            description: "Command Registry",
-            tools: {
-              availableConfigs: [],
-              commands: [],
-            },
-          };
-
-          // Collect unique c1 values
-          const c1Values = new Set<string>();
-
-          // Add all items as commands
-          for (const item of data) {
-            if (typeof item === "object" && item !== null && "c1" in item) {
-              (registry.tools as Record<string, unknown[]>).commands.push(item);
-              c1Values.add(String((item as Record<string, unknown>).c1));
-            }
-          }
-
-          // Set availableConfigs from unique c1 values
-          (registry.tools as Record<string, unknown>).availableConfigs = Array
-            .from(c1Values);
-
-          return JSON.stringify(registry, null, 2);
-        }
-      }
-
-      // Default behavior for non-registry structures
-      return JSON.stringify({ results: data }, null, 2);
-    } else {
-      return `results:\n${data.map((d) => this.objectToYAML(d, 1)).join("\n")}`;
-    }
   }
 
   /**

@@ -13,6 +13,7 @@ import {
   Template,
   TemplateId,
 } from "../../../../src/domain/models/entities.ts";
+import { ResultAggregationOrchestrator } from "../../../../src/application/services/result-aggregation-orchestrator.ts";
 import {
   DocumentContent,
   DocumentPath,
@@ -203,7 +204,11 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
-    assertEquals(document.getFrontMatter(), frontMatter);
+    const frontMatterResult = document.getFrontMatterResult();
+    if (!frontMatterResult.ok) {
+      throw new Error("Expected frontMatter to be present");
+    }
+    assertEquals(frontMatterResult.data, frontMatter);
     assertEquals(document.hasFrontMatter(), true);
     assertEquals(document.getId().getValue(), "/test/document.md");
   });
@@ -218,7 +223,8 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
-    assertEquals(document.getFrontMatter(), null);
+    const frontMatterResult = document.getFrontMatterResult();
+    assertEquals(frontMatterResult.ok, false);
     assertEquals(document.hasFrontMatter(), false);
   });
 
@@ -671,7 +677,10 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
     const results = createTestAnalysisResults(2);
     const aggregated = AggregatedResult.create(results, "json");
 
-    const output = aggregated.toOutput();
+    const orchestrator = new ResultAggregationOrchestrator();
+    const outputResult = orchestrator.aggregateFromEntity(aggregated);
+    if (!outputResult.ok) throw new Error("Failed to aggregate output");
+    const output = outputResult.data;
     const parsed = JSON.parse(output);
 
     assertEquals(Array.isArray(parsed.results), true);
@@ -684,7 +693,10 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
     const results = createTestAnalysisResults(1);
     const aggregated = AggregatedResult.create(results, "yaml");
 
-    const output = aggregated.toOutput();
+    const orchestrator = new ResultAggregationOrchestrator();
+    const outputResult = orchestrator.aggregateFromEntity(aggregated);
+    if (!outputResult.ok) throw new Error("Failed to aggregate output");
+    const output = outputResult.data;
 
     assertEquals(output.includes("results:"), true);
     assertEquals(output.includes("Mapped Title 0"), true);
@@ -709,7 +721,10 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
 
     assertEquals(aggregated.getResults().length, 0);
 
-    const output = aggregated.toOutput();
+    const orchestrator = new ResultAggregationOrchestrator();
+    const outputResult = orchestrator.aggregateFromEntity(aggregated);
+    if (!outputResult.ok) throw new Error("Failed to aggregate output");
+    const output = outputResult.data;
     const parsed = JSON.parse(output);
 
     assertEquals(Array.isArray(parsed.results), true);

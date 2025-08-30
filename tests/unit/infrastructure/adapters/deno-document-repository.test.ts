@@ -114,10 +114,11 @@ Nested content.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        assertExists(doc.getFrontMatter());
+        const frontMatterResult = doc.getFrontMatterResult();
+        assertEquals(frontMatterResult.ok, true);
 
-        const frontMatter = doc.getFrontMatter();
-        if (frontMatter) {
+        if (frontMatterResult.ok) {
+          const frontMatter = frontMatterResult.data;
           const raw = frontMatter.getRaw();
           assertEquals(raw.includes("title: Test Document 1"), true);
         }
@@ -137,7 +138,8 @@ Nested content.`,
         const doc = result.data;
         // Document should exist but frontmatter should be null
         assertExists(doc.getContent());
-        assertEquals(doc.getFrontMatter(), null);
+        const frontMatterResult = doc.getFrontMatterResult();
+        assertEquals(frontMatterResult.ok, false);
       }
     }
   });
@@ -382,7 +384,8 @@ Content here.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        assertEquals(doc.getFrontMatter(), null);
+        const frontMatterResult = doc.getFrontMatterResult();
+        assertEquals(frontMatterResult.ok, false);
         assertEquals(doc.getContent().getValue(), "");
       }
     }
@@ -404,7 +407,8 @@ Content here.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        assertExists(doc.getFrontMatter());
+        const frontMatterResult = doc.getFrontMatterResult();
+        assertEquals(frontMatterResult.ok, true);
         // Body should be empty or minimal
         assertEquals(doc.getContent().getValue().trim().length <= 1, true);
       }
@@ -592,13 +596,14 @@ Math: ∑∞∫∆∇⊕⊗`;
 
         if (isOk(result)) {
           const doc = result.data;
-          assertExists(doc.getFrontMatter());
+          const frontMatterResult = doc.getFrontMatterResult();
+          assertEquals(frontMatterResult.ok, true);
           const content = doc.getContent().getValue();
           // Verify the document was read successfully and contains some content
           assertEquals(content.length > 0, true);
           // Verify UTF-8 characters are preserved (though they may be in frontmatter)
-          const frontMatter = doc.getFrontMatter();
-          if (frontMatter) {
+          if (frontMatterResult.ok) {
+            const frontMatter = frontMatterResult.data;
             const raw = frontMatter.getRaw();
             assertEquals(raw.includes("Unicode Test"), true);
           }
@@ -648,10 +653,10 @@ Content with complex frontmatter.`;
 
         if (isOk(result)) {
           const doc = result.data;
-          const frontMatter = doc.getFrontMatter();
-          assertExists(frontMatter);
-
-          if (frontMatter) {
+          const frontMatterResult = doc.getFrontMatterResult();
+          assertEquals(frontMatterResult.ok, true);
+          if (frontMatterResult.ok) {
+            const frontMatter = frontMatterResult.data;
             const raw = frontMatter.getRaw();
             assertEquals(raw.includes("title: Complex Data Types"), true);
             assertEquals(raw.includes("published: true"), true);
