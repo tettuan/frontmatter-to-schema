@@ -1,6 +1,7 @@
 /**
  * Core Analysis Engine - The backbone center line of the DDD architecture
  * Implements the central analysis pipeline following Schema-driven Analysis pattern
+ * Follows Totality principles: discriminated unions, Result types, no partial functions
  */
 
 import {
@@ -8,6 +9,48 @@ import {
   createDomainError,
   type Result,
 } from "./result.ts";
+
+// Totality-compliant discriminated unions for analysis engine states
+type InputValidationResult<T> = {
+  kind: "Valid";
+  value: T;
+} | {
+  kind: "Invalid";
+  reason: string;
+};
+
+type TimeoutState = {
+  kind: "Active";
+  id: number;
+} | {
+  kind: "Cleared";
+} | {
+  kind: "NotSet";
+};
+
+type SchemaValidationCapability = {
+  kind: "HasValidation";
+  validate: (data: unknown) => { ok: boolean; data?: unknown; error?: unknown };
+} | {
+  kind: "NoValidation";
+};
+
+type TemplateParsingResult = {
+  kind: "Parsed";
+  structure: Record<string, unknown>;
+  mappingRules: MappingRulesResult;
+} | {
+  kind: "ParseFailed";
+  fallbackStructure: Record<string, unknown>;
+  mappingRules: MappingRulesResult;
+};
+
+type MappingRulesResult = {
+  kind: "Present";
+  rules: Record<string, string>;
+} | {
+  kind: "NotPresent";
+};
 import {
   type AnalysisContext,
   isSchemaAnalysis,
@@ -85,29 +128,35 @@ export class GenericAnalysisEngine implements AnalysisEngine {
     input: TInput,
     strategy: AnalysisStrategy<TInput, TOutput>,
   ): Promise<Result<TOutput, AnalysisError & { message: string }>> {
-    // Input validation
-    if (!input) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ExtractionStrategyFailed",
-          strategy: strategy.name,
-          input,
-        }),
-      };
+    // Input validation using Totality patterns
+    const validationResult = this.validateInput(input);
+    switch (validationResult.kind) {
+      case "Invalid":
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ExtractionStrategyFailed",
+            strategy: strategy.name,
+            input,
+          }),
+        };
+      case "Valid":
+        // Continue with valid input
+        break;
     }
 
     try {
-      // Timeout handling for robust operation
-      let timeoutId: number | undefined;
+      // Timeout handling using Totality patterns
+      let activeTimeoutId: number | undefined;
+
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
+        activeTimeoutId = setTimeout(
           () => reject(new Error("Analysis timeout")),
           this.timeout,
         );
       });
 
-      const analysisPromise = strategy.execute(input, {
+      const analysisPromise = strategy.execute(validationResult.value, {
         document: "analysis",
         kind: "BasicExtraction",
         options: { includeMetadata: true },
@@ -115,10 +164,10 @@ export class GenericAnalysisEngine implements AnalysisEngine {
 
       const result = await Promise.race([analysisPromise, timeoutPromise]);
 
-      // Clear timeout if analysis completes first
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
+      // Clear timeout if analysis completes first using Totality pattern
+      const timeoutState = this.createTimeoutState(activeTimeoutId);
+      this.cleanupTimeout(timeoutState);
+
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === "Analysis timeout") {
@@ -139,6 +188,41 @@ export class GenericAnalysisEngine implements AnalysisEngine {
           input,
         }),
       };
+    }
+  }
+
+  /**
+   * Validate input using Totality patterns
+   */
+  private validateInput<T>(input: T): InputValidationResult<T> {
+    if (!input) {
+      return { kind: "Invalid", reason: "Input is falsy" };
+    }
+    return { kind: "Valid", value: input };
+  }
+
+  /**
+   * Create timeout state from optional timeout ID
+   */
+  private createTimeoutState(timeoutId: number | undefined): TimeoutState {
+    if (timeoutId !== undefined) {
+      return { kind: "Active", id: timeoutId };
+    }
+    return { kind: "NotSet" };
+  }
+
+  /**
+   * Cleanup timeout using discriminated union pattern
+   */
+  private cleanupTimeout(timeoutState: TimeoutState): void {
+    switch (timeoutState.kind) {
+      case "Active":
+        clearTimeout(timeoutState.id);
+        break;
+      case "NotSet":
+      case "Cleared":
+        // No cleanup needed
+        break;
     }
   }
 }
@@ -163,20 +247,14 @@ export class RobustSchemaAnalyzer<TSchema, TResult>
     data: FrontMatterContent,
     schema: SchemaDefinition,
   ): Promise<Result<TResult, AnalysisError & { message: string }>> {
-    // Validate schema first
+    // Validate schema first using Totality patterns
     const dataJson = data.toJSON();
-    // Check if schema has validate method (from models/schema.ts)
-    const schemaValidation = (schema as {
-        validate?: (
-          data: unknown,
-        ) => { ok: boolean; data?: unknown; error?: unknown };
-      }).validate
-      ? (schema as {
-        validate: (
-          data: unknown,
-        ) => { ok: boolean; data?: unknown; error?: unknown };
-      }).validate(dataJson)
-      : { ok: true, data: dataJson };
+    const validationCapability = this.extractSchemaValidationCapability(schema);
+
+    const schemaValidation = this.performSchemaValidation(
+      validationCapability,
+      dataJson,
+    );
     if (!schemaValidation.ok) {
       return {
         ok: false,
@@ -203,6 +281,46 @@ export class RobustSchemaAnalyzer<TSchema, TResult>
           data: dataJson,
         }),
       };
+    }
+  }
+
+  /**
+   * Extract schema validation capability using Totality patterns
+   */
+  private extractSchemaValidationCapability(
+    schema: SchemaDefinition,
+  ): SchemaValidationCapability {
+    const schemaWithValidation = schema as unknown as {
+      validate?: (
+        data: unknown,
+      ) => { ok: boolean; data?: unknown; error?: unknown };
+    };
+
+    if (
+      schemaWithValidation.validate &&
+      typeof schemaWithValidation.validate === "function"
+    ) {
+      return {
+        kind: "HasValidation",
+        validate: schemaWithValidation.validate,
+      };
+    }
+
+    return { kind: "NoValidation" };
+  }
+
+  /**
+   * Perform schema validation using discriminated union pattern
+   */
+  private performSchemaValidation(
+    capability: SchemaValidationCapability,
+    data: unknown,
+  ): { ok: boolean; data?: unknown; error?: unknown } {
+    switch (capability.kind) {
+      case "HasValidation":
+        return capability.validate(data);
+      case "NoValidation":
+        return { ok: true, data };
     }
   }
 }
@@ -277,44 +395,11 @@ export class RobustTemplateMapper<TSource, TTarget>
     source: TSource,
     template: TemplateDefinition,
   ): TTarget {
-    // Parse the template JSON string to get the actual template structure
-    let templateStructure: Record<string, unknown>;
-    let mappingRules: Record<string, string> | undefined;
-
-    try {
-      // If template.template is a string that looks like JSON, try to parse it
-      if (
-        typeof template.template === "string" &&
-        template.template.startsWith("{")
-      ) {
-        const parsedTemplate = JSON.parse(template.template);
-        templateStructure = parsedTemplate.structure || {};
-        mappingRules = parsedTemplate.mappingRules || template.mappingRules;
-      } else {
-        // Use template structure directly, or merge with variables for simple string templates
-        templateStructure = template.structure || {};
-        mappingRules = template.mappingRules;
-
-        // For simple string templates like "default", use variables directly
-        if (
-          typeof template.template === "string" &&
-          Object.keys(templateStructure).length === 0 && template.variables
-        ) {
-          templateStructure = { ...template.variables };
-        }
-      }
-    } catch {
-      // If parsing fails, use template as-is
-      templateStructure = template.structure || {};
-      mappingRules = template.mappingRules;
-
-      // Fallback: use variables directly if available
-      if (template.variables && Object.keys(templateStructure).length === 0) {
-        templateStructure = { ...template.variables };
-      }
-    }
+    // Parse template using Totality patterns
+    const parsingResult = this.parseTemplateDefinition(template);
 
     // Start with template structure as base
+    const templateStructure = this.extractTemplateStructure(parsingResult);
     const result: Record<string, unknown> = { ...templateStructure };
 
     // Handle FrontMatterContent instances by extracting their data
@@ -332,28 +417,8 @@ export class RobustTemplateMapper<TSource, TTarget>
       return result as TTarget;
     }
 
-    // Apply mapping rules if they exist
-    if (mappingRules) {
-      for (
-        const [targetKey, sourceKey] of Object.entries(mappingRules)
-      ) {
-        const sourceKeyStr = sourceKey as string;
-        if (sourceKeyStr in sourceObj) {
-          // Support dot notation for nested properties (simplified)
-          if (targetKey.includes(".")) {
-            // For now, just set direct properties
-            const keys = targetKey.split(".");
-            if (keys.length === 2) {
-              if (!result[keys[0]]) result[keys[0]] = {};
-              (result[keys[0]] as Record<string, unknown>)[keys[1]] =
-                sourceObj[sourceKeyStr];
-            }
-          } else {
-            result[targetKey] = sourceObj[sourceKeyStr];
-          }
-        }
-      }
-    }
+    // Apply mapping rules using discriminated union pattern
+    this.applyMappingRules(parsingResult.mappingRules, sourceObj, result);
 
     // Merge any remaining properties from source, overriding template defaults
     for (const [key, value] of Object.entries(sourceObj)) {
@@ -361,6 +426,125 @@ export class RobustTemplateMapper<TSource, TTarget>
     }
 
     return result as TTarget;
+  }
+
+  /**
+   * Parse template definition using Totality patterns
+   */
+  private parseTemplateDefinition(
+    template: TemplateDefinition,
+  ): TemplateParsingResult {
+    try {
+      // If template.template is a string that looks like JSON, try to parse it
+      if (
+        typeof template.template === "string" &&
+        template.template.startsWith("{")
+      ) {
+        const parsedTemplate = JSON.parse(template.template);
+        return {
+          kind: "Parsed",
+          structure: parsedTemplate.structure || {},
+          mappingRules: this.extractMappingRules(
+            parsedTemplate.mappingRules || template.mappingRules,
+          ),
+        };
+      } else {
+        // Use template structure directly, or merge with variables for simple string templates
+        let structure = template.structure || {};
+
+        // For simple string templates like "default", use variables directly
+        if (
+          typeof template.template === "string" &&
+          Object.keys(structure).length === 0 && template.variables
+        ) {
+          structure = { ...template.variables };
+        }
+
+        return {
+          kind: "Parsed",
+          structure,
+          mappingRules: this.extractMappingRules(template.mappingRules),
+        };
+      }
+    } catch {
+      // If parsing fails, use template as-is
+      let fallbackStructure = template.structure || {};
+
+      // Fallback: use variables directly if available
+      if (template.variables && Object.keys(fallbackStructure).length === 0) {
+        fallbackStructure = { ...template.variables };
+      }
+
+      return {
+        kind: "ParseFailed",
+        fallbackStructure,
+        mappingRules: this.extractMappingRules(template.mappingRules),
+      };
+    }
+  }
+
+  /**
+   * Extract mapping rules using discriminated union pattern
+   */
+  private extractMappingRules(
+    rules: Record<string, string> | undefined,
+  ): MappingRulesResult {
+    if (rules && typeof rules === "object") {
+      return { kind: "Present", rules };
+    }
+    return { kind: "NotPresent" };
+  }
+
+  /**
+   * Extract template structure from parsing result
+   */
+  private extractTemplateStructure(
+    parsingResult: TemplateParsingResult,
+  ): Record<string, unknown> {
+    switch (parsingResult.kind) {
+      case "Parsed":
+        return parsingResult.structure;
+      case "ParseFailed":
+        return parsingResult.fallbackStructure;
+    }
+  }
+
+  /**
+   * Apply mapping rules using discriminated union pattern
+   */
+  private applyMappingRules(
+    mappingRulesResult: MappingRulesResult,
+    sourceObj: Record<string, unknown>,
+    result: Record<string, unknown>,
+  ): void {
+    switch (mappingRulesResult.kind) {
+      case "Present":
+        for (
+          const [targetKey, sourceKey] of Object.entries(
+            mappingRulesResult.rules,
+          )
+        ) {
+          const sourceKeyStr = sourceKey as string;
+          if (sourceKeyStr in sourceObj) {
+            // Support dot notation for nested properties (simplified)
+            if (targetKey.includes(".")) {
+              // For now, just set direct properties
+              const keys = targetKey.split(".");
+              if (keys.length === 2) {
+                if (!result[keys[0]]) result[keys[0]] = {};
+                (result[keys[0]] as Record<string, unknown>)[keys[1]] =
+                  sourceObj[sourceKeyStr];
+              }
+            } else {
+              result[targetKey] = sourceObj[sourceKeyStr];
+            }
+          }
+        }
+        break;
+      case "NotPresent":
+        // No mapping rules to apply
+        break;
+    }
   }
 }
 

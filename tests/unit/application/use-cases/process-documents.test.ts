@@ -540,7 +540,7 @@ function createMockTemplate(): Template {
   const format = formatResult.data;
 
   const rules: MappingRule[] = [];
-  return Template.create(templateId, format, rules, "Test template");
+  return Template.createLegacy(templateId, format, rules, "Test template");
 }
 
 function createMockConfig(

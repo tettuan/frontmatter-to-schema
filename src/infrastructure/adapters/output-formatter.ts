@@ -9,6 +9,11 @@ import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import type { AggregatedStructure } from "../../domain/services/structured-aggregator.ts";
 
+// Type guard helper following Totality principle
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 /**
  * Output Format Types - Discriminated Union following Totality principle
  */
@@ -116,9 +121,15 @@ export class OutputFormatter {
         default: {
           // Exhaustive check - TypeScript will error if we miss a case
           const _exhaustiveCheck: never = format;
-          throw new Error(
-            `Unhandled output format: ${String(_exhaustiveCheck)}`,
-          );
+          // Return error Result instead of throwing to maintain Totality
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "InvalidFormat",
+              input: String(_exhaustiveCheck),
+              expectedFormat: "json, yaml, xml, csv, or toml",
+            }, `Unhandled output format: ${String(_exhaustiveCheck)}`),
+          };
         }
       }
 
@@ -212,7 +223,11 @@ export class OutputFormatter {
     }
 
     if (typeof obj === "object" && obj !== null) {
-      const entries = Object.entries(obj as Record<string, unknown>);
+      if (!isRecord(obj)) {
+        return String(obj);
+      }
+
+      const entries = Object.entries(obj);
       if (entries.length === 0) {
         return "{}";
       }
@@ -259,7 +274,11 @@ export class OutputFormatter {
     }
 
     if (typeof obj === "object") {
-      const entries = Object.entries(obj as Record<string, unknown>);
+      if (!isRecord(obj)) {
+        return `${indent}<${tagName}>${String(obj)}</${tagName}>\n`;
+      }
+
+      const entries = Object.entries(obj);
       if (entries.length === 0) {
         return `${indent}<${tagName} />\n`;
       }
@@ -294,10 +313,13 @@ export class OutputFormatter {
     for (const [key, value] of Object.entries(obj)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
 
-      if (value && typeof value === "object" && !Array.isArray(value)) {
+      if (
+        value && typeof value === "object" && !Array.isArray(value) &&
+        isRecord(value)
+      ) {
         Object.assign(
           flattened,
-          this.flattenObject(value as Record<string, unknown>, fullKey),
+          this.flattenObject(value, fullKey),
         );
       } else if (Array.isArray(value)) {
         flattened[fullKey] = `[${value.join(", ")}]`;

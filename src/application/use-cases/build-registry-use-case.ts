@@ -15,6 +15,7 @@ import {
 } from "../../domain/models/value-objects.ts";
 import { FrontMatter } from "../../domain/models/entities.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -41,11 +42,19 @@ export class BuildRegistryUseCase {
   async execute(
     promptsPath: string,
     outputPath: string,
-  ): Promise<Registry> {
+  ): Promise<Result<Registry, DomainError & { message: string }>> {
     const logger = LoggerFactory.createLogger("build-registry");
     logger.info("Starting registry build process");
 
-    const promptList = await this.fileReader.readDirectory(promptsPath);
+    const promptListResult = await this.fileReader.readDirectory(promptsPath);
+    if (!promptListResult.ok) {
+      logger.error("Failed to read prompts directory", {
+        error: promptListResult.error.message,
+        path: promptsPath,
+      });
+      return promptListResult;
+    }
+    const promptList = promptListResult.data;
     logger.info("Found prompt files", { count: promptList.count });
 
     const aggregator = new RegistryAggregator();
@@ -90,7 +99,15 @@ export class BuildRegistryUseCase {
 
           case "SchemaAnalyzer": {
             // Create default CLI schema for registry building
-            const schema = this.createDefaultCliSchema();
+            const schemaResult = this.createDefaultCliSchema();
+            if (!schemaResult.ok) {
+              logger.error("Failed to create CLI schema", {
+                filename: promptFile.filename,
+                error: schemaResult.error.message,
+              });
+              continue;
+            }
+            const schema = schemaResult.data;
 
             // Convert frontmatter following Totality principle with type-safe transformation
             const frontMatterConversionResult = this.convertFrontMatterSafely(
@@ -142,9 +159,12 @@ export class BuildRegistryUseCase {
           default: {
             // Exhaustive check - TypeScript will error if we miss a case
             const _exhaustiveCheck: never = this.analyzer;
-            throw new Error(
-              `Unhandled analyzer kind: ${String(_exhaustiveCheck)}`,
-            );
+            // Log error instead of throwing to maintain Totality
+            logger.error("Unhandled analyzer kind", {
+              analyzerKind: String(_exhaustiveCheck),
+              filename: promptFile.filename,
+            });
+            continue;
           }
         }
       } catch (error) {
@@ -164,22 +184,34 @@ export class BuildRegistryUseCase {
       availableConfigs: registry.tools.availableConfigs.join(", "),
     });
 
-    return registry;
+    return { ok: true, data: registry };
   }
 
   /**
    * Create a default schema for CLI registry building
    * This schema defines the expected structure for CLI prompt frontmatter
    */
-  private createDefaultCliSchema(): Schema {
+  private createDefaultCliSchema(): Result<
+    Schema,
+    DomainError & { message: string }
+  > {
     const schemaId = SchemaId.create("cli-registry-schema");
     if (!schemaId.ok) {
-      throw new Error("Failed to create schema ID");
+      return {
+        ok: false,
+        error: createDomainError(schemaId.error, "Failed to create schema ID"),
+      };
     }
 
     const schemaVersion = SchemaVersion.create("1.0.0");
     if (!schemaVersion.ok) {
-      throw new Error("Failed to create schema version");
+      return {
+        ok: false,
+        error: createDomainError(
+          schemaVersion.error,
+          "Failed to create schema version",
+        ),
+      };
     }
 
     // Define the expected structure for CLI prompt frontmatter
@@ -208,15 +240,23 @@ export class BuildRegistryUseCase {
       "1.0.0",
     );
     if (!schemaDefinition.ok) {
-      throw new Error("Failed to create schema definition");
+      return {
+        ok: false,
+        error: createDomainError(
+          schemaDefinition.error,
+          "Failed to create schema definition",
+        ),
+      };
     }
 
-    return Schema.create(
+    const schema = Schema.create(
       schemaId.data,
       schemaDefinition.data,
       schemaVersion.data,
       "Schema for CLI command registry building from prompt frontmatter",
     );
+
+    return { ok: true, data: schema };
   }
 
   /**

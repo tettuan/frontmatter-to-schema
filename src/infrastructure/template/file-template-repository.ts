@@ -92,12 +92,24 @@ export class FileTemplateRepository implements TemplateRepository {
       const mappingRules: MappingRule[] = [];
 
       // Create template using the format we already determined
-      const template = Template.create(
+      const templateResult = Template.create(
         templateIdResult.data,
         formatResult.data,
         mappingRules,
         `Template loaded from ${filePath}`,
       );
+
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "NotConfigured",
+            component: "Template",
+          }, `Template creation failed: ${templateResult.error.message}`),
+        };
+      }
+
+      const template = templateResult.data;
 
       // Validate template format using analysis components
       // Note: Template validation moved to application layer following DDD boundaries

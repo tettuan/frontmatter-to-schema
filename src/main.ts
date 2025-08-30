@@ -136,9 +136,18 @@ async function runBuildRegistry() {
       { kind: "MockAnalyzer", analyzer }, // Wrap in discriminated union
     );
 
-    const registry = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
+    const registryResult = await useCase.execute(PROMPTS_PATH, OUTPUT_PATH);
 
     const logger = defaultLoggingService.getLogger("registry-builder");
+
+    if (!registryResult.ok) {
+      logger.error("Registry build failed", {
+        error: registryResult.error.message,
+      });
+      throw new Error(`Registry build failed: ${registryResult.error.message}`);
+    }
+
+    const registry = registryResult.data;
     logger.info("Registry build completed successfully!");
     logger.info("Summary", {
       totalCommands: registry.tools.commands.length,

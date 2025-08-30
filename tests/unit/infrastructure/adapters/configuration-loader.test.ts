@@ -939,7 +939,7 @@ content: "Fallback to {{yaml}}"
     const formatResult = TemplateFormat.create("json", "{}");
     assert(templateIdResult.ok && formatResult.ok);
 
-    const template = Template.create(
+    const template = Template.createLegacy(
       templateIdResult.data,
       formatResult.data,
       [],

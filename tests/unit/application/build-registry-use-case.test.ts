@@ -1,4 +1,5 @@
 import {
+  assert,
   assertEquals,
   assertRejects,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
@@ -7,6 +8,7 @@ import {
   FileReader,
   FileWriter,
 } from "../../../src/infrastructure/filesystem/file-system.ts";
+import type { DomainError, Result } from "../../../src/domain/core/result.ts";
 import {
   type FrontMatter,
   FrontMatterExtractor,
@@ -24,15 +26,19 @@ class MockFileReader extends FileReader {
     super();
   }
 
-  override readDirectory(_path: string): Promise<PromptList> {
+  override readDirectory(
+    _path: string,
+  ): Promise<Result<PromptList, DomainError & { message: string }>> {
     const list = new PromptList();
     this.mockFiles.forEach((file) => list.add(file));
-    return Promise.resolve(list);
+    return Promise.resolve({ ok: true, data: list });
   }
 
-  override readFile(_path: string): Promise<string> {
+  override readFile(
+    _path: string,
+  ): Promise<Result<string, DomainError & { message: string }>> {
     const file = this.mockFiles.find((f) => f.path === _path);
-    return Promise.resolve(file ? file.content : "");
+    return Promise.resolve({ ok: true, data: file ? file.content : "" });
   }
 
   override exists(_path: string): Promise<boolean> {
@@ -228,10 +234,12 @@ Deno.test({
           "/test/output/registry.json",
         );
 
-        assertEquals(result.version, "1.0.0");
-        assertEquals(result.tools.commands.length, 2);
-        assertEquals(result.tools.availableConfigs.includes("git"), true);
-        assertEquals(result.tools.availableConfigs.includes("spec"), true);
+        assert(result.ok);
+        const registry = result.data;
+        assertEquals(registry.version, "1.0.0");
+        assertEquals(registry.tools.commands.length, 2);
+        assertEquals(registry.tools.availableConfigs.includes("git"), true);
+        assertEquals(registry.tools.availableConfigs.includes("spec"), true);
 
         // Verify file was written
         const writtenRegistry = mockFileWriter.getWrittenData(
@@ -252,9 +260,11 @@ Deno.test({
         "/test/output/registry.json",
       );
 
-      assertEquals(result.version, "1.0.0");
-      assertEquals(result.tools.commands.length, 0);
-      assertEquals(result.tools.availableConfigs.length, 0);
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.version, "1.0.0");
+      assertEquals(registry.tools.commands.length, 0);
+      assertEquals(registry.tools.availableConfigs.length, 0);
     });
 
     await t.step("should skip files without frontmatter", async () => {
@@ -291,8 +301,10 @@ Deno.test({
         "/test/output/registry.json",
       );
 
-      assertEquals(result.tools.commands.length, 1);
-      assertEquals(result.tools.commands[0].description, "Valid command");
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.tools.commands.length, 1);
+      assertEquals(registry.tools.commands[0].description, "Valid command");
     });
 
     await t.step("should handle analysis errors gracefully", async () => {
@@ -330,8 +342,10 @@ Deno.test({
       );
 
       // Should continue processing despite one file failing
-      assertEquals(result.tools.commands.length, 1);
-      assertEquals(result.tools.commands[0].c1, "spec");
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.tools.commands.length, 1);
+      assertEquals(registry.tools.commands[0].c1, "spec");
     });
 
     await t.step("should handle invalid analysis results", async () => {
@@ -375,8 +389,10 @@ Deno.test({
       );
 
       // Should only include valid results
-      assertEquals(result.tools.commands.length, 1);
-      assertEquals(result.tools.commands[0].c2, "status");
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.tools.commands.length, 1);
+      assertEquals(registry.tools.commands[0].c2, "status");
     });
 
     await t.step("should sort commands and configs correctly", async () => {
@@ -415,10 +431,12 @@ Deno.test({
       );
 
       // Should be sorted alphabetically
-      assertEquals(result.tools.availableConfigs[0], "alpha");
-      assertEquals(result.tools.availableConfigs[1], "zulu");
-      assertEquals(result.tools.commands[0].c1, "alpha");
-      assertEquals(result.tools.commands[1].c1, "zulu");
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.tools.availableConfigs[0], "alpha");
+      assertEquals(registry.tools.availableConfigs[1], "zulu");
+      assertEquals(registry.tools.commands[0].c1, "alpha");
+      assertEquals(registry.tools.commands[1].c1, "zulu");
     });
 
     await t.step(
@@ -445,10 +463,12 @@ Deno.test({
           "/test/output/registry.json",
         );
 
-        assertEquals(result.tools.commands.length, 3);
-        assertEquals(result.tools.availableConfigs.length, 2);
-        assertEquals(result.tools.availableConfigs.includes("git"), true);
-        assertEquals(result.tools.availableConfigs.includes("spec"), true);
+        assert(result.ok);
+        const registry = result.data;
+        assertEquals(registry.tools.commands.length, 3);
+        assertEquals(registry.tools.availableConfigs.length, 2);
+        assertEquals(registry.tools.availableConfigs.includes("git"), true);
+        assertEquals(registry.tools.availableConfigs.includes("spec"), true);
       },
     );
 
@@ -473,13 +493,15 @@ Deno.test({
       );
 
       // Validate registry structure
-      assertEquals(typeof result.version, "string");
-      assertEquals(typeof result.description, "string");
-      assertEquals(Array.isArray(result.tools.commands), true);
-      assertEquals(Array.isArray(result.tools.availableConfigs), true);
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(typeof registry.version, "string");
+      assertEquals(typeof registry.description, "string");
+      assertEquals(Array.isArray(registry.tools.commands), true);
+      assertEquals(Array.isArray(registry.tools.availableConfigs), true);
 
       // Validate command structure
-      const command = result.tools.commands[0];
+      const command = registry.tools.commands[0];
       assertEquals(typeof command.c1, "string");
       assertEquals(typeof command.c2, "string");
       assertEquals(typeof command.c3, "string");
@@ -507,8 +529,10 @@ Deno.test({
         "/test/output/registry.json",
       );
 
-      assertEquals(result.tools.commands.length, 1);
-      assertEquals(result.tools.commands[0].c1, "log");
+      assert(result.ok);
+      const registry = result.data;
+      assertEquals(registry.tools.commands.length, 1);
+      assertEquals(registry.tools.commands[0].c1, "log");
 
       // Verify registry was written to output file
       const writtenRegistry = mockFileWriter.getWrittenData(
@@ -522,11 +546,31 @@ Deno.test({
 
       // Mock file reader that throws error
       class ErrorFileReader extends FileReader {
-        override readDirectory(_path: string): Promise<PromptList> {
-          throw new Error("Failed to read directory");
+        override readDirectory(
+          _path: string,
+        ): Promise<Result<PromptList, DomainError & { message: string }>> {
+          return Promise.resolve({
+            ok: false,
+            error: {
+              kind: "ReadError",
+              path: _path,
+              details: "Failed to read directory",
+              message: "Failed to read directory",
+            } as DomainError & { message: string },
+          });
         }
-        override readFile(_path: string): Promise<string> {
-          throw new Error("Failed to read file");
+        override readFile(
+          _path: string,
+        ): Promise<Result<string, DomainError & { message: string }>> {
+          return Promise.resolve({
+            ok: false,
+            error: {
+              kind: "ReadError",
+              path: _path,
+              details: "Failed to read file",
+              message: "Failed to read file",
+            } as DomainError & { message: string },
+          });
         }
         override exists(_path: string): Promise<boolean> {
           throw new Error("Failed to check existence");
@@ -542,16 +586,15 @@ Deno.test({
         { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
 
-      // Should propagate the error
-      await assertRejects(
-        async () =>
-          await errorUseCase.execute(
-            "/test/error",
-            "/test/output/registry.json",
-          ),
-        Error,
-        "Failed to read directory",
+      // Should return error result instead of throwing
+      const result = await errorUseCase.execute(
+        "/test/error",
+        "/test/output/registry.json",
       );
+
+      // Should return a failure result
+      assert(!result.ok);
+      assert(result.error.message.includes("Failed to read directory"));
     });
 
     await t.step("should handle file writer errors", async () => {
