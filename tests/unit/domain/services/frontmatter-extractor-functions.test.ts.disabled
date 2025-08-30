@@ -5,9 +5,9 @@
 
 import { assertEquals } from "jsr:@std/assert";
 import {
-  extractAccordingToSchema,
-  extractFrontmatterToSchema,
-  parseFrontmatterAndExtract,
+  extractAccordingToSchemaLegacy as extractAccordingToSchema,
+  extractFrontmatterToSchemaLegacy as extractFrontmatterToSchema,
+  parseFrontmatterAndExtractLegacy as parseFrontmatterAndExtract,
 } from "../../../../src/domain/services/frontmatter-extractor.ts";
 
 Deno.test("extractFrontmatterToSchema", async (t) => {

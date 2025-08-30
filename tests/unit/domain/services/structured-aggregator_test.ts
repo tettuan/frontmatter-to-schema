@@ -176,7 +176,13 @@ Deno.test("StructuredAggregator - analyzeTemplateStructure with JSON template", 
     "Test template description",
   );
 
-  const result = aggregator.analyzeTemplateStructure(templateResult);
+  if (!templateResult.ok) {
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
+  }
+
+  const result = aggregator.analyzeTemplateStructure(templateResult.data);
 
   assertEquals(result.ok, true);
   if (result.ok) {
@@ -218,7 +224,13 @@ Deno.test("StructuredAggregator - analyzeTemplateStructure with non-JSON templat
     "YAML template",
   );
 
-  const result = aggregator.analyzeTemplateStructure(templateResult);
+  if (!templateResult.ok) {
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
+  }
+
+  const result = aggregator.analyzeTemplateStructure(templateResult.data);
 
   assertEquals(result.ok, true);
   if (result.ok) {
@@ -249,7 +261,13 @@ Deno.test("StructuredAggregator - analyzeTemplateStructure with invalid JSON", (
     mappingRules,
   );
 
-  const result = aggregator.analyzeTemplateStructure(templateResult);
+  if (!templateResult.ok) {
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
+  }
+
+  const result = aggregator.analyzeTemplateStructure(templateResult.data);
 
   assertEquals(result.ok, false);
   if (!result.ok) {
@@ -281,7 +299,13 @@ Deno.test("StructuredAggregator - analyzeTemplateStructure with array JSON", () 
     mappingRules,
   );
 
-  const result = aggregator.analyzeTemplateStructure(templateResult);
+  if (!templateResult.ok) {
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
+  }
+
+  const result = aggregator.analyzeTemplateStructure(templateResult.data);
 
   assertEquals(result.ok, false);
   if (!result.ok) {
@@ -766,7 +790,13 @@ Deno.test("StructuredAggregator - analyzeTemplateStructure identifies template p
     mappingRules,
   );
 
-  const result = aggregator.analyzeTemplateStructure(templateResult);
+  if (!templateResult.ok) {
+    throw new Error(
+      `Failed to create template: ${templateResult.error.message}`,
+    );
+  }
+
+  const result = aggregator.analyzeTemplateStructure(templateResult.data);
 
   assertEquals(result.ok, true);
   if (result.ok) {

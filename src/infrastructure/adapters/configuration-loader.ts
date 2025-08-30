@@ -2,6 +2,21 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+
+// Type guard helper following Totality principle
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Type guard for string extraction
+function getStringProperty(
+  obj: Record<string, unknown>,
+  key: string,
+  defaultValue = "",
+): string {
+  const value = obj[key];
+  return typeof value === "string" ? value : defaultValue;
+}
 // Removed unused imports: ValidationError, IOError
 // Removed unused import: createError
 
@@ -160,7 +175,14 @@ export class ConfigurationLoader
             }),
           };
         }
-        throw error;
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ReadError",
+            path: schemaPath,
+            details: error instanceof Error ? error.message : "Unknown error",
+          }, `Failed to read schema file: ${schemaPath}`),
+        };
       }
 
       let schemaData: unknown;
@@ -179,8 +201,21 @@ export class ConfigurationLoader
         };
       }
 
-      const data = schemaData as Record<string, unknown>;
-      const idResult = SchemaId.create((data.id as string) || "default-schema");
+      if (!isRecord(schemaData)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: typeof schemaData,
+            expectedFormat: "object",
+          }, "Schema data must be an object"),
+        };
+      }
+
+      const data = schemaData;
+      const idResult = SchemaId.create(
+        getStringProperty(data, "id", "default-schema"),
+      );
       if (!idResult.ok) {
         return {
           ok: false,
@@ -194,7 +229,7 @@ export class ConfigurationLoader
 
       const definitionResult = SchemaDefinition.create(
         data,
-        (data.version as string) || "1.0.0",
+        getStringProperty(data, "version", "1.0.0"),
       );
       if (!definitionResult.ok) {
         return {
@@ -208,7 +243,7 @@ export class ConfigurationLoader
       }
 
       const versionResult = SchemaVersion.create(
-        (data.version as string) || "1.0.0",
+        getStringProperty(data, "version", "1.0.0"),
       );
       if (!versionResult.ok) {
         return {
@@ -225,7 +260,7 @@ export class ConfigurationLoader
         idResult.data,
         definitionResult.data,
         versionResult.data,
-        (data.description as string) || "",
+        getStringProperty(data, "description"),
       );
 
       return { ok: true, data: schema };
@@ -350,7 +385,14 @@ export class TemplateLoader implements TemplateRepository {
             }),
           };
         }
-        throw error;
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ReadError",
+            path: templatePath,
+            details: error instanceof Error ? error.message : "Unknown error",
+          }, `Failed to read template file: ${templatePath}`),
+        };
       }
 
       // Detect format
@@ -375,9 +417,20 @@ export class TemplateLoader implements TemplateRepository {
         }
       }
 
-      const data = templateData as Record<string, unknown>;
+      if (!isRecord(templateData)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: typeof templateData,
+            expectedFormat: "object",
+          }, "Template data must be an object"),
+        };
+      }
+
+      const data = templateData;
       const idResult = TemplateId.create(
-        (data.id as string) || "default-template",
+        getStringProperty(data, "id", "default-template"),
       );
       if (!idResult.ok) {
         return {
@@ -405,7 +458,12 @@ export class TemplateLoader implements TemplateRepository {
       // Create mapping rules from template metadata if present
       const mappingRules: MappingRule[] = [];
       if (data.mappings && Array.isArray(data.mappings)) {
-        for (const mapping of data.mappings as Array<Record<string, unknown>>) {
+        for (const mappingItem of data.mappings) {
+          if (!isRecord(mappingItem)) {
+            continue; // Skip invalid mapping entries
+          }
+
+          const mapping = mappingItem;
           const transformFn = mapping.transform
             ? (value: unknown) => {
               // If transform is a string, we'd need to evaluate it somehow
@@ -413,13 +471,20 @@ export class TemplateLoader implements TemplateRepository {
               return value;
             }
             : undefined;
-          const ruleResult = MappingRule.create(
-            mapping.source as string,
-            mapping.target as string,
-            transformFn,
-          );
-          if (ruleResult.ok) {
-            mappingRules.push(ruleResult.data);
+
+          const sourceProperty = getStringProperty(mapping, "source");
+          const targetProperty = getStringProperty(mapping, "target");
+
+          // Only create mapping rule if both source and target are valid strings
+          if (sourceProperty && targetProperty) {
+            const ruleResult = MappingRule.create(
+              sourceProperty,
+              targetProperty,
+              transformFn,
+            );
+            if (ruleResult.ok) {
+              mappingRules.push(ruleResult.data);
+            }
           }
         }
       }
@@ -446,14 +511,24 @@ export class TemplateLoader implements TemplateRepository {
         }
       }
 
-      const template = Template.create(
+      const templateResult = Template.create(
         idResult.data,
         formatResult.data,
         mappingRules,
-        (data.description as string) || "",
+        getStringProperty(data, "description"),
       );
 
-      return { ok: true, data: template };
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "NotConfigured",
+            component: "Template",
+          }, `Template creation failed: ${templateResult.error.message}`),
+        };
+      }
+
+      return { ok: true, data: templateResult.data };
     } catch (error) {
       return {
         ok: false,

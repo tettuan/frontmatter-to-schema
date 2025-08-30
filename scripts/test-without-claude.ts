@@ -18,7 +18,15 @@ async function testWithoutClaude() {
   const fileWriter = new FileWriter();
   const extractor = new FrontMatterExtractor();
 
-  const promptList = await fileReader.readDirectory(PROMPTS_PATH);
+  const promptListResult = await fileReader.readDirectory(PROMPTS_PATH);
+  if (!promptListResult.ok) {
+    console.error(
+      "Failed to read prompts directory:",
+      promptListResult.error.message,
+    );
+    Deno.exit(1);
+  }
+  const promptList = promptListResult.data;
   console.log(`Found ${promptList.count} prompt files`);
 
   const aggregator = new RegistryAggregator();

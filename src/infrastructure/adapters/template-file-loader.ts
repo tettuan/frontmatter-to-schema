@@ -140,15 +140,25 @@ export class TemplateFileLoader implements ITemplateRepository {
       }
 
       // Create template entity with empty mapping rules (file templates don't need mapping rules)
-      const template = Template.create(
+      const templateResult = Template.create(
         templateIdResult.data,
         formatResult.data,
         [],
       );
 
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "NotConfigured",
+            component: "Template",
+          }, `Template creation failed: ${templateResult.error.message}`),
+        };
+      }
+
       return {
         ok: true,
-        data: template,
+        data: templateResult.data,
       };
     } catch (error) {
       return {

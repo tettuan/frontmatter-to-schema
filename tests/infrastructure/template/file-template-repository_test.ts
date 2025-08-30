@@ -283,7 +283,7 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.create(
+        const template = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [], // Empty mapping rules
@@ -317,7 +317,7 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.create(
+        const template = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [],
@@ -351,7 +351,7 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.create(
+        const template = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [],
@@ -397,7 +397,7 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.create(
+        const template = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [],
@@ -431,7 +431,7 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.create(
+        const template = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [],
@@ -665,7 +665,7 @@ commands:
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const registryOutputTemplate = Template.create(
+        const registryOutputTemplate = Template.createLegacy(
           templateIdResult.data,
           formatResult.data,
           [],

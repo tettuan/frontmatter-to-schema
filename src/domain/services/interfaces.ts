@@ -125,7 +125,9 @@ export interface ResultAggregator {
  * directly depending on the file system implementation.
  */
 export interface FileReader {
-  readTextFile(path: string): Promise<string>;
+  readTextFile(
+    path: string,
+  ): Promise<Result<string, DomainError & { message: string }>>;
 }
 
 /**

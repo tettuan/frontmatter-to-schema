@@ -1,11 +1,36 @@
 import type { DomainError, Result } from "../core/result.ts";
 import type { Schema } from "../models/domain-models.ts";
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: DomainError[];
-  validatedData: unknown;
-}
+// Totality-compliant validation result using discriminated unions
+export type ValidationResult = {
+  kind: "Valid";
+  data: unknown;
+} | {
+  kind: "Invalid";
+  error: DomainError;
+};
+
+// Schema property extraction results using discriminated unions
+type SchemaPropertyExtraction = {
+  kind: "Present";
+  value: Record<string, unknown>;
+} | {
+  kind: "NotPresent";
+};
+
+type RequiredFieldsExtraction = {
+  kind: "Present";
+  fields: string[];
+} | {
+  kind: "NotPresent";
+};
+
+type TypeSpecification = {
+  kind: "Specified";
+  type: string;
+} | {
+  kind: "NotSpecified";
+};
 
 export class SchemaValidator {
   /**
@@ -81,64 +106,72 @@ export class SchemaValidator {
     // We already validated data is an object above
     const dataObj = data as Record<string, unknown>;
 
-    // Safely extract properties with type validation
-    const properties = this.isRecordObject(schema["properties"])
-      ? schema["properties"]
-      : undefined;
+    // Extract properties using Totality patterns
+    const properties = this.extractProperties(schema);
+    const required = this.extractRequiredFields(schema);
 
-    // Safely extract required fields with type validation
-    const required = this.isStringArray(schema["required"])
-      ? schema["required"]
-      : undefined;
-
-    // Check required fields
-    if (required) {
-      for (const field of required) {
-        if (!(field in dataObj)) {
-          return {
-            ok: false,
-            error: { kind: "NotFound", resource: "field", name: field },
-          };
-        }
-      }
-    }
-
-    // Validate properties
-    if (properties) {
-      const validatedData: Record<string, unknown> = {};
-
-      for (const [key, value] of Object.entries(dataObj)) {
-        if (key in properties) {
-          const fieldSchemaValue = properties[key];
-          if (!this.isRecordObject(fieldSchemaValue)) {
+    // Check required fields using discriminated union pattern
+    switch (required.kind) {
+      case "Present":
+        for (const field of required.fields) {
+          if (!(field in dataObj)) {
             return {
               ok: false,
-              error: {
-                kind: "InvalidFormat",
-                input: String(fieldSchemaValue),
-                expectedFormat: "object schema",
-              },
+              error: { kind: "NotFound", resource: "field", name: field },
             };
           }
-          const fieldSchema = fieldSchemaValue;
-          const validationResult = this.validateField(value, fieldSchema, key);
-
-          if (!validationResult.ok) {
-            return validationResult;
-          }
-
-          validatedData[key] = validationResult.data;
-        } else if (schema["additionalProperties"] === false) {
-          return {
-            ok: false,
-            error: { kind: "NotConfigured", component: key },
-          };
-        } else {
-          validatedData[key] = value;
         }
-      }
+        break;
+      case "NotPresent":
+        // No required fields to validate
+        break;
+    }
 
-      return { ok: true, data: validatedData };
+    // Validate properties using discriminated union pattern
+    switch (properties.kind) {
+      case "Present": {
+        const validatedData: Record<string, unknown> = {};
+
+        for (const [key, value] of Object.entries(dataObj)) {
+          if (key in properties.value) {
+            const fieldSchemaValue = properties.value[key];
+            if (!this.isRecordObject(fieldSchemaValue)) {
+              return {
+                ok: false,
+                error: {
+                  kind: "InvalidFormat",
+                  input: String(fieldSchemaValue),
+                  expectedFormat: "object schema",
+                },
+              };
+            }
+            const fieldSchema = fieldSchemaValue;
+            const validationResult = this.validateField(
+              value,
+              fieldSchema,
+              key,
+            );
+
+            if (!validationResult.ok) {
+              return validationResult;
+            }
+
+            validatedData[key] = validationResult.data;
+          } else if (schema["additionalProperties"] === false) {
+            return {
+              ok: false,
+              error: { kind: "NotConfigured", component: key },
+            };
+          } else {
+            validatedData[key] = value;
+          }
+        }
+
+        return { ok: true, data: validatedData };
+      }
+      case "NotPresent":
+        // No properties schema to validate against
+        break;
     }
 
     return { ok: true, data };
@@ -149,13 +182,23 @@ export class SchemaValidator {
     schema: Record<string, unknown>,
     fieldName: string,
   ): Result<unknown, DomainError> {
-    const typeValue = schema["type"];
-    const type = typeof typeValue === "string" ? typeValue : undefined;
+    const typeSpec = this.extractTypeSpecification(schema);
 
-    if (!type) {
-      return { ok: true, data: value };
+    switch (typeSpec.kind) {
+      case "NotSpecified":
+        // No type validation required
+        return { ok: true, data: value };
+      case "Specified":
+        return this.validateByType(value, typeSpec.type, schema, fieldName);
     }
+  }
 
+  private validateByType(
+    value: unknown,
+    type: string,
+    schema: Record<string, unknown>,
+    fieldName: string,
+  ): Result<unknown, DomainError> {
     switch (type) {
       case "string":
         if (typeof value !== "string") {
@@ -235,5 +278,44 @@ export class SchemaValidator {
     }
 
     return { ok: true, data: value };
+  }
+
+  /**
+   * Extract properties schema using Totality patterns
+   */
+  private extractProperties(
+    schema: Record<string, unknown>,
+  ): SchemaPropertyExtraction {
+    const propertiesValue = schema["properties"];
+    if (this.isRecordObject(propertiesValue)) {
+      return { kind: "Present", value: propertiesValue };
+    }
+    return { kind: "NotPresent" };
+  }
+
+  /**
+   * Extract required fields using Totality patterns
+   */
+  private extractRequiredFields(
+    schema: Record<string, unknown>,
+  ): RequiredFieldsExtraction {
+    const requiredValue = schema["required"];
+    if (this.isStringArray(requiredValue)) {
+      return { kind: "Present", fields: requiredValue };
+    }
+    return { kind: "NotPresent" };
+  }
+
+  /**
+   * Extract type specification using Totality patterns
+   */
+  private extractTypeSpecification(
+    schema: Record<string, unknown>,
+  ): TypeSpecification {
+    const typeValue = schema["type"];
+    if (typeof typeValue === "string") {
+      return { kind: "Specified", type: typeValue };
+    }
+    return { kind: "NotSpecified" };
   }
 }

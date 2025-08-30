@@ -342,12 +342,20 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
       authorRuleResult.data,
     ];
 
-    return Template.create(
+    const templateResult = Template.create(
       idResult.data,
       formatObj,
       mappingRules,
       "Test template",
     );
+
+    if (!templateResult.ok) {
+      throw new Error(
+        `Failed to create template: ${templateResult.error.message}`,
+      );
+    }
+
+    return templateResult.data;
   };
 
   await t.step("should create template with mapping rules", () => {
@@ -436,7 +444,17 @@ Deno.test("Template - Entity Creation and Rule Application", async (t) => {
 
     const mappingRules: MappingRule[] = [tagRuleResult.data];
 
-    const template = Template.create(idResult.data, formatObj, mappingRules);
+    const templateResult = Template.create(
+      idResult.data,
+      formatObj,
+      mappingRules,
+    );
+    if (!templateResult.ok) {
+      throw new Error(
+        `Failed to create template: ${templateResult.error.message}`,
+      );
+    }
+    const template = templateResult.data;
     const inputData = { tag: "javascript" };
 
     const result = template.applyRules(inputData, { kind: "SimpleMapping" });
