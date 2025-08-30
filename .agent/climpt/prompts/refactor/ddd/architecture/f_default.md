@@ -1,8 +1,18 @@
 ---
-title:
-description:
+c1: refactor
+c2: ddd
+c3: architecture
+title: ドメイン駆動設計の再設計
+description: ドメイン設計のアーキテクチャを再設計する。要求をベースに、型安全性を強化して、骨格が通った芯の強いコード実装を再設計する
+usage: |
+  ドメイン駆動設計の設計自体を堅牢になるようリファクタリングします。
+  docs/domain/architecture.mdをシンプルで骨格の中心線が通った設計へ再設計します。
 options:
-  uv-scope: ドメイン設計のアーキテクチャを再設計する。
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [true]
+  destination: [false]
 ---
 
 # プロジェクト: ドメイン駆動設計の再設計

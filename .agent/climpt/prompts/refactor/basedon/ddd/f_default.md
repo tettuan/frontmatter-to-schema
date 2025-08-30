@@ -1,6 +1,18 @@
 ---
+c1: refactor
+c2: basedon
+c3: ddd
 title: ドメイン駆動設計と全域性（Totality）に基づくリファクタリング
-description:
+description: 現在の実装をドメイン駆動設計と全域性（Totality）による設計で、堅牢になるようリファクタリングする
+usage: |
+  ドメイン駆動設計とTotalityに基づくリファクタリングを実行します。
+  ドメイン領域の明確な理解に基づき、型安全性を強化して実装します。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [true]
+  destination: [false]
 ---
 
 # プロジェクト: ドメイン駆動設計と全域性（Totality）に基づくリファクタリング

@@ -1,8 +1,18 @@
 ---
+c1: spec
+c2: analyze-structure
+c3: requirements
 title: 要求をブレイクダウンし構造化する
+description: 要求のファイルをもとに、情報を整理して、構造化されたファイルを出力する
+usage: |
+  要求のファイルをもとにプロセス分解とユーザーフローに基づいて構造化します。
+  MosCow分析を含めて必須要件を明確化します。
 options:
-  destination_path: 出力先
-  input_text_file: 要求のファイル
+  input: ["default"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [false]
+  destination: [true]
 ---
 
 # 指示: 要求をブレイクダウンし構造化する

@@ -1,6 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: architecture
+title: ドメイン設計詳細版
 description: ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。
+usage: |
+  ドメイン情報をもとに、実装情報を加味した詳細な型定義を行います。
+  既存のドメイン情報と新しいドメイン情報を統合して設計します。
+options:
+  input: ["detail"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [false]
+  destination: [true]
 ---
 
 # ドメイン設計

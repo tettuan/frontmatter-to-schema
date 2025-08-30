@@ -1,0 +1,26 @@
+{
+  "scriptId": "376",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/result-aggregator-impl.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 994, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 235, "endOffset": 241, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ResultAggregatorImpl",
+      "ranges": [{ "startOffset": 245, "endOffset": 304, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "aggregate",
+      "ranges": [{ "startOffset": 307, "endOffset": 991, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

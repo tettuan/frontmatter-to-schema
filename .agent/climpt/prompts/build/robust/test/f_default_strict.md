@@ -1,9 +1,18 @@
 ---
+c1: build
+c2: robust
+c3: test
 title: 強固で堅牢なテスト構築指示書
+description: 変更に強く、再現性が高く、保守性に優れたテストコードを構築し、ビジネスロジックの品質を確実に保証する
+usage: |
+  テスト対象機能の仕様書ファイルと追加要件を入力として、強固で堅牢なテストコードを構築します。
+  テスト範囲（unit/integration/e2e）を指定して実行してください。
 options:
-  input_text_file: テスト対象機能の仕様書PATH
-  input_text: 追加テスト要件または特別な考慮事項
-  uv-test-scope: テスト対象範囲（unit/integration/e2e）
+  input: ["default", "strict"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [true]
+  destination: [true]
 ---
 
 # 強固で堅牢なテスト構築指示書

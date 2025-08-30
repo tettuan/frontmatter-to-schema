@@ -1,0 +1,129 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-engine.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 12781, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 569, "endOffset": 576, "count": 57 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "GenericAnalysisEngine",
+      "ranges": [{ "startOffset": 580, "endOffset": 641, "count": 57 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [{ "startOffset": 644, "endOffset": 2053, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [{ "startOffset": 2240, "endOffset": 2389, "count": 114 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "process",
+      "ranges": [{ "startOffset": 2392, "endOffset": 3345, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "map",
+      "ranges": [{ "startOffset": 3570, "endOffset": 4182, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mapInternal",
+      "ranges": [
+        { "startOffset": 4254, "endOffset": 4975, "count": 57 },
+        { "startOffset": 4303, "endOffset": 4508, "count": 0 },
+        { "startOffset": 4751, "endOffset": 4971, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "transformWithTemplate",
+      "ranges": [
+        { "startOffset": 4978, "endOffset": 7824, "count": 57 },
+        { "startOffset": 5437, "endOffset": 5442, "count": 0 },
+        { "startOffset": 5495, "endOffset": 5519, "count": 0 },
+        { "startOffset": 5528, "endOffset": 6028, "count": 0 },
+        { "startOffset": 6035, "endOffset": 6406, "count": 0 },
+        { "startOffset": 6661, "endOffset": 6699, "count": 0 },
+        { "startOffset": 6701, "endOffset": 6790, "count": 0 },
+        { "startOffset": 6880, "endOffset": 6914, "count": 0 },
+        { "startOffset": 7052, "endOffset": 7623, "count": 173 },
+        { "startOffset": 7133, "endOffset": 7615, "count": 170 },
+        { "startOffset": 7243, "endOffset": 7529, "count": 2 },
+        { "startOffset": 7378, "endOffset": 7517, "count": 0 },
+        { "startOffset": 7529, "endOffset": 7605, "count": 168 },
+        { "startOffset": 7767, "endOffset": 7801, "count": 450 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 7988, "endOffset": 8030, "count": 57 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ContextualAnalysisProcessor",
+      "ranges": [{ "startOffset": 8034, "endOffset": 8200, "count": 57 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processWithContext",
+      "ranges": [
+        { "startOffset": 8203, "endOffset": 10465, "count": 114 },
+        { "startOffset": 8358, "endOffset": 8570, "count": 57 },
+        { "startOffset": 8577, "endOffset": 9024, "count": 57 },
+        { "startOffset": 8778, "endOffset": 8847, "count": 0 },
+        { "startOffset": 8881, "endOffset": 8927, "count": 0 },
+        { "startOffset": 9031, "endOffset": 9534, "count": 0 },
+        { "startOffset": 9541, "endOffset": 10113, "count": 0 },
+        { "startOffset": 10198, "endOffset": 10455, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 10655, "endOffset": 10693, "count": 58 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 10697, "endOffset": 12092, "count": 58 },
+        { "startOffset": 10875, "endOffset": 11091, "count": 1 },
+        { "startOffset": 11091, "endOffset": 11229, "count": 57 },
+        { "startOffset": 11229, "endOffset": 11263, "count": 56 },
+        { "startOffset": 11265, "endOffset": 11670, "count": 1 },
+        { "startOffset": 11355, "endOffset": 11573, "count": 0 },
+        { "startOffset": 11670, "endOffset": 11804, "count": 56 },
+        { "startOffset": 11804, "endOffset": 12004, "count": 0 },
+        { "startOffset": 12004, "endOffset": 12091, "count": 56 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 12169, "endOffset": 12183, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaMappingStrategy",
+      "ranges": [{ "startOffset": 12187, "endOffset": 12278, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "execute",
+      "ranges": [{ "startOffset": 12281, "endOffset": 12616, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -1,9 +1,18 @@
 ---
+c1: meta
+c2: resolve
+c3: registered-commands
 title: climpt実行コマンドを構築するclimpt
 description: 渡された内容に相応しい climpt-* を構築し、示す。
+usage: |
+  使いたいファイルリストや内容を入力として、適切なclimpt-*コマンドを構築して提示します。
+  登録済みコマンドから最適なものを選択または新規提案します。
 options:
-  input_text: 使いたいファイルリストや内容。
-Notice: この指示書をAgentは選択はしない。ユーザー実行のみ許可。
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [true]
+  destination: [true]
 ---
 
 # Climpt CLI　コマンド作成指示書

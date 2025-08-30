@@ -1,6 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: boundary
+title: ドメイン境界線設計（コードベース）
 description: コードベースをもとに、ドメイン境界線を引く。
+usage: |
+  現在の実装をもとに、ドメイン設計の境界線分析を行い、ドメイン境界線を設計します。
+  実行コードをシミュレートして中心点を特定します。
+options:
+  input: ["code"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [false]
+  destination: [true]
 ---
 
 # ドメイン境界線の設計
