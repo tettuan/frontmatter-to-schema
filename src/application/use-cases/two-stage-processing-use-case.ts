@@ -1,6 +1,6 @@
 /**
  * TwoStageProcessingUseCase - Orchestrates the two-stage processing pipeline
- * 
+ *
  * Implements the complete two-stage architecture as specified in requirements:
  * Stage 1: Individual command processing (成果A→成果B→成果C→成果D)
  * Stage 2: Registry aggregation (成果D[]→最終成果物Z)
@@ -9,16 +9,16 @@
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import type { ExtractedData, Template } from "../../domain/models/entities.ts";
-import type { Schema } from "../../domain/models/value-objects.ts";
-import { 
-  CommandProcessor, 
+import type { Schema } from "../../domain/models/entities.ts";
+import {
   type Command,
-  type CommandProcessingContext 
+  type CommandProcessingContext,
+  CommandProcessor,
 } from "../../domain/models/command-processor.ts";
-import { 
-  RegistryBuilder, 
+import {
   type Registry,
-  type RegistryBuildingContext 
+  RegistryBuilder,
+  type RegistryBuildingContext,
 } from "../../domain/models/registry-builder.ts";
 import type { Logger } from "../../domain/shared/logger.ts";
 
@@ -29,11 +29,11 @@ export interface TwoStageProcessingConfig {
   // Stage 1 configuration
   commandSchema: Schema;
   commandTemplate: Template;
-  
-  // Stage 2 configuration  
+
+  // Stage 2 configuration
   registrySchema: Schema;
   registryTemplate: Template;
-  
+
   // Optional configuration
   version?: string;
   description?: string;
@@ -75,17 +75,24 @@ export class TwoStageProcessingUseCase {
   async execute(
     documents: ExtractedData[],
     config: TwoStageProcessingConfig,
-  ): Promise<Result<TwoStageProcessingResult, DomainError & { message: string }>> {
+  ): Promise<
+    Result<TwoStageProcessingResult, DomainError & { message: string }>
+  > {
     const startTime = Date.now();
 
     try {
-      this.logger?.info("[TwoStageProcessing] Starting two-stage processing pipeline", {
-        totalDocuments: documents.length,
-        strictMode: config.strictMode || false,
-      });
+      this.logger?.info(
+        "[TwoStageProcessing] Starting two-stage processing pipeline",
+        {
+          totalDocuments: documents.length,
+          strictMode: config.strictMode || false,
+        },
+      );
 
       // Stage 1: Process individual commands
-      this.logger?.info("[TwoStageProcessing] === Stage 1: Processing individual commands ===");
+      this.logger?.info(
+        "[TwoStageProcessing] === Stage 1: Processing individual commands ===",
+      );
       const stage1Result = await this.executeStage1(documents, config);
       if (!stage1Result.ok) {
         return stage1Result;
@@ -98,8 +105,13 @@ export class TwoStageProcessingUseCase {
       });
 
       // Stage 2: Build registry structure
-      this.logger?.info("[TwoStageProcessing] === Stage 2: Building registry structure ===");
-      const stage2Result = await this.executeStage2(stage1Result.data.processedCommands, config);
+      this.logger?.info(
+        "[TwoStageProcessing] === Stage 2: Building registry structure ===",
+      );
+      const stage2Result = await this.executeStage2(
+        stage1Result.data.processedCommands,
+        config,
+      );
       if (!stage2Result.ok) {
         return stage2Result;
       }
@@ -117,14 +129,16 @@ export class TwoStageProcessingUseCase {
         processingTimeMs,
       };
 
-      this.logger?.info("[TwoStageProcessing] Two-stage processing completed successfully", {
-        processingTimeMs,
-        totalCommands: result.stage2Result.totalCommands,
-        availableConfigs: result.stage2Result.availableConfigs,
-      });
+      this.logger?.info(
+        "[TwoStageProcessing] Two-stage processing completed successfully",
+        {
+          processingTimeMs,
+          totalCommands: result.stage2Result.totalCommands,
+          availableConfigs: result.stage2Result.availableConfigs,
+        },
+      );
 
       return { ok: true, data: result };
-
     } catch (error) {
       const processingTimeMs = Date.now() - startTime;
       this.logger?.error("[TwoStageProcessing] Two-stage processing failed", {
@@ -135,8 +149,13 @@ export class TwoStageProcessingUseCase {
       return {
         ok: false,
         error: createDomainError({
-          kind: "ProcessingError",
-          details: error instanceof Error ? error.message : "Two-stage processing failed",
+          kind: "ProcessingStageError",
+          stage: "two-stage-processing",
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: "two-stage-processing",
+            expectedFormat: "valid processing pipeline",
+          }),
         }),
       };
     }
@@ -148,12 +167,14 @@ export class TwoStageProcessingUseCase {
   async executeStage1(
     documents: ExtractedData[],
     config: TwoStageProcessingConfig,
-  ): Promise<Result<{
-    processedCommands: Command[];
-    totalDocuments: number;
-    successfulDocuments: number;
-    failedDocuments: number;
-  }, DomainError & { message: string }>> {
+  ): Promise<
+    Result<{
+      processedCommands: Command[];
+      totalDocuments: number;
+      successfulDocuments: number;
+      failedDocuments: number;
+    }, DomainError & { message: string }>
+  > {
     try {
       // Create CommandProcessor
       const processorResult = CommandProcessor.create();
@@ -169,7 +190,10 @@ export class TwoStageProcessingUseCase {
       };
 
       // Process all documents
-      const commandsResult = await processorResult.data.processDocuments(documents, context);
+      const commandsResult = await processorResult.data.processDocuments(
+        documents,
+        context,
+      );
       if (!commandsResult.ok) {
         return commandsResult;
       }
@@ -194,7 +218,6 @@ export class TwoStageProcessingUseCase {
           failedDocuments,
         },
       };
-
     } catch (error) {
       this.logger?.error("[Stage1] Stage 1 processing failed", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -203,8 +226,13 @@ export class TwoStageProcessingUseCase {
       return {
         ok: false,
         error: createDomainError({
-          kind: "ProcessingError",
-          details: error instanceof Error ? error.message : "Stage 1 processing failed",
+          kind: "ProcessingStageError",
+          stage: "two-stage-processing",
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: "stage-1-processing",
+            expectedFormat: "valid command processing",
+          }),
         }),
       };
     }
@@ -216,11 +244,13 @@ export class TwoStageProcessingUseCase {
   async executeStage2(
     commands: Command[],
     config: TwoStageProcessingConfig,
-  ): Promise<Result<{
-    registry: Registry;
-    availableConfigs: string[];
-    totalCommands: number;
-  }, DomainError & { message: string }>> {
+  ): Promise<
+    Result<{
+      registry: Registry;
+      availableConfigs: string[];
+      totalCommands: number;
+    }, DomainError & { message: string }>
+  > {
     try {
       // Create RegistryBuilder
       const builderResult = RegistryBuilder.create();
@@ -237,7 +267,10 @@ export class TwoStageProcessingUseCase {
       };
 
       // Build registry
-      const registryResult = await builderResult.data.buildRegistry(commands, context);
+      const registryResult = await builderResult.data.buildRegistry(
+        commands,
+        context,
+      );
       if (!registryResult.ok) {
         return registryResult;
       }
@@ -260,7 +293,6 @@ export class TwoStageProcessingUseCase {
           totalCommands,
         },
       };
-
     } catch (error) {
       this.logger?.error("[Stage2] Stage 2 processing failed", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -269,8 +301,13 @@ export class TwoStageProcessingUseCase {
       return {
         ok: false,
         error: createDomainError({
-          kind: "ProcessingError",
-          details: error instanceof Error ? error.message : "Stage 2 processing failed",
+          kind: "ProcessingStageError",
+          stage: "two-stage-processing",
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: "stage-2-processing",
+            expectedFormat: "valid registry building",
+          }),
         }),
       };
     }
@@ -281,7 +318,10 @@ export class TwoStageProcessingUseCase {
    */
   async executeStage1Only(
     documents: ExtractedData[],
-    config: Pick<TwoStageProcessingConfig, "commandSchema" | "commandTemplate" | "strictMode">,
+    config: Pick<
+      TwoStageProcessingConfig,
+      "commandSchema" | "commandTemplate" | "strictMode"
+    >,
   ): Promise<Result<Command[], DomainError & { message: string }>> {
     const stage1Result = await this.executeStage1(documents, {
       ...config,
@@ -302,7 +342,10 @@ export class TwoStageProcessingUseCase {
    */
   async executeStage2Only(
     commands: Command[],
-    config: Pick<TwoStageProcessingConfig, "registrySchema" | "registryTemplate" | "version" | "description">,
+    config: Pick<
+      TwoStageProcessingConfig,
+      "registrySchema" | "registryTemplate" | "version" | "description"
+    >,
   ): Promise<Result<Registry, DomainError & { message: string }>> {
     const stage2Result = await this.executeStage2(commands, {
       ...config,
