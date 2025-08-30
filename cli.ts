@@ -17,6 +17,7 @@ import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { join } from "jsr:@std/path@1.1.2";
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
+import { TwoStageProcessingUseCase } from "./src/application/use-cases/two-stage-processing-use-case.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
@@ -48,16 +49,27 @@ Arguments:
   markdownfile_root_dir    Path to markdown files directory or pattern
 
 Options:
-  --schema=<file>         Path to schema file (JSON or YAML)
-  --template=<file>       Path to template file (any format)
-  --destination=<dir>     Output directory (optional, defaults to markdown directory)
-  --verbose               Enable detailed progress output
-  --help                  Show this help message
+  --schema=<file>           Path to schema file (JSON or YAML)
+  --template=<file>         Path to template file (any format)
+  --destination=<dir>       Output directory (optional, defaults to markdown directory)
+  --mode=<mode>             Processing mode: 'single-stage' (default) or 'two-stage'
+  --command-schema=<file>   Path to command schema file (required for two-stage mode)
+  --command-template=<file> Path to command template file (required for two-stage mode)
+  --registry-schema=<file>  Path to registry schema file (defaults to --schema for two-stage mode)
+  --registry-template=<file> Path to registry template file (defaults to --template for two-stage mode)
+  --verbose                 Enable detailed progress output
+  --help                    Show this help message
 
 Examples:
+  # Single-stage processing (default)
   frontmatter-to-schema ./docs --schema=schema.json --template=template.md
   frontmatter-to-schema ./prompts/* --schema=config/schema.yml --template=config/template.txt --destination=./output
-  frontmatter-to-schema ./docs --schema=schema.json --template=template.md --verbose
+  
+  # Two-stage processing
+  frontmatter-to-schema ./prompts --mode=two-stage \
+    --command-schema=command_schema.json --command-template=command_template.json \
+    --registry-schema=registry_schema.json --registry-template=registry_template.json \
+    --destination=./output
 `);
 }
 
@@ -83,6 +95,129 @@ Return ONLY a JSON object with the extracted data.`,
 Data: {{EXTRACTED_DATA}}
 Schema: {{SCHEMA}}
 Return ONLY a JSON object with the mapped data.`,
+    };
+  }
+}
+
+/**
+ * Execute two-stage processing pipeline
+ */
+async function executeTwoStageProcessing(
+  args: Record<string, any>,
+  documentsPath: DocumentPath,
+  outputPath: OutputPath,
+  documentRepo: any,
+  configLoader: any,
+  templateLoader: any,
+  logger?: Logger,
+): Promise<{ ok: boolean; data?: any; error?: any }> {
+  try {
+    const commandSchemaPath = args["command-schema"];
+    const commandTemplatePath = args["command-template"];
+    const registrySchemaPath = args["registry-schema"] || args.schema;
+    const registryTemplatePath = args["registry-template"] || args.template;
+
+    logger?.info("[TwoStage] Loading schemas and templates...");
+
+    // Load command schema and template (Stage 1)
+    const commandSchemaResult = ConfigPath.create(commandSchemaPath);
+    if (!commandSchemaResult.ok) {
+      return { ok: false, error: commandSchemaResult.error };
+    }
+
+    const commandTemplateResult = TemplatePath.create(commandTemplatePath);
+    if (!commandTemplateResult.ok) {
+      return { ok: false, error: commandTemplateResult.error };
+    }
+
+    const commandSchema = await configLoader.loadSchema(commandSchemaResult.data);
+    if (!commandSchema.ok) {
+      return { ok: false, error: commandSchema.error };
+    }
+
+    const commandTemplate = await templateLoader.loadTemplate(commandTemplateResult.data);
+    if (!commandTemplate.ok) {
+      return { ok: false, error: commandTemplate.error };
+    }
+
+    // Load registry schema and template (Stage 2)
+    const registrySchemaResult = ConfigPath.create(registrySchemaPath);
+    if (!registrySchemaResult.ok) {
+      return { ok: false, error: registrySchemaResult.error };
+    }
+
+    const registryTemplateResult = TemplatePath.create(registryTemplatePath);
+    if (!registryTemplateResult.ok) {
+      return { ok: false, error: registryTemplateResult.error };
+    }
+
+    const registrySchema = await configLoader.loadSchema(registrySchemaResult.data);
+    if (!registrySchema.ok) {
+      return { ok: false, error: registrySchema.error };
+    }
+
+    const registryTemplate = await templateLoader.loadTemplate(registryTemplateResult.data);
+    if (!registryTemplate.ok) {
+      return { ok: false, error: registryTemplate.error };
+    }
+
+    logger?.info("[TwoStage] Loading documents...");
+
+    // Load documents
+    const documents = await documentRepo.findAll(documentsPath);
+    if (!documents.ok) {
+      return { ok: false, error: documents.error };
+    }
+
+    logger?.info(`[TwoStage] Found ${documents.data.length} documents to process`);
+
+    // Create two-stage use case
+    const twoStageUseCase = new TwoStageProcessingUseCase(logger);
+
+    // Execute two-stage processing
+    const config = {
+      commandSchema: commandSchema.data,
+      commandTemplate: commandTemplate.data,
+      registrySchema: registrySchema.data,
+      registryTemplate: registryTemplate.data,
+      version: "1.0.0",
+      description: "Climpt Command Registry",
+      strictMode: false,
+      logger,
+    };
+
+    const twoStageResult = await twoStageUseCase.execute(documents.data, config);
+    if (!twoStageResult.ok) {
+      return { ok: false, error: twoStageResult.error };
+    }
+
+    // Save the final registry
+    const outputFilePath = join(outputPath.getValue(), "registry.json");
+    const registryContent = JSON.stringify(twoStageResult.data.stage2Result.registry, null, 2);
+    
+    await Deno.writeTextFile(outputFilePath, registryContent);
+
+    logger?.info(`[TwoStage] Registry saved to: ${outputFilePath}`);
+
+    // Return result in compatible format
+    return {
+      ok: true,
+      data: {
+        processedCount: twoStageResult.data.stage1Result.successfulDocuments,
+        failedCount: twoStageResult.data.stage1Result.failedDocuments,
+        outputPath: outputFilePath,
+        stage1Result: twoStageResult.data.stage1Result,
+        stage2Result: twoStageResult.data.stage2Result,
+        processingTimeMs: twoStageResult.data.processingTimeMs,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        kind: "ProcessingError",
+        message: error instanceof Error ? error.message : "Two-stage processing failed",
+      },
     };
   }
 }
@@ -121,7 +256,16 @@ export async function main() {
   }
 
   const args = parseArgs(processedArgs, {
-    string: ["schema", "template", "destination"],
+    string: [
+      "schema", 
+      "template", 
+      "destination", 
+      "mode",
+      "command-schema",
+      "command-template", 
+      "registry-schema",
+      "registry-template"
+    ],
     boolean: ["help", "verbose"],
     stopEarly: false,
   });
@@ -136,18 +280,63 @@ export async function main() {
   const templatePath = args.template;
   const destinationDir = args.destination || markdownDir;
   const verboseMode = args.verbose || false;
+  const processingMode = (args.mode || "single-stage") as "single-stage" | "two-stage";
 
-  if (!schemaPath || !templatePath) {
-    cliLogger.error("Error: --schema and --template options are required");
+  // Validate processing mode
+  if (processingMode !== "single-stage" && processingMode !== "two-stage") {
+    cliLogger.error("Error: --mode must be either 'single-stage' or 'two-stage'");
     printUsage();
     Deno.exit(1);
+  }
+
+  // Validate required arguments based on mode
+  if (processingMode === "single-stage") {
+    if (!schemaPath || !templatePath) {
+      cliLogger.error("Error: --schema and --template options are required for single-stage mode");
+      printUsage();
+      Deno.exit(1);
+    }
+  } else if (processingMode === "two-stage") {
+    const commandSchemaPath = args["command-schema"];
+    const commandTemplatePath = args["command-template"];
+    
+    if (!commandSchemaPath || !commandTemplatePath) {
+      cliLogger.error("Error: --command-schema and --command-template are required for two-stage mode");
+      printUsage();
+      Deno.exit(1);
+    }
+    
+    // Registry schema/template default to main schema/template if not provided
+    const registrySchemaPath = args["registry-schema"] || schemaPath;
+    const registryTemplatePath = args["registry-template"] || templatePath;
+    
+    if (!registrySchemaPath || !registryTemplatePath) {
+      cliLogger.error("Error: registry schema and template must be provided either via --registry-* options or --schema/--template fallbacks");
+      printUsage();
+      Deno.exit(1);
+    }
   }
 
   try {
     cliLogger.info("🚀 Starting frontmatter-to-schema CLI...");
     cliLogger.info(`📁 Markdown directory: ${markdownDir}`);
-    cliLogger.info(`📋 Schema: ${schemaPath}`);
-    cliLogger.info(`📝 Template: ${templatePath}`);
+    cliLogger.info(`⚙️  Processing mode: ${processingMode}`);
+    
+    if (processingMode === "single-stage") {
+      cliLogger.info(`📋 Schema: ${schemaPath}`);
+      cliLogger.info(`📝 Template: ${templatePath}`);
+    } else {
+      const commandSchemaPath = args["command-schema"];
+      const commandTemplatePath = args["command-template"];
+      const registrySchemaPath = args["registry-schema"] || schemaPath;
+      const registryTemplatePath = args["registry-template"] || templatePath;
+      
+      cliLogger.info(`📋 Command Schema: ${commandSchemaPath}`);
+      cliLogger.info(`📝 Command Template: ${commandTemplatePath}`);
+      cliLogger.info(`📊 Registry Schema: ${registrySchemaPath}`);
+      cliLogger.info(`📄 Registry Template: ${registryTemplatePath}`);
+    }
+    
     cliLogger.info(`💾 Destination: ${destinationDir}`);
 
     // Verbose: Check file existence before processing
@@ -200,9 +389,12 @@ export async function main() {
         ? markdownDir
         : `${markdownDir}/*.md`,
     );
-    const schemaPathResult = ConfigPath.create(schemaPath);
-    // Template can be any format, not restricted to config file extensions
-    const templatePathResult = TemplatePath.create(templatePath);
+    // Create schema and template paths only for single-stage mode
+    let schemaPathResult, templatePathResult;
+    if (processingMode === "single-stage" && schemaPath && templatePath) {
+      schemaPathResult = ConfigPath.create(schemaPath);
+      templatePathResult = TemplatePath.create(templatePath);
+    }
 
     // Determine output path - if destination already has an extension, use it as-is
     // Otherwise, append the appropriate extension based on template
@@ -214,7 +406,7 @@ export async function main() {
       outputPath = destinationDir;
     } else {
       const templateExt =
-        templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+        templatePath && (templatePath.endsWith(".yaml") || templatePath.endsWith(".yml"))
           ? "yaml"
           : "json";
       const outputFileName = `registry.${templateExt}`;
@@ -223,17 +415,18 @@ export async function main() {
     const outputPathResult = OutputPath.create(outputPath);
 
     if (
-      !documentsPathResult.ok || !schemaPathResult.ok ||
-      !templatePathResult.ok || !outputPathResult.ok
+      !documentsPathResult.ok || !outputPathResult.ok ||
+      (processingMode === "single-stage" && schemaPathResult && !schemaPathResult.ok) ||
+      (processingMode === "single-stage" && templatePathResult && !templatePathResult.ok)
     ) {
       cliLogger.error("Error: Invalid paths provided");
       if (!documentsPathResult.ok) {
         cliLogger.error(`  Documents: ${documentsPathResult.error.message}`);
       }
-      if (!schemaPathResult.ok) {
+      if (schemaPathResult && !schemaPathResult.ok) {
         cliLogger.error(`  Schema: ${schemaPathResult.error.message}`);
       }
-      if (!templatePathResult.ok) {
+      if (templatePathResult && !templatePathResult.ok) {
         cliLogger.error(`  Template: ${templatePathResult.error.message}`);
       }
       if (!outputPathResult.ok) {
@@ -379,15 +572,37 @@ export async function main() {
       "📝 This may take a moment depending on the number of files and AI processing...",
     );
 
-    const result = await processDocumentsUseCase.execute({
-      config: processingConfig,
-    });
+    let result: any;
+    
+    if (processingMode === "two-stage") {
+      // Two-stage processing
+      result = await executeTwoStageProcessing(
+        args,
+        documentsPathResult.data,
+        outputPathResult.data,
+        documentRepo,
+        configLoader,
+        templateLoader,
+        verboseMode ? logger : undefined
+      );
+    } else {
+      // Single-stage processing (current implementation)
+      result = await processDocumentsUseCase.execute({
+        config: processingConfig,
+      });
+    }
 
     if (result.ok) {
       cliLogger.info("\n✅ Processing completed successfully!");
       cliLogger.info(`📊 Processed: ${result.data.processedCount} documents`);
       cliLogger.info(`❌ Failed: ${result.data.failedCount} documents`);
       cliLogger.info(`💾 Output saved to: ${result.data.outputPath}`);
+      
+      if (processingMode === "two-stage" && result.data.stage2Result) {
+        cliLogger.info(`🔧 Available configs: ${result.data.stage2Result.availableConfigs.join(", ")}`);
+        cliLogger.info(`⚡ Total commands: ${result.data.stage2Result.totalCommands}`);
+        cliLogger.info(`⏱️  Processing time: ${result.data.processingTimeMs}ms`);
+      }
     } else {
       cliLogger.error("\n❌ Processing failed: " + result.error.message);
 
