@@ -23,7 +23,7 @@ import {
 } from "../domain/models/transformation.ts";
 import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
-import type { TemplateMapper } from "../domain/services/template-mapper.ts";
+import type { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type { ApplicationConfiguration } from "./configuration.ts";
 
@@ -32,7 +32,7 @@ export class DocumentProcessor {
     private readonly fileSystem: FileSystemPort,
     private readonly frontMatterExtractor: FrontMatterExtractor,
     private readonly schemaValidator: SchemaValidator,
-    private readonly templateMapper: TemplateMapper,
+    private readonly templateProcessor: UnifiedTemplateProcessor,
   ) {}
 
   async processDocuments(

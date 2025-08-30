@@ -76,14 +76,8 @@ export type TemplateProcessingResult =
 export class TemplateVariableResolver {
   private readonly pathNavigator: PropertyPathNavigator;
 
-  private constructor() {
-    const navigatorResult = PropertyPathNavigator.create();
-    if (!navigatorResult.ok) {
-      throw new Error(
-        `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
-      );
-    }
-    this.pathNavigator = navigatorResult.data;
+  private constructor(pathNavigator: PropertyPathNavigator) {
+    this.pathNavigator = pathNavigator;
   }
 
   /**
@@ -93,20 +87,24 @@ export class TemplateVariableResolver {
     TemplateVariableResolver,
     DomainError & { message: string }
   > {
-    try {
-      return {
-        ok: true,
-        data: new TemplateVariableResolver(),
-      };
-    } catch (error) {
+    const navigatorResult = PropertyPathNavigator.create();
+    if (!navigatorResult.ok) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "NotConfigured",
-          component: "TemplateVariableResolver",
-        }, `Failed to create TemplateVariableResolver: ${error}`),
+        error: createDomainError(
+          {
+            kind: "NotConfigured",
+            component: "TemplateVariableResolver",
+          },
+          `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
+        ),
       };
     }
+
+    return {
+      ok: true,
+      data: new TemplateVariableResolver(navigatorResult.data),
+    };
   }
 
   /**

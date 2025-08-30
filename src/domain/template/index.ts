@@ -4,30 +4,15 @@
  * Public API for the template bounded context
  */
 
-// Core exports
-export { TemplateAggregate } from "./aggregate.ts";
-export type { TemplateApplicationContext } from "./aggregate.ts";
+// Main template processor
+export { UnifiedTemplateProcessor } from "./unified-template-processor.ts";
+
+// Format handlers
+export {
+  type TemplateFormatHandler,
+  TemplateFormatHandlerFactory,
+} from "./format-handlers.ts";
 
 // Repository exports
 export type { TemplateRepository } from "../services/interfaces.ts";
 export { TemplatePath } from "../models/value-objects.ts";
-
-// Event exports
-export {
-  TemplateAppliedEvent,
-  TemplateLoadedEvent,
-  TemplateProcessingFailedEvent,
-} from "./events.ts";
-export type {
-  DomainEvent,
-  EventStore,
-  TemplateEventHandler,
-} from "./events.ts";
-
-// Strategy exports
-export { NativeTemplateStrategy } from "./strategies.ts";
-export type { TemplateProcessingStrategy } from "./strategies.ts";
-
-// Service exports
-export { createTemplateService, TemplateProcessingService } from "./service.ts";
-export type { TemplateServiceConfig } from "./service.ts";
