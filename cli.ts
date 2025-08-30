@@ -103,13 +103,18 @@ Return ONLY a JSON object with the mapped data.`,
  * Execute two-stage processing pipeline
  */
 async function executeTwoStageProcessing(
+  // deno-lint-ignore no-explicit-any
   args: Record<string, any>,
   documentsPath: DocumentPath,
   outputPath: OutputPath,
+  // deno-lint-ignore no-explicit-any
   documentRepo: any,
+  // deno-lint-ignore no-explicit-any
   configLoader: any,
+  // deno-lint-ignore no-explicit-any
   templateLoader: any,
   logger?: Logger,
+  // deno-lint-ignore no-explicit-any
 ): Promise<{ ok: boolean; data?: any; error?: any }> {
   try {
     const commandSchemaPath = args["command-schema"];
@@ -130,12 +135,16 @@ async function executeTwoStageProcessing(
       return { ok: false, error: commandTemplateResult.error };
     }
 
-    const commandSchema = await configLoader.loadSchema(commandSchemaResult.data);
+    const commandSchema = await configLoader.loadSchema(
+      commandSchemaResult.data,
+    );
     if (!commandSchema.ok) {
       return { ok: false, error: commandSchema.error };
     }
 
-    const commandTemplate = await templateLoader.loadTemplate(commandTemplateResult.data);
+    const commandTemplate = await templateLoader.loadTemplate(
+      commandTemplateResult.data,
+    );
     if (!commandTemplate.ok) {
       return { ok: false, error: commandTemplate.error };
     }
@@ -151,12 +160,16 @@ async function executeTwoStageProcessing(
       return { ok: false, error: registryTemplateResult.error };
     }
 
-    const registrySchema = await configLoader.loadSchema(registrySchemaResult.data);
+    const registrySchema = await configLoader.loadSchema(
+      registrySchemaResult.data,
+    );
     if (!registrySchema.ok) {
       return { ok: false, error: registrySchema.error };
     }
 
-    const registryTemplate = await templateLoader.loadTemplate(registryTemplateResult.data);
+    const registryTemplate = await templateLoader.loadTemplate(
+      registryTemplateResult.data,
+    );
     if (!registryTemplate.ok) {
       return { ok: false, error: registryTemplate.error };
     }
@@ -169,7 +182,9 @@ async function executeTwoStageProcessing(
       return { ok: false, error: documents.error };
     }
 
-    logger?.info(`[TwoStage] Found ${documents.data.length} documents to process`);
+    logger?.info(
+      `[TwoStage] Found ${documents.data.length} documents to process`,
+    );
 
     // Create two-stage use case
     const twoStageUseCase = new TwoStageProcessingUseCase(logger);
@@ -186,15 +201,22 @@ async function executeTwoStageProcessing(
       logger,
     };
 
-    const twoStageResult = await twoStageUseCase.execute(documents.data, config);
+    const twoStageResult = await twoStageUseCase.execute(
+      documents.data,
+      config,
+    );
     if (!twoStageResult.ok) {
       return { ok: false, error: twoStageResult.error };
     }
 
     // Save the final registry
     const outputFilePath = join(outputPath.getValue(), "registry.json");
-    const registryContent = JSON.stringify(twoStageResult.data.stage2Result.registry, null, 2);
-    
+    const registryContent = JSON.stringify(
+      twoStageResult.data.stage2Result.registry,
+      null,
+      2,
+    );
+
     await Deno.writeTextFile(outputFilePath, registryContent);
 
     logger?.info(`[TwoStage] Registry saved to: ${outputFilePath}`);
@@ -216,7 +238,9 @@ async function executeTwoStageProcessing(
       ok: false,
       error: {
         kind: "ProcessingError",
-        message: error instanceof Error ? error.message : "Two-stage processing failed",
+        message: error instanceof Error
+          ? error.message
+          : "Two-stage processing failed",
       },
     };
   }
@@ -257,14 +281,14 @@ export async function main() {
 
   const args = parseArgs(processedArgs, {
     string: [
-      "schema", 
-      "template", 
-      "destination", 
+      "schema",
+      "template",
+      "destination",
       "mode",
       "command-schema",
-      "command-template", 
+      "command-template",
       "registry-schema",
-      "registry-template"
+      "registry-template",
     ],
     boolean: ["help", "verbose"],
     stopEarly: false,
@@ -280,11 +304,15 @@ export async function main() {
   const templatePath = args.template;
   const destinationDir = args.destination || markdownDir;
   const verboseMode = args.verbose || false;
-  const processingMode = (args.mode || "single-stage") as "single-stage" | "two-stage";
+  const processingMode = (args.mode || "single-stage") as
+    | "single-stage"
+    | "two-stage";
 
   // Validate processing mode
   if (processingMode !== "single-stage" && processingMode !== "two-stage") {
-    cliLogger.error("Error: --mode must be either 'single-stage' or 'two-stage'");
+    cliLogger.error(
+      "Error: --mode must be either 'single-stage' or 'two-stage'",
+    );
     printUsage();
     Deno.exit(1);
   }
@@ -292,26 +320,32 @@ export async function main() {
   // Validate required arguments based on mode
   if (processingMode === "single-stage") {
     if (!schemaPath || !templatePath) {
-      cliLogger.error("Error: --schema and --template options are required for single-stage mode");
+      cliLogger.error(
+        "Error: --schema and --template options are required for single-stage mode",
+      );
       printUsage();
       Deno.exit(1);
     }
   } else if (processingMode === "two-stage") {
     const commandSchemaPath = args["command-schema"];
     const commandTemplatePath = args["command-template"];
-    
+
     if (!commandSchemaPath || !commandTemplatePath) {
-      cliLogger.error("Error: --command-schema and --command-template are required for two-stage mode");
+      cliLogger.error(
+        "Error: --command-schema and --command-template are required for two-stage mode",
+      );
       printUsage();
       Deno.exit(1);
     }
-    
+
     // Registry schema/template default to main schema/template if not provided
     const registrySchemaPath = args["registry-schema"] || schemaPath;
     const registryTemplatePath = args["registry-template"] || templatePath;
-    
+
     if (!registrySchemaPath || !registryTemplatePath) {
-      cliLogger.error("Error: registry schema and template must be provided either via --registry-* options or --schema/--template fallbacks");
+      cliLogger.error(
+        "Error: registry schema and template must be provided either via --registry-* options or --schema/--template fallbacks",
+      );
       printUsage();
       Deno.exit(1);
     }
@@ -321,7 +355,7 @@ export async function main() {
     cliLogger.info("🚀 Starting frontmatter-to-schema CLI...");
     cliLogger.info(`📁 Markdown directory: ${markdownDir}`);
     cliLogger.info(`⚙️  Processing mode: ${processingMode}`);
-    
+
     if (processingMode === "single-stage") {
       cliLogger.info(`📋 Schema: ${schemaPath}`);
       cliLogger.info(`📝 Template: ${templatePath}`);
@@ -330,17 +364,17 @@ export async function main() {
       const commandTemplatePath = args["command-template"];
       const registrySchemaPath = args["registry-schema"] || schemaPath;
       const registryTemplatePath = args["registry-template"] || templatePath;
-      
+
       cliLogger.info(`📋 Command Schema: ${commandSchemaPath}`);
       cliLogger.info(`📝 Command Template: ${commandTemplatePath}`);
       cliLogger.info(`📊 Registry Schema: ${registrySchemaPath}`);
       cliLogger.info(`📄 Registry Template: ${registryTemplatePath}`);
     }
-    
+
     cliLogger.info(`💾 Destination: ${destinationDir}`);
 
     // Verbose: Check file existence before processing
-    if (verboseMode) {
+    if (verboseMode && schemaPath) {
       logger.debug("Validating input files");
       try {
         const schemaStats = await Deno.stat(schemaPath);
@@ -354,16 +388,18 @@ export async function main() {
         });
       }
 
-      try {
-        const templateStats = await Deno.stat(templatePath);
-        logger.debug("Template file exists", {
-          path: templatePath,
-          sizeKB: (templateStats.size / 1024).toFixed(1),
-        });
-      } catch (error) {
-        logger.debug("Template file check failed", {
-          error: error instanceof Error ? error.message : String(error),
-        });
+      if (templatePath) {
+        try {
+          const templateStats = await Deno.stat(templatePath);
+          logger.debug("Template file exists", {
+            path: templatePath,
+            sizeKB: (templateStats.size / 1024).toFixed(1),
+          });
+        } catch (error) {
+          logger.debug("Template file check failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       try {
@@ -405,10 +441,10 @@ export async function main() {
     ) {
       outputPath = destinationDir;
     } else {
-      const templateExt =
-        templatePath && (templatePath.endsWith(".yaml") || templatePath.endsWith(".yml"))
-          ? "yaml"
-          : "json";
+      const templateExt = templatePath &&
+          (templatePath.endsWith(".yaml") || templatePath.endsWith(".yml"))
+        ? "yaml"
+        : "json";
       const outputFileName = `registry.${templateExt}`;
       outputPath = join(destinationDir, outputFileName);
     }
@@ -416,8 +452,10 @@ export async function main() {
 
     if (
       !documentsPathResult.ok || !outputPathResult.ok ||
-      (processingMode === "single-stage" && schemaPathResult && !schemaPathResult.ok) ||
-      (processingMode === "single-stage" && templatePathResult && !templatePathResult.ok)
+      (processingMode === "single-stage" && schemaPathResult &&
+        !schemaPathResult.ok) ||
+      (processingMode === "single-stage" && templatePathResult &&
+        !templatePathResult.ok)
     ) {
       cliLogger.error("Error: Invalid paths provided");
       if (!documentsPathResult.ok) {
@@ -544,10 +582,18 @@ export async function main() {
       cliLogger.debug(`📊 Processing config: ${
         JSON.stringify(
           {
-            documentsPath: documentsPathResult.data.getValue(),
-            schemaPath: schemaPathResult.data.getValue(),
-            templatePath: templatePathResult.data.getValue(),
-            outputPath: outputPathResult.data.getValue(),
+            documentsPath: documentsPathResult.ok
+              ? documentsPathResult.data.getValue()
+              : "invalid",
+            schemaPath: schemaPathResult && schemaPathResult.ok
+              ? schemaPathResult.data.getValue()
+              : "invalid",
+            templatePath: templatePathResult && templatePathResult.ok
+              ? templatePathResult.data.getValue()
+              : "invalid",
+            outputPath: outputPathResult.ok
+              ? outputPathResult.data.getValue()
+              : "invalid",
           },
           null,
           2,
@@ -556,6 +602,11 @@ export async function main() {
     }
 
     const _startTime = Date.now();
+    // At this point, validation has passed, so we can safely assert these exist
+    if (!schemaPathResult?.ok || !templatePathResult?.ok) {
+      throw new Error("Schema or template path validation failed unexpectedly");
+    }
+
     const processingConfig = {
       documentsPath: documentsPathResult.data,
       schemaPath: schemaPathResult.data,
@@ -572,8 +623,9 @@ export async function main() {
       "📝 This may take a moment depending on the number of files and AI processing...",
     );
 
+    // deno-lint-ignore no-explicit-any
     let result: any;
-    
+
     if (processingMode === "two-stage") {
       // Two-stage processing
       result = await executeTwoStageProcessing(
@@ -583,7 +635,7 @@ export async function main() {
         documentRepo,
         configLoader,
         templateLoader,
-        verboseMode ? logger : undefined
+        verboseMode ? logger : undefined,
       );
     } else {
       // Single-stage processing (current implementation)
@@ -597,11 +649,19 @@ export async function main() {
       cliLogger.info(`📊 Processed: ${result.data.processedCount} documents`);
       cliLogger.info(`❌ Failed: ${result.data.failedCount} documents`);
       cliLogger.info(`💾 Output saved to: ${result.data.outputPath}`);
-      
+
       if (processingMode === "two-stage" && result.data.stage2Result) {
-        cliLogger.info(`🔧 Available configs: ${result.data.stage2Result.availableConfigs.join(", ")}`);
-        cliLogger.info(`⚡ Total commands: ${result.data.stage2Result.totalCommands}`);
-        cliLogger.info(`⏱️  Processing time: ${result.data.processingTimeMs}ms`);
+        cliLogger.info(
+          `🔧 Available configs: ${
+            result.data.stage2Result.availableConfigs.join(", ")
+          }`,
+        );
+        cliLogger.info(
+          `⚡ Total commands: ${result.data.stage2Result.totalCommands}`,
+        );
+        cliLogger.info(
+          `⏱️  Processing time: ${result.data.processingTimeMs}ms`,
+        );
       }
     } else {
       cliLogger.error("\n❌ Processing failed: " + result.error.message);

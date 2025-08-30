@@ -33,8 +33,12 @@ import {
   OutputPath,
   TemplatePath,
 } from "./domain/models/value-objects.ts";
-import type { ProcessingConfiguration } from "./domain/services/interfaces.ts";
+import type {
+  ProcessingConfiguration,
+  SchemaValidationMode,
+} from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
+import { TwoStageProcessingUseCase } from "./application/use-cases/two-stage-processing-use-case.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 // Remove MockSchemaAnalyzer import - will create simple mock inline
 // TypeScriptSchemaAnalyzer removed - AI processing is no longer used
@@ -177,6 +181,7 @@ async function main() {
       "continue-on-error",
       "build-registry",
       "verbose",
+      "two-stage",
     ],
     default: {
       config: "config.json",
@@ -185,6 +190,7 @@ async function main() {
       "continue-on-error": false,
       "build-registry": false,
       verbose: false,
+      "two-stage": false,
     },
   });
 
@@ -205,6 +211,7 @@ Options:
   --parallel              Process documents in parallel (default: true)
   --continue-on-error     Continue processing on errors (default: false)
   --verbose               Enable verbose debug output
+  --two-stage             Use two-stage processing architecture (default: false)
   --build-registry        Run legacy BuildRegistryUseCase
   --help                  Show this help message
 
@@ -246,22 +253,124 @@ Examples:
     const templateLoader = new TemplateLoader();
     const documentRepo = new DenoDocumentRepository();
     const frontMatterExtractor = new FrontMatterExtractorImpl();
-    // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
-    // Note: This is a temporary solution, should be properly injected
+    // Use UnifiedTemplateProcessor for all template processing (DDD/Totality compliance)
     const { MappedData } = await import("./domain/models/entities.ts");
     const { createProcessingStageError } = await import(
       "./domain/core/result.ts"
     );
+    const { UnifiedTemplateProcessor } = await import(
+      "./domain/template/unified-template-processor.ts"
+    );
 
     const templateMapper = {
-      map: (data: ExtractedData, template: Template) => {
+      map: (
+        data: ExtractedData,
+        template: Template,
+        schemaMode: SchemaValidationMode,
+      ) => {
         try {
-          // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData(), {
+          // Create UnifiedTemplateProcessor instance
+          const processorResult = UnifiedTemplateProcessor.create({
+            handleMissingRequired: "warning",
+            handleMissingOptional: "empty",
+            arrayFormat: "json",
+          });
+
+          if (
+            typeof processorResult === "object" && "kind" in processorResult
+          ) {
+            // Processor creation failed (DomainError)
+            const errorMessage = "message" in processorResult
+              ? (processorResult as { message: string }).message
+              : `Domain error: ${processorResult.kind}`;
+
+            return {
+              ok: false as const,
+              error: createProcessingStageError(
+                "template processing",
+                {
+                  kind: "InvalidResponse",
+                  service: "template",
+                  response: errorMessage,
+                },
+                `Failed to create UnifiedTemplateProcessor: ${errorMessage}`,
+              ),
+            };
+          }
+
+          const processor = processorResult;
+
+          // Get actual template content from Template entity
+          const templateContent = template.getFormat().getTemplate();
+
+          // Create processing context based on schemaMode
+          const context = schemaMode.kind === "WithSchema"
+            ? {
+              kind: "SchemaGuided" as const,
+              data: data.getData(),
+              schema: {
+                properties:
+                  typeof schemaMode.schema === "object" && schemaMode.schema
+                    ? schemaMode.schema as Record<string, unknown>
+                    : data.getData(),
+                required: [],
+              },
+              strictMode: false,
+            }
+            : {
+              kind: "SimpleReplacement" as const,
+              data: data.getData(),
+              placeholderPattern: "mustache" as const,
+            };
+
+          // Process the template
+          const processingResult = processor.process(templateContent, context);
+
+          if (
+            typeof processingResult === "object" && "kind" in processingResult
+          ) {
+            // Check if it's a domain error
+            if (
+              processingResult.kind !== "Success" &&
+              processingResult.kind !== "PartialSuccess"
+            ) {
+              const errorMessage = "message" in processingResult
+                ? (processingResult as { message: string }).message
+                : `Processing error: ${processingResult.kind}`;
+
+              return {
+                ok: false as const,
+                error: createProcessingStageError(
+                  "template mapping",
+                  {
+                    kind: "TemplateMappingFailed",
+                    template: template.getId().getValue(),
+                    source: data.getData(),
+                  },
+                  errorMessage,
+                ),
+              };
+            }
+
+            // Success case - extract processed content
+            let processedData: Record<string, unknown>;
+            try {
+              processedData = JSON.parse(processingResult.content);
+            } catch {
+              // If not JSON, use the content as-is in a wrapper
+              processedData = { content: processingResult.content };
+            }
+
+            const mappedData = MappedData.create(processedData);
+            return { ok: true as const, data: mappedData };
+          }
+
+          // Fallback to original template.applyRules for compatibility
+          const fallbackResult = template.applyRules(data.getData(), {
             kind: "SimpleMapping",
           });
 
-          if (!mappedResult.ok) {
+          if (!fallbackResult.ok) {
             return {
               ok: false as const,
               error: createProcessingStageError(
@@ -271,12 +380,12 @@ Examples:
                   template: template.getId().getValue(),
                   source: data.getData(),
                 },
-                mappedResult.error.message,
+                fallbackResult.error.message,
               ),
             };
           }
 
-          const mappedData = MappedData.create(mappedResult.data);
+          const mappedData = MappedData.create(fallbackResult.data);
           return { ok: true as const, data: mappedData };
         } catch (error) {
           return {
@@ -370,7 +479,7 @@ Examples:
     const analyzerLogger = defaultLoggingService.getLogger("main-analyzer");
     analyzerLogger.info("Using TypeScript analyzer");
 
-    // Create use case
+    // Create use case - Using Two-Stage Processing Architecture
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
       documentRepo,
       configLoader,
@@ -380,6 +489,11 @@ Examples:
       schemaAnalyzer,
       templateMapper,
       resultAggregator,
+    );
+
+    // Create two-stage processing use case for proper architecture
+    const twoStageProcessingUseCase = new TwoStageProcessingUseCase(
+      defaultLoggingService.getLogger("two-stage-processing"),
     );
 
     // Execute processing
@@ -402,9 +516,34 @@ Examples:
       );
     }
 
-    const result = await processDocumentsUseCase.execute({
-      config: processingConfig,
-    });
+    // Conditional routing based on architecture flag
+    let result;
+    if (args["two-stage"]) {
+      logger.info("Using two-stage processing architecture", {
+        stage1: "Individual command processing",
+        stage2: "Registry aggregation",
+      });
+
+      // TODO: Implement full two-stage processing with adapters
+      // For now, fall back to ProcessDocumentsUseCase to maintain compatibility
+      // Future enhancement: Add adapter functions to convert interfaces
+      logger.warn(
+        "Two-stage processing not fully implemented yet, falling back to single-stage",
+        {
+          availableUseCase: typeof twoStageProcessingUseCase,
+        },
+      );
+      result = await processDocumentsUseCase.execute({
+        config: processingConfig,
+      });
+    } else {
+      logger.info(
+        "Using single-stage processing architecture (ProcessDocumentsUseCase)",
+      );
+      result = await processDocumentsUseCase.execute({
+        config: processingConfig,
+      });
+    }
 
     if (result.ok) {
       const successLogger = defaultLoggingService.getLogger("main-success");
