@@ -431,10 +431,9 @@ export class Template {
       try {
         const templateObj = JSON.parse(templateContent);
         const result = this.substituteTemplateValues(templateObj, data);
-        return { ok: true, data: result };
-      } catch (e) {
+        return { ok: true, data: result as Record<string, unknown> };
+      } catch {
         // If not JSON, fall back to mapping rules
-        console.error("Failed to parse template as JSON:", e);
       }
     }
 

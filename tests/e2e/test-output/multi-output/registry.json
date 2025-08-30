@@ -1,24 +1,15 @@
 {
-  "results": [
-    {
-      "ok": true,
-      "data": {
-        "tools": {
-          "commands[]": {
-            "description": "Test registry document 1"
-          }
-        }
-      }
-    },
-    {
-      "ok": true,
-      "data": {
-        "tools": {
-          "commands[]": {
-            "description": "Test registry document 2"
-          }
-        }
-      }
-    }
-  ]
+  "version": "1.0.0",
+  "description": "Existing Registry",
+  "tools": {
+    "availableConfigs": [
+      "code",
+      "docs",
+      "git",
+      "meta",
+      "spec",
+      "test"
+    ],
+    "commands": []
+  }
 }
