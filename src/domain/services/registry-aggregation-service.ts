@@ -269,7 +269,17 @@ export class RegistryData {
       description: this.description,
       tools: {
         availableConfigs: this.tools.availableConfigs,
-        commands: this.tools.commands.map((cmd) => cmd.getData()),
+        commands: this.tools.commands.map((cmd) => {
+          const data = cmd.getData();
+          // If the data has a nested "data" property, unwrap it
+          if (
+            typeof data === "object" && data !== null && "data" in data &&
+            Object.keys(data).length === 1
+          ) {
+            return (data as { data: CommandData }).data;
+          }
+          return data;
+        }),
       },
     };
   }
@@ -290,13 +300,27 @@ export class RegistryAggregationService {
       return { kind: "Generic", data };
     }
 
-    // Unwrap Result objects if present
+    // Unwrap Result objects and data wrappers if present
     const unwrappedData = data.map((item) => {
       if (typeof item === "object" && item !== null) {
         const obj = item as Record<string, unknown>;
         // Check if it's a Result wrapper
         if ("ok" in obj && "data" in obj && obj.ok === true) {
           return obj.data;
+        }
+        // Check if it's a simple data wrapper (from MappedData)
+        if ("data" in obj && Object.keys(obj).length === 1) {
+          const innerData = obj.data;
+          // Make sure the inner data is the actual command data
+          if (typeof innerData === "object" && innerData !== null) {
+            const inner = innerData as Record<string, unknown>;
+            if (
+              "c1" in inner || "c2" in inner || "c3" in inner ||
+              "description" in inner
+            ) {
+              return innerData;
+            }
+          }
         }
       }
       return item;
@@ -329,8 +353,12 @@ export class RegistryAggregationService {
       };
     }
 
-    // Check for command list (has c1 field)
-    if ("c1" in firstObject) {
+    // Check for command list (has c1 field or looks like a command)
+    if (
+      "c1" in firstObject || "c2" in firstObject || "c3" in firstObject ||
+      ("description" in firstObject &&
+        ("title" in firstObject || "usage" in firstObject))
+    ) {
       const commands = unwrappedData
         .map((item) => {
           if (typeof item === "object" && item !== null) {
@@ -389,8 +417,10 @@ export class RegistryAggregationService {
 
       commands.push(commandResult.data);
 
-      if (commandResult.data.hasConfig()) {
-        configSet.add(commandResult.data.getConfig()!);
+      // Extract c1 value for availableConfigs
+      const commandData = commandResult.data.getData();
+      if (commandData.c1) {
+        configSet.add(String(commandData.c1));
       }
     }
 
@@ -422,11 +452,15 @@ export class RegistryAggregationService {
         );
 
       case "CommandList": {
-        const configs = structure.commands
-          .filter((cmd) => cmd.hasConfig())
-          .map((cmd) => cmd.getConfig()!)
-          .filter((value, index, array) => array.indexOf(value) === index)
-          .sort();
+        const configSet = new Set<string>();
+        for (const cmd of structure.commands) {
+          const commandData = cmd.getData();
+          // Extract c1 value for availableConfigs
+          if (commandData.c1) {
+            configSet.add(String(commandData.c1));
+          }
+        }
+        const configs = Array.from(configSet).sort();
 
         return RegistryData.create(
           "1.0.0",
@@ -439,6 +473,8 @@ export class RegistryAggregationService {
       case "Generic": {
         // Try to convert generic data to commands
         const commands: Command[] = [];
+        const configSet = new Set<string>();
+
         for (const item of structure.data) {
           // Unwrap Result object if present
           let actualItem = item;
@@ -450,30 +486,52 @@ export class RegistryAggregationService {
           }
 
           if (typeof actualItem === "object" && actualItem !== null) {
-            // Handle template-mapped structure extraction
-            const extractedData = this.extractCommandDataFromTemplateStructure(
-              actualItem as Record<string, unknown>,
-            );
-            if (extractedData) {
-              const commandResult = Command.fromObject(extractedData);
+            const actualItemObj = actualItem as Record<string, unknown>;
+
+            // For registry mode, the data is already the command data (c1, c2, c3, etc)
+            // Check if this is already command data
+            if (actualItemObj.c1 || actualItemObj.c2 || actualItemObj.c3) {
+              // This is already command data from registry mode
+              const commandResult = Command.fromObject(actualItemObj);
               if (commandResult.ok) {
                 commands.push(commandResult.data);
+                // Extract c1 value for availableConfigs
+                if (actualItemObj.c1) {
+                  configSet.add(String(actualItemObj.c1));
+                }
               }
             } else {
-              // Fallback to direct object conversion
-              const commandResult = Command.fromObject(actualItem);
-              if (commandResult.ok) {
-                commands.push(commandResult.data);
+              // Handle template-mapped structure extraction
+              const extractedData = this
+                .extractCommandDataFromTemplateStructure(
+                  actualItemObj,
+                );
+              if (extractedData) {
+                const commandResult = Command.fromObject(extractedData);
+                if (commandResult.ok) {
+                  commands.push(commandResult.data);
+                  // Extract c1 value for availableConfigs
+                  if (extractedData.c1) {
+                    configSet.add(String(extractedData.c1));
+                  }
+                }
+              } else {
+                // Fallback to direct object conversion
+                const commandResult = Command.fromObject(actualItemObj);
+                if (commandResult.ok) {
+                  commands.push(commandResult.data);
+                  const commandData = commandResult.data.getData();
+                  // Extract c1 value for availableConfigs
+                  if (commandData.c1) {
+                    configSet.add(String(commandData.c1));
+                  }
+                }
               }
             }
           }
         }
 
-        const genericConfigs = commands
-          .filter((cmd) => cmd.hasConfig())
-          .map((cmd) => cmd.getConfig()!)
-          .filter((value, index, array) => array.indexOf(value) === index)
-          .sort();
+        const genericConfigs = Array.from(configSet).sort();
 
         return RegistryData.create(
           "1.0.0",
