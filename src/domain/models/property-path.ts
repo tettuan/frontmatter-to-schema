@@ -72,7 +72,7 @@ export class PropertyPath {
     // Split path and validate segments
     const segments = trimmedPath.split(".");
     const invalidSegments = segments.filter((segment) =>
-      segment.trim() === "" || /[^\w\-_]/.test(segment)
+      segment.trim() === "" || /[^\w\-_\[\]0-9]/.test(segment)
     );
 
     if (invalidSegments.length > 0) {
