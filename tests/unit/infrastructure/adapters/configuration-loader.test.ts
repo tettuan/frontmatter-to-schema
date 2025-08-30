@@ -21,7 +21,6 @@ import {
   AnalysisId,
   type AnalysisResult,
   type Document,
-  DocumentId,
   type ExtractedData,
   type MappedData,
   Template,
@@ -37,8 +36,10 @@ function createMockAggregatedResult(
   data: Record<string, unknown>,
 ): AggregatedResult {
   // Create mock AnalysisResults that represent the test data
-  const mockResults = data.results && Array.isArray(data.results) 
-    ? data.results.map((item: any) => createMockAnalysisResult(JSON.stringify(item)))
+  const mockResults = data.results && Array.isArray(data.results)
+    ? data.results.map((item: unknown) =>
+      createMockAnalysisResult(JSON.stringify(item))
+    )
     : [];
 
   return {
@@ -59,7 +60,10 @@ function createMockAnalysisResult(jsonData: string): AnalysisResult {
 
   const pathResult = DocumentPath.create("test.md");
   const mockDocument = {
-    getFrontMatterResult: () => ({ ok: false, error: { kind: "NoFrontMatterPresent" } }),
+    getFrontMatterResult: () => ({
+      ok: false,
+      error: { kind: "NoFrontMatterPresent" },
+    }),
     getContent: () => "",
     getPath: () => pathResult.ok ? pathResult.data : null,
     getId: () => AnalysisId.generate(),
