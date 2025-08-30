@@ -1,0 +1,289 @@
+{
+  "version": "1.0.0",
+  "description": "Generic Data Registry",
+  "tools": {
+    "availableConfigs": [],
+    "commands": [
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "コードベースをもとに、ドメイン境界線を引く。",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Performs domain design based on domain boundary information and related materials.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Core domain architecture design with focus on central concepts and detailed domain-specific implementation.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Break down and structure requirements through process decomposition and user flow analysis.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Analyze specification quality and completeness metrics",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Constructs robust and resilient code/API based on domain-driven design and totality principles.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Lists existing PRs and branches to help select the next work target based on priority and status.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Discovers related Git branches and executes merge processing based on branch relationships and age.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Merges all unmerged branches into develop and deletes them after successful merge operations.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Groups Git commits based on semantic proximity of file changes and creates organized commit units.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Analyze git commit history and generate insights",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Merges derived working branches back into their original base working branches.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Create a refinement issue from requirements documentation",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Refactors project architecture based on domain-driven design principles and redesigns domain architecture.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      },
+      {
+        "ok": true,
+        "data": {
+          "version": "1.0.0",
+          "description": "Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.",
+          "tools": {
+            "availableConfigs": []
+          }
+        }
+      }
+    ]
+  }
+}

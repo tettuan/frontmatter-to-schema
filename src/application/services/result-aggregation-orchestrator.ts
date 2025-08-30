@@ -165,7 +165,11 @@ export class ResultAggregationOrchestrator {
     format: OutputFormat,
     _strategy: Extract<AggregationStrategy, { kind: "Registry" }>,
   ): Result<ResultAggregationResponse, DomainError> {
-    const registryResult = this.registryService.aggregateFromResults(results);
+    // Use mapped data instead of raw frontmatter to preserve template mappings
+    const mappedData = results.map((r) => r.getMappedData().getData());
+    const registryResult = this.registryService.aggregateFromMappedData(
+      mappedData,
+    );
     if (!registryResult.ok) {
       return registryResult;
     }

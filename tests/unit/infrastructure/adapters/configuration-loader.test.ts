@@ -11,6 +11,7 @@ import {
 } from "../../../../src/infrastructure/adapters/configuration-loader.ts";
 import {
   ConfigPath,
+  DocumentPath,
   OutputPath,
   TemplateFormat,
   TemplatePath,
@@ -34,25 +35,45 @@ import { join } from "jsr:@std/path";
 function createMockAggregatedResult(
   data: Record<string, unknown>,
 ): AggregatedResult {
+  // Create mock AnalysisResults that represent the test data
+  const mockResults = data.results && Array.isArray(data.results)
+    ? data.results.map((item: unknown) =>
+      createMockAnalysisResult(JSON.stringify(item))
+    )
+    : [];
+
   return {
     toOutput: () => JSON.stringify(data, null, 2),
-    getResults: () => [],
+    getResults: () => mockResults,
     getFormat: () => "json" as const,
     getTimestamp: () => new Date(),
   } as unknown as AggregatedResult;
 }
 
 function createMockAnalysisResult(jsonData: string): AnalysisResult {
+  const data = JSON.parse(jsonData);
   const mappedData = {
     toJSON: () => jsonData,
-    getData: () => ({}),
+    getData: () => data,
     toYAML: () => "",
   } as MappedData;
+
+  const pathResult = DocumentPath.create("test.md");
+  const mockDocument = {
+    getFrontMatterResult: () => ({
+      ok: false,
+      error: { kind: "NoFrontMatterPresent" },
+    }),
+    getContent: () => "",
+    getPath: () => pathResult.ok ? pathResult.data : null,
+    getId: () => AnalysisId.generate(),
+    getTimestamp: () => new Date(),
+  } as unknown as Document;
 
   return {
     getMappedData: () => mappedData,
     getId: () => AnalysisId.generate(),
-    getDocument: () => ({} as Document),
+    getDocument: () => mockDocument,
     getExtractedData: () => ({} as ExtractedData),
     getTimestamp: () => new Date(),
   } as AnalysisResult;

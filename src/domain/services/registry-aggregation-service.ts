@@ -412,9 +412,21 @@ export class RegistryAggregationService {
         const commands: Command[] = [];
         for (const item of structure.data) {
           if (typeof item === "object" && item !== null) {
-            const commandResult = Command.fromObject(item);
-            if (commandResult.ok) {
-              commands.push(commandResult.data);
+            // Handle template-mapped structure extraction
+            const extractedData = this.extractCommandDataFromTemplateStructure(
+              item as Record<string, unknown>,
+            );
+            if (extractedData) {
+              const commandResult = Command.fromObject(extractedData);
+              if (commandResult.ok) {
+                commands.push(commandResult.data);
+              }
+            } else {
+              // Fallback to direct object conversion
+              const commandResult = Command.fromObject(item);
+              if (commandResult.ok) {
+                commands.push(commandResult.data);
+              }
             }
           }
         }
@@ -444,5 +456,47 @@ export class RegistryAggregationService {
       .map((cmd) => cmd.getConfig()!)
       .filter((value, index, array) => array.indexOf(value) === index)
       .sort();
+  }
+
+  /**
+   * Extract command data from template-mapped structure
+   * Handles structures like: { "tools": { "commands[]": { c1, c2, c3, description, ... } } }
+   */
+  private extractCommandDataFromTemplateStructure(
+    item: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    // Check if this looks like a template-mapped structure
+    if (item.tools && typeof item.tools === "object" && item.tools !== null) {
+      const tools = item.tools as Record<string, unknown>;
+
+      // Look for commands[] key (template mapping artifact)
+      if (
+        tools["commands[]"] && typeof tools["commands[]"] === "object" &&
+        tools["commands[]"] !== null
+      ) {
+        return tools["commands[]"] as Record<string, unknown>;
+      }
+
+      // Look for commands array
+      if (
+        tools.commands && Array.isArray(tools.commands) &&
+        tools.commands.length > 0
+      ) {
+        const firstCommand = tools.commands[0];
+        if (typeof firstCommand === "object" && firstCommand !== null) {
+          return firstCommand as Record<string, unknown>;
+        }
+      }
+    }
+
+    // Check if the item itself has command-like structure (c1, c2, c3, etc)
+    if (
+      typeof item === "object" && item !== null &&
+      (item.c1 || item.c2 || item.c3 || item.description)
+    ) {
+      return item;
+    }
+
+    return null;
   }
 }
