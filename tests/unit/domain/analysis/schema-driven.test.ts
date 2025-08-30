@@ -10,6 +10,8 @@ import {
   SchemaAnalysisFactory,
   SchemaAnalysisProcessor,
   SchemaGuidedTemplateMapper,
+  TotalGenericSchemaAnalyzer,
+  TotalSchemaGuidedTemplateMapper,
 } from "../../../../src/domain/analysis/schema-driven.ts";
 import { FrontMatterContent } from "../../../../src/domain/models/value-objects.ts";
 import type {
@@ -311,8 +313,11 @@ Deno.test("SchemaGuidedTemplateMapper", async (t) => {
 Deno.test("SchemaAnalysisProcessor", async (t) => {
   const mockService = new MockExternalAnalysisService();
   const mockPrompts = createMockPrompts();
-  const mockAnalyzer = new GenericSchemaAnalyzer(mockService, mockPrompts);
-  const mockMapper = new SchemaGuidedTemplateMapper(mockService, mockPrompts);
+  const mockAnalyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
+  const mockMapper = new TotalSchemaGuidedTemplateMapper(
+    mockService,
+    mockPrompts,
+  );
   const schema = { type: "object" };
   const template = { output: "{{result}}" };
 
