@@ -446,14 +446,24 @@ export class TemplateLoader implements TemplateRepository {
         }
       }
 
-      const template = Template.create(
+      const templateResult = Template.create(
         idResult.data,
         formatResult.data,
         mappingRules,
         (data.description as string) || "",
       );
 
-      return { ok: true, data: template };
+      if (!templateResult.ok) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "NotConfigured",
+            component: "Template",
+          }, `Template creation failed: ${templateResult.error.message}`),
+        };
+      }
+
+      return { ok: true, data: templateResult.data };
     } catch (error) {
       return {
         ok: false,

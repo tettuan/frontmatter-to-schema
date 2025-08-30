@@ -20,6 +20,34 @@ export type DocumentFrontMatterState =
   | { kind: "WithFrontMatter"; frontMatter: FrontMatter }
   | { kind: "NoFrontMatter" };
 
+// Discriminated union for frontmatter input during creation
+export type FrontMatterInput = {
+  kind: "Present";
+  frontMatter: FrontMatter;
+} | {
+  kind: "NotPresent";
+};
+
+// Discriminated union for path resolution results
+export type PathResolutionResult = {
+  kind: "Found";
+  value: unknown;
+} | {
+  kind: "NotFound";
+  path: string;
+};
+
+// Discriminated union for template parsing results
+export type TemplateParsingResult = {
+  kind: "JsonParsed";
+  template: Record<string, unknown>;
+} | {
+  kind: "ParseFailed";
+  reason: string;
+} | {
+  kind: "NoPlaceholders";
+};
+
 // Discriminated union for template application modes following totality principle
 export type TemplateApplicationMode =
   | {
@@ -185,21 +213,35 @@ export class Document {
     );
   }
 
-  // Convenience method for backward compatibility during migration
-  static createWithFrontMatter(
+  // Totality-compliant method using discriminated union input
+  static createWithFrontMatterInput(
     path: DocumentPath,
-    frontMatter: FrontMatter | null,
+    frontMatterInput: FrontMatterInput,
     content: DocumentContent,
   ): Document {
-    const frontMatterState: DocumentFrontMatterState = frontMatter
-      ? { kind: "WithFrontMatter", frontMatter }
-      : { kind: "NoFrontMatter" };
+    const frontMatterState: DocumentFrontMatterState =
+      frontMatterInput.kind === "Present"
+        ? { kind: "WithFrontMatter", frontMatter: frontMatterInput.frontMatter }
+        : { kind: "NoFrontMatter" };
     return new Document(
       DocumentId.fromPath(path),
       path,
       frontMatterState,
       content,
     );
+  }
+
+  // Convenience method for backward compatibility during migration
+  // @deprecated Use createWithFrontMatterInput for Totality compliance
+  static createWithFrontMatter(
+    path: DocumentPath,
+    frontMatter: FrontMatter | null,
+    content: DocumentContent,
+  ): Document {
+    const frontMatterInput: FrontMatterInput = frontMatter
+      ? { kind: "Present", frontMatter }
+      : { kind: "NotPresent" };
+    return Document.createWithFrontMatterInput(path, frontMatterInput, content);
   }
 
   getId(): DocumentId {
@@ -345,20 +387,14 @@ export class Schema {
 export class Template {
   private readonly pathNavigator: PropertyPathNavigator;
 
-  constructor(
+  private constructor(
     private readonly id: TemplateId,
     private readonly format: TemplateFormat,
     private readonly mappingRules: MappingRule[],
     private readonly description: string,
+    pathNavigator: PropertyPathNavigator,
   ) {
-    // Initialize PropertyPathNavigator service
-    const navigatorResult = PropertyPathNavigator.create();
-    if (!navigatorResult.ok) {
-      throw new Error(
-        `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
-      );
-    }
-    this.pathNavigator = navigatorResult.data;
+    this.pathNavigator = pathNavigator;
   }
 
   static create(
@@ -366,8 +402,49 @@ export class Template {
     format: TemplateFormat,
     mappingRules: MappingRule[],
     description: string = "",
+  ): Result<Template, DomainError & { message: string }> {
+    // Initialize PropertyPathNavigator service
+    const navigatorResult = PropertyPathNavigator.create();
+    if (!navigatorResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "NotConfigured",
+            component: "PropertyPathNavigator",
+          },
+          `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
+        ),
+      };
+    }
+    return {
+      ok: true,
+      data: new Template(
+        id,
+        format,
+        mappingRules,
+        description,
+        navigatorResult.data,
+      ),
+    };
+  }
+
+  /**
+   * Legacy backward compatibility method for tests during migration
+   * @deprecated Use create() method that returns Result<Template, Error>
+   * This method throws on error for backward compatibility
+   */
+  static createLegacy(
+    id: TemplateId,
+    format: TemplateFormat,
+    mappingRules: MappingRule[],
+    description: string = "",
   ): Template {
-    return new Template(id, format, mappingRules, description);
+    const result = Template.create(id, format, mappingRules, description);
+    if (!result.ok) {
+      throw new Error(`Template creation failed: ${result.error.message}`);
+    }
+    return result.data;
   }
 
   getId(): TemplateId {
@@ -419,25 +496,36 @@ export class Template {
       default: {
         // Exhaustive check - TypeScript will error if we miss a case
         const _exhaustiveCheck: never = mode;
-        throw new Error(
-          `Unhandled template application mode: ${String(_exhaustiveCheck)}`,
-        );
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidState",
+              expected: "WithStructuralValidation or SimpleMapping",
+              actual: String(_exhaustiveCheck),
+            },
+            `Unhandled template application mode: ${String(_exhaustiveCheck)}`,
+          ),
+        };
       }
     }
 
     // If template has content with placeholders like {field}, apply substitution
     const templateContent = this.format.getTemplate();
-    // Check for placeholder patterns like {field} or {path.to.field}
-    const hasPlaceholders = templateContent &&
-      /\{[a-zA-Z_][\w.]*\}/.test(templateContent);
-    if (hasPlaceholders) {
-      try {
-        const templateObj = JSON.parse(templateContent);
-        const result = this.substituteTemplateValues(templateObj, data);
+    const parseResult = this.parseTemplateContent(templateContent);
+
+    switch (parseResult.kind) {
+      case "JsonParsed": {
+        const result = this.substituteTemplateValues(
+          parseResult.template,
+          data,
+        );
         return { ok: true, data: result as Record<string, unknown> };
-      } catch {
-        // If not JSON, fall back to mapping rules
       }
+      case "ParseFailed":
+      case "NoPlaceholders":
+        // Continue to mapping rules processing
+        break;
     }
 
     // If no mapping rules are defined, return the data as-is only if structure validation passed
@@ -453,6 +541,7 @@ export class Template {
       const target = rule.getTarget();
 
       // Only set value if it exists in the source data (no fallbacks or defaults)
+      // Note: undefined is a valid return from MappingRule.apply() indicating missing source data
       if (value !== undefined) {
         const setResult = this.setValueByPath(result, target, value);
         if (!setResult.ok) {
@@ -475,6 +564,38 @@ export class Template {
   }
 
   /**
+   * Parse template content and determine if it's JSON with placeholders
+   */
+  private parseTemplateContent(templateContent: string): TemplateParsingResult {
+    // Check for placeholder patterns like {field} or {path.to.field}
+    const hasPlaceholders = templateContent &&
+      /\{[a-zA-Z_][\w.]*\}/.test(templateContent);
+
+    if (!hasPlaceholders) {
+      return { kind: "NoPlaceholders" };
+    }
+
+    try {
+      const templateObj = JSON.parse(templateContent);
+      if (
+        templateObj && typeof templateObj === "object" &&
+        !Array.isArray(templateObj)
+      ) {
+        return {
+          kind: "JsonParsed",
+          template: templateObj as Record<string, unknown>,
+        };
+      }
+      return { kind: "ParseFailed", reason: "Parsed JSON is not an object" };
+    } catch (error) {
+      return {
+        kind: "ParseFailed",
+        reason: `JSON parse error: ${String(error)}`,
+      };
+    }
+  }
+
+  /**
    * Recursively substitute template placeholders with actual values from data
    */
   private substituteTemplateValues(
@@ -484,8 +605,8 @@ export class Template {
     if (typeof template === "string") {
       // Replace placeholders in strings
       return template.replace(/\{([^}]+)\}/g, (match, key) => {
-        const value = this.getValueByPath(data, key.trim());
-        return value !== undefined ? String(value) : match;
+        const pathResult = this.getValueByPath(data, key.trim());
+        return pathResult.kind === "Found" ? String(pathResult.value) : match;
       });
     }
 
@@ -513,11 +634,12 @@ export class Template {
 
   /**
    * Get value from data object by path (supports nested paths like "options.input")
+   * Returns Result type following Totality principle
    */
   private getValueByPath(
     data: Record<string, unknown>,
     path: string,
-  ): unknown {
+  ): PathResolutionResult {
     const keys = path.split(".");
     let current: unknown = data;
 
@@ -525,11 +647,11 @@ export class Template {
       if (current && typeof current === "object" && key in current) {
         current = (current as Record<string, unknown>)[key];
       } else {
-        return undefined;
+        return { kind: "NotFound", path };
       }
     }
 
-    return current;
+    return { kind: "Found", value: current };
   }
 
   /**
