@@ -1,8 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: boundary
+title: ドメイン境界線設計
 description: 粗い考えをもとに、ドメイン境界線を引いてみる。
+usage: |
+  原案をもとに、ドメイン設計の境界線分析を行い、境界線そのものを設計します。
+  中心極限定理に基づいて複数の中心点を特定します。
 options:
-  input_text: 原案
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [true]
+  destination: [true]
 ---
 
 # ドメイン境界線の設計

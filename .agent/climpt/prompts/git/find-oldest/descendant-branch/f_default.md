@@ -1,7 +1,18 @@
 ---
+c1: git
+c2: find-oldest
+c3: descendant-branch
 title: Git関連ブランチ探索とマージ処理実行
-properties:
-  C3L-Version: 0.5
+description: 現在のGitブランチから派生した子孫ブランチと兄弟ブランチを探索し、最も古い関連ブランチの作業状態を確認してマージ処理を実行
+usage: |
+  現在のブランチから関連ブランチを探索し、作業が完了している最も古いブランチを
+  元の親ブランチへマージするための処理を実行します。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [false]
 ---
 
 # 指示書:Git関連ブランチ探索とマージ処理実行

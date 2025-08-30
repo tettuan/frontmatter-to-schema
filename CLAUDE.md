@@ -128,6 +128,8 @@ For detailed testing guidelines and best practices:
 # Git
 
 - use gh for Git access.
+- main must be merged from develop.
+- develop branch cannnot be behind from main.
 
 # Naming Conventions
 

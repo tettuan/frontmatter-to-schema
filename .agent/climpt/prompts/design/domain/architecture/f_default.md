@@ -1,8 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: architecture
+title: ドメイン設計
 description: ドメイン境界情報などを元に、ドメイン設計を行う。
+usage: |
+  ドメイン境界線情報ファイルを入力として、ドメイン設計を行います。
+  まずは粗い型定義を行い、全域性の原則を踏まえて設計します。
 options:
-  input_text_file: ドメイン境界線情報
+  input: ["default"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [false]
+  destination: [true]
 ---
 
 # ドメイン設計

@@ -206,8 +206,15 @@ export class FileTemplateRepository implements TemplateRepository {
       return { ok: true, data: templates };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
-        // Template directory doesn't exist yet
-        return { ok: true, data: [] };
+        // Template directory doesn't exist - this is an error condition
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ReadError",
+            path: this.basePath,
+            details: "Directory does not exist",
+          }),
+        };
       }
       return {
         ok: false,

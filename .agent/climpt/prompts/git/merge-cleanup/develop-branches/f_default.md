@@ -1,6 +1,18 @@
 ---
+c1: git
+c2: merge-cleanup
+c3: develop-branches
 title: developにマージして不要なブランチを掃除する
 description: mergeされていないブランチを全てdevelopへ統合し、マージ後に削除。
+usage: |
+  mergeされていないブランチを全てdevelopへ統合し、マージ後に削除します。
+  作成順序と進捗状況を考慮して適切な順番でマージします。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [false]
 ---
 
 # 指示: developにマージして不要なブランチを掃除する

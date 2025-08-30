@@ -1,8 +1,18 @@
 ---
+c1: build
+c2: robust
+c3: test
 title: testを強固に構築する
+description: ドメイン駆動設計と全域性（Totality）原則に基づいた、強固で堅牢なテスト構築を行う
+usage: |
+  強固に構築すべき機能要件ファイルと追加指示を入力として、
+  ドメイン駆動設計に基づいた堅牢なテストを構築します。
 options:
-  input_text_file: 強固に構築すべき機能要件
-  input_text: 強固な構築に向けた追加指示
+  input: ["default"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [true]
+  destination: [true]
 ---
 
 # テスト 強固構築
