@@ -304,6 +304,7 @@ export class TotalTemplateDomainFactory
       // Create template components directly
       // For now, use simple implementations
 
+<<<<<<< HEAD
       // Use existing factories to create proper implementations
       const formatHandlerResult = TemplateFormatHandlerFactory.getHandler(
         "json",
@@ -318,6 +319,10 @@ export class TotalTemplateDomainFactory
 
       const placeholderProcessor = PlaceholderProcessorFactory
         .createMustacheProcessor();
+=======
+      const formatHandler = {} as TemplateFormatHandler; // TODO: Implement proper handler
+      const placeholderProcessor = {} as PlaceholderProcessor; // TODO: Implement proper processor
+>>>>>>> origin/main
 
       return Promise.resolve({
         ok: true,
