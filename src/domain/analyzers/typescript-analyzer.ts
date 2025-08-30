@@ -167,7 +167,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         };
       }
 
-      const context = contextResult.data;
+      const _context = contextResult.data;
 
       // Pass through the raw frontmatter data without transformation
       // The template will handle the mapping

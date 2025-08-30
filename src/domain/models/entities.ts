@@ -428,7 +428,8 @@ export class Template {
     // If template has content with placeholders like {field}, apply substitution
     const templateContent = this.format.getTemplate();
     // Check for placeholder patterns like {field} or {path.to.field}
-    const hasPlaceholders = templateContent && /\{[a-zA-Z_][\w.]*\}/.test(templateContent);
+    const hasPlaceholders = templateContent &&
+      /\{[a-zA-Z_][\w.]*\}/.test(templateContent);
     if (hasPlaceholders) {
       try {
         const templateObj = JSON.parse(templateContent);
@@ -487,21 +488,25 @@ export class Template {
         return value !== undefined ? String(value) : match;
       });
     }
-    
+
     if (Array.isArray(template)) {
       // Process arrays recursively
-      return template.map(item => this.substituteTemplateValues(item, data));
+      return template.map((item) => this.substituteTemplateValues(item, data));
     }
-    
+
     if (template && typeof template === "object") {
       // Process objects recursively
       const result: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(template as Record<string, unknown>)) {
+      for (
+        const [key, value] of Object.entries(
+          template as Record<string, unknown>,
+        )
+      ) {
         result[key] = this.substituteTemplateValues(value, data);
       }
       return result;
     }
-    
+
     // Return primitives as-is
     return template;
   }
@@ -515,7 +520,7 @@ export class Template {
   ): unknown {
     const keys = path.split(".");
     let current: unknown = data;
-    
+
     for (const key of keys) {
       if (current && typeof current === "object" && key in current) {
         current = (current as Record<string, unknown>)[key];
@@ -523,7 +528,7 @@ export class Template {
         return undefined;
       }
     }
-    
+
     return current;
   }
 

@@ -448,7 +448,7 @@ export class RegistryAggregationService {
               actualItem = obj.data;
             }
           }
-          
+
           if (typeof actualItem === "object" && actualItem !== null) {
             // Handle template-mapped structure extraction
             const extractedData = this.extractCommandDataFromTemplateStructure(
