@@ -1,0 +1,79 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/structured-aggregator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6861, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 410, "endOffset": 452, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AggregatedStructure",
+      "ranges": [{ "startOffset": 456, "endOffset": 622, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 632, "endOffset": 1124, "count": 3 },
+        { "startOffset": 762, "endOffset": 1008, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getStructure",
+      "ranges": [{ "startOffset": 1127, "endOffset": 1191, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getStrategy",
+      "ranges": [{ "startOffset": 1194, "endOffset": 1239, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTemplateStructure",
+      "ranges": [{ "startOffset": 1242, "endOffset": 1305, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "StructuredAggregator",
+      "ranges": [{ "startOffset": 1444, "endOffset": 1459, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1531, "endOffset": 1620, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyzeTemplateStructure",
+      "ranges": [{ "startOffset": 1699, "endOffset": 3085, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregate",
+      "ranges": [{ "startOffset": 3168, "endOffset": 4284, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analyzeObjectStructure",
+      "ranges": [{ "startOffset": 4360, "endOffset": 5063, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "mergeIntoStructure",
+      "ranges": [{ "startOffset": 5134, "endOffset": 6716, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isAggregatedStructure",
+      "ranges": [{ "startOffset": 6772, "endOffset": 6860, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

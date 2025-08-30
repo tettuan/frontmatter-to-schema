@@ -1,0 +1,16 @@
+{
+  "scriptId": "333",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/frontmatter-extractor-impl.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2642, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extract",
+      "ranges": [{ "startOffset": 345, "endOffset": 2639, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}
