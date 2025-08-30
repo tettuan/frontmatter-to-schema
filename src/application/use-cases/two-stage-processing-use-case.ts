@@ -12,7 +12,7 @@ import type { ExtractedData, Template } from "../../domain/models/entities.ts";
 import type { Schema } from "../../domain/models/entities.ts";
 import {
   type Command,
-  type CommandProcessingContext,
+  CommandProcessingContext,
   CommandProcessor,
 } from "../../domain/models/command-processor.ts";
 import {
@@ -182,12 +182,16 @@ export class TwoStageProcessingUseCase {
         return processorResult;
       }
 
-      // Prepare processing context
-      const context: CommandProcessingContext = {
-        commandSchema: config.commandSchema,
-        commandTemplate: config.commandTemplate,
-        strictMode: config.strictMode,
-      };
+      // Prepare processing context using smart constructor
+      const contextResult = CommandProcessingContext.fromStrictMode(
+        config.commandSchema,
+        config.commandTemplate,
+        config.strictMode || false,
+      );
+      if (!contextResult.ok) {
+        return contextResult;
+      }
+      const context = contextResult.data;
 
       // Process all documents
       const commandsResult = await processorResult.data.processDocuments(

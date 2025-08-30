@@ -113,8 +113,9 @@ export class RegistryBuilder {
     const uniqueC1Values = new Set<string>();
 
     for (const command of commands) {
-      if (command.c1 && typeof command.c1 === "string" && command.c1.trim()) {
-        uniqueC1Values.add(command.c1.trim());
+      const c1Value = command.getC1();
+      if (c1Value && c1Value.trim()) {
+        uniqueC1Values.add(c1Value.trim());
       }
     }
 
