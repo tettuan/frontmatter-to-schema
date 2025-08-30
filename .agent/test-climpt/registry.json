@@ -1,8 +1,17 @@
 {
   "version": "1.0.0",
-  "description": "Generic Data Registry",
+  "description": "Command Registry",
   "tools": {
-    "availableConfigs": [],
+    "availableConfigs": [
+      "build",
+      "debug",
+      "design",
+      "docs",
+      "git",
+      "meta",
+      "refactor",
+      "spec"
+    ],
     "commands": [
       {
         "c1": "design",
