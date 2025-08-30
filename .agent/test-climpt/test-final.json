@@ -1,0 +1,431 @@
+{
+  "version": "1.0.0",
+  "description": "Command Registry",
+  "tools": {
+    "availableConfigs": [
+      "{c1}"
+    ],
+    "commands": [
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "コードベースをもとに、ドメイン境界線を引く。",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Performs domain design based on domain boundary information and related materials.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Core domain architecture design with focus on central concepts and detailed domain-specific implementation.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Break down and structure requirements through process decomposition and user flow analysis.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Analyze specification quality and completeness metrics",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Constructs robust and resilient code/API based on domain-driven design and totality principles.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Lists existing PRs and branches to help select the next work target based on priority and status.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Discovers related Git branches and executes merge processing based on branch relationships and age.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Merges all unmerged branches into develop and deletes them after successful merge operations.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Groups Git commits based on semantic proximity of file changes and creates organized commit units.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Analyze git commit history and generate insights",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Merges derived working branches back into their original base working branches.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Create a refinement issue from requirements documentation",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Refactors project architecture based on domain-driven design principles and redesigns domain architecture.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      },
+      {
+        "c1": "{c1}",
+        "c2": "{c2}",
+        "c3": "{c3}",
+        "title": "{title}",
+        "description": "Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.",
+        "usage": "{usage}",
+        "options": {
+          "input": "{options.input}",
+          "adaptation": "{options.adaptation}",
+          "file": "{options.file}",
+          "stdin": "{options.stdin}",
+          "destination": "{options.destination}"
+        }
+      }
+    ]
+  }
+}

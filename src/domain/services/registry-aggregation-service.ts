@@ -290,9 +290,21 @@ export class RegistryAggregationService {
       return { kind: "Generic", data };
     }
 
-    const firstItem = data[0];
+    // Unwrap Result objects if present
+    const unwrappedData = data.map((item) => {
+      if (typeof item === "object" && item !== null) {
+        const obj = item as Record<string, unknown>;
+        // Check if it's a Result wrapper
+        if ("ok" in obj && "data" in obj && obj.ok === true) {
+          return obj.data;
+        }
+      }
+      return item;
+    });
+
+    const firstItem = unwrappedData[0];
     if (typeof firstItem !== "object" || firstItem === null) {
-      return { kind: "Generic", data };
+      return { kind: "Generic", data: unwrappedData };
     }
 
     const firstObject = firstItem as Record<string, unknown>;
@@ -319,7 +331,7 @@ export class RegistryAggregationService {
 
     // Check for command list (has c1 field)
     if ("c1" in firstObject) {
-      const commands = data
+      const commands = unwrappedData
         .map((item) => {
           if (typeof item === "object" && item !== null) {
             const result = Command.fromObject(item as Record<string, unknown>);
@@ -332,7 +344,24 @@ export class RegistryAggregationService {
       return { kind: "CommandList", commands };
     }
 
-    return { kind: "Generic", data };
+    // Check if items have description field (basic command structure)
+    if ("description" in firstObject) {
+      const commands = unwrappedData
+        .map((item) => {
+          if (typeof item === "object" && item !== null) {
+            const result = Command.fromObject(item as Record<string, unknown>);
+            return result.ok ? result.data : null;
+          }
+          return null;
+        })
+        .filter(Boolean) as Command[];
+
+      if (commands.length > 0) {
+        return { kind: "CommandList", commands };
+      }
+    }
+
+    return { kind: "Generic", data: unwrappedData };
   }
 
   /**
@@ -411,7 +440,16 @@ export class RegistryAggregationService {
         // Try to convert generic data to commands
         const commands: Command[] = [];
         for (const item of structure.data) {
+          // Unwrap Result object if present
+          let actualItem = item;
           if (typeof item === "object" && item !== null) {
+            const obj = item as Record<string, unknown>;
+            if ("ok" in obj && "data" in obj && obj.ok === true) {
+              actualItem = obj.data;
+            }
+          }
+          
+          if (typeof actualItem === "object" && actualItem !== null) {
             // Handle template-mapped structure extraction
             const extractedData = this.extractCommandDataFromTemplateStructure(
               item as Record<string, unknown>,

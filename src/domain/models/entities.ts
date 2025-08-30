@@ -425,6 +425,19 @@ export class Template {
       }
     }
 
+    // If template has content, apply placeholder substitution
+    const templateContent = this.format.getTemplate();
+    if (templateContent) {
+      try {
+        const templateObj = JSON.parse(templateContent);
+        const result = this.substituteTemplateValues(templateObj, data);
+        return { ok: true, data: result };
+      } catch (e) {
+        // If not JSON, fall back to mapping rules
+        console.error("Failed to parse template as JSON:", e);
+      }
+    }
+
     // If no mapping rules are defined, return the data as-is only if structure validation passed
     if (this.mappingRules.length === 0) {
       return { ok: true, data };
@@ -457,6 +470,60 @@ export class Template {
     }
 
     return { ok: true, data: result };
+  }
+
+  /**
+   * Recursively substitute template placeholders with actual values from data
+   */
+  private substituteTemplateValues(
+    template: unknown,
+    data: Record<string, unknown>,
+  ): unknown {
+    if (typeof template === "string") {
+      // Replace placeholders in strings
+      return template.replace(/\{([^}]+)\}/g, (match, key) => {
+        const value = this.getValueByPath(data, key.trim());
+        return value !== undefined ? String(value) : match;
+      });
+    }
+    
+    if (Array.isArray(template)) {
+      // Process arrays recursively
+      return template.map(item => this.substituteTemplateValues(item, data));
+    }
+    
+    if (template && typeof template === "object") {
+      // Process objects recursively
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(template as Record<string, unknown>)) {
+        result[key] = this.substituteTemplateValues(value, data);
+      }
+      return result;
+    }
+    
+    // Return primitives as-is
+    return template;
+  }
+
+  /**
+   * Get value from data object by path (supports nested paths like "options.input")
+   */
+  private getValueByPath(
+    data: Record<string, unknown>,
+    path: string,
+  ): unknown {
+    const keys = path.split(".");
+    let current: unknown = data;
+    
+    for (const key of keys) {
+      if (current && typeof current === "object" && key in current) {
+        current = (current as Record<string, unknown>)[key];
+      } else {
+        return undefined;
+      }
+    }
+    
+    return current;
   }
 
   /**
