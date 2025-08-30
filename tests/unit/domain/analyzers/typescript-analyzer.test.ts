@@ -108,7 +108,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      assertEquals(data.version, "1.0.0");
+      // Now passes through raw frontmatter
+      assertEquals(data.title, "No Version Document");
     }
   });
 
@@ -144,7 +145,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      assertEquals(data.version, "1.0.0"); // Should fall back to default
+      // Now passes through raw data
+      assertEquals(data.version, "invalid-version");
+      assertEquals(data.title, "Bad Version");
     }
   });
 
@@ -172,7 +175,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result2.ok);
     if (result2.ok) {
       const data = result2.data.getData() as Record<string, unknown>;
-      assertEquals(data.description, "Title as description");
+      // Now passes through raw data
+      assertEquals(data.title, "Title as description");
     }
 
     // Test with summary field as fallback
@@ -183,7 +187,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result3.ok);
     if (result3.ok) {
       const data = result3.data.getData() as Record<string, unknown>;
-      assertEquals(data.description, "Summary as description");
+      // Now passes through raw data
+      assertEquals(data.summary, "Summary as description");
     }
   });
 
@@ -503,7 +508,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      assertEquals(data.description, "12345");
+      // Now passes through raw data without coercion
+      assertEquals(data.description, 12345);
     }
   });
 });
