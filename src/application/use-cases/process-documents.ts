@@ -10,6 +10,7 @@ import {
 import {
   AnalysisResult,
   type Document,
+  MappedData,
   type Schema,
   type Template,
 } from "../../domain/models/entities.ts";
@@ -58,36 +59,21 @@ export class ProcessDocumentsUseCase {
     const { config } = input;
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
 
+    // Verbose: Pipeline start
     if (verboseMode) {
       const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
-      verboseLogger.info("Starting document processing pipeline", {
-        schemaPath: config.schemaPath.getValue(),
-        templatePath: config.templatePath.getValue(),
-        documentsPath: config.documentsPath.getValue(),
+      verboseLogger.info("[Pipeline] Starting", {
+        schema: config.schemaPath.getValue(),
+        template: config.templatePath.getValue(),
+        documents: config.documentsPath.getValue(),
       });
     }
 
     // Load schema
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Loading schema", {
-        schemaPath: config.schemaPath.getValue(),
-      });
-    }
     const schemaResult = await this.schemaRepo.load(config.schemaPath);
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Schema loaded", {
-        success: schemaResult.ok,
-        schemaPath: config.schemaPath.getValue(),
-      });
-    }
+    // Schema loaded
     if (isError(schemaResult)) {
       if (verboseMode) {
         const errorLogger = StructuredLogger.getServiceLogger(
@@ -123,26 +109,10 @@ export class ProcessDocumentsUseCase {
     const schema = schemaResult.data;
 
     // Load template
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Loading template", {
-        templatePath: config.templatePath.getValue(),
-      });
-    }
     const templateResult = await this.templateRepo.load(
       config.templatePath.getValue(),
     );
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Template loaded", {
-        success: templateResult.ok,
-        templatePath: config.templatePath.getValue(),
-      });
-    }
+    // Template loaded
     if (isError(templateResult)) {
       if (verboseMode) {
         const errorLogger = StructuredLogger.getServiceLogger(
@@ -179,34 +149,19 @@ export class ProcessDocumentsUseCase {
     const template = templateResult.data;
 
     // Find all documents
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Scanning for markdown files", {
-        documentsPath: config.documentsPath.getValue(),
-      });
-    }
     const documentsResult = await this.documentRepo.findAll(
       config.documentsPath,
     );
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Document search result", {
-        success: documentsResult.ok,
-        documentsPath: config.documentsPath.getValue(),
-      });
-    }
+    // Search completed
     if (documentsResult.ok) {
+      // Verbose: 成果A - Document list created
       if (verboseMode) {
         const verboseLogger = StructuredLogger.getServiceLogger(
           "process-documents-verbose",
         );
-        verboseLogger.info("Found markdown files", {
+        verboseLogger.info("[成果A] Document list created", {
           count: documentsResult.data.length,
-          documentsPath: config.documentsPath.getValue(),
+          path: config.documentsPath.getValue(),
         });
       }
     }
@@ -247,14 +202,7 @@ export class ProcessDocumentsUseCase {
 
     // Check if any documents were found
     if (documents.length === 0) {
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.warn(
-          "No markdown files found in the specified directory",
-        );
-      }
+      // No markdown files found
       return {
         ok: true,
         data: {
@@ -283,15 +231,7 @@ export class ProcessDocumentsUseCase {
     const results: AnalysisResult[] = [];
     const errors: Array<{ document: string; error: string }> = [];
 
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Starting document processing", {
-        documentCount: documents.length,
-        processingMode: options.isParallel() ? "Parallel" : "Sequential",
-      });
-    }
+    // Start processing documents
 
     // Display processing list
     const processLogger = StructuredLogger.getServiceLogger(
@@ -305,14 +245,7 @@ export class ProcessDocumentsUseCase {
 
     if (options.isParallel()) {
       // Parallel processing
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.info("Creating parallel processing promises", {
-          documentCount: documents.length,
-        });
-      }
+      // Parallel processing
 
       const promises = documents.map((doc) => {
         const docPath = doc.getPath().getValue();
@@ -321,14 +254,7 @@ export class ProcessDocumentsUseCase {
         );
         startLogger.info("Starting document processing", { docPath });
 
-        if (verboseMode) {
-          const verboseLogger = StructuredLogger.getServiceLogger(
-            "process-documents-verbose",
-          );
-          verboseLogger.info("Creating promise for document", {
-            document: docPath,
-          });
-        }
+        // Process document
         return this.processDocument(doc, schema, template)
           .then((result) => {
             const resultLogger = StructuredLogger.getServiceLogger(
@@ -348,23 +274,11 @@ export class ProcessDocumentsUseCase {
           });
       });
 
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.info("Waiting for all promises to complete", {
-          promiseCount: promises.length,
-        });
-      }
+      // Wait for completion
 
       const outcomes = await Promise.all(promises);
 
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.info("All promises completed, processing outcomes");
-      }
+      // Processing completed
 
       for (const { doc, result } of outcomes) {
         if (isOk(result)) {
@@ -462,6 +376,17 @@ export class ProcessDocumentsUseCase {
         error: aggregateResult.error,
       };
     }
+
+    // Verbose: 最終成果物Z - Final aggregation
+    if (verboseMode) {
+      const verboseLogger = StructuredLogger.getServiceLogger(
+        "process-documents-verbose",
+      );
+      verboseLogger.info("[最終成果物Z] Aggregation completed", {
+        totalResults: results.length,
+        errors: errors.length,
+      });
+    }
     aggregationLogger.info("Aggregation successful");
 
     // Save aggregated results
@@ -491,6 +416,37 @@ export class ProcessDocumentsUseCase {
     };
   }
 
+  /**
+   * Check if a schema is a registry schema (contains tools.commands referencing another schema)
+   */
+  private isRegistrySchema(schemaDefinition: unknown): boolean {
+    if (!schemaDefinition || typeof schemaDefinition !== "object") {
+      return false;
+    }
+
+    const schema = schemaDefinition as Record<string, unknown>;
+    const properties = schema.properties as Record<string, unknown> | undefined;
+
+    if (!properties?.tools) {
+      return false;
+    }
+
+    const tools = properties.tools as Record<string, unknown>;
+    const toolsProperties = tools.properties as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!toolsProperties?.commands) {
+      return false;
+    }
+
+    const commands = toolsProperties.commands as Record<string, unknown>;
+    const items = commands.items as Record<string, unknown> | undefined;
+
+    // Check if commands.items has a $ref (indicating it references another schema)
+    return items?.["$ref"] !== undefined;
+  }
+
   private async processDocument(
     document: Document,
     schema: Schema,
@@ -499,38 +455,17 @@ export class ProcessDocumentsUseCase {
     const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
     const docPath = document.getPath().getValue();
 
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Processing document", { docPath });
-    }
+    // Processing document
 
     // Extract frontmatter
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-verbose",
-      );
-      verboseLogger.info("Extracting frontmatter", { docPath });
-    }
     const frontMatterResult = this.frontMatterExtractor.extract(document);
     if (isError(frontMatterResult)) {
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.error("Frontmatter extraction failed", { docPath });
-      }
+      // Frontmatter extraction failed
       return frontMatterResult;
     }
 
     if (frontMatterResult.data.kind === "NotPresent") {
-      if (verboseMode) {
-        const verboseLogger = StructuredLogger.getServiceLogger(
-          "process-documents-verbose",
-        );
-        verboseLogger.warn("No frontmatter found", { docPath });
-      }
+      // No frontmatter found
       return {
         ok: false,
         error: createDomainError({
@@ -543,44 +478,30 @@ export class ProcessDocumentsUseCase {
 
     const frontMatter = frontMatterResult.data.frontMatter;
 
+    // Verbose: 成果B - Frontmatter extraction
     if (verboseMode) {
       const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-helper",
+        "process-documents-verbose",
       );
-      verboseLogger.info("Frontmatter extracted", { document: docPath });
-      // Add detailed debug logging for frontmatter content
-      const debugLogger = StructuredLogger.getServiceLogger(
-        "process-documents-debug",
-      );
-      debugLogger.info("Frontmatter content", {
+      verboseLogger.info("[成果B] Frontmatter extracted", {
         document: docPath,
-        frontmatterData: frontMatter.toObject(),
-        frontmatterKeys: Object.keys(
-          frontMatter.toObject() as Record<string, unknown>,
-        ),
+        keys: Object.keys(frontMatter.toObject() as Record<string, unknown>),
       });
     }
 
     // Analyze with schema
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-helper",
-      );
-      verboseLogger.info("Starting AI analysis", {
-        document: docPath,
-      });
-    }
     const extractedResult = await this.schemaAnalyzer.analyze(
       frontMatter,
       schema,
     );
-    if (verboseMode) {
-      const debugLogger = StructuredLogger.getServiceLogger(
-        "process-documents-debug",
+    // Verbose: 成果C - Schema analysis
+    if (verboseMode && isOk(extractedResult)) {
+      const verboseLogger = StructuredLogger.getServiceLogger(
+        "process-documents-verbose",
       );
-      debugLogger.info("AI analysis result", {
+      verboseLogger.info("[成果C] Schema analysis completed", {
         document: docPath,
-        result: extractedResult,
+        fieldsExtracted: Object.keys(extractedResult.data),
       });
     }
     if (isError(extractedResult)) {
@@ -595,29 +516,39 @@ export class ProcessDocumentsUseCase {
       }
       return extractedResult;
     }
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-helper",
-      );
-      verboseLogger.info("AI analysis successful", {
-        document: docPath,
-      });
-    }
+    // Analysis complete
 
     // Map to template
-    if (verboseMode) {
-      const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-helper",
+
+    // Check if this is a registry schema - if so, use command data directly
+    const schemaDefinition = schema.getDefinition().getRawDefinition();
+    const isRegistry = this.isRegistrySchema(schemaDefinition);
+
+    // Schema type detected
+
+    let mappedResult: Result<MappedData, DomainError & { message: string }>;
+
+    if (isRegistry) {
+      // For registry schemas, wrap the extracted command data directly
+      // The extracted data already contains c1, c2, c3, etc. fields
+      const commandData = extractedResult.data;
+      // Convert ExtractedData to plain object
+      const commandObject =
+        typeof commandData === "object" && commandData !== null
+          ? commandData as unknown as Record<string, unknown>
+          : {};
+      mappedResult = { ok: true, data: MappedData.create(commandObject) };
+
+      // Registry mode: using command data directly
+    } else {
+      // For non-registry schemas, apply the template normally
+      mappedResult = this.templateMapper.map(
+        extractedResult.data,
+        template,
+        { kind: "WithSchema", schema: schemaDefinition },
       );
-      verboseLogger.info("Mapping to template", {
-        document: docPath,
-      });
     }
-    const mappedResult = this.templateMapper.map(
-      extractedResult.data,
-      template,
-      { kind: "WithSchema", schema: schema.getDefinition().getValue() }, // Pass schema for strict structure matching
-    );
+
     if (isError(mappedResult)) {
       if (verboseMode) {
         const errorLogger = StructuredLogger.getServiceLogger(
@@ -630,20 +561,13 @@ export class ProcessDocumentsUseCase {
       return mappedResult;
     }
 
+    // Verbose: 成果D - Template mapping
     if (verboseMode) {
       const verboseLogger = StructuredLogger.getServiceLogger(
-        "process-documents-helper",
+        "process-documents-verbose",
       );
-      verboseLogger.info("Template mapping completed", {
+      verboseLogger.info("[成果D] Template mapping completed", {
         document: docPath,
-      });
-      // Add debug logging for mapped result
-      const debugLogger = StructuredLogger.getServiceLogger(
-        "process-documents-debug",
-      );
-      debugLogger.info("Template mapped result", {
-        document: docPath,
-        mappedData: mappedResult.data.getData(),
       });
     }
 
