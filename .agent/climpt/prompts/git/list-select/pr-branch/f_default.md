@@ -1,7 +1,18 @@
 ---
+c1: git
+c2: list-select
+c3: pr-branch
 title: 現存のPRとブランチをリスト化して、次に作業する対象を選ぶ
-properties:
-  C3L-Version: 0.3
+description: ローカル・リモートブランチとPRを一覧化し、次に作業すべき対象を自動選択する
+usage: |
+  現存のPRとブランチを一覧化して、次に作業すべき対象を自動選択します。
+  選択結果に基づいて次の作業を進めます。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [true]
 ---
 
 # 指示: 現存のPRとブランチをリスト化して、次に作業する対象を選ぶ

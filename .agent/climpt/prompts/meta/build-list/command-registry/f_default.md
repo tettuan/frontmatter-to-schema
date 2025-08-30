@@ -1,5 +1,18 @@
 ---
+c1: meta
+c2: build-list
+c3: command-registry
 title: Climpt 実行可能コマンドの一覧作成
+description: 使用可能な Climpt リストを作成する。パラメータで渡した値をもとに、プロンプトテンプレートの変数を置換する。
+usage: |
+  使用可能なClimptコマンドの一覧を作成します。
+  プロンプトテンプレートの変数置換機能も含めて説明します。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [true]
 ---
 
 # 実施事項

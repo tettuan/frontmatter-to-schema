@@ -1,7 +1,18 @@
 ---
+c1: git
+c2: group-commit
+c3: unstaged-changes
 title: 意味的近さでコミットを分けて実施する
-properties:
-  C3L-Version: 0.3
+description: Gitコミットを、ファイルの変更内容の意味的近さ単位でグループ化し、適切にまとめてコミットする
+usage: |
+  ファイルの変更内容の意味的近さでグループ化し、複数回のコミット処理を連続実行します。
+  まったく異なる内容を1つのコミットに含めることを避けます。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [false]
 ---
 
 # 指示

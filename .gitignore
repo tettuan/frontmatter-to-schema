@@ -146,4 +146,4 @@ tests/integration/claude-api-integration.test.ts
 
 # Temporary development files
 tmp/
-frontmatter-to-schema
+# frontmatter-to-schema binary is now a shell script, not ignored

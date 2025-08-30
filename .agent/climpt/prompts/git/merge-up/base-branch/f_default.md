@@ -1,8 +1,18 @@
 ---
+c1: git
+c2: merge-up
+c3: base-branch
 title: 作業ブランチ間のマージ処理
 description: 作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。
-properties:
-  C3L-Version: 0.3
+usage: |
+  現在のブランチから分岐元ブランチを特定し、適切なマージ処理を実行します。
+  未コミットファイルの処理も含めて安全にマージします。
+options:
+  input: ["default"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [false]
+  destination: [false]
 ---
 
 # 指示書: 作業ブランチ間のマージ処理

@@ -1,9 +1,18 @@
 ---
-title:
-description:
+c1: refactor
+c2: basedon
+c3: ddd
+title: ドメイン駆動設計と全域性（Totality）の融合完成 - ネクストアクション
+description: 実行済の結果から導き出したネクストアクションを進める。基本事項を維持した状態で、次アクションを指示する
+usage: |
+  ドメイン駆動設計とTotalityに基づくリファクタリングの継続を実行します。
+  ネクストアクションの指示書に基づいて処理を進めます。
 options:
-  uv-scope: 実行済の結果から導き出したネクストアクションを進める。その際に、基本事項を維持した状態で、次アクションを指示する。
-  input_text: ネクストアクションの指示書
+  input: ["nextaction"]
+  adaptation: ["default"]
+  file: [false]
+  stdin: [true]
+  destination: [false]
 ---
 
 # プロジェクト: {uv-scope}のドメイン駆動設計と全域性（Totality）の融合完成

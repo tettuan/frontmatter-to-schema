@@ -1,5 +1,18 @@
 ---
-title:プロジェクト全体の深掘り調査と修正タスク洗い出し
+c1: debug
+c2: analyze-deep
+c3: project-issues
+title: プロジェクト全体の深掘り調査と修正タスク洗い出し
+description: プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出し、ドメイン駆動設計からテスト駆動設計への移行を支援する
+usage: |
+  プロジェクト全体の深掘り調査と修正タスクの洗い出しを実行します。
+  既存のissue一覧を確認し、適切な処理を行います。
+options:
+  input: []
+  adaptation: []
+  file: [false]
+  stdin: [true]
+  destination: [false]
 ---
 
 # 指示:

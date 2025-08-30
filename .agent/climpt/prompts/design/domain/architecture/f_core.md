@@ -1,6 +1,18 @@
 ---
-title:
+c1: design
+c2: domain
+c3: architecture
+title: ドメイン設計の中心設計
 description: ドメイン境界情報をもとに、中心概念について、設計を行う。
+usage: |
+  ドメイン境界情報をもとに、ドメインに基づいた詳細設計を、ドメイン領域ごとに実施します。
+  実装情報を加味した、詳細な型定義を行います。
+options:
+  input: ["core"]
+  adaptation: ["default"]
+  file: [true]
+  stdin: [false]
+  destination: [true]
 ---
 
 # ドメイン設計の中心設計
