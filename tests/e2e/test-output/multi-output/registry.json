@@ -1,16 +1,22 @@
 {
   "results": [
     {
-      "tools": {
-        "commands[]": {
-          "description": "Test registry document 1"
+      "ok": true,
+      "data": {
+        "tools": {
+          "commands[]": {
+            "description": "Test registry document 1"
+          }
         }
       }
     },
     {
-      "tools": {
-        "commands[]": {
-          "description": "Test registry document 2"
+      "ok": true,
+      "data": {
+        "tools": {
+          "commands[]": {
+            "description": "Test registry document 2"
+          }
         }
       }
     }

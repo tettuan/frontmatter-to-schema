@@ -30,7 +30,8 @@ export type ValidationError =
   | { kind: "NotFound"; resource: string; name?: string; key?: string }
   | { kind: "NotConfigured"; component: string }
   | { kind: "AlreadyExecuted"; pipeline: string }
-  | { kind: "InvalidState"; expected: string; actual: string };
+  | { kind: "InvalidState"; expected: string; actual: string }
+  | { kind: "NoFrontMatterPresent" };
 
 // Analysis domain specific errors
 export type AnalysisError =
@@ -40,7 +41,8 @@ export type AnalysisError =
   | { kind: "AIServiceError"; service: string; statusCode?: number }
   | { kind: "InvalidAnalysisContext"; context: unknown }
   | { kind: "AnalysisTimeout"; timeoutMs: number }
-  | { kind: "UnsupportedAnalysisType"; type: string };
+  | { kind: "UnsupportedAnalysisType"; type: string }
+  | { kind: "SerializationError"; data: string; format: string };
 
 // Pipeline orchestration errors
 export type PipelineError =
@@ -139,6 +141,8 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Pipeline ${error.pipeline} has already been executed`;
     case "InvalidState":
       return `Invalid state: expected ${error.expected}, got ${error.actual}`;
+    case "NoFrontMatterPresent":
+      return "Document does not contain frontmatter";
 
     // Analysis errors
     case "SchemaValidationFailed":
@@ -159,6 +163,8 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Analysis timed out after ${error.timeoutMs}ms`;
     case "UnsupportedAnalysisType":
       return `Unsupported analysis type: ${error.type}`;
+    case "SerializationError":
+      return `Failed to serialize data to ${error.format} format`;
 
     // Pipeline errors
     case "FileDiscoveryFailed":

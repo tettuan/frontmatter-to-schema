@@ -19,7 +19,9 @@ import type {
   TemplateMapper,
 } from "./abstractions.ts";
 import type { TemplateFormatHandler } from "../template/format-handlers.ts";
+import { TemplateFormatHandlerFactory } from "../template/format-handlers.ts";
 import type { PlaceholderProcessor } from "../template/placeholder-processor.ts";
+import { PlaceholderProcessorFactory } from "../template/placeholder-processor.ts";
 import type { SchemaProcessor, SchemaSwitcher } from "./schema-management.ts";
 
 /**
@@ -302,8 +304,25 @@ export class TotalTemplateDomainFactory
       // Create template components directly
       // For now, use simple implementations
 
+<<<<<<< HEAD
+      // Use existing factories to create proper implementations
+      const formatHandlerResult = TemplateFormatHandlerFactory.getHandler(
+        "json",
+      );
+      if (!formatHandlerResult.ok) {
+        return Promise.resolve({
+          ok: false,
+          error: formatHandlerResult.error,
+        });
+      }
+      const formatHandler = formatHandlerResult.data;
+
+      const placeholderProcessor = PlaceholderProcessorFactory
+        .createMustacheProcessor();
+=======
       const formatHandler = {} as TemplateFormatHandler; // TODO: Implement proper handler
       const placeholderProcessor = {} as PlaceholderProcessor; // TODO: Implement proper processor
+>>>>>>> origin/main
 
       return Promise.resolve({
         ok: true,

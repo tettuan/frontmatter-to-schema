@@ -17,21 +17,10 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
   extract(
     document: Document,
   ): Result<FrontMatterExtractionResult, DomainError & { message: string }> {
-    // If document already has frontmatter, return it
-    if (document.hasFrontMatter()) {
-      const frontMatter = document.getFrontMatter();
-      // Safety check: hasFrontMatter() should guarantee non-null
-      if (!frontMatter) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "ExtractionStrategyFailed",
-            strategy: "frontmatter",
-            input:
-              "Document reports hasFrontMatter() but getFrontMatter() returned null",
-          }),
-        };
-      }
+    // Use totality-compliant getFrontMatterResult()
+    const frontMatterResult = document.getFrontMatterResult();
+    if (frontMatterResult.ok) {
+      const frontMatter = frontMatterResult.data;
       return { ok: true, data: { kind: "Extracted", frontMatter } };
     }
 

@@ -13,7 +13,6 @@ import {
 } from "../../domain/models/entities.ts";
 import type { DocumentPath } from "../../domain/models/value-objects.ts";
 import type {
-  AnalysisConfiguration,
   DocumentRepository,
   FrontMatterExtractor,
   SchemaAnalyzer,
@@ -24,7 +23,6 @@ export interface AnalyzeDocumentUseCaseInput {
   documentPath: DocumentPath;
   schema: Schema;
   template: Template;
-  config: AnalysisConfiguration;
 }
 
 export interface AnalyzeDocumentUseCaseOutput {

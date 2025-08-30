@@ -227,8 +227,10 @@ export class DocumentProcessor {
     // Extract data using AI if prompts are provided
     let extractedData: ExtractedData;
 
-    if (document.hasFrontMatter()) {
-      const frontMatter = document.getFrontMatter()!;
+    // Use totality-compliant getFrontMatterResult()
+    const frontMatterResult = document.getFrontMatterResult();
+    if (isOk(frontMatterResult)) {
+      const frontMatter = frontMatterResult.data;
       const contentJson = frontMatter.getContent().toJSON();
       extractedData = ExtractedData.create(
         typeof contentJson === "object" && contentJson !== null
@@ -236,6 +238,7 @@ export class DocumentProcessor {
           : {},
       );
     } else {
+      // No frontmatter present or error occurred
       extractedData = ExtractedData.create({});
     }
 
