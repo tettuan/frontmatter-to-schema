@@ -425,9 +425,11 @@ export class Template {
       }
     }
 
-    // If template has content, apply placeholder substitution
+    // If template has content with placeholders like {field}, apply substitution
     const templateContent = this.format.getTemplate();
-    if (templateContent) {
+    // Check for placeholder patterns like {field} or {path.to.field}
+    const hasPlaceholders = templateContent && /\{[a-zA-Z_][\w.]*\}/.test(templateContent);
+    if (hasPlaceholders) {
       try {
         const templateObj = JSON.parse(templateContent);
         const result = this.substituteTemplateValues(templateObj, data);
