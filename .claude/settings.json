@@ -2,6 +2,6 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["climpt"],
   "permissions": {
-    "allow": ["climpt__*"]
+    "allow": ["Climpt__*"]
   }
 }
