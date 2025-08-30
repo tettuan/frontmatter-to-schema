@@ -452,7 +452,7 @@ export class RegistryAggregationService {
           if (typeof actualItem === "object" && actualItem !== null) {
             // Handle template-mapped structure extraction
             const extractedData = this.extractCommandDataFromTemplateStructure(
-              item as Record<string, unknown>,
+              actualItem as Record<string, unknown>,
             );
             if (extractedData) {
               const commandResult = Command.fromObject(extractedData);
@@ -461,7 +461,7 @@ export class RegistryAggregationService {
               }
             } else {
               // Fallback to direct object conversion
-              const commandResult = Command.fromObject(item);
+              const commandResult = Command.fromObject(actualItem);
               if (commandResult.ok) {
                 commands.push(commandResult.data);
               }
