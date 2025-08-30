@@ -4,7 +4,7 @@
  * Following AAA pattern and Totality principles
  */
 
-import { assert, assertEquals, assertRejects } from "jsr:@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import {
   FileReader,
   FileWriter,
@@ -61,8 +61,8 @@ Deno.test("FileReader", async (t) => {
       const result = await reader.readDirectory(testDir);
 
       // Assert
-      assert(result);
-      assertEquals(result.count, 0);
+      assert(result.ok);
+      assertEquals(result.data.count, 0);
 
       // Cleanup
       await teardown();
@@ -89,10 +89,10 @@ Deno.test("FileReader", async (t) => {
     const result = await reader.readDirectory(testDir);
 
     // Assert
-    assert(result);
-    assertEquals(result.count, 2);
+    assert(result.ok);
+    assertEquals(result.data.count, 2);
 
-    const files = result.getAll();
+    const files = result.data.getAll();
     assert(files.some((f) => f.path.includes("test1.md")));
     assert(files.some((f) => f.path.includes("test2.md")));
     assert(!files.some((f) => f.path.includes("test.txt")));
@@ -120,8 +120,9 @@ Deno.test("FileReader", async (t) => {
     const result = await reader.readDirectory(testDir);
 
     // Assert
-    assertEquals(result.count, 2);
-    const files = result.getAll();
+    assert(result.ok);
+    assertEquals(result.data.count, 2);
+    const files = result.data.getAll();
     assert(files.some((f) => f.path.includes("root.md")));
     assert(files.some((f) => f.path.includes("nested.md")));
 
@@ -134,10 +135,13 @@ Deno.test("FileReader", async (t) => {
     const reader = new FileReader();
     const nonExistentDir = "./non_existent_directory_test";
 
-    // Act & Assert
-    await assertRejects(
-      async () => await reader.readDirectory(nonExistentDir),
-      Error,
+    // Act
+    const result = await reader.readDirectory(nonExistentDir);
+
+    // Assert - should return error result instead of throwing
+    assert(!result.ok);
+    assert(
+      result.error.kind === "FileNotFound" || result.error.kind === "ReadError",
     );
   });
 
@@ -154,7 +158,8 @@ Deno.test("FileReader", async (t) => {
     const result = await reader.readFile(testFile);
 
     // Assert
-    assertEquals(result, content);
+    assert(result.ok);
+    assertEquals(result.data, content);
 
     // Cleanup
     await teardown();
@@ -165,11 +170,12 @@ Deno.test("FileReader", async (t) => {
     const reader = new FileReader();
     const nonExistentFile = "./non_existent_file.txt";
 
-    // Act & Assert
-    await assertRejects(
-      async () => await reader.readFile(nonExistentFile),
-      Deno.errors.NotFound,
-    );
+    // Act
+    const result = await reader.readFile(nonExistentFile);
+
+    // Assert - should return error result instead of throwing
+    assert(!result.ok);
+    assert(result.error.kind === "FileNotFound");
   });
 
   await t.step("readFile handles empty file", async () => {
@@ -184,7 +190,8 @@ Deno.test("FileReader", async (t) => {
     const result = await reader.readFile(testFile);
 
     // Assert
-    assertEquals(result, "");
+    assert(result.ok);
+    assertEquals(result.data, "");
 
     // Cleanup
     await teardown();
@@ -249,8 +256,9 @@ Deno.test("FileReader", async (t) => {
       const result = await reader.readDirectory(testDir);
 
       // Assert
-      assertEquals(result.count, 1);
-      const files = result.getAll();
+      assert(result.ok);
+      assertEquals(result.data.count, 1);
+      const files = result.data.getAll();
       assert(files[0].path.includes("special-chars_#1.md"));
 
       // Cleanup
@@ -283,8 +291,9 @@ Special chars: 日本語 🚀`;
     const result = await reader.readDirectory(testDir);
 
     // Assert
-    assertEquals(result.count, 1);
-    const files = result.getAll();
+    assert(result.ok);
+    assertEquals(result.data.count, 1);
+    const files = result.data.getAll();
     assertEquals(files[0].content, complexContent);
 
     // Cleanup
@@ -614,8 +623,9 @@ Deno.test("FileReader and FileWriter integration", async (t) => {
 
     // Act
     await writer.writeJson(testFile, registryData);
-    const content = await reader.readFile(testFile);
-    const parsed = JSON.parse(content);
+    const contentResult = await reader.readFile(testFile);
+    assert(contentResult.ok);
+    const parsed = JSON.parse(contentResult.data);
 
     // Assert
     assertEquals(parsed, registryData);

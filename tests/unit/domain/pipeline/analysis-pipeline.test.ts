@@ -7,6 +7,10 @@ import type {
   AnalysisContext,
   AnalysisResult,
 } from "../../../../src/domain/core/types.ts";
+import type {
+  DomainError,
+  Result,
+} from "../../../../src/domain/core/result.ts";
 import { FrontMatterContent } from "../../../../src/domain/models/value-objects.ts";
 import type {
   AnalysisEngine,
@@ -26,12 +30,14 @@ class MockFileReader implements FileReader {
     this.files.set(path, content);
   }
 
-  readTextFile(path: string): Promise<string> {
+  readTextFile(
+    path: string,
+  ): Promise<Result<string, DomainError & { message: string }>> {
     const content = this.files.get(path);
     if (!content) {
-      return Promise.resolve("test content");
+      return Promise.resolve({ ok: true, data: "test content" });
     }
-    return Promise.resolve(content);
+    return Promise.resolve({ ok: true, data: content });
   }
 }
 class MockFileDiscovery implements FileDiscovery {

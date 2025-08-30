@@ -91,10 +91,17 @@ export class AnalysisPipeline<TOutput = unknown> {
     const path = pathResult.data;
 
     // Read file content
-    const content = await this.fileReader.readTextFile(filePath);
+    const contentResult = await this.fileReader.readTextFile(filePath);
+    if (!contentResult.ok) {
+      this.logger.error(`Failed to read file`, {
+        filePath,
+        error: contentResult.error.message,
+      });
+      return null;
+    }
 
     // Extract frontmatter
-    const frontMatter = await this.extractor.extract(content);
+    const frontMatter = await this.extractor.extract(contentResult.data);
 
     if (!frontMatter) {
       this.logger.warn(`No frontmatter found in file`, { filePath });
