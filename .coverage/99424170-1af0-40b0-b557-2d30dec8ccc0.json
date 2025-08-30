@@ -1,5 +1,5 @@
 {
-  "scriptId": "365",
+  "scriptId": "335",
   "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/entities.ts",
   "functions": [
     {
@@ -9,13 +9,13 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 293, "endOffset": 298, "count": 0 }],
+      "ranges": [{ "startOffset": 293, "endOffset": 298, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "DocumentId",
-      "ranges": [{ "startOffset": 302, "endOffset": 349, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 302, "endOffset": 349, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
@@ -24,8 +24,8 @@
     },
     {
       "functionName": "fromPath",
-      "ranges": [{ "startOffset": 604, "endOffset": 668, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 604, "endOffset": 668, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getValue",
@@ -89,13 +89,13 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 1668, "endOffset": 1673, "count": 0 }],
+      "ranges": [{ "startOffset": 1668, "endOffset": 1673, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "AnalysisId",
-      "ranges": [{ "startOffset": 1677, "endOffset": 1724, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 1677, "endOffset": 1724, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
@@ -104,8 +104,8 @@
     },
     {
       "functionName": "generate",
-      "ranges": [{ "startOffset": 1979, "endOffset": 2043, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 1979, "endOffset": 2043, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getValue",
@@ -119,23 +119,26 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 2187, "endOffset": 2228, "count": 0 }],
+      "ranges": [{ "startOffset": 2187, "endOffset": 2228, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "Document",
-      "ranges": [{ "startOffset": 2232, "endOffset": 2399, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 2232, "endOffset": 2399, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
-      "ranges": [{ "startOffset": 2409, "endOffset": 2539, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 2409, "endOffset": 2539, "count": 1 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "createWithFrontMatter",
-      "ranges": [{ "startOffset": 2617, "endOffset": 2896, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [
+        { "startOffset": 2617, "endOffset": 2896, "count": 3 },
+        { "startOffset": 2769, "endOffset": 2806, "count": 0 }
+      ],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getId",
@@ -154,8 +157,13 @@
     },
     {
       "functionName": "getFrontMatterResult",
-      "ranges": [{ "startOffset": 3195, "endOffset": 3944, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [
+        { "startOffset": 3195, "endOffset": 3944, "count": 4 },
+        { "startOffset": 3266, "endOffset": 3387, "count": 3 },
+        { "startOffset": 3394, "endOffset": 3536, "count": 1 },
+        { "startOffset": 3543, "endOffset": 3934, "count": 0 }
+      ],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getFrontMatter",
@@ -174,18 +182,18 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 4699, "endOffset": 4713, "count": 0 }],
+      "ranges": [{ "startOffset": 4699, "endOffset": 4713, "count": 5 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "FrontMatter",
-      "ranges": [{ "startOffset": 4717, "endOffset": 4795, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 4717, "endOffset": 4795, "count": 5 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
-      "ranges": [{ "startOffset": 4805, "endOffset": 4873, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 4805, "endOffset": 4873, "count": 5 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getContent",
@@ -199,8 +207,8 @@
     },
     {
       "functionName": "toObject",
-      "ranges": [{ "startOffset": 4960, "endOffset": 5010, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 4960, "endOffset": 5010, "count": 5 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "<instance_members_initializer>",
@@ -299,18 +307,18 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 12167, "endOffset": 12171, "count": 0 }],
+      "ranges": [{ "startOffset": 12167, "endOffset": 12171, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "ExtractedData",
-      "ranges": [{ "startOffset": 12175, "endOffset": 12219, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 12175, "endOffset": 12219, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
-      "ranges": [{ "startOffset": 12229, "endOffset": 12283, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 12229, "endOffset": 12283, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getData",
@@ -334,18 +342,18 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 12510, "endOffset": 12514, "count": 0 }],
+      "ranges": [{ "startOffset": 12510, "endOffset": 12514, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "MappedData",
-      "ranges": [{ "startOffset": 12518, "endOffset": 12562, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 12518, "endOffset": 12562, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
-      "ranges": [{ "startOffset": 12572, "endOffset": 12623, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 12572, "endOffset": 12623, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getData",
@@ -369,18 +377,18 @@
     },
     {
       "functionName": "<instance_members_initializer>",
-      "ranges": [{ "startOffset": 13898, "endOffset": 13956, "count": 0 }],
+      "ranges": [{ "startOffset": 13898, "endOffset": 13956, "count": 4 }],
       "isBlockCoverage": true
     },
     {
       "functionName": "AnalysisResult",
-      "ranges": [{ "startOffset": 13960, "endOffset": 14182, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 13960, "endOffset": 14182, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "create",
-      "ranges": [{ "startOffset": 14192, "endOffset": 14344, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 14192, "endOffset": 14344, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getId",
@@ -389,8 +397,8 @@
     },
     {
       "functionName": "getDocument",
-      "ranges": [{ "startOffset": 14383, "endOffset": 14428, "count": 0 }],
-      "isBlockCoverage": false
+      "ranges": [{ "startOffset": 14383, "endOffset": 14428, "count": 4 }],
+      "isBlockCoverage": true
     },
     {
       "functionName": "getExtractedData",

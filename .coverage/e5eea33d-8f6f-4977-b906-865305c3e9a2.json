@@ -10,8 +10,8 @@
     {
       "functionName": "createDomainError",
       "ranges": [
-        { "startOffset": 287, "endOffset": 392, "count": 18 },
-        { "startOffset": 355, "endOffset": 387, "count": 14 }
+        { "startOffset": 287, "endOffset": 392, "count": 15 },
+        { "startOffset": 355, "endOffset": 387, "count": 12 }
       ],
       "isBlockCoverage": true
     },
@@ -23,7 +23,7 @@
     {
       "functionName": "getDefaultErrorMessage",
       "ranges": [
-        { "startOffset": 885, "endOffset": 5559, "count": 14 },
+        { "startOffset": 885, "endOffset": 5559, "count": 12 },
         { "startOffset": 947, "endOffset": 1051, "count": 0 },
         { "startOffset": 1056, "endOffset": 1164, "count": 0 },
         { "startOffset": 1169, "endOffset": 1280, "count": 0 },
@@ -52,12 +52,12 @@
         { "startOffset": 3837, "endOffset": 3941, "count": 0 },
         { "startOffset": 3946, "endOffset": 4031, "count": 0 },
         { "startOffset": 4036, "endOffset": 4164, "count": 0 },
-        { "startOffset": 4195, "endOffset": 4261, "count": 4 },
+        { "startOffset": 4195, "endOffset": 4261, "count": 3 },
         { "startOffset": 4266, "endOffset": 4365, "count": 0 },
         { "startOffset": 4370, "endOffset": 4446, "count": 0 },
         { "startOffset": 4451, "endOffset": 4562, "count": 2 },
         { "startOffset": 4555, "endOffset": 4559, "count": 0 },
-        { "startOffset": 4567, "endOffset": 4678, "count": 8 },
+        { "startOffset": 4567, "endOffset": 4678, "count": 7 },
         { "startOffset": 4671, "endOffset": 4675, "count": 0 },
         { "startOffset": 4683, "endOffset": 4751, "count": 0 },
         { "startOffset": 4787, "endOffset": 4920, "count": 0 },

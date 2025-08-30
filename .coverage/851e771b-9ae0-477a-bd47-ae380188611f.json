@@ -10,7 +10,7 @@
     {
       "functionName": "createDomainError",
       "ranges": [
-        { "startOffset": 287, "endOffset": 392, "count": 1 },
+        { "startOffset": 287, "endOffset": 392, "count": 10 },
         { "startOffset": 355, "endOffset": 387, "count": 0 }
       ],
       "isBlockCoverage": true
