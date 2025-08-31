@@ -134,9 +134,6 @@ export class TwoStageProcessingOrchestrator {
 
     try {
       // Stage 1: Process documents to commands
-      console.log(
-        `Starting Stage 1: Processing ${documents.length} documents...`,
-      );
       const stage1Result = await this.executeStage1(documents, config);
 
       if (stage1Result.kind !== "Success") {
@@ -144,14 +141,7 @@ export class TwoStageProcessingOrchestrator {
       }
 
       const { commands, failedDocuments } = stage1Result;
-      console.log(
-        `Stage 1 completed: ${commands.length} commands generated, ${failedDocuments.length} failures`,
-      );
-
       // Stage 2: Build registry from commands
-      console.log(
-        `Starting Stage 2: Building registry from ${commands.length} commands...`,
-      );
       const stage2Result = await this.executeStage2(commands, config);
 
       if (stage2Result.kind !== "Success") {
@@ -159,10 +149,6 @@ export class TwoStageProcessingOrchestrator {
       }
 
       const registry = stage2Result.registry;
-      console.log(
-        `Stage 2 completed: Registry with ${registry.availableConfigs.length} categories generated`,
-      );
-
       // Generate processing statistics
       const endTime = performance.now();
       const stats: ProcessingStats = {
@@ -181,7 +167,6 @@ export class TwoStageProcessingOrchestrator {
         stats,
       };
     } catch (error) {
-      console.error("Unexpected error in two-stage processing:", error);
       throw error; // Re-throw unexpected errors
     }
   }

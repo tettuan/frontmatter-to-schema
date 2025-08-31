@@ -121,7 +121,7 @@ async function runBuildRegistry() {
         isValid: boolean;
         commands: unknown[];
       }> {
-        // Return empty result for now - registry building disabled
+        // Return empty result for now
         return Promise.resolve({
           isValid: false,
           commands: [],
@@ -533,9 +533,6 @@ Examples:
         stage2: "Registry aggregation",
       });
 
-      // TODO: Implement full two-stage processing with adapters
-      // For now, fall back to ProcessDocumentsUseCase to maintain compatibility
-      // Future enhancement: Add adapter functions to convert interfaces
       logger.warn(
         "Two-stage processing not fully implemented yet, falling back to single-stage",
         {

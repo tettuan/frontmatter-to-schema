@@ -161,7 +161,7 @@ The schema matching logic appears to be:
 ### Current Processing Flow (Incorrect)
 
 1. Extract frontmatter → Gets data
-2. AI Analysis → Returns wrapped result
+2. Processing → Returns wrapped result
 3. Template application → Applies incorrectly
 4. Output → Wrong structure
 

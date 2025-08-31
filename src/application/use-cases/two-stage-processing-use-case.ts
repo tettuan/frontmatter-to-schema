@@ -329,7 +329,6 @@ export class TwoStageProcessingUseCase {
   ): Promise<Result<Command[], DomainError & { message: string }>> {
     const stage1Result = await this.executeStage1(documents, {
       ...config,
-      // Dummy values for stage 2 (not used)
       registrySchema: config.commandSchema,
       registryTemplate: config.commandTemplate,
     });
@@ -353,7 +352,6 @@ export class TwoStageProcessingUseCase {
   ): Promise<Result<Registry, DomainError & { message: string }>> {
     const stage2Result = await this.executeStage2(commands, {
       ...config,
-      // Dummy values for stage 1 (not used)
       commandSchema: config.registrySchema,
       commandTemplate: config.registryTemplate,
     });

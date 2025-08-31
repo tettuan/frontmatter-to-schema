@@ -132,8 +132,7 @@ export class RegistryBuilder {
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
     try {
       // Validate registry structure matches schema
-      const _schemaProps = {}; // TODO: implement schema property extraction
-      const requiredFields = ["version", "description", "tools"]; // TODO: extract from schema
+      const requiredFields = ["version", "description", "tools"];
 
       // Check required fields
       for (const requiredField of requiredFields) {

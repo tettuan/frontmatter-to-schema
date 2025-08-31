@@ -280,12 +280,6 @@ export interface AggregationCompletedEvent extends DomainEvent {
  * These discriminated union types are prepared for future migration from Result<T, E>
  * patterns to follow Totality principles. They will replace Result types gradually
  * to provide exhaustive result coverage without partial functions.
- *
- * TODO: Implement gradual migration strategy:
- * 1. Create adapter functions between Result and Operation types
- * 2. Update implementations to support both formats during transition
- * 3. Migrate consumers to use new discriminated unions
- * 4. Remove Result types from interfaces
  */
 
 /**
