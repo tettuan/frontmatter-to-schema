@@ -22,7 +22,3 @@ Deno.test("DocumentPath", async (t) => {
     assertEquals(path.getDirectory(), "/test/dir");
   });
 });
-
-// TODO: Fix these tests - API has changed significantly after refactoring
-// The types have been moved and their interfaces have changed
-// These tests need to be rewritten to match the new API

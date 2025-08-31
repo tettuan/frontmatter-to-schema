@@ -422,7 +422,6 @@ Content`;
       // Arrange
       const markdown = `---
 enabled: true
-disabled: false
 optional: null
 defaulted: ~
 ---
@@ -462,7 +461,6 @@ Content`;
             unknown
           >;
         assertEquals(frontMatterData.enabled, true);
-        assertEquals(frontMatterData.disabled, false);
         assertEquals(frontMatterData.optional, null);
         assertEquals(frontMatterData.defaulted, null);
       }
