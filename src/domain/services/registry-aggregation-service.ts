@@ -16,6 +16,7 @@ import { createDomainError } from "../core/result.ts";
 import type { FrontMatter } from "../models/entities.ts";
 import type { AnalysisResult } from "../models/entities.ts";
 import { DEFAULT_COMMAND_FIELDS } from "../constants/command-fields.ts";
+import { ResultHandlerService } from "./result-handler-service.ts";
 
 /**
  * Command data structure following Totality principles
@@ -127,27 +128,25 @@ export class Command {
       const rawData = frontMatter.toObject();
 
       if (!isCommandData(rawData)) {
-        return {
-          ok: false,
-          error: createDomainError({
+        return ResultHandlerService.createError(
+          createDomainError({
             kind: "InvalidFormat",
             input: JSON.stringify(rawData),
             expectedFormat:
               "CommandData structure with version, description, and tools",
           }, "FrontMatter must contain valid command data structure"),
-        };
+          {
+            operation: "fromFrontMatter",
+            component: "Command",
+          },
+        );
       }
 
       const config = rawData[DEFAULT_COMMAND_FIELDS.DOMAIN];
-
-      return {
-        ok: true,
-        data: new Command(rawData, config),
-      };
+      return { ok: true, data: new Command(rawData, config) };
     } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "ProcessingStageError",
           stage: "command creation",
           error: {
@@ -155,7 +154,11 @@ export class Command {
             input: String(error),
           },
         }, `Failed to create command from frontmatter: ${error}`),
-      };
+        {
+          operation: "fromFrontMatter",
+          component: "Command",
+        },
+      );
     }
   }
 
@@ -164,31 +167,34 @@ export class Command {
   ): Result<Command, DomainError> {
     try {
       if (!isCommandData(data)) {
-        return {
-          ok: false,
-          error: createDomainError({
+        return ResultHandlerService.createError(
+          createDomainError({
             kind: "InvalidFormat",
             input: JSON.stringify(data),
             expectedFormat:
               "CommandData structure with version, description, and tools",
           }, "Object must contain valid command data structure"),
-        };
+          {
+            operation: "fromObject",
+            component: "Command",
+          },
+        );
       }
 
       const config = data[DEFAULT_COMMAND_FIELDS.DOMAIN];
-      return {
-        ok: true,
-        data: new Command(data, config),
-      };
+      return { ok: true, data: new Command(data, config) };
     } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "InvalidFormat",
           input: JSON.stringify(data),
           expectedFormat: "valid CommandData object",
         }, `Failed to create command from object: ${error}`),
-      };
+        {
+          operation: "fromObject",
+          component: "Command",
+        },
+      );
     }
   }
 
@@ -222,23 +228,29 @@ export class RegistryData {
     configs: string[],
   ): Result<RegistryData, DomainError> {
     if (!version.trim()) {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "EmptyInput",
           field: "version",
         }, "Registry version cannot be empty"),
-      };
+        {
+          operation: "create",
+          component: "RegistryData",
+        },
+      );
     }
 
     if (!description.trim()) {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "EmptyInput",
           field: "description",
         }, "Registry description cannot be empty"),
-      };
+        {
+          operation: "create",
+          component: "RegistryData",
+        },
+      );
     }
 
     const tools: RegistryTools = {
@@ -246,10 +258,7 @@ export class RegistryData {
       commands: [...commands], // Defensive copy
     };
 
-    return {
-      ok: true,
-      data: new RegistryData(version, description, tools),
-    };
+    return { ok: true, data: new RegistryData(version, description, tools) };
   }
 
   getVersion(): string {
@@ -350,10 +359,11 @@ export class RegistryAggregationService {
             ? tools.availableConfigs.map(String)
             : [],
           commands: Array.isArray(tools.commands)
-            ? tools.commands.map((cmd) => {
-              const result = Command.fromObject(cmd as Record<string, unknown>);
-              return result.ok ? result.data : null;
-            }).filter(Boolean) as Command[]
+            ? this.extractSuccesses(
+              tools.commands.map((cmd) =>
+                Command.fromObject(cmd as Record<string, unknown>)
+              ),
+            )
             : [],
         },
       };
@@ -367,30 +377,22 @@ export class RegistryAggregationService {
       ("description" in firstObject &&
         ("title" in firstObject || "usage" in firstObject))
     ) {
-      const commands = unwrappedData
-        .map((item) => {
-          if (typeof item === "object" && item !== null) {
-            const result = Command.fromObject(item as Record<string, unknown>);
-            return result.ok ? result.data : null;
-          }
-          return null;
-        })
-        .filter(Boolean) as Command[];
+      const commands = this.extractSuccesses(
+        unwrappedData
+          .filter((item) => typeof item === "object" && item !== null)
+          .map((item) => Command.fromObject(item as Record<string, unknown>)),
+      );
 
       return { kind: "CommandList", commands };
     }
 
     // Check if items have description field (basic command structure)
     if ("description" in firstObject) {
-      const commands = unwrappedData
-        .map((item) => {
-          if (typeof item === "object" && item !== null) {
-            const result = Command.fromObject(item as Record<string, unknown>);
-            return result.ok ? result.data : null;
-          }
-          return null;
-        })
-        .filter(Boolean) as Command[];
+      const commands = this.extractSuccesses(
+        unwrappedData
+          .filter((item) => typeof item === "object" && item !== null)
+          .map((item) => Command.fromObject(item as Record<string, unknown>)),
+      );
 
       if (commands.length > 0) {
         return { kind: "CommandList", commands };
@@ -419,7 +421,12 @@ export class RegistryAggregationService {
       }
 
       const commandResult = Command.fromFrontMatter(frontMatterResult.data);
-      if (!commandResult.ok) {
+      if (
+        ResultHandlerService.isError(commandResult, {
+          operation: "aggregateFromResults",
+          component: "RegistryAggregationService",
+        })
+      ) {
         return commandResult;
       }
 
@@ -505,15 +512,22 @@ export class RegistryAggregationService {
             ) {
               // This is already command data from registry mode
               const commandResult = Command.fromObject(actualItemObj);
-              if (commandResult.ok) {
-                commands.push(commandResult.data);
-                // Extract domain value for availableConfigs
-                if (actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
-                  configSet.add(
-                    String(actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]),
-                  );
-                }
-              }
+              ResultHandlerService.onSuccess(
+                commandResult,
+                (command) => {
+                  commands.push(command);
+                  // Extract domain value for availableConfigs
+                  if (actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                    configSet.add(
+                      String(actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                    );
+                  }
+                },
+                {
+                  operation: "aggregateFromMappedData - registry mode",
+                  component: "RegistryAggregationService",
+                },
+              );
             } else {
               // Handle template-mapped structure extraction
               const extractedData = this
@@ -522,28 +536,42 @@ export class RegistryAggregationService {
                 );
               if (extractedData) {
                 const commandResult = Command.fromObject(extractedData);
-                if (commandResult.ok) {
-                  commands.push(commandResult.data);
-                  // Extract domain value for availableConfigs
-                  if (extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
-                    configSet.add(
-                      String(extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
-                    );
-                  }
-                }
+                ResultHandlerService.onSuccess(
+                  commandResult,
+                  (command) => {
+                    commands.push(command);
+                    // Extract domain value for availableConfigs
+                    if (extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                      configSet.add(
+                        String(extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                      );
+                    }
+                  },
+                  {
+                    operation: "aggregateFromMappedData - template mode",
+                    component: "RegistryAggregationService",
+                  },
+                );
               } else {
                 // Fallback to direct object conversion
                 const commandResult = Command.fromObject(actualItemObj);
-                if (commandResult.ok) {
-                  commands.push(commandResult.data);
-                  const commandData = commandResult.data.getData();
-                  // Extract domain value for availableConfigs
-                  if (commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
-                    configSet.add(
-                      String(commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
-                    );
-                  }
-                }
+                ResultHandlerService.onSuccess(
+                  commandResult,
+                  (command) => {
+                    commands.push(command);
+                    const commandData = command.getData();
+                    // Extract domain value for availableConfigs
+                    if (commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                      configSet.add(
+                        String(commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                      );
+                    }
+                  },
+                  {
+                    operation: "aggregateFromMappedData - fallback",
+                    component: "RegistryAggregationService",
+                  },
+                );
               }
             }
           }
@@ -570,6 +598,16 @@ export class RegistryAggregationService {
       .map((cmd) => cmd.getConfig()!)
       .filter((value, index, array) => array.indexOf(value) === index)
       .sort();
+  }
+
+  /**
+   * Helper to safely extract successes from aggregateResults
+   */
+  private extractSuccesses<T, E extends DomainError>(
+    results: Result<T, E>[],
+  ): T[] {
+    const aggregateResult = ResultHandlerService.aggregateResults(results);
+    return aggregateResult.ok ? aggregateResult.data.successes : [];
   }
 
   /**

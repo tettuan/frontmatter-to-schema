@@ -55,7 +55,7 @@ import {
   FileReader,
   FileWriter,
 } from "./infrastructure/filesystem/file-system.ts";
-import { FrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
+import { FrontMatterExtractor as SimpleFrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
 import { BuildRegistryUseCase } from "./application/use-cases/build-registry-use-case.ts";
 
 /**
@@ -111,7 +111,7 @@ async function runBuildRegistry() {
   try {
     const fileReader = new FileReader();
     const fileWriter = new FileWriter();
-    const extractor = new FrontMatterExtractor();
+    const extractor = new SimpleFrontMatterExtractor();
 
     // Create simple mock analyzer that matches the BuildRegistryUseCase interface
     const analyzer = {
