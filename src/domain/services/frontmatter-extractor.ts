@@ -7,6 +7,7 @@
 import { isObject } from "../shared/type-guards.ts";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { ResultHandlerService } from "./result-handler-service.ts";
 
 // Totality-compliant schema definition using discriminated unions
 type SchemaVersionRule = {
@@ -70,9 +71,8 @@ export class SchemaDefinition {
     rawSchema: unknown,
   ): Result<SchemaDefinition, DomainError & { message: string }> {
     if (!isObject(rawSchema)) {
-      return {
-        ok: false,
-        error: createDomainError(
+      return ResultHandlerService.createError(
+        createDomainError(
           {
             kind: "InvalidFormat",
             input: String(rawSchema),
@@ -80,7 +80,11 @@ export class SchemaDefinition {
           },
           "Schema must be an object",
         ),
-      };
+        {
+          operation: "create",
+          component: "SchemaDefinition",
+        },
+      );
     }
 
     let versionRule: SchemaVersionRule | undefined;
@@ -254,9 +258,8 @@ export function extractFrontmatterToSchema(
 
     return { ok: true, data: extractedData };
   } catch (error) {
-    return {
-      ok: false,
-      error: createDomainError(
+    return ResultHandlerService.createError(
+      createDomainError(
         {
           kind: "ProcessingStageError",
           stage: "frontmatter extraction",
@@ -268,7 +271,11 @@ export function extractFrontmatterToSchema(
         },
         `Frontmatter extraction failed: ${error}`,
       ),
-    };
+      {
+        operation: "extractFrontmatterToSchema",
+        component: "FrontmatterExtractor",
+      },
+    );
   }
 }
 
@@ -503,9 +510,8 @@ export function extractAccordingToSchema(
 
     return { ok: true, data: result };
   } catch (error) {
-    return {
-      ok: false,
-      error: createDomainError(
+    return ResultHandlerService.createError(
+      createDomainError(
         {
           kind: "ProcessingStageError",
           stage: "schema extraction",
@@ -517,7 +523,11 @@ export function extractAccordingToSchema(
         },
         `Schema extraction failed: ${error}`,
       ),
-    };
+      {
+        operation: "extractAccordingToSchema",
+        component: "FrontmatterExtractor",
+      },
+    );
   }
 }
 
