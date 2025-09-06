@@ -15,6 +15,7 @@ import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 import type { FrontMatter } from "../models/entities.ts";
 import type { AnalysisResult } from "../models/entities.ts";
+import { DEFAULT_COMMAND_FIELDS } from "../constants/command-fields.ts";
 
 /**
  * Command data structure following Totality principles
@@ -42,8 +43,11 @@ export function isCommandData(obj: unknown): obj is CommandData {
 
   const data = obj as Record<string, unknown>;
 
-  // c1 must be string if present
-  if (data.c1 !== undefined && typeof data.c1 !== "string") {
+  // domain field must be string if present
+  const domainField = DEFAULT_COMMAND_FIELDS.DOMAIN;
+  if (
+    data[domainField] !== undefined && typeof data[domainField] !== "string"
+  ) {
     return false;
   }
 
@@ -134,7 +138,7 @@ export class Command {
         };
       }
 
-      const config = rawData.c1;
+      const config = rawData[DEFAULT_COMMAND_FIELDS.DOMAIN];
 
       return {
         ok: true,
@@ -171,7 +175,7 @@ export class Command {
         };
       }
 
-      const config = data.c1;
+      const config = data[DEFAULT_COMMAND_FIELDS.DOMAIN];
       return {
         ok: true,
         data: new Command(data, config),
@@ -315,7 +319,9 @@ export class RegistryAggregationService {
           if (typeof innerData === "object" && innerData !== null) {
             const inner = innerData as Record<string, unknown>;
             if (
-              "c1" in inner || "c2" in inner || "c3" in inner ||
+              DEFAULT_COMMAND_FIELDS.DOMAIN in inner ||
+              DEFAULT_COMMAND_FIELDS.ACTION in inner ||
+              DEFAULT_COMMAND_FIELDS.TARGET in inner ||
               "description" in inner
             ) {
               return innerData;
@@ -353,9 +359,11 @@ export class RegistryAggregationService {
       };
     }
 
-    // Check for command list (has c1 field or looks like a command)
+    // Check for command list (has command fields or looks like a command)
     if (
-      "c1" in firstObject || "c2" in firstObject || "c3" in firstObject ||
+      DEFAULT_COMMAND_FIELDS.DOMAIN in firstObject ||
+      DEFAULT_COMMAND_FIELDS.ACTION in firstObject ||
+      DEFAULT_COMMAND_FIELDS.TARGET in firstObject ||
       ("description" in firstObject &&
         ("title" in firstObject || "usage" in firstObject))
     ) {
@@ -417,10 +425,10 @@ export class RegistryAggregationService {
 
       commands.push(commandResult.data);
 
-      // Extract c1 value for availableConfigs
+      // Extract domain value for availableConfigs
       const commandData = commandResult.data.getData();
-      if (commandData.c1) {
-        configSet.add(String(commandData.c1));
+      if (commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+        configSet.add(String(commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]));
       }
     }
 
@@ -455,9 +463,9 @@ export class RegistryAggregationService {
         const configSet = new Set<string>();
         for (const cmd of structure.commands) {
           const commandData = cmd.getData();
-          // Extract c1 value for availableConfigs
-          if (commandData.c1) {
-            configSet.add(String(commandData.c1));
+          // Extract domain value for availableConfigs
+          if (commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+            configSet.add(String(commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]));
           }
         }
         const configs = Array.from(configSet).sort();
@@ -488,16 +496,22 @@ export class RegistryAggregationService {
           if (typeof actualItem === "object" && actualItem !== null) {
             const actualItemObj = actualItem as Record<string, unknown>;
 
-            // For registry mode, the data is already the command data (c1, c2, c3, etc)
+            // For registry mode, the data is already the command data (domain, action, target, etc)
             // Check if this is already command data
-            if (actualItemObj.c1 || actualItemObj.c2 || actualItemObj.c3) {
+            if (
+              actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN] ||
+              actualItemObj[DEFAULT_COMMAND_FIELDS.ACTION] ||
+              actualItemObj[DEFAULT_COMMAND_FIELDS.TARGET]
+            ) {
               // This is already command data from registry mode
               const commandResult = Command.fromObject(actualItemObj);
               if (commandResult.ok) {
                 commands.push(commandResult.data);
-                // Extract c1 value for availableConfigs
-                if (actualItemObj.c1) {
-                  configSet.add(String(actualItemObj.c1));
+                // Extract domain value for availableConfigs
+                if (actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                  configSet.add(
+                    String(actualItemObj[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                  );
                 }
               }
             } else {
@@ -510,9 +524,11 @@ export class RegistryAggregationService {
                 const commandResult = Command.fromObject(extractedData);
                 if (commandResult.ok) {
                   commands.push(commandResult.data);
-                  // Extract c1 value for availableConfigs
-                  if (extractedData.c1) {
-                    configSet.add(String(extractedData.c1));
+                  // Extract domain value for availableConfigs
+                  if (extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                    configSet.add(
+                      String(extractedData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                    );
                   }
                 }
               } else {
@@ -521,9 +537,11 @@ export class RegistryAggregationService {
                 if (commandResult.ok) {
                   commands.push(commandResult.data);
                   const commandData = commandResult.data.getData();
-                  // Extract c1 value for availableConfigs
-                  if (commandData.c1) {
-                    configSet.add(String(commandData.c1));
+                  // Extract domain value for availableConfigs
+                  if (commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]) {
+                    configSet.add(
+                      String(commandData[DEFAULT_COMMAND_FIELDS.DOMAIN]),
+                    );
                   }
                 }
               }
@@ -585,10 +603,13 @@ export class RegistryAggregationService {
       }
     }
 
-    // Check if the item itself has command-like structure (c1, c2, c3, etc)
+    // Check if the item itself has command-like structure (domain, action, target, etc)
     if (
       typeof item === "object" && item !== null &&
-      (item.c1 || item.c2 || item.c3 || item.description)
+      (item[DEFAULT_COMMAND_FIELDS.DOMAIN] ||
+        item[DEFAULT_COMMAND_FIELDS.ACTION] ||
+        item[DEFAULT_COMMAND_FIELDS.TARGET] ||
+        item.description)
     ) {
       return item;
     }

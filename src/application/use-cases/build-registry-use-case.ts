@@ -18,6 +18,7 @@ import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import { DEFAULT_VALUES, SCHEMA_IDS } from "../../domain/constants/index.ts";
 import { getSchemaConfigLoader } from "../../domain/config/schema-config-loader.ts";
+import { COMMAND_FIELD_METADATA } from "../../domain/constants/command-fields.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -218,19 +219,26 @@ export class BuildRegistryUseCase {
       };
     }
 
-    // Load schema definition from external config file
-    const schemaLoader = getSchemaConfigLoader();
-    const schemaResult = await schemaLoader.loadCliRegistrySchema();
-    if (!schemaResult.ok) {
-      return {
-        ok: false,
-        error: createDomainError(
-          schemaResult.error,
-          "Failed to load CLI registry schema",
-        ),
+    // Define the expected structure for CLI prompt frontmatter using constants
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+
+    // Build properties from field metadata
+    for (const [field, metadata] of Object.entries(COMMAND_FIELD_METADATA)) {
+      properties[field] = {
+        type: metadata.type,
+        description: metadata.description,
       };
+      if (metadata.required) {
+        required.push(field);
+      }
     }
-    const cliSchemaDefinition = schemaResult.data;
+
+    const cliSchemaDefinition = {
+      type: "object",
+      properties,
+      required,
+    };
 
     const schemaDefinition = SchemaDefinition.create(
       cliSchemaDefinition,
