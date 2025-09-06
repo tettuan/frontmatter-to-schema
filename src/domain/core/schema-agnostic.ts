@@ -72,7 +72,6 @@ export interface TransformerMetadata {
   readonly outputType?: string;
 }
 
-
 /**
  * File discovery that doesn't know about schemas
  * Purely discovers files based on patterns
@@ -188,7 +187,6 @@ export class PureDataProcessor implements PureProcessingEngine {
     return this.execute(result1.data, transformers[1]);
   }
 }
-
 
 /**
  * Schema-agnostic file discovery implementation

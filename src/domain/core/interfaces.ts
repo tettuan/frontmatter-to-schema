@@ -4,7 +4,6 @@
 
 import type { AnalysisContext, AnalysisResult } from "./types.ts";
 
-
 /**
  * Generic analysis strategy interface
  */

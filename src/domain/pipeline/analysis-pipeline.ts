@@ -143,7 +143,7 @@ export class AnalysisPipeline<TOutput = unknown> {
       };
 
     // Execute strategies in sequence
-    let data: unknown = frontMatter.toJSON();
+    let data: unknown = frontMatter;
 
     for (const strategyName of this.config.processing.strategies) {
       const strategy = this.strategies.get(strategyName);
