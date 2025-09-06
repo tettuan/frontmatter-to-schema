@@ -3,22 +3,6 @@
  */
 
 import type { AnalysisContext, AnalysisResult } from "./types.ts";
-import type { FrontMatterContent } from "../models/value-objects.ts";
-
-/**
- * Interface for frontmatter extraction
- */
-export interface FrontMatterExtractor {
-  /**
-   * Extracts frontmatter from markdown content
-   */
-  extract(content: string): Promise<FrontMatterContent | null>;
-
-  /**
-   * Checks if content has frontmatter
-   */
-  hasFrontMatter(content: string): boolean;
-}
 
 /**
  * Generic analysis strategy interface
