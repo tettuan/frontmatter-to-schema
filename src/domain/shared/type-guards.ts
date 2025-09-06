@@ -7,6 +7,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { ResultHandlerService } from "../services/result-handler-service.ts";
 
 /**
  * Checks if a value is a non-null object
@@ -22,22 +23,23 @@ export function asObjectRecord(
   value: unknown,
   context?: string,
 ): Result<Record<string, unknown>, DomainError> {
-  if (!isObject(value)) {
-    return {
-      ok: false,
-      error: createDomainError(
-        {
-          kind: "InvalidFormat",
-          input: typeof value,
-          expectedFormat: "object",
-        },
-        `Expected object but got ${typeof value}${
-          context ? ` in ${context}` : ""
-        }`,
-      ),
-    };
+  if (isObject(value)) {
+    return { ok: true, data: value };
   }
-  return { ok: true, data: value };
+
+  return {
+    ok: false,
+    error: createDomainError(
+      {
+        kind: "InvalidFormat",
+        input: typeof value,
+        expectedFormat: "object",
+      },
+      `Expected object but got ${typeof value}${
+        context ? ` in ${context}` : ""
+      }`,
+    ),
+  };
 }
 
 /**
@@ -48,20 +50,21 @@ export function getObjectProperty(
   key: string,
   context?: string,
 ): Result<unknown, DomainError> {
-  if (!(key in obj)) {
-    return {
-      ok: false,
-      error: createDomainError(
-        {
-          kind: "NotFound",
-          resource: "property",
-          name: key,
-        },
-        `Property '${key}' not found${context ? ` in ${context}` : ""}`,
-      ),
-    };
+  if (key in obj) {
+    return { ok: true, data: obj[key] };
   }
-  return { ok: true, data: obj[key] };
+
+  return {
+    ok: false,
+    error: createDomainError(
+      {
+        kind: "NotFound",
+        resource: "property",
+        name: key,
+      },
+      `Property '${key}' not found${context ? ` in ${context}` : ""}`,
+    ),
+  };
 }
 
 /**
@@ -72,12 +75,15 @@ export function getObjectPropertyAsObject(
   key: string,
   context?: string,
 ): Result<Record<string, unknown>, DomainError> {
-  const propertyResult = getObjectProperty(obj, key, context);
-  if (!propertyResult.ok) {
-    return propertyResult;
-  }
-
-  return asObjectRecord(propertyResult.data, `${context || "object"}.${key}`);
+  return ResultHandlerService.flatMap(
+    getObjectProperty(obj, key, context),
+    (propertyValue) =>
+      asObjectRecord(propertyValue, `${context || "object"}.${key}`),
+    {
+      operation: "getObjectPropertyAsObject",
+      component: "TypeGuards",
+    },
+  );
 }
 
 /**
