@@ -132,7 +132,7 @@ export class RegistryBuilder {
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
     try {
       // Validate registry structure matches schema
-      const schemaProps = schema.getProperties();
+      const _schemaProps = schema.getProperties();
       const requiredFields = schema.getRequiredFields();
 
       // Check required fields

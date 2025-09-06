@@ -575,11 +575,11 @@ export class CommandProcessor {
    */
   private analyzeWithSchema(
     frontmatter: Record<string, unknown>,
-    _schema: Schema,
+    schema: Schema,
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
     try {
       // Extract fields matching the command schema
-      const schemaProps = this.commandSchema.getProperties();
+      const schemaProps = schema.getProperties();
       const analyzedData: Record<string, unknown> = {};
 
       for (const [key, _definition] of Object.entries(schemaProps)) {
@@ -589,7 +589,7 @@ export class CommandProcessor {
       }
 
       // Validate required fields
-      const requiredFields = this.commandSchema.getRequiredFields();
+      const requiredFields = schema.getRequiredFields();
       for (const requiredField of requiredFields) {
         if (!(requiredField in analyzedData)) {
           return {
