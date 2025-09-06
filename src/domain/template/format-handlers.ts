@@ -7,6 +7,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { ResultHandlerService } from "../services/result-handler-service.ts";
 
 /**
  * Common interface for template format handling
@@ -45,14 +46,14 @@ export class TemplateFormat {
     format: string,
   ): Result<TemplateFormat, DomainError & { message: string }> {
     const validFormats = ["json", "yaml", "yml", "handlebars", "custom"];
+    const normalizedFormat = format.toLowerCase();
 
-    if (validFormats.includes(format.toLowerCase())) {
-      return { ok: true, data: new TemplateFormat(format.toLowerCase()) };
+    if (validFormats.includes(normalizedFormat)) {
+      return { ok: true, data: new TemplateFormat(normalizedFormat) };
     }
 
-    return {
-      ok: false,
-      error: createDomainError(
+    return ResultHandlerService.createError(
+      createDomainError(
         {
           kind: "InvalidFormat",
           input: format,
@@ -62,7 +63,11 @@ export class TemplateFormat {
           validFormats.join(", ")
         }`,
       ),
-    };
+      {
+        operation: "create",
+        component: "TemplateFormat",
+      },
+    );
   }
 
   getValue(): string {
@@ -84,54 +89,77 @@ export class JSONTemplateHandler implements TemplateFormatHandler {
   }
 
   parse(content: string): Result<unknown, DomainError & { message: string }> {
+    // Validate content is not empty
     if (!content || content.trim() === "") {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "EmptyInput",
         }, "JSON template content cannot be empty"),
-      };
+        {
+          operation: "parse",
+          component: "JSONTemplateHandler",
+        },
+      );
     }
 
-    try {
-      const parsed = JSON.parse(content);
-      return { ok: true, data: parsed };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "ParseError",
-            input: content,
-            details: error instanceof Error ? error.message : String(error),
-          },
-          `Failed to parse JSON template: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    // Use flatMap to chain the JSON parsing operation
+    return ResultHandlerService.flatMap(
+      { ok: true, data: content },
+      (validContent) => {
+        try {
+          const parsed = JSON.parse(validContent);
+          return { ok: true, data: parsed };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "ParseError",
+                input: content,
+                details: error instanceof Error ? error.message : String(error),
+              },
+              `Failed to parse JSON template: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "parse",
+        component: "JSONTemplateHandler",
+      },
+    );
   }
 
   serialize(data: unknown): Result<string, DomainError & { message: string }> {
-    try {
-      const serialized = JSON.stringify(data, null, 2);
-      return { ok: true, data: serialized };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "InvalidFormat",
-            input: String(data),
-            expectedFormat: "serializable object",
-          },
-          `Failed to serialize data to JSON: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    return ResultHandlerService.flatMap(
+      { ok: true, data: data },
+      (inputData) => {
+        try {
+          const serialized = JSON.stringify(inputData, null, 2);
+          return { ok: true, data: serialized };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: String(inputData),
+                expectedFormat: "serializable object",
+              },
+              `Failed to serialize data to JSON: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "serialize",
+        component: "JSONTemplateHandler",
+      },
+    );
   }
 
   getFormatName(): string {
@@ -152,53 +180,74 @@ export class YAMLTemplateHandler implements TemplateFormatHandler {
 
   parse(content: string): Result<unknown, DomainError & { message: string }> {
     if (!content || content.trim() === "") {
-      return {
-        ok: false,
-        error: createDomainError({
+      return ResultHandlerService.createError(
+        createDomainError({
           kind: "EmptyInput",
         }, "YAML template content cannot be empty"),
-      };
+        {
+          operation: "parse",
+          component: "YAMLTemplateHandler",
+        },
+      );
     }
 
-    try {
-      const result = this.parseYAMLContent(content);
-      return { ok: true, data: result };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "ParseError",
-            input: content,
-            details: error instanceof Error ? error.message : String(error),
-          },
-          `Failed to parse YAML template: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    return ResultHandlerService.flatMap(
+      { ok: true, data: content },
+      (validContent) => {
+        try {
+          const result = this.parseYAMLContent(validContent);
+          return { ok: true, data: result };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "ParseError",
+                input: content,
+                details: error instanceof Error ? error.message : String(error),
+              },
+              `Failed to parse YAML template: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "parse",
+        component: "YAMLTemplateHandler",
+      },
+    );
   }
 
   serialize(data: unknown): Result<string, DomainError & { message: string }> {
-    try {
-      const yaml = this.dataToYaml(data, 0);
-      return { ok: true, data: yaml };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "InvalidFormat",
-            input: String(data),
-            expectedFormat: "serializable data",
-          },
-          `Failed to serialize data to YAML: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    return ResultHandlerService.flatMap(
+      { ok: true, data: data },
+      (inputData) => {
+        try {
+          const yaml = this.dataToYaml(inputData, 0);
+          return { ok: true, data: yaml };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: String(inputData),
+                expectedFormat: "serializable data",
+              },
+              `Failed to serialize data to YAML: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "serialize",
+        component: "YAMLTemplateHandler",
+      },
+    );
   }
 
   getFormatName(): string {
@@ -347,26 +396,35 @@ export class HandlebarsTemplateHandler implements TemplateFormatHandler {
 
   serialize(data: unknown): Result<string, DomainError & { message: string }> {
     // For now, convert to JSON string representation
-    try {
-      const serialized = typeof data === "string"
-        ? data
-        : JSON.stringify(data, null, 2);
-      return { ok: true, data: serialized };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "InvalidFormat",
-            input: String(data),
-            expectedFormat: "serializable data",
-          },
-          `Failed to serialize handlebars template: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    return ResultHandlerService.flatMap(
+      { ok: true, data: data },
+      (inputData) => {
+        try {
+          const serialized = typeof inputData === "string"
+            ? inputData
+            : JSON.stringify(inputData, null, 2);
+          return { ok: true, data: serialized };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: String(inputData),
+                expectedFormat: "serializable data",
+              },
+              `Failed to serialize handlebars template: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "serialize",
+        component: "HandlebarsTemplateHandler",
+      },
+    );
   }
 
   getFormatName(): string {
@@ -390,24 +448,35 @@ export class CustomTemplateHandler implements TemplateFormatHandler {
 
   serialize(data: unknown): Result<string, DomainError & { message: string }> {
     // Custom format returns the processed string as-is
-    try {
-      const serialized = typeof data === "string" ? data : String(data);
-      return { ok: true, data: serialized };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "InvalidFormat",
-            input: String(data),
-            expectedFormat: "convertible to string",
-          },
-          `Failed to serialize custom template: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        ),
-      };
-    }
+    return ResultHandlerService.flatMap(
+      { ok: true, data: data },
+      (inputData) => {
+        try {
+          const serialized = typeof inputData === "string"
+            ? inputData
+            : String(inputData);
+          return { ok: true, data: serialized };
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "InvalidFormat",
+                input: String(inputData),
+                expectedFormat: "convertible to string",
+              },
+              `Failed to serialize custom template: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
+      },
+      {
+        operation: "serialize",
+        component: "CustomTemplateHandler",
+      },
+    );
   }
 
   getFormatName(): string {
@@ -441,9 +510,8 @@ export class TemplateFormatHandlerFactory {
       return { ok: true, data: handler };
     }
 
-    return {
-      ok: false,
-      error: createDomainError(
+    return ResultHandlerService.createError(
+      createDomainError(
         {
           kind: "NotFound",
           resource: "template format handler",
@@ -453,7 +521,11 @@ export class TemplateFormatHandlerFactory {
           this.handlers.map((h) => h.getFormatName()).join(", ")
         }`,
       ),
-    };
+      {
+        operation: "getHandler",
+        component: "TemplateFormatHandlerFactory",
+      },
+    );
   }
 
   /**

@@ -79,13 +79,7 @@ export class SchemaValidator {
     }
 
     // For now, we'll do basic type checking
-    const result = this.validateObject(data, schemaDefinition);
-
-    if (!result.ok) {
-      return result;
-    }
-
-    return { ok: true, data: result.data };
+    return this.validateObject(data, schemaDefinition);
   }
 
   private validateObject(
