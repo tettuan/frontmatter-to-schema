@@ -579,17 +579,17 @@ export class CommandProcessor {
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
     try {
       // Extract fields matching the command schema
-      const _schemaProps = {}; // TODO: implement schema property extraction
+      const schemaProps = this.commandSchema.getProperties();
       const analyzedData: Record<string, unknown> = {};
 
-      for (const [key, _definition] of Object.entries(_schemaProps)) {
+      for (const [key, _definition] of Object.entries(schemaProps)) {
         if (key in frontmatter) {
           analyzedData[key] = frontmatter[key];
         }
       }
 
       // Validate required fields
-      const requiredFields = ["c1", "c2", "c3", "description", "usage"]; // TODO: extract from schema
+      const requiredFields = this.commandSchema.getRequiredFields();
       for (const requiredField of requiredFields) {
         if (!(requiredField in analyzedData)) {
           return {
