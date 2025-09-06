@@ -3,10 +3,7 @@
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import type {
-  MappingRule,
-  TemplateFormat,
-} from "./value-objects.ts";
+import type { MappingRule, TemplateFormat } from "./value-objects.ts";
 import { StrictStructureMatcher } from "./strict-structure-matcher.ts";
 import { PropertyPath, PropertyPathNavigator } from "./property-path.ts";
 

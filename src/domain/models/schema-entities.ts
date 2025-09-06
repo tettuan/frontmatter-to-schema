@@ -2,10 +2,7 @@
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
-import type {
-  SchemaDefinition,
-  SchemaVersion,
-} from "./value-objects.ts";
+import type { SchemaDefinition, SchemaVersion } from "./value-objects.ts";
 
 // Validation metadata interface
 export interface ValidationMetadata {

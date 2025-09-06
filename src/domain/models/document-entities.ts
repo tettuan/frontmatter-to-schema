@@ -2,7 +2,6 @@
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
-import { createDomainError } from "../core/result.ts";
 import type {
   DocumentContent,
   DocumentPath,
@@ -21,13 +20,6 @@ export type FrontMatterInput = {
 } | {
   kind: "NotPresent";
 };
-
-// Document validation metadata interface (different from schema ValidationMetadata)
-export interface DocumentValidationMetadata {
-  validated: boolean;
-  validatedAt: Date;
-  errors?: string[];
-}
 
 // DocumentId value object
 export class DocumentId {
@@ -65,51 +57,24 @@ export class DocumentId {
 
 // Document entity
 export class Document {
-  private readonly frontMatterState: DocumentFrontMatterState;
-  private readonly metadata: DocumentValidationMetadata;
-
-  private constructor(
+  constructor(
     private readonly id: DocumentId,
     private readonly path: DocumentPath,
+    private readonly frontMatterState: DocumentFrontMatterState,
     private readonly content: DocumentContent,
-    frontMatterInput: FrontMatterInput,
-    metadata?: Partial<DocumentValidationMetadata>,
-  ) {
-    this.frontMatterState = frontMatterInput.kind === "Present"
-      ? {
-        kind: "WithFrontMatter" as const,
-        frontMatter: frontMatterInput.frontMatter,
-      }
-      : { kind: "NoFrontMatter" as const };
-
-    this.metadata = {
-      validated: metadata?.validated ?? false,
-      validatedAt: metadata?.validatedAt ?? new Date(),
-      errors: metadata?.errors,
-    };
-
-    Object.freeze(this.frontMatterState);
-    Object.freeze(this.metadata);
-    Object.freeze(this);
-  }
+  ) {}
 
   static create(
-    id: DocumentId,
     path: DocumentPath,
+    frontMatterState: DocumentFrontMatterState,
     content: DocumentContent,
-    frontMatterInput: FrontMatterInput = { kind: "NotPresent" },
   ): Document {
-    return new Document(id, path, content, frontMatterInput);
-  }
-
-  static createWithValidation(
-    id: DocumentId,
-    path: DocumentPath,
-    content: DocumentContent,
-    frontMatterInput: FrontMatterInput = { kind: "NotPresent" },
-    metadata?: Partial<DocumentValidationMetadata>,
-  ): Document {
-    return new Document(id, path, content, frontMatterInput, metadata);
+    return new Document(
+      DocumentId.fromPath(path),
+      path,
+      frontMatterState,
+      content,
+    );
   }
 
   // Totality-compliant method using discriminated union input
@@ -118,8 +83,16 @@ export class Document {
     frontMatterInput: FrontMatterInput,
     content: DocumentContent,
   ): Document {
-    const id = DocumentId.fromPath(path);
-    return new Document(id, path, content, frontMatterInput);
+    const frontMatterState: DocumentFrontMatterState =
+      frontMatterInput.kind === "Present"
+        ? { kind: "WithFrontMatter", frontMatter: frontMatterInput.frontMatter }
+        : { kind: "NoFrontMatter" };
+    return new Document(
+      DocumentId.fromPath(path),
+      path,
+      frontMatterState,
+      content,
+    );
   }
 
   // Convenience method for backward compatibility during migration
@@ -149,20 +122,6 @@ export class Document {
 
   getFrontMatterState(): DocumentFrontMatterState {
     return this.frontMatterState;
-  }
-
-  getMetadata(): DocumentValidationMetadata {
-    return this.metadata;
-  }
-
-  hasFrontMatter(): boolean {
-    return this.frontMatterState.kind === "WithFrontMatter";
-  }
-
-  getFrontMatter(): FrontMatter | null {
-    return this.frontMatterState.kind === "WithFrontMatter"
-      ? this.frontMatterState.frontMatter
-      : null;
   }
 
   /**
@@ -195,14 +154,8 @@ export class Document {
     }
   }
 
-  withFrontMatter(frontMatter: FrontMatter): Document {
-    return new Document(
-      this.id,
-      this.path,
-      this.content,
-      { kind: "Present", frontMatter },
-      this.metadata,
-    );
+  hasFrontMatter(): boolean {
+    return this.frontMatterState.kind === "WithFrontMatter";
   }
 }
 

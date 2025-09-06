@@ -4,39 +4,28 @@
 export type {
   DocumentFrontMatterState,
   FrontMatterInput,
-  DocumentValidationMetadata,
 } from "../document-entities.ts";
-export {
-  DocumentId,
-  Document,
-  FrontMatter,
-} from "../document-entities.ts";
+export { Document, DocumentId, FrontMatter } from "../document-entities.ts";
 
 // Schema-related exports
 export type { ValidatedData, ValidationMetadata } from "../schema-entities.ts";
-export {
-  SchemaId,
-  Schema,
-} from "../schema-entities.ts";
+export { Schema, SchemaId } from "../schema-entities.ts";
 
 // Template-related exports
 export type {
   PathResolutionResult,
-  TemplateParsingResult,
   TemplateApplicationMode,
+  TemplateParsingResult,
 } from "../template-entities.ts";
-export {
-  TemplateId,
-  Template,
-} from "../template-entities.ts";
+export { Template, TemplateId } from "../template-entities.ts";
 
 // Analysis-related exports
 export {
+  AggregatedResult,
   AnalysisId,
+  AnalysisResult,
   ExtractedData,
   MappedData,
-  AnalysisResult,
-  AggregatedResult,
 } from "../analysis-entities.ts";
 
 // Re-export value objects needed by infrastructure
