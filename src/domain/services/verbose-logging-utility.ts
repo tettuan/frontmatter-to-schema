@@ -1,6 +1,6 @@
 /**
  * Verbose Logging Utility Service
- * 
+ *
  * Consolidates repeated verbose logging patterns to reduce code duplication
  * Following AI Complexity Control Framework - eliminates logging entropy
  */
@@ -27,7 +27,11 @@ export class VerboseLoggingUtility {
   /**
    * Log info message if in verbose mode, with consistent context
    */
-  static logInfo(serviceName: string, message: string, context?: Record<string, unknown>): void {
+  static logInfo(
+    serviceName: string,
+    message: string,
+    context?: Record<string, unknown>,
+  ): void {
     if (this.getVerboseMode()) {
       const logger = LoggerFactory.createLogger(serviceName);
       logger.info(message, context || {});
@@ -37,7 +41,11 @@ export class VerboseLoggingUtility {
   /**
    * Log debug message if in verbose mode, with consistent context
    */
-  static logDebug(serviceName: string, message: string, context?: Record<string, unknown>): void {
+  static logDebug(
+    serviceName: string,
+    message: string,
+    context?: Record<string, unknown>,
+  ): void {
     if (this.getVerboseMode()) {
       const logger = LoggerFactory.createLogger(serviceName);
       logger.debug(message, context || {});
@@ -47,7 +55,11 @@ export class VerboseLoggingUtility {
   /**
    * Log warning message if in verbose mode, with consistent context
    */
-  static logWarn(serviceName: string, message: string, context?: Record<string, unknown>): void {
+  static logWarn(
+    serviceName: string,
+    message: string,
+    context?: Record<string, unknown>,
+  ): void {
     if (this.getVerboseMode()) {
       const logger = LoggerFactory.createLogger(serviceName);
       logger.warn(message, context || {});

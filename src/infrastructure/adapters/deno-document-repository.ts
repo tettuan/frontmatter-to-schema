@@ -4,7 +4,7 @@ import { walk } from "jsr:@std/fs@1.0.8/walk";
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-// Removed unused imports: createError, IOError  
+// Removed unused imports: createError, IOError
 import { VerboseLoggingUtility } from "../../domain/services/verbose-logging-utility.ts";
 import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
