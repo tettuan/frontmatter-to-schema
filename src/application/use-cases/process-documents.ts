@@ -7,6 +7,7 @@ import {
   isOk,
   type Result,
 } from "../../domain/core/result.ts";
+import { getEnvironmentConfig } from "../../domain/config/environment-config.ts";
 import {
   AnalysisResult,
   type Document,
@@ -56,7 +57,8 @@ export class ProcessDocumentsUseCase {
     Result<ProcessDocumentsUseCaseOutput, DomainError & { message: string }>
   > {
     const { config } = input;
-    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+    const envConfig = getEnvironmentConfig();
+    const verboseMode = envConfig.getVerboseMode();
 
     // Verbose: Pipeline start
     if (verboseMode) {
@@ -420,7 +422,8 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ): Promise<Result<AnalysisResult, DomainError & { message: string }>> {
-    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+    const envConfig = getEnvironmentConfig();
+    const verboseMode = envConfig.getVerboseMode();
     const docPath = document.getPath().getValue();
 
     // Processing document

@@ -10,516 +10,458 @@ import { stub } from "jsr:@std/testing/mock";
 import type { Logger } from "../../../../src/domain/shared/logger.ts";
 import { VerboseLogger } from "../../../../src/domain/shared/verbose-logger.ts";
 import { StructuredLogger } from "../../../../src/domain/shared/logger.ts";
+import { getEnvironmentConfig } from "../../../../src/domain/config/environment-config.ts";
 
 // Mock logger that captures calls for testing
 class MockLogger implements Logger {
-  public calls: Array<{
-    method: "info" | "warn" | "error" | "debug";
-    message: string;
-    data?: Record<string, unknown>;
-  }> = [];
+  logs: Array<{ level: string; message: string; data?: unknown }> = [];
 
-  info(message: string, data?: Record<string, unknown>): void {
-    this.calls.push({ method: "info", message, data });
+  info(message: string, data?: unknown): void {
+    this.logs.push({ level: "info", message, data });
   }
 
-  warn(message: string, data?: Record<string, unknown>): void {
-    this.calls.push({ method: "warn", message, data });
+  warn(message: string, data?: unknown): void {
+    this.logs.push({ level: "warn", message, data });
   }
 
-  error(message: string, data?: Record<string, unknown>): void {
-    this.calls.push({ method: "error", message, data });
+  error(message: string, data?: unknown): void {
+    this.logs.push({ level: "error", message, data });
   }
 
-  debug(message: string, data?: Record<string, unknown>): void {
-    this.calls.push({ method: "debug", message, data });
+  debug(message: string, data?: unknown): void {
+    this.logs.push({ level: "debug", message, data });
   }
 
-  reset(): void {
-    this.calls = [];
+  fatal(message: string, data?: unknown): void {
+    this.logs.push({ level: "fatal", message, data });
   }
 
-  getLastCall(method: "info" | "warn" | "error" | "debug") {
-    return this.calls.filter((call) => call.method === method).pop();
+  trace(message: string, data?: unknown): void {
+    this.logs.push({ level: "trace", message, data });
+  }
+
+  clear(): void {
+    this.logs = [];
   }
 }
 
-Deno.test("VerboseLogger - constructor detects verbose mode from environment", () => {
-  // Save original environment
+// Helper function to setup environment and clear cache
+function setupEnvironment(value?: string): () => void {
   const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const envConfig = getEnvironmentConfig();
+  envConfig.clearCache();
 
-  try {
-    // Test verbose mode enabled
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const verboseLogger = new VerboseLogger("test-service");
-    assertEquals(verboseLogger.enabled, true);
-
-    // Test verbose mode disabled (explicit false)
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "false");
-    const nonVerboseLogger = new VerboseLogger("test-service");
-    assertEquals(nonVerboseLogger.enabled, false);
-
-    // Test verbose mode disabled (unset)
+  if (value !== undefined) {
+    Deno.env.set("FRONTMATTER_VERBOSE_MODE", value);
+  } else {
     Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    const defaultLogger = new VerboseLogger("test-service");
-    assertEquals(defaultLogger.enabled, false);
+  }
+  envConfig.clearCache();
 
-    // Test verbose mode disabled (other value)
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "yes");
-    const otherValueLogger = new VerboseLogger("test-service");
-    assertEquals(otherValueLogger.enabled, false);
-  } finally {
-    // Restore original environment
+  // Return cleanup function
+  return () => {
     if (originalVerbose !== undefined) {
       Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
     } else {
       Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
     }
+    envConfig.clearCache();
+  };
+}
+
+Deno.test("VerboseLogger - constructor detects verbose mode from environment", () => {
+  // Test verbose mode enabled
+  let cleanup = setupEnvironment("true");
+  try {
+    const verboseLogger = new VerboseLogger("test-service");
+    assertEquals(verboseLogger.enabled, true);
+  } finally {
+    cleanup();
+  }
+
+  // Test verbose mode disabled (explicit false)
+  cleanup = setupEnvironment("false");
+  try {
+    const nonVerboseLogger = new VerboseLogger("test-service");
+    assertEquals(nonVerboseLogger.enabled, false);
+  } finally {
+    cleanup();
+  }
+
+  // Test verbose mode disabled (unset)
+  cleanup = setupEnvironment();
+  try {
+    const defaultLogger = new VerboseLogger("test-service");
+    assertEquals(defaultLogger.enabled, false);
+  } finally {
+    cleanup();
+  }
+
+  // Test verbose mode disabled (other value)
+  cleanup = setupEnvironment("yes");
+  try {
+    const otherValueLogger = new VerboseLogger("test-service");
+    assertEquals(otherValueLogger.enabled, false);
+  } finally {
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - info method logs when verbose mode enabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
+  // Create a mock logger and stub getServiceLogger
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    // Mock StructuredLogger.getServiceLogger
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
-
-    // Test with verbose mode enabled
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("test-service");
-
-    // Test info without data
-    logger.info("Test info message");
-    const infoCall = mockLogger.getLastCall("info");
-    assertEquals(infoCall?.message, "Test info message");
-    assertEquals(infoCall?.data, undefined);
-
-    // Reset mock
-    mockLogger.reset();
-
-    // Test info with data
+    const verboseLogger = new VerboseLogger("test-service");
+    const testMessage = "Test info message";
     const testData = { key: "value", count: 42 };
-    logger.info("Test info with data", testData);
-    const infoWithDataCall = mockLogger.getLastCall("info");
-    assertEquals(infoWithDataCall?.message, "Test info with data");
-    assertEquals(infoWithDataCall?.data, testData);
 
-    getServiceLoggerStub.restore();
+    verboseLogger.info(testMessage, testData);
+
+    // Verify that info was called with correct parameters
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].level, "info");
+    assertEquals(mockLogger.logs[0].message, testMessage);
+    assertEquals(mockLogger.logs[0].data, testData);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - info method does not log when verbose mode disabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("false");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    // Mock StructuredLogger.getServiceLogger
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
+    verboseLogger.info("Test message", { data: "test" });
 
-    // Test with verbose mode disabled
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "false");
-    const logger = new VerboseLogger("test-service");
-
-    logger.info("Test info message");
-    assertEquals(mockLogger.calls.length, 0); // Should not be called
-
-    getServiceLoggerStub.restore();
+    // Verify that nothing was logged
+    assertEquals(mockLogger.logs.length, 0);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - warn method logs when verbose mode enabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
+    const testMessage = "Test warning message";
+    const testData = { warning: "critical", level: 5 };
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("warn-service");
+    verboseLogger.warn(testMessage, testData);
 
-    // Test warn without data
-    logger.warn("Test warning message");
-    const warnCall = mockLogger.getLastCall("warn");
-    assertEquals(warnCall?.message, "Test warning message");
-    assertEquals(warnCall?.data, undefined);
-
-    // Reset mock
-    mockLogger.reset();
-
-    // Test warn with data
-    const warnData = { error: "deprecated", version: "1.0" };
-    logger.warn("Deprecation warning", warnData);
-    const warnWithDataCall = mockLogger.getLastCall("warn");
-    assertEquals(warnWithDataCall?.message, "Deprecation warning");
-    assertEquals(warnWithDataCall?.data, warnData);
-
-    getServiceLoggerStub.restore();
+    // Verify that warn was called with correct parameters
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].level, "warn");
+    assertEquals(mockLogger.logs[0].message, testMessage);
+    assertEquals(mockLogger.logs[0].data, testData);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - warn method does not log when verbose mode disabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment(); // Unset environment
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
+    verboseLogger.warn("Warning message", { level: "high" });
 
-    Deno.env.delete("FRONTMATTER_VERBOSE_MODE"); // Unset = disabled
-    const logger = new VerboseLogger("warn-service");
-
-    logger.warn("Test warning message");
-    assertEquals(mockLogger.calls.length, 0); // Should not be called
-
-    getServiceLoggerStub.restore();
+    // Verify that nothing was logged
+    assertEquals(mockLogger.logs.length, 0);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - error method logs when verbose mode enabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
+    const testMessage = "Test error message";
+    const testData = { error: "fatal", code: 500 };
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("error-service");
+    verboseLogger.error(testMessage, testData);
 
-    // Test error without data
-    logger.error("Test error message");
-    const errorCall = mockLogger.getLastCall("error");
-    assertEquals(errorCall?.message, "Test error message");
-    assertEquals(errorCall?.data, undefined);
-
-    // Reset mock
-    mockLogger.reset();
-
-    // Test error with data
-    const errorData = { stack: "trace", code: 500 };
-    logger.error("Critical error occurred", errorData);
-    const errorWithDataCall = mockLogger.getLastCall("error");
-    assertEquals(errorWithDataCall?.message, "Critical error occurred");
-    assertEquals(errorWithDataCall?.data, errorData);
-
-    getServiceLoggerStub.restore();
+    // Verify that error was called with correct parameters
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].level, "error");
+    assertEquals(mockLogger.logs[0].message, testMessage);
+    assertEquals(mockLogger.logs[0].data, testData);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - error method does not log when verbose mode disabled", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("false");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
+    verboseLogger.error("Error message", { code: 404 });
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "false");
-    const logger = new VerboseLogger("error-service");
-
-    logger.error("Test error message");
-    assertEquals(mockLogger.calls.length, 0); // Should not be called
-
-    getServiceLoggerStub.restore();
+    // Verify that nothing was logged
+    assertEquals(mockLogger.logs.length, 0);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - enabled property reflects verbose mode state", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
-
+  // Test enabled when verbose mode is true
+  let cleanup = setupEnvironment("true");
   try {
-    // Test enabled when FRONTMATTER_VERBOSE_MODE is "true"
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const enabledLogger = new VerboseLogger("enabled-service");
+    const enabledLogger = new VerboseLogger("test-service");
     assertEquals(enabledLogger.enabled, true);
-
-    // Test disabled when FRONTMATTER_VERBOSE_MODE is unset
-    Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    const disabledLogger = new VerboseLogger("disabled-service");
-    assertEquals(disabledLogger.enabled, false);
-
-    // Test disabled when FRONTMATTER_VERBOSE_MODE is "false"
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "false");
-    const explicitlyDisabledLogger = new VerboseLogger(
-      "explicit-disabled-service",
-    );
-    assertEquals(explicitlyDisabledLogger.enabled, false);
-
-    // Test disabled when FRONTMATTER_VERBOSE_MODE is some other value
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "debug");
-    const otherValueLogger = new VerboseLogger("other-value-service");
-    assertEquals(otherValueLogger.enabled, false);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    cleanup();
+  }
+
+  // Test disabled when verbose mode is false
+  cleanup = setupEnvironment("false");
+  try {
+    const disabledLogger = new VerboseLogger("test-service");
+    assertEquals(disabledLogger.enabled, false);
+  } finally {
+    cleanup();
+  }
+
+  // Test disabled when verbose mode is not set
+  cleanup = setupEnvironment();
+  try {
+    const defaultLogger = new VerboseLogger("test-service");
+    assertEquals(defaultLogger.enabled, false);
+  } finally {
+    cleanup();
+  }
+
+  // Test disabled with arbitrary value
+  cleanup = setupEnvironment("debug");
+  try {
+    const debugLogger = new VerboseLogger("test-service");
+    assertEquals(debugLogger.enabled, false);
+  } finally {
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - createScoped creates logger with scoped service name", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const parentLogger = new VerboseLogger("parent");
+    const scopedLogger = parentLogger.createScoped("child");
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const parentLogger = new VerboseLogger("parent-service");
-    const scopedLogger = parentLogger.createScoped("child-scope");
+    scopedLogger.info("Test message");
 
-    // Verify scoped logger inherits verbose mode
-    assertEquals(scopedLogger.enabled, true);
-
-    // Verify scoped logger uses combined service name
-    scopedLogger.info("Scoped message");
-    const call = mockLogger.getLastCall("info");
-    assertEquals(call?.message, "Scoped message");
-
-    getServiceLoggerStub.restore();
+    // Verify that the scoped service name was used
+    assertEquals(getServiceLoggerStub.calls.length, 1);
+    assertEquals(getServiceLoggerStub.calls[0].args[0], "parent-child");
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - createScoped preserves disabled state", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("false");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const parentLogger = new VerboseLogger("parent");
+    const scopedLogger = parentLogger.createScoped("child");
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "false");
-    const parentLogger = new VerboseLogger("parent-service");
-    const scopedLogger = parentLogger.createScoped("child-scope");
-
-    // Verify scoped logger inherits disabled state
     assertEquals(scopedLogger.enabled, false);
 
-    // Verify scoped logger doesn't log when disabled
     scopedLogger.info("Should not log");
-    assertEquals(mockLogger.calls.length, 0); // Should not be called
 
-    getServiceLoggerStub.restore();
+    // Verify nothing was logged
+    assertEquals(mockLogger.logs.length, 0);
+    assertEquals(getServiceLoggerStub.calls.length, 0);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - multiple scoping levels work correctly", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
-
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
     const rootLogger = new VerboseLogger("root");
     const level1Logger = rootLogger.createScoped("level1");
     const level2Logger = level1Logger.createScoped("level2");
 
-    // Test deeply nested scoped service name
-    level2Logger.warn("Deeply nested message");
-    const call = mockLogger.getLastCall("warn");
-    assertEquals(call?.message, "Deeply nested message");
+    level2Logger.info("Deep message");
 
-    getServiceLoggerStub.restore();
+    // Verify the fully scoped service name
+    assertEquals(getServiceLoggerStub.calls.length, 1);
+    assertEquals(getServiceLoggerStub.calls[0].args[0], "root-level1-level2");
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - handles undefined and null data correctly", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    () => mockLogger,
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      () => mockLogger,
-    );
+    const verboseLogger = new VerboseLogger("test-service");
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("data-test");
+    // Test with undefined data
+    verboseLogger.info("Message without data");
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].data, undefined);
 
-    // Test with undefined (which becomes omitted parameter)
-    logger.info("Message with undefined");
-    const call1 = mockLogger.getLastCall("info");
-    assertEquals(call1?.data, undefined);
+    mockLogger.clear();
 
-    // Reset mock
-    mockLogger.reset();
+    // Test with null data (TypeScript would normally prevent this)
+    // deno-lint-ignore no-explicit-any
+    verboseLogger.warn("Message with null", null as any);
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].data, null);
 
-    // Test with explicitly passed undefined
-    logger.warn("Message with explicit undefined", undefined);
-    const call2 = mockLogger.getLastCall("warn");
-    assertEquals(call2?.data, undefined);
+    mockLogger.clear();
 
-    // Reset mock
-    mockLogger.reset();
-
-    // Test with null (which should be passed through)
-    logger.error(
-      "Message with null",
-      null as unknown as Record<string, unknown>,
-    );
-    const call3 = mockLogger.getLastCall("error");
-    assertEquals(call3?.data, null);
-
-    getServiceLoggerStub.restore();
+    // Test with empty object
+    verboseLogger.error("Message with empty object", {});
+    assertEquals(mockLogger.logs.length, 1);
+    assertEquals(mockLogger.logs[0].data, {});
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - service name correctly passed to StructuredLogger", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
-  let capturedServiceName = "";
+  let capturedServiceName: string | undefined;
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    (serviceName: string) => {
+      capturedServiceName = serviceName;
+      return mockLogger;
+    },
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      (serviceName: string) => {
-        capturedServiceName = serviceName;
-        return mockLogger;
-      },
-    );
+    const serviceName = "my-special-service";
+    const verboseLogger = new VerboseLogger(serviceName);
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("specific-service-name");
+    verboseLogger.info("Test");
 
-    logger.info("Test message");
-    assertEquals(capturedServiceName, "specific-service-name");
-
-    getServiceLoggerStub.restore();
+    assertEquals(capturedServiceName, serviceName);
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });
 
 Deno.test("VerboseLogger - scoped service name correctly formatted", () => {
-  const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
+  const cleanup = setupEnvironment("true");
+
   const mockLogger = new MockLogger();
-  let capturedServiceName = "";
+  let capturedServiceName: string | undefined;
+  const getServiceLoggerStub = stub(
+    StructuredLogger,
+    "getServiceLogger",
+    (serviceName: string) => {
+      capturedServiceName = serviceName;
+      return mockLogger;
+    },
+  );
 
   try {
-    const getServiceLoggerStub = stub(
-      StructuredLogger,
-      "getServiceLogger",
-      (serviceName: string) => {
-        capturedServiceName = serviceName;
-        return mockLogger;
-      },
-    );
+    const verboseLogger = new VerboseLogger("base");
+    const scopedLogger = verboseLogger.createScoped("scoped");
 
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
-    const logger = new VerboseLogger("parent");
-    const scopedLogger = logger.createScoped("child");
+    scopedLogger.warn("Warning");
 
-    scopedLogger.info("Test scoped message");
-    assertEquals(capturedServiceName, "parent-child");
-
-    getServiceLoggerStub.restore();
+    assertEquals(capturedServiceName, "base-scoped");
   } finally {
-    if (originalVerbose !== undefined) {
-      Deno.env.set("FRONTMATTER_VERBOSE_MODE", originalVerbose);
-    } else {
-      Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
-    }
+    getServiceLoggerStub.restore();
+    cleanup();
   }
 });

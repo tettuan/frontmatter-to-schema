@@ -16,6 +16,8 @@ import {
 import { FrontMatter } from "../../domain/models/entities.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+import { DEFAULT_VALUES, SCHEMA_IDS } from "../../domain/constants/index.ts";
+import { getSchemaConfigLoader } from "../../domain/config/schema-config-loader.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -99,7 +101,7 @@ export class BuildRegistryUseCase {
 
           case "SchemaAnalyzer": {
             // Create default CLI schema for registry building
-            const schemaResult = this.createDefaultCliSchema();
+            const schemaResult = await this.createDefaultCliSchema();
             if (!schemaResult.ok) {
               logger.error("Failed to create CLI schema", {
                 filename: promptFile.filename,
@@ -191,11 +193,13 @@ export class BuildRegistryUseCase {
    * Create a default schema for CLI registry building
    * This schema defines the expected structure for CLI prompt frontmatter
    */
-  private createDefaultCliSchema(): Result<
-    Schema,
-    DomainError & { message: string }
+  private async createDefaultCliSchema(): Promise<
+    Result<
+      Schema,
+      DomainError & { message: string }
+    >
   > {
-    const schemaId = SchemaId.create("cli-registry-schema");
+    const schemaId = SchemaId.create(SCHEMA_IDS.CLI_REGISTRY);
     if (!schemaId.ok) {
       return {
         ok: false,
@@ -203,7 +207,7 @@ export class BuildRegistryUseCase {
       };
     }
 
-    const schemaVersion = SchemaVersion.create("1.0.0");
+    const schemaVersion = SchemaVersion.create(DEFAULT_VALUES.SCHEMA_VERSION);
     if (!schemaVersion.ok) {
       return {
         ok: false,
@@ -214,30 +218,23 @@ export class BuildRegistryUseCase {
       };
     }
 
-    // Define the expected structure for CLI prompt frontmatter
-    const cliSchemaDefinition = {
-      type: "object",
-      properties: {
-        c1: { type: "string", description: "First command component (domain)" },
-        c2: {
-          type: "string",
-          description: "Second command component (action)",
-        },
-        c3: { type: "string", description: "Third command component (target)" },
-        title: { type: "string", description: "Human-readable command title" },
-        description: { type: "string", description: "Command description" },
-        usage: { type: "string", description: "Usage example" },
-        options: {
-          type: "object",
-          description: "Available command options",
-        },
-      },
-      required: ["c1", "c2", "c3"],
-    };
+    // Load schema definition from external config file
+    const schemaLoader = getSchemaConfigLoader();
+    const schemaResult = await schemaLoader.loadCliRegistrySchema();
+    if (!schemaResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          schemaResult.error,
+          "Failed to load CLI registry schema",
+        ),
+      };
+    }
+    const cliSchemaDefinition = schemaResult.data;
 
     const schemaDefinition = SchemaDefinition.create(
       cliSchemaDefinition,
-      "1.0.0",
+      DEFAULT_VALUES.SCHEMA_VERSION,
     );
     if (!schemaDefinition.ok) {
       return {

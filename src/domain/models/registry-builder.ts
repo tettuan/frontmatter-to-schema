@@ -9,6 +9,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { DEFAULT_VALUES } from "../constants/index.ts";
 import type { Template } from "./entities.ts";
 import type { Schema } from "./entities.ts";
 import type { Command } from "./command-processor.ts";
@@ -61,8 +62,8 @@ export class RegistryBuilder {
 
       // Stage 2.2: Create registry data structure
       const registryData = {
-        version: context.version || "1.0.0",
-        description: context.description || "Climpt Command Registry",
+        version: context.version || DEFAULT_VALUES.SCHEMA_VERSION,
+        description: context.description || DEFAULT_VALUES.REGISTRY_DESCRIPTION,
         tools: {
           availableConfigs,
           commands,
