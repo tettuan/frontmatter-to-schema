@@ -17,8 +17,6 @@ import type {
   SchemaRepository,
   TemplateRepository,
 } from "../../domain/services/interfaces.ts";
-import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
-import { ErrorHandlerService } from "../../domain/services/error-handler-service.ts";
 
 /**
  * Centralized resource loading with consistent error handling
@@ -38,17 +36,10 @@ export class ResourceLoadingService {
     const result = await this.schemaRepo.load(schemaPath);
 
     if (isError(result)) {
-      return ErrorHandlerService.transformError(result, {
-        operation: "schema loading",
-        resource: schemaPath.getValue(),
-        details: { kind: result.error.kind },
-      });
+      return result;
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ResourceLoadingService", operation: "loadSchema" },
-      `Schema loaded successfully: ${schemaPath.getValue()}`,
-    );
+    // Schema loaded successfully
 
     return result;
   }
@@ -62,17 +53,10 @@ export class ResourceLoadingService {
     const result = await this.templateRepo.load(templatePath);
 
     if (isError(result)) {
-      return ErrorHandlerService.transformError(result, {
-        operation: "template loading",
-        resource: templatePath,
-        details: { kind: result.error.kind },
-      });
+      return result;
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ResourceLoadingService", operation: "loadTemplate" },
-      `Template loaded successfully: ${templatePath}`,
-    );
+    // Template loaded successfully
 
     return result;
   }
@@ -102,10 +86,7 @@ export class ResourceLoadingService {
       return templateResult;
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ResourceLoadingService", operation: "loadResources" },
-      "Both schema and template loaded successfully",
-    );
+    // Both schema and template loaded successfully
 
     return {
       ok: true,
@@ -126,13 +107,7 @@ export class ResourceLoadingService {
     // Basic validation logic - can be extended
     // This is where we would check schema-template compatibility rules
 
-    LoggingDecoratorService.logInfo(
-      {
-        service: "ResourceLoadingService",
-        operation: "validateResourceCompatibility",
-      },
-      "Resource compatibility validated",
-    );
+    // Resource compatibility validated
 
     return { ok: true, data: undefined };
   }

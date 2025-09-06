@@ -20,8 +20,6 @@ import type {
   DocumentRepository,
   ProcessingConfiguration,
 } from "../../domain/services/interfaces.ts";
-import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
-import { ErrorHandlerService } from "../../domain/services/error-handler-service.ts";
 import type { DocumentProcessingService } from "../services/document-processing-service.ts";
 import type { ResourceLoadingService } from "../services/resource-loading-service.ts";
 import type {
@@ -64,10 +62,7 @@ export class ProcessDocumentsUseCase {
     const envConfig = getEnvironmentConfig();
     const concurrentMode = !envConfig.getDebugMode(); // Use concurrent unless in debug mode
 
-    LoggingDecoratorService.logInfo(
-      { service: "ProcessDocumentsUseCase", operation: "execute" },
-      "Starting document processing pipeline",
-    );
+    // Starting document processing pipeline
 
     // Step 1: Load resources (schema and template)
     const resourcesResult = await this.resourceLoadingService.loadResources(
@@ -76,10 +71,7 @@ export class ProcessDocumentsUseCase {
     );
 
     if (isError(resourcesResult)) {
-      return ErrorHandlerService.transformError(resourcesResult, {
-        operation: "resource loading",
-        resource: "schema and template",
-      });
+      return resourcesResult;
     }
 
     const { schema, template } = resourcesResult.data;
@@ -105,10 +97,7 @@ export class ProcessDocumentsUseCase {
       return aggregationResult;
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ProcessDocumentsUseCase", operation: "execute" },
-      `Pipeline completed: ${aggregationResult.data.processedCount} processed, ${aggregationResult.data.failedCount} failed`,
-    );
+    // Pipeline completed successfully
 
     return aggregationResult;
   }
@@ -124,26 +113,21 @@ export class ProcessDocumentsUseCase {
     );
 
     if (isError(documentsResult)) {
-      return ErrorHandlerService.transformError(documentsResult, {
-        operation: "document loading",
-        resource: config.documentsPath.getValue(),
-      });
+      return documentsResult;
     }
 
     if (documentsResult.data.length === 0) {
-      return ErrorHandlerService.createResultWithMessage(
-        { kind: "NotFound", resource: "documents" },
-        {
-          operation: "document discovery",
-          resource: config.documentsPath.getValue(),
+      return {
+        ok: false,
+        error: {
+          kind: "NotFound",
+          resource: "documents",
+          message: "No documents found to process",
         },
-      );
+      };
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ProcessDocumentsUseCase", operation: "loadDocuments" },
-      `Loaded ${documentsResult.data.length} documents`,
-    );
+    // Documents loaded successfully
 
     return documentsResult;
   }
@@ -156,10 +140,7 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ) {
-    LoggingDecoratorService.logInfo(
-      { service: "ProcessDocumentsUseCase", operation: "processConcurrent" },
-      `Processing ${documents.length} documents concurrently`,
-    );
+    // Processing documents concurrently
 
     const promises = documents.map((doc) =>
       this.documentProcessingService.processDocument(doc, schema, template)
@@ -176,10 +157,7 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ) {
-    LoggingDecoratorService.logInfo(
-      { service: "ProcessDocumentsUseCase", operation: "processSequential" },
-      `Processing ${documents.length} documents sequentially`,
-    );
+    // Processing documents sequentially
 
     const results = [];
     for (const doc of documents) {

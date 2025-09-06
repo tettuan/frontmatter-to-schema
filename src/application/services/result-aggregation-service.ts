@@ -18,8 +18,6 @@ import type {
   ResultAggregator,
   ResultRepository,
 } from "../../domain/services/interfaces.ts";
-import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
-import { ErrorHandlerService } from "../../domain/services/error-handler-service.ts";
 
 export interface ProcessingResults {
   processedCount: number;
@@ -52,18 +50,14 @@ export class ResultAggregationService {
     const progress = this.categorizeResults(results);
 
     if (progress.successful.length === 0) {
-      return ErrorHandlerService.createResultWithMessage(
-        {
-          kind: "ProcessingStageError",
-          stage: "result aggregation",
-          error: { kind: "NotFound", resource: "processed documents" },
+      return {
+        ok: false,
+        error: {
+          kind: "NotFound",
+          resource: "processed documents",
+          message: "No successful results to aggregate",
         },
-        {
-          operation: "result aggregation",
-          resource: "all documents",
-          details: { errorCount: progress.errors.length },
-        },
-      );
+      };
     }
 
     // Aggregate successful results
@@ -72,10 +66,7 @@ export class ResultAggregationService {
     );
 
     if (isError(aggregationResult)) {
-      return ErrorHandlerService.transformError(aggregationResult, {
-        operation: "result aggregation",
-        resource: config.outputPath.getValue(),
-      });
+      return aggregationResult;
     }
 
     // Save aggregated results
@@ -85,10 +76,7 @@ export class ResultAggregationService {
     );
 
     if (isError(saveResult)) {
-      return ErrorHandlerService.transformError(saveResult, {
-        operation: "result saving",
-        resource: config.outputPath.getValue(),
-      });
+      return saveResult;
     }
 
     const finalResults: ProcessingResults = {
@@ -98,10 +86,7 @@ export class ResultAggregationService {
       errors: progress.errors,
     };
 
-    LoggingDecoratorService.logInfo(
-      { service: "ResultAggregationService", operation: "aggregateResults" },
-      `Results aggregated: ${finalResults.processedCount} processed, ${finalResults.failedCount} failed`,
-    );
+    // Results aggregated successfully
 
     return { ok: true, data: finalResults };
   }
@@ -126,10 +111,7 @@ export class ResultAggregationService {
       }
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "ResultAggregationService", operation: "categorizeResults" },
-      `Categorized results: ${successful.length} successful, ${errors.length} failed`,
-    );
+    // Results categorized successfully
 
     return { successful, errors };
   }

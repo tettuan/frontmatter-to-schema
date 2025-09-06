@@ -26,8 +26,6 @@ import type {
   SchemaAnalyzer,
   TemplateMapper,
 } from "../../domain/services/interfaces.ts";
-import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
-import { ErrorHandlerService } from "../../domain/services/error-handler-service.ts";
 
 /**
  * Service responsible for processing individual documents through the pipeline
@@ -47,15 +45,12 @@ export class DocumentProcessingService {
     schema: Schema,
     template: Template,
   ): Promise<Result<AnalysisResult, DomainError & { message: string }>> {
-    const docPath = document.getPath().getValue();
+    const _docPath = document.getPath().getValue();
 
     // Step 1: Extract frontmatter
     const frontMatterResult = await this.extractFrontMatter(document);
     if (isError(frontMatterResult)) {
-      return ErrorHandlerService.transformError(frontMatterResult, {
-        operation: "frontmatter extraction",
-        resource: docPath,
-      });
+      return frontMatterResult;
     }
 
     const frontMatter = frontMatterResult.data;
@@ -63,10 +58,7 @@ export class DocumentProcessingService {
     // Step 2: Analyze with schema
     const analysisResult = await this.analyzeWithSchema(frontMatter, schema);
     if (isError(analysisResult)) {
-      return ErrorHandlerService.transformError(analysisResult, {
-        operation: "schema analysis",
-        resource: docPath,
-      });
+      return analysisResult;
     }
 
     // Step 3: Create ExtractedData entity
@@ -83,10 +75,7 @@ export class DocumentProcessingService {
       schema,
     );
     if (isError(mappingResult)) {
-      return ErrorHandlerService.transformError(mappingResult, {
-        operation: "template mapping",
-        resource: docPath,
-      });
+      return mappingResult;
     }
 
     // Step 5: Create analysis result
@@ -96,10 +85,7 @@ export class DocumentProcessingService {
       mappingResult.data,
     );
 
-    LoggingDecoratorService.logInfo(
-      { service: "DocumentProcessingService", operation: "processDocument" },
-      `Successfully processed document: ${docPath}`,
-    );
+    // Successfully processed document
 
     return { ok: true, data: result };
   }
@@ -122,16 +108,16 @@ export class DocumentProcessingService {
         input: "No frontmatter found in document",
       };
 
-      return ErrorHandlerService.createResultWithMessage(error, {
-        operation: "frontmatter extraction",
-        resource: document.getPath().getValue(),
-      });
+      return {
+        ok: false,
+        error: {
+          ...error,
+          message: `Frontmatter extraction failed: Unknown error`,
+        },
+      };
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "DocumentProcessingService", operation: "extractFrontMatter" },
-      `Frontmatter extracted from: ${document.getPath().getValue()}`,
-    );
+    // Frontmatter extracted successfully
 
     return { ok: true, data: frontMatterResult.data.frontMatter };
   }
@@ -152,10 +138,7 @@ export class DocumentProcessingService {
       return analysisResult;
     }
 
-    LoggingDecoratorService.logInfo(
-      { service: "DocumentProcessingService", operation: "analyzeWithSchema" },
-      "Schema analysis completed successfully",
-    );
+    // Schema analysis completed
 
     return analysisResult;
   }
@@ -177,13 +160,7 @@ export class DocumentProcessingService {
       return mappingResult;
     }
 
-    LoggingDecoratorService.logInfo(
-      {
-        service: "DocumentProcessingService",
-        operation: "applyTemplateMapping",
-      },
-      "Template mapping completed successfully",
-    );
+    // Template mapping completed
 
     return mappingResult;
   }
