@@ -492,7 +492,7 @@ export class ProcessDocumentsUseCase {
     // Map to template
     const schemaDefinition = schema.getDefinition().getRawDefinition();
 
-    // Apply template uniformly for all schemas
+    // Apply template processing uniformly for all schemas
     const mappedResult = this.templateMapper.map(
       extractedResult.data,
       template,
