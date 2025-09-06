@@ -7,7 +7,6 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
-import { createDomainError } from "../core/result.ts";
 
 /**
  * Error context for generating contextual error messages
@@ -19,18 +18,33 @@ export interface ErrorContext {
 }
 
 /**
- * Standard error message patterns
+ * Standard error message patterns for domain errors
  */
 const ERROR_PATTERNS = {
   fileNotFound: (resource: string) => `${resource} file not found`,
   readError: (resource: string, details?: string) =>
-    details ? `${resource} read error: ${details}` : `Failed to read ${resource}`,
-  loadError: (resource: string, details?: string) =>
-    details ? `${resource} load error: ${details}` : `Failed to load ${resource}`,
-  validationError: (resource: string, reason?: string) =>
-    reason ? `${resource} validation failed: ${reason}` : `${resource} validation failed`,
-  processingError: (operation: string, reason?: string) =>
-    reason ? `${operation} processing failed: ${reason}` : `${operation} processing failed`,
+    details
+      ? `${resource} read error: ${details}`
+      : `Failed to read ${resource}`,
+  writeError: (resource: string, details?: string) =>
+    details
+      ? `${resource} write error: ${details}`
+      : `Failed to write ${resource}`,
+  permissionDenied: (resource: string, operation: string) =>
+    `Permission denied for ${operation} on ${resource}`,
+  schemaValidationFailed: (resource: string) =>
+    `Schema validation failed for ${resource}`,
+  templateMappingFailed: (resource: string) =>
+    `Template mapping failed for ${resource}`,
+  extractionStrategyFailed: (strategy: string) =>
+    `Extraction strategy '${strategy}' failed`,
+  aiServiceError: (service: string) => `AI service '${service}' error`,
+  configurationError: (resource: string) =>
+    `Configuration error for ${resource}`,
+  processingStageError: (stage: string, details?: string) =>
+    details
+      ? `Processing stage '${stage}' failed: ${details}`
+      : `Processing stage '${stage}' failed`,
 } as const;
 
 /**
@@ -45,54 +59,60 @@ export class ErrorHandlerService {
     context: ErrorContext,
   ): string {
     const { operation, resource = operation, details } = context;
-    const detailsString = details?.toString();
+    const detailsString = details ? JSON.stringify(details) : undefined;
 
     switch (error.kind) {
       case "FileNotFound":
         return ERROR_PATTERNS.fileNotFound(resource);
-      
+
       case "ReadError":
         return ERROR_PATTERNS.readError(resource, detailsString);
-      
-      case "LoadError":
-        return ERROR_PATTERNS.loadError(resource, detailsString);
-      
-      case "ValidationError":
-        return ERROR_PATTERNS.validationError(resource, detailsString);
-      
-      case "ProcessingError":
-        return ERROR_PATTERNS.processingError(operation, detailsString);
-      
+
+      case "WriteError":
+        return ERROR_PATTERNS.writeError(resource, detailsString);
+
+      case "PermissionDenied":
+        return ERROR_PATTERNS.permissionDenied(resource, error.operation);
+
+      case "SchemaValidationFailed":
+        return ERROR_PATTERNS.schemaValidationFailed(resource);
+
+      case "TemplateMappingFailed":
+        return ERROR_PATTERNS.templateMappingFailed(resource);
+
+      case "ExtractionStrategyFailed":
+        return ERROR_PATTERNS.extractionStrategyFailed(error.strategy);
+
+      case "AIServiceError":
+        return ERROR_PATTERNS.aiServiceError(error.service);
+
+      case "ConfigurationError":
+        return ERROR_PATTERNS.configurationError(resource);
+
+      case "ProcessingStageError":
+        return ERROR_PATTERNS.processingStageError(error.stage, detailsString);
+
       default:
-        return `${operation} failed: ${error.message || 'Unknown error'}`;
+        return `${operation} failed: ${error.kind}`;
     }
   }
 
   /**
-   * Create a standardized Result error with contextual message
+   * Create a Result error with a standardized message
+   * Use this when you have a specific DomainError instance
    */
-  static createError<T>(
-    errorKind: DomainError["kind"],
+  static createResultWithMessage<T>(
+    error: DomainError,
     context: ErrorContext,
-    originalError?: unknown,
   ): Result<T, DomainError & { message: string }> {
-    const baseError = createDomainError(
-      { 
-        kind: errorKind, 
-        input: context.resource, 
-        details: originalError 
-      },
-      "Base error"
-    );
-
-    const message = this.generateMessage(baseError.error, context);
+    const message = this.generateMessage(error, context);
 
     return {
       ok: false,
       error: {
-        ...baseError.error,
+        ...error,
         message,
-      },
+      } as DomainError & { message: string },
     };
   }
 
@@ -153,13 +173,23 @@ export class ErrorHandlerService {
     }
 
     if (errors.length > 0) {
-      return this.createError(
-        "ProcessingError",
-        {
-          ...context,
-          details: { errors: errors.join("; "), successCount: successful.length }
-        }
-      );
+      const pipelineError: DomainError = {
+        kind: "ProcessingStageError",
+        stage: context.operation,
+        error: { kind: "NotFound", resource: "aggregation" },
+      };
+
+      const message = `Multiple errors in ${context.operation}: ${
+        errors.join("; ")
+      } (${successful.length} successful)`;
+
+      return {
+        ok: false,
+        error: {
+          ...pipelineError,
+          message,
+        } as DomainError & { message: string },
+      };
     }
 
     return { ok: true, data: successful };

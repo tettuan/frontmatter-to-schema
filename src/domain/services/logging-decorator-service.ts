@@ -6,7 +6,7 @@
  * DDD principles and AI complexity control guidelines.
  */
 
-import { StructuredLogger } from "../shared/structured-logger.ts";
+import { StructuredLogger } from "../shared/logger.ts";
 
 /**
  * Logging context for structured messages
@@ -70,7 +70,11 @@ export class LoggingDecoratorService {
   /**
    * Log error (always logged regardless of verbose mode)
    */
-  static logError(context: LoggingContext, message: string, error?: unknown): void {
+  static logError(
+    context: LoggingContext,
+    message: string,
+    error?: unknown,
+  ): void {
     const logger = StructuredLogger.getServiceLogger(context.service);
     logger.error(message, { ...context.metadata, error });
   }
@@ -78,7 +82,7 @@ export class LoggingDecoratorService {
   /**
    * Create a logging decorator for a class method
    */
-  static decorateMethod<T extends (...args: any[]) => any>(
+  static decorateMethod<T extends (...args: unknown[]) => unknown>(
     context: LoggingContext,
     method: T,
     options?: {
@@ -86,15 +90,23 @@ export class LoggingDecoratorService {
       logExit?: boolean;
       logArgs?: boolean;
       logResult?: boolean;
-    }
+    },
   ): T {
-    const { logEntry = true, logExit = true, logArgs = false, logResult = false } = options || {};
+    const {
+      logEntry = true,
+      logExit = true,
+      logArgs = false,
+      logResult = false,
+    } = options || {};
 
     return ((...args: Parameters<T>) => {
       if (logEntry) {
         this.logInfo(
-          { ...context, metadata: { ...context.metadata, args: logArgs ? args : undefined } },
-          `Starting ${context.operation}`
+          {
+            ...context,
+            metadata: { ...context.metadata, args: logArgs ? args : undefined },
+          },
+          `Starting ${context.operation}`,
         );
       }
 
@@ -103,17 +115,26 @@ export class LoggingDecoratorService {
 
         if (logExit) {
           this.logInfo(
-            { ...context, metadata: { ...context.metadata, result: logResult ? result : undefined } },
-            `Completed ${context.operation}`
+            {
+              ...context,
+              metadata: {
+                ...context.metadata,
+                result: logResult ? result : undefined,
+              },
+            },
+            `Completed ${context.operation}`,
           );
         }
 
         return result;
       } catch (error) {
         this.logError(
-          { ...context, metadata: { ...context.metadata, args: logArgs ? args : undefined } },
+          {
+            ...context,
+            metadata: { ...context.metadata, args: logArgs ? args : undefined },
+          },
           `Failed ${context.operation}`,
-          error
+          error,
         );
         throw error;
       }
@@ -123,7 +144,9 @@ export class LoggingDecoratorService {
   /**
    * Create an async logging decorator for promises
    */
-  static decorateAsyncMethod<T extends (...args: any[]) => Promise<any>>(
+  static decorateAsyncMethod<
+    T extends (...args: unknown[]) => Promise<unknown>,
+  >(
     context: LoggingContext,
     method: T,
     options?: {
@@ -131,15 +154,23 @@ export class LoggingDecoratorService {
       logExit?: boolean;
       logArgs?: boolean;
       logResult?: boolean;
-    }
+    },
   ): T {
-    const { logEntry = true, logExit = true, logArgs = false, logResult = false } = options || {};
+    const {
+      logEntry = true,
+      logExit = true,
+      logArgs = false,
+      logResult = false,
+    } = options || {};
 
     return (async (...args: Parameters<T>) => {
       if (logEntry) {
         this.logInfo(
-          { ...context, metadata: { ...context.metadata, args: logArgs ? args : undefined } },
-          `Starting ${context.operation}`
+          {
+            ...context,
+            metadata: { ...context.metadata, args: logArgs ? args : undefined },
+          },
+          `Starting ${context.operation}`,
         );
       }
 
@@ -148,17 +179,26 @@ export class LoggingDecoratorService {
 
         if (logExit) {
           this.logInfo(
-            { ...context, metadata: { ...context.metadata, result: logResult ? result : undefined } },
-            `Completed ${context.operation}`
+            {
+              ...context,
+              metadata: {
+                ...context.metadata,
+                result: logResult ? result : undefined,
+              },
+            },
+            `Completed ${context.operation}`,
           );
         }
 
         return result;
       } catch (error) {
         this.logError(
-          { ...context, metadata: { ...context.metadata, args: logArgs ? args : undefined } },
+          {
+            ...context,
+            metadata: { ...context.metadata, args: logArgs ? args : undefined },
+          },
           `Failed ${context.operation}`,
-          error
+          error,
         );
         throw error;
       }
@@ -170,14 +210,20 @@ export class LoggingDecoratorService {
    */
   static logBatch(
     baseContext: LoggingContext,
-    operations: Array<{ operation: string; metadata?: Record<string, unknown> }>
+    operations: Array<
+      { operation: string; metadata?: Record<string, unknown> }
+    >,
   ): void {
     if (!this.verboseMode) return;
 
     operations.forEach(({ operation, metadata }) => {
       this.logInfo(
-        { ...baseContext, operation, metadata: { ...baseContext.metadata, ...metadata } },
-        `Batch operation: ${operation}`
+        {
+          ...baseContext,
+          operation,
+          metadata: { ...baseContext.metadata, ...metadata },
+        },
+        `Batch operation: ${operation}`,
       );
     });
   }
@@ -189,16 +235,20 @@ export class LoggingDecoratorService {
     context: LoggingContext,
     current: number,
     total: number,
-    customMessage?: string
+    customMessage?: string,
   ): void {
     if (!this.verboseMode) return;
 
     const percentage = Math.round((current / total) * 100);
-    const message = customMessage || `Progress: ${current}/${total} (${percentage}%)`;
+    const message = customMessage ||
+      `Progress: ${current}/${total} (${percentage}%)`;
 
     this.logInfo(
-      { ...context, metadata: { ...context.metadata, current, total, percentage } },
-      message
+      {
+        ...context,
+        metadata: { ...context.metadata, current, total, percentage },
+      },
+      message,
     );
   }
 }
