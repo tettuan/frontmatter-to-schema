@@ -1,12 +1,133 @@
 import { assertEquals } from "jsr:@std/assert";
+import { Schema, SchemaId } from "../../../../src/domain/models/entities.ts";
 import {
-  Schema,
   SchemaDefinition,
-  type SchemaFormat,
-} from "../../../../src/domain/models/domain-models.ts";
+  SchemaVersion,
+} from "../../../../src/domain/models/value-objects.ts";
 
-Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
-  await t.step("should create valid schema definition with JSON format", () => {
+// Test Helpers
+function createTestSchemaId(id: string): SchemaId {
+  const result = SchemaId.create(id);
+  if (!result.ok) {
+    throw new Error(`Failed to create test SchemaId: ${result.error.kind}`);
+  }
+  return result.data;
+}
+
+function createTestSchemaVersion(version: string = "1.0.0"): SchemaVersion {
+  const result = SchemaVersion.create(version);
+  if (!result.ok) {
+    throw new Error(
+      `Failed to create test SchemaVersion: ${result.error.kind}`,
+    );
+  }
+  return result.data;
+}
+
+function createTestSchemaDefinition(definition: unknown): SchemaDefinition {
+  const result = SchemaDefinition.create(definition, "1.0.0");
+  if (!result.ok) {
+    throw new Error(
+      `Failed to create test SchemaDefinition: ${result.error.kind}`,
+    );
+  }
+  return result.data;
+}
+
+const TEST_DEFINITION = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    author: { type: "string" },
+  },
+  required: ["title"],
+};
+
+Deno.test("Schema - DDD Compliant Tests", async (t) => {
+  await t.step("should create valid schema with all parameters", () => {
+    const schemaId = createTestSchemaId("test-schema");
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("1.0.0");
+
+    const schema = Schema.create(
+      schemaId,
+      definition,
+      version,
+      "Test schema for documents",
+    );
+
+    assertEquals(schema.getId().getValue(), "test-schema");
+    assertEquals(schema.getDefinition().getRawDefinition(), TEST_DEFINITION);
+    assertEquals(schema.getVersion().toString(), "1.0.0");
+    assertEquals(schema.getDescription(), "Test schema for documents");
+  });
+
+  await t.step("should create schema with minimal parameters", () => {
+    const schemaId = createTestSchemaId("minimal-schema");
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("1.0.0");
+
+    const schema = Schema.create(schemaId, definition, version);
+
+    assertEquals(schema.getId().getValue(), "minimal-schema");
+    assertEquals(schema.getDefinition().getRawDefinition(), TEST_DEFINITION);
+    assertEquals(schema.getVersion().toString(), "1.0.0");
+    assertEquals(schema.getDescription(), "");
+  });
+
+  await t.step("should handle complex schema IDs", () => {
+    const complexId = "schema-with-dashes_and_underscores.v1";
+    const schemaId = createTestSchemaId(complexId);
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("2.1.0");
+
+    const schema = Schema.create(schemaId, definition, version);
+
+    assertEquals(schema.getId().getValue(), complexId);
+    assertEquals(schema.getVersion().toString(), "2.1.0");
+  });
+
+  await t.step("should provide access to schema definition", () => {
+    const schemaId = createTestSchemaId("definition-test");
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("1.0.0");
+
+    const schema = Schema.create(schemaId, definition, version);
+    const retrievedDefinition = schema.getDefinition();
+
+    assertEquals(retrievedDefinition.getRawDefinition(), TEST_DEFINITION);
+    assertEquals(retrievedDefinition.getVersion(), "1.0.0");
+  });
+
+  await t.step("should handle schema description properly", () => {
+    const schemaId = createTestSchemaId("description-test");
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("1.0.0");
+    const testDescription = "This is a test schema description";
+
+    const schema = Schema.create(
+      schemaId,
+      definition,
+      version,
+      testDescription,
+    );
+
+    assertEquals(schema.getDescription(), testDescription);
+  });
+
+  await t.step("should default to empty description when not provided", () => {
+    const schemaId = createTestSchemaId("no-description-test");
+    const definition = createTestSchemaDefinition(TEST_DEFINITION);
+    const version = createTestSchemaVersion("1.0.0");
+
+    const schema = Schema.create(schemaId, definition, version);
+
+    assertEquals(schema.getDescription(), "");
+  });
+});
+
+Deno.test("SchemaDefinition - Smart Constructor Tests", async (t) => {
+  await t.step("should create valid schema definition with version", () => {
     const definition = {
       type: "object",
       properties: {
@@ -16,297 +137,106 @@ Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
       required: ["title"],
     };
 
-    const result = SchemaDefinition.create(definition, "json");
+    const result = SchemaDefinition.create(definition, "1.0.0");
 
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals(result.data.getFormat(), "json");
-      assertEquals(result.data.getDefinition(), definition);
-    }
-  });
-
-  await t.step("should create valid schema definition with YAML format", () => {
-    const definition = {
-      type: "object",
-      properties: {
-        name: { type: "string" },
-        version: { type: "string" },
-      },
-    };
-
-    const result = SchemaDefinition.create(definition, "yaml");
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.getFormat(), "yaml");
-      assertEquals(result.data.getDefinition(), definition);
+      assertEquals(result.data.getVersion(), "1.0.0");
+      assertEquals(result.data.getRawDefinition(), definition);
     }
   });
 
   await t.step(
-    "should create valid schema definition with custom format",
+    "should create valid schema definition with default version",
     () => {
-      const definition = { customRule: "validate-title-length" };
+      const definition = {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          version: { type: "string" },
+        },
+      };
 
-      const result = SchemaDefinition.create(definition, "custom");
+      const result = SchemaDefinition.create(definition);
 
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data.getFormat(), "custom");
-        assertEquals(result.data.getDefinition(), definition);
+        assertEquals(result.data.getVersion(), "1.0.0"); // default version
+        assertEquals(result.data.getRawDefinition(), definition);
+      }
+    },
+  );
+
+  await t.step(
+    "should create valid schema definition with custom version",
+    () => {
+      const definition = { customRule: "validate-title-length" };
+
+      const result = SchemaDefinition.create(definition, "2.1.0");
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.getVersion(), "2.1.0");
+        assertEquals(result.data.getRawDefinition(), definition);
       }
     },
   );
 
   await t.step("should reject empty definition", () => {
-    const result = SchemaDefinition.create(null, "json");
+    const result = SchemaDefinition.create(null, "1.0.0");
 
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "EmptyInput");
-      // Error kind check is sufficient for test validation
     }
   });
 
   await t.step("should reject undefined definition", () => {
-    const result = SchemaDefinition.create(undefined, "json");
+    const result = SchemaDefinition.create(undefined, "1.0.0");
 
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "EmptyInput");
-      // Error kind check is sufficient for test validation
+    }
+  });
+
+  await t.step("should reject non-object definition", () => {
+    const result = SchemaDefinition.create(
+      "not an object" as unknown as Record<string, unknown>,
+      "1.0.0",
+    );
+
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "InvalidFormat");
     }
   });
 
   await t.step("should reject array definition", () => {
-    const result = SchemaDefinition.create(["not", "an", "object"], "json");
+    const result = SchemaDefinition.create(
+      [1, 2, 3] as unknown as Record<string, unknown>,
+      "1.0.0",
+    );
 
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "InvalidFormat");
-      // Error kind check is sufficient for test validation
-      // Additional validation details removed after consolidation
-    }
-  });
-
-  await t.step("should reject primitive string definition", () => {
-    const result = SchemaDefinition.create("not an object", "json");
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "InvalidFormat");
-      // Error kind check is sufficient for test validation
-      // Additional validation details removed after consolidation
-    }
-  });
-
-  await t.step("should reject primitive number definition", () => {
-    const result = SchemaDefinition.create(42, "json");
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "InvalidFormat");
-      // Error kind check is sufficient for test validation
-      // Additional validation details removed after consolidation
-    }
-  });
-
-  await t.step("should reject boolean definition", () => {
-    const result = SchemaDefinition.create(true, "json");
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "InvalidFormat");
-      // Error kind check is sufficient for test validation
-      // Additional validation details removed after consolidation
     }
   });
 });
 
-Deno.test("SchemaDefinition - Validation", async (t) => {
-  const createValidSchemaDefinition = () => {
-    const definition = {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        author: { type: "string" },
-      },
-    };
-    const result = SchemaDefinition.create(definition, "json");
-    if (result.ok) {
-      return result.data;
-    }
-    throw new Error("Failed to create test schema definition");
-  };
-
-  await t.step("should validate non-null data successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = { title: "Test Document", author: "Test Author" };
-
-    const result = schema.validate(testData);
+Deno.test("SchemaId - Value Object Tests", async (t) => {
+  await t.step("should create valid schema ID", () => {
+    const result = SchemaId.create("valid-schema-id");
 
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals(result.data, true);
+      assertEquals(result.data.getValue(), "valid-schema-id");
     }
   });
 
-  await t.step("should validate empty object successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = {};
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-
-  await t.step("should validate complex nested object successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = {
-      title: "Complex Document",
-      author: "Complex Author",
-      metadata: {
-        tags: ["tag1", "tag2"],
-        created: "2023-01-01",
-        nested: {
-          level: 2,
-          value: "deep",
-        },
-      },
-    };
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-
-  await t.step("should reject null data", () => {
-    const schema = createValidSchemaDefinition();
-
-    const result = schema.validate(null);
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "EmptyInput");
-      // Error kind check is sufficient for test validation
-    }
-  });
-
-  await t.step("should reject undefined data", () => {
-    const schema = createValidSchemaDefinition();
-
-    const result = schema.validate(undefined);
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "EmptyInput");
-      // Error kind check is sufficient for test validation
-    }
-  });
-
-  await t.step("should validate array data successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = [1, 2, 3, "test"];
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-
-  await t.step("should validate primitive string successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = "simple string";
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-
-  await t.step("should validate primitive number successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = 42;
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-
-  await t.step("should validate boolean successfully", () => {
-    const schema = createValidSchemaDefinition();
-    const testData = false;
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, true);
-    }
-  });
-});
-
-Deno.test("Schema - Smart Constructor", async (t) => {
-  const createValidSchemaDefinition = () => {
-    const definition = {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        description: { type: "string" },
-      },
-      required: ["title"],
-    };
-    const result = SchemaDefinition.create(definition, "json");
-    if (result.ok) {
-      return result.data;
-    }
-    throw new Error("Failed to create test schema definition");
-  };
-
-  await t.step("should create schema with valid parameters", () => {
-    const definition = createValidSchemaDefinition();
-    const result = Schema.create(
-      "test-schema",
-      definition,
-      "Test schema for documents",
-    );
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.getId(), "test-schema");
-      assertEquals(result.data.getDefinition(), definition);
-      assertEquals(result.data.getDescription(), "Test schema for documents");
-    }
-  });
-
-  await t.step("should create schema without description", () => {
-    const definition = createValidSchemaDefinition();
-    const result = Schema.create("minimal-schema", definition);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.getId(), "minimal-schema");
-      assertEquals(result.data.getDefinition(), definition);
-      assertEquals(result.data.getDescription(), undefined);
-    }
-  });
-
-  await t.step("should reject empty id", () => {
-    const definition = createValidSchemaDefinition();
-    const result = Schema.create("", definition);
+  await t.step("should reject empty schema ID", () => {
+    const result = SchemaId.create("");
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -314,9 +244,8 @@ Deno.test("Schema - Smart Constructor", async (t) => {
     }
   });
 
-  await t.step("should reject whitespace-only id", () => {
-    const definition = createValidSchemaDefinition();
-    const result = Schema.create("   ", definition);
+  await t.step("should reject whitespace-only schema ID", () => {
+    const result = SchemaId.create("   ");
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -324,295 +253,14 @@ Deno.test("Schema - Smart Constructor", async (t) => {
     }
   });
 
-  await t.step("should trim whitespace from id", () => {
-    const definition = createValidSchemaDefinition();
-    const result = Schema.create(
-      "  trimmed-id  ",
-      definition,
-      "Trimmed schema",
-    );
+  await t.step("should support schema ID equality comparison", () => {
+    const result1 = SchemaId.create("same-id");
+    const result2 = SchemaId.create("same-id");
+    const result3 = SchemaId.create("different-id");
 
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.getId(), "trimmed-id");
-    }
-  });
-
-  await t.step("should handle complex id with special characters", () => {
-    const definition = createValidSchemaDefinition();
-    const complexId = "schema-with-dashes_and_underscores.v1";
-    const result = Schema.create(complexId, definition);
-
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.getId(), complexId);
-    }
-  });
-});
-
-Deno.test("Schema - Validation", async (t) => {
-  const createTestSchema = (description?: string) => {
-    const definition = {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        author: { type: "string" },
-      },
-      required: ["title"],
-    };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    if (!schemaDefResult.ok) {
-      throw new Error("Failed to create schema definition");
-    }
-
-    const schemaResult = Schema.create(
-      "test-schema",
-      schemaDefResult.data,
-      description,
-    );
-    if (!schemaResult.ok) {
-      throw new Error("Failed to create schema");
-    }
-
-    return schemaResult.data;
-  };
-
-  await t.step("should validate data through schema definition", () => {
-    const schema = createTestSchema();
-    const testData = { title: "Valid Document", author: "Valid Author" };
-
-    const result = schema.validate(testData);
-
-    assertEquals(result.ok, true);
-  });
-
-  await t.step("should reject null data through schema definition", () => {
-    const schema = createTestSchema();
-
-    const result = schema.validate(null);
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "EmptyInput");
-    }
-  });
-
-  await t.step("should reject undefined data through schema definition", () => {
-    const schema = createTestSchema();
-
-    const result = schema.validate(undefined);
-
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "EmptyInput");
-    }
-  });
-
-  await t.step("should validate complex data structures", () => {
-    const schema = createTestSchema();
-    const complexData = {
-      title: "Complex Document",
-      author: "Complex Author",
-      metadata: {
-        tags: ["javascript", "deno"],
-        created: new Date().toISOString(),
-        version: 1.0,
-        published: true,
-      },
-      content: {
-        sections: [
-          { name: "Introduction", wordCount: 150 },
-          { name: "Methods", wordCount: 300 },
-          { name: "Conclusion", wordCount: 100 },
-        ],
-      },
-    };
-
-    const result = schema.validate(complexData);
-
-    assertEquals(result.ok, true);
-  });
-});
-
-Deno.test("Schema - Getters", async (t) => {
-  await t.step("should return correct id", () => {
-    const definition = {
-      type: "object",
-      properties: { title: { type: "string" } },
-    };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    if (!schemaDefResult.ok) return;
-
-    const schemaResult = Schema.create(
-      "getter-test",
-      schemaDefResult.data,
-      "Test description",
-    );
-    if (!schemaResult.ok) return;
-
-    const schema = schemaResult.data;
-    assertEquals(schema.getId(), "getter-test");
-  });
-
-  await t.step("should return correct definition", () => {
-    const definition = {
-      type: "object",
-      properties: { title: { type: "string" } },
-    };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    if (!schemaDefResult.ok) return;
-
-    const schemaResult = Schema.create("definition-test", schemaDefResult.data);
-    if (!schemaResult.ok) return;
-
-    const schema = schemaResult.data;
-    assertEquals(schema.getDefinition(), schemaDefResult.data);
-  });
-
-  await t.step("should return correct description when provided", () => {
-    const definition = {
-      type: "object",
-      properties: { name: { type: "string" } },
-    };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    if (!schemaDefResult.ok) return;
-
-    const testDescription = "This is a test schema description";
-    const schemaResult = Schema.create(
-      "description-test",
-      schemaDefResult.data,
-      testDescription,
-    );
-    if (!schemaResult.ok) return;
-
-    const schema = schemaResult.data;
-    assertEquals(schema.getDescription(), testDescription);
-  });
-
-  await t.step("should return undefined description when not provided", () => {
-    const definition = {
-      type: "object",
-      properties: { name: { type: "string" } },
-    };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    if (!schemaDefResult.ok) return;
-
-    const schemaResult = Schema.create(
-      "no-description-test",
-      schemaDefResult.data,
-    );
-    if (!schemaResult.ok) return;
-
-    const schema = schemaResult.data;
-    assertEquals(schema.getDescription(), undefined);
-  });
-});
-
-Deno.test("Schema - Edge Cases and Error Handling", async (t) => {
-  await t.step("should handle schema with empty properties object", () => {
-    const definition = { type: "object", properties: {} };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-
-    assertEquals(schemaDefResult.ok, true);
-    if (schemaDefResult.ok) {
-      const schemaResult = Schema.create("empty-props", schemaDefResult.data);
-      assertEquals(schemaResult.ok, true);
-
-      if (schemaResult.ok) {
-        const validationResult = schemaResult.data.validate({});
-        assertEquals(validationResult.ok, true);
-      }
-    }
-  });
-
-  await t.step("should handle schema with deeply nested properties", () => {
-    const definition = {
-      type: "object",
-      properties: {
-        level1: {
-          type: "object",
-          properties: {
-            level2: {
-              type: "object",
-              properties: {
-                level3: {
-                  type: "object",
-                  properties: {
-                    value: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    };
-
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-    assertEquals(schemaDefResult.ok, true);
-
-    if (schemaDefResult.ok) {
-      const schemaResult = Schema.create("nested-schema", schemaDefResult.data);
-      assertEquals(schemaResult.ok, true);
-    }
-  });
-
-  await t.step("should handle different schema formats", () => {
-    const formats: SchemaFormat[] = ["json", "yaml", "custom"];
-
-    for (const format of formats) {
-      const definition = { type: "object", format: format };
-      const schemaDefResult = SchemaDefinition.create(definition, format);
-
-      assertEquals(
-        schemaDefResult.ok,
-        true,
-        `Schema creation should succeed for format: ${format}`,
-      );
-
-      if (schemaDefResult.ok) {
-        assertEquals(schemaDefResult.data.getFormat(), format);
-
-        const schemaResult = Schema.create(
-          `test-${format}`,
-          schemaDefResult.data,
-        );
-        assertEquals(
-          schemaResult.ok,
-          true,
-          `Schema creation should succeed for format: ${format}`,
-        );
-      }
-    }
-  });
-
-  await t.step("should handle validation with various data types", () => {
-    const definition = { type: "object", allowsAny: true };
-    const schemaDefResult = SchemaDefinition.create(definition, "json");
-
-    if (!schemaDefResult.ok) return;
-
-    const schemaResult = Schema.create("flexible-schema", schemaDefResult.data);
-    if (!schemaResult.ok) return;
-
-    const schema = schemaResult.data;
-    const testCases = [
-      { data: "string", description: "string" },
-      { data: 42, description: "number" },
-      { data: true, description: "boolean" },
-      { data: [1, 2, 3], description: "array" },
-      { data: { key: "value" }, description: "object" },
-      { data: new Date(), description: "Date object" },
-      { data: /regex/, description: "RegExp object" },
-    ];
-
-    for (const testCase of testCases) {
-      const result = schema.validate(testCase.data);
-      assertEquals(
-        result.ok,
-        true,
-        `Validation should succeed for ${testCase.description}`,
-      );
+    if (result1.ok && result2.ok && result3.ok) {
+      assertEquals(result1.data.equals(result2.data), true);
+      assertEquals(result1.data.equals(result3.data), false);
     }
   });
 });

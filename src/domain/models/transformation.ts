@@ -1,7 +1,7 @@
 import type { DomainError, Result } from "../core/result.ts";
 import type { Document } from "./entities.ts";
 import type { Template } from "./entities.ts";
-import type { Schema } from "./domain-models.ts";
+import type { Schema } from "./entities.ts";
 
 export class ExtractedData {
   private constructor(

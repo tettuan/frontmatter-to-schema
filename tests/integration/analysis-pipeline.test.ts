@@ -11,8 +11,8 @@ import type { AnalysisContext } from "../../src/domain/core/types.ts";
 import {
   DocumentPath,
   type FrontMatterContent,
+  SchemaDefinition,
 } from "../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
 import { Registry } from "../../src/domain/core/registry.ts";
 import { AnalysisResult } from "../../src/domain/core/types.ts";
 import {
@@ -165,7 +165,7 @@ async function processMarkdownFile(
   const sourceFile = pathResult.data;
 
   // Step 4: Create Schema and validate
-  const schemaResult = SchemaDefinition.create(schema, "json");
+  const schemaResult = SchemaDefinition.create(schema, "1.0.0");
   if (!schemaResult.ok) {
     throw new Error(`Invalid schema: ${schemaResult.error.kind}`);
   }

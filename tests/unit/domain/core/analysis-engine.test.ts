@@ -12,8 +12,8 @@ import {
 import type { AnalysisContext } from "../../../../src/domain/core/types.ts";
 import {
   FrontMatterContent,
+  SchemaDefinition,
 } from "../../../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../../../src/domain/models/domain-models.ts";
 import {
   type AnalysisError,
   createDomainError,
@@ -28,7 +28,7 @@ const createTestFrontMatterContent = (data: Record<string, unknown>) => {
 };
 
 const createTestSchemaDefinition = (schema: unknown) => {
-  const result = SchemaDefinition.create(schema, "json");
+  const result = SchemaDefinition.create(schema, "1.0.0");
   if (!result.ok) throw new Error("Failed to create test SchemaDefinition");
   return result.data;
 };
@@ -414,7 +414,7 @@ Deno.test("ContextualAnalysisProcessor", async (t) => {
       document: "/test/sample.md",
       schema: {
         validate: (data: unknown) => ({ ok: true, data }),
-        schema: schema.getDefinition(),
+        schema: schema.getRawDefinition(),
       },
     };
 

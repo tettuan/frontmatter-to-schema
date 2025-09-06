@@ -9,9 +9,12 @@ import {
   DocumentContent,
   DocumentPath,
 } from "../domain/models/value-objects.ts";
+import { Schema, SchemaId } from "../domain/models/entities.ts";
 import {
-  Schema,
   SchemaDefinition,
+  SchemaVersion,
+} from "../domain/models/value-objects.ts";
+import {
   Template,
   TemplateDefinition,
 } from "../domain/models/domain-models.ts";
@@ -117,21 +120,35 @@ export class DocumentProcessor {
       };
     }
 
-    const schemaResult = Schema.create(
-      "main-schema",
-      definitionResult.data,
-    );
-    if (!schemaResult.ok) {
-      // Convert ValidationError to DomainError
+    const schemaIdResult = SchemaId.create("main-schema");
+    if (!schemaIdResult.ok) {
       return {
         ok: false,
         error: createProcessingStageError(
-          "schema creation",
-          schemaResult.error,
+          "schema ID creation",
+          schemaIdResult.error,
         ),
       };
     }
-    return schemaResult;
+
+    const schemaVersionResult = SchemaVersion.create("1.0.0");
+    if (!schemaVersionResult.ok) {
+      return {
+        ok: false,
+        error: createProcessingStageError(
+          "schema version creation",
+          schemaVersionResult.error,
+        ),
+      };
+    }
+
+    const schema = Schema.create(
+      schemaIdResult.data,
+      definitionResult.data,
+      schemaVersionResult.data,
+      "Main processing schema",
+    );
+    return { ok: true, data: schema };
   }
 
   private loadTemplate(
