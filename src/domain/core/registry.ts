@@ -110,11 +110,28 @@ export class Registry<T = unknown> {
   toObject(): Record<string, T> {
     const obj: Record<string, T> = {};
     for (const [key, result] of this.results) {
-      obj[key] = result.data ||
-        (result as { extractedData?: T }).extractedData ||
-        (result as unknown as T);
+      // Type-safe extraction of data
+      if (result.data !== undefined) {
+        obj[key] = result.data;
+      } else if (this.hasExtractedData(result)) {
+        obj[key] = result.extractedData;
+      }
+      // If neither data nor extractedData is present, skip this entry
+      // This follows totality principle - no unsafe fallback
     }
     return obj;
+  }
+
+  /**
+   * Type guard to check if result has extractedData property
+   */
+  private hasExtractedData(result: unknown): result is { extractedData: T } {
+    return (
+      typeof result === "object" &&
+      result !== null &&
+      "extractedData" in result &&
+      (result as { extractedData: unknown }).extractedData !== undefined
+    );
   }
 
   /**

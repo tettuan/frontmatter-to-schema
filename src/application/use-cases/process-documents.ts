@@ -416,36 +416,6 @@ export class ProcessDocumentsUseCase {
     };
   }
 
-  /**
-   * Check if a schema is a registry schema (contains tools.commands referencing another schema)
-   */
-  private isRegistrySchema(schemaDefinition: unknown): boolean {
-    if (!schemaDefinition || typeof schemaDefinition !== "object") {
-      return false;
-    }
-
-    const schema = schemaDefinition as Record<string, unknown>;
-    const properties = schema.properties as Record<string, unknown> | undefined;
-
-    if (!properties?.tools) {
-      return false;
-    }
-
-    const tools = properties.tools as Record<string, unknown>;
-    const toolsProperties = tools.properties as
-      | Record<string, unknown>
-      | undefined;
-
-    if (!toolsProperties?.commands) {
-      return false;
-    }
-
-    const commands = toolsProperties.commands as Record<string, unknown>;
-    const items = commands.items as Record<string, unknown> | undefined;
-
-    // Check if commands.items has a $ref (indicating it references another schema)
-    return items?.["$ref"] !== undefined;
-  }
 
   private async processDocument(
     document: Document,
@@ -519,35 +489,14 @@ export class ProcessDocumentsUseCase {
     // Analysis complete
 
     // Map to template
-
-    // Check if this is a registry schema - if so, use command data directly
     const schemaDefinition = schema.getDefinition().getRawDefinition();
-    const isRegistry = this.isRegistrySchema(schemaDefinition);
-
-    // Schema type detected
-
-    let mappedResult: Result<MappedData, DomainError & { message: string }>;
-
-    if (isRegistry) {
-      // For registry schemas, wrap the extracted command data directly
-      // The extracted data already contains c1, c2, c3, etc. fields
-      const commandData = extractedResult.data;
-      // Convert ExtractedData to plain object
-      const commandObject =
-        typeof commandData === "object" && commandData !== null
-          ? commandData as unknown as Record<string, unknown>
-          : {};
-      mappedResult = { ok: true, data: MappedData.create(commandObject) };
-
-      // Registry mode: using command data directly
-    } else {
-      // For non-registry schemas, apply the template normally
-      mappedResult = this.templateMapper.map(
-        extractedResult.data,
-        template,
-        { kind: "WithSchema", schema: schemaDefinition },
-      );
-    }
+    
+    // Apply template uniformly for all schemas
+    const mappedResult = this.templateMapper.map(
+      extractedResult.data,
+      template,
+      { kind: "WithSchema", schema: schemaDefinition },
+    );
 
     if (isError(mappedResult)) {
       if (verboseMode) {

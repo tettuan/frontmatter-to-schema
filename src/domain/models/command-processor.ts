@@ -631,26 +631,38 @@ export class CommandProcessor {
     template: Template,
   ): Result<Command, DomainError & { message: string }> {
     try {
-      // Apply template mapping to create command structure
-      const mappingResult = (template as unknown as {
-        substituteTemplateValues: (
-          arg1: unknown,
-          arg2: unknown,
-        ) => Result<unknown, DomainError>;
-      }).substituteTemplateValues({}, analyzedData) as Result<
-        unknown,
-        DomainError
-      >;
+      // Apply template mapping with type safety
+      if (!this.hasSubstituteMethod(template)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: "Template does not have substituteTemplateValues method",
+            expectedFormat: "Template with substituteTemplateValues method",
+          }),
+        };
+      }
+      
+      const mappingResult = template.substituteTemplateValues({}, analyzedData);
       if (!mappingResult.ok) {
-        return mappingResult as Result<
-          Command,
-          DomainError & { message: string }
-        >;
+        return {
+          ok: false,
+          error: mappingResult.error as DomainError & { message: string },
+        };
       }
 
-      const mappedData =
-        (mappingResult as { data: { getData: () => Record<string, unknown> } })
-          .data.getData();
+      // Extract data safely
+      const mappedData = this.extractMappedData(mappingResult.data);
+      if (!mappedData) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: "Unable to extract mapped data from template result",
+            expectedFormat: "MappedData with getData method or plain object",
+          }),
+        };
+      }
 
       // Create command using smart constructor
       const commandData: CommandCreationData = {
@@ -683,5 +695,44 @@ export class CommandProcessor {
         }),
       };
     }
+  }
+
+  /**
+   * Type guard to check if template has substituteTemplateValues method
+   */
+  private hasSubstituteMethod(
+    template: unknown
+  ): template is {
+    substituteTemplateValues: (
+      arg1: unknown,
+      arg2: unknown
+    ) => Result<unknown, DomainError>;
+  } {
+    return (
+      typeof template === "object" &&
+      template !== null &&
+      "substituteTemplateValues" in template &&
+      typeof (template as { substituteTemplateValues: unknown }).substituteTemplateValues === "function"
+    );
+  }
+
+  /**
+   * Safely extract mapped data from template result
+   */
+  private extractMappedData(data: unknown): Record<string, unknown> | null {
+    if (typeof data === "object" && data !== null) {
+      // Check if data has getData method
+      if ("getData" in data && typeof (data as { getData: unknown }).getData === "function") {
+        const result = (data as { getData: () => unknown }).getData();
+        if (typeof result === "object" && result !== null && !Array.isArray(result)) {
+          return result as Record<string, unknown>;
+        }
+      }
+      // If data is already a record, return it
+      if (!Array.isArray(data)) {
+        return data as Record<string, unknown>;
+      }
+    }
+    return null;
   }
 }
