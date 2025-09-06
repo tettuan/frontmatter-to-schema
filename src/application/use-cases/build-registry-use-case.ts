@@ -17,7 +17,6 @@ import { FrontMatter } from "../../domain/models/entities.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import { DEFAULT_VALUES, SCHEMA_IDS } from "../../domain/constants/index.ts";
-import { getSchemaConfigLoader } from "../../domain/config/schema-config-loader.ts";
 import { COMMAND_FIELD_METADATA } from "../../domain/constants/command-fields.ts";
 
 // Discriminated union for analyzer types following totality principle
@@ -102,7 +101,7 @@ export class BuildRegistryUseCase {
 
           case "SchemaAnalyzer": {
             // Create default CLI schema for registry building
-            const schemaResult = await this.createDefaultCliSchema();
+            const schemaResult = this.createDefaultCliSchema();
             if (!schemaResult.ok) {
               logger.error("Failed to create CLI schema", {
                 filename: promptFile.filename,
@@ -194,11 +193,9 @@ export class BuildRegistryUseCase {
    * Create a default schema for CLI registry building
    * This schema defines the expected structure for CLI prompt frontmatter
    */
-  private async createDefaultCliSchema(): Promise<
-    Result<
-      Schema,
-      DomainError & { message: string }
-    >
+  private createDefaultCliSchema(): Result<
+    Schema,
+    DomainError & { message: string }
   > {
     const schemaId = SchemaId.create(SCHEMA_IDS.CLI_REGISTRY);
     if (!schemaId.ok) {
