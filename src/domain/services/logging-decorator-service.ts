@@ -6,7 +6,7 @@
  * DDD principles and AI complexity control guidelines.
  */
 
-import { StructuredLogger } from "../shared/structured-logger.ts";
+import { StructuredLogger } from "../shared/logger.ts";
 
 /**
  * Logging context for structured messages
