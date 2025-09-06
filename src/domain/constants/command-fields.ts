@@ -1,9 +1,9 @@
 /**
  * Command Field Constants
- * 
+ *
  * Centralized definition of command field names to avoid hardcoding.
  * These constants should be used throughout the codebase instead of magic strings.
- * 
+ *
  * Following the AI-complexity-control and prohibit-hardcoding principles.
  */
 
@@ -12,9 +12,9 @@
  * These can be overridden by schema definitions
  */
 export const DEFAULT_COMMAND_FIELDS = {
-  DOMAIN: "c1",      // Domain/category component
-  ACTION: "c2",      // Action/directive component  
-  TARGET: "c3",      // Target/layer component
+  DOMAIN: "c1", // Domain/category component
+  ACTION: "c2", // Action/directive component
+  TARGET: "c3", // Target/layer component
   TITLE: "title",
   DESCRIPTION: "description",
   USAGE: "usage",
@@ -31,7 +31,7 @@ export const COMMAND_FIELD_METADATA = {
     required: true,
   },
   [DEFAULT_COMMAND_FIELDS.ACTION]: {
-    type: "string", 
+    type: "string",
     description: "Second command component (action/directive)",
     required: true,
   },
@@ -78,13 +78,13 @@ export function hasRequiredCommandFields(obj: unknown): boolean {
   if (typeof obj !== "object" || obj === null) {
     return false;
   }
-  
+
   const data = obj as Record<string, unknown>;
   const requiredFields = getRequiredCommandFields();
-  
-  return requiredFields.every(field => 
-    field in data && 
-    data[field] !== undefined && 
+
+  return requiredFields.every((field) =>
+    field in data &&
+    data[field] !== undefined &&
     data[field] !== null &&
     data[field] !== ""
   );

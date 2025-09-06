@@ -1,9 +1,9 @@
 /**
  * Schema-Driven Command Value Object
- * 
+ *
  * Implements schema-driven field extraction for commands,
  * eliminating hardcoded command structure (c1, c2, c3).
- * 
+ *
  * Following Totality principles with Result types and Smart Constructors.
  */
 
@@ -16,9 +16,9 @@ import { DEFAULT_COMMAND_FIELDS } from "../constants/command-fields.ts";
  * Maps logical field names to actual field names in data
  */
 export interface CommandFieldMapping {
-  domain: string;      // Maps to c1 or custom field
-  action: string;      // Maps to c2 or custom field  
-  target: string;      // Maps to c3 or custom field
+  domain: string; // Maps to c1 or custom field
+  action: string; // Maps to c2 or custom field
+  target: string; // Maps to c3 or custom field
   title?: string;
   description?: string;
   usage?: string;
@@ -41,7 +41,9 @@ const DEFAULT_FIELD_MAPPING: CommandFieldMapping = {
 /**
  * Extract field mapping from schema definition
  */
-export function extractFieldMappingFromSchema(schema: unknown): CommandFieldMapping {
+export function extractFieldMappingFromSchema(
+  schema: unknown,
+): CommandFieldMapping {
   // If no schema provided, use defaults
   if (!schema) {
     return DEFAULT_FIELD_MAPPING;
@@ -49,21 +51,33 @@ export function extractFieldMappingFromSchema(schema: unknown): CommandFieldMapp
 
   // Extract properties from schema
   if (typeof schema === "object" && schema !== null && "properties" in schema) {
-    const properties = (schema as { properties: Record<string, unknown> }).properties;
-    
+    const properties =
+      (schema as { properties: Record<string, unknown> }).properties;
+
     // Build mapping based on schema properties
     const mapping: CommandFieldMapping = { ...DEFAULT_FIELD_MAPPING };
-    
+
     // Look for command field indicators in property descriptions
     for (const [fieldName, fieldDef] of Object.entries(properties)) {
-      if (typeof fieldDef === "object" && fieldDef !== null && "description" in fieldDef) {
-        const description = String((fieldDef as { description: string }).description).toLowerCase();
-        
-        if (description.includes("domain") || description.includes("category")) {
+      if (
+        typeof fieldDef === "object" && fieldDef !== null &&
+        "description" in fieldDef
+      ) {
+        const description = String(
+          (fieldDef as { description: string }).description,
+        ).toLowerCase();
+
+        if (
+          description.includes("domain") || description.includes("category")
+        ) {
           mapping.domain = fieldName;
-        } else if (description.includes("action") || description.includes("directive")) {
+        } else if (
+          description.includes("action") || description.includes("directive")
+        ) {
           mapping.action = fieldName;
-        } else if (description.includes("target") || description.includes("layer")) {
+        } else if (
+          description.includes("target") || description.includes("layer")
+        ) {
           mapping.target = fieldName;
         } else if (description.includes("title")) {
           mapping.title = fieldName;
@@ -76,10 +90,10 @@ export function extractFieldMappingFromSchema(schema: unknown): CommandFieldMapp
         }
       }
     }
-    
+
     return mapping;
   }
-  
+
   return DEFAULT_FIELD_MAPPING;
 }
 
@@ -105,7 +119,11 @@ export class SchemaCommand {
       return {
         ok: false,
         error: createDomainError(
-          { kind: "InvalidFormat", input: String(data), expectedFormat: "object" },
+          {
+            kind: "InvalidFormat",
+            input: String(data),
+            expectedFormat: "object",
+          },
           "Command data must be an object",
         ),
       };
@@ -115,10 +133,14 @@ export class SchemaCommand {
     const fieldMapping = extractFieldMappingFromSchema(schema);
 
     // Validate required fields exist
-    const requiredFields = [fieldMapping.domain, fieldMapping.action, fieldMapping.target];
-    const missingFields = requiredFields.filter(field => 
-      !(field in commandData) || 
-      commandData[field] === undefined || 
+    const requiredFields = [
+      fieldMapping.domain,
+      fieldMapping.action,
+      fieldMapping.target,
+    ];
+    const missingFields = requiredFields.filter((field) =>
+      !(field in commandData) ||
+      commandData[field] === undefined ||
       commandData[field] === null ||
       commandData[field] === ""
     );
@@ -139,7 +161,11 @@ export class SchemaCommand {
         return {
           ok: false,
           error: createDomainError(
-            { kind: "InvalidFormat", input: String(commandData[field]), expectedFormat: "string" },
+            {
+              kind: "InvalidFormat",
+              input: String(commandData[field]),
+              expectedFormat: "string",
+            },
             `Command field ${field} must be a string`,
           ),
         };
@@ -152,14 +178,19 @@ export class SchemaCommand {
   /**
    * Create command from legacy c1, c2, c3 structure
    */
-  static fromLegacy(c1: string, c2: string, c3: string, additionalData?: Record<string, unknown>): Result<SchemaCommand, DomainError & { message: string }> {
+  static fromLegacy(
+    c1: string,
+    c2: string,
+    c3: string,
+    additionalData?: Record<string, unknown>,
+  ): Result<SchemaCommand, DomainError & { message: string }> {
     const data = {
       [DEFAULT_COMMAND_FIELDS.DOMAIN]: c1,
       [DEFAULT_COMMAND_FIELDS.ACTION]: c2,
       [DEFAULT_COMMAND_FIELDS.TARGET]: c3,
       ...additionalData,
     };
-    
+
     return SchemaCommand.create(data);
   }
 
@@ -198,7 +229,10 @@ export class SchemaCommand {
    * Get description if available
    */
   getDescription(): string | undefined {
-    if (this.fieldMapping.description && this.fieldMapping.description in this.data) {
+    if (
+      this.fieldMapping.description &&
+      this.fieldMapping.description in this.data
+    ) {
       return String(this.data[this.fieldMapping.description]);
     }
     return undefined;
@@ -275,7 +309,9 @@ export class SchemaCommand {
   /**
    * Check if command matches a pattern
    */
-  matches(pattern: { domain?: string; action?: string; target?: string }): boolean {
+  matches(
+    pattern: { domain?: string; action?: string; target?: string },
+  ): boolean {
     if (pattern.domain && this.getDomain() !== pattern.domain) {
       return false;
     }

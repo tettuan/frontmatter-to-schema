@@ -1,10 +1,12 @@
 # Frontmatter-to-Schema
 
-A Deno-based tool for extracting frontmatter from Markdown files and transforming it into structured schemas using AI-powered analysis.
+A Deno-based tool for extracting frontmatter from Markdown files and
+transforming it into structured schemas using AI-powered analysis.
 
 ## Features
 
-- **Intelligent Processing**: Advanced frontmatter extraction and schema generation
+- **Intelligent Processing**: Advanced frontmatter extraction and schema
+  generation
 - **Two-Stage Processing**: Extraction followed by template-based transformation
 - **Schema-Driven**: Define custom schemas for consistent data structures
 - **DDD Architecture**: Clean domain-driven design with clear boundaries
@@ -65,8 +67,8 @@ const processor = new FrontmatterProcessor({
   schema: {
     title: "string",
     tags: "array",
-    date: "date"
-  }
+    date: "date",
+  },
 });
 
 const result = await processor.process();
@@ -115,6 +117,7 @@ deno task example:articles
 ```
 
 Input markdown:
+
 ```markdown
 ---
 title: Getting Started
@@ -126,6 +129,7 @@ tags: [tutorial, beginner]
 ```
 
 Output JSON:
+
 ```json
 {
   "title": "Getting Started",
@@ -224,9 +228,9 @@ deno coverage coverage --lcov > coverage.lcov
 
 ```typescript
 class FrontmatterProcessor {
-  constructor(config: ProcessorConfig)
-  process(): Promise<Result<ProcessingResult, ProcessingError>>
-  validate(data: unknown): Result<ValidatedData, ValidationError>
+  constructor(config: ProcessorConfig);
+  process(): Promise<Result<ProcessingResult, ProcessingError>>;
+  validate(data: unknown): Result<ValidatedData, ValidationError>;
 }
 ```
 
@@ -234,25 +238,25 @@ class FrontmatterProcessor {
 
 ```typescript
 interface SchemaDefinition {
-  required?: string[]
-  properties: Record<string, PropertyDefinition>
-  additionalProperties?: boolean
+  required?: string[];
+  properties: Record<string, PropertyDefinition>;
+  additionalProperties?: boolean;
 }
 ```
 
 #### Result Type
 
 ```typescript
-type Result<T, E> = Ok<T> | Err<E>
+type Result<T, E> = Ok<T> | Err<E>;
 
 interface Ok<T> {
-  isOk(): true
-  value: T
+  isOk(): true;
+  value: T;
 }
 
 interface Err<E> {
-  isErr(): true
-  error: E
+  isErr(): true;
+  error: E;
 }
 ```
 
@@ -275,14 +279,14 @@ frontmatter-to-schema analyze    # Run AI analysis
 
 ## Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `input.directory` | string | `./docs` | Source directory |
-| `input.patterns` | string[] | `["**/*.md"]` | File patterns |
-| `output.format` | string | `json` | Output format |
-| `ai.enabled` | boolean | `true` | Enable AI analysis |
-| `ai.model` | string | `claude-3-sonnet` | AI model |
-| `schema.strict` | boolean | `false` | Strict validation |
+| Option            | Type     | Default           | Description        |
+| ----------------- | -------- | ----------------- | ------------------ |
+| `input.directory` | string   | `./docs`          | Source directory   |
+| `input.patterns`  | string[] | `["**/*.md"]`     | File patterns      |
+| `output.format`   | string   | `json`            | Output format      |
+| `ai.enabled`      | boolean  | `true`            | Enable AI analysis |
+| `ai.model`        | string   | `claude-3-sonnet` | AI model           |
+| `schema.strict`   | boolean  | `false`           | Strict validation  |
 
 ## Contributing
 
@@ -302,12 +306,14 @@ frontmatter-to-schema analyze    # Run AI analysis
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/yourusername/frontmatter-to-schema/issues)
+- Issues:
+  [GitHub Issues](https://github.com/yourusername/frontmatter-to-schema/issues)
 - Docs: [Documentation](./docs)
 - Examples: [Example Directory](./examples)
 
 ## Acknowledgments
 
 Built with:
+
 - [Deno](https://deno.land) - Runtime
 - [JSR](https://jsr.io) - Package Registry

@@ -121,13 +121,15 @@ export class ValidatedCommand {
 
     let command: TotalCommand;
     if (hasUsage && hasOptions) {
-      const optionsResult = CommandOptions.create(options as {
-        input?: string[];
-        adaptation?: string[];
-        input_file?: boolean[];
-        stdin?: boolean[];
-        destination?: boolean[];
-      });
+      const optionsResult = CommandOptions.create(
+        options as {
+          input?: string[];
+          adaptation?: string[];
+          input_file?: boolean[];
+          stdin?: boolean[];
+          destination?: boolean[];
+        },
+      );
       if (!optionsResult.ok) {
         return optionsResult;
       }
@@ -202,9 +204,9 @@ export class ValidatedCommand {
 // Note: These field names are preserved for backward compatibility only.
 // New code should use SchemaCommand for schema-driven field extraction.
 export interface LegacyCommand {
-  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string;  // c1
-  [DEFAULT_COMMAND_FIELDS.ACTION]: string;  // c2
-  [DEFAULT_COMMAND_FIELDS.TARGET]: string;  // c3
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string; // c1
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string; // c2
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string; // c3
   description: string;
   usage?: string;
   options?: {
@@ -489,9 +491,9 @@ export class TotalCommandStructure {
 
 // Legacy interface for backward compatibility
 export interface LegacyCommandStructure {
-  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string;  // c1
-  [DEFAULT_COMMAND_FIELDS.ACTION]: string;  // c2
-  [DEFAULT_COMMAND_FIELDS.TARGET]: string;  // c3
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string; // c1
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string; // c2
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string; // c3
   input: string;
   adaptation?: string;
 }

@@ -3,11 +3,14 @@
 ## ✅ Issue #505: Critical Prohibit-Hardcoding Regulations Violations - COMPLETED
 
 ### Summary
-Successfully eliminated all hardcoding violations and centralized configuration management according to prohibit-hardcoding regulations.
+
+Successfully eliminated all hardcoding violations and centralized configuration
+management according to prohibit-hardcoding regulations.
 
 ### Major Changes Implemented
 
 #### 1. Constants Centralization
+
 - Created `src/domain/constants/index.ts` with centralized constants for:
   - Error kinds
   - Schema types
@@ -17,22 +20,27 @@ Successfully eliminated all hardcoding violations and centralized configuration 
   - Output formats
 
 #### 2. Environment Configuration Management
+
 - Created `src/domain/config/environment-config.ts`
 - Centralized all environment variable access
 - Added caching mechanism for performance
 - Replaced all direct `Deno.env.get()` calls
 
 #### 3. Schema Externalization
+
 - Created `configs/schemas/cli-registry.json` for CLI schema definition
-- Created `src/domain/config/schema-config-loader.ts` for loading external schemas
+- Created `src/domain/config/schema-config-loader.ts` for loading external
+  schemas
 - Removed hardcoded schema definition from code
 
 #### 4. Magic String Elimination
+
 - Replaced all "FileNotFound", "ReadError", "NotPresent" strings with constants
 - Replaced hardcoded version "1.0.0" with DEFAULT_VALUES constant
 - Replaced file pattern "\\.md$" with FILE_PATTERNS constant
 
 ### Files Modified
+
 - `src/application/use-cases/build-registry-use-case.ts`
 - `src/application/use-cases/process-documents.ts`
 - `src/domain/shared/verbose-logger.ts`
@@ -44,6 +52,7 @@ Successfully eliminated all hardcoding violations and centralized configuration 
 - `tests/unit/domain/shared/verbose-logger_test.ts`
 
 ### Test Results
+
 - ✅ All 347 tests passing
 - ✅ CI pipeline: All 5 stages passing
 - ✅ Type check: Passed
@@ -52,14 +61,18 @@ Successfully eliminated all hardcoding violations and centralized configuration 
 - ✅ Format check: Passed
 
 ### Compliance with Prohibit-Hardcoding Regulations
+
 - ✅ 第3条第2項: Environment values now managed centrally
 - ✅ 第3条第3項: Magic numbers/strings eliminated
 - ✅ 第3条第4項: Configuration values externalized to files
 - ✅ 第4条: Following proper management methods
 
 ### Next Steps
-The codebase now follows prohibit-hardcoding regulations with proper configuration management, constants centralization, and environment variable handling.
+
+The codebase now follows prohibit-hardcoding regulations with proper
+configuration management, constants centralization, and environment variable
+handling.
 
 ---
-*Timestamp: 2025-09-06*
-*Branch: fix/hardcoding-violations-505*
+
+_Timestamp: 2025-09-06_ _Branch: fix/hardcoding-violations-505_
