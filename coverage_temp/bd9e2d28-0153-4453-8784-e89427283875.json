@@ -1,0 +1,87 @@
+{
+  "scriptId": "326",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/cli.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 22113, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "printUsage",
+      "ranges": [{ "startOffset": 1690, "endOffset": 3331, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "loadPromptTemplates",
+      "ranges": [
+        { "startOffset": 3339, "endOffset": 4010, "count": 1 },
+        { "startOffset": 3621, "endOffset": 4008, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "executeTwoStageProcessing",
+      "ranges": [{ "startOffset": 4060, "endOffset": 8362, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "main",
+      "ranges": [
+        { "startOffset": 8370, "endOffset": 22076, "count": 1 },
+        { "startOffset": 8724, "endOffset": 8848, "count": 0 },
+        { "startOffset": 9097, "endOffset": 9383, "count": 0 },
+        { "startOffset": 9736, "endOffset": 9793, "count": 0 },
+        { "startOffset": 9941, "endOffset": 9955, "count": 0 },
+        { "startOffset": 10126, "endOffset": 10159, "count": 0 },
+        { "startOffset": 10161, "endOffset": 10285, "count": 0 },
+        { "startOffset": 10414, "endOffset": 10561, "count": 0 },
+        { "startOffset": 10565, "endOffset": 11401, "count": 0 },
+        { "startOffset": 11751, "endOffset": 12302, "count": 0 },
+        { "startOffset": 12435, "endOffset": 12448, "count": 0 },
+        { "startOffset": 12450, "endOffset": 13735, "count": 0 },
+        { "startOffset": 13998, "endOffset": 14011, "count": 0 },
+        { "startOffset": 14673, "endOffset": 14715, "count": 0 },
+        { "startOffset": 14831, "endOffset": 14839, "count": 0 },
+        { "startOffset": 15252, "endOffset": 15848, "count": 0 },
+        { "startOffset": 15897, "endOffset": 15949, "count": 0 },
+        { "startOffset": 17939, "endOffset": 18105, "count": 0 },
+        { "startOffset": 18167, "endOffset": 18222, "count": 0 },
+        { "startOffset": 18294, "endOffset": 18361, "count": 0 },
+        { "startOffset": 18422, "endOffset": 18485, "count": 0 },
+        { "startOffset": 18617, "endOffset": 18689, "count": 0 },
+        { "startOffset": 18930, "endOffset": 19492, "count": 0 },
+        { "startOffset": 19667, "endOffset": 19755, "count": 0 },
+        { "startOffset": 20296, "endOffset": 20514, "count": 0 },
+        { "startOffset": 21032, "endOffset": 21059, "count": 0 },
+        { "startOffset": 21061, "endOffset": 21344, "count": 0 },
+        { "startOffset": 21350, "endOffset": 21978, "count": 0 },
+        { "startOffset": 21983, "endOffset": 22074, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 8508, "endOffset": 8710, "count": 4 },
+        { "startOffset": 8548, "endOffset": 8568, "count": 3 },
+        { "startOffset": 8570, "endOffset": 8686, "count": 3 },
+        { "startOffset": 8686, "endOffset": 8709, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "map",
+      "ranges": [
+        { "startOffset": 16514, "endOffset": 17395, "count": 2 },
+        { "startOffset": 16890, "endOffset": 17387, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mapWithOrchestrator",
+      "ranges": [{ "startOffset": 17403, "endOffset": 17847, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

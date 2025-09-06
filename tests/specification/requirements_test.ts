@@ -109,14 +109,14 @@ describe("Business Requirement 2: Map analyzed results to template format using 
 });
 
 describe("Business Requirement 3: TypeScript structured processing through domain architecture", () => {
-  it("should implement two-stage processing architecture", () => {
-    // Business requirement: System must support two-stage analysis
-    // Stage 1: Information extraction with schema validation
-    // Stage 2: Template mapping with business logic
+  it("should implement processing architecture", () => {
+    // Business requirement: System must support analysis pipeline
+    // - Information extraction with schema validation
+    // - Template mapping with business logic
 
     const processStages = ["extraction", "mapping"];
 
-    // Verify both processing stages are conceptually present
+    // Verify processing stages are conceptually present
     assertEquals(processStages.includes("extraction"), true);
     assertEquals(processStages.includes("mapping"), true);
     assertEquals(processStages.length, 2);

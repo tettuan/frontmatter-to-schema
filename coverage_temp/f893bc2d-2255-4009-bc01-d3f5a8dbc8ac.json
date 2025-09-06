@@ -1,0 +1,51 @@
+{
+  "scriptId": "338",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/test-helpers/mock-factories.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3546, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createMockDocument",
+      "ranges": [{ "startOffset": 361, "endOffset": 972, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createMockSchema",
+      "ranges": [
+        { "startOffset": 1025, "endOffset": 1900, "count": 9 },
+        { "startOffset": 1121, "endOffset": 1217, "count": 0 },
+        { "startOffset": 1526, "endOffset": 1632, "count": 0 },
+        { "startOffset": 1701, "endOffset": 1801, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createMockTemplate",
+      "ranges": [
+        { "startOffset": 1955, "endOffset": 2636, "count": 9 },
+        { "startOffset": 2059, "endOffset": 2159, "count": 0 },
+        { "startOffset": 2271, "endOffset": 2371, "count": 0 },
+        { "startOffset": 2503, "endOffset": 2604, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createMockFrontMatter",
+      "ranges": [{ "startOffset": 2706, "endOffset": 2857, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createMockFrontMatterWithMissingFields",
+      "ranges": [{ "startOffset": 2957, "endOffset": 3293, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createMockFrontMatterWithInvalidTypes",
+      "ranges": [{ "startOffset": 3376, "endOffset": 3545, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

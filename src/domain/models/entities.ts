@@ -382,6 +382,22 @@ export class Schema {
       error: result.error,
     };
   }
+
+  /**
+   * Get all properties defined in the schema
+   * Proxy method to SchemaDefinition.getProperties()
+   */
+  getProperties(): Record<string, unknown> {
+    return this.definition.getProperties();
+  }
+
+  /**
+   * Get list of required fields from the schema
+   * Proxy method to SchemaDefinition.getRequiredFields()
+   */
+  getRequiredFields(): string[] {
+    return this.definition.getRequiredFields();
+  }
 }
 
 export class Template {

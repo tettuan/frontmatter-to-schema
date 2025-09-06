@@ -1,0 +1,42 @@
+{
+  "scriptId": "338",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/mocks/schema-analyzer-mock.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1204, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 166, "endOffset": 211, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setAnalysisResult",
+      "ranges": [{ "startOffset": 281, "endOffset": 395, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setAnalysisError",
+      "ranges": [{ "startOffset": 462, "endOffset": 555, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 558, "endOffset": 1090, "count": 14 },
+        { "startOffset": 645, "endOffset": 746, "count": 1 },
+        { "startOffset": 746, "endOffset": 804, "count": 13 },
+        { "startOffset": 804, "endOffset": 904, "count": 0 },
+        { "startOffset": 904, "endOffset": 1089, "count": 13 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "reset",
+      "ranges": [{ "startOffset": 1125, "endOffset": 1201, "count": 14 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

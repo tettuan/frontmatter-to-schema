@@ -3,6 +3,8 @@
   "description": "{description}",
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
-    "commands": []
+    "commands": {
+      "$includeArray": "registry_command_template.json"
+    }
   }
 }
