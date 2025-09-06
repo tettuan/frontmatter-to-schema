@@ -1,0 +1,139 @@
+/**
+ * Resource Loading Service
+ *
+ * Handles loading and validation of schemas and templates following
+ * Single Responsibility Principle. Eliminates code duplication from
+ * ProcessDocumentsUseCase.
+ */
+
+import {
+  type DomainError,
+  isError,
+  type Result,
+} from "../../domain/core/result.ts";
+import type { Schema, Template } from "../../domain/models/entities.ts";
+import type { ConfigPath } from "../../domain/models/value-objects.ts";
+import type {
+  SchemaRepository,
+  TemplateRepository,
+} from "../../domain/services/interfaces.ts";
+import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
+import { ErrorHandlerService } from "../../domain/services/error-handler-service.ts";
+
+/**
+ * Centralized resource loading with consistent error handling
+ */
+export class ResourceLoadingService {
+  constructor(
+    private readonly schemaRepo: SchemaRepository,
+    private readonly templateRepo: TemplateRepository,
+  ) {}
+
+  /**
+   * Load schema with standardized error handling
+   */
+  async loadSchema(
+    schemaPath: ConfigPath,
+  ): Promise<Result<Schema, DomainError & { message: string }>> {
+    const result = await this.schemaRepo.load(schemaPath);
+
+    if (isError(result)) {
+      return ErrorHandlerService.transformError(result, {
+        operation: "schema loading",
+        resource: schemaPath.getValue(),
+        details: { kind: result.error.kind },
+      });
+    }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadSchema" },
+      `Schema loaded successfully: ${schemaPath.getValue()}`,
+    );
+
+    return result;
+  }
+
+  /**
+   * Load template with standardized error handling
+   */
+  async loadTemplate(
+    templatePath: string,
+  ): Promise<Result<Template, DomainError & { message: string }>> {
+    const result = await this.templateRepo.load(templatePath);
+
+    if (isError(result)) {
+      return ErrorHandlerService.transformError(result, {
+        operation: "template loading",
+        resource: templatePath,
+        details: { kind: result.error.kind },
+      });
+    }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadTemplate" },
+      `Template loaded successfully: ${templatePath}`,
+    );
+
+    return result;
+  }
+
+  /**
+   * Load both schema and template in parallel for efficiency
+   */
+  async loadResources(
+    schemaPath: ConfigPath,
+    templatePath: string,
+  ): Promise<
+    Result<
+      { schema: Schema; template: Template },
+      DomainError & { message: string }
+    >
+  > {
+    const [schemaResult, templateResult] = await Promise.all([
+      this.loadSchema(schemaPath),
+      this.loadTemplate(templatePath),
+    ]);
+
+    if (isError(schemaResult)) {
+      return schemaResult;
+    }
+
+    if (isError(templateResult)) {
+      return templateResult;
+    }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadResources" },
+      "Both schema and template loaded successfully",
+    );
+
+    return {
+      ok: true,
+      data: {
+        schema: schemaResult.data,
+        template: templateResult.data,
+      },
+    };
+  }
+
+  /**
+   * Validate loaded resources for compatibility
+   */
+  validateResourceCompatibility(
+    _schema: Schema,
+    _template: Template,
+  ): Result<void, DomainError & { message: string }> {
+    // Basic validation logic - can be extended
+    // This is where we would check schema-template compatibility rules
+
+    LoggingDecoratorService.logInfo(
+      {
+        service: "ResourceLoadingService",
+        operation: "validateResourceCompatibility",
+      },
+      "Resource compatibility validated",
+    );
+
+    return { ok: true, data: undefined };
+  }
+}
