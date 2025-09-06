@@ -1,402 +1,402 @@
-<!DOCTYPE html>
-<html lang="en-US">
-  <head>
-    <meta charset="utf-8">
-    <title>Coverage report for src/domain/services/schema-validator.ts</title>
-    <style>
-      /* Copyright 2015 the Istanbul contributors. All rights reserved. ISC license. */
-      /* Copyright 2018-2023 the Deno authors. All rights reserved. MIT license. */
+<!doctype html>
+      <html lang='en-US'>
+        
+      <head>
+        <meta charset='utf-8'>
+        <title>Coverage report for src/domain/services/schema-validator.ts</title>
+        <style>/* Copyright 2015 the Istanbul contributors. All rights reserved. ISC license. */
+/* Copyright 2018-2023 the Deno authors. All rights reserved. MIT license. */
 
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-      }
-      body {
-        color-scheme: light dark;
-        font-family: Helvetica Neue, Helvetica, Arial;
-        font-size: 14px;
-        color: light-dark(#333, #ddd);
-        background-color: light-dark(white, #111);
-      }
-      .small {
-        font-size: 12px;
-      }
-      *,
-      *:after,
-      *:before {
-        box-sizing: border-box;
-      }
-      h1 {
-        font-size: 20px;
-        margin: 0;
-      }
-      h2 {
-        font-size: 14px;
-      }
-      pre {
-        font: 12px/1.4 Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        margin: 0;
-        padding: 0;
-        tab-size: 2;
-      }
-      a {
-        color: light-dark(#0074d9, #3ba3ff);
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
-      .strong {
-        font-weight: bold;
-      }
-      .space-top1 {
-        padding: 10px 0 0 0;
-      }
-      .pad2y {
-        padding: 20px 0;
-      }
-      .pad1y {
-        padding: 10px 0;
-      }
-      .pad2x {
-        padding: 0 20px;
-      }
-      .pad2 {
-        padding: 20px;
-      }
-      .pad1 {
-        padding: 10px;
-      }
-      .space-left2 {
-        padding-left: 55px;
-      }
-      .space-right2 {
-        padding-right: 20px;
-      }
-      .center {
-        text-align: center;
-      }
-      .clearfix {
-        display: block;
-      }
-      .clearfix:after {
-        content: "";
-        display: block;
-        height: 0;
-        clear: both;
-        visibility: hidden;
-      }
-      .fl {
-        float: left;
-      }
-      @media only screen and (max-width: 640px) {
-        .col3 {
-          width: 100%;
-          max-width: 100%;
-        }
-        .hide-mobile {
-          display: none !important;
-        }
-      }
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  color-scheme: light dark;
+  font-family:
+    Helvetica Neue,
+    Helvetica,
+    Arial;
+  font-size: 14px;
+  color: light-dark(#333, #ddd);
+  background-color: light-dark(white, #111);
+}
+.small {
+  font-size: 12px;
+}
+*,
+*:after,
+*:before {
+  box-sizing: border-box;
+}
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+h2 {
+  font-size: 14px;
+}
+pre {
+  font:
+    12px/1.4 Consolas,
+    "Liberation Mono",
+    Menlo,
+    Courier,
+    monospace;
+  margin: 0;
+  padding: 0;
+  tab-size: 2;
+}
+a {
+  color: light-dark(#0074d9, #3ba3ff);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.strong {
+  font-weight: bold;
+}
+.space-top1 {
+  padding: 10px 0 0 0;
+}
+.pad2y {
+  padding: 20px 0;
+}
+.pad1y {
+  padding: 10px 0;
+}
+.pad2x {
+  padding: 0 20px;
+}
+.pad2 {
+  padding: 20px;
+}
+.pad1 {
+  padding: 10px;
+}
+.space-left2 {
+  padding-left: 55px;
+}
+.space-right2 {
+  padding-right: 20px;
+}
+.center {
+  text-align: center;
+}
+.clearfix {
+  display: block;
+}
+.clearfix:after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.fl {
+  float: left;
+}
+@media only screen and (max-width: 640px) {
+  .col3 {
+    width: 100%;
+    max-width: 100%;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+}
 
-      .quiet {
-        color: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
-      }
-      .quiet a {
-        opacity: 0.7;
-      }
+.quiet {
+  color: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
+}
+.quiet a {
+  opacity: 0.7;
+}
 
-      .fraction {
-        font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        font-size: 10px;
-        color: light-dark(#555, #bbb);
-        background: light-dark(#e8e8e8, #171717);
-        padding: 4px 5px;
-        border-radius: 3px;
-        vertical-align: middle;
-      }
+.fraction {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 10px;
+  color: light-dark(#555, #bbb);
+  background: light-dark(#e8e8e8, #171717);
+  padding: 4px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
 
-      div.path a:link,
-      div.path a:visited {
-        color: light-dark(#333, #ddd);
-      }
-      table.coverage {
-        border-collapse: collapse;
-        margin: 10px 0 0 0;
-        padding: 0;
-      }
+div.path a:link,
+div.path a:visited {
+  color: light-dark(#333, #ddd);
+}
+table.coverage {
+  border-collapse: collapse;
+  margin: 10px 0 0 0;
+  padding: 0;
+}
 
-      table.coverage td {
-        margin: 0;
-        padding: 0;
-        vertical-align: top;
-      }
-      table.coverage td.line-count {
-        text-align: right;
-        padding: 0 5px 0 20px;
-      }
-      table.coverage td.line-coverage {
-        text-align: right;
-        padding-right: 4px;
-        min-width: 20px;
-      }
+table.coverage td {
+  margin: 0;
+  padding: 0;
+  vertical-align: top;
+}
+table.coverage td.line-count {
+  text-align: right;
+  padding: 0 5px 0 20px;
+}
+table.coverage td.line-coverage {
+  text-align: right;
+  padding-right: 4px;
+  min-width: 20px;
+}
 
-      table.coverage td.branch-coverage {
-        text-align: right;
-        padding-right: 3px;
-        min-width: 8px;
-      }
+table.coverage td.branch-coverage {
+  text-align: right;
+  padding-right: 3px;
+  min-width: 8px;
+}
 
-      table.coverage td span.cline-any {
-        display: inline-block;
-        padding: 0 5px;
-        width: 100%;
-      }
-      .missing-if-branch {
-        display: inline-block;
-        margin-right: 5px;
-        border-radius: 3px;
-        position: relative;
-        padding: 0 4px;
-        background: light-dark(#333, #ddd);
-        color: light-dark(yellow, #cc0);
-      }
+table.coverage td span.cline-any {
+  display: inline-block;
+  padding: 0 5px;
+  width: 100%;
+}
+.missing-if-branch {
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 3px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#333, #ddd);
+  color: light-dark(yellow, #cc0);
+}
 
-      .skip-if-branch {
-        display: none;
-        margin-right: 10px;
-        position: relative;
-        padding: 0 4px;
-        background: light-dark(#ccc, #333);
-        color: light-dark(white, black);
-      }
-      .missing-if-branch .typ,
-      .skip-if-branch .typ {
-        color: inherit !important;
-      }
-      .coverage-summary {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      .coverage-summary tr {
-        border-bottom: 1px solid light-dark(#bbb, #444);
-      }
-      .keyline-all {
-        border: 1px solid light-dark(#ddd, #222);
-      }
-      .coverage-summary td,
-      .coverage-summary th {
-        padding: 10px;
-      }
-      .coverage-summary tbody {
-        border: 1px solid light-dark(#bbb, #444);
-      }
-      .coverage-summary td {
-        border-right: 1px solid light-dark(#bbb, #444);
-      }
-      .coverage-summary td:last-child {
-        border-right: none;
-      }
-      .coverage-summary th {
-        text-align: left;
-        font-weight: normal;
-        white-space: nowrap;
-      }
-      .coverage-summary th.file {
-        border-right: none !important;
-      }
-      .coverage-summary th.pic,
-      .coverage-summary th.abs,
-      .coverage-summary td.pct,
-      .coverage-summary td.abs {
-        text-align: right;
-      }
-      .coverage-summary td.file {
-        white-space: nowrap;
-      }
-      .coverage-summary td.pic {
-        min-width: 120px !important;
-      }
+.skip-if-branch {
+  display: none;
+  margin-right: 10px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#ccc, #333);
+  color: light-dark(white, black);
+}
+.missing-if-branch .typ,
+.skip-if-branch .typ {
+  color: inherit !important;
+}
+.coverage-summary {
+  border-collapse: collapse;
+  width: 100%;
+}
+.coverage-summary tr {
+  border-bottom: 1px solid light-dark(#bbb, #444);
+}
+.keyline-all {
+  border: 1px solid light-dark(#ddd, #222);
+}
+.coverage-summary td,
+.coverage-summary th {
+  padding: 10px;
+}
+.coverage-summary tbody {
+  border: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td {
+  border-right: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td:last-child {
+  border-right: none;
+}
+.coverage-summary th {
+  text-align: left;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.coverage-summary th.file {
+  border-right: none !important;
+}
+.coverage-summary th.pic,
+.coverage-summary th.abs,
+.coverage-summary td.pct,
+.coverage-summary td.abs {
+  text-align: right;
+}
+.coverage-summary td.file {
+  white-space: nowrap;
+}
+.coverage-summary td.pic {
+  min-width: 120px !important;
+}
 
-      .coverage-summary .sorter {
-        height: 10px;
-        width: 7px;
-        display: inline-block;
-        margin-left: 0.5em;
-        background: url(sort-arrow-sprite.png) no-repeat scroll 0 0
-          transparent;
-      }
-      .coverage-summary .sorted .sorter {
-        background-position: 0 -20px;
-      }
-      .coverage-summary .sorted-desc .sorter {
-        background-position: 0 -10px;
-      }
-      .status-line {
-        height: 10px;
-      }
-      /* yellow */
-      .cbranch-no {
-        background: light-dark(yellow, #cc0) !important;
-        color: #111;
-      }
-      /* dark red */
-      .red.solid,
-      .status-line.low,
-      .low .cover-fill {
-        background: light-dark(#c21f39, #a5162e);
-      }
-      .low .chart {
-        border: 1px solid light-dark(#c21f39, #a5162e);
-      }
-      .highlighted,
-      .highlighted .cstat-no,
-      .highlighted .fstat-no,
-      .highlighted .cbranch-no {
-        background: light-dark(#c21f39, #a5162e) !important;
-      }
-      /* medium red */
-      .cstat-no,
-      .fstat-no,
-      .cbranch-no,
-      .cbranch-no {
-        background: light-dark(#f6c6ce, #553339);
-      }
-      /* light red */
-      .low,
-      .cline-no {
-        background: light-dark(#fce1e5, #2e2023);
-      }
-      /* light green */
-      .high,
-      .cline-yes {
-        background: light-dark(#e6f5d0, #25291f);
-      }
-      /* medium green */
-      .cstat-yes {
-        background: light-dark(#a1d76a, #293b18);
-      }
-      /* dark green */
-      .status-line.high,
-      .high .cover-fill {
-        background: light-dark(#4d9221, #2a5211);
-      }
-      .high .chart {
-        border: 1px solid light-dark(#4d9221, #2a5211);
-      }
-      /* dark yellow (gold) */
-      .status-line.medium,
-      .medium .cover-fill {
-        background: light-dark(#f9cd0b, #b09107);
-      }
-      .medium .chart {
-        border: 1px solid light-dark(#f9cd0b, #b09107);
-      }
-      /* light yellow */
-      .medium {
-        background: light-dark(#fff4c2, #4a432a);
-      }
+.coverage-summary .sorter {
+  height: 10px;
+  width: 7px;
+  display: inline-block;
+  margin-left: 0.5em;
+  background: url(sort-arrow-sprite.png) no-repeat scroll 0 0 transparent;
+}
+.coverage-summary .sorted .sorter {
+  background-position: 0 -20px;
+}
+.coverage-summary .sorted-desc .sorter {
+  background-position: 0 -10px;
+}
+.status-line {
+  height: 10px;
+}
+/* yellow */
+.cbranch-no {
+  background: light-dark(yellow, #cc0) !important;
+  color: #111;
+}
+/* dark red */
+.red.solid,
+.status-line.low,
+.low .cover-fill {
+  background: light-dark(#c21f39, #a5162e);
+}
+.low .chart {
+  border: 1px solid light-dark(#c21f39, #a5162e);
+}
+.highlighted,
+.highlighted .cstat-no,
+.highlighted .fstat-no,
+.highlighted .cbranch-no {
+  background: light-dark(#c21f39, #a5162e) !important;
+}
+/* medium red */
+.cstat-no,
+.fstat-no,
+.cbranch-no,
+.cbranch-no {
+  background: light-dark(#f6c6ce, #553339);
+}
+/* light red */
+.low,
+.cline-no {
+  background: light-dark(#fce1e5, #2e2023);
+}
+/* light green */
+.high,
+.cline-yes {
+  background: light-dark(#e6f5d0, #25291f);
+}
+/* medium green */
+.cstat-yes {
+  background: light-dark(#a1d76a, #293b18);
+}
+/* dark green */
+.status-line.high,
+.high .cover-fill {
+  background: light-dark(#4d9221, #2a5211);
+}
+.high .chart {
+  border: 1px solid light-dark(#4d9221, #2a5211);
+}
+/* dark yellow (gold) */
+.status-line.medium,
+.medium .cover-fill {
+  background: light-dark(#f9cd0b, #b09107);
+}
+.medium .chart {
+  border: 1px solid light-dark(#f9cd0b, #b09107);
+}
+/* light yellow */
+.medium {
+  background: light-dark(#fff4c2, #4a432a);
+}
 
-      .cstat-skip {
-        background: light-dark(#ddd, #222);
-        color: light-dark(#111, #eee);
-      }
-      .fstat-skip {
-        background: light-dark(#ddd, #222);
-        color: light-dark(#111, #eee) !important;
-      }
-      .cbranch-skip {
-        background: light-dark(#ddd, #222) !important;
-        color: light-dark(#111, #eee);
-      }
+.cstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+}
+.fstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee) !important;
+}
+.cbranch-skip {
+  background: light-dark(#ddd, #222) !important;
+  color: light-dark(#111, #eee);
+}
 
-      span.cline-neutral {
-        background: light-dark(#eaeaea, #141414);
-      }
+span.cline-neutral {
+  background: light-dark(#eaeaea, #141414);
+}
 
-      .coverage-summary td.empty {
-        opacity: 0.5;
-        padding-top: 4px;
-        padding-bottom: 4px;
-        line-height: 1;
-        color: light-dark(#888, #999);
-      }
+.coverage-summary td.empty {
+  opacity: 0.5;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1;
+  color: light-dark(#888, #999);
+}
 
-      .cover-fill,
-      .cover-empty {
-        display: inline-block;
-        height: 12px;
-      }
-      .chart {
-        line-height: 0;
-      }
-      .cover-empty {
-        background: light-dark(white, black);
-      }
-      .cover-full {
-        border-right: none !important;
-      }
-      pre.prettyprint {
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .com {
-        color: light-dark(#999, #666) !important;
-      }
-      .ignore-none {
-        color: light-dark(#999, #666);
-        font-weight: normal;
-      }
+.cover-fill,
+.cover-empty {
+  display: inline-block;
+  height: 12px;
+}
+.chart {
+  line-height: 0;
+}
+.cover-empty {
+  background: light-dark(white, black);
+}
+.cover-full {
+  border-right: none !important;
+}
+pre.prettyprint {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.com {
+  color: light-dark(#999, #666) !important;
+}
+.ignore-none {
+  color: light-dark(#999, #666);
+  font-weight: normal;
+}
 
-      .wrapper {
-        min-height: 100%;
-        height: auto !important;
-        height: 100%;
-        margin: 0 auto -48px;
-      }
-      .footer,
-      .push {
-        height: 48px;
-      }
-      .overflow-auto {
-        overflow: auto;
-      }
-    </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="pad1">
-        <h1>
-          <a href="../../../index.html">All files</a> / <a
-            href="../../../src/index.html"
-          >src</a> / <a href="../../domain/index.html">domain</a> / <a
-            href="../services/index.html"
-          >services</a> / schema-validator.ts
-        </h1>
-        <div class="clearfix">
-          <div class="fl pad1y space-right2">
-            <span class="strong">88.89%</span>
-            <span class="quiet">Branches</span>
-            <span class="fraction">48/54</span>
+.wrapper {
+  min-height: 100%;
+  height: auto !important;
+  height: 100%;
+  margin: 0 auto -48px;
+}
+.footer,
+.push {
+  height: 48px;
+}
+.overflow-auto {
+  overflow: auto;
+}
+</style>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+      </head>
+        <body>
+          <div class='wrapper'>
+            
+      <div class='pad1'>
+        <h1><a href='../../../index.html'>All files</a> / <a href='../../../src/index.html'>src</a> / <a href='../../domain/index.html'>domain</a> / <a href='../services/index.html'>services</a> / schema-validator.ts</h1>
+        <div class='clearfix'>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>89.29%</span>
+            <span class='quiet'>Branches</span>
+            <span class='fraction'>50/56</span>
           </div>
-          <div class="fl pad1y space-right2">
-            <span class="strong">77.01%</span>
-            <span class="quiet">Lines</span>
-            <span class="fraction">144/187</span>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>81.30%</span>
+            <span class='quiet'>Lines</span>
+            <span class='fraction'>187/230</span>
           </div>
         </div>
       </div>
-      <div class="status-line medium"></div>
-      <div class="pad1 overflow-auto">
-        <table class="coverage">
-          <tr>
-            <td class="line-count quiet">
-              <pre>
-<a href='#L1' id='L1'>1</a>
+      <div class='status-line high'></div>
+            <div class='pad1 overflow-auto'>
+              <table class='coverage'>
+        <tr>
+          <td class='line-count quiet'><pre><a href='#L1' id='L1'>1</a>
 <a href='#L2' id='L2'>2</a>
 <a href='#L3' id='L3'>3</a>
 <a href='#L4' id='L4'>4</a>
@@ -634,10 +634,114 @@
 <a href='#L236' id='L236'>236</a>
 <a href='#L237' id='L237'>237</a>
 <a href='#L238' id='L238'>238</a>
-<a href='#L239' id='L239'>239</a></pre>
-            </td>
-            <td class="line-coverage quiet">
-              <pre>
+<a href='#L239' id='L239'>239</a>
+<a href='#L240' id='L240'>240</a>
+<a href='#L241' id='L241'>241</a>
+<a href='#L242' id='L242'>242</a>
+<a href='#L243' id='L243'>243</a>
+<a href='#L244' id='L244'>244</a>
+<a href='#L245' id='L245'>245</a>
+<a href='#L246' id='L246'>246</a>
+<a href='#L247' id='L247'>247</a>
+<a href='#L248' id='L248'>248</a>
+<a href='#L249' id='L249'>249</a>
+<a href='#L250' id='L250'>250</a>
+<a href='#L251' id='L251'>251</a>
+<a href='#L252' id='L252'>252</a>
+<a href='#L253' id='L253'>253</a>
+<a href='#L254' id='L254'>254</a>
+<a href='#L255' id='L255'>255</a>
+<a href='#L256' id='L256'>256</a>
+<a href='#L257' id='L257'>257</a>
+<a href='#L258' id='L258'>258</a>
+<a href='#L259' id='L259'>259</a>
+<a href='#L260' id='L260'>260</a>
+<a href='#L261' id='L261'>261</a>
+<a href='#L262' id='L262'>262</a>
+<a href='#L263' id='L263'>263</a>
+<a href='#L264' id='L264'>264</a>
+<a href='#L265' id='L265'>265</a>
+<a href='#L266' id='L266'>266</a>
+<a href='#L267' id='L267'>267</a>
+<a href='#L268' id='L268'>268</a>
+<a href='#L269' id='L269'>269</a>
+<a href='#L270' id='L270'>270</a>
+<a href='#L271' id='L271'>271</a>
+<a href='#L272' id='L272'>272</a>
+<a href='#L273' id='L273'>273</a>
+<a href='#L274' id='L274'>274</a>
+<a href='#L275' id='L275'>275</a>
+<a href='#L276' id='L276'>276</a>
+<a href='#L277' id='L277'>277</a>
+<a href='#L278' id='L278'>278</a>
+<a href='#L279' id='L279'>279</a>
+<a href='#L280' id='L280'>280</a>
+<a href='#L281' id='L281'>281</a>
+<a href='#L282' id='L282'>282</a>
+<a href='#L283' id='L283'>283</a>
+<a href='#L284' id='L284'>284</a>
+<a href='#L285' id='L285'>285</a>
+<a href='#L286' id='L286'>286</a>
+<a href='#L287' id='L287'>287</a>
+<a href='#L288' id='L288'>288</a>
+<a href='#L289' id='L289'>289</a>
+<a href='#L290' id='L290'>290</a>
+<a href='#L291' id='L291'>291</a>
+<a href='#L292' id='L292'>292</a>
+<a href='#L293' id='L293'>293</a>
+<a href='#L294' id='L294'>294</a>
+<a href='#L295' id='L295'>295</a>
+<a href='#L296' id='L296'>296</a>
+<a href='#L297' id='L297'>297</a>
+<a href='#L298' id='L298'>298</a>
+<a href='#L299' id='L299'>299</a>
+<a href='#L300' id='L300'>300</a>
+<a href='#L301' id='L301'>301</a>
+<a href='#L302' id='L302'>302</a>
+<a href='#L303' id='L303'>303</a>
+<a href='#L304' id='L304'>304</a>
+<a href='#L305' id='L305'>305</a>
+<a href='#L306' id='L306'>306</a>
+<a href='#L307' id='L307'>307</a>
+<a href='#L308' id='L308'>308</a>
+<a href='#L309' id='L309'>309</a>
+<a href='#L310' id='L310'>310</a>
+<a href='#L311' id='L311'>311</a>
+<a href='#L312' id='L312'>312</a>
+<a href='#L313' id='L313'>313</a>
+<a href='#L314' id='L314'>314</a>
+<a href='#L315' id='L315'>315</a>
+<a href='#L316' id='L316'>316</a>
+<a href='#L317' id='L317'>317</a>
+<a href='#L318' id='L318'>318</a>
+<a href='#L319' id='L319'>319</a>
+<a href='#L320' id='L320'>320</a>
+<a href='#L321' id='L321'>321</a></pre></td>
+          <td class='line-coverage quiet'><pre><span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
@@ -722,16 +826,11 @@
 <span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
+<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
+<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
-<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
 <span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
 <span class='cline-any cline-yes' title='This line is covered 22 times'>x22</span>
 <span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
@@ -742,9 +841,14 @@
 <span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
 <span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 32 times'>x32</span>
+<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 52 times'>x52</span>
 <span class='cline-any cline-yes' title='This line is covered 33 times'>x33</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 33 times'>x33</span>
@@ -762,6 +866,10 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
 <span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
+<span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
+<span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
+<span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 70 times'>x70</span>
 <span class='cline-any cline-yes' title='This line is covered 76 times'>x76</span>
@@ -780,6 +888,10 @@
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 160 times'>x160</span>
 <span class='cline-any cline-yes' title='This line is covered 40 times'>x40</span>
+<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 20 times'>x20</span>
+<span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 80 times'>x80</span>
 <span class='cline-any cline-yes' title='This line is covered 19 times'>x19</span>
@@ -790,96 +902,168 @@
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 100 times'>x100</span>
-<span class='cline-any cline-yes' title='This line is covered 25 times'>x25</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
 <span class='cline-any cline-yes' title='This line is covered 46 times'>x46</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 31 times'>x31</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-yes' title='This line is covered 32 times'>x32</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 37 times'>x37</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 51 times'>x51</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 29 times'>x29</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
 <span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
-<span class='cline-any cline-yes' title='This line is covered 29 times'>x29</span>
-<span class='cline-any cline-yes' title='This line is covered 29 times'>x29</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
-<span class='cline-any cline-yes' title='This line is covered 36 times'>x36</span>
-<span class='cline-any cline-yes' title='This line is covered 36 times'>x36</span>
-<span class='cline-any cline-yes' title='This line is covered 40 times'>x40</span>
-<span class='cline-any cline-yes' title='This line is covered 40 times'>x40</span>
-<span class='cline-any cline-yes' title='This line is covered 120 times'>x120</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 30 times'>x30</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-yes' title='This line is covered 31 times'>x31</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 36 times'>x36</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-yes' title='This line is covered 25 times'>x25</span>
 <span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
-<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 148 times'>x148</span>
+<span class='cline-any cline-yes' title='This line is covered 49 times'>x49</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-yes' title='This line is covered 27 times'>x27</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
+<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
+<span class='cline-any cline-yes' title='This line is covered 28 times'>x28</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 34 times'>x34</span>
+<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
+<span class='cline-any cline-yes' title='This line is covered 35 times'>x35</span>
+<span class='cline-any cline-yes' title='This line is covered 39 times'>x39</span>
+<span class='cline-any cline-yes' title='This line is covered 39 times'>x39</span>
+<span class='cline-any cline-yes' title='This line is covered 116 times'>x116</span>
+<span class='cline-any cline-yes' title='This line is covered 29 times'>x29</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-yes' title='This line is covered 25 times'>x25</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 144 times'>x144</span>
+<span class='cline-any cline-yes' title='This line is covered 23 times'>x23</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-yes' title='This line is covered 128 times'>x128</span>
+<span class='cline-any cline-yes' title='This line is covered 32 times'>x32</span>
+<span class='cline-any cline-yes' title='This line is covered 54 times'>x54</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-yes' title='This line is covered 80 times'>x80</span>
+<span class='cline-any cline-yes' title='This line is covered 20 times'>x20</span>
+<span class='cline-any cline-yes' title='This line is covered 90 times'>x90</span>
+<span class='cline-any cline-yes' title='This line is covered 17 times'>x17</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
-<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span></pre>
-            </td>
-            <td class="branch-coverage quiet">
-              <pre>
+<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-yes' title='This line is covered 184 times'>x184</span>
+<span class='cline-any cline-yes' title='This line is covered 46 times'>x46</span>
+<span class='cline-any cline-yes' title='This line is covered 75 times'>x75</span>
+<span class='cline-any cline-yes' title='This line is covered 24 times'>x24</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span></pre></td>
+          <td class='branch-coverage quiet'><pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1039,6 +1223,92 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
 
 
@@ -1088,49 +1358,40 @@
 
 
 
-
-
-
-
-<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
-
-
-
-
-
-
-
-
-
-</pre>
-            </td>
-            <td class="text">
-              <pre
-                class="prettyprint"
-              >
-import type { DomainError, Result } from "../core/result.ts";
+</pre></td>
+          <td class='text'><pre class='prettyprint'>import type { DomainError, Result } from "../core/result.ts";
 import type { Schema } from "../models/domain-models.ts";
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: DomainError[];
-  validatedData: unknown;
-}
+// Totality-compliant validation result using discriminated unions
+export type ValidationResult = {
+  kind: "Valid";
+  data: unknown;
+} | {
+  kind: "Invalid";
+  error: DomainError;
+};
+
+// Schema property extraction results using discriminated unions
+type SchemaPropertyExtraction = {
+  kind: "Present";
+  value: Record&lt;string, unknown&gt;;
+} | {
+  kind: "NotPresent";
+};
+
+type RequiredFieldsExtraction = {
+  kind: "Present";
+  fields: string[];
+} | {
+  kind: "NotPresent";
+};
+
+type TypeSpecification = {
+  kind: "Specified";
+  type: string;
+} | {
+  kind: "NotSpecified";
+};
 
 export class SchemaValidator {
   /**
@@ -1206,64 +1467,72 @@ export class SchemaValidator {
     // We already validated data is an object above
     const dataObj = data as Record&lt;string, unknown&gt;;
 
-    // Safely extract properties with type validation
-    const properties = this.isRecordObject(schema["properties"])
-      ? schema["properties"]
-      : undefined;
+    // Extract properties using Totality patterns
+    const properties = this.extractProperties(schema);
+    const required = this.extractRequiredFields(schema);
 
-    // Safely extract required fields with type validation
-    const required = this.isStringArray(schema["required"])
-      ? schema["required"]
-      : undefined;
-
-    // Check required fields
-    if (required) {
-      for (const field of required) {
-        if (!(field in dataObj)) {
-          return {
-            ok: false,
-            error: { kind: "NotFound", resource: "field", name: field },
-          };
-        }
-      }
-    }
-
-    // Validate properties
-    if (properties) {
-      const validatedData: Record&lt;string, unknown&gt; = {};
-
-      for (const [key, value] of Object.entries(dataObj)) {
-        if (key in properties) {
-          const fieldSchemaValue = properties[key];
-          if (!this.isRecordObject(fieldSchemaValue)) {
+    // Check required fields using discriminated union pattern
+    switch (required.kind) {
+      case "Present":
+        for (const field of required.fields) {
+          if (!(field in dataObj)) {
             return {
               ok: false,
-              error: {
-                kind: "InvalidFormat",
-                input: String(fieldSchemaValue),
-                expectedFormat: "object schema",
-              },
+              error: { kind: "NotFound", resource: "field", name: field },
             };
           }
-          const fieldSchema = fieldSchemaValue;
-          const validationResult = this.validateField(value, fieldSchema, key);
-
-          if (!validationResult.ok) {
-            return validationResult;
-          }
-
-          validatedData[key] = validationResult.data;
-        } else if (schema["additionalProperties"] === false) {
-          return {
-            ok: false,
-            error: { kind: "NotConfigured", component: key },
-          };
-        } else {
-          validatedData[key] = value;
         }
-      }
+        break;
+      case "NotPresent":
+        // No required fields to validate
+        break;
+    }
 
-      return { ok: true, data: validatedData };
+    // Validate properties using discriminated union pattern
+    switch (properties.kind) {
+      case "Present": {
+        const validatedData: Record&lt;string, unknown&gt; = {};
+
+        for (const [key, value] of Object.entries(dataObj)) {
+          if (key in properties.value) {
+            const fieldSchemaValue = properties.value[key];
+            if (!this.isRecordObject(fieldSchemaValue)) {
+              return {
+                ok: false,
+                error: {
+                  kind: "InvalidFormat",
+                  input: String(fieldSchemaValue),
+                  expectedFormat: "object schema",
+                },
+              };
+            }
+            const fieldSchema = fieldSchemaValue;
+            const validationResult = this.validateField(
+              value,
+              fieldSchema,
+              key,
+            );
+
+            if (!validationResult.ok) {
+              return validationResult;
+            }
+
+            validatedData[key] = validationResult.data;
+          } else if (schema["additionalProperties"] === false) {
+            return {
+              ok: false,
+              error: { kind: "NotConfigured", component: key },
+            };
+          } else {
+            validatedData[key] = value;
+          }
+        }
+
+        return { ok: true, data: validatedData };
+      }
+      case "NotPresent":
+        // No properties schema to validate against
+        break;
     }
 
     return { ok: true, data };
@@ -1274,13 +1543,23 @@ export class SchemaValidator {
     schema: Record&lt;string, unknown&gt;,
     fieldName: string,
   ): Result&lt;unknown, DomainError&gt; {
-    const typeValue = schema["type"];
-    const type = typeof typeValue === "string" ? typeValue : undefined;
+    const typeSpec = this.extractTypeSpecification(schema);
 
-    if (!type) {
-      return { ok: true, data: value };
+    switch (typeSpec.kind) {
+      case "NotSpecified":
+        // No type validation required
+        return { ok: true, data: value };
+      case "Specified":
+        return this.validateByType(value, typeSpec.type, schema, fieldName);
     }
+  }
 
+  private validateByType(
+    value: unknown,
+    type: string,
+    schema: Record&lt;string, unknown&gt;,
+    fieldName: string,
+  ): Result&lt;unknown, DomainError&gt; {
     switch (type) {
       case "string":
         if (typeof value !== "string") {
@@ -1361,19 +1640,57 @@ export class SchemaValidator {
 
     return { ok: true, data: value };
   }
-}
-</pre>
-            </td>
-          </tr>
-        </table>
-      </div>
-      <div class="push"></div>
-    </div>
 
-    <div class="footer quiet pad2 space-top1 center small">
-      Code coverage generated by
-      <a href="https://deno.com/" target="_blank">Deno v2.4.4</a>
-      at Sat, 30 Aug 2025 07:02:42 +0000
-    </div>
-  </body>
-</html>
+  /**
+   * Extract properties schema using Totality patterns
+   */
+  private extractProperties(
+    schema: Record&lt;string, unknown&gt;,
+  ): SchemaPropertyExtraction {
+    const propertiesValue = schema["properties"];
+    if (this.isRecordObject(propertiesValue)) {
+      return { kind: "Present", value: propertiesValue };
+    }
+    return { kind: "NotPresent" };
+  }
+
+  /**
+   * Extract required fields using Totality patterns
+   */
+  private extractRequiredFields(
+    schema: Record&lt;string, unknown&gt;,
+  ): RequiredFieldsExtraction {
+    const requiredValue = schema["required"];
+    if (this.isStringArray(requiredValue)) {
+      return { kind: "Present", fields: requiredValue };
+    }
+    return { kind: "NotPresent" };
+  }
+
+  /**
+   * Extract type specification using Totality patterns
+   */
+  private extractTypeSpecification(
+    schema: Record&lt;string, unknown&gt;,
+  ): TypeSpecification {
+    const typeValue = schema["type"];
+    if (typeof typeValue === "string") {
+      return { kind: "Specified", type: typeValue };
+    }
+    return { kind: "NotSpecified" };
+  }
+}
+</pre></td>
+        </tr>
+      </table>
+            </div>
+            <div class='push'></div>
+          </div>
+          
+      <div class='footer quiet pad2 space-top1 center small'>
+        Code coverage generated by
+        <a href='https://deno.com/' target='_blank'>Deno v2.4.4</a>
+        at Sat, 6 Sep 2025 07:05:49 +0000
+      </div>
+        </body>
+      </html>

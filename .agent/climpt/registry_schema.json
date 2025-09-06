@@ -27,7 +27,7 @@
         "commands": {
           "type": "array",
           "description": "Command registry - defines all available C3L commands",
-          "items": { "$ref": "command.schema.json" }
+          "items": { "$ref": "registry_command_schema.json" }
         }
       },
       "required": ["availableConfigs", "commands"],

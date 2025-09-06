@@ -39,7 +39,6 @@ import type {
   SchemaValidationMode,
 } from "./domain/services/interfaces.ts";
 import { ProcessDocumentsUseCase } from "./application/use-cases/process-documents.ts";
-import { TwoStageProcessingUseCase } from "./application/use-cases/two-stage-processing-use-case.ts";
 import { DenoDocumentRepository } from "./infrastructure/adapters/deno-document-repository.ts";
 // Remove MockSchemaAnalyzer import - will create simple mock inline
 // TypeScriptSchemaAnalyzer removed - AI processing is no longer used
@@ -193,7 +192,6 @@ async function main() {
       "continue-on-error",
       "build-registry",
       "verbose",
-      "two-stage",
     ],
     default: {
       config: "config.json",
@@ -202,7 +200,6 @@ async function main() {
       "continue-on-error": false,
       "build-registry": false,
       verbose: false,
-      "two-stage": false,
     },
   });
 
@@ -223,7 +220,6 @@ Options:
   --parallel              Process documents in parallel (default: true)
   --continue-on-error     Continue processing on errors (default: false)
   --verbose               Enable verbose debug output
-  --two-stage             Use two-stage processing architecture (default: false)
   --build-registry        Run legacy BuildRegistryUseCase
   --help                  Show this help message
 
@@ -503,11 +499,6 @@ Examples:
       resultAggregator,
     );
 
-    // Create two-stage processing use case for proper architecture
-    const twoStageProcessingUseCase = new TwoStageProcessingUseCase(
-      defaultLoggingService.getLogger("two-stage-processing"),
-    );
-
     // Execute processing
     const logger = defaultLoggingService.getLogger("main-processing");
     logger.info("Starting document processing", {
@@ -528,34 +519,13 @@ Examples:
       );
     }
 
-    // Conditional routing based on architecture flag
-    let result;
-    if (args["two-stage"]) {
-      logger.info("Using two-stage processing architecture", {
-        stage1: "Individual command processing",
-        stage2: "Registry aggregation",
-      });
-
-      // TODO: Implement full two-stage processing with adapters
-      // For now, fall back to ProcessDocumentsUseCase to maintain compatibility
-      // Future enhancement: Add adapter functions to convert interfaces
-      logger.warn(
-        "Two-stage processing not fully implemented yet, falling back to single-stage",
-        {
-          availableUseCase: typeof twoStageProcessingUseCase,
-        },
-      );
-      result = await processDocumentsUseCase.execute({
-        config: processingConfig,
-      });
-    } else {
-      logger.info(
-        "Using single-stage processing architecture (ProcessDocumentsUseCase)",
-      );
-      result = await processDocumentsUseCase.execute({
-        config: processingConfig,
-      });
-    }
+    // Execute processing
+    logger.info(
+      "Using single-stage processing architecture (ProcessDocumentsUseCase)",
+    );
+    const result = await processDocumentsUseCase.execute({
+      config: processingConfig,
+    });
 
     if (result.ok) {
       const successLogger = defaultLoggingService.getLogger("main-success");

@@ -109,7 +109,7 @@ graph LR
 ### 5. Value Objects Updates
 
 ```typescript
-// New value objects for two-stage processing
+// New value objects for processing
 class CommandCategory {
   constructor(
     public readonly c1: string,
@@ -147,15 +147,14 @@ interface RegistryRepository {
 
 1. **Phase 1**: Fix c1/c2/c3 extraction in TypeScriptAnalyzer
 2. **Phase 2**: Implement template placeholder substitution
-3. **Phase 3**: Create two-stage processing pipeline
+3. **Phase 3**: Create processing pipeline
 4. **Phase 4**: Add registry aggregation logic
 5. **Phase 5**: Update domain documentation
 
 ## Backward Compatibility
 
-- Maintain single-stage processing for non-registry use cases
-- Add `--processing-mode` flag: `single-stage` | `two-stage`
-- Default to single-stage for existing workflows
+- Maintain processing for all use cases
+- Default processing for existing workflows
 
 ## Testing Strategy
 
@@ -174,12 +173,9 @@ interface RegistryRepository {
 ### E2E Tests
 
 ```bash
-# Test two-stage processing
+# Test processing
 ./frontmatter-to-schema .agent/test-climpt/prompts \
-  --mode=two-stage \
-  --command-schema=registry_command_schema.json \
-  --command-template=registry_command_template.json \
-  --registry-schema=registry_schema.json \
-  --registry-template=registry_template.json \
+  --schema=registry_schema.json \
+  --template=registry_template.json \
   --output=registry.json
 ```

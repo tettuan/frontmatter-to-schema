@@ -1,0 +1,61 @@
+{
+  "scriptId": "367",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/services/result-aggregation-orchestrator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 5327, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 703, "endOffset": 735, "count": 1 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "ResultAggregationOrchestrator",
+      "ranges": [{ "startOffset": 739, "endOffset": 939, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "aggregate",
+      "ranges": [{ "startOffset": 1004, "endOffset": 1936, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateFromEntity",
+      "ranges": [{ "startOffset": 2010, "endOffset": 2622, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "detectStrategy",
+      "ranges": [{ "startOffset": 2696, "endOffset": 3494, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateAsRegistry",
+      "ranges": [{ "startOffset": 3552, "endOffset": 4420, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateAsArray",
+      "ranges": [{ "startOffset": 4472, "endOffset": 4919, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "formatEmpty",
+      "ranges": [{ "startOffset": 4961, "endOffset": 5059, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSupportedStrategies",
+      "ranges": [{ "startOffset": 5102, "endOffset": 5204, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSupportedFormats",
+      "ranges": [{ "startOffset": 5244, "endOffset": 5324, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

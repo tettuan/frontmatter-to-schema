@@ -1,404 +1,402 @@
-<!DOCTYPE html>
-<html lang="en-US">
-  <head>
-    <meta charset="utf-8">
-    <title>
-      Coverage report for src/application/use-cases/build-registry-use-case.ts
-    </title>
-    <style>
-      /* Copyright 2015 the Istanbul contributors. All rights reserved. ISC license. */
-      /* Copyright 2018-2023 the Deno authors. All rights reserved. MIT license. */
+<!doctype html>
+      <html lang='en-US'>
+        
+      <head>
+        <meta charset='utf-8'>
+        <title>Coverage report for src/application/use-cases/build-registry-use-case.ts</title>
+        <style>/* Copyright 2015 the Istanbul contributors. All rights reserved. ISC license. */
+/* Copyright 2018-2023 the Deno authors. All rights reserved. MIT license. */
 
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-      }
-      body {
-        color-scheme: light dark;
-        font-family: Helvetica Neue, Helvetica, Arial;
-        font-size: 14px;
-        color: light-dark(#333, #ddd);
-        background-color: light-dark(white, #111);
-      }
-      .small {
-        font-size: 12px;
-      }
-      *,
-      *:after,
-      *:before {
-        box-sizing: border-box;
-      }
-      h1 {
-        font-size: 20px;
-        margin: 0;
-      }
-      h2 {
-        font-size: 14px;
-      }
-      pre {
-        font: 12px/1.4 Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        margin: 0;
-        padding: 0;
-        tab-size: 2;
-      }
-      a {
-        color: light-dark(#0074d9, #3ba3ff);
-        text-decoration: none;
-      }
-      a:hover {
-        text-decoration: underline;
-      }
-      .strong {
-        font-weight: bold;
-      }
-      .space-top1 {
-        padding: 10px 0 0 0;
-      }
-      .pad2y {
-        padding: 20px 0;
-      }
-      .pad1y {
-        padding: 10px 0;
-      }
-      .pad2x {
-        padding: 0 20px;
-      }
-      .pad2 {
-        padding: 20px;
-      }
-      .pad1 {
-        padding: 10px;
-      }
-      .space-left2 {
-        padding-left: 55px;
-      }
-      .space-right2 {
-        padding-right: 20px;
-      }
-      .center {
-        text-align: center;
-      }
-      .clearfix {
-        display: block;
-      }
-      .clearfix:after {
-        content: "";
-        display: block;
-        height: 0;
-        clear: both;
-        visibility: hidden;
-      }
-      .fl {
-        float: left;
-      }
-      @media only screen and (max-width: 640px) {
-        .col3 {
-          width: 100%;
-          max-width: 100%;
-        }
-        .hide-mobile {
-          display: none !important;
-        }
-      }
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  color-scheme: light dark;
+  font-family:
+    Helvetica Neue,
+    Helvetica,
+    Arial;
+  font-size: 14px;
+  color: light-dark(#333, #ddd);
+  background-color: light-dark(white, #111);
+}
+.small {
+  font-size: 12px;
+}
+*,
+*:after,
+*:before {
+  box-sizing: border-box;
+}
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+h2 {
+  font-size: 14px;
+}
+pre {
+  font:
+    12px/1.4 Consolas,
+    "Liberation Mono",
+    Menlo,
+    Courier,
+    monospace;
+  margin: 0;
+  padding: 0;
+  tab-size: 2;
+}
+a {
+  color: light-dark(#0074d9, #3ba3ff);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.strong {
+  font-weight: bold;
+}
+.space-top1 {
+  padding: 10px 0 0 0;
+}
+.pad2y {
+  padding: 20px 0;
+}
+.pad1y {
+  padding: 10px 0;
+}
+.pad2x {
+  padding: 0 20px;
+}
+.pad2 {
+  padding: 20px;
+}
+.pad1 {
+  padding: 10px;
+}
+.space-left2 {
+  padding-left: 55px;
+}
+.space-right2 {
+  padding-right: 20px;
+}
+.center {
+  text-align: center;
+}
+.clearfix {
+  display: block;
+}
+.clearfix:after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.fl {
+  float: left;
+}
+@media only screen and (max-width: 640px) {
+  .col3 {
+    width: 100%;
+    max-width: 100%;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+}
 
-      .quiet {
-        color: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
-      }
-      .quiet a {
-        opacity: 0.7;
-      }
+.quiet {
+  color: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
+}
+.quiet a {
+  opacity: 0.7;
+}
 
-      .fraction {
-        font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        font-size: 10px;
-        color: light-dark(#555, #bbb);
-        background: light-dark(#e8e8e8, #171717);
-        padding: 4px 5px;
-        border-radius: 3px;
-        vertical-align: middle;
-      }
+.fraction {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 10px;
+  color: light-dark(#555, #bbb);
+  background: light-dark(#e8e8e8, #171717);
+  padding: 4px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
 
-      div.path a:link,
-      div.path a:visited {
-        color: light-dark(#333, #ddd);
-      }
-      table.coverage {
-        border-collapse: collapse;
-        margin: 10px 0 0 0;
-        padding: 0;
-      }
+div.path a:link,
+div.path a:visited {
+  color: light-dark(#333, #ddd);
+}
+table.coverage {
+  border-collapse: collapse;
+  margin: 10px 0 0 0;
+  padding: 0;
+}
 
-      table.coverage td {
-        margin: 0;
-        padding: 0;
-        vertical-align: top;
-      }
-      table.coverage td.line-count {
-        text-align: right;
-        padding: 0 5px 0 20px;
-      }
-      table.coverage td.line-coverage {
-        text-align: right;
-        padding-right: 4px;
-        min-width: 20px;
-      }
+table.coverage td {
+  margin: 0;
+  padding: 0;
+  vertical-align: top;
+}
+table.coverage td.line-count {
+  text-align: right;
+  padding: 0 5px 0 20px;
+}
+table.coverage td.line-coverage {
+  text-align: right;
+  padding-right: 4px;
+  min-width: 20px;
+}
 
-      table.coverage td.branch-coverage {
-        text-align: right;
-        padding-right: 3px;
-        min-width: 8px;
-      }
+table.coverage td.branch-coverage {
+  text-align: right;
+  padding-right: 3px;
+  min-width: 8px;
+}
 
-      table.coverage td span.cline-any {
-        display: inline-block;
-        padding: 0 5px;
-        width: 100%;
-      }
-      .missing-if-branch {
-        display: inline-block;
-        margin-right: 5px;
-        border-radius: 3px;
-        position: relative;
-        padding: 0 4px;
-        background: light-dark(#333, #ddd);
-        color: light-dark(yellow, #cc0);
-      }
+table.coverage td span.cline-any {
+  display: inline-block;
+  padding: 0 5px;
+  width: 100%;
+}
+.missing-if-branch {
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 3px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#333, #ddd);
+  color: light-dark(yellow, #cc0);
+}
 
-      .skip-if-branch {
-        display: none;
-        margin-right: 10px;
-        position: relative;
-        padding: 0 4px;
-        background: light-dark(#ccc, #333);
-        color: light-dark(white, black);
-      }
-      .missing-if-branch .typ,
-      .skip-if-branch .typ {
-        color: inherit !important;
-      }
-      .coverage-summary {
-        border-collapse: collapse;
-        width: 100%;
-      }
-      .coverage-summary tr {
-        border-bottom: 1px solid light-dark(#bbb, #444);
-      }
-      .keyline-all {
-        border: 1px solid light-dark(#ddd, #222);
-      }
-      .coverage-summary td,
-      .coverage-summary th {
-        padding: 10px;
-      }
-      .coverage-summary tbody {
-        border: 1px solid light-dark(#bbb, #444);
-      }
-      .coverage-summary td {
-        border-right: 1px solid light-dark(#bbb, #444);
-      }
-      .coverage-summary td:last-child {
-        border-right: none;
-      }
-      .coverage-summary th {
-        text-align: left;
-        font-weight: normal;
-        white-space: nowrap;
-      }
-      .coverage-summary th.file {
-        border-right: none !important;
-      }
-      .coverage-summary th.pic,
-      .coverage-summary th.abs,
-      .coverage-summary td.pct,
-      .coverage-summary td.abs {
-        text-align: right;
-      }
-      .coverage-summary td.file {
-        white-space: nowrap;
-      }
-      .coverage-summary td.pic {
-        min-width: 120px !important;
-      }
+.skip-if-branch {
+  display: none;
+  margin-right: 10px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#ccc, #333);
+  color: light-dark(white, black);
+}
+.missing-if-branch .typ,
+.skip-if-branch .typ {
+  color: inherit !important;
+}
+.coverage-summary {
+  border-collapse: collapse;
+  width: 100%;
+}
+.coverage-summary tr {
+  border-bottom: 1px solid light-dark(#bbb, #444);
+}
+.keyline-all {
+  border: 1px solid light-dark(#ddd, #222);
+}
+.coverage-summary td,
+.coverage-summary th {
+  padding: 10px;
+}
+.coverage-summary tbody {
+  border: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td {
+  border-right: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td:last-child {
+  border-right: none;
+}
+.coverage-summary th {
+  text-align: left;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.coverage-summary th.file {
+  border-right: none !important;
+}
+.coverage-summary th.pic,
+.coverage-summary th.abs,
+.coverage-summary td.pct,
+.coverage-summary td.abs {
+  text-align: right;
+}
+.coverage-summary td.file {
+  white-space: nowrap;
+}
+.coverage-summary td.pic {
+  min-width: 120px !important;
+}
 
-      .coverage-summary .sorter {
-        height: 10px;
-        width: 7px;
-        display: inline-block;
-        margin-left: 0.5em;
-        background: url(sort-arrow-sprite.png) no-repeat scroll 0 0
-          transparent;
-      }
-      .coverage-summary .sorted .sorter {
-        background-position: 0 -20px;
-      }
-      .coverage-summary .sorted-desc .sorter {
-        background-position: 0 -10px;
-      }
-      .status-line {
-        height: 10px;
-      }
-      /* yellow */
-      .cbranch-no {
-        background: light-dark(yellow, #cc0) !important;
-        color: #111;
-      }
-      /* dark red */
-      .red.solid,
-      .status-line.low,
-      .low .cover-fill {
-        background: light-dark(#c21f39, #a5162e);
-      }
-      .low .chart {
-        border: 1px solid light-dark(#c21f39, #a5162e);
-      }
-      .highlighted,
-      .highlighted .cstat-no,
-      .highlighted .fstat-no,
-      .highlighted .cbranch-no {
-        background: light-dark(#c21f39, #a5162e) !important;
-      }
-      /* medium red */
-      .cstat-no,
-      .fstat-no,
-      .cbranch-no,
-      .cbranch-no {
-        background: light-dark(#f6c6ce, #553339);
-      }
-      /* light red */
-      .low,
-      .cline-no {
-        background: light-dark(#fce1e5, #2e2023);
-      }
-      /* light green */
-      .high,
-      .cline-yes {
-        background: light-dark(#e6f5d0, #25291f);
-      }
-      /* medium green */
-      .cstat-yes {
-        background: light-dark(#a1d76a, #293b18);
-      }
-      /* dark green */
-      .status-line.high,
-      .high .cover-fill {
-        background: light-dark(#4d9221, #2a5211);
-      }
-      .high .chart {
-        border: 1px solid light-dark(#4d9221, #2a5211);
-      }
-      /* dark yellow (gold) */
-      .status-line.medium,
-      .medium .cover-fill {
-        background: light-dark(#f9cd0b, #b09107);
-      }
-      .medium .chart {
-        border: 1px solid light-dark(#f9cd0b, #b09107);
-      }
-      /* light yellow */
-      .medium {
-        background: light-dark(#fff4c2, #4a432a);
-      }
+.coverage-summary .sorter {
+  height: 10px;
+  width: 7px;
+  display: inline-block;
+  margin-left: 0.5em;
+  background: url(sort-arrow-sprite.png) no-repeat scroll 0 0 transparent;
+}
+.coverage-summary .sorted .sorter {
+  background-position: 0 -20px;
+}
+.coverage-summary .sorted-desc .sorter {
+  background-position: 0 -10px;
+}
+.status-line {
+  height: 10px;
+}
+/* yellow */
+.cbranch-no {
+  background: light-dark(yellow, #cc0) !important;
+  color: #111;
+}
+/* dark red */
+.red.solid,
+.status-line.low,
+.low .cover-fill {
+  background: light-dark(#c21f39, #a5162e);
+}
+.low .chart {
+  border: 1px solid light-dark(#c21f39, #a5162e);
+}
+.highlighted,
+.highlighted .cstat-no,
+.highlighted .fstat-no,
+.highlighted .cbranch-no {
+  background: light-dark(#c21f39, #a5162e) !important;
+}
+/* medium red */
+.cstat-no,
+.fstat-no,
+.cbranch-no,
+.cbranch-no {
+  background: light-dark(#f6c6ce, #553339);
+}
+/* light red */
+.low,
+.cline-no {
+  background: light-dark(#fce1e5, #2e2023);
+}
+/* light green */
+.high,
+.cline-yes {
+  background: light-dark(#e6f5d0, #25291f);
+}
+/* medium green */
+.cstat-yes {
+  background: light-dark(#a1d76a, #293b18);
+}
+/* dark green */
+.status-line.high,
+.high .cover-fill {
+  background: light-dark(#4d9221, #2a5211);
+}
+.high .chart {
+  border: 1px solid light-dark(#4d9221, #2a5211);
+}
+/* dark yellow (gold) */
+.status-line.medium,
+.medium .cover-fill {
+  background: light-dark(#f9cd0b, #b09107);
+}
+.medium .chart {
+  border: 1px solid light-dark(#f9cd0b, #b09107);
+}
+/* light yellow */
+.medium {
+  background: light-dark(#fff4c2, #4a432a);
+}
 
-      .cstat-skip {
-        background: light-dark(#ddd, #222);
-        color: light-dark(#111, #eee);
-      }
-      .fstat-skip {
-        background: light-dark(#ddd, #222);
-        color: light-dark(#111, #eee) !important;
-      }
-      .cbranch-skip {
-        background: light-dark(#ddd, #222) !important;
-        color: light-dark(#111, #eee);
-      }
+.cstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+}
+.fstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee) !important;
+}
+.cbranch-skip {
+  background: light-dark(#ddd, #222) !important;
+  color: light-dark(#111, #eee);
+}
 
-      span.cline-neutral {
-        background: light-dark(#eaeaea, #141414);
-      }
+span.cline-neutral {
+  background: light-dark(#eaeaea, #141414);
+}
 
-      .coverage-summary td.empty {
-        opacity: 0.5;
-        padding-top: 4px;
-        padding-bottom: 4px;
-        line-height: 1;
-        color: light-dark(#888, #999);
-      }
+.coverage-summary td.empty {
+  opacity: 0.5;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1;
+  color: light-dark(#888, #999);
+}
 
-      .cover-fill,
-      .cover-empty {
-        display: inline-block;
-        height: 12px;
-      }
-      .chart {
-        line-height: 0;
-      }
-      .cover-empty {
-        background: light-dark(white, black);
-      }
-      .cover-full {
-        border-right: none !important;
-      }
-      pre.prettyprint {
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .com {
-        color: light-dark(#999, #666) !important;
-      }
-      .ignore-none {
-        color: light-dark(#999, #666);
-        font-weight: normal;
-      }
+.cover-fill,
+.cover-empty {
+  display: inline-block;
+  height: 12px;
+}
+.chart {
+  line-height: 0;
+}
+.cover-empty {
+  background: light-dark(white, black);
+}
+.cover-full {
+  border-right: none !important;
+}
+pre.prettyprint {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.com {
+  color: light-dark(#999, #666) !important;
+}
+.ignore-none {
+  color: light-dark(#999, #666);
+  font-weight: normal;
+}
 
-      .wrapper {
-        min-height: 100%;
-        height: auto !important;
-        height: 100%;
-        margin: 0 auto -48px;
-      }
-      .footer,
-      .push {
-        height: 48px;
-      }
-      .overflow-auto {
-        overflow: auto;
-      }
-    </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="pad1">
-        <h1>
-          <a href="../../../index.html">All files</a> / <a
-            href="../../../src/index.html"
-          >src</a> / <a href="../../application/index.html">application</a> / <a
-            href="../use-cases/index.html"
-          >use-cases</a> / build-registry-use-case.ts
-        </h1>
-        <div class="clearfix">
-          <div class="fl pad1y space-right2">
-            <span class="strong">75.00%</span>
-            <span class="quiet">Branches</span>
-            <span class="fraction">12/16</span>
+.wrapper {
+  min-height: 100%;
+  height: auto !important;
+  height: 100%;
+  margin: 0 auto -48px;
+}
+.footer,
+.push {
+  height: 48px;
+}
+.overflow-auto {
+  overflow: auto;
+}
+</style>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+      </head>
+        <body>
+          <div class='wrapper'>
+            
+      <div class='pad1'>
+        <h1><a href='../../../index.html'>All files</a> / <a href='../../../src/index.html'>src</a> / <a href='../../application/index.html'>application</a> / <a href='../use-cases/index.html'>use-cases</a> / build-registry-use-case.ts</h1>
+        <div class='clearfix'>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>76.47%</span>
+            <span class='quiet'>Branches</span>
+            <span class='fraction'>13/17</span>
           </div>
-          <div class="fl pad1y space-right2">
-            <span class="strong">36.84%</span>
-            <span class="quiet">Lines</span>
-            <span class="fraction">70/190</span>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>35.11%</span>
+            <span class='quiet'>Lines</span>
+            <span class='fraction'>79/225</span>
           </div>
         </div>
       </div>
-      <div class="status-line low"></div>
-      <div class="pad1 overflow-auto">
-        <table class="coverage">
-          <tr>
-            <td class="line-count quiet">
-              <pre>
-<a href='#L1' id='L1'>1</a>
+      <div class='status-line low'></div>
+            <div class='pad1 overflow-auto'>
+              <table class='coverage'>
+        <tr>
+          <td class='line-count quiet'><pre><a href='#L1' id='L1'>1</a>
 <a href='#L2' id='L2'>2</a>
 <a href='#L3' id='L3'>3</a>
 <a href='#L4' id='L4'>4</a>
@@ -664,15 +662,52 @@
 <a href='#L264' id='L264'>264</a>
 <a href='#L265' id='L265'>265</a>
 <a href='#L266' id='L266'>266</a>
-<a href='#L267' id='L267'>267</a></pre>
-            </td>
-            <td class="line-coverage quiet">
-              <pre>
+<a href='#L267' id='L267'>267</a>
+<a href='#L268' id='L268'>268</a>
+<a href='#L269' id='L269'>269</a>
+<a href='#L270' id='L270'>270</a>
+<a href='#L271' id='L271'>271</a>
+<a href='#L272' id='L272'>272</a>
+<a href='#L273' id='L273'>273</a>
+<a href='#L274' id='L274'>274</a>
+<a href='#L275' id='L275'>275</a>
+<a href='#L276' id='L276'>276</a>
+<a href='#L277' id='L277'>277</a>
+<a href='#L278' id='L278'>278</a>
+<a href='#L279' id='L279'>279</a>
+<a href='#L280' id='L280'>280</a>
+<a href='#L281' id='L281'>281</a>
+<a href='#L282' id='L282'>282</a>
+<a href='#L283' id='L283'>283</a>
+<a href='#L284' id='L284'>284</a>
+<a href='#L285' id='L285'>285</a>
+<a href='#L286' id='L286'>286</a>
+<a href='#L287' id='L287'>287</a>
+<a href='#L288' id='L288'>288</a>
+<a href='#L289' id='L289'>289</a>
+<a href='#L290' id='L290'>290</a>
+<a href='#L291' id='L291'>291</a>
+<a href='#L292' id='L292'>292</a>
+<a href='#L293' id='L293'>293</a>
+<a href='#L294' id='L294'>294</a>
+<a href='#L295' id='L295'>295</a>
+<a href='#L296' id='L296'>296</a>
+<a href='#L297' id='L297'>297</a>
+<a href='#L298' id='L298'>298</a>
+<a href='#L299' id='L299'>299</a>
+<a href='#L300' id='L300'>300</a>
+<a href='#L301' id='L301'>301</a>
+<a href='#L302' id='L302'>302</a>
+<a href='#L303' id='L303'>303</a>
+<a href='#L304' id='L304'>304</a>
+<a href='#L305' id='L305'>305</a>
+<a href='#L306' id='L306'>306</a>
+<a href='#L307' id='L307'>307</a></pre></td>
+          <td class='line-coverage quiet'><pre><span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
@@ -685,6 +720,7 @@
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
@@ -716,6 +752,14 @@
 <span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
+<span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 13 times'>x13</span>
+<span class='cline-any cline-yes' title='This line is covered 22 times'>x22</span>
 <span class='cline-any cline-yes' title='This line is covered 66 times'>x66</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 22 times'>x22</span>
@@ -761,11 +805,6 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
@@ -775,31 +814,10 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
@@ -810,11 +828,48 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
 <span class='cline-any cline-yes' title='This line is covered 26 times'>x26</span>
@@ -834,7 +889,7 @@
 <span class='cline-any cline-yes' title='This line is covered 21 times'>x21</span>
 <span class='cline-any cline-yes' title='This line is covered 21 times'>x21</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 21 times'>x21</span>
+<span class='cline-any cline-yes' title='This line is covered 84 times'>x84</span>
 <span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
@@ -842,28 +897,8 @@
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
@@ -876,48 +911,11 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-neutral'>&nbsp;</span>
-<span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-neutral'>&nbsp;</span>
@@ -934,10 +932,94 @@
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
 <span class='cline-any cline-no'>&nbsp;</span>
-<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span></pre>
-            </td>
-            <td class="branch-coverage quiet">
-              <pre>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 1 time'>x1</span></pre></td>
+          <td class='branch-coverage quiet'><pre>
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1078,6 +1160,14 @@
 
 
 
+
+
+
+
+
+
+
+
 <span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
 
 
@@ -1089,6 +1179,9 @@
 
 
 
+
+
+
 <span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
 
 
@@ -1203,13 +1296,28 @@
 
 
 
-</pre>
-            </td>
-            <td class="text">
-              <pre
-                class="prettyprint"
-              >
-import type {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></td>
+          <td class='text'><pre class='prettyprint'>import type {
   FileReader,
   FileWriter,
 } from "../../infrastructure/filesystem/file-system.ts";
@@ -1226,6 +1334,7 @@ import {
 } from "../../domain/models/value-objects.ts";
 import { FrontMatter } from "../../domain/models/entities.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
+import { createDomainError } from "../../domain/core/result.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -1252,11 +1361,19 @@ export class BuildRegistryUseCase {
   async execute(
     promptsPath: string,
     outputPath: string,
-  ): Promise&lt;Registry&gt; {
+  ): Promise&lt;Result&lt;Registry, DomainError &amp; { message: string }&gt;&gt; {
     const logger = LoggerFactory.createLogger("build-registry");
     logger.info("Starting registry build process");
 
-    const promptList = await this.fileReader.readDirectory(promptsPath);
+    const promptListResult = await this.fileReader.readDirectory(promptsPath);
+    if (!promptListResult.ok) {
+      logger.error("Failed to read prompts directory", {
+        error: promptListResult.error.message,
+        path: promptsPath,
+      });
+      return promptListResult;
+    }
+    const promptList = promptListResult.data;
     logger.info("Found prompt files", { count: promptList.count });
 
     const aggregator = new RegistryAggregator();
@@ -1301,7 +1418,15 @@ export class BuildRegistryUseCase {
 
           case "SchemaAnalyzer": {
             // Create default CLI schema for registry building
-            const schema = this.createDefaultCliSchema();
+            const schemaResult = this.createDefaultCliSchema();
+            if (!schemaResult.ok) {
+              logger.error("Failed to create CLI schema", {
+                filename: promptFile.filename,
+                error: schemaResult.error.message,
+              });
+              continue;
+            }
+            const schema = schemaResult.data;
 
             // Convert frontmatter following Totality principle with type-safe transformation
             const frontMatterConversionResult = this.convertFrontMatterSafely(
@@ -1353,9 +1478,12 @@ export class BuildRegistryUseCase {
           default: {
             // Exhaustive check - TypeScript will error if we miss a case
             const _exhaustiveCheck: never = this.analyzer;
-            throw new Error(
-              `Unhandled analyzer kind: ${String(_exhaustiveCheck)}`,
-            );
+            // Log error instead of throwing to maintain Totality
+            logger.error("Unhandled analyzer kind", {
+              analyzerKind: String(_exhaustiveCheck),
+              filename: promptFile.filename,
+            });
+            continue;
           }
         }
       } catch (error) {
@@ -1375,22 +1503,34 @@ export class BuildRegistryUseCase {
       availableConfigs: registry.tools.availableConfigs.join(", "),
     });
 
-    return registry;
+    return { ok: true, data: registry };
   }
 
   /**
    * Create a default schema for CLI registry building
    * This schema defines the expected structure for CLI prompt frontmatter
    */
-  private createDefaultCliSchema(): Schema {
+  private createDefaultCliSchema(): Result&lt;
+    Schema,
+    DomainError &amp; { message: string }
+  &gt; {
     const schemaId = SchemaId.create("cli-registry-schema");
     if (!schemaId.ok) {
-      throw new Error("Failed to create schema ID");
+      return {
+        ok: false,
+        error: createDomainError(schemaId.error, "Failed to create schema ID"),
+      };
     }
 
     const schemaVersion = SchemaVersion.create("1.0.0");
     if (!schemaVersion.ok) {
-      throw new Error("Failed to create schema version");
+      return {
+        ok: false,
+        error: createDomainError(
+          schemaVersion.error,
+          "Failed to create schema version",
+        ),
+      };
     }
 
     // Define the expected structure for CLI prompt frontmatter
@@ -1419,15 +1559,23 @@ export class BuildRegistryUseCase {
       "1.0.0",
     );
     if (!schemaDefinition.ok) {
-      throw new Error("Failed to create schema definition");
+      return {
+        ok: false,
+        error: createDomainError(
+          schemaDefinition.error,
+          "Failed to create schema definition",
+        ),
+      };
     }
 
-    return Schema.create(
+    const schema = Schema.create(
       schemaId.data,
       schemaDefinition.data,
       schemaVersion.data,
       "Schema for CLI command registry building from prompt frontmatter",
     );
+
+    return { ok: true, data: schema };
   }
 
   /**
@@ -1476,18 +1624,17 @@ export class BuildRegistryUseCase {
     }
   }
 }
-</pre>
-            </td>
-          </tr>
-        </table>
+</pre></td>
+        </tr>
+      </table>
+            </div>
+            <div class='push'></div>
+          </div>
+          
+      <div class='footer quiet pad2 space-top1 center small'>
+        Code coverage generated by
+        <a href='https://deno.com/' target='_blank'>Deno v2.4.4</a>
+        at Sat, 6 Sep 2025 07:05:49 +0000
       </div>
-      <div class="push"></div>
-    </div>
-
-    <div class="footer quiet pad2 space-top1 center small">
-      Code coverage generated by
-      <a href="https://deno.com/" target="_blank">Deno v2.4.4</a>
-      at Sat, 30 Aug 2025 07:02:42 +0000
-    </div>
-  </body>
-</html>
+        </body>
+      </html>

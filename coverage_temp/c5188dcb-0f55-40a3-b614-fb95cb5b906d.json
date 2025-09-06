@@ -1,0 +1,111 @@
+{
+  "scriptId": "452",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/registry-aggregation-service.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 14514, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isCommandData",
+      "ranges": [{ "startOffset": 509, "endOffset": 1628, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1686, "endOffset": 1700, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "Command",
+      "ranges": [{ "startOffset": 1704, "endOffset": 1782, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromFrontMatter",
+      "ranges": [{ "startOffset": 1792, "endOffset": 2714, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromObject",
+      "ranges": [{ "startOffset": 2724, "endOffset": 3518, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getData",
+      "ranges": [{ "startOffset": 3521, "endOffset": 3575, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getConfig",
+      "ranges": [{ "startOffset": 3578, "endOffset": 3619, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasConfig",
+      "ranges": [{ "startOffset": 3622, "endOffset": 3677, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3748, "endOffset": 3779, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "RegistryData",
+      "ranges": [{ "startOffset": 3783, "endOffset": 3916, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 3926, "endOffset": 4642, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getVersion",
+      "ranges": [{ "startOffset": 4645, "endOffset": 4688, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 4691, "endOffset": 4742, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTools",
+      "ranges": [{ "startOffset": 4745, "endOffset": 4912, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toObject",
+      "ranges": [{ "startOffset": 4915, "endOffset": 5436, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "detectStructureType",
+      "ranges": [{ "startOffset": 5766, "endOffset": 8708, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateFromResults",
+      "ranges": [{ "startOffset": 8778, "endOffset": 9613, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateFromMappedData",
+      "ranges": [{ "startOffset": 9693, "endOffset": 13132, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractConfigurations",
+      "ranges": [{ "startOffset": 13200, "endOffset": 13386, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractCommandDataFromTemplateStructure",
+      "ranges": [{ "startOffset": 13550, "endOffset": 14511, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

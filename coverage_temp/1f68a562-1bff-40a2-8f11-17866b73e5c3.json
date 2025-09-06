@@ -1,0 +1,51 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/filesystem/file-system.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2846, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readDirectory",
+      "ranges": [
+        { "startOffset": 217, "endOffset": 1533, "count": 6 },
+        { "startOffset": 512, "endOffset": 555, "count": 0 },
+        { "startOffset": 668, "endOffset": 736, "count": 5 },
+        { "startOffset": 736, "endOffset": 1529, "count": 1 },
+        { "startOffset": 998, "endOffset": 1529, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "readFile",
+      "ranges": [
+        { "startOffset": 1536, "endOffset": 2474, "count": 10 },
+        { "startOffset": 1621, "endOffset": 1692, "count": 9 },
+        { "startOffset": 1692, "endOffset": 2470, "count": 1 },
+        { "startOffset": 1949, "endOffset": 2470, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "exists",
+      "ranges": [
+        { "startOffset": 2477, "endOffset": 2600, "count": 4 },
+        { "startOffset": 2536, "endOffset": 2562, "count": 3 },
+        { "startOffset": 2562, "endOffset": 2596, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "writeJson",
+      "ranges": [{ "startOffset": 2631, "endOffset": 2754, "count": 8 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ensureDir",
+      "ranges": [{ "startOffset": 2757, "endOffset": 2843, "count": 6 }],
+      "isBlockCoverage": true
+    }
+  ]
+}
