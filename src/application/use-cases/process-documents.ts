@@ -10,7 +10,6 @@ import {
 import {
   AnalysisResult,
   type Document,
-  MappedData,
   type Schema,
   type Template,
 } from "../../domain/models/entities.ts";
@@ -416,7 +415,6 @@ export class ProcessDocumentsUseCase {
     };
   }
 
-
   private async processDocument(
     document: Document,
     schema: Schema,
@@ -490,7 +488,7 @@ export class ProcessDocumentsUseCase {
 
     // Map to template
     const schemaDefinition = schema.getDefinition().getRawDefinition();
-    
+
     // Apply template uniformly for all schemas
     const mappedResult = this.templateMapper.map(
       extractedResult.data,

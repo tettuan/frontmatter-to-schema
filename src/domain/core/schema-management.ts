@@ -243,10 +243,12 @@ export class SchemaLoader {
    */
   private isValidSchema(schema: unknown): schema is ValidSchema {
     // Basic validation - ensure schema is an object with properties
-    if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
+    if (
+      typeof schema !== "object" || schema === null || Array.isArray(schema)
+    ) {
       return false;
     }
-    
+
     // Could add more specific validation here based on ValidSchema requirements
     // For now, accept any non-null object
     return true;

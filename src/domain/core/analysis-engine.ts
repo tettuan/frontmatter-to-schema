@@ -261,9 +261,11 @@ export class RobustSchemaAnalyzer<TSchema, TResult>
    * Type guard to check if schema has validation method
    */
   private hasValidationMethod(
-    schema: unknown
+    schema: unknown,
   ): schema is {
-    validate: (data: unknown) => { ok: boolean; data?: unknown; error?: unknown };
+    validate: (
+      data: unknown,
+    ) => { ok: boolean; data?: unknown; error?: unknown };
   } {
     return (
       typeof schema === "object" &&
@@ -398,7 +400,7 @@ export class RobustTemplateMapper<TSource, TTarget>
    * Type guard to check if value is a TemplateDefinition
    */
   private isTemplateDefinition(
-    value: unknown
+    value: unknown,
   ): value is TemplateDefinition {
     return (
       typeof value === "object" &&
