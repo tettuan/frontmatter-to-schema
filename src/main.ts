@@ -21,6 +21,7 @@ import {
   LoggingServiceFactory,
 } from "./domain/core/logging-service.ts";
 import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
+import { PathConfigurationFactory } from "./domain/core/path-configuration.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
 //   FactoryConfigurationBuilder,
@@ -107,8 +108,10 @@ Return ONLY a JSON object with the mapped data.`,
  * @deprecated Will be replaced by the modern schema-driven approach
  */
 async function runBuildRegistry() {
-  const PROMPTS_PATH = ".agent/climpt/prompts";
-  const OUTPUT_PATH = ".agent/climpt/registry.json";
+  // Use centralized path configuration
+  const pathConfig = PathConfigurationFactory.createDefault();
+  const PROMPTS_PATH = pathConfig.registryPrompts;
+  const OUTPUT_PATH = pathConfig.registryOutput;
 
   try {
     const fileReader = new FileReader();
