@@ -10,10 +10,18 @@ import type {
   AnalysisEngine,
   AnalysisStrategy,
   FileDiscovery,
-  FrontMatterExtractor,
   PipelineConfig,
   Transformer,
 } from "../core/interfaces.ts";
+
+/**
+ * Local interface for frontmatter extraction used by this pipeline
+ * This is different from the domain service FrontMatterExtractor
+ */
+interface FrontMatterExtractor {
+  extract(content: string): Promise<Record<string, unknown> | null>;
+  hasFrontMatter(content: string): boolean;
+}
 import type { FileReader } from "../services/interfaces.ts";
 import { Registry } from "../core/registry.ts";
 import { LoggerFactory } from "../shared/logger.ts";

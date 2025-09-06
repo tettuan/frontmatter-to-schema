@@ -16,10 +16,18 @@ import type {
   AnalysisEngine,
   AnalysisStrategy,
   FileDiscovery,
-  FrontMatterExtractor,
   PipelineConfig,
   Transformer,
 } from "../../../../src/domain/core/interfaces.ts";
+
+/**
+ * Local interface for frontmatter extraction used by this test
+ * Matches the interface defined in analysis-pipeline.ts
+ */
+interface FrontMatterExtractor {
+  extract(content: string): Promise<Record<string, unknown> | null>;
+  hasFrontMatter(content: string): boolean;
+}
 import type { FileReader } from "../../../../src/domain/services/interfaces.ts";
 
 // Mock implementations for testing
