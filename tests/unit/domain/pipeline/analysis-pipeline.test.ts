@@ -11,15 +11,22 @@ import type {
   DomainError,
   Result,
 } from "../../../../src/domain/core/result.ts";
-import { FrontMatterContent } from "../../../../src/domain/models/value-objects.ts";
 import type {
   AnalysisEngine,
   AnalysisStrategy,
   FileDiscovery,
-  FrontMatterExtractor,
   PipelineConfig,
   Transformer,
 } from "../../../../src/domain/core/interfaces.ts";
+
+/**
+ * Local interface for frontmatter extraction used by this test
+ * Matches the interface defined in analysis-pipeline.ts
+ */
+interface FrontMatterExtractor {
+  extract(content: string): Promise<Record<string, unknown> | null>;
+  hasFrontMatter(content: string): boolean;
+}
 import type { FileReader } from "../../../../src/domain/services/interfaces.ts";
 
 // Mock implementations for testing
@@ -67,26 +74,26 @@ class MockFileDiscovery implements FileDiscovery {
 }
 
 class MockFrontMatterExtractor implements FrontMatterExtractor {
-  private responses = new Map<string, FrontMatterContent | null>();
+  private responses = new Map<string, Record<string, unknown> | null>();
 
-  extract(content: string): Promise<FrontMatterContent | null> {
+  extract(content: string): Promise<Record<string, unknown> | null> {
     const response = this.responses.get(content);
     if (response) {
       return Promise.resolve(response);
     }
 
-    // Default response - create a simple FrontMatterContent
-    const contentResult = FrontMatterContent.create(
-      "title: Test\nauthor: Test Author",
-    );
-    return Promise.resolve(contentResult.ok ? contentResult.data : null);
+    // Default response - return a simple object
+    return Promise.resolve({
+      title: "Test",
+      author: "Test Author",
+    });
   }
 
   hasFrontMatter(content: string): boolean {
     return content.includes("---");
   }
 
-  setResponse(content: string, response: FrontMatterContent | null) {
+  setResponse(content: string, response: Record<string, unknown> | null) {
     this.responses.set(content, response);
   }
 }
@@ -179,19 +186,14 @@ Deno.test("AnalysisPipeline - Core Pipeline Functionality", async (t) => {
       );
 
       // Setup mock file content - create proper FrontMatterContent instances
-      const content1Result = FrontMatterContent.create(
-        "title: first document\nauthor: Author 1",
-      );
-      const content2Result = FrontMatterContent.create(
-        "title: second document\nauthor: Author 2",
-      );
-
-      if (content1Result.ok) {
-        mockExtractor.setResponse("test content 1", content1Result.data);
-      }
-      if (content2Result.ok) {
-        mockExtractor.setResponse("test content 2", content2Result.data);
-      }
+      mockExtractor.setResponse("test content 1", {
+        title: "first document",
+        author: "Author 1",
+      });
+      mockExtractor.setResponse("test content 2", {
+        title: "second document",
+        author: "Author 2",
+      });
 
       // Set up mock file contents
       mockFileReader.setFile("test1.md", "test content 1");
@@ -322,10 +324,9 @@ Deno.test("AnalysisPipeline - Core Pipeline Functionality", async (t) => {
     );
 
     // Setup mock response
-    const testContentResult = FrontMatterContent.create("title: test title");
-    if (testContentResult.ok) {
-      mockExtractor.setResponse("test", testContentResult.data);
-    }
+    mockExtractor.setResponse("test", {
+      title: "test title",
+    });
 
     mockFileReader.setFile("test.md", "test");
     mockFileReader.setFile("another.md", "test");
@@ -646,10 +647,9 @@ Deno.test("AnalysisPipeline - Error Handling and Edge Cases", async (t) => {
     );
 
     // Setup mock response
-    const validContentResult = FrontMatterContent.create("title: Valid Title");
-    if (validContentResult.ok) {
-      mockExtractor.setResponse("test content", validContentResult.data);
-    }
+    mockExtractor.setResponse("test content", {
+      title: "Valid Title",
+    });
 
     const result = await pipeline.process();
 

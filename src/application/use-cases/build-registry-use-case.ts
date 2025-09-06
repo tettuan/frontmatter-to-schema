@@ -2,7 +2,7 @@ import type {
   FileReader,
   FileWriter,
 } from "../../infrastructure/filesystem/file-system.ts";
-import type { FrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
+import type { FrontMatterExtractor as SimpleFrontMatterExtractor } from "../../domain/frontmatter/frontmatter-models.ts";
 import { RegistryAggregator } from "../services/registry-aggregator.ts";
 import type { Registry } from "../../domain/core/types.ts";
 import { LoggerFactory } from "../../domain/shared/logger.ts";
@@ -37,7 +37,7 @@ export class BuildRegistryUseCase {
   constructor(
     private readonly fileReader: FileReader,
     private readonly fileWriter: FileWriter,
-    private readonly extractor: FrontMatterExtractor,
+    private readonly extractor: SimpleFrontMatterExtractor,
     private readonly analyzer: RegistryAnalyzer,
   ) {}
 
