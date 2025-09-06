@@ -4,6 +4,7 @@ import {
   isOk,
   type Result,
 } from "../domain/core/result.ts";
+import { FILE_PATTERNS } from "../domain/constants/index.ts";
 import { Document } from "../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -177,7 +178,7 @@ export class DocumentProcessor {
   ): Promise<Result<Document[], DomainError>> {
     const filesResult = await this.fileSystem.listFiles(
       config.path,
-      config.pattern || "\\.md$",
+      config.pattern || FILE_PATTERNS.MARKDOWN,
     );
     if (!filesResult.ok) {
       return filesResult;

@@ -6,6 +6,7 @@ import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 // Removed unused imports: createError, IOError
 import { LoggerFactory } from "../../domain/shared/logger.ts";
+import { getEnvironmentConfig } from "../../domain/config/environment-config.ts";
 import { Document, FrontMatter } from "../../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -20,7 +21,8 @@ export class DenoDocumentRepository implements DocumentRepository {
   ): Promise<Result<Document[], DomainError & { message: string }>> {
     const documents: Document[] = [];
     const pathValue = path.getValue();
-    const verboseMode = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+    const envConfig = getEnvironmentConfig();
+    const verboseMode = envConfig.getVerboseMode();
 
     if (verboseMode) {
       const verboseLogger = LoggerFactory.createLogger(

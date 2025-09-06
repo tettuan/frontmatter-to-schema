@@ -106,7 +106,7 @@ Deno.test("CLI: Process sample documents", async () => {
   assertEquals(result.code, 0);
 
   // Check output file was created
-  const outputFile = join(TEST_OUTPUT_DIR, "registry.json");
+  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
   const fileExists = await exists(outputFile);
   assertEquals(fileExists, true);
 
@@ -137,7 +137,7 @@ Deno.test("CLI: Process climpt prompts", async () => {
   assertEquals(result.code, 0);
 
   // Check output file
-  const outputFile = join(TEST_OUTPUT_DIR, "registry.json");
+  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
   const fileExists = await exists(outputFile);
   assertEquals(fileExists, true);
 
@@ -217,7 +217,7 @@ Deno.test("CLI: Process with JSON output format", async () => {
   assertEquals(result.success, true);
 
   // Verify JSON output
-  const outputFile = join(TEST_OUTPUT_DIR, "registry.json");
+  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
   const content = await Deno.readTextFile(outputFile);
 
   // Should be valid JSON
@@ -262,7 +262,7 @@ published_at: "2025-08-01 10:00"
   assertEquals(result.success, true);
 
   // Verify YAML output
-  const outputFile = join(TEST_OUTPUT_DIR, "registry.yaml");
+  const outputFile = join(TEST_OUTPUT_DIR, "template.yaml");
   const content = await Deno.readTextFile(outputFile);
 
   // Basic YAML validation
@@ -365,7 +365,7 @@ More content.`,
   assertEquals(result.success, true);
 
   // Check output was created
-  const outputFile = join(TEST_OUTPUT_DIR, "multi-output", "registry.json");
+  const outputFile = join(TEST_OUTPUT_DIR, "multi-output", "template.json");
   const fileExists = await exists(outputFile);
   assertEquals(fileExists, true);
 });

@@ -7,6 +7,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+import { ERROR_KINDS } from "../../domain/constants/index.ts";
 import type {
   ITemplateRepository,
   TemplatePath,
@@ -81,7 +82,7 @@ export class TemplateFileLoader implements ITemplateRepository {
         return {
           ok: false,
           error: createDomainError({
-            kind: "FileNotFound",
+            kind: ERROR_KINDS.FILE_NOT_FOUND,
             path: fullPath,
           }, `Template file not found: ${fullPath}`),
         };
@@ -93,7 +94,7 @@ export class TemplateFileLoader implements ITemplateRepository {
         return {
           ok: false,
           error: createDomainError({
-            kind: "ReadError",
+            kind: ERROR_KINDS.READ_ERROR,
             path: fullPath,
             details: contentResult.error.message,
           }, `Failed to read template file: ${fullPath}`),

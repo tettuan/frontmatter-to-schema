@@ -631,26 +631,17 @@ export class CommandProcessor {
     template: Template,
   ): Result<Command, DomainError & { message: string }> {
     try {
-      // Apply template mapping to create command structure
-      const mappingResult = (template as unknown as {
-        substituteTemplateValues: (
-          arg1: unknown,
-          arg2: unknown,
-        ) => Result<unknown, DomainError>;
-      }).substituteTemplateValues({}, analyzedData) as Result<
-        unknown,
-        DomainError
-      >;
-      if (!mappingResult.ok) {
-        return mappingResult as Result<
-          Command,
-          DomainError & { message: string }
-        >;
-      }
+      // Apply template rules to analyzed data
+      const mappingResult = template.applyRules(analyzedData, {
+        kind: "SimpleMapping",
+      });
 
-      const mappedData =
-        (mappingResult as { data: { getData: () => Record<string, unknown> } })
-          .data.getData();
+      // mappingResult is the transformed data directly
+      const mappedData = typeof mappingResult === "object" &&
+          mappingResult !== null &&
+          !Array.isArray(mappingResult)
+        ? mappingResult as Record<string, unknown>
+        : {};
 
       // Create command using smart constructor
       const commandData: CommandCreationData = {

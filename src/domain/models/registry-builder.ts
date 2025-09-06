@@ -9,6 +9,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { DEFAULT_VALUES } from "../constants/index.ts";
 import type { Template } from "./entities.ts";
 import type { Schema } from "./entities.ts";
 import type { Command } from "./command-processor.ts";
@@ -61,8 +62,8 @@ export class RegistryBuilder {
 
       // Stage 2.2: Create registry data structure
       const registryData = {
-        version: context.version || "1.0.0",
-        description: context.description || "Climpt Command Registry",
+        version: context.version || DEFAULT_VALUES.SCHEMA_VERSION,
+        description: context.description || DEFAULT_VALUES.REGISTRY_DESCRIPTION,
         tools: {
           availableConfigs,
           commands,
@@ -206,26 +207,16 @@ export class RegistryBuilder {
     template: Template,
   ): Result<Registry, DomainError & { message: string }> {
     try {
-      // Apply template mapping
-      const mappingResult = (template as unknown as {
-        substituteTemplateValues: (
-          arg1: unknown,
-          arg2: unknown,
-        ) => Result<unknown, DomainError>;
-      }).substituteTemplateValues({}, registryData) as Result<
-        unknown,
-        DomainError
-      >;
-      if (!mappingResult.ok) {
-        return mappingResult as Result<
-          Registry,
-          DomainError & { message: string }
-        >;
-      }
-
-      const mappedData =
-        (mappingResult as { data: { getData: () => Record<string, unknown> } })
-          .data.getData();
+      // Apply template rules to registry data
+      const mappingResult = template.applyRules(registryData, {
+        kind: "SimpleMapping",
+      });
+      // mappingResult is the transformed data directly
+      const mappedData = typeof mappingResult === "object" &&
+          mappingResult !== null &&
+          !Array.isArray(mappingResult)
+        ? mappingResult as Record<string, unknown>
+        : {};
 
       // Validate final registry structure
       const registryValidation = this.validateRegistryStructure(mappedData);

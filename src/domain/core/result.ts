@@ -31,7 +31,8 @@ export type ValidationError =
   | { kind: "NotConfigured"; component: string }
   | { kind: "AlreadyExecuted"; pipeline: string }
   | { kind: "InvalidState"; expected: string; actual: string }
-  | { kind: "NoFrontMatterPresent" };
+  | { kind: "NoFrontMatterPresent" }
+  | { kind: "MissingRequiredField"; fields: string[] };
 
 // Analysis domain specific errors
 export type AnalysisError =

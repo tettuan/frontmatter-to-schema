@@ -109,7 +109,11 @@ Deno.test("CLI: Output path generation handles different scenarios", () => {
         templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
           ? "yaml"
           : "json";
-      const outputFileName = `registry.${templateExt}`;
+      // Extract base filename from template path instead of hardcoding "registry"
+      // Remove extension (any extension, not just json/yaml/yml)
+      const templateBaseName =
+        templatePath.split("/").pop()?.replace(/\.[^.]+$/, "") || "output";
+      const outputFileName = `${templateBaseName}.${templateExt}`;
       return `${destinationDir}/${outputFileName}`;
     }
   };
@@ -118,12 +122,12 @@ Deno.test("CLI: Output path generation handles different scenarios", () => {
     {
       destination: "./output",
       template: "template.json",
-      expected: "./output/registry.json",
+      expected: "./output/template.json",
     },
     {
       destination: "./output",
       template: "template.yaml",
-      expected: "./output/registry.yaml",
+      expected: "./output/template.yaml",
     },
     {
       destination: "./output/custom.json",
@@ -773,22 +777,22 @@ Deno.test("CLI: Template mapping with different file extensions", () => {
     {
       template: "template.yaml",
       destination: "./output",
-      expected: "./output/registry.yaml",
+      expected: "./output/template.yaml",
     },
     {
       template: "template.yml",
       destination: "./output",
-      expected: "./output/registry.yaml",
+      expected: "./output/template.yaml",
     },
     {
       template: "template.json",
       destination: "./output",
-      expected: "./output/registry.json",
+      expected: "./output/template.json",
     },
     {
       template: "template.md",
       destination: "./output",
-      expected: "./output/registry.json",
+      expected: "./output/template.json",
     },
     {
       template: "template.yaml",
@@ -812,7 +816,9 @@ Deno.test("CLI: Template mapping with different file extensions", () => {
           templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
             ? "yaml"
             : "json";
-        const outputFileName = `registry.${templateExt}`;
+        const templateBaseName =
+          templatePath.split("/").pop()?.replace(/\.[^.]+$/, "") || "output";
+        const outputFileName = `${templateBaseName}.${templateExt}`;
         return `${destinationDir}/${outputFileName}`;
       }
     };

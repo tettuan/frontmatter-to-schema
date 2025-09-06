@@ -2,13 +2,15 @@
 // Addresses Issue #410: Excessive logging verbosity and infrastructure code smell
 
 import { StructuredLogger } from "./logger.ts";
+import { getEnvironmentConfig } from "../config/environment-config.ts";
 
 export class VerboseLogger {
   private readonly isVerbose: boolean;
   private readonly serviceName: string;
 
   constructor(serviceName: string) {
-    this.isVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE") === "true";
+    const envConfig = getEnvironmentConfig();
+    this.isVerbose = envConfig.getVerboseMode();
     this.serviceName = serviceName;
   }
 

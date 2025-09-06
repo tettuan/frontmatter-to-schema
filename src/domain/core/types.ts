@@ -3,6 +3,8 @@
 
 import type { DomainError, Result } from "./result.ts";
 import { createDomainError } from "./result.ts";
+import { SchemaCommand } from "../models/schema-command.ts";
+import { DEFAULT_COMMAND_FIELDS } from "../constants/command-fields.ts";
 
 // Command Options Value Object (eliminates optional properties)
 export class CommandOptions {
@@ -58,27 +60,22 @@ export class CommandOptions {
 }
 
 // Command discriminated union (eliminates optional usage)
+// Now using SchemaCommand internally for schema-driven field extraction
 type TotalCommand =
   | {
     kind: "BasicCommand";
-    c1: string;
-    c2: string;
-    c3: string;
+    command: SchemaCommand;
     description: string;
   }
   | {
     kind: "DocumentedCommand";
-    c1: string;
-    c2: string;
-    c3: string;
+    command: SchemaCommand;
     description: string;
     usage: string;
   }
   | {
     kind: "ConfigurableCommand";
-    c1: string;
-    c2: string;
-    c3: string;
+    command: SchemaCommand;
     description: string;
     usage: string;
     options: CommandOptions;
@@ -88,52 +85,27 @@ type TotalCommand =
 export class ValidatedCommand {
   private constructor(private readonly command: TotalCommand) {}
 
-  static create(data: {
-    c1: string;
-    c2: string;
-    c3: string;
-    description: string;
-    usage?: string;
-    options?: {
-      input?: string[];
-      adaptation?: string[];
-      input_file?: boolean[];
-      stdin?: boolean[];
-      destination?: boolean[];
-    };
-  }): Result<ValidatedCommand, DomainError & { message: string }> {
-    // Validate required fields
-    if (!data.c1?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c1" },
-          "Command c1 (domain/category) cannot be empty",
-        ),
-      };
+  static create(
+    data: Record<string, unknown>,
+    schema?: unknown,
+  ): Result<ValidatedCommand, DomainError & { message: string }> {
+    // Create SchemaCommand for schema-driven field extraction
+    const schemaCommandResult = SchemaCommand.create(data, schema);
+    if (!schemaCommandResult.ok) {
+      return schemaCommandResult;
     }
+    const schemaCommand = schemaCommandResult.data;
 
-    if (!data.c2?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c2" },
-          "Command c2 (directive/action) cannot be empty",
-        ),
-      };
-    }
+    // Extract fields using schema-aware methods
+    const description = schemaCommand.getDescription();
+    const usage = schemaCommand.getUsage();
+    const options = schemaCommand.getOptions();
 
-    if (!data.c3?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c3" },
-          "Command c3 (layer/target) cannot be empty",
-        ),
-      };
-    }
-
-    if (!data.description?.trim()) {
+    // Legacy support: check both schema-aware and direct properties
+    const finalDescription = description || (data.description as string);
+    const finalUsage = usage || (data.usage as string);
+    // Validate description field
+    if (!finalDescription?.trim()) {
       return {
         ok: false,
         error: createDomainError(
@@ -144,40 +116,42 @@ export class ValidatedCommand {
     }
 
     // Determine command type based on provided data
-    const hasUsage = data.usage && data.usage.trim() !== "";
-    const hasOptions = data.options && Object.keys(data.options).length > 0;
+    const hasUsage = finalUsage && finalUsage.trim() !== "";
+    const hasOptions = options && Object.keys(options).length > 0;
 
     let command: TotalCommand;
     if (hasUsage && hasOptions) {
-      const optionsResult = CommandOptions.create(data.options!);
+      const optionsResult = CommandOptions.create(
+        options as {
+          input?: string[];
+          adaptation?: string[];
+          input_file?: boolean[];
+          stdin?: boolean[];
+          destination?: boolean[];
+        },
+      );
       if (!optionsResult.ok) {
         return optionsResult;
       }
       command = {
         kind: "ConfigurableCommand",
-        c1: data.c1.trim(),
-        c2: data.c2.trim(),
-        c3: data.c3.trim(),
-        description: data.description.trim(),
-        usage: data.usage!.trim(),
+        command: schemaCommand,
+        description: finalDescription.trim(),
+        usage: finalUsage!.trim(),
         options: optionsResult.data,
       };
     } else if (hasUsage) {
       command = {
         kind: "DocumentedCommand",
-        c1: data.c1.trim(),
-        c2: data.c2.trim(),
-        c3: data.c3.trim(),
-        description: data.description.trim(),
-        usage: data.usage!.trim(),
+        command: schemaCommand,
+        description: finalDescription.trim(),
+        usage: finalUsage!.trim(),
       };
     } else {
       command = {
         kind: "BasicCommand",
-        c1: data.c1.trim(),
-        c2: data.c2.trim(),
-        c3: data.c3.trim(),
-        description: data.description.trim(),
+        command: schemaCommand,
+        description: finalDescription.trim(),
       };
     }
 
@@ -186,6 +160,23 @@ export class ValidatedCommand {
 
   getCommand(): TotalCommand {
     return this.command;
+  }
+
+  getSchemaCommand(): SchemaCommand {
+    return this.command.command;
+  }
+
+  // Legacy getters for backward compatibility
+  getC1(): string {
+    return this.command.command.getDomain();
+  }
+
+  getC2(): string {
+    return this.command.command.getAction();
+  }
+
+  getC3(): string {
+    return this.command.command.getTarget();
   }
 
   getUsage(): string | null {
@@ -210,10 +201,12 @@ export class ValidatedCommand {
 }
 
 // Legacy interface for backward compatibility
+// Note: These field names are preserved for backward compatibility only.
+// New code should use SchemaCommand for schema-driven field extraction.
 export interface LegacyCommand {
-  c1: string;
-  c2: string;
-  c3: string;
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string; // c1
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string; // c2
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string; // c3
   description: string;
   usage?: string;
   options?: {
@@ -384,52 +377,25 @@ export type FrontmatterData = LegacyFrontmatterData;
 // CommandStructure Value Object (eliminates optional adaptation)
 export class TotalCommandStructure {
   private constructor(
-    private readonly c1: string,
-    private readonly c2: string,
-    private readonly c3: string,
+    private readonly schemaCommand: SchemaCommand,
     private readonly input: string,
     private readonly adaptation: string | null,
   ) {}
 
-  static create(data: {
-    c1: string;
-    c2: string;
-    c3: string;
-    input: string;
-    adaptation?: string;
-  }): Result<TotalCommandStructure, DomainError & { message: string }> {
-    // Validate required fields
-    if (!data.c1?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c1" },
-          "CommandStructure c1 (domain/category) cannot be empty",
-        ),
-      };
+  static create(
+    data: Record<string, unknown>,
+    schema?: unknown,
+  ): Result<TotalCommandStructure, DomainError & { message: string }> {
+    // Create SchemaCommand for schema-driven field extraction
+    const schemaCommandResult = SchemaCommand.create(data, schema);
+    if (!schemaCommandResult.ok) {
+      return schemaCommandResult;
     }
+    const schemaCommand = schemaCommandResult.data;
 
-    if (!data.c2?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c2" },
-          "CommandStructure c2 (directive/action) cannot be empty",
-        ),
-      };
-    }
-
-    if (!data.c3?.trim()) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "EmptyInput", field: "c3" },
-          "CommandStructure c3 (layer/target) cannot be empty",
-        ),
-      };
-    }
-
-    if (!data.input?.trim()) {
+    // Validate input field
+    const input = data.input as string;
+    if (!input?.trim()) {
       return {
         ok: false,
         error: createDomainError(
@@ -441,21 +407,21 @@ export class TotalCommandStructure {
 
     // Validate input type against known types
     const validInputTypes = ["-", "nextaction", "code", "claude"];
-    if (!validInputTypes.includes(data.input.trim())) {
+    if (!validInputTypes.includes(input.trim())) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "InvalidFormat",
-            input: data.input,
+            input: input,
             expectedFormat: validInputTypes.join(", "),
           },
-          `Invalid input type: ${data.input}`,
+          `Invalid input type: ${input}`,
         ),
       };
     }
 
-    const adaptation = data.adaptation?.trim() || null;
+    const adaptation = (data.adaptation as string)?.trim() || null;
 
     // Validate adaptation if provided
     if (adaptation !== null) {
@@ -484,23 +450,21 @@ export class TotalCommandStructure {
     return {
       ok: true,
       data: new TotalCommandStructure(
-        data.c1.trim(),
-        data.c2.trim(),
-        data.c3.trim(),
-        data.input.trim(),
+        schemaCommand,
+        input.trim(),
         adaptation,
       ),
     };
   }
 
   getC1(): string {
-    return this.c1;
+    return this.schemaCommand.getDomain();
   }
   getC2(): string {
-    return this.c2;
+    return this.schemaCommand.getAction();
   }
   getC3(): string {
-    return this.c3;
+    return this.schemaCommand.getTarget();
   }
   getInput(): string {
     return this.input;
@@ -510,7 +474,11 @@ export class TotalCommandStructure {
   }
 
   toString(): string {
-    const parts = [this.c1, this.c2, this.c3];
+    const parts = [
+      this.schemaCommand.getDomain(),
+      this.schemaCommand.getAction(),
+      this.schemaCommand.getTarget(),
+    ];
     if (this.input !== "-") {
       parts.push(`-i=${this.input}`);
     }
@@ -523,9 +491,9 @@ export class TotalCommandStructure {
 
 // Legacy interface for backward compatibility
 export interface LegacyCommandStructure {
-  c1: string;
-  c2: string;
-  c3: string;
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string; // c1
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string; // c2
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string; // c3
   input: string;
   adaptation?: string;
 }
@@ -668,9 +636,9 @@ export class AnalysisResult<T = unknown> {
 
 // Backward compatibility helpers
 export function createCommand(data: {
-  c1: string;
-  c2: string;
-  c3: string;
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string;
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string;
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string;
   description: string;
   usage?: string;
   options?: {
@@ -683,9 +651,9 @@ export function createCommand(data: {
 }): LegacyCommand {
   // For backward compatibility, return legacy interface
   return {
-    c1: data.c1,
-    c2: data.c2,
-    c3: data.c3,
+    [DEFAULT_COMMAND_FIELDS.DOMAIN]: data[DEFAULT_COMMAND_FIELDS.DOMAIN],
+    [DEFAULT_COMMAND_FIELDS.ACTION]: data[DEFAULT_COMMAND_FIELDS.ACTION],
+    [DEFAULT_COMMAND_FIELDS.TARGET]: data[DEFAULT_COMMAND_FIELDS.TARGET],
     description: data.description,
     usage: data.usage,
     options: data.options,
@@ -693,17 +661,17 @@ export function createCommand(data: {
 }
 
 export function createCommandStructure(data: {
-  c1: string;
-  c2: string;
-  c3: string;
+  [DEFAULT_COMMAND_FIELDS.DOMAIN]: string;
+  [DEFAULT_COMMAND_FIELDS.ACTION]: string;
+  [DEFAULT_COMMAND_FIELDS.TARGET]: string;
   input: string;
   adaptation?: string;
 }): LegacyCommandStructure {
   // For backward compatibility, return legacy interface
   return {
-    c1: data.c1,
-    c2: data.c2,
-    c3: data.c3,
+    [DEFAULT_COMMAND_FIELDS.DOMAIN]: data[DEFAULT_COMMAND_FIELDS.DOMAIN],
+    [DEFAULT_COMMAND_FIELDS.ACTION]: data[DEFAULT_COMMAND_FIELDS.ACTION],
+    [DEFAULT_COMMAND_FIELDS.TARGET]: data[DEFAULT_COMMAND_FIELDS.TARGET],
     input: data.input,
     adaptation: data.adaptation,
   };

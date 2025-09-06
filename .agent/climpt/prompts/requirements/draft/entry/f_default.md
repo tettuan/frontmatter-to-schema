@@ -2,7 +2,7 @@
 c1: requirement
 c2: draft
 c3: entry
-title: requirement 
+title: requirement
 description: entry
 usage: climpt-requirement basedon ddd -o refactor_plan.md
 options:

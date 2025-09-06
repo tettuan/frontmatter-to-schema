@@ -16,6 +16,8 @@ import {
 import { FrontMatter } from "../../domain/models/entities.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+import { DEFAULT_VALUES, SCHEMA_IDS } from "../../domain/constants/index.ts";
+import { COMMAND_FIELD_METADATA } from "../../domain/constants/command-fields.ts";
 
 // Discriminated union for analyzer types following totality principle
 export type RegistryAnalyzer =
@@ -195,7 +197,7 @@ export class BuildRegistryUseCase {
     Schema,
     DomainError & { message: string }
   > {
-    const schemaId = SchemaId.create("cli-registry-schema");
+    const schemaId = SchemaId.create(SCHEMA_IDS.CLI_REGISTRY);
     if (!schemaId.ok) {
       return {
         ok: false,
@@ -203,7 +205,7 @@ export class BuildRegistryUseCase {
       };
     }
 
-    const schemaVersion = SchemaVersion.create("1.0.0");
+    const schemaVersion = SchemaVersion.create(DEFAULT_VALUES.SCHEMA_VERSION);
     if (!schemaVersion.ok) {
       return {
         ok: false,
@@ -214,30 +216,30 @@ export class BuildRegistryUseCase {
       };
     }
 
-    // Define the expected structure for CLI prompt frontmatter
+    // Define the expected structure for CLI prompt frontmatter using constants
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+
+    // Build properties from field metadata
+    for (const [field, metadata] of Object.entries(COMMAND_FIELD_METADATA)) {
+      properties[field] = {
+        type: metadata.type,
+        description: metadata.description,
+      };
+      if (metadata.required) {
+        required.push(field);
+      }
+    }
+
     const cliSchemaDefinition = {
       type: "object",
-      properties: {
-        c1: { type: "string", description: "First command component (domain)" },
-        c2: {
-          type: "string",
-          description: "Second command component (action)",
-        },
-        c3: { type: "string", description: "Third command component (target)" },
-        title: { type: "string", description: "Human-readable command title" },
-        description: { type: "string", description: "Command description" },
-        usage: { type: "string", description: "Usage example" },
-        options: {
-          type: "object",
-          description: "Available command options",
-        },
-      },
-      required: ["c1", "c2", "c3"],
+      properties,
+      required,
     };
 
     const schemaDefinition = SchemaDefinition.create(
       cliSchemaDefinition,
-      "1.0.0",
+      DEFAULT_VALUES.SCHEMA_VERSION,
     );
     if (!schemaDefinition.ok) {
       return {

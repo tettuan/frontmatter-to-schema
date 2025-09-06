@@ -14,8 +14,9 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
-import { join } from "jsr:@std/path@1.1.2";
+import { basename, join } from "jsr:@std/path@1.1.2";
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
+import { getEnvironmentConfig } from "./src/domain/config/environment-config.ts";
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
@@ -105,8 +106,8 @@ export async function main() {
   }
 
   // Debug logging if needed
-  const debugMode = Deno.env.get("FRONTMATTER_TO_SCHEMA_DEBUG") === "true" ||
-    Deno.env.get("FRONTMATTER_DEBUG") === "true"; // backward compatibility
+  const envConfig = getEnvironmentConfig();
+  const debugMode = envConfig.getDebugMode();
   const logger = LoggerFactory.createLogger("cli");
   if (debugMode) {
     try {
@@ -231,7 +232,10 @@ export async function main() {
           (templatePath.endsWith(".yaml") || templatePath.endsWith(".yml"))
         ? "yaml"
         : "json";
-      const outputFileName = `registry.${templateExt}`;
+      // Extract base filename from template path instead of hardcoding "registry"
+      // Remove extension (any extension, not just json/yaml/yml)
+      const templateBaseName = basename(templatePath).replace(/\.[^.]+$/, "");
+      const outputFileName = `${templateBaseName}.${templateExt}`;
       outputPath = join(destinationDir, outputFileName);
     }
     const outputPathResult = OutputPath.create(outputPath);
