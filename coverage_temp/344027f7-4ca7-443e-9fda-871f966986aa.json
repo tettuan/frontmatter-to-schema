@@ -1,0 +1,42 @@
+{
+  "scriptId": "337",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/mocks/template-mapper-mock.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1113, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 163, "endOffset": 206, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setMappingResult",
+      "ranges": [{ "startOffset": 272, "endOffset": 380, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setMappingError",
+      "ranges": [{ "startOffset": 443, "endOffset": 533, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "map",
+      "ranges": [
+        { "startOffset": 536, "endOffset": 1001, "count": 8 },
+        { "startOffset": 626, "endOffset": 709, "count": 1 },
+        { "startOffset": 709, "endOffset": 766, "count": 7 },
+        { "startOffset": 766, "endOffset": 848, "count": 0 },
+        { "startOffset": 848, "endOffset": 1000, "count": 7 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "reset",
+      "ranges": [{ "startOffset": 1036, "endOffset": 1110, "count": 9 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

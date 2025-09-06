@@ -1,0 +1,46 @@
+{
+  "scriptId": "331",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/use-cases/two-stage-processing-use-case.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7846, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 645, "endOffset": 651, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "TwoStageProcessingUseCase",
+      "ranges": [{ "startOffset": 655, "endOffset": 705, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "execute",
+      "ranges": [{ "startOffset": 770, "endOffset": 3234, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "executeStage1",
+      "ranges": [{ "startOffset": 3317, "endOffset": 5142, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "executeStage2",
+      "ranges": [{ "startOffset": 5213, "endOffset": 6863, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "executeStage1Only",
+      "ranges": [{ "startOffset": 6944, "endOffset": 7361, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "executeStage2Only",
+      "ranges": [{ "startOffset": 7437, "endOffset": 7843, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

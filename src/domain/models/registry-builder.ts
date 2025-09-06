@@ -128,11 +128,12 @@ export class RegistryBuilder {
    */
   private validateWithRegistrySchema(
     registryData: Record<string, unknown>,
-    _schema: Schema,
+    schema: Schema,
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
     try {
       // Validate registry structure matches schema
-      const requiredFields = ["version", "description", "tools"];
+      const _schemaProps = schema.getProperties();
+      const requiredFields = schema.getRequiredFields();
 
       // Check required fields
       for (const requiredField of requiredFields) {

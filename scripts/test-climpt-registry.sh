@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# Source path configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../config/paths.sh"
+
 # Execute frontmatter-to-schema command with specified parameters
-frontmatter-to-schema .agent/test-climpt/prompts \
-  --schema=.agent/test-climpt/registry_schema.json \
-  --template=.agent/test-climpt/registry_template.json \
-  --destination=.agent/test-climpt/registed-commands.json \
+frontmatter-to-schema "$TEST_PROMPTS_DIR" \
+  --schema="$TEST_REGISTRY_SCHEMA" \
+  --template="$TEST_REGISTRY_TEMPLATE" \
+  --destination="$TEST_OUTPUT_FILE" \
   --verbose
 
 # Capture the exit status

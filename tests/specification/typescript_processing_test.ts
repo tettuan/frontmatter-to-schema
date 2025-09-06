@@ -395,8 +395,8 @@ author: John Doe <john@example.com>
   });
 });
 
-describe("Two-stage Analysis Integration", () => {
-  it("should complete full two-stage processing pipeline", () => {
+describe("Analysis Integration", () => {
+  it("should complete full processing pipeline", () => {
     // Input: Raw frontmatter
     const rawFrontmatter = {
       title: "Integration Test",
@@ -405,8 +405,8 @@ describe("Two-stage Analysis Integration", () => {
       tags: ["test", "integration"],
     };
 
-    // Stage A: Schema expansion and extraction
-    const stageAResult = {
+    // Schema expansion and extraction
+    const extractionResult = {
       extracted: {
         title: rawFrontmatter.title,
         category: rawFrontmatter.category,
@@ -419,7 +419,7 @@ describe("Two-stage Analysis Integration", () => {
       },
     };
 
-    // Stage B: Template mapping
+    // Template mapping
     const _template = {
       summary: "{{title}} ({{category}})",
       details: {
@@ -428,24 +428,24 @@ describe("Two-stage Analysis Integration", () => {
       },
     };
 
-    const stageBResult = {
+    const mappingResult = {
       summary:
-        `${stageAResult.extracted.title} (${stageAResult.extracted.category})`,
+        `${extractionResult.extracted.title} (${extractionResult.extracted.category})`,
       details: {
-        priority: stageAResult.extracted.priority,
-        tags: stageAResult.extracted.tags.join(", "),
+        priority: extractionResult.extracted.priority,
+        tags: extractionResult.extracted.tags.join(", "),
       },
     };
 
     // Validate pipeline results
-    assertEquals(stageBResult.summary, "Integration Test (testing)");
-    assertEquals(stageBResult.details.priority, "high");
-    assertEquals(stageBResult.details.tags, "test, integration");
-    assertExists(stageAResult.metadata.extractedAt);
+    assertEquals(mappingResult.summary, "Integration Test (testing)");
+    assertEquals(mappingResult.details.priority, "high");
+    assertEquals(mappingResult.details.tags, "test, integration");
+    assertExists(extractionResult.metadata.extractedAt);
   });
 
-  it("should handle errors gracefully in each stage", () => {
-    // Stage A error: Invalid schema
+  it("should handle errors gracefully", () => {
+    // Invalid schema error
     const invalidSchema = {
       properties: null, // Invalid structure
     };

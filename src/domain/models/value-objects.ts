@@ -480,6 +480,79 @@ export class SchemaDefinition {
     // In a real implementation, we'd validate against the JSON Schema
     return { ok: true, data: true };
   }
+
+  /**
+   * Get all properties defined in the schema
+   * @returns An object mapping property names to their definitions
+   */
+  getProperties(): Record<string, unknown> {
+    const definition = this.value as Record<string, unknown>;
+
+    // Handle JSON Schema format
+    if (definition.properties && typeof definition.properties === "object") {
+      return definition.properties as Record<string, unknown>;
+    }
+
+    // Handle simple object format (direct properties)
+    // Filter out metadata fields like $schema, $id, type, etc.
+    const metadataFields = [
+      "$schema",
+      "$id",
+      "type",
+      "title",
+      "description",
+      "required",
+      "additionalProperties",
+    ];
+    const properties: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(definition)) {
+      if (!metadataFields.includes(key)) {
+        properties[key] = value;
+      }
+    }
+
+    return properties;
+  }
+
+  /**
+   * Get list of required fields from the schema
+   * @returns Array of required field names
+   */
+  getRequiredFields(): string[] {
+    const definition = this.value as Record<string, unknown>;
+
+    // Handle JSON Schema format with required array
+    if (Array.isArray(definition.required)) {
+      return definition.required.filter((field): field is string =>
+        typeof field === "string"
+      );
+    }
+
+    // Handle properties with required flag
+    if (definition.properties && typeof definition.properties === "object") {
+      const required: string[] = [];
+      const properties = definition.properties as Record<string, unknown>;
+
+      for (const [key, propDef] of Object.entries(properties)) {
+        if (
+          propDef &&
+          typeof propDef === "object" &&
+          "required" in propDef &&
+          (propDef as Record<string, unknown>).required === true
+        ) {
+          required.push(key);
+        }
+      }
+
+      if (required.length > 0) {
+        return required;
+      }
+    }
+
+    // Default to all properties being required if no explicit required field
+    return Object.keys(this.getProperties());
+  }
 }
 
 export class SchemaVersion {

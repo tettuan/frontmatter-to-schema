@@ -103,7 +103,7 @@ Deno.test("TestDataBuilder", async (t) => {
 
     // Assert
     assert(definition);
-    const def = definition.getDefinition() as Record<string, unknown>;
+    const def = definition.getRawDefinition() as Record<string, unknown>;
     assertEquals(def.type, "object");
   });
 
@@ -113,7 +113,7 @@ Deno.test("TestDataBuilder", async (t) => {
 
     // Assert
     assert(definition);
-    const def = definition.getDefinition() as Record<string, unknown>;
+    const def = definition.getRawDefinition() as Record<string, unknown>;
     assertEquals(def.type, "object");
   });
 

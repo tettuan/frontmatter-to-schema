@@ -1,0 +1,56 @@
+{
+  "scriptId": "375",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/analyzers/typescript-analyzer.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 9033, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 584, "endOffset": 620, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TypeScriptAnalyzer",
+      "ranges": [{ "startOffset": 624, "endOffset": 827, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [{ "startOffset": 901, "endOffset": 5309, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "transformToRegistry",
+      "ranges": [{ "startOffset": 5376, "endOffset": 6100, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractVersion",
+      "ranges": [{ "startOffset": 6146, "endOffset": 6475, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractDescription",
+      "ranges": [{ "startOffset": 6530, "endOffset": 6743, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractToolName",
+      "ranges": [{ "startOffset": 6798, "endOffset": 7968, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createCommands",
+      "ranges": [{ "startOffset": 8037, "endOffset": 8823, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createTypeScriptAnalyzer",
+      "ranges": [{ "startOffset": 8890, "endOffset": 9032, "count": 4 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

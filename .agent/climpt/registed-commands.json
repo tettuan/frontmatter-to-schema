@@ -2,202 +2,381 @@
   "version": "1.0.0",
   "description": "Command Registry",
   "tools": {
-    "availableConfigs": [],
+    "availableConfigs": [
+      "build",
+      "debug",
+      "design",
+      "docs",
+      "git",
+      "meta",
+      "refactor",
+      "requirement",
+      "spec"
+    ],
     "commands": [
       {
-        "title": "Execute Integration Suite",
-        "domain": "test",
-        "action": "execute",
-        "target": "integration-suite",
-        "description": "Execute integration test suite",
-        "tags": [
-          "testing",
-          "integration",
-          "automation"
-        ],
-        "config": {
-          "input_formats": [
-            "YAML",
-            "JSON"
-          ],
-          "processing_modes": [
-            "default",
-            "verbose",
-            "quiet"
-          ],
-          "supports": {
-            "file_input": true,
-            "stdin_input": false,
-            "output_destination": true
-          }
-        }
-      },
-      {
-        "title": null,
+        "c1": "design",
+        "c2": "domain",
+        "c3": "boundary",
+        "title": "ドメイン境界線設計",
         "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+        "usage": "原案をもとに、ドメイン設計の境界線分析を行い、境界線そのものを設計します。\n中心極限定理に基づいて複数の中心点を特定します。\n",
         "options": {
-          "input_text": "原案"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
-        "title": null,
-        "description": "コードベースをもとに、ドメイン境界線を引く。"
+        "c1": "design",
+        "c2": "domain",
+        "c3": "boundary",
+        "title": "ドメイン境界線設計（コードベース）",
+        "description": "コードベースをもとに、ドメイン境界線を引く。",
+        "usage": "現在の実装をもとに、ドメイン設計の境界線分析を行い、ドメイン境界線を設計します。\n実行コードをシミュレートして中心点を特定します。\n",
+        "options": {
+          "input": [
+            "code"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
-        "title": null,
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "title": "ドメイン設計",
         "description": "ドメイン境界情報などを元に、ドメイン設計を行う。",
+        "usage": "ドメイン境界線情報ファイルを入力として、ドメイン設計を行います。\nまずは粗い型定義を行い、全域性の原則を踏まえて設計します。\n",
         "options": {
-          "input_text_file": "ドメイン境界線情報"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
-        "title": null,
-        "description": "ドメイン境界情報をもとに、中心概念について、設計を行う。"
-      },
-      {
-        "title": null,
-        "description": "ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。"
-      },
-      {
-        "title": "Analyze Quality Metrics",
-        "domain": "spec",
-        "action": "analyze",
-        "target": "quality-metrics",
-        "description": "Analyze specification quality and completeness",
-        "tags": [
-          "specification",
-          "quality",
-          "metrics"
-        ],
-        "config": {
-          "input_formats": [
-            "MD",
-            "JSON"
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "title": "ドメイン設計の中心設計",
+        "description": "ドメイン境界情報をもとに、中心概念について、設計を行う。",
+        "usage": "ドメイン境界情報をもとに、ドメインに基づいた詳細設計を、ドメイン領域ごとに実施します。\n実装情報を加味した、詳細な型定義を行います。\n",
+        "options": {
+          "input": [
+            "core"
           ],
-          "processing_modes": [
-            "default",
-            "comprehensive"
+          "adaptation": [
+            "default"
           ],
-          "supports": {
-            "file_input": true,
-            "stdin_input": true,
-            "output_destination": true
-          }
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
-        "title": "Analyze Dependencies",
-        "domain": "meta",
-        "action": "analyze",
-        "target": "dependencies",
-        "description": "Analyze project dependencies and their relationships",
-        "tags": [
-          "dependencies",
-          "analysis",
-          "meta"
-        ],
-        "config": {
-          "input_formats": [
-            "JSON",
-            "YAML",
-            "TOML"
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "title": "ドメイン設計詳細版",
+        "description": "ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。",
+        "usage": "ドメイン情報をもとに、実装情報を加味した詳細な型定義を行います。\n既存のドメイン情報と新しいドメイン情報を統合して設計します。\n",
+        "options": {
+          "input": [
+            "detail"
           ],
-          "processing_modes": [
-            "default",
-            "security",
-            "outdated"
+          "adaptation": [
+            "default"
           ],
-          "supports": {
-            "file_input": true,
-            "stdin_input": true,
-            "output_destination": true
-          }
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
+        "c1": "spec",
+        "c2": "analyze-structure",
+        "c3": "requirements",
         "title": "要求をブレイクダウンし構造化する",
+        "description": "要求のファイルをもとに、情報を整理して、構造化されたファイルを出力する",
+        "usage": "要求のファイルをもとにプロセス分解とユーザーフローに基づいて構造化します。\nMosCow分析を含めて必須要件を明確化します。\n",
         "options": {
-          "destination_path": "出力先",
-          "input_text_file": "要求のファイル"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
+        "c1": "spec",
+        "c2": "analyze",
+        "c3": "quality-metrics",
         "title": "Analyze Specification Quality",
         "description": "Analyze specification quality and completeness metrics",
-        "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json"
+        "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
+        "c1": "meta",
+        "c2": "resolve",
+        "c3": "registered-commands",
         "title": "climpt実行コマンドを構築するclimpt",
         "description": "渡された内容に相応しい climpt-* を構築し、示す。",
+        "usage": "使いたいファイルリストや内容を入力として、適切なclimpt-*コマンドを構築して提示します。\n登録済みコマンドから最適なものを選択または新規提案します。\n",
         "options": {
-          "input_text": "使いたいファイルリストや内容。"
-        },
-        "Notice": "この指示書をAgentは選択はしない。ユーザー実行のみ許可。"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
-        "title": "Climpt 実行可能コマンドの一覧作成"
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "title": "Climpt 実行可能コマンドの一覧作成",
+        "description": "使用可能な Climpt リストを作成する。パラメータで渡した値をもとに、プロンプトテンプレートの変数を置換する。",
+        "usage": "使用可能なClimptコマンドの一覧を作成します。\nプロンプトテンプレートの変数置換機能も含めて説明します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
         "title": "Climpt Registry.json Generation",
         "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
-        "usage": "climpt list usage --adaptation=registry"
+        "usage": "climpt list usage --adaptation=registry",
+        "options": {
+          "input": [
+            "default",
+            "registry"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
         "title": "Climpt Available Commands List Generation (Claude Code Version)",
         "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
-        "usage": "climpt list usage --adaptation=claude-code"
+        "usage": "climpt list usage --adaptation=claude-code",
+        "options": {
+          "input": [
+            "claude"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
+        }
       },
       {
+        "c1": "requirement",
+        "c2": "draft",
+        "c3": "entry",
+        "title": "requirement",
+        "description": "entry",
+        "usage": "climpt-requirement basedon ddd -o refactor_plan.md",
+        "options": {
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "docs",
+        "c2": "generate-robust",
+        "c3": "instruction-doc",
         "title": "Climpt プロンプト作成指示書",
         "description": "短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める。",
+        "usage": "指示したい内容を入力として、既存レポジトリや関連資料を調査し、\n変更に強く再現性の高い指示書を作成します。\n",
         "options": {
-          "text_input": "指示したい内容を記載する",
-          "destination_path": "出力先"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
-        "title": "Generate Documentation",
-        "domain": "code",
-        "action": "generate",
-        "target": "documentation",
-        "description": "Generate documentation from code comments and structure",
-        "tags": [
-          "documentation",
-          "code-generation",
-          "automation"
-        ],
-        "config": {
-          "input_formats": [
-            "TS",
-            "JS",
-            "PY"
-          ],
-          "processing_modes": [
-            "default",
-            "detailed",
-            "minimal"
-          ],
-          "supports": {
-            "file_input": true,
-            "stdin_input": false,
-            "output_destination": true
-          }
-        },
-        "usage": "Generate comprehensive documentation from source code.\nExample: climpt-code generate documentation -f src/\n"
-      },
-      {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "test",
         "title": "testを強固に構築する",
+        "description": "ドメイン駆動設計と全域性（Totality）原則に基づいた、強固で堅牢なテスト構築を行う",
+        "usage": "強固に構築すべき機能要件ファイルと追加指示を入力として、\nドメイン駆動設計に基づいた堅牢なテストを構築します。\n",
         "options": {
-          "input_text_file": "強固に構築すべき機能要件",
-          "input_text": "強固な構築に向けた追加指示"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "test",
         "title": "強固で堅牢なテスト構築指示書",
+        "description": "変更に強く、再現性が高く、保守性に優れたテストコードを構築し、ビジネスロジックの品質を確実に保証する",
+        "usage": "テスト対象機能の仕様書ファイルと追加要件を入力として、強固で堅牢なテストコードを構築します。\nテスト範囲（unit/integration/e2e）を指定して実行してください。\n",
         "options": {
-          "input_text_file": "テスト対象機能の仕様書PATH",
-          "input_text": "追加テスト要件または特別な考慮事項",
-          "uv-test-scope": "テスト対象範囲（unit/integration/e2e）"
+          "input": [
+            "default",
+            "strict"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            true
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
@@ -208,86 +387,321 @@
         }
       },
       {
-        "title": "Test"
-      },
-      {
+        "c1": "git",
+        "c2": "decide-branch",
+        "c3": "working-branch",
         "title": "git branch の新規立ち上げ判断と、新ブランチ作成",
-        "input_text": "今回の作業内容を30文字以内で指定"
+        "description": "作業内容に基づいてGitブランチの新規作成判断と適切なブランチ選択を行う",
+        "usage": "今回の作業内容を30文字以内で指定して、適切なGitブランチの判断と作成を行います。\n現在のブランチとの近さ基準に基づいて最適なブランチを選択します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
       },
       {
+        "c1": "git",
+        "c2": "list-select",
+        "c3": "pr-branch",
         "title": "現存のPRとブランチをリスト化して、次に作業する対象を選ぶ",
-        "properties": {
-          "C3L-Version": 0.3
+        "description": "ローカル・リモートブランチとPRを一覧化し、次に作業すべき対象を自動選択する",
+        "usage": "現存のPRとブランチを一覧化して、次に作業すべき対象を自動選択します。\n選択結果に基づいて次の作業を進めます。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
+        "c1": "git",
+        "c2": "find-oldest",
+        "c3": "descendant-branch",
         "title": "Git関連ブランチ探索とマージ処理実行",
-        "properties": {
-          "C3L-Version": 0.5
+        "description": "現在のGitブランチから派生した子孫ブランチと兄弟ブランチを探索し、最も古い関連ブランチの作業状態を確認してマージ処理を実行",
+        "usage": "現在のブランチから関連ブランチを探索し、作業が完了している最も古いブランチを\n元の親ブランチへマージするための処理を実行します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            false
+          ]
         }
       },
       {
+        "c1": "git",
+        "c2": "document",
+        "c3": "fix-instruction",
         "title": "修正指示を文書化する",
         "description": "問題点をまとめ、次の修正指示をGitのIssueへ登録する",
         "usage": "climpt-git document fix-instruction",
         "options": {
-          "input_text": "問題の内容と修正の方向性など"
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
         }
       },
       {
+        "c1": "git",
+        "c2": "merge-cleanup",
+        "c3": "develop-branches",
         "title": "developにマージして不要なブランチを掃除する",
-        "description": "mergeされていないブランチを全てdevelopへ統合し、マージ後に削除。"
-      },
-      {
-        "title": "意味的近さでコミットを分けて実施する",
-        "properties": {
-          "C3L-Version": 0.3
+        "description": "mergeされていないブランチを全てdevelopへ統合し、マージ後に削除。",
+        "usage": "mergeされていないブランチを全てdevelopへ統合し、マージ後に削除します。\n作成順序と進捗状況を考慮して適切な順番でマージします。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            false
+          ]
         }
       },
       {
+        "c1": "git",
+        "c2": "group-commit",
+        "c3": "unstaged-changes",
+        "title": "意味的近さでコミットを分けて実施する",
+        "description": "Gitコミットを、ファイルの変更内容の意味的近さ単位でグループ化し、適切にまとめてコミットする",
+        "usage": "ファイルの変更内容の意味的近さでグループ化し、複数回のコミット処理を連続実行します。\nまったく異なる内容を1つのコミットに含めることを避けます。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            false
+          ]
+        }
+      },
+      {
+        "c1": "git",
+        "c2": "analyze",
+        "c3": "commit-history",
         "title": "Analyze Commit History",
         "description": "Analyze git commit history and generate insights",
-        "usage": "echo \"main..feature\" | climpt-git analyze commit-history"
-      },
-      {
-        "title": "作業ブランチ間のマージ処理",
-        "description": "作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。",
-        "properties": {
-          "C3L-Version": 0.3
+        "usage": "echo \"main..feature\" | climpt-git analyze commit-history",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            true
+          ]
         }
       },
       {
-        "title": "Create Refinement Issue",
-        "description": "Create a refinement issue from requirements documentation",
-        "usage": "climpt-git create refinement-issue -f requirements.md"
+        "c1": "git",
+        "c2": "merge-up",
+        "c3": "base-branch",
+        "title": "作業ブランチ間のマージ処理",
+        "description": "作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。",
+        "usage": "現在のブランチから分岐元ブランチを特定し、適切なマージ処理を実行します。\n未コミットファイルの処理も含めて安全にマージします。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            false
+          ],
+          "destination": [
+            false
+          ]
+        }
       },
       {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
         "title": "Create Refinement Issue",
-        "domain": "git",
-        "action": "create",
-        "target": "refinement-issue",
         "description": "Create a refinement issue from requirements documentation",
-        "tags": [
-          "git",
-          "issue-tracking",
-          "refinement"
-        ],
-        "config": {
-          "input_formats": [
-            "MD",
-            "TXT"
+        "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md\n",
+        "options": {
+          "input": [],
+          "adaptation": [],
+          "file": [
+            true
           ],
-          "processing_modes": [
-            "default",
-            "detailed"
+          "stdin": [
+            false
           ],
-          "supports": {
-            "file_input": true,
-            "stdin_input": false,
-            "output_destination": true
-          }
-        },
-        "usage": "Create refinement issues from requirement documents.\nExample: climpt-git create refinement-issue -f requirements.md\n"
+          "destination": [
+            true
+          ]
+        }
+      },
+      {
+        "c1": "refactor",
+        "c2": "ddd",
+        "c3": "architecture",
+        "title": "ドメイン駆動設計の再設計",
+        "description": "ドメイン設計のアーキテクチャを再設計する。要求をベースに、型安全性を強化して、骨格が通った芯の強いコード実装を再設計する",
+        "usage": "ドメイン駆動設計の設計自体を堅牢になるようリファクタリングします。\ndocs/domain/architecture.mdをシンプルで骨格の中心線が通った設計へ再設計します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "ddd",
+        "title": "ドメイン駆動設計と全域性（Totality）の融合完成 - ネクストアクション",
+        "description": "実行済の結果から導き出したネクストアクションを進める。基本事項を維持した状態で、次アクションを指示する",
+        "usage": "ドメイン駆動設計とTotalityに基づくリファクタリングの継続を実行します。\nネクストアクションの指示書に基づいて処理を進めます。\n",
+        "options": {
+          "input": [
+            "nextaction"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "ddd",
+        "title": "ドメイン駆動設計と全域性（Totality）に基づくリファクタリング",
+        "description": "現在の実装をドメイン駆動設計と全域性（Totality）による設計で、堅牢になるようリファクタリングする",
+        "usage": "ドメイン駆動設計とTotalityに基づくリファクタリングを実行します。\nドメイン領域の明確な理解に基づき、型安全性を強化して実装します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
+      },
+      {
+        "c1": "debug",
+        "c2": "analyze-deep",
+        "c3": "project-issues",
+        "title": "プロジェクト全体の深掘り調査と修正タスク洗い出し",
+        "description": "プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出し、ドメイン駆動設計からテスト駆動設計への移行を支援する",
+        "usage": "プロジェクト全体の深掘り調査と修正タスクの洗い出しを実行します。\n既存のissue一覧を確認し、適切な処理を行います。\n",
+        "options": {
+          "input": [],
+          "adaptation": [],
+          "file": [
+            false
+          ],
+          "stdin": [
+            true
+          ],
+          "destination": [
+            false
+          ]
+        }
       }
     ]
   }

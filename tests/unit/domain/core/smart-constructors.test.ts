@@ -3,8 +3,8 @@ import { AnalysisResult } from "../../../../src/domain/core/types.ts";
 import {
   DocumentPath,
   FrontMatterContent,
+  SchemaDefinition,
 } from "../../../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../../../src/domain/models/domain-models.ts";
 
 Deno.test("DocumentPath Smart Constructor", async (t) => {
   await t.step("should create valid file path successfully", () => {
@@ -366,18 +366,18 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
       type: "object",
       properties: { title: { type: "string" } },
     };
-    const result = SchemaDefinition.create(schema, "json");
+    const result = SchemaDefinition.create(schema, "1.0.0");
 
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals(result.data.getDefinition(), schema);
+      assertEquals(result.data.getRawDefinition(), schema);
     }
   });
 
   await t.step("should reject null schema", () => {
     const result = SchemaDefinition.create(
       null as unknown as Record<string, unknown>,
-      "json",
+      "1.0.0",
     );
 
     assertEquals(result.ok, false);
@@ -389,7 +389,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   await t.step("should reject undefined schema", () => {
     const result = SchemaDefinition.create(
       undefined as unknown as Record<string, unknown>,
-      "json",
+      "1.0.0",
     );
 
     assertEquals(result.ok, false);
@@ -401,7 +401,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   await t.step("should reject non-object schema", () => {
     const result = SchemaDefinition.create(
       "not an object" as unknown as Record<string, unknown>,
-      "json",
+      "1.0.0",
     );
 
     assertEquals(result.ok, false);
@@ -413,7 +413,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
   await t.step("should reject array schema", () => {
     const result = SchemaDefinition.create(
       [1, 2, 3] as unknown as Record<string, unknown>,
-      "json",
+      "1.0.0",
     );
 
     assertEquals(result.ok, false);
@@ -441,7 +441,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
   await t.step("should validate data successfully for valid schema", () => {
     const schema = { type: "object" };
-    const schemaResult = SchemaDefinition.create(schema, "json");
+    const schemaResult = SchemaDefinition.create(schema, "1.0.0");
 
     if (schemaResult.ok) {
       const validationResult = schemaResult.data.validate({ title: "Test" });
@@ -454,7 +454,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
   await t.step("should reject null data for validation", () => {
     const schema = { type: "object" };
-    const schemaResult = SchemaDefinition.create(schema, "json");
+    const schemaResult = SchemaDefinition.create(schema, "1.0.0");
 
     if (schemaResult.ok) {
       const validationResult = schemaResult.data.validate(null);
@@ -467,7 +467,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
   await t.step("should reject undefined data for validation", () => {
     const schema = { type: "object" };
-    const schemaResult = SchemaDefinition.create(schema, "json");
+    const schemaResult = SchemaDefinition.create(schema, "1.0.0");
 
     if (schemaResult.ok) {
       const validationResult = schemaResult.data.validate(undefined);

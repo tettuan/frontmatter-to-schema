@@ -1,0 +1,96 @@
+{
+  "scriptId": "378",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/configuration-loader.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 16127, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isRecord",
+      "ranges": [{ "startOffset": 154, "endOffset": 261, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getStringProperty",
+      "ranges": [{ "startOffset": 298, "endOffset": 442, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1054, "endOffset": 1110, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "loadProcessingConfig",
+      "ranges": [{ "startOffset": 1114, "endOffset": 3773, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "load",
+      "ranges": [
+        { "startOffset": 3776, "endOffset": 6645, "count": 4 },
+        { "startOffset": 3941, "endOffset": 4486, "count": 0 },
+        { "startOffset": 4800, "endOffset": 4817, "count": 0 },
+        { "startOffset": 4851, "endOffset": 6641, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 6648, "endOffset": 6771, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "save",
+      "ranges": [{ "startOffset": 6774, "endOffset": 7812, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "append",
+      "ranges": [{ "startOffset": 7815, "endOffset": 8325, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "load",
+      "ranges": [{ "startOffset": 8398, "endOffset": 8778, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "loadFromPath",
+      "ranges": [{ "startOffset": 8781, "endOffset": 13656, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "save",
+      "ranges": [{ "startOffset": 13659, "endOffset": 13943, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "exists",
+      "ranges": [{ "startOffset": 13946, "endOffset": 14048, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "list",
+      "ranges": [{ "startOffset": 14051, "endOffset": 14287, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 14290, "endOffset": 14397, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseYAML",
+      "ranges": [{ "startOffset": 14400, "endOffset": 15009, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractPlaceholders",
+      "ranges": [{ "startOffset": 15012, "endOffset": 16124, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

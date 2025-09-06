@@ -1,5 +1,5 @@
 import type { DomainError, Result } from "../core/result.ts";
-import type { Schema } from "../models/domain-models.ts";
+import type { Schema } from "../models/entities.ts";
 
 // Totality-compliant validation result using discriminated unions
 export type ValidationResult = {
@@ -53,7 +53,7 @@ export class SchemaValidator {
   ): Result<unknown, DomainError> {
     // This is a simplified validator
     // In production, this would use a proper JSON Schema validator
-    const schemaDefinition = schema.getDefinition().getDefinition();
+    const schemaDefinition = schema.getDefinition().getRawDefinition();
 
     if (typeof schemaDefinition !== "object" || schemaDefinition === null) {
       return {

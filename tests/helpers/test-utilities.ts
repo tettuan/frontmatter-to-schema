@@ -17,8 +17,8 @@ import {
 import {
   DocumentPath,
   FrontMatterContent,
+  SchemaDefinition,
 } from "../../src/domain/models/value-objects.ts";
-import { SchemaDefinition } from "../../src/domain/models/domain-models.ts";
 // Note: DocumentPath and DocumentPath replaced with DocumentPath
 import { Registry } from "../../src/domain/core/registry.ts";
 import {
@@ -88,7 +88,7 @@ export class TestDataBuilder {
   static schemaDefinition(
     schema: unknown = { type: "object" },
   ): SchemaDefinition {
-    const result = SchemaDefinition.create(schema, "json");
+    const result = SchemaDefinition.create(schema, "1.0.0");
     if (!result.ok) {
       throw new Error(
         `Failed to create test SchemaDefinition: ${result.error.kind}`,
@@ -346,7 +346,7 @@ export class TestContextFactory {
       document,
       schema: {
         validate: (data: unknown) => ({ ok: true, data }),
-        schema: schemaObj.getDefinition(),
+        schema: schemaObj.getRawDefinition(),
       },
     };
   }

@@ -4,7 +4,7 @@
 
 import { type AnalysisContext, AnalysisResult } from "../core/types.ts";
 import { DocumentPath } from "../models/value-objects.ts";
-import { SchemaDefinition } from "../models/domain-models.ts";
+import { SchemaDefinition } from "../models/value-objects.ts";
 // Note: DocumentPath and DocumentPath replaced with DocumentPath
 import type {
   AnalysisEngine,
@@ -114,7 +114,7 @@ export class AnalysisPipeline<TOutput = unknown> {
     // Prepare context
     // Prepare schema
     const schemaResult = this.config.output.schema
-      ? SchemaDefinition.create(this.config.output.schema, "json")
+      ? SchemaDefinition.create(this.config.output.schema, "1.0.0")
       : null;
 
     if (this.config.output.schema && (!schemaResult || !schemaResult.ok)) {

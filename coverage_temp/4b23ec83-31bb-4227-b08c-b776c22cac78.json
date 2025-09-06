@@ -1,0 +1,51 @@
+{
+  "scriptId": "403",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/registry-builder.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 8343, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "RegistryBuilder",
+      "ranges": [{ "startOffset": 407, "endOffset": 422, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 494, "endOffset": 578, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "buildRegistry",
+      "ranges": [{ "startOffset": 644, "endOffset": 2029, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractAvailableConfigs",
+      "ranges": [{ "startOffset": 2177, "endOffset": 2522, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateWithRegistrySchema",
+      "ranges": [{ "startOffset": 2587, "endOffset": 4629, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "applyRegistryTemplate",
+      "ranges": [{ "startOffset": 4707, "endOffset": 5624, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateRegistryStructure",
+      "ranges": [{ "startOffset": 5680, "endOffset": 7679, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isRegistry",
+      "ranges": [{ "startOffset": 7734, "endOffset": 8342, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

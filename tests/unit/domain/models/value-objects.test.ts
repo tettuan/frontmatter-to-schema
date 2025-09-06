@@ -82,17 +82,17 @@ Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
       },
       required: ["title"],
     };
-    const result = SchemaDefinition.create(schema, "json");
+    const result = SchemaDefinition.create(schema, "1.0.0");
     assertEquals(isOk(result), true);
     if (isOk(result)) {
       const value = result.data.getValue();
       assertEquals(typeof value, "object");
-      assertEquals(result.data.getVersion(), "json");
+      assertEquals(result.data.getVersion(), "1.0.0");
     }
   });
 
   await t.step("should reject invalid definition", () => {
-    const result = SchemaDefinition.create(null, "json");
+    const result = SchemaDefinition.create(null, "1.0.0");
     assertEquals(result.ok, false);
     if (!result.ok) {
       assertEquals(result.error.kind, "EmptyInput");
@@ -116,7 +116,7 @@ Deno.test("SchemaDefinition - Smart Constructor", async (t) => {
         },
       },
     };
-    const result = SchemaDefinition.create(schema, "json");
+    const result = SchemaDefinition.create(schema, "1.0.0");
     assertEquals(isOk(result), true);
   });
 });
