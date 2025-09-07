@@ -20,7 +20,9 @@
       "properties": {
         "availableConfigs": {
           "type": "array",
-          "description": "Tool names array - each becomes available as climpt-{name}. Should contain unique values from commands[].c1",
+          "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true,
           "items": {
             "type": "string"
           }
@@ -28,6 +30,7 @@
         "commands": {
           "type": "array",
           "description": "Command registry - defines all available C3L commands",
+          "x-frontmatter-part": true,
           "items": { "$ref": "registry_command_schema.json" }
         }
       },

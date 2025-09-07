@@ -277,6 +277,54 @@ frontmatter-to-schema analyze    # Run AI analysis
 --help, -h       Show help
 ```
 
+## Schema Extensions (x-* Properties)
+
+This application defines custom JSON Schema extensions for enhanced functionality:
+
+### x-template
+Specifies the template file to use for rendering output from this schema.
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "registry_template.json",
+  "properties": {
+    // ... schema properties
+  }
+}
+```
+
+### x-frontmatter-part
+Marks array properties for individual frontmatter processing. When `true`, each item in the array corresponds to a separate markdown file.
+
+```json
+{
+  "commands": {
+    "type": "array",
+    "x-frontmatter-part": true,
+    "items": { "$ref": "command_schema.json" }
+  }
+}
+```
+
+### x-derived-from
+Creates derived fields by aggregating values from nested properties. Uses JSONPath-like expressions.
+
+```json
+{
+  "availableConfigs": {
+    "type": "array",
+    "x-derived-from": "commands[].c1",
+    "x-derived-unique": true,
+    "items": { "type": "string" }
+  }
+}
+```
+
+### x-derived-unique
+When used with `x-derived-from`, ensures derived values are unique (removes duplicates).
+
 ## Configuration Options
 
 | Option            | Type     | Default           | Description        |
