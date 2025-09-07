@@ -10,29 +10,32 @@ import {
 } from "../core/result.ts";
 import { SCHEMA_IDS } from "../constants/index.ts";
 import { SchemaRefResolver } from "./schema-ref-resolver.ts";
+import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 /**
  * Schema configuration loader for external schema files
+ * Now uses dependency injection for file system operations
  */
 export class SchemaConfigLoader {
-  private static instance: SchemaConfigLoader | null = null;
   private schemaCache: Map<string, unknown> = new Map();
   private refResolver: SchemaRefResolver;
 
-  private constructor(
+  constructor(
+    private readonly fileSystem: FileSystemRepository,
     private readonly basePath: string = "./configs/schemas",
   ) {
     this.refResolver = new SchemaRefResolver(basePath);
   }
 
   /**
-   * Get singleton instance
+   * Factory method for backward compatibility
+   * @deprecated Use constructor with FileSystemRepository instead
    */
-  static getInstance(basePath?: string): SchemaConfigLoader {
-    if (!SchemaConfigLoader.instance) {
-      SchemaConfigLoader.instance = new SchemaConfigLoader(basePath);
-    }
-    return SchemaConfigLoader.instance;
+  static create(
+    fileSystem: FileSystemRepository,
+    basePath?: string,
+  ): SchemaConfigLoader {
+    return new SchemaConfigLoader(fileSystem, basePath);
   }
 
   /**
@@ -64,9 +67,21 @@ export class SchemaConfigLoader {
   async loadSchemaFromFile(
     path: string,
   ): Promise<Result<unknown, DomainError & { message: string }>> {
+    // Use injected FileSystemRepository instead of direct Deno API
+    const readResult = await this.fileSystem.readFile(path);
+
+    if (!readResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          readResult.error,
+          `Failed to read schema file: ${path}`,
+        ),
+      };
+    }
+
     try {
-      const content = await Deno.readTextFile(path);
-      const schema = JSON.parse(content);
+      const schema = JSON.parse(readResult.data);
 
       // Resolve $ref references recursively
       const resolvedResult = await this.refResolver.resolveSchema(schema, path);
@@ -76,16 +91,6 @@ export class SchemaConfigLoader {
 
       return { ok: true, data: resolvedResult.data };
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "FileNotFound",
-            path,
-          }, `Schema file not found: ${path}`),
-        };
-      }
-
       if (error instanceof SyntaxError) {
         return {
           ok: false,
@@ -145,8 +150,39 @@ export class SchemaConfigLoader {
 }
 
 // Export convenience function
+// Note: This function now requires a FileSystemRepository to be provided
+// For backward compatibility, you can pass undefined if file system access is not needed
 export const getSchemaConfigLoader = (
+  fileSystem?: FileSystemRepository,
   basePath?: string,
 ): SchemaConfigLoader => {
-  return SchemaConfigLoader.getInstance(basePath);
+  // If no fileSystem provided, create a stub that returns errors
+  const stubFileSystem: FileSystemRepository = fileSystem || {
+    readFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({ kind: "FileNotFound" as const, path: "" }),
+      }),
+    writeFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "WriteError" as const,
+          path: "",
+          details: "No filesystem provided",
+        }),
+      }),
+    ensureDirectory: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "WriteError" as const,
+          path: "",
+          details: "No filesystem provided",
+        }),
+      }),
+    exists: () => Promise.resolve({ ok: true, data: false }),
+    findFiles: async function* () {},
+  };
+  return new SchemaConfigLoader(stubFileSystem, basePath);
 };

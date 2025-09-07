@@ -130,6 +130,8 @@ For detailed testing guidelines and best practices:
 - use gh for Git access.
 - main must be merged from develop.
 - develop branch cannnot be behind from main.
+- Always merge existing branches into `develop` and branch new work from the
+  updated `develop`
 
 # Naming Conventions
 
