@@ -20,33 +20,36 @@ export class AggregationRule {
     private readonly targetField: string,
     private readonly sourceExpression: string,
     private readonly unique: boolean,
-    private readonly flatten: boolean = true
+    private readonly flatten: boolean = true,
   ) {}
-  
+
   static create(
     targetField: string,
     sourceExpression: string,
     options?: {
       unique?: boolean;
       flatten?: boolean;
-    }
+    },
   ): Result<AggregationRule, ValidationError> {
     // ターゲットフィールド検証
     if (!targetField || targetField.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyInput", message: "Target field cannot be empty" }
+        error: { kind: "EmptyInput", message: "Target field cannot be empty" },
       };
     }
-    
+
     // ソース式検証
     if (!sourceExpression || sourceExpression.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyInput", message: "Source expression cannot be empty" }
+        error: {
+          kind: "EmptyInput",
+          message: "Source expression cannot be empty",
+        },
       };
     }
-    
+
     // JSONPath式の基本検証
     if (!this.isValidJSONPath(sourceExpression)) {
       return {
@@ -54,41 +57,49 @@ export class AggregationRule {
         error: {
           kind: "InvalidExpression",
           expression: sourceExpression,
-          message: "Source expression must be a valid JSONPath"
-        }
+          message: "Source expression must be a valid JSONPath",
+        },
       };
     }
-    
+
     return {
       ok: true,
       data: new AggregationRule(
         targetField,
         sourceExpression,
         options?.unique ?? false,
-        options?.flatten ?? true
-      )
+        options?.flatten ?? true,
+      ),
     };
   }
-  
+
   private static isValidJSONPath(expression: string): boolean {
     // 基本的なJSONPathパターンの検証
     // 例: "commands[].c1", "tools.configs[*].name", "data..value"
     const patterns = [
-      /^[a-zA-Z_][a-zA-Z0-9_]*$/,           // 単純なプロパティ
-      /^\$\./,                                // ルートパス
-      /\[\]/,                                 // 配列展開
-      /\[\*\]/,                              // 配列ワイルドカード
-      /\.\./,                                // 再帰下降
-      /\[[0-9]+\]/,                          // インデックス
+      /^[a-zA-Z_][a-zA-Z0-9_]*$/, // 単純なプロパティ
+      /^\$\./, // ルートパス
+      /\[\]/, // 配列展開
+      /\[\*\]/, // 配列ワイルドカード
+      /\.\./, // 再帰下降
+      /\[[0-9]+\]/, // インデックス
     ];
-    
-    return patterns.some(pattern => pattern.test(expression));
+
+    return patterns.some((pattern) => pattern.test(expression));
   }
-  
-  getTargetField(): string { return this.targetField; }
-  getSourceExpression(): string { return this.sourceExpression; }
-  isUnique(): boolean { return this.unique; }
-  shouldFlatten(): boolean { return this.flatten; }
+
+  getTargetField(): string {
+    return this.targetField;
+  }
+  getSourceExpression(): string {
+    return this.sourceExpression;
+  }
+  isUnique(): boolean {
+    return this.unique;
+  }
+  shouldFlatten(): boolean {
+    return this.flatten;
+  }
 }
 
 /**
@@ -99,21 +110,24 @@ export class AggregationContext {
   private constructor(
     private readonly scope: AggregationScope,
     private readonly rules: AggregationRule[],
-    private readonly options: AggregationOptions
+    private readonly options: AggregationOptions,
   ) {}
-  
+
   static create(
     scope: AggregationScope,
     rules: AggregationRule[],
-    options?: Partial<AggregationOptions>
+    options?: Partial<AggregationOptions>,
   ): Result<AggregationContext, ValidationError> {
     if (rules.length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyInput", message: "At least one aggregation rule is required" }
+        error: {
+          kind: "EmptyInput",
+          message: "At least one aggregation rule is required",
+        },
       };
     }
-    
+
     // ターゲットフィールドの重複チェック
     const targetFields = new Set<string>();
     for (const rule of rules) {
@@ -124,38 +138,44 @@ export class AggregationContext {
           error: {
             kind: "DuplicateTarget",
             field: target,
-            message: `Duplicate target field: ${target}`
-          }
+            message: `Duplicate target field: ${target}`,
+          },
         };
       }
       targetFields.add(target);
     }
-    
+
     const fullOptions: AggregationOptions = {
       skipNull: options?.skipNull ?? true,
       skipUndefined: options?.skipUndefined ?? true,
       preserveOrder: options?.preserveOrder ?? false,
-      maxDepth: options?.maxDepth ?? 100
+      maxDepth: options?.maxDepth ?? 100,
     };
-    
+
     return {
       ok: true,
-      data: new AggregationContext(scope, rules, fullOptions)
+      data: new AggregationContext(scope, rules, fullOptions),
     };
   }
-  
-  getScope(): AggregationScope { return this.scope; }
-  getRules(): AggregationRule[] { return [...this.rules]; }
-  getOptions(): AggregationOptions { return { ...this.options }; }
+
+  getScope(): AggregationScope {
+    return this.scope;
+  }
+  getRules(): AggregationRule[] {
+    return [...this.rules];
+  }
+  getOptions(): AggregationOptions {
+    return { ...this.options };
+  }
 }
 
 /**
  * 集約スコープ
  */
-export type AggregationScope = 
-  | { kind: "Global" }  // 全データ対象
-  | { kind: "Group"; groupBy: string }  // グループ単位
-  | { kind: "Window"; size: number };  // ウィンドウ単位
+export type AggregationScope =
+  | { kind: "Global" } // 全データ対象
+  | { kind: "Group"; groupBy: string } // グループ単位
+  | { kind: "Window"; size: number }; // ウィンドウ単位
 
 /**
  * 集約オプション
@@ -173,37 +193,44 @@ export interface AggregationOptions {
 export class AggregatedResult {
   private constructor(
     private readonly data: Record<string, unknown>,
-    private readonly metadata: AggregationMetadata
+    private readonly metadata: AggregationMetadata,
   ) {}
-  
+
   static create(
     data: Record<string, unknown>,
-    metadata: AggregationMetadata
+    metadata: AggregationMetadata,
   ): Result<AggregatedResult, ValidationError> {
     if (!data || Object.keys(data).length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyInput", message: "Aggregated data cannot be empty" }
+        error: {
+          kind: "EmptyInput",
+          message: "Aggregated data cannot be empty",
+        },
       };
     }
-    
+
     return {
       ok: true,
-      data: new AggregatedResult(data, metadata)
+      data: new AggregatedResult(data, metadata),
     };
   }
-  
-  getData(): Record<string, unknown> { return { ...this.data }; }
-  getMetadata(): AggregationMetadata { return { ...this.metadata }; }
-  
+
+  getData(): Record<string, unknown> {
+    return { ...this.data };
+  }
+  getMetadata(): AggregationMetadata {
+    return { ...this.metadata };
+  }
+
   get(field: string): unknown {
     return this.data[field];
   }
-  
+
   has(field: string): boolean {
     return field in this.data;
   }
-  
+
   getFields(): string[] {
     return Object.keys(this.data);
   }
@@ -249,21 +276,21 @@ export type AggregationProcessState =
  */
 export class AggregationProcess {
   private state: AggregationProcessState;
-  
+
   private constructor(
     private readonly id: ProcessId,
-    initialContext: AggregationContext
+    initialContext: AggregationContext,
   ) {
     this.state = { kind: "Initialized", context: initialContext };
   }
-  
+
   static create(
     id: ProcessId,
-    context: AggregationContext
+    context: AggregationContext,
   ): AggregationProcess {
     return new AggregationProcess(id, context);
   }
-  
+
   // 状態遷移メソッド
   startCollecting(): Result<void, AggregationError> {
     if (this.state.kind !== "Initialized") {
@@ -273,20 +300,20 @@ export class AggregationProcess {
           kind: "InvalidStateTransition",
           from: this.state.kind,
           to: "Collecting",
-          message: `Cannot start collecting from state: ${this.state.kind}`
-        }
+          message: `Cannot start collecting from state: ${this.state.kind}`,
+        },
       };
     }
-    
+
     this.state = {
       kind: "Collecting",
       context: this.state.context,
-      items: []
+      items: [],
     };
-    
+
     return { ok: true, data: undefined };
   }
-  
+
   addItem(item: ValidatedData): Result<void, AggregationError> {
     if (this.state.kind !== "Collecting") {
       return {
@@ -295,15 +322,15 @@ export class AggregationProcess {
           kind: "InvalidStateTransition",
           from: this.state.kind,
           to: "Collecting",
-          message: `Cannot add item in state: ${this.state.kind}`
-        }
+          message: `Cannot add item in state: ${this.state.kind}`,
+        },
       };
     }
-    
+
     this.state.items.push(item);
     return { ok: true, data: undefined };
   }
-  
+
   startProcessing(): Result<void, AggregationError> {
     if (this.state.kind !== "Collecting") {
       return {
@@ -312,30 +339,30 @@ export class AggregationProcess {
           kind: "InvalidStateTransition",
           from: this.state.kind,
           to: "Processing",
-          message: `Cannot start processing from state: ${this.state.kind}`
-        }
+          message: `Cannot start processing from state: ${this.state.kind}`,
+        },
       };
     }
-    
+
     if (this.state.items.length === 0) {
       return {
         ok: false,
         error: {
           kind: "NoDataToAggregate",
-          message: "No items to aggregate"
-        }
+          message: "No items to aggregate",
+        },
       };
     }
-    
+
     this.state = {
       kind: "Processing",
       context: this.state.context,
-      items: this.state.items
+      items: this.state.items,
     };
-    
+
     return { ok: true, data: undefined };
   }
-  
+
   complete(result: AggregatedResult): Result<void, AggregationError> {
     if (this.state.kind !== "Processing") {
       return {
@@ -344,31 +371,35 @@ export class AggregationProcess {
           kind: "InvalidStateTransition",
           from: this.state.kind,
           to: "Completed",
-          message: `Cannot complete from state: ${this.state.kind}`
-        }
+          message: `Cannot complete from state: ${this.state.kind}`,
+        },
       };
     }
-    
+
     this.state = {
       kind: "Completed",
-      result
+      result,
     };
-    
+
     return { ok: true, data: undefined };
   }
-  
+
   fail(error: AggregationError): void {
     this.state = { kind: "Failed", error };
   }
-  
+
   // クエリメソッド
-  getId(): ProcessId { return this.id; }
-  getState(): AggregationProcessState { return this.state; }
-  
+  getId(): ProcessId {
+    return this.id;
+  }
+  getState(): AggregationProcessState {
+    return this.state;
+  }
+
   isCompleted(): boolean {
     return this.state.kind === "Completed";
   }
-  
+
   getResult(): Result<AggregatedResult, AggregationError> {
     if (this.state.kind !== "Completed") {
       return {
@@ -376,14 +407,15 @@ export class AggregationProcess {
         error: {
           kind: "NotCompleted",
           state: this.state.kind,
-          message: `Process is not completed, current state: ${this.state.kind}`
-        }
+          message:
+            `Process is not completed, current state: ${this.state.kind}`,
+        },
       };
     }
-    
+
     return { ok: true, data: this.state.result };
   }
-  
+
   getItemCount(): number {
     switch (this.state.kind) {
       case "Collecting":
@@ -400,17 +432,20 @@ export class AggregationProcess {
  */
 export class ProcessId {
   private constructor(private readonly value: string) {}
-  
+
   static create(value?: string): ProcessId {
-    const id = value || `agg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const id = value ||
+      `agg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     return new ProcessId(id);
   }
-  
+
   equals(other: ProcessId): boolean {
     return this.value === other.value;
   }
-  
-  toString(): string { return this.value; }
+
+  toString(): string {
+    return this.value;
+  }
 }
 ```
 
@@ -423,7 +458,7 @@ export class ProcessId {
 export class ExpressionEvaluator {
   evaluate(
     data: Record<string, unknown>,
-    expression: string
+    expression: string,
   ): Result<unknown[], EvaluationError> {
     try {
       const results = this.evaluateJSONPath(data, expression);
@@ -435,31 +470,31 @@ export class ExpressionEvaluator {
           kind: "EvaluationFailed",
           expression,
           error: error instanceof Error ? error.message : String(error),
-          message: `Failed to evaluate expression: ${expression}`
-        }
+          message: `Failed to evaluate expression: ${expression}`,
+        },
       };
     }
   }
-  
+
   private evaluateJSONPath(
     data: Record<string, unknown>,
-    expression: string
+    expression: string,
   ): unknown[] {
     // JSONPath評価の簡易実装
     // 実際はjsonpathライブラリを使用
-    
+
     const results: unknown[] = [];
-    
+
     // "commands[].c1" パターン
-    if (expression.includes('[]')) {
-      const parts = expression.split('[]');
+    if (expression.includes("[]")) {
+      const parts = expression.split("[]");
       const arrayPath = parts[0];
       const propertyPath = parts[1]?.substring(1); // Remove leading dot
-      
+
       const array = this.getNestedValue(data, arrayPath);
       if (Array.isArray(array)) {
         for (const item of array) {
-          if (propertyPath && typeof item === 'object' && item !== null) {
+          if (propertyPath && typeof item === "object" && item !== null) {
             const value = this.getNestedValue(item, propertyPath);
             if (value !== undefined) {
               results.push(value);
@@ -469,29 +504,28 @@ export class ExpressionEvaluator {
           }
         }
       }
-    }
-    // 単純なプロパティパス
+    } // 単純なプロパティパス
     else {
       const value = this.getNestedValue(data, expression);
       if (value !== undefined) {
         results.push(value);
       }
     }
-    
+
     return results;
   }
-  
+
   private getNestedValue(obj: any, path: string): unknown {
-    const segments = path.split('.');
+    const segments = path.split(".");
     let current = obj;
-    
+
     for (const segment of segments) {
-      if (current == null || typeof current !== 'object') {
+      if (current == null || typeof current !== "object") {
         return undefined;
       }
       current = current[segment];
     }
-    
+
     return current;
   }
 }
@@ -501,25 +535,25 @@ export class ExpressionEvaluator {
  */
 export class AggregationExecutor {
   constructor(
-    private readonly evaluator: ExpressionEvaluator
+    private readonly evaluator: ExpressionEvaluator,
   ) {}
-  
+
   execute(
-    process: AggregationProcess
+    process: AggregationProcess,
   ): Result<AggregatedResult, AggregationError> {
     const state = process.getState();
-    
+
     if (state.kind !== "Processing") {
       return {
         ok: false,
         error: {
           kind: "InvalidState",
           state: state.kind,
-          message: `Process must be in Processing state, got: ${state.kind}`
-        }
+          message: `Process must be in Processing state, got: ${state.kind}`,
+        },
       };
     }
-    
+
     const { context, items } = state;
     const aggregated: Record<string, unknown> = {};
     const warnings: string[] = [];
@@ -527,23 +561,23 @@ export class AggregationExecutor {
       totalItems: items.length,
       uniqueValues: {},
       nullCount: {},
-      arrayLengths: {}
+      arrayLengths: {},
     };
-    
+
     // 各ルールを適用
     for (const rule of context.getRules()) {
       const targetField = rule.getTargetField();
       const sourceExpression = rule.getSourceExpression();
-      
+
       // 全アイテムから値を収集
       const allValues: unknown[] = [];
-      
+
       for (const item of items) {
         const evalResult = this.evaluator.evaluate(
           item.getData(),
-          sourceExpression
+          sourceExpression,
         );
-        
+
         if (evalResult.ok) {
           if (rule.shouldFlatten() && Array.isArray(evalResult.data)) {
             allValues.push(...evalResult.data.flat());
@@ -551,58 +585,62 @@ export class AggregationExecutor {
             allValues.push(...evalResult.data);
           }
         } else {
-          warnings.push(`Failed to evaluate ${sourceExpression}: ${evalResult.error.message}`);
+          warnings.push(
+            `Failed to evaluate ${sourceExpression}: ${evalResult.error.message}`,
+          );
         }
       }
-      
+
       // フィルタリング（null/undefined除去）
       const filtered = this.filterValues(allValues, context.getOptions());
-      
+
       // ユニーク化
       let finalValues: unknown[] = filtered;
       if (rule.isUnique()) {
         finalValues = this.uniqueValues(filtered);
         statistics.uniqueValues[targetField] = finalValues.length;
       }
-      
+
       // 統計情報の収集
-      statistics.nullCount[targetField] = allValues.filter(v => v == null).length;
+      statistics.nullCount[targetField] = allValues.filter((v) =>
+        v == null
+      ).length;
       if (Array.isArray(finalValues[0])) {
-        statistics.arrayLengths[targetField] = finalValues.map(v => 
+        statistics.arrayLengths[targetField] = finalValues.map((v) =>
           Array.isArray(v) ? v.length : 0
         );
       }
-      
+
       aggregated[targetField] = finalValues;
     }
-    
+
     // 結果の作成
     const metadata: AggregationMetadata = {
       processedCount: items.length,
       aggregatedAt: new Date(),
-      appliedRules: context.getRules().map(r => r.getTargetField()),
+      appliedRules: context.getRules().map((r) => r.getTargetField()),
       warnings: warnings.length > 0 ? warnings : undefined,
-      statistics
+      statistics,
     };
-    
+
     return AggregatedResult.create(aggregated, metadata);
   }
-  
+
   private filterValues(
     values: unknown[],
-    options: AggregationOptions
+    options: AggregationOptions,
   ): unknown[] {
-    return values.filter(value => {
+    return values.filter((value) => {
       if (options.skipNull && value === null) return false;
       if (options.skipUndefined && value === undefined) return false;
       return true;
     });
   }
-  
+
   private uniqueValues(values: unknown[]): unknown[] {
     const seen = new Set<string>();
     const unique: unknown[] = [];
-    
+
     for (const value of values) {
       const key = this.getUniqueKey(value);
       if (!seen.has(key)) {
@@ -610,14 +648,14 @@ export class AggregationExecutor {
         unique.push(value);
       }
     }
-    
+
     return unique;
   }
-  
+
   private getUniqueKey(value: unknown): string {
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
-    if (typeof value === 'object') {
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
+    if (typeof value === "object") {
       return JSON.stringify(value);
     }
     return String(value);
@@ -630,24 +668,24 @@ export class AggregationExecutor {
 export class DerivationService {
   derive(
     result: AggregatedResult,
-    rules: DerivationRule[]
+    rules: DerivationRule[],
   ): Result<EnrichedResult, DerivationError> {
     const data = result.getData();
     const enriched: Record<string, unknown> = { ...data };
-    
+
     for (const rule of rules) {
       const derivedValue = this.deriveField(data, rule);
       if (!derivedValue.ok) return derivedValue;
-      
+
       enriched[rule.getTargetField()] = derivedValue.data;
     }
-    
+
     return EnrichedResult.create(enriched, result.getMetadata());
   }
-  
+
   private deriveField(
     data: Record<string, unknown>,
-    rule: DerivationRule
+    rule: DerivationRule,
   ): Result<unknown, DerivationError> {
     // 派生ロジックの実装
     // 例: 配列の長さ、合計、平均などの計算
@@ -661,14 +699,14 @@ export class DerivationService {
 export class EnrichedResult extends AggregatedResult {
   static create(
     data: Record<string, unknown>,
-    metadata: AggregationMetadata
+    metadata: AggregationMetadata,
   ): Result<EnrichedResult, ValidationError> {
     const baseResult = AggregatedResult.create(data, metadata);
     if (!baseResult.ok) return baseResult;
-    
+
     return {
       ok: true,
-      data: Object.setPrototypeOf(baseResult.data, EnrichedResult.prototype)
+      data: Object.setPrototypeOf(baseResult.data, EnrichedResult.prototype),
     };
   }
 }
@@ -682,7 +720,9 @@ export class EnrichedResult extends AggregatedResult {
  */
 export interface AggregationProcessRepository {
   save(process: AggregationProcess): Promise<Result<void, AggregationError>>;
-  findById(id: ProcessId): Promise<Result<AggregationProcess | null, AggregationError>>;
+  findById(
+    id: ProcessId,
+  ): Promise<Result<AggregationProcess | null, AggregationError>>;
   findActive(): Promise<Result<AggregationProcess[], AggregationError>>;
   deleteCompleted(before: Date): Promise<Result<number, AggregationError>>;
 }
@@ -698,13 +738,23 @@ export type AggregationError =
   | DerivationError;
 
 export type StateError =
-  | { kind: "InvalidStateTransition"; from: string; to: string; message: string }
+  | {
+    kind: "InvalidStateTransition";
+    from: string;
+    to: string;
+    message: string;
+  }
   | { kind: "InvalidState"; state: string; message: string }
   | { kind: "NotCompleted"; state: string; message: string }
   | { kind: "NoDataToAggregate"; message: string };
 
 export type EvaluationError =
-  | { kind: "EvaluationFailed"; expression: string; error: string; message: string }
+  | {
+    kind: "EvaluationFailed";
+    expression: string;
+    error: string;
+    message: string;
+  }
   | { kind: "InvalidExpression"; expression: string; message: string };
 
 export type DerivationError =

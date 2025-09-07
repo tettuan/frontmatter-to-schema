@@ -190,20 +190,24 @@ export class ConfigurationLoader
       let schemaData: unknown;
       try {
         const parsedSchema = JSON.parse(content);
-        
+
         // Resolve $ref references recursively
-        const resolvedResult = await this.refResolver.resolveSchema(parsedSchema, schemaPath);
+        const resolvedResult = await this.refResolver.resolveSchema(
+          parsedSchema,
+          schemaPath,
+        );
         if (!resolvedResult.ok) {
           return {
             ok: false,
             error: createDomainError({
               kind: "ReadError",
               path: schemaPath,
-              details: `Failed to resolve $ref: ${resolvedResult.error.message}`,
+              details:
+                `Failed to resolve $ref: ${resolvedResult.error.message}`,
             }),
           };
         }
-        
+
         schemaData = resolvedResult.data;
       } catch (error) {
         return {

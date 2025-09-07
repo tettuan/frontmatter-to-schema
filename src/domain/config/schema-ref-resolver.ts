@@ -1,6 +1,6 @@
 /**
  * Schema $ref Resolver - Resolves JSON Schema $ref references
- * 
+ *
  * This module handles recursive resolution of $ref references in JSON schemas,
  * supporting both local file references and internal JSON pointer references.
  * Required by requirements.ja.md line 45 and 60.
@@ -12,6 +12,10 @@ import {
   type Result,
 } from "../core/result.ts";
 import * as path from "jsr:@std/path@1.0.9";
+import {
+  type ExtendedSchema,
+  SchemaTemplateInfo,
+} from "../models/schema-extensions.ts";
 
 /**
  * Resolves $ref references in JSON Schema objects
@@ -60,7 +64,7 @@ export class SchemaRefResolver {
     // Check for $ref
     if ("$ref" in schemaObj && typeof schemaObj.$ref === "string") {
       const refPath = schemaObj.$ref;
-      
+
       // Check for circular reference
       if (this.resolutionStack.has(refPath)) {
         return {
@@ -83,15 +87,15 @@ export class SchemaRefResolver {
       }
 
       // Merge other properties with resolved reference
-      const { $ref, ...otherProps } = schemaObj;
+      const { $ref: _$ref, ...otherProps } = schemaObj;
       if (Object.keys(otherProps).length > 0) {
         // If there are other properties, merge them
-        return { 
-          ok: true, 
-          data: { ...resolvedResult.data as object, ...otherProps } 
+        return {
+          ok: true,
+          data: { ...resolvedResult.data as object, ...otherProps },
         };
       }
-      
+
       return resolvedResult;
     }
 
@@ -133,14 +137,14 @@ export class SchemaRefResolver {
     try {
       const content = await Deno.readTextFile(absolutePath);
       const parsed = JSON.parse(content);
-      
+
       // Recursively resolve the loaded schema
       const resolvedResult = await this.resolveSchema(parsed, absolutePath);
-      
+
       if (resolvedResult.ok) {
         this.resolvedRefs.set(refPath, resolvedResult.data);
       }
-      
+
       return resolvedResult;
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
@@ -188,8 +192,9 @@ export class SchemaRefResolver {
     return {
       ok: false,
       error: createDomainError({
-        kind: "NotImplemented",
-        feature: `JSON pointer reference: ${pointer}`,
+        kind: "NotFound",
+        resource: "JSON pointer reference",
+        name: pointer,
       }, `JSON pointer references are not yet supported: ${pointer}`),
     };
   }
@@ -200,6 +205,106 @@ export class SchemaRefResolver {
   clearCache(): void {
     this.resolvedRefs.clear();
     this.resolutionStack.clear();
+  }
+
+  /**
+   * Extract template information from resolved schema
+   */
+  extractTemplateInfo(
+    schema: unknown,
+  ): Result<SchemaTemplateInfo, DomainError & { message: string }> {
+    if (!schema || typeof schema !== "object") {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: "schema",
+          expectedFormat: "object",
+        }, "Schema must be an object to extract template info"),
+      };
+    }
+
+    const extendedSchema = schema as ExtendedSchema;
+    return SchemaTemplateInfo.extract(extendedSchema) as Result<
+      SchemaTemplateInfo,
+      DomainError & { message: string }
+    >;
+  }
+
+  /**
+   * Resolve schema and extract template info in one operation
+   */
+  async resolveAndExtractTemplateInfo(
+    schema: unknown,
+    currentPath = "",
+  ): Promise<
+    Result<{
+      resolved: unknown;
+      templateInfo: SchemaTemplateInfo;
+    }, DomainError & { message: string }>
+  > {
+    // First resolve all $refs
+    const resolveResult = await this.resolveSchema(schema, currentPath);
+    if (!resolveResult.ok) {
+      return resolveResult;
+    }
+
+    // Then extract template information
+    const templateResult = this.extractTemplateInfo(resolveResult.data);
+    if (!templateResult.ok) {
+      return templateResult;
+    }
+
+    return {
+      ok: true,
+      data: {
+        resolved: resolveResult.data,
+        templateInfo: templateResult.data,
+      },
+    };
+  }
+
+  /**
+   * Check if schema has frontmatter parts
+   */
+  hasFrontmatterParts(schema: unknown): boolean {
+    if (!schema || typeof schema !== "object") {
+      return false;
+    }
+
+    const checkObject = (obj: Record<string, unknown>): boolean => {
+      // Check current level
+      if (obj["x-frontmatter-part"] === true) {
+        return true;
+      }
+
+      // Check properties
+      if (obj.properties && typeof obj.properties === "object") {
+        for (
+          const prop of Object.values(obj.properties as Record<string, unknown>)
+        ) {
+          if (
+            prop && typeof prop === "object" &&
+            checkObject(prop as Record<string, unknown>)
+          ) {
+            return true;
+          }
+        }
+      }
+
+      // Check items
+      if (
+        obj.items && typeof obj.items === "object" && !Array.isArray(obj.items)
+      ) {
+        if (checkObject(obj.items as Record<string, unknown>)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    return checkObject(schema as Record<string, unknown>);
   }
 }
 

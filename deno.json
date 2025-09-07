@@ -13,8 +13,11 @@
     "dev": "deno run --allow-all --watch src/main.ts",
     "start": "deno run --allow-all src/main.ts",
     "test": "deno test --allow-all tests/",
+    "frontmatter-to-schema": "deno run --allow-read --allow-write --allow-env src/cli.ts",
+    "fm2s": "deno run --allow-read --allow-write --allow-env src/cli.ts",
     "example:climpt": "deno run --allow-all src/main.ts --config examples/climpt-registry/config.json",
-    "example:articles": "deno run --allow-all src/main.ts --config examples/articles-index/config.json"
+    "example:articles": "deno run --allow-all src/main.ts --config examples/articles-index/config.json",
+    "example:new-cli": "deno run --allow-read --allow-write --allow-env src/cli.ts schemas/registry_schema.json output/registry.json '.agent/climpt/prompts/**/*.md' --verbose"
   },
   "imports": {
     "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@^1.0.89",

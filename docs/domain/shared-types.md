@@ -14,6 +14,11 @@ export type Result<T, E> =
 export type ValidationError =
   | { kind: "EmptyInput"; message: string }
   | { kind: "PatternMismatch"; value: string; pattern: string; message: string }
-  | { kind: "InvalidFormat"; value: string; expectedFormat: string; message: string }
+  | {
+    kind: "InvalidFormat";
+    value: string;
+    expectedFormat: string;
+    message: string;
+  }
   | { kind: "ValidationFailed"; errors: any[]; message: string };
 ```

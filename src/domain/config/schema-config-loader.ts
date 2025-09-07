@@ -67,13 +67,13 @@ export class SchemaConfigLoader {
     try {
       const content = await Deno.readTextFile(path);
       const schema = JSON.parse(content);
-      
+
       // Resolve $ref references recursively
       const resolvedResult = await this.refResolver.resolveSchema(schema, path);
       if (!resolvedResult.ok) {
         return resolvedResult;
       }
-      
+
       return { ok: true, data: resolvedResult.data };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {

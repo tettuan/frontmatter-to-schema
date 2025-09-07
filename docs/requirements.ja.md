@@ -23,7 +23,8 @@ Markdownファイルの索引(Index)を作るためである。
 特定のパターンのみでハードコーディングする設計では、Schema変更に対応できない。
 そのため、アプリケーションはSchemaとテンプレートを外部から読み込み、差し代え前提でSchema定義を用い、テンプレートへ出力する。
 
-これにより、索引の仕様が変わっても アプリケーションの変更を伴うこと無く、索引定義だけ変えられる。
+これにより、索引の仕様が変わっても
+アプリケーションの変更を伴うこと無く、索引定義だけ変えられる。
 
 また、プロンプト集の索引を作るケース、記事の索引を作るケースなども、Schemaとテンプレートのセットを差し替え、Markdownのファイルが置かれたPathや索引出力先を切り替えるだけで、同じアプリケーションで多様な索引作りが可能となる。
 
@@ -57,10 +58,12 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 成果Bから、TypeScriptで解析する。（成果C）
 成果Cを元にTypeScriptでSchema構造データで保持する（成果D）
 成果Dをテンプレートの変数へ当てこむ。（成果E）
-成果Eを統合し、最終成果物Zを得る。成果物Zは、Schemaで指定された $ref 処理を再帰的に処理し、各Schemaが保持する template を用いて得られた成果Eを統合したものである。
-最後に、成最終成果物Zを保存する。
+成果Eを統合し、最終成果物Zを得る。成果物Zは、Schemaで指定された $ref
+処理を再帰的に処理し、各Schemaが保持する template
+を用いて得られた成果Eを統合したものである。 最後に、成最終成果物Zを保存する。
 
-一覧のなかで、どの配列構造が各マークダウンファイルの処理に用いれるかは、`"x-frontmatter-part": true` で判定する。
+一覧のなかで、どの配列構造が各マークダウンファイルの処理に用いれるかは、`"x-frontmatter-part": true`
+で判定する。
 
 ```text
 - 一覧
@@ -81,21 +84,22 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 以下の整形処理がなされる。
 
 ### Schemaとテンプレート
-利用するSchemaとテンプレート:　
-registry_schema.json
-registry_template.json
-なお、一覧1個に対し、個別マークダウンファイルn個の関係である。registry_template.json　は registry_schema.json 内部で指定される。
+
+利用するSchemaとテンプレート:　 registry_schema.json registry_template.json
+なお、一覧1個に対し、個別マークダウンファイルn個の関係である。registry_template.json　は
+registry_schema.json 内部で指定される。
 （つまりregistry_schema.jsonファイルは、役割的にはidnex_schema.jsonと同じ意味である。）
 
 ### 集約機能
-一覧は、集約機能を持つ。
-`"x-derived-from": "commands[].c1"` のように、特定の階層から値を集約する処理を持つ。
-各マークダウンファイルの処理が完了したあとに実行される。
-さらに `x-derived-unique: true`がある場合は、ユニーク化される。
+
+一覧は、集約機能を持つ。 `"x-derived-from": "commands[].c1"`
+のように、特定の階層から値を集約する処理を持つ。
+各マークダウンファイルの処理が完了したあとに実行される。 さらに
+`x-derived-unique: true`がある場合は、ユニーク化される。
 
 例えば、以下は、availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
 
-`````
+```
 "availableConfigs": {
   "type": "array",
   "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
@@ -105,8 +109,7 @@ registry_template.json
     "type": "string"
   }
 }
-`````
-
+```
 
 ## 個別フロントマターの整形
 

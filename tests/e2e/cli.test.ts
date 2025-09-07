@@ -3,36 +3,27 @@
 /**
  * End-to-End Tests for CLI
  *
- * These tests verify the complete CLI functionality including:
- * - Command-line argument parsing
- * - File processing
- * - Output generation
- * - Error handling
+ * These tests verify the complete CLI functionality with the new interface:
+ * frontmatter-to-schema <schema> <output> <pattern> [options]
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert@1";
 import { exists } from "jsr:@std/fs@1";
 import { join } from "jsr:@std/path@1";
 
-const CLI_PATH = "./frontmatter-to-schema";
+const CLI_PATH = "./src/cli.ts";
 const TEST_OUTPUT_DIR = "./tests/e2e/test-output";
 
-// Ensure output directory exists (wrapped in test to respect permissions)
+// Ensure output directory exists
 async function ensureTestDir() {
   try {
     await Deno.mkdir(TEST_OUTPUT_DIR, { recursive: true });
   } catch (error) {
-    if (error instanceof Deno.errors.PermissionDenied) {
-      console.warn(
-        "Warning: Cannot create test output directory. Some tests may be skipped.",
-      );
-    } else if (!(error instanceof Deno.errors.AlreadyExists)) {
+    if (!(error instanceof Deno.errors.AlreadyExists)) {
       throw error;
     }
   }
 }
-
-// Directory will be created when first test runs
 
 // Helper to run CLI
 async function runCLI(args: string[]): Promise<{
@@ -41,14 +32,10 @@ async function runCLI(args: string[]): Promise<{
   stderr: string;
   code: number;
 }> {
-  const cmd = new Deno.Command(CLI_PATH, {
-    args,
+  const cmd = new Deno.Command("deno", {
+    args: ["run", "--allow-read", "--allow-write", CLI_PATH, ...args],
     stdout: "piped",
     stderr: "piped",
-    env: {
-      ...Deno.env.toObject(),
-      FRONTMATTER_TEST_MODE: "true",
-    },
   });
 
   const output = await cmd.output();
@@ -66,7 +53,7 @@ async function cleanTestOutput() {
   try {
     await Deno.remove(TEST_OUTPUT_DIR, { recursive: true });
   } catch {
-    // Directory might not exist or no permission
+    // Directory might not exist
   }
   await ensureTestDir();
 }
@@ -80,20 +67,82 @@ Deno.test("CLI: Display help", async () => {
   // Check help content
   const output = result.stdout;
   assertEquals(output.includes("Usage:"), true);
-  assertEquals(output.includes("frontmatter"), true);
-  assertEquals(output.includes("--schema"), true);
-  assertEquals(output.includes("--template"), true);
-  assertEquals(output.includes("--output"), true);
+  assertEquals(output.includes("frontmatter-to-schema"), true);
+  assertEquals(output.includes("schema-file"), true);
+  assertEquals(output.includes("output-file"), true);
+  assertEquals(output.includes("input-pattern"), true);
 });
 
-Deno.test("CLI: Process sample documents", async () => {
+Deno.test("CLI: Display version", async () => {
+  const result = await runCLI(["--version"]);
+
+  assertEquals(result.success, true);
+  assertEquals(result.code, 0);
+  assertEquals(result.stdout.includes("frontmatter-to-schema"), true);
+  assertEquals(result.stdout.includes("1.0.0"), true);
+});
+
+Deno.test("CLI: Process sample documents with JSON output", async () => {
   await cleanTestOutput();
 
+  // Create test markdown files
+  const testDir = join(TEST_OUTPUT_DIR, "test-docs");
+  await Deno.mkdir(testDir, { recursive: true });
+
+  await Deno.writeTextFile(
+    join(testDir, "doc1.md"),
+    `---
+c1: "command1"
+c2: "short desc 1"
+c3: "long description 1"
+---
+
+# Document 1
+Content here.`,
+  );
+
+  await Deno.writeTextFile(
+    join(testDir, "doc2.md"),
+    `---
+c1: "command2"
+c2: "short desc 2"
+c3: "long description 2"
+---
+
+# Document 2
+More content.`,
+  );
+
+  // Create a simple test schema
+  const schemaPath = join(TEST_OUTPUT_DIR, "test-schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "c1": { "type": "string" },
+              "c2": { "type": "string" },
+              "c3": { "type": "string" },
+            },
+          },
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true,
+        },
+      },
+    }),
+  );
+
+  const outputPath = join(TEST_OUTPUT_DIR, "output.json");
   const result = await runCLI([
-    "examples/sample-prompts",
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
+    schemaPath,
+    outputPath,
+    `${testDir}/*.md`,
   ]);
 
   if (!result.success) {
@@ -105,301 +154,300 @@ Deno.test("CLI: Process sample documents", async () => {
   assertEquals(result.code, 0);
 
   // Check output file was created
-  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
-  const fileExists = await exists(outputFile);
+  const fileExists = await exists(outputPath);
   assertEquals(fileExists, true);
 
   // Verify output content
-  const content = await Deno.readTextFile(outputFile);
-  assertExists(content);
-  assertEquals(content.length > 0, true);
-});
-
-Deno.test("CLI: Process climpt prompts", async () => {
-  await cleanTestOutput();
-
-  // Check if climpt prompts directory exists
-  const promptsDir = ".agent/climpt/prompts";
-  if (!await exists(promptsDir)) {
-    console.log("Skipping test: climpt prompts directory not found");
-    return;
-  }
-
-  const result = await runCLI([
-    promptsDir,
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  assertEquals(result.success, true);
-  assertEquals(result.code, 0);
-
-  // Check output file
-  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
-  const fileExists = await exists(outputFile);
-  assertEquals(fileExists, true);
-
-  // Parse and validate JSON
-  const content = await Deno.readTextFile(outputFile);
+  const content = await Deno.readTextFile(outputPath);
   const data = JSON.parse(content);
   assertExists(data);
-});
-
-Deno.test("CLI: Handle missing directory", async () => {
-  const result = await runCLI([
-    "non-existent-directory",
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  assertEquals(result.success, false);
-  assertEquals(result.code, 1);
-
-  // Check error message
-  const errorOutput = result.stderr;
-  assertEquals(
-    errorOutput.includes("Error") || errorOutput.includes("not found"),
-    true,
-  );
-});
-
-Deno.test("CLI: Handle missing schema file", async () => {
-  const result = await runCLI([
-    "examples/sample-docs",
-    "--schema=non-existent-schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  assertEquals(result.success, false);
-  assertEquals(result.code, 1);
-
-  // Check error message
-  const errorOutput = result.stderr;
-  assertEquals(
-    errorOutput.includes("Error") || errorOutput.includes("schema"),
-    true,
-  );
-});
-
-Deno.test("CLI: Handle missing template file", async () => {
-  const result = await runCLI([
-    "examples/sample-docs",
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=non-existent-template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  assertEquals(result.success, false);
-  assertEquals(result.code, 1);
-
-  // Check error message
-  const errorOutput = result.stderr;
-  assertEquals(
-    errorOutput.includes("Error") || errorOutput.includes("template"),
-    true,
-  );
-});
-
-Deno.test("CLI: Process with JSON output format", async () => {
-  await cleanTestOutput();
-
-  const result = await runCLI([
-    "examples/sample-prompts",
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  assertEquals(result.success, true);
-
-  // Verify JSON output
-  const outputFile = join(TEST_OUTPUT_DIR, "template.json");
-  const content = await Deno.readTextFile(outputFile);
-
-  // Should be valid JSON
-  let parsed;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new Error("Output is not valid JSON");
-  }
-
-  assertExists(parsed);
+  assertExists(data.commands);
+  assertEquals(Array.isArray(data.commands), true);
 });
 
 Deno.test("CLI: Process with YAML output format", async () => {
   await cleanTestOutput();
 
-  // Create a test markdown file with appropriate frontmatter
+  // Create test markdown files
   const testDir = join(TEST_OUTPUT_DIR, "yaml-test-docs");
+  await Deno.mkdir(testDir, { recursive: true });
+
+  await Deno.writeTextFile(
+    join(testDir, "article.md"),
+    `---
+title: "Test Article"
+emoji: "📚"
+type: "tech"
+topics: ["testing", "deno"]
+published: true
+---
+
+# Test Article
+Content here.`,
+  );
+
+  // Create schema
+  const schemaPath = join(TEST_OUTPUT_DIR, "article-schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "articles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "emoji": { "type": "string" },
+              "type": { "type": "string" },
+              "topics": {
+                "type": "array",
+                "items": { "type": "string" },
+              },
+              "published": { "type": "boolean" },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  const outputPath = join(TEST_OUTPUT_DIR, "output.yaml");
+  const result = await runCLI([
+    schemaPath,
+    outputPath,
+    `${testDir}/*.md`,
+  ]);
+
+  if (!result.success) {
+    console.log("YAML test failed:");
+    console.log("stderr:", result.stderr);
+    console.log("stdout:", result.stdout);
+  }
+  assertEquals(result.success, true);
+
+  // Verify YAML output file exists
+  const fileExists = await exists(outputPath);
+  assertEquals(fileExists, true);
+
+  if (fileExists) {
+    // Verify YAML output content
+    const content = await Deno.readTextFile(outputPath);
+    assertExists(content);
+    // The actual content structure might be different - let's just check it's valid YAML
+    assertEquals(content.length > 0, true);
+    // Check for YAML structure (key-value pairs)
+    assertEquals(content.includes(":") || content.includes("-"), true);
+  }
+});
+
+Deno.test("CLI: Handle missing schema file", async () => {
+  await cleanTestOutput();
+
+  const result = await runCLI([
+    "non-existent-schema.json",
+    join(TEST_OUTPUT_DIR, "output.json"),
+    "examples/*.md",
+  ]);
+
+  assertEquals(result.success, false);
+  assertEquals(result.code, 1);
+  // Error message could be in either stdout or stderr
+  const hasError = result.stderr.includes("Error") ||
+    result.stdout.includes("Error") ||
+    result.stderr.includes("not found") || result.stdout.includes("not found");
+  assertEquals(hasError, true);
+});
+
+Deno.test("CLI: Handle invalid pattern", async () => {
+  await cleanTestOutput();
+
+  // Create a valid schema
+  const schemaPath = join(TEST_OUTPUT_DIR, "schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {},
+    }),
+  );
+
+  const result = await runCLI([
+    schemaPath,
+    join(TEST_OUTPUT_DIR, "output.json"),
+    "non-existent-dir/*.md",
+  ]);
+
+  // Should handle gracefully
+  assertEquals(typeof result.code === "number", true);
+});
+
+Deno.test("CLI: Process with dry-run option", async () => {
+  await cleanTestOutput();
+
+  // Create test files
+  const testDir = join(TEST_OUTPUT_DIR, "dry-run-test");
   await Deno.mkdir(testDir, { recursive: true });
 
   await Deno.writeTextFile(
     join(testDir, "test.md"),
     `---
-title: Test Article
-emoji: 📚
-type: tech
-topics: [testing]
-published: true
-published_at: "2025-08-01 10:00"
+title: "Test"
 ---
 
-# Test Article\nContent here.`,
+Content`,
   );
 
+  const schemaPath = join(TEST_OUTPUT_DIR, "schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  const outputPath = join(TEST_OUTPUT_DIR, "dry-run-output.json");
   const result = await runCLI([
-    testDir,
-    "--schema=examples/articles-index/schema.json",
-    "--template=examples/articles-index/template.yaml",
-    `--destination=${TEST_OUTPUT_DIR}`,
+    schemaPath,
+    outputPath,
+    `${testDir}/*.md`,
+    "--dry-run",
   ]);
 
   assertEquals(result.success, true);
+  assertEquals(result.stdout.includes("Dry-run mode"), true);
 
-  // Verify YAML output
-  const outputFile = join(TEST_OUTPUT_DIR, "template.yaml");
-  const content = await Deno.readTextFile(outputFile);
-
-  // Basic YAML validation
-  assertExists(content);
-  assertEquals(content.includes(":"), true); // YAML should have key-value pairs
+  // Output file should NOT be created in dry-run mode
+  const fileExists = await exists(outputPath);
+  assertEquals(fileExists, false);
 });
 
-Deno.test("CLI: Handle empty directory", async () => {
+Deno.test("CLI: Process with verbose option", async () => {
   await cleanTestOutput();
 
-  // Create empty directory
-  const emptyDir = join(TEST_OUTPUT_DIR, "empty");
-  try {
-    await Deno.mkdir(emptyDir, { recursive: true });
-  } catch (error) {
-    if (error instanceof Deno.errors.PermissionDenied) {
-      console.log("Skipping test: No write permission");
-      return;
-    }
-    throw error;
-  }
-
-  const result = await runCLI([
-    emptyDir,
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
-  // Should handle gracefully (might succeed with empty output or fail gracefully)
-  assertEquals(typeof result.code === "number", true);
-});
-
-Deno.test("CLI: Process multiple markdown files", async () => {
-  await cleanTestOutput();
-
-  // Create test markdown files
-  const testDir = join(TEST_OUTPUT_DIR, "test-docs");
-  try {
-    await Deno.mkdir(testDir, { recursive: true });
-  } catch (error) {
-    if (error instanceof Deno.errors.PermissionDenied) {
-      console.log("Skipping test: No write permission");
-      return;
-    }
-    throw error;
-  }
-
-  // Create test files with frontmatter matching climpt-registry schema
-  await Deno.writeTextFile(
-    join(testDir, "doc1.md"),
-    `---
-version: "1.0.0"
-description: "Test registry document 1"
-tools:
-  availableConfigs: ["test", "command1"]
-  configurations:
-    test:
-      description: "Test command 1"
-      usage: "Usage for test command 1"
----
-
-# Test Document 1
-Content here.`,
-  );
+  // Create test files
+  const testDir = join(TEST_OUTPUT_DIR, "verbose-test");
+  await Deno.mkdir(testDir, { recursive: true });
 
   await Deno.writeTextFile(
-    join(testDir, "doc2.md"),
+    join(testDir, "test.md"),
     `---
-version: "1.0.0"
-description: "Test registry document 2"
-tools:
-  availableConfigs: ["test", "command2"]
-  configurations:
-    test:
-      description: "Test command 2"
-      usage: "Usage for test command 2"
+name: "Test"
 ---
 
-# Test Document 2
-More content.`,
+Content`,
   );
 
-  // Ensure output directory exists
-  const outputDir = `${TEST_OUTPUT_DIR}/multi-output`;
-  await Deno.mkdir(outputDir, { recursive: true });
+  const schemaPath = join(TEST_OUTPUT_DIR, "schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+            },
+          },
+        },
+      },
+    }),
+  );
 
+  const outputPath = join(TEST_OUTPUT_DIR, "verbose-output.json");
   const result = await runCLI([
-    testDir,
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${outputDir}`,
+    schemaPath,
+    outputPath,
+    `${testDir}/*.md`,
+    "--verbose",
   ]);
 
-  if (!result.success) {
-    console.log("CLI failed with code:", result.code);
-    console.log("stdout:", result.stdout);
-    console.log("stderr:", result.stderr);
-  }
   assertEquals(result.success, true);
+  // Verbose mode should include more details in output
+  assertEquals(result.stdout.includes("Processing files"), true);
+});
 
-  // Check output was created
-  const outputFile = join(TEST_OUTPUT_DIR, "multi-output", "template.json");
-  const fileExists = await exists(outputFile);
-  assertEquals(fileExists, true);
+Deno.test("CLI: Process with quiet option", async () => {
+  await cleanTestOutput();
+
+  // Create test files
+  const testDir = join(TEST_OUTPUT_DIR, "quiet-test");
+  await Deno.mkdir(testDir, { recursive: true });
+
+  await Deno.writeTextFile(
+    join(testDir, "test.md"),
+    `---
+data: "test"
+---
+
+Content`,
+  );
+
+  const schemaPath = join(TEST_OUTPUT_DIR, "schema.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "data": { "type": "string" },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+  const outputPath = join(TEST_OUTPUT_DIR, "quiet-output.json");
+  const result = await runCLI([
+    schemaPath,
+    outputPath,
+    `${testDir}/*.md`,
+    "--quiet",
+  ]);
+
+  assertEquals(result.success, true);
+  // Quiet mode should have minimal output
+  assertEquals(result.stdout, "");
 });
 
 Deno.test("CLI: Validate required arguments", async () => {
-  // Missing schema
-  let result = await runCLI([
-    "examples/sample-docs",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
+  // Missing all arguments
+  let result = await runCLI([]);
   assertEquals(result.success, false);
   assertEquals(result.code, 1);
 
-  // Missing template
-  result = await runCLI([
-    "examples/sample-docs",
-    "--schema=examples/climpt-registry/schema.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
+  // Missing output and pattern
+  result = await runCLI(["schema.json"]);
   assertEquals(result.success, false);
   assertEquals(result.code, 1);
 
-  // Missing directory
-  result = await runCLI([
-    "--schema=examples/climpt-registry/schema.json",
-    "--template=examples/climpt-registry/template.json",
-    `--destination=${TEST_OUTPUT_DIR}`,
-  ]);
-
+  // Missing pattern
+  result = await runCLI(["schema.json", "output.json"]);
   assertEquals(result.success, false);
   assertEquals(result.code, 1);
 });
-
-// Clean up after all tests
-await cleanTestOutput();

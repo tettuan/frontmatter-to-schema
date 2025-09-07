@@ -2,7 +2,8 @@
 
 ## 概要
 
-本書は、Markdown FrontMatterからSchemaベースでの構造化データ変換システムにおけるドメイン境界を定義する。
+本書は、Markdown
+FrontMatterからSchemaベースでの構造化データ変換システムにおけるドメイン境界を定義する。
 要求事項とアーキテクチャに基づき、DDD原則に従った境界づけられたコンテキストを明確化する。
 
 ## ドメイン分析結果
@@ -12,7 +13,7 @@
 システムの24パターンの試行から、以下の要素が高頻度で出現：
 
 1. **Schema処理** (24/24回) - 全パターンで必須
-2. **フロントマター抽出** (24/24回) - 全パターンで必須  
+2. **フロントマター抽出** (24/24回) - 全パターンで必須
 3. **テンプレート適用** (24/24回) - 全パターンで必須
 4. **ファイル探索** (24/24回) - 全パターンで必須
 5. **集約処理** (18/24回) - 大規模処理で頻出
@@ -229,61 +230,67 @@ graph LR
 
 ### 1. Schema → Frontmatter
 
-**インターフェース**: ValidationRules
-**イベント**: SchemaLoadedEvent → ValidationRulesAvailable
+**インターフェース**: ValidationRules **イベント**: SchemaLoadedEvent →
+ValidationRulesAvailable
 
 ```typescript
 interface SchemaToFrontmatter {
   // Schema Context が公開
-  getValidationRules(schemaId: SchemaId): ValidationRules
-  
+  getValidationRules(schemaId: SchemaId): ValidationRules;
+
   // Frontmatter Context が使用
-  validate(data: ParsedData, rules: ValidationRules): Result<ValidatedData, ValidationError>
+  validate(
+    data: ParsedData,
+    rules: ValidationRules,
+  ): Result<ValidatedData, ValidationError>;
 }
 ```
 
 ### 2. Frontmatter → Template
 
-**インターフェース**: ValidatedData
-**イベント**: DataValidatedEvent → ReadyForRendering
+**インターフェース**: ValidatedData **イベント**: DataValidatedEvent →
+ReadyForRendering
 
 ```typescript
 interface FrontmatterToTemplate {
   // Frontmatter Context が公開
-  getValidatedData(documentId: DocumentId): ValidatedData
-  
+  getValidatedData(documentId: DocumentId): ValidatedData;
+
   // Template Context が使用
-  applyTemplate(data: ValidatedData, template: Template): RenderedContent
+  applyTemplate(data: ValidatedData, template: Template): RenderedContent;
 }
 ```
 
 ### 3. Frontmatter → Aggregation
 
-**インターフェース**: ValidatedData[]
-**イベント**: AllDataProcessedEvent → ReadyForAggregation
+**インターフェース**: ValidatedData[] **イベント**: AllDataProcessedEvent →
+ReadyForAggregation
 
 ```typescript
 interface FrontmatterToAggregation {
   // Frontmatter Context が公開
-  getAllValidatedData(): ValidatedData[]
-  
+  getAllValidatedData(): ValidatedData[];
+
   // Aggregation Context が使用
-  aggregateData(items: ValidatedData[], rules: AggregationRule[]): AggregatedResult
+  aggregateData(
+    items: ValidatedData[],
+    rules: AggregationRule[],
+  ): AggregatedResult;
 }
 ```
 
 ### 4. Aggregation → Template
 
-**インターフェース**: EnrichedResult
-**イベント**: AggregationCompleteEvent → FinalRenderingReady
+**インターフェース**: EnrichedResult **イベント**: AggregationCompleteEvent →
+FinalRenderingReady
 
 ```typescript
 interface AggregationToTemplate {
   // Aggregation Context が公開
-  getEnrichedResult(): EnrichedResult
-  
+  getEnrichedResult(): EnrichedResult;
+
   // Template Context が使用
-  renderFinal(result: EnrichedResult, template: Template): FinalOutput
+  renderFinal(result: EnrichedResult, template: Template): FinalOutput;
 }
 ```
 
@@ -291,15 +298,16 @@ interface AggregationToTemplate {
 
 ### 距離判定マトリックス
 
-| コンテキスト | Schema | Frontmatter | Template | File | Aggregation |
-|------------|--------|-------------|----------|------|-------------|
-| **Schema** | 0 | 1 | 2 | 1 | 3 |
-| **Frontmatter** | 1 | 0 | 1 | 1 | 2 |
-| **Template** | 2 | 1 | 0 | 2 | 1 |
-| **File** | 1 | 1 | 2 | 0 | 3 |
-| **Aggregation** | 3 | 2 | 1 | 3 | 0 |
+| コンテキスト    | Schema | Frontmatter | Template | File | Aggregation |
+| --------------- | ------ | ----------- | -------- | ---- | ----------- |
+| **Schema**      | 0      | 1           | 2        | 1    | 3           |
+| **Frontmatter** | 1      | 0           | 1        | 1    | 2           |
+| **Template**    | 2      | 1           | 0        | 2    | 1           |
+| **File**        | 1      | 1           | 2        | 0    | 3           |
+| **Aggregation** | 3      | 2           | 1        | 3    | 0           |
 
 **距離の意味**:
+
 - 0: 同一コンテキスト
 - 1: 直接依存関係
 - 2: 間接依存関係
@@ -331,18 +339,23 @@ graph TD
 ## 境界設計の原則
 
 ### 1. 単一責任原則
+
 各コンテキストは明確な単一の責務を持つ
 
 ### 2. 疎結合原則
+
 ライフサイクルの異なるコンテキスト間は疎結合を保つ
 
 ### 3. イベント駆動原則
+
 コンテキスト間の協調はイベントベースで行う
 
 ### 4. 不変性原則
+
 境界を跨ぐデータは不変オブジェクトとして扱う
 
 ### 5. 全域性原則
+
 各コンテキストのインターフェースはResult型で全域関数化
 
 ## 実装への影響
@@ -387,22 +400,22 @@ src/
 ```typescript
 // 境界を跨ぐ共通インターフェース
 interface BoundaryInterface<T, E> {
-  execute(input: T): Result<E, DomainError>
+  execute(input: T): Result<E, DomainError>;
 }
 
 // イベント定義
 interface DomainEvent {
-  readonly aggregateId: string
-  readonly occurredAt: Date
-  readonly eventType: string
-  readonly payload: unknown
+  readonly aggregateId: string;
+  readonly occurredAt: Date;
+  readonly eventType: string;
+  readonly payload: unknown;
 }
 
 // コンテキスト間通信
 interface ContextPort<T> {
-  publish(event: DomainEvent): void
-  subscribe(handler: (event: DomainEvent) => void): void
-  query(id: string): Result<T, QueryError>
+  publish(event: DomainEvent): void;
+  subscribe(handler: (event: DomainEvent) => void): void;
+  query(id: string): Result<T, QueryError>;
 }
 ```
 

@@ -44,7 +44,10 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     }
 
     try {
-      const configPath = new URL("../../config/valid-tools.json", import.meta.url);
+      const configPath = new URL(
+        "../../config/valid-tools.json",
+        import.meta.url,
+      );
       const configContent = await Deno.readTextFile(configPath);
       const config = JSON.parse(configContent);
       this.validTools = config.validTools || [];
@@ -62,7 +65,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         "config",
         "setup",
         "build",
-        "refactor"
+        "refactor",
       ];
       return this.validTools!;
     }
@@ -232,7 +235,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
    * Transform frontmatter data to registry structure
    * @deprecated This should be handled by a separate registry-specific analyzer
    */
-  private async transformToRegistry(context: AnalysisContext): Promise<RegistryData> {
+  private async transformToRegistry(
+    context: AnalysisContext,
+  ): Promise<RegistryData> {
     const frontMatterData = context.getFrontMatterData();
     const documentPath = context.getDocumentPath();
 

@@ -367,16 +367,16 @@ export class RegistryAggregationService {
       for (const registry of registries) {
         const reg = registry as Record<string, unknown>;
         latestVersion = String(reg.version);
-        
+
         const tools = reg.tools as Record<string, unknown>;
-        
+
         // Merge availableConfigs
         if (Array.isArray(tools.availableConfigs)) {
           tools.availableConfigs.forEach((config) => {
             mergedConfigs.add(String(config));
           });
         }
-        
+
         // Merge commands
         if (Array.isArray(tools.commands)) {
           const commands = this.extractSuccesses(

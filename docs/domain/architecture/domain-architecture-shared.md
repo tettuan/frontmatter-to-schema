@@ -24,83 +24,85 @@ export namespace Result {
   export function ok<T>(data: T): Result<T, never> {
     return { ok: true, data };
   }
-  
+
   export function error<E>(error: E): Result<never, E> {
     return { ok: false, error };
   }
-  
-  export function isOk<T, E>(result: Result<T, E>): result is { ok: true; data: T } {
+
+  export function isOk<T, E>(
+    result: Result<T, E>,
+  ): result is { ok: true; data: T } {
     return result.ok;
   }
-  
-  export function isError<T, E>(result: Result<T, E>): result is { ok: false; error: E } {
+
+  export function isError<T, E>(
+    result: Result<T, E>,
+  ): result is { ok: false; error: E } {
     return !result.ok;
   }
-  
+
   export function map<T, U, E>(
     result: Result<T, E>,
-    fn: (value: T) => U
+    fn: (value: T) => U,
   ): Result<U, E> {
     if (result.ok) {
       return { ok: true, data: fn(result.data) };
     }
     return result;
   }
-  
+
   export function flatMap<T, U, E>(
     result: Result<T, E>,
-    fn: (value: T) => Result<U, E>
+    fn: (value: T) => Result<U, E>,
   ): Result<U, E> {
     if (result.ok) {
       return fn(result.data);
     }
     return result;
   }
-  
+
   export function mapError<T, E, F>(
     result: Result<T, E>,
-    fn: (error: E) => F
+    fn: (error: E) => F,
   ): Result<T, F> {
     if (!result.ok) {
       return { ok: false, error: fn(result.error) };
     }
     return result;
   }
-  
+
   export async function fromPromise<T, E = Error>(
     promise: Promise<T>,
-    errorMapper?: (error: unknown) => E
+    errorMapper?: (error: unknown) => E,
   ): Promise<Result<T, E>> {
     try {
       const data = await promise;
       return { ok: true, data };
     } catch (error) {
-      const mappedError = errorMapper 
-        ? errorMapper(error)
-        : (error as E);
+      const mappedError = errorMapper ? errorMapper(error) : (error as E);
       return { ok: false, error: mappedError };
     }
   }
-  
+
   export function all<T, E>(results: Result<T, E>[]): Result<T[], E> {
     const data: T[] = [];
-    
+
     for (const result of results) {
       if (!result.ok) {
         return result;
       }
       data.push(result.data);
     }
-    
+
     return { ok: true, data };
   }
-  
+
   export function allSettled<T, E>(
-    results: Result<T, E>[]
+    results: Result<T, E>[],
   ): { successes: T[]; failures: E[] } {
     const successes: T[] = [];
     const failures: E[] = [];
-    
+
     for (const result of results) {
       if (result.ok) {
         successes.push(result.data);
@@ -108,7 +110,7 @@ export namespace Result {
         failures.push(result.error);
       }
     }
-    
+
     return { successes, failures };
   }
 }
@@ -123,8 +125,19 @@ export namespace Result {
 export type ValidationError =
   | { kind: "EmptyInput"; message: string }
   | { kind: "PatternMismatch"; value: string; pattern: string; message: string }
-  | { kind: "OutOfRange"; value: unknown; min?: number; max?: number; message: string }
-  | { kind: "InvalidFormat"; value: string; expectedFormat: string; message: string }
+  | {
+    kind: "OutOfRange";
+    value: unknown;
+    min?: number;
+    max?: number;
+    message: string;
+  }
+  | {
+    kind: "InvalidFormat";
+    value: string;
+    expectedFormat: string;
+    message: string;
+  }
   | { kind: "TooLong"; value: string; maxLength: number; message: string }
   | { kind: "TooShort"; value: string; minLength: number; message: string }
   | { kind: "InvalidType"; expected: string; actual: string; message: string }
@@ -147,21 +160,21 @@ export type FileSystemError =
  */
 export namespace ErrorHelper {
   export function createValidationError(
-    kind: ValidationError['kind'],
-    details: Omit<ValidationError, 'kind'>
+    kind: ValidationError["kind"],
+    details: Omit<ValidationError, "kind">,
   ): ValidationError {
     return { kind, ...details } as ValidationError;
   }
-  
+
   export function getErrorMessage(error: { message: string }): string {
     return error.message;
   }
-  
+
   export function isValidationError(error: unknown): error is ValidationError {
-    return typeof error === 'object' && 
-           error !== null && 
-           'kind' in error &&
-           'message' in error;
+    return typeof error === "object" &&
+      error !== null &&
+      "kind" in error &&
+      "message" in error;
   }
 }
 ```
@@ -205,9 +218,9 @@ export interface EventPublisher {
 export interface EventSubscriber {
   subscribe(
     eventType: string,
-    handler: EventHandler
+    handler: EventHandler,
   ): Result<SubscriptionId, SubscribeError>;
-  
+
   unsubscribe(id: SubscriptionId): Result<void, UnsubscribeError>;
 }
 
@@ -221,14 +234,16 @@ export type EventHandler = (event: DomainEvent) => Promise<void>;
  */
 export class SubscriptionId {
   private constructor(private readonly value: string) {}
-  
+
   static create(): SubscriptionId {
     return new SubscriptionId(
-      `sub_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      `sub_${Date.now()}_${Math.random().toString(36).substring(7)}`,
     );
   }
-  
-  toString(): string { return this.value; }
+
+  toString(): string {
+    return this.value;
+  }
 }
 
 /**
@@ -260,12 +275,14 @@ export type UnsubscribeError =
  */
 export class Timestamp {
   private constructor(private readonly value: Date) {}
-  
+
   static now(): Timestamp {
     return new Timestamp(new Date());
   }
-  
-  static from(date: Date | string | number): Result<Timestamp, ValidationError> {
+
+  static from(
+    date: Date | string | number,
+  ): Result<Timestamp, ValidationError> {
     try {
       const d = new Date(date);
       if (isNaN(d.getTime())) {
@@ -275,8 +292,8 @@ export class Timestamp {
             kind: "InvalidFormat",
             value: String(date),
             expectedFormat: "Valid date format",
-            message: "Invalid date format"
-          }
+            message: "Invalid date format",
+          },
         };
       }
       return { ok: true, data: new Timestamp(d) };
@@ -287,24 +304,30 @@ export class Timestamp {
           kind: "InvalidFormat",
           value: String(date),
           expectedFormat: "Valid date format",
-          message: "Failed to parse date"
-        }
+          message: "Failed to parse date",
+        },
       };
     }
   }
-  
-  toDate(): Date { return new Date(this.value); }
-  toISOString(): string { return this.value.toISOString(); }
-  valueOf(): number { return this.value.valueOf(); }
-  
+
+  toDate(): Date {
+    return new Date(this.value);
+  }
+  toISOString(): string {
+    return this.value.toISOString();
+  }
+  valueOf(): number {
+    return this.value.valueOf();
+  }
+
   isBefore(other: Timestamp): boolean {
     return this.value < other.value;
   }
-  
+
   isAfter(other: Timestamp): boolean {
     return this.value > other.value;
   }
-  
+
   equals(other: Timestamp): boolean {
     return this.value.getTime() === other.value.getTime();
   }
@@ -315,19 +338,23 @@ export class Timestamp {
  */
 export class UUID {
   private constructor(private readonly value: string) {}
-  
+
   static create(): UUID {
     // 簡易UUID v4生成
-    const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = c === "x" ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      },
+    );
     return new UUID(uuid);
   }
-  
+
   static from(value: string): Result<UUID, ValidationError> {
-    const pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const pattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!pattern.test(value)) {
       return {
         ok: false,
@@ -335,15 +362,17 @@ export class UUID {
           kind: "PatternMismatch",
           value,
           pattern: pattern.source,
-          message: "Invalid UUID format"
-        }
+          message: "Invalid UUID format",
+        },
       };
     }
     return { ok: true, data: new UUID(value.toLowerCase()) };
   }
-  
-  toString(): string { return this.value; }
-  
+
+  toString(): string {
+    return this.value;
+  }
+
   equals(other: UUID): boolean {
     return this.value === other.value;
   }
@@ -354,24 +383,24 @@ export class UUID {
  */
 export class NonEmptyString {
   private constructor(private readonly value: string) {}
-  
+
   static create(
     value: string,
     options?: {
       maxLength?: number;
       pattern?: RegExp;
       trim?: boolean;
-    }
+    },
   ): Result<NonEmptyString, ValidationError> {
     const trimmed = options?.trim ? value.trim() : value;
-    
+
     if (!trimmed || trimmed.length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyInput", message: "String cannot be empty" }
+        error: { kind: "EmptyInput", message: "String cannot be empty" },
       };
     }
-    
+
     if (options?.maxLength && trimmed.length > options.maxLength) {
       return {
         ok: false,
@@ -379,11 +408,11 @@ export class NonEmptyString {
           kind: "TooLong",
           value: trimmed,
           maxLength: options.maxLength,
-          message: `String exceeds maximum length of ${options.maxLength}`
-        }
+          message: `String exceeds maximum length of ${options.maxLength}`,
+        },
       };
     }
-    
+
     if (options?.pattern && !options.pattern.test(trimmed)) {
       return {
         ok: false,
@@ -391,17 +420,21 @@ export class NonEmptyString {
           kind: "PatternMismatch",
           value: trimmed,
           pattern: options.pattern.source,
-          message: "String does not match required pattern"
-        }
+          message: "String does not match required pattern",
+        },
       };
     }
-    
+
     return { ok: true, data: new NonEmptyString(trimmed) };
   }
-  
-  toString(): string { return this.value; }
-  length(): number { return this.value.length; }
-  
+
+  toString(): string {
+    return this.value;
+  }
+  length(): number {
+    return this.value.length;
+  }
+
   equals(other: NonEmptyString): boolean {
     return this.value === other.value;
   }
@@ -486,13 +519,14 @@ export type DeepRequired<T> = {
 /**
  * Discriminated Unionのヘルパー型
  */
-export type DiscriminatedUnion<K extends string, T extends Record<K, string>> = T;
+export type DiscriminatedUnion<K extends string, T extends Record<K, string>> =
+  T;
 
 /**
  * タグ付きユニオンの抽出
  */
-export type ExtractUnion<T, K extends string, V extends string> = 
-  T extends { [key in K]: V } ? T : never;
+export type ExtractUnion<T, K extends string, V extends string> = T extends
+  { [key in K]: V } ? T : never;
 
 /**
  * 非null/undefined型
@@ -507,14 +541,14 @@ export type Awaited<T> = T extends Promise<infer U> ? U : T;
 /**
  * 関数の引数型抽出
  */
-export type Parameters<T extends (...args: any) => any> = 
-  T extends (...args: infer P) => any ? P : never;
+export type Parameters<T extends (...args: any) => any> = T extends
+  (...args: infer P) => any ? P : never;
 
 /**
  * 関数の戻り値型抽出
  */
-export type ReturnType<T extends (...args: any) => any> = 
-  T extends (...args: any) => infer R ? R : any;
+export type ReturnType<T extends (...args: any) => any> = T extends
+  (...args: any) => infer R ? R : any;
 ```
 
 ### 7. インフラストラクチャーアダプター契約
@@ -525,7 +559,10 @@ export type ReturnType<T extends (...args: any) => any> =
  */
 export interface FileSystemAdapter {
   readFile(path: string): Promise<Result<string, FileSystemError>>;
-  writeFile(path: string, content: string): Promise<Result<void, FileSystemError>>;
+  writeFile(
+    path: string,
+    content: string,
+  ): Promise<Result<void, FileSystemError>>;
   exists(path: string): Promise<Result<boolean, FileSystemError>>;
   listFiles(pattern: string): Promise<Result<string[], FileSystemError>>;
   deleteFile(path: string): Promise<Result<void, FileSystemError>>;

@@ -5,9 +5,9 @@
 ```typescript
 export class SchemaPath {
   private constructor(private readonly value: string) {}
-  
+
   static create(path: string): Result<SchemaPath, SchemaPathError> {
-    if (!path.endsWith('.json')) {
+    if (!path.endsWith(".json")) {
       return { ok: false, error: { kind: "InvalidExtension", path } };
     }
     return { ok: true, data: new SchemaPath(path) };
@@ -26,7 +26,7 @@ export type SchemaState =
 
 export class Schema {
   private state: SchemaState;
-  
+
   static create(id: SchemaId, path: SchemaPath): Schema {
     return new Schema(id, { kind: "Unloaded", path });
   }

@@ -8,16 +8,19 @@
 ## アーキテクチャ原則
 
 ### 1. 抽象化の原則
+
 - SchemaはCLI引数から注入される（ハードコーディング禁止）
 - 処理ロジックは特定のSchemaに依存しない汎用設計
 - $ref解決は再帰的かつ動的に処理
 
 ### 2. 型安全性の原則（全域性）
+
 - 部分関数を排除し、Result型による全域関数化
 - Discriminated Unionによる状態管理
 - Smart Constructorによる値の制約保証
 
 ### 3. 責務分離の原則
+
 - Schema解析、テンプレート処理、ファイル操作は独立したドメイン
 - 各層は明確なインターフェースで結合
 
@@ -47,41 +50,41 @@ class CLIArguments {
     readonly schemaPath: SchemaPath,
     readonly outputPath: OutputPath,
     readonly inputPattern: InputPattern,
-    readonly options: CLIOptions
+    readonly options: CLIOptions,
   ) {}
-  
+
   static parse(args: string[]): Result<CLIArguments, ParseError> {
     if (args.length < 3) {
       return {
         ok: false,
-        error: { kind: "InsufficientArguments", required: 3, got: args.length }
+        error: { kind: "InsufficientArguments", required: 3, got: args.length },
       };
     }
-    
+
     // Schema path validation
     const schemaResult = SchemaPath.create(args[0]);
     if (!schemaResult.ok) return schemaResult;
-    
+
     // Output path validation
     const outputResult = OutputPath.create(args[1]);
     if (!outputResult.ok) return outputResult;
-    
+
     // Input pattern validation
     const inputResult = InputPattern.create(args[2]);
     if (!inputResult.ok) return inputResult;
-    
+
     // Options parsing
     const optionsResult = CLIOptions.parse(args.slice(3));
     if (!optionsResult.ok) return optionsResult;
-    
+
     return {
       ok: true,
       data: new CLIArguments(
         schemaResult.data,
         outputResult.data,
         inputResult.data,
-        optionsResult.data
-      )
+        optionsResult.data,
+      ),
     };
   }
 }
@@ -100,18 +103,18 @@ interface CLIOptions {
 
 ### 引数パラメータ詳細
 
-| パラメータ | 必須 | 説明 | 例 |
-|----------|------|------|-----|
-| `schema-file` | ✓ | Schemaファイルパス（.json） | `registry_schema.json` |
-| `output-file` | ✓ | 出力ファイルパス | `registry.json`, `books.yml` |
-| `input-pattern` | ✓ | 入力ファイルパターン（glob形式） | `"**/*.md"`, `"prompts/"` |
-| `--verbose, -v` | - | 詳細ログ出力 | - |
-| `--help, -h` | - | ヘルプ表示 | - |
-| `--version` | - | バージョン表示 | - |
-| `--quiet, -q` | - | 最小限の出力 | - |
-| `--dry-run` | - | 実行シミュレーション | - |
-| `--parallel, -p` | - | 並列処理有効化 | - |
-| `--max-workers` | - | 最大ワーカー数 | `4` |
+| パラメータ       | 必須 | 説明                             | 例                           |
+| ---------------- | ---- | -------------------------------- | ---------------------------- |
+| `schema-file`    | ✓    | Schemaファイルパス（.json）      | `registry_schema.json`       |
+| `output-file`    | ✓    | 出力ファイルパス                 | `registry.json`, `books.yml` |
+| `input-pattern`  | ✓    | 入力ファイルパターン（glob形式） | `"**/*.md"`, `"prompts/"`    |
+| `--verbose, -v`  | -    | 詳細ログ出力                     | -                            |
+| `--help, -h`     | -    | ヘルプ表示                       | -                            |
+| `--version`      | -    | バージョン表示                   | -                            |
+| `--quiet, -q`    | -    | 最小限の出力                     | -                            |
+| `--dry-run`      | -    | 実行シミュレーション             | -                            |
+| `--parallel, -p` | -    | 並列処理有効化                   | -                            |
+| `--max-workers`  | -    | 最大ワーカー数                   | `4`                          |
 
 ## 処理フロー
 
@@ -295,7 +298,7 @@ sequenceDiagram
 
 ```typescript
 // Result型による全域関数化
-type Result<T, E> = 
+type Result<T, E> =
   | { ok: true; data: T }
   | { ok: false; error: E };
 
@@ -304,95 +307,107 @@ type SchemaState =
   | { kind: "Unloaded"; path: SchemaPath }
   | { kind: "Loading"; path: SchemaPath }
   | { kind: "Raw"; path: SchemaPath; content: RawSchema }
-  | { kind: "Resolving"; path: SchemaPath; schema: RawSchema; refs: SchemaReference[] }
-  | { kind: "Resolved"; path: SchemaPath; schema: ResolvedSchema; metadata: SchemaMetadata }
+  | {
+    kind: "Resolving";
+    path: SchemaPath;
+    schema: RawSchema;
+    refs: SchemaReference[];
+  }
+  | {
+    kind: "Resolved";
+    path: SchemaPath;
+    schema: ResolvedSchema;
+    metadata: SchemaMetadata;
+  }
   | { kind: "Failed"; path: SchemaPath; error: SchemaError };
 
 // Smart Constructorによる制約
 class SchemaPath {
   private constructor(private readonly value: string) {}
-  
+
   static create(path: string): Result<SchemaPath, SchemaPathError> {
     // 空文字チェック
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyPath", message: "Schema path cannot be empty" }
+        error: { kind: "EmptyPath", message: "Schema path cannot be empty" },
       };
     }
-    
+
     // 拡張子チェック
-    if (!path.endsWith('.json')) {
-      return { 
-        ok: false, 
-        error: { 
-          kind: "InvalidExtension", 
+    if (!path.endsWith(".json")) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidExtension",
           path,
-          message: `Schema file must be .json, got: ${path}`
-        }
+          message: `Schema file must be .json, got: ${path}`,
+        },
       };
     }
-    
+
     // パス正規化
-    const normalized = path.replace(/\\/g, '/').replace(/\/+/g, '/');
-    
+    const normalized = path.replace(/\\/g, "/").replace(/\/+/g, "/");
+
     return { ok: true, data: new SchemaPath(normalized) };
   }
-  
-  toString(): string { return this.value; }
-  
-  getDirectory(): string {
-    const lastSlash = this.value.lastIndexOf('/');
-    return lastSlash === -1 ? '.' : this.value.substring(0, lastSlash);
+
+  toString(): string {
+    return this.value;
   }
-  
+
+  getDirectory(): string {
+    const lastSlash = this.value.lastIndexOf("/");
+    return lastSlash === -1 ? "." : this.value.substring(0, lastSlash);
+  }
+
   getFileName(): string {
-    const lastSlash = this.value.lastIndexOf('/');
+    const lastSlash = this.value.lastIndexOf("/");
     return lastSlash === -1 ? this.value : this.value.substring(lastSlash + 1);
   }
 }
 
 class OutputPath {
   private constructor(private readonly value: string) {}
-  
+
   static create(path: string): Result<OutputPath, ValidationError> {
-    const ext = path.split('.').pop()?.toLowerCase();
-    const validExtensions = ['json', 'yml', 'yaml', 'toml'];
-    
+    const ext = path.split(".").pop()?.toLowerCase();
+    const validExtensions = ["json", "yml", "yaml", "toml"];
+
     if (!ext || !validExtensions.includes(ext)) {
       return {
         ok: false,
-        error: { kind: "UnsupportedFormat", path, validExtensions }
+        error: { kind: "UnsupportedFormat", path, validExtensions },
       };
     }
-    
+
     return { ok: true, data: new OutputPath(path) };
   }
-  
+
   getFormat(): OutputFormat {
-    const ext = this.value.split('.').pop()!.toLowerCase();
-    return ext === 'yml' ? 'yaml' : ext as OutputFormat;
+    const ext = this.value.split(".").pop()!.toLowerCase();
+    return ext === "yml" ? "yaml" : ext as OutputFormat;
   }
 }
 
 class InputPattern {
   private constructor(private readonly value: string) {}
-  
+
   static create(pattern: string): Result<InputPattern, ValidationError> {
     if (!pattern || pattern.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyPattern" }
+        error: { kind: "EmptyPattern" },
       };
     }
-    
+
     return { ok: true, data: new InputPattern(pattern) };
   }
-  
+
   toGlob(): string {
     // ディレクトリの場合は /**/*.md を追加
-    if (!this.value.includes('*') && !this.value.includes('.md')) {
-      return this.value.endsWith('/') 
+    if (!this.value.includes("*") && !this.value.includes(".md")) {
+      return this.value.endsWith("/")
         ? `${this.value}**/*.md`
         : `${this.value}/**/*.md`;
     }
@@ -405,16 +420,30 @@ type MarkdownDocumentState =
   | { kind: "Unprocessed"; path: MarkdownFilePath }
   | { kind: "Loading"; path: MarkdownFilePath }
   | { kind: "Loaded"; path: MarkdownFilePath; content: string }
-  | { kind: "Extracted"; path: MarkdownFilePath; content: string; raw: RawFrontmatter }
+  | {
+    kind: "Extracted";
+    path: MarkdownFilePath;
+    content: string;
+    raw: RawFrontmatter;
+  }
   | { kind: "Parsed"; path: MarkdownFilePath; parsed: ParsedFrontmatter }
-  | { kind: "Validated"; path: MarkdownFilePath; validated: ValidatedFrontmatter }
+  | {
+    kind: "Validated";
+    path: MarkdownFilePath;
+    validated: ValidatedFrontmatter;
+  }
   | { kind: "Failed"; path: MarkdownFilePath; error: FrontmatterError };
 
 // テンプレート処理の状態
 type TemplateState =
   | { kind: "Unloaded"; path: TemplatePath }
   | { kind: "Loading"; path: TemplatePath }
-  | { kind: "Loaded"; path: TemplatePath; content: string; format: TemplateFormat }
+  | {
+    kind: "Loaded";
+    path: TemplatePath;
+    content: string;
+    format: TemplateFormat;
+  }
   | { kind: "Parsed"; path: TemplatePath; template: ParsedTemplate }
   | { kind: "Compiled"; path: TemplatePath; compiled: CompiledTemplate }
   | { kind: "Failed"; path: TemplatePath; error: TemplateError };
@@ -437,15 +466,15 @@ type AggregationProcessState =
 class SchemaReferenceResolver {
   async resolve(
     schema: RawSchema,
-    basePath: string
+    basePath: string,
   ): Promise<Result<ResolvedSchema, SchemaError>> {
     // 循環参照検出
     const visited = new Set<string>();
-    
+
     const resolveRecursive = async (
       obj: any,
       currentPath: string,
-      depth: number = 0
+      depth: number = 0,
     ): Promise<Result<any, SchemaError>> => {
       // 深さ制限
       if (depth > 100) {
@@ -454,20 +483,20 @@ class SchemaReferenceResolver {
           error: {
             kind: "MaxDepthExceeded",
             depth,
-            message: "Maximum reference resolution depth exceeded"
-          }
+            message: "Maximum reference resolution depth exceeded",
+          },
         };
       }
-      
+
       // プリミティブ値はそのまま返す
-      if (typeof obj !== 'object' || obj === null) {
+      if (typeof obj !== "object" || obj === null) {
         return { ok: true, data: obj };
       }
-      
+
       // $ref処理
-      if ('$ref' in obj) {
-        const refPath = obj['$ref'] as string;
-        
+      if ("$ref" in obj) {
+        const refPath = obj["$ref"] as string;
+
         // 循環参照チェック
         if (visited.has(refPath)) {
           return {
@@ -475,29 +504,29 @@ class SchemaReferenceResolver {
             error: {
               kind: "CircularReference",
               refs: Array.from(visited).concat(refPath),
-              message: `Circular reference detected: ${refPath}`
-            }
+              message: `Circular reference detected: ${refPath}`,
+            },
           };
         }
-        
+
         visited.add(refPath);
-        
+
         // 参照先を読み込み
         const loadResult = await this.loadReference(refPath, currentPath);
         if (!loadResult.ok) return loadResult;
-        
+
         // 再帰的に解決
         const resolvedResult = await resolveRecursive(
           loadResult.data,
           this.getReferencePath(refPath, currentPath),
-          depth + 1
+          depth + 1,
         );
-        
+
         visited.delete(refPath);
-        
+
         return resolvedResult;
       }
-      
+
       // 配列の処理
       if (Array.isArray(obj)) {
         const results: any[] = [];
@@ -508,7 +537,7 @@ class SchemaReferenceResolver {
         }
         return { ok: true, data: results };
       }
-      
+
       // オブジェクトの処理
       const resolved: any = {};
       for (const [key, value] of Object.entries(obj)) {
@@ -516,40 +545,40 @@ class SchemaReferenceResolver {
         if (!result.ok) return result;
         resolved[key] = result.data;
       }
-      
+
       return { ok: true, data: resolved };
     };
-    
+
     return resolveRecursive(schema, basePath, 0);
   }
-  
+
   // Schemaからテンプレート情報を抽出
   extractTemplateInfo(schema: ResolvedSchema): TemplateInfo {
     // x-template, x-frontmatter-part などの拡張プロパティを探索
-    const templatePath = schema['x-template'];
-    const frontmatterPart = schema['x-frontmatter-part'];
+    const templatePath = schema["x-template"];
+    const frontmatterPart = schema["x-frontmatter-part"];
     const derivationRules = this.extractDerivationRules(schema);
-    
+
     return {
       templatePath,
       frontmatterPart,
-      derivationRules
+      derivationRules,
     };
   }
-  
+
   private loadReference(
     refPath: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<any, SchemaError>> {
     // 実装は Infrastructure層で提供
     throw new Error("Must be implemented by infrastructure layer");
   }
-  
+
   private getReferencePath(refPath: string, basePath: string): string {
-    if (refPath.startsWith('/')) {
+    if (refPath.startsWith("/")) {
       return refPath;
     }
-    return `${basePath}/${refPath}`.replace(/\/+/g, '/');
+    return `${basePath}/${refPath}`.replace(/\/+/g, "/");
   }
 }
 ```
@@ -568,18 +597,18 @@ class FrontmatterExtractor {
         error: {
           kind: "ExtractionFailed",
           reason: "No frontmatter found",
-          message: delimiterResult.error.message
-        }
+          message: delimiterResult.error.message,
+        },
       };
     }
-    
+
     const delimiter = delimiterResult.data;
     const startDelim = delimiter.getStartDelimiter();
     const endDelim = delimiter.getEndDelimiter();
-    
+
     // フロントマター部分の抽出
     let extractedContent: string;
-    
+
     if (delimiter.getFormat() === "json") {
       // JSON形式の場合
       const jsonMatch = content.match(/^\s*(\{[\s\S]*?\})\s*\n/);
@@ -589,18 +618,18 @@ class FrontmatterExtractor {
           error: {
             kind: "ExtractionFailed",
             reason: "Invalid JSON frontmatter",
-            message: "Could not extract JSON frontmatter"
-          }
+            message: "Could not extract JSON frontmatter",
+          },
         };
       }
       extractedContent = jsonMatch[1];
     } else {
       // YAML/TOML形式の場合
-      const lines = content.split('\n');
+      const lines = content.split("\n");
       let inFrontmatter = false;
       let frontmatterLines: string[] = [];
       let delimiterCount = 0;
-      
+
       for (const line of lines) {
         if (line.trim() === startDelim) {
           if (delimiterCount === 0) {
@@ -611,26 +640,26 @@ class FrontmatterExtractor {
             break;
           }
         }
-        
+
         if (inFrontmatter) {
           frontmatterLines.push(line);
         }
       }
-      
+
       if (frontmatterLines.length === 0) {
         return {
           ok: false,
           error: {
             kind: "ExtractionFailed",
             reason: "Empty frontmatter",
-            message: "Frontmatter section is empty"
-          }
+            message: "Frontmatter section is empty",
+          },
         };
       }
-      
-      extractedContent = frontmatterLines.join('\n');
+
+      extractedContent = frontmatterLines.join("\n");
     }
-    
+
     return RawFrontmatter.create(extractedContent, delimiter.getFormat());
   }
 }
@@ -639,7 +668,7 @@ class FrontmatterExtractor {
 class FrontmatterValidator {
   validate(
     parsed: ParsedFrontmatter,
-    schema: ResolvedSchema
+    schema: ResolvedSchema,
   ): Result<ValidationResult, ValidationError> {
     // JSON Schema validation implementation
     // This would use Ajv or similar in infrastructure layer
@@ -654,25 +683,25 @@ class FrontmatterValidator {
 // AggregationExecutor - ドメインサービス
 class AggregationExecutor {
   constructor(
-    private readonly evaluator: ExpressionEvaluator
+    private readonly evaluator: ExpressionEvaluator,
   ) {}
-  
+
   execute(
-    process: AggregationProcess
+    process: AggregationProcess,
   ): Result<AggregatedResult, AggregationError> {
     const state = process.getState();
-    
+
     if (state.kind !== "Processing") {
       return {
         ok: false,
         error: {
           kind: "InvalidState",
           state: state.kind,
-          message: `Process must be in Processing state, got: ${state.kind}`
-        }
+          message: `Process must be in Processing state, got: ${state.kind}`,
+        },
       };
     }
-    
+
     const { context, items } = state;
     const aggregated: Record<string, unknown> = {};
     const warnings: string[] = [];
@@ -680,23 +709,23 @@ class AggregationExecutor {
       totalItems: items.length,
       uniqueValues: {},
       nullCount: {},
-      arrayLengths: {}
+      arrayLengths: {},
     };
-    
+
     // 各ルールを適用
     for (const rule of context.getRules()) {
       const targetField = rule.getTargetField();
       const sourceExpression = rule.getSourceExpression();
-      
+
       // 全アイテムから値を収集
       const allValues: unknown[] = [];
-      
+
       for (const item of items) {
         const evalResult = this.evaluator.evaluate(
           item.getData(),
-          sourceExpression
+          sourceExpression,
         );
-        
+
         if (evalResult.ok) {
           if (rule.shouldFlatten() && Array.isArray(evalResult.data)) {
             allValues.push(...evalResult.data.flat());
@@ -704,58 +733,62 @@ class AggregationExecutor {
             allValues.push(...evalResult.data);
           }
         } else {
-          warnings.push(`Failed to evaluate ${sourceExpression}: ${evalResult.error.message}`);
+          warnings.push(
+            `Failed to evaluate ${sourceExpression}: ${evalResult.error.message}`,
+          );
         }
       }
-      
+
       // フィルタリング（null/undefined除去）
       const filtered = this.filterValues(allValues, context.getOptions());
-      
+
       // ユニーク化
       let finalValues: unknown[] = filtered;
       if (rule.isUnique()) {
         finalValues = this.uniqueValues(filtered);
         statistics.uniqueValues[targetField] = finalValues.length;
       }
-      
+
       // 統計情報の収集
-      statistics.nullCount[targetField] = allValues.filter(v => v == null).length;
+      statistics.nullCount[targetField] = allValues.filter((v) =>
+        v == null
+      ).length;
       if (Array.isArray(finalValues[0])) {
-        statistics.arrayLengths[targetField] = finalValues.map(v => 
+        statistics.arrayLengths[targetField] = finalValues.map((v) =>
           Array.isArray(v) ? v.length : 0
         );
       }
-      
+
       aggregated[targetField] = finalValues;
     }
-    
+
     // 結果の作成
     const metadata: AggregationMetadata = {
       processedCount: items.length,
       aggregatedAt: new Date(),
-      appliedRules: context.getRules().map(r => r.getTargetField()),
+      appliedRules: context.getRules().map((r) => r.getTargetField()),
       warnings: warnings.length > 0 ? warnings : undefined,
-      statistics
+      statistics,
     };
-    
+
     return AggregatedResult.create(aggregated, metadata);
   }
-  
+
   private filterValues(
     values: unknown[],
-    options: AggregationOptions
+    options: AggregationOptions,
   ): unknown[] {
-    return values.filter(value => {
+    return values.filter((value) => {
       if (options.skipNull && value === null) return false;
       if (options.skipUndefined && value === undefined) return false;
       return true;
     });
   }
-  
+
   private uniqueValues(values: unknown[]): unknown[] {
     const seen = new Set<string>();
     const unique: unknown[] = [];
-    
+
     for (const value of values) {
       const key = this.getUniqueKey(value);
       if (!seen.has(key)) {
@@ -763,7 +796,7 @@ class AggregationExecutor {
         unique.push(value);
       }
     }
-    
+
     return unique;
   }
 }
@@ -776,25 +809,25 @@ class AggregationExecutor {
 class TemplateCompiler {
   compile(parsed: ParsedTemplate): Result<CompiledTemplate, CompileError> {
     const compiledFunc = this.createRenderFunction(parsed);
-    
+
     return {
       ok: true,
       data: {
         id: TemplateId.create(`compiled_${Date.now()}`).data as TemplateId,
         render: compiledFunc,
         variables: parsed.variables,
-        outputFormat: parsed.outputFormat
-      }
+        outputFormat: parsed.outputFormat,
+      },
     };
   }
-  
+
   private createRenderFunction(
-    parsed: ParsedTemplate
+    parsed: ParsedTemplate,
   ): (data: Record<string, unknown>) => Result<string, RenderError> {
     return (data: Record<string, unknown>) => {
       let result = parsed.content;
       const warnings: string[] = [];
-      
+
       for (const variable of parsed.variables) {
         const varPath = VariablePath.parse(`{${variable.getPath()}}`);
         if (!varPath.ok) {
@@ -804,14 +837,14 @@ class TemplateCompiler {
               kind: "RenderFailed",
               reason: "Invalid variable path",
               variable: variable.getPath(),
-              message: varPath.error.message
-            }
+              message: varPath.error.message,
+            },
           };
         }
-        
+
         const valueResult = varPath.data.resolve(data);
         let value: unknown;
-        
+
         if (!valueResult.ok) {
           if (variable.isRequired()) {
             return {
@@ -820,42 +853,45 @@ class TemplateCompiler {
                 kind: "RequiredVariableMissing",
                 variable: variable.getName(),
                 path: variable.getPath(),
-                message: `Required variable not found: ${variable.getPath()}`
-              }
+                message: `Required variable not found: ${variable.getPath()}`,
+              },
             };
           }
-          
+
           value = variable.getDefaultValue();
           warnings.push(`Using default value for ${variable.getPath()}`);
         } else {
           value = valueResult.data;
         }
-        
+
         // 値のフォーマット
         const formatted = this.formatValue(value, parsed.outputFormat);
-        
+
         // 変数置換
         const placeholder = `{${variable.getPath()}}`;
-        result = result.replace(new RegExp(
-          placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-          'g'
-        ), formatted);
+        result = result.replace(
+          new RegExp(
+            placeholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+            "g",
+          ),
+          formatted,
+        );
       }
-      
+
       return { ok: true, data: result };
     };
   }
-  
+
   private formatValue(value: unknown, format: OutputFormat): string {
-    if (value === null) return 'null';
-    if (value === undefined) return '';
-    
+    if (value === null) return "null";
+    if (value === undefined) return "";
+
     switch (format) {
-      case 'json':
-        return typeof value === 'string' ? value : JSON.stringify(value);
-      case 'yaml':
+      case "json":
+        return typeof value === "string" ? value : JSON.stringify(value);
+      case "yaml":
         return this.formatYAMLValue(value);
-      case 'toml':
+      case "toml":
         return this.formatTOMLValue(value);
       default:
         return String(value);
@@ -915,7 +951,7 @@ flowchart TB
 
 ### main.ts / cli.ts 実装
 
-```typescript
+````typescript
 // main.ts - アプリケーションエントリーポイント
 export async function main(args: string[]): Promise<void> {
   const cli = new CLI();
@@ -1048,7 +1084,7 @@ class ParallelProcessor {
     return { ok: true, data: results };
   }
 }
-```
+````
 
 ## テスト戦略
 
@@ -1079,6 +1115,7 @@ class ParallelProcessor {
 ### CLI引数による完全制御
 
 設定ファイルを排除し、以下の3つの必須引数のみで動作：
+
 - **Schemaファイル**: 処理の構造とルールを定義
 - **出力ファイル**: 結果の保存先とフォーマット
 - **入力パターン**: 処理対象のMarkdownファイル指定
