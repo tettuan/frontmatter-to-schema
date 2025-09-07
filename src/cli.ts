@@ -10,8 +10,7 @@
 import { CLIArgumentParser } from "./presentation/cli-arguments.ts";
 import { ProcessDocumentsUseCase } from "./application/process-documents-usecase.ts";
 import { DenoFileSystemRepository } from "./infrastructure/adapters/deno-file-system-repository.ts";
-
-const VERSION = "1.0.0";
+import { getVersionConfig } from "./domain/config/version-config.ts";
 
 /**
  * Main CLI class
@@ -39,7 +38,8 @@ export class CLI {
 
     // Handle version
     if (cliArgs.options.version) {
-      console.log(`frontmatter-to-schema v${VERSION}`);
+      const versionConfig = getVersionConfig();
+      console.log(`frontmatter-to-schema v${versionConfig.getVersion()}`);
       return;
     }
 
