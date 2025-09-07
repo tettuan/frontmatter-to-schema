@@ -52,15 +52,20 @@ export class AggregationService {
 
         if (evalResult.ok) {
           const values = evalResult.data;
-          if (rule.shouldFlatten() && Array.isArray(values)) {
-            // Flatten nested arrays
-            for (const val of values) {
-              if (Array.isArray(val)) {
-                allValues.push(...val);
-              } else {
-                allValues.push(val);
+          if (rule.shouldFlatten()) {
+            // Deep flatten nested arrays recursively
+            const flatten = (arr: unknown[]): unknown[] => {
+              const result: unknown[] = [];
+              for (const val of arr) {
+                if (Array.isArray(val)) {
+                  result.push(...flatten(val));
+                } else {
+                  result.push(val);
+                }
               }
-            }
+              return result;
+            };
+            allValues.push(...flatten(values));
           } else {
             allValues.push(...values);
           }
