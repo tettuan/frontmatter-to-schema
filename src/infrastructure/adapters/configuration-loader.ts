@@ -51,11 +51,9 @@ import type {
   AggregatedResult,
   AnalysisResult,
 } from "../../domain/models/entities.ts";
-import { ResultAggregationOrchestrator } from "../../application/services/result-aggregation-orchestrator.ts";
 
 export class ConfigurationLoader
   implements ConfigurationRepository, SchemaRepository, ResultRepository {
-  private readonly resultOrchestrator = new ResultAggregationOrchestrator();
   private readonly refResolver = new SchemaRefResolver(".");
   async loadProcessingConfig(
     path: ConfigPath,
@@ -312,18 +310,18 @@ export class ConfigurationLoader
     path: OutputPath,
   ): Promise<Result<void, DomainError & { message: string }>> {
     try {
-      const outputResult = this.resultOrchestrator.aggregateFromEntity(result);
-      if (!outputResult.ok) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "ProcessingStageError",
-            stage: "result-aggregation",
-            error: outputResult.error,
-          }),
-        };
-      }
-      await Deno.writeTextFile(path.getValue(), outputResult.data);
+      // Extract the raw data from the AggregatedResult
+      const rawData = result.getRawData();
+      // Wrap in results array to match expected format
+      const outputData = {
+        results: rawData,
+        metadata: {
+          timestamp: result.getTimestamp().toISOString(),
+          format: result.getFormat(),
+        },
+      };
+      const data = JSON.stringify(outputData, null, 2);
+      await Deno.writeTextFile(path.getValue(), data);
       return { ok: true, data: undefined };
     } catch (error) {
       if (error instanceof Deno.errors.PermissionDenied) {

@@ -61,6 +61,17 @@ export class SchemaTemplateInfo {
   static extract(
     schema: ExtendedSchema,
   ): Result<SchemaTemplateInfo, { kind: string; message: string }> {
+    // Validate schema is an object
+    if (!schema || typeof schema !== "object") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          message: "Schema must be an object",
+        },
+      };
+    }
+    
     const templatePath = schema["x-template"] as string | undefined;
     const isFrontmatterPart = schema["x-frontmatter-part"] === true;
     const derivationRules = new Map<string, DerivedFieldInfo>();
