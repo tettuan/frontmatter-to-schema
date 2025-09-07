@@ -98,6 +98,13 @@ Deno.test("PlaceholderPattern - Smart Constructor", async (t) => {
     assertExists(pattern);
   });
 
+  await t.step("should create brace pattern", () => {
+    const pattern = PlaceholderPattern.create("brace");
+    assertExists(pattern);
+    assertEquals(typeof pattern, "object");
+    assertEquals("pattern" in pattern, true);
+  });
+
   await t.step("should reject invalid pattern type", () => {
     const pattern = PlaceholderPattern.create(
       "invalid" as PlaceholderPatternType,
@@ -168,6 +175,128 @@ Deno.test("UnifiedTemplateProcessor - Simple Replacement Processing", async (t) 
 
     if ("kind" in result && result.kind === "Success") {
       assertEquals(result.content, "First item: apple, Count: 3");
+    } else {
+      throw new Error("Expected Success result");
+    }
+  });
+});
+
+Deno.test("UnifiedTemplateProcessor - Brace Format Replacement", async (t) => {
+  const processor = UnifiedTemplateProcessor.create();
+  assertExists(processor);
+
+  await t.step("should process simple brace template", () => {
+    const template = "Version: {version}, Description: {description}";
+    const context: TemplateProcessingContext = {
+      kind: "SimpleReplacement",
+      data: { version: "1.0.0", description: "Test app" },
+      placeholderPattern: "brace",
+    };
+
+    const result = (processor as UnifiedTemplateProcessor).process(
+      template,
+      context,
+    );
+
+    if ("kind" in result && result.kind === "Success") {
+      assertEquals(result.content, "Version: 1.0.0, Description: Test app");
+      assertEquals(result.statistics.totalReplacements, 2);
+      assertEquals(result.statistics.replacedVariables.length, 2);
+    } else {
+      throw new Error("Expected Success result");
+    }
+  });
+
+  await t.step("should process nested path brace template", () => {
+    const template = "Name: {user.name}, Age: {user.age}";
+    const context: TemplateProcessingContext = {
+      kind: "SimpleReplacement",
+      data: sampleData,
+      placeholderPattern: "brace",
+    };
+
+    const result = (processor as UnifiedTemplateProcessor).process(
+      template,
+      context,
+    );
+
+    if ("kind" in result && result.kind === "Success") {
+      assertEquals(result.content, "Name: John, Age: 30");
+      assertEquals(result.statistics.totalReplacements, 2);
+    } else {
+      throw new Error("Expected Success result");
+    }
+  });
+
+  await t.step("should process complex nested paths", () => {
+    const template = "Config: {tools.availableConfigs}, Input: {options.input}";
+    const context: TemplateProcessingContext = {
+      kind: "SimpleReplacement",
+      data: {
+        tools: { availableConfigs: ["build", "test"] },
+        options: { input: "file.txt" },
+      },
+      placeholderPattern: "brace",
+    };
+
+    const result = (processor as UnifiedTemplateProcessor).process(
+      template,
+      context,
+    );
+
+    if ("kind" in result && result.kind === "Success") {
+      assertEquals(result.content, "Config: build,test, Input: file.txt");
+      assertEquals(result.statistics.totalReplacements, 2);
+    } else {
+      throw new Error("Expected Success result");
+    }
+  });
+
+  await t.step("should handle registry template format", () => {
+    // Test based on requirements.ja.md examples
+    const template =
+      '{"version": "{version}", "tools": {"availableConfigs": "{tools.availableConfigs}"}}';
+    const context: TemplateProcessingContext = {
+      kind: "SimpleReplacement",
+      data: {
+        version: "1.0.0",
+        tools: { availableConfigs: ["build", "debug", "test"] },
+      },
+      placeholderPattern: "brace",
+    };
+
+    const result = (processor as UnifiedTemplateProcessor).process(
+      template,
+      context,
+    );
+
+    if ("kind" in result && result.kind === "Success") {
+      assertEquals(
+        result.content,
+        '{"version": "1.0.0", "tools": {"availableConfigs": "build,debug,test"}}',
+      );
+    } else {
+      throw new Error("Expected Success result");
+    }
+  });
+
+  await t.step("should not match double braces with brace pattern", () => {
+    const template = "Hello {{name}} and {user}";
+    const context: TemplateProcessingContext = {
+      kind: "SimpleReplacement",
+      data: { name: "World", user: "John" },
+      placeholderPattern: "brace",
+    };
+
+    const result = (processor as UnifiedTemplateProcessor).process(
+      template,
+      context,
+    );
+
+    if ("kind" in result && result.kind === "Success") {
+      // Should only replace {user}, not {{name}}
+      assertEquals(result.content, "Hello {{name}} and John");
+      assertEquals(result.statistics.totalReplacements, 1);
     } else {
       throw new Error("Expected Success result");
     }

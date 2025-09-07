@@ -6,7 +6,7 @@
  * Addresses issue #500: Code duplication patterns.
  */
 
-import { getEnvironmentConfig } from "../config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 import { StructuredLogger } from "../shared/logger.ts";
 
 /**
@@ -35,7 +35,7 @@ export class VerboseLoggerService {
 
   constructor(serviceName: string = VerboseLoggerService.SERVICE_NAME) {
     this.logger = StructuredLogger.getServiceLogger(serviceName);
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     this.isVerboseMode = envConfig.getVerboseMode();
   }
 

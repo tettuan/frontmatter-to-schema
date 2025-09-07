@@ -29,7 +29,41 @@ import {
 import type {
   ProcessingConfiguration,
 } from "../../../../src/domain/services/interfaces.ts";
+import type { FileSystemRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
+import type { DomainError } from "../../../../src/domain/core/result.ts";
 import { join } from "jsr:@std/path";
+
+// Mock FileSystemRepository for testing
+class MockFileSystemRepository implements FileSystemRepository {
+  readFile(
+    _path: string,
+  ): Promise<{ ok: true; data: string } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: "{}" });
+  }
+
+  writeFile(
+    _path: string,
+    _content: string,
+  ): Promise<{ ok: true; data: void } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: undefined });
+  }
+
+  ensureDirectory(
+    _path: string,
+  ): Promise<{ ok: true; data: void } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: undefined });
+  }
+
+  exists(
+    _path: string,
+  ): Promise<{ ok: true; data: boolean } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: true });
+  }
+
+  async *findFiles(_pattern: string): AsyncIterable<string> {
+    // Not needed for this test
+  }
+}
 
 // Helper functions for creating test entities
 function createMockAggregatedResult(
@@ -43,7 +77,7 @@ function createMockAggregatedResult(
     : [];
 
   return {
-    toOutput: () => JSON.stringify(data, null, 2),
+    getRawData: () => data.results || [],
     getResults: () => mockResults,
     getFormat: () => "json" as const,
     getTimestamp: () => new Date(),
@@ -86,7 +120,8 @@ Deno.test("ConfigurationLoader - Comprehensive Test Suite", async (t) => {
   // Setup function for each test
   const setupTest = async () => {
     testDir = await Deno.makeTempDir();
-    loader = new ConfigurationLoader();
+    const mockFileSystem = new MockFileSystemRepository();
+    loader = new ConfigurationLoader(mockFileSystem);
   };
 
   // Cleanup function

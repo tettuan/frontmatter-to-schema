@@ -10,7 +10,9 @@ import { stub } from "jsr:@std/testing/mock";
 import type { Logger } from "../../../../src/domain/shared/logger.ts";
 import { VerboseLogger } from "../../../../src/domain/shared/verbose-logger.ts";
 import { StructuredLogger } from "../../../../src/domain/shared/logger.ts";
-import { getEnvironmentConfig } from "../../../../src/domain/config/environment-config.ts";
+import { DependencyContainer } from "../../../../src/infrastructure/services/dependency-container.ts";
+import { EnvironmentConfig } from "../../../../src/domain/config/environment-config.ts";
+import type { EnvironmentRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
 
 // Mock logger that captures calls for testing
 class MockLogger implements Logger {
@@ -45,18 +47,48 @@ class MockLogger implements Logger {
   }
 }
 
+// Mock environment repository for testing
+class MockEnvironmentRepository implements EnvironmentRepository {
+  private env = new Map<string, string>();
+
+  get(key: string): string | undefined {
+    return this.env.get(key);
+  }
+
+  getOrDefault(key: string, defaultValue: string): string {
+    return this.env.get(key) || defaultValue;
+  }
+
+  getCurrentDirectory(): string {
+    return "/test";
+  }
+
+  set(key: string, value: string): void {
+    this.env.set(key, value);
+  }
+
+  delete(key: string): void {
+    this.env.delete(key);
+  }
+
+  clear(): void {
+    this.env.clear();
+  }
+}
+
 // Helper function to setup environment and clear cache
 function setupEnvironment(value?: string): () => void {
   const originalVerbose = Deno.env.get("FRONTMATTER_VERBOSE_MODE");
-  const envConfig = getEnvironmentConfig();
-  envConfig.clearCache();
 
+  // Reset the EnvironmentConfig singleton to ensure clean state
+  EnvironmentConfig.resetSingleton();
+
+  const mockEnvRepo = new MockEnvironmentRepository();
   if (value !== undefined) {
-    Deno.env.set("FRONTMATTER_VERBOSE_MODE", value);
-  } else {
-    Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
+    mockEnvRepo.set("FRONTMATTER_VERBOSE_MODE", value);
   }
-  envConfig.clearCache();
+
+  DependencyContainer.getInstance().setEnvironmentRepository(mockEnvRepo);
 
   // Return cleanup function
   return () => {
@@ -65,7 +97,8 @@ function setupEnvironment(value?: string): () => void {
     } else {
       Deno.env.delete("FRONTMATTER_VERBOSE_MODE");
     }
-    envConfig.clearCache();
+    DependencyContainer.getInstance().reset();
+    EnvironmentConfig.resetSingleton();
   };
 }
 

@@ -9,6 +9,14 @@ import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 import { ResultHandlerService } from "./result-handler-service.ts";
 
+/**
+ * Extracted frontmatter data
+ */
+export interface ExtractedFrontmatter {
+  content: string;
+  format: "yaml" | "json" | "toml";
+}
+
 // Totality-compliant schema definition using discriminated unions
 type SchemaVersionRule = {
   kind: "WithPattern";

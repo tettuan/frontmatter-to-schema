@@ -10,7 +10,7 @@ import {
   isError,
   type Result,
 } from "../../domain/core/result.ts";
-import { getEnvironmentConfig } from "../../domain/config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 import type {
   Document,
   Schema,
@@ -60,7 +60,7 @@ export class ProcessDocumentsUseCase {
     Result<ProcessDocumentsUseCaseOutput, DomainError & { message: string }>
   > {
     const { config } = input;
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const concurrentMode = !envConfig.getDebugMode(); // Use concurrent unless in debug mode
 
     // Step 1: Load resources (schema and template)

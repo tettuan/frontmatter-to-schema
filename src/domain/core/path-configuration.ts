@@ -9,6 +9,11 @@
  * and provides a single source of truth for path configurations.
  */
 
+import type {
+  EnvironmentRepository,
+  FileSystemRepository,
+} from "../repositories/file-system-repository.ts";
+
 export interface PathConfiguration {
   readonly registryPrompts: string;
   readonly registryOutput: string;
@@ -45,30 +50,50 @@ export class DefaultPathConfiguration implements PathConfiguration {
   readonly commandSchemaPath: string;
   readonly commandTemplatePath: string;
 
-  constructor() {
+  constructor(environmentRepo?: EnvironmentRepository) {
     // Support environment variable overrides for all paths
     this.registryPrompts = this.getPath(
       "REGISTRY_PROMPTS_PATH",
       ".agent/climpt/prompts",
+      environmentRepo,
     );
     this.registryOutput = this.getPath(
       "REGISTRY_OUTPUT_PATH",
       ".agent/climpt/registry.json",
+      environmentRepo,
     );
-    this.schemaPath = this.getPath("DEFAULT_SCHEMA_PATH", "schema.json");
-    this.templatePath = this.getPath("DEFAULT_TEMPLATE_PATH", "template.json");
+    this.schemaPath = this.getPath(
+      "DEFAULT_SCHEMA_PATH",
+      "schema.json",
+      environmentRepo,
+    );
+    this.templatePath = this.getPath(
+      "DEFAULT_TEMPLATE_PATH",
+      "template.json",
+      environmentRepo,
+    );
     this.commandSchemaPath = this.getPath(
       "COMMAND_SCHEMA_PATH",
       "registry_command_schema.json",
+      environmentRepo,
     );
     this.commandTemplatePath = this.getPath(
       "COMMAND_TEMPLATE_PATH",
       "registry_command_template.json",
+      environmentRepo,
     );
   }
 
-  private getPath(envVar: string, defaultValue: string): string {
-    return Deno.env.get(envVar) || defaultValue;
+  private getPath(
+    envVar: string,
+    defaultValue: string,
+    environmentRepo?: EnvironmentRepository,
+  ): string {
+    if (environmentRepo) {
+      return environmentRepo.getOrDefault(envVar, defaultValue);
+    }
+    // Fallback for cases where repository is not provided (legacy support)
+    return defaultValue;
   }
 }
 
@@ -104,26 +129,44 @@ export class ExamplePathConfig implements ExamplePathConfiguration {
  * Creates appropriate configuration based on context
  */
 export class PathConfigurationFactory {
-  static createDefault(): PathConfiguration {
-    return new DefaultPathConfiguration();
+  constructor(
+    private readonly environmentRepo?: EnvironmentRepository,
+    private readonly fileSystemRepo?: FileSystemRepository,
+  ) {}
+
+  createDefault(): PathConfiguration {
+    return new DefaultPathConfiguration(this.environmentRepo);
   }
 
   static createExample(): ExamplePathConfiguration {
     return new ExamplePathConfig();
   }
 
-  static createFromEnvironment(): PathConfiguration {
-    return new DefaultPathConfiguration();
+  createFromEnvironment(): PathConfiguration {
+    return new DefaultPathConfiguration(this.environmentRepo);
   }
 
   /**
    * Create configuration from a JSON file
    * Supports flexible configuration loading for different environments
    */
-  static async createFromFile(filePath: string): Promise<PathConfiguration> {
+  async createFromFile(filePath: string): Promise<PathConfiguration> {
+    if (!this.fileSystemRepo) {
+      // If no file system repository, return default configuration
+      return new DefaultPathConfiguration(this.environmentRepo);
+    }
+
+    const readResult = await this.fileSystemRepo.readFile(filePath);
+    if (!readResult.ok) {
+      console.error(
+        `Failed to load path configuration from ${filePath}:`,
+        readResult.error,
+      );
+      return new DefaultPathConfiguration(this.environmentRepo);
+    }
+
     try {
-      const content = await Deno.readTextFile(filePath);
-      const config = JSON.parse(content);
+      const config = JSON.parse(readResult.data);
 
       return {
         registryPrompts: config.registryPrompts || ".agent/climpt/prompts",
@@ -137,10 +180,10 @@ export class PathConfigurationFactory {
       };
     } catch (error) {
       console.error(
-        `Failed to load path configuration from ${filePath}:`,
+        `Failed to parse path configuration from ${filePath}:`,
         error,
       );
-      return new DefaultPathConfiguration();
+      return new DefaultPathConfiguration(this.environmentRepo);
     }
   }
 }
@@ -150,7 +193,14 @@ export class PathConfigurationFactory {
  * Resolves relative paths and ensures consistency
  */
 export class PathResolver {
-  constructor(private basePath: string = Deno.cwd()) {}
+  constructor(
+    private basePath?: string,
+    private environmentRepo?: EnvironmentRepository,
+  ) {
+    if (!this.basePath) {
+      this.basePath = this.environmentRepo?.getCurrentDirectory() || ".";
+    }
+  }
 
   resolve(path: string): string {
     if (path.startsWith("/")) {

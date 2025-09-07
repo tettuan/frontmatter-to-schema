@@ -8,6 +8,7 @@ import {
   type DomainError,
   type Result,
 } from "../core/result.ts";
+import type { EnvironmentRepository } from "../repositories/file-system-repository.ts";
 
 /**
  * Environment variable names as constants
@@ -29,14 +30,18 @@ export class EnvironmentConfig {
   private static instance: EnvironmentConfig | null = null;
   private cache: Map<string, string | undefined> = new Map();
 
-  private constructor() {}
+  private constructor(
+    private readonly environmentRepo: EnvironmentRepository,
+  ) {}
 
   /**
    * Get singleton instance
    */
-  static getInstance(): EnvironmentConfig {
+  static getInstance(
+    environmentRepo: EnvironmentRepository,
+  ): EnvironmentConfig {
     if (!EnvironmentConfig.instance) {
-      EnvironmentConfig.instance = new EnvironmentConfig();
+      EnvironmentConfig.instance = new EnvironmentConfig(environmentRepo);
     }
     return EnvironmentConfig.instance;
   }
@@ -46,7 +51,8 @@ export class EnvironmentConfig {
    */
   private getEnvVar(key: string): string | undefined {
     if (!this.cache.has(key)) {
-      this.cache.set(key, Deno.env.get(key));
+      const value = this.environmentRepo.get(key);
+      this.cache.set(key, value);
     }
     return this.cache.get(key);
   }
@@ -56,6 +62,13 @@ export class EnvironmentConfig {
    */
   clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Reset singleton instance (for testing only)
+   */
+  static resetSingleton(): void {
+    EnvironmentConfig.instance = null;
   }
 
   /**
@@ -141,6 +154,8 @@ export class EnvironmentConfig {
 }
 
 // Export singleton instance getter for convenience
-export const getEnvironmentConfig = (): EnvironmentConfig => {
-  return EnvironmentConfig.getInstance();
+export const getEnvironmentConfig = (
+  environmentRepo: EnvironmentRepository,
+): EnvironmentConfig => {
+  return EnvironmentConfig.getInstance(environmentRepo);
 };

@@ -41,7 +41,11 @@ export type TemplateProcessingContext =
 /**
  * Placeholder Pattern Types (Constrained Value Type)
  */
-export type PlaceholderPatternType = "mustache" | "dollar" | "percent";
+export type PlaceholderPatternType =
+  | "mustache"
+  | "dollar"
+  | "percent"
+  | "brace";
 
 /**
  * Processing Result - Discriminated Union (Totality Pattern)
@@ -109,11 +113,15 @@ export class PlaceholderPattern {
         return new PlaceholderPattern(/\$\{([^}]+)\}/g, "dollar");
       case "percent":
         return new PlaceholderPattern(/%([^%]+)%/g, "percent");
+      case "brace":
+        // Matches {variable} or {path.to.variable} - single braces only, not double braces
+        // Uses negative lookbehind and lookahead to avoid matching {{...}}
+        return new PlaceholderPattern(/(?<!\{)\{([^{}]+)\}(?!\})/g, "brace");
       default:
         return createDomainError({
           kind: "InvalidFormat",
           input: patternType,
-          expectedFormat: "mustache, dollar, or percent",
+          expectedFormat: "mustache, dollar, percent, or brace",
         }, `Unsupported placeholder pattern: ${patternType}`);
     }
   }

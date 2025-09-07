@@ -18,6 +18,22 @@ import {
   SchemaDefinition,
   SchemaVersion,
 } from "../../../../src/domain/models/value-objects.ts";
+import type { FileSystemRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
+
+// Create a mock FileSystemRepository for testing
+const createMockFileSystemRepo = (): FileSystemRepository => {
+  return {
+    readFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: { kind: "FileNotFound" as const, path: "" },
+      }),
+    writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+    ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+    exists: () => Promise.resolve({ ok: true, data: false }),
+    findFiles: async function* () {},
+  };
+};
 
 // Mock implementations for testing
 function createMockFrontMatter(data: Record<string, unknown>): FrontMatter {
@@ -52,12 +68,13 @@ function createMockSchema(schemaData: Record<string, unknown>): Schema {
 
 Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
   await t.step("should create analyzer with default values", () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     assertExists(analyzer);
   });
 
   await t.step("should create analyzer with custom values", () => {
     const analyzer = new TypeScriptAnalyzer(
+      createMockFileSystemRepo(), // fileSystem
       "2.0.0",
       "Custom registry description",
     );
@@ -65,19 +82,23 @@ Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
   });
 
   await t.step("should create analyzer using factory function", () => {
-    const analyzer = createTypeScriptAnalyzer();
+    const analyzer = createTypeScriptAnalyzer(createMockFileSystemRepo());
     assertExists(analyzer);
   });
 
   await t.step("should create analyzer with factory and custom values", () => {
-    const analyzer = createTypeScriptAnalyzer("3.0.0", "Factory created");
+    const analyzer = createTypeScriptAnalyzer(
+      createMockFileSystemRepo(),
+      "3.0.0",
+      "Factory created",
+    );
     assertExists(analyzer);
   });
 });
 
 Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   await t.step("should analyze simple frontmatter successfully", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       title: "Test Document",
       version: "1.2.3",
@@ -96,7 +117,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should use default version when not provided", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       title: "No Version Document",
     });
@@ -108,13 +129,15 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw frontmatter
+      // Analyzer now passes through raw frontmatter data
       assertEquals(data.title, "No Version Document");
+      // Version and description are not added by analyzer anymore
+      assertEquals(data.version, undefined);
     }
   });
 
   await t.step("should extract version from frontmatter", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       version: "2.5.0",
       title: "Versioned Document",
@@ -132,7 +155,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle invalid version gracefully", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       version: "invalid-version",
       title: "Bad Version",
@@ -145,14 +168,14 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
+      // Analyzer passes through raw data
       assertEquals(data.version, "invalid-version");
       assertEquals(data.title, "Bad Version");
     }
   });
 
   await t.step("should extract description from various fields", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     // Test with description field
     const frontMatter1 = createMockFrontMatter({
@@ -175,8 +198,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result2.ok);
     if (result2.ok) {
       const data = result2.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
+      // Analyzer passes through raw data
       assertEquals(data.title, "Title as description");
+      assertEquals(data.description, undefined);
     }
 
     // Test with summary field as fallback
@@ -187,15 +211,16 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result3.ok);
     if (result3.ok) {
       const data = result3.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
+      // Analyzer passes through raw data
       assertEquals(data.summary, "Summary as description");
+      assertEquals(data.description, undefined);
     }
   });
 
   await t.step(
     "should use default description when none provided",
     async () => {
-      const analyzer = new TypeScriptAnalyzer();
+      const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
       const frontMatter = createMockFrontMatter({
         _documentPath: "test/file.md", // Add a document path
       });
@@ -208,7 +233,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   );
 
   await t.step("should handle document path extraction", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     // Test with _documentPath
     const frontMatter1 = createMockFrontMatter({
@@ -237,7 +262,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should extract tool name from path", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     const testCases = [
       { path: "git/merge-cleanup/develop-branches/f_default.md" },
@@ -263,7 +288,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle paths without valid tools", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "unknown/path/structure/file.md",
       title: "Test",
@@ -275,7 +300,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should create commands from path", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "git/merge-cleanup/develop-branches/f_default.md",
       description: "Merge cleanup for develop branches",
@@ -287,7 +312,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle command creation fallback", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "path/with/segments/file.md",
       title: "Fallback Test",
@@ -299,7 +324,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle schema with getDefinition method", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       title: "Test",
     });
@@ -315,7 +340,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle schema as raw object", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       title: "Test",
     });
@@ -331,7 +356,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle analysis context creation failure", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     // Create invalid frontmatter that will cause context creation to fail
     const invalidFrontMatter = {
@@ -351,7 +376,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle unexpected errors gracefully", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     // Create a frontmatter that throws an error
     const errorFrontMatter = {
@@ -371,7 +396,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle non-Error exceptions", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     // Create a frontmatter that throws a non-Error
     const errorFrontMatter = {
@@ -390,7 +415,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle complex nested frontmatter data", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       title: "Complex Document",
       version: "3.0.0",
@@ -416,7 +441,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle prompts directory structure", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "prompts/git/workflow/optimize.md",
       title: "Git Workflow Optimization",
@@ -428,7 +453,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle edge case paths", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
 
     const edgeCases = [
       "", // Empty path
@@ -453,7 +478,11 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   await t.step("should handle custom default values", async () => {
     const customVersion = "5.0.0-beta";
     const customDescription = "Custom default description";
-    const analyzer = new TypeScriptAnalyzer(customVersion, customDescription);
+    const analyzer = new TypeScriptAnalyzer(
+      createMockFileSystemRepo(),
+      customVersion,
+      customDescription,
+    );
 
     const frontMatter = createMockFrontMatter({
       _documentPath: "test/file.md", // Add a document path
@@ -465,7 +494,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should handle schema definition edge cases", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({ title: "Test" });
 
     // Test schema with getDefinition returning object without getValue
@@ -481,7 +510,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should prioritize description field over others", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       description: "Primary",
       title: "Secondary",
@@ -498,7 +527,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   });
 
   await t.step("should coerce non-string descriptions to string", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       description: 12345, // Number instead of string
     });
@@ -508,7 +537,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw data without coercion
+      // Analyzer passes through raw data without coercion
       assertEquals(data.description, 12345);
     }
   });
@@ -516,7 +545,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
 
 Deno.test("TypeScriptAnalyzer - tool extraction edge cases", async (t) => {
   await t.step("should handle mixed case tool names", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "GIT/MixedCase/Path.md",
       title: "Test",
@@ -528,7 +557,7 @@ Deno.test("TypeScriptAnalyzer - tool extraction edge cases", async (t) => {
   });
 
   await t.step("should handle special characters in path", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "g-i-t/special-chars/test.md",
       title: "Test",
@@ -540,7 +569,7 @@ Deno.test("TypeScriptAnalyzer - tool extraction edge cases", async (t) => {
   });
 
   await t.step("should extract from prompts subdirectory", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "some/path/prompts/test/validate/rules.md",
       title: "Test",
@@ -552,7 +581,7 @@ Deno.test("TypeScriptAnalyzer - tool extraction edge cases", async (t) => {
   });
 
   await t.step("should not extract invalid tools from prompts", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "prompts/invalid-tool/action/file.md",
       title: "Test",
@@ -566,7 +595,7 @@ Deno.test("TypeScriptAnalyzer - tool extraction edge cases", async (t) => {
 
 Deno.test("TypeScriptAnalyzer - command creation edge cases", async (t) => {
   await t.step("should handle short paths in fallback", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "short/path", // Only 2 segments, needs 3
       title: "Test",
@@ -578,7 +607,7 @@ Deno.test("TypeScriptAnalyzer - command creation edge cases", async (t) => {
   });
 
   await t.step("should filter out dots from path segments", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "path/with/file.extension.md",
       title: "Test",
@@ -590,7 +619,7 @@ Deno.test("TypeScriptAnalyzer - command creation edge cases", async (t) => {
   });
 
   await t.step("should handle empty path segments", async () => {
-    const analyzer = new TypeScriptAnalyzer();
+    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo());
     const frontMatter = createMockFrontMatter({
       _documentPath: "path//with///empty////segments/file.md",
       title: "Test",

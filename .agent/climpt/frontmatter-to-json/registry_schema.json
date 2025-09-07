@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Registry Schema",
+  "x-template": "registry_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {

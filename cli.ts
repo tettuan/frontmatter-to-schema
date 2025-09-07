@@ -20,6 +20,10 @@ import { getEnvironmentConfig } from "./src/domain/config/environment-config.ts"
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
+import {
+  DenoEnvironmentRepository,
+  DenoFileSystemRepository,
+} from "./src/infrastructure/adapters/deno-file-system-repository.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
@@ -106,7 +110,8 @@ export async function main() {
   }
 
   // Debug logging if needed
-  const envConfig = getEnvironmentConfig();
+  const envRepo = new DenoEnvironmentRepository();
+  const envConfig = getEnvironmentConfig(envRepo);
   const debugMode = envConfig.getDebugMode();
   const logger = LoggerFactory.createLogger("cli");
   if (debugMode) {
@@ -264,7 +269,10 @@ export async function main() {
     if (verboseMode) {
       logger.debug("Initializing services");
     }
-    const configLoader = new ConfigurationLoader();
+
+    // Create file system repository
+    const fileSystemRepo = new DenoFileSystemRepository();
+    const configLoader = new ConfigurationLoader(fileSystemRepo);
     const templateLoader = new TemplateLoader();
     const documentRepo = new DenoDocumentRepository();
     const frontMatterExtractor = new FrontMatterExtractorImpl();
@@ -343,7 +351,9 @@ export async function main() {
       Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
     }
 
+    // Create TypeScript analyzer using existing file system repository
     const schemaAnalyzer = createTypeScriptAnalyzer(
+      fileSystemRepo,
       "1.0.0",
       "Climpt Command Registry",
     );

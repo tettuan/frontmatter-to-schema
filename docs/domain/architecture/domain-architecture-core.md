@@ -1,743 +1,517 @@
-# ドメインアーキテクチャ設計書 - コアドメイン
+# ドメインアーキテクチャ設計 - コアドメイン
 
-## 設計原則
+## 概要
 
-本設計は[全域性の原則](docs/development/totality.ja.md)に基づき、以下を実現します：
+本書は、Markdown
+FrontMatterからSchemaベースでの構造化データ変換システムにおけるコアドメインのアーキテクチャを定義する。
+全域性原則に基づき、型安全で拡張可能な設計を実現する。
 
-1. **全域性（Totality）**: すべての入力に対して定義された出力を保証
-2. **型安全性**: Result型による明示的なエラーハンドリング
-3. **不変性**: イミュータブルなデータ構造
-4. **純粋性**: 副作用の分離
+## コアドメインモデル
 
-## 1. フロントマター抽出ドメイン
-
-### 1.1 型定義
+### 1. Schema領域
 
 ```typescript
 // ========================================
-// Value Objects
+// 値オブジェクト（全域性原則適用）
 // ========================================
 
-/** Markdownファイルパス - 不変値オブジェクト */
-export class MarkdownFilePath {
+/**
+ * Schemaファイルへのパス
+ * Smart Constructor適用による制約保証
+ */
+export class SchemaPath {
   private constructor(private readonly value: string) {}
 
-  static create(path: string): Result<MarkdownFilePath, PathError> {
-    if (!path) {
+  static create(path: string): Result<SchemaPath, SchemaPathError> {
+    // 空文字チェック
+    if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyPath", message: "Path cannot be empty" },
+        error: { kind: "EmptyPath", message: "Schema path cannot be empty" },
       };
     }
-    if (!path.endsWith(".md") && !path.endsWith(".markdown")) {
+
+    // 拡張子チェック
+    if (!path.endsWith(".json")) {
       return {
         ok: false,
-        error: { kind: "InvalidExtension", message: "File must be markdown" },
+        error: {
+          kind: "InvalidExtension",
+          path,
+          message: `Schema file must be .json, got: ${path}`,
+        },
       };
     }
-    return { ok: true, data: new MarkdownFilePath(path) };
+
+    // パス正規化
+    const normalized = path.replace(/\\/g, "/").replace(/\/+/g, "/");
+
+    return { ok: true, data: new SchemaPath(normalized) };
   }
 
-  getValue(): string {
+  toString(): string {
+    return this.value;
+  }
+
+  getDirectory(): string {
+    const lastSlash = this.value.lastIndexOf("/");
+    return lastSlash === -1 ? "." : this.value.substring(0, lastSlash);
+  }
+
+  getFileName(): string {
+    const lastSlash = this.value.lastIndexOf("/");
+    return lastSlash === -1 ? this.value : this.value.substring(lastSlash + 1);
+  }
+}
+
+/**
+ * Schema ID（識別子）
+ */
+export class SchemaId {
+  private constructor(private readonly value: string) {}
+
+  static create(id: string): Result<SchemaId, ValidationError> {
+    if (!id || id.trim().length === 0) {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", message: "Schema ID cannot be empty" },
+      };
+    }
+
+    // 有効な識別子パターン
+    const pattern = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+    if (!pattern.test(id)) {
+      return {
+        ok: false,
+        error: {
+          kind: "PatternMismatch",
+          value: id,
+          pattern: pattern.source,
+          message:
+            "Schema ID must start with letter and contain only alphanumeric, underscore, or hyphen",
+        },
+      };
+    }
+
+    return { ok: true, data: new SchemaId(id) };
+  }
+
+  equals(other: SchemaId): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
     return this.value;
   }
 }
 
-/** Markdownコンテンツ - 不変値オブジェクト */
-export class MarkdownContent {
-  private constructor(private readonly content: string) {}
-
-  static create(content: string): Result<MarkdownContent, ContentError> {
-    if (content === null || content === undefined) {
-      return {
-        ok: false,
-        error: { kind: "NullContent", message: "Content cannot be null" },
-      };
-    }
-    return { ok: true, data: new MarkdownContent(content) };
-  }
-
-  getValue(): string {
-    return this.content;
-  }
-
-  hasFrontMatter(): boolean {
-    return this.content.startsWith("---\n");
-  }
-}
-
-/** フロントマターデータ - 不変値オブジェクト（成果B） */
-export class FrontMatter {
-  private constructor(
-    private readonly rawYaml: string,
-    private readonly parsed: Record<string, unknown>,
-  ) {}
-
-  static create(yaml: string): Result<FrontMatter, FrontMatterError> {
-    if (!yaml || yaml.trim() === "") {
-      return {
-        ok: false,
-        error: { kind: "EmptyFrontMatter", message: "FrontMatter is empty" },
-      };
-    }
-
-    try {
-      const parsed = parseYaml(yaml); // YAML解析関数
-      if (typeof parsed !== "object" || parsed === null) {
-        return {
-          ok: false,
-          error: { kind: "InvalidYaml", message: "YAML must be an object" },
-        };
-      }
-      return {
-        ok: true,
-        data: new FrontMatter(yaml, parsed as Record<string, unknown>),
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        error: { kind: "ParseError", message: `YAML parse failed: ${e}` },
-      };
-    }
-  }
-
-  getRawYaml(): string {
-    return this.rawYaml;
-  }
-  getParsed(): Readonly<Record<string, unknown>> {
-    return this.parsed;
-  }
-
-  hasKey(key: string): boolean {
-    return key in this.parsed;
-  }
-
-  getValue(key: string): unknown | undefined {
-    return this.parsed[key];
-  }
-}
-
 // ========================================
-// Entities
+// エンティティ
 // ========================================
 
-/** Markdownドキュメントエンティティ */
-export class MarkdownDocument {
+/**
+ * Schema定義の状態（Discriminated Union）
+ */
+export type SchemaState =
+  | { kind: "Unloaded"; path: SchemaPath }
+  | { kind: "Loading"; path: SchemaPath }
+  | { kind: "Raw"; path: SchemaPath; content: RawSchema }
+  | {
+    kind: "Resolving";
+    path: SchemaPath;
+    schema: RawSchema;
+    refs: SchemaReference[];
+  }
+  | {
+    kind: "Resolved";
+    path: SchemaPath;
+    schema: ResolvedSchema;
+    metadata: SchemaMetadata;
+  }
+  | { kind: "Failed"; path: SchemaPath; error: SchemaError };
+
+/**
+ * Schemaエンティティ
+ */
+export class Schema {
+  private state: SchemaState;
+
   private constructor(
-    private readonly id: DocumentId,
-    private readonly path: MarkdownFilePath,
-    private readonly content: MarkdownContent,
-    private readonly frontMatter: FrontMatter | null,
-    private readonly body: string,
-  ) {}
+    private readonly id: SchemaId,
+    initialState: SchemaState,
+  ) {
+    this.state = initialState;
+  }
 
-  static create(
-    path: MarkdownFilePath,
-    content: MarkdownContent,
-  ): Result<MarkdownDocument, DocumentError> {
-    const extraction = extractFrontMatterAndBody(content.getValue());
+  static create(id: SchemaId, path: SchemaPath): Schema {
+    return new Schema(id, { kind: "Unloaded", path });
+  }
 
-    if (!extraction.ok) {
-      return { ok: false, error: extraction.error };
-    }
-
-    const { frontMatterYaml, body } = extraction.data;
-
-    let frontMatter: FrontMatter | null = null;
-    if (frontMatterYaml) {
-      const fmResult = FrontMatter.create(frontMatterYaml);
-      if (!fmResult.ok) {
+  // 状態遷移メソッド（全域性保証）
+  load(content: RawSchema): Result<void, SchemaError> {
+    switch (this.state.kind) {
+      case "Unloaded":
+      case "Failed":
+        this.state = { kind: "Raw", path: this.state.path, content };
+        return { ok: true, data: undefined };
+      default:
         return {
           ok: false,
-          error: { kind: "FrontMatterError", message: fmResult.error.message },
+          error: {
+            kind: "InvalidStateTransition",
+            from: this.state.kind,
+            to: "Raw",
+            message: `Cannot load schema in state: ${this.state.kind}`,
+          },
         };
-      }
-      frontMatter = fmResult.data;
+    }
+  }
+
+  startResolving(refs: SchemaReference[]): Result<void, SchemaError> {
+    if (this.state.kind !== "Raw") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
+          to: "Resolving",
+          message: `Cannot start resolving from state: ${this.state.kind}`,
+        },
+      };
     }
 
-    const id = DocumentId.generate(path.getValue());
-
-    return {
-      ok: true,
-      data: new MarkdownDocument(id, path, content, frontMatter, body),
+    this.state = {
+      kind: "Resolving",
+      path: this.state.path,
+      schema: this.state.content,
+      refs,
     };
+
+    return { ok: true, data: undefined };
   }
 
-  getId(): DocumentId {
+  complete(
+    resolved: ResolvedSchema,
+    metadata: SchemaMetadata,
+  ): Result<void, SchemaError> {
+    if (this.state.kind !== "Resolving") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
+          to: "Resolved",
+          message: `Cannot complete from state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    this.state = {
+      kind: "Resolved",
+      path: this.state.path,
+      schema: resolved,
+      metadata,
+    };
+
+    return { ok: true, data: undefined };
+  }
+
+  fail(error: SchemaError): void {
+    this.state = { kind: "Failed", path: this.getPath(), error };
+  }
+
+  // クエリメソッド
+  getId(): SchemaId {
     return this.id;
   }
-  getPath(): MarkdownFilePath {
-    return this.path;
-  }
-  getFrontMatter(): FrontMatter | null {
-    return this.frontMatter;
-  }
-  getBody(): string {
-    return this.body;
+
+  getPath(): SchemaPath {
+    return this.state.path;
   }
 
-  hasFrontMatter(): boolean {
-    return this.frontMatter !== null;
+  getState(): SchemaState {
+    return this.state;
   }
-}
 
-// ========================================
-// Domain Service
-// ========================================
+  isResolved(): boolean {
+    return this.state.kind === "Resolved";
+  }
 
-/** フロントマター抽出サービス - 純粋関数 */
-export class FrontMatterExtractor {
-  extract(document: MarkdownDocument): Result<FrontMatter, ExtractionError> {
-    const frontMatter = document.getFrontMatter();
-
-    if (!frontMatter) {
+  getResolvedSchema(): Result<ResolvedSchema, SchemaError> {
+    if (this.state.kind !== "Resolved") {
       return {
         ok: false,
         error: {
-          kind: "NoFrontMatter",
-          message:
-            `Document ${document.getPath().getValue()} has no frontmatter`,
+          kind: "SchemaNotResolved",
+          state: this.state.kind,
+          message: `Schema is not resolved, current state: ${this.state.kind}`,
         },
       };
     }
 
-    return { ok: true, data: frontMatter };
-  }
-
-  extractBatch(documents: MarkdownDocument[]): ExtractionResult[] {
-    return documents.map((doc) => ({
-      documentId: doc.getId(),
-      path: doc.getPath(),
-      result: this.extract(doc),
-    }));
+    return { ok: true, data: this.state.schema };
   }
 }
 
 // ========================================
-// Repository Interface
+// ドメインサービス
 // ========================================
 
-export interface MarkdownDocumentRepository {
-  findByPath(
-    path: MarkdownFilePath,
-  ): Promise<Result<MarkdownDocument, RepositoryError>>;
-  findAll(
-    directory: DirectoryPath,
-  ): Promise<Result<MarkdownDocument[], RepositoryError>>;
-  exists(path: MarkdownFilePath): Promise<boolean>;
-}
+/**
+ * Schema参照解決サービス
+ */
+export class SchemaReferenceResolver {
+  private cache = new Map<string, ResolvedSchema>();
 
-// ========================================
-// Domain Events
-// ========================================
+  async resolve(
+    schema: RawSchema,
+    basePath: string,
+  ): Promise<Result<ResolvedSchema, SchemaError>> {
+    // 循環参照検出
+    const visited = new Set<string>();
 
-export class FrontMatterExtracted implements DomainEvent {
-  constructor(
-    public readonly documentId: DocumentId,
-    public readonly documentPath: string,
-    public readonly frontMatter: FrontMatter,
-    public readonly extractedAt: Date = new Date(),
-  ) {}
+    const resolveRecursive = async (
+      obj: any,
+      currentPath: string,
+      depth: number = 0,
+    ): Promise<Result<any, SchemaError>> => {
+      // 深さ制限
+      if (depth > 100) {
+        return {
+          ok: false,
+          error: {
+            kind: "MaxDepthExceeded",
+            depth,
+            message: "Maximum reference resolution depth exceeded",
+          },
+        };
+      }
 
-  getEventName(): string {
-    return "FrontMatterExtracted";
+      // プリミティブ値はそのまま返す
+      if (typeof obj !== "object" || obj === null) {
+        return { ok: true, data: obj };
+      }
+
+      // $ref処理
+      if ("$ref" in obj) {
+        const refPath = obj["$ref"] as string;
+
+        // 循環参照チェック
+        if (visited.has(refPath)) {
+          return {
+            ok: false,
+            error: {
+              kind: "CircularReference",
+              refs: Array.from(visited).concat(refPath),
+              message: `Circular reference detected: ${refPath}`,
+            },
+          };
+        }
+
+        visited.add(refPath);
+
+        // キャッシュチェック
+        if (this.cache.has(refPath)) {
+          return { ok: true, data: this.cache.get(refPath) };
+        }
+
+        // 参照先を読み込み
+        const loadResult = await this.loadReference(refPath, currentPath);
+        if (!loadResult.ok) return loadResult;
+
+        // 再帰的に解決
+        const resolvedResult = await resolveRecursive(
+          loadResult.data,
+          this.getReferencePath(refPath, currentPath),
+          depth + 1,
+        );
+
+        visited.delete(refPath);
+
+        if (resolvedResult.ok) {
+          this.cache.set(refPath, resolvedResult.data);
+        }
+
+        return resolvedResult;
+      }
+
+      // 配列の処理
+      if (Array.isArray(obj)) {
+        const results: any[] = [];
+        for (const item of obj) {
+          const result = await resolveRecursive(item, currentPath, depth);
+          if (!result.ok) return result;
+          results.push(result.data);
+        }
+        return { ok: true, data: results };
+      }
+
+      // オブジェクトの処理
+      const resolved: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const result = await resolveRecursive(value, currentPath, depth);
+        if (!result.ok) return result;
+        resolved[key] = result.data;
+      }
+
+      return { ok: true, data: resolved };
+    };
+
+    return resolveRecursive(schema, basePath, 0);
+  }
+
+  private async loadReference(
+    refPath: string,
+    basePath: string,
+  ): Promise<Result<any, SchemaError>> {
+    // 実装は Infrastructure層で提供
+    throw new Error("Must be implemented by infrastructure layer");
+  }
+
+  private getReferencePath(refPath: string, basePath: string): string {
+    if (refPath.startsWith("/")) {
+      return refPath;
+    }
+    return `${basePath}/${refPath}`.replace(/\/+/g, "/");
+  }
+
+  clearCache(): void {
+    this.cache.clear();
   }
 }
 
 // ========================================
-// Error Types
+// リポジトリインターフェース
 // ========================================
 
-export type FrontMatterError =
-  | { kind: "EmptyFrontMatter"; message: string }
-  | { kind: "InvalidYaml"; message: string }
-  | { kind: "ParseError"; message: string };
+export interface SchemaRepository {
+  load(path: SchemaPath): Promise<Result<Schema, SchemaError>>;
+  save(schema: Schema): Promise<Result<void, SchemaError>>;
+  findById(id: SchemaId): Promise<Result<Schema | null, SchemaError>>;
+  exists(path: SchemaPath): Promise<Result<boolean, SchemaError>>;
+}
 
-export type ExtractionError =
-  | { kind: "NoFrontMatter"; message: string }
-  | { kind: "ExtractionFailed"; message: string };
+// ========================================
+// エラー型定義
+// ========================================
 
-export type DocumentError =
-  | { kind: "FrontMatterError"; message: string }
-  | { kind: "InvalidDocument"; message: string };
+export type SchemaError =
+  | SchemaPathError
+  | SchemaLoadError
+  | SchemaResolutionError
+  | SchemaValidationError;
+
+export type SchemaPathError =
+  | { kind: "EmptyPath"; message: string }
+  | { kind: "InvalidExtension"; path: string; message: string }
+  | { kind: "FileNotFound"; path: string; message: string };
+
+export type SchemaLoadError =
+  | { kind: "InvalidJSON"; path: string; error: string; message: string }
+  | { kind: "ReadError"; path: string; error: string; message: string };
+
+export type SchemaResolutionError =
+  | { kind: "CircularReference"; refs: string[]; message: string }
+  | { kind: "MaxDepthExceeded"; depth: number; message: string }
+  | {
+    kind: "RefResolutionFailed";
+    ref: string;
+    error: string;
+    message: string;
+  };
+
+export type SchemaValidationError =
+  | {
+    kind: "InvalidStateTransition";
+    from: string;
+    to: string;
+    message: string;
+  }
+  | { kind: "SchemaNotResolved"; state: string; message: string }
+  | { kind: "ValidationFailed"; errors: any[]; message: string };
 ```
 
-## 2. TypeScript解析ドメイン
-
-### 2.1 型定義
+### 2. SchemaメタデータとTemplate関連
 
 ```typescript
-// ========================================
-// Value Objects
-// ========================================
+/**
+ * Schemaメタデータ
+ */
+export interface SchemaMetadata {
+  readonly templatePath?: string;
+  readonly frontmatterPart?: boolean;
+  readonly derivationRules?: DerivationRule[];
+  readonly validationOptions?: ValidationOptions;
+}
 
-/** 解析結果のSchema - 不変値オブジェクト */
-export class AnalysisSchema {
+/**
+ * 派生ルール定義
+ */
+export class DerivationRule {
   private constructor(
-    private readonly schema: object,
-    private readonly version: string,
+    private readonly targetField: string,
+    private readonly sourceExpression: string,
+    private readonly unique: boolean = false,
   ) {}
 
   static create(
-    schema: unknown,
-    version: string,
-  ): Result<AnalysisSchema, SchemaError> {
-    if (!schema || typeof schema !== "object") {
+    target: string,
+    source: string,
+    unique?: boolean,
+  ): Result<DerivationRule, ValidationError> {
+    if (!target || target.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "InvalidSchema", message: "Schema must be an object" },
+        error: { kind: "EmptyInput", message: "Target field cannot be empty" },
       };
     }
 
-    if (!version || !isValidSemver(version)) {
-      return {
-        ok: false,
-        error: { kind: "InvalidVersion", message: "Invalid schema version" },
-      };
-    }
-
-    return { ok: true, data: new AnalysisSchema(schema as object, version) };
-  }
-
-  getSchema(): Readonly<object> {
-    return this.schema;
-  }
-  getVersion(): string {
-    return this.version;
-  }
-
-  validate(data: unknown): Result<void, ValidationError> {
-    // JSON Schema検証ロジック
-    return validateAgainstSchema(data, this.schema);
-  }
-}
-
-/** プロンプト - 不変値オブジェクト */
-export class Prompt {
-  private constructor(
-    private readonly template: string,
-    private readonly variables: Map<string, string>,
-  ) {}
-
-  static create(template: string): Result<Prompt, PromptError> {
-    if (!template || template.trim() === "") {
-      return {
-        ok: false,
-        error: { kind: "EmptyPrompt", message: "Prompt cannot be empty" },
-      };
-    }
-
-    const variables = extractVariables(template); // {{var}}形式の変数を抽出
-    return { ok: true, data: new Prompt(template, variables) };
-  }
-
-  render(values: Record<string, string>): Result<string, RenderError> {
-    let rendered = this.template;
-
-    for (const [key, _] of this.variables) {
-      if (!(key in values)) {
-        return { ok: false, error: { kind: "MissingVariable", variable: key } };
-      }
-      rendered = rendered.replace(new RegExp(`{{${key}}}`, "g"), values[key]);
-    }
-
-    return { ok: true, data: rendered };
-  }
-}
-
-/** 抽出された情報 - 不変値オブジェクト（成果C） */
-export class ExtractedInfo {
-  private constructor(
-    private readonly data: Record<string, unknown>,
-    private readonly metadata: ExtractionMetadata,
-  ) {}
-
-  static create(
-    rawData: unknown,
-    metadata: ExtractionMetadata,
-  ): Result<ExtractedInfo, ExtractionError> {
-    if (!rawData || typeof rawData !== "object") {
-      return {
-        ok: false,
-        error: {
-          kind: "InvalidData",
-          message: "Extracted data must be object",
-        },
-      };
-    }
-
-    return {
-      ok: true,
-      data: new ExtractedInfo(rawData as Record<string, unknown>, metadata),
-    };
-  }
-
-  getData(): Readonly<Record<string, unknown>> {
-    return this.data;
-  }
-  getMetadata(): ExtractionMetadata {
-    return this.metadata;
-  }
-}
-
-/** テンプレート - 外部ファイルから読み込み */
-export class Template {
-  private constructor(
-    private readonly name: string,
-    private readonly content: string,
-    private readonly format: "json" | "yaml" | "markdown",
-  ) {}
-
-  static create(
-    name: string,
-    content: string,
-    format: "json" | "yaml" | "markdown" = "json",
-  ): Result<Template, ValidationError> {
-    if (!name || name.trim() === "") {
-      return {
-        ok: false,
-        error: { kind: "EmptyInput", message: "Template name cannot be empty" },
-      };
-    }
-
-    if (!content || content.trim() === "") {
+    if (!source || source.trim().length === 0) {
       return {
         ok: false,
         error: {
           kind: "EmptyInput",
-          message: "Template content cannot be empty",
+          message: "Source expression cannot be empty",
         },
       };
     }
 
-    return { ok: true, data: new Template(name, content, format) };
-  }
-
-  getName(): string {
-    return this.name;
-  }
-  getContent(): string {
-    return this.content;
-  }
-  getFormat(): string {
-    return this.format;
-  }
-}
-
-/** 構造化データ - 不変値オブジェクト（成果D） */
-export class StructuredData {
-  private constructor(
-    private readonly content: string, // 変換後テンプレート
-    private readonly templateName: string,
-    private readonly metadata: StructuringMetadata,
-  ) {}
-
-  static createFromAppliedTemplate(
-    appliedContent: string,
-    templateName: string,
-    metadata: StructuringMetadata,
-  ): Result<StructuredData, StructuringError> {
-    if (!appliedContent || appliedContent.trim() === "") {
+    // JSONPath式の基本検証
+    if (!source.includes("[") && !source.includes(".")) {
       return {
         ok: false,
         error: {
-          kind: "EmptyContent",
-          message: "Applied template content is empty",
+          kind: "InvalidExpression",
+          expression: source,
+          message: "Source expression must be a valid JSONPath",
         },
       };
     }
 
     return {
       ok: true,
-      data: new StructuredData(appliedContent, templateName, metadata),
+      data: new DerivationRule(target, source, unique ?? false),
     };
   }
 
-  getContent(): string {
-    return this.content;
+  getTargetField(): string {
+    return this.targetField;
   }
-  getTemplateName(): string {
-    return this.templateName;
+  getSourceExpression(): string {
+    return this.sourceExpression;
   }
-  getMetadata(): StructuringMetadata {
-    return this.metadata;
-  }
-}
-
-// ========================================
-// Aggregate Root
-// ========================================
-
-/** TypeScript解析オーケストレーター - 集約ルート */
-export class TypeScriptAnalysisOrchestrator {
-  constructor(
-    private readonly schemaMapper: SchemaMapper,
-    private readonly templateProcessor: TemplateProcessor,
-  ) {}
-
-  /** 第1段階: 情報抽出（成果B → 成果C） */
-  async extractInformation(
-    frontMatter: FrontMatter,
-    schema: AnalysisSchema,
-  ): Promise<Result<ExtractedInfo, AnalysisError>> {
-    // Schema展開とマッピング
-    const mappingResult = await this.schemaMapper.mapFrontMatterToSchema(
-      frontMatter.getParsed(),
-      schema.getSchema(),
-    );
-
-    if (!mappingResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "SchemaMappingError",
-          message: mappingResult.error.message,
-        },
-      };
-    }
-
-    // 結果を成果Cとして生成
-    const metadata: ExtractionMetadata = {
-      extractedAt: new Date(),
-      processingMethod: "TypeScript",
-      schemaVersion: schema.getVersion(),
-    };
-
-    return ExtractedInfo.create(mappingResult.data, metadata);
-  }
-
-  /** 第2段階: テンプレート当て込み（成果C → 成果D） */
-  async applyTemplate(
-    extractedInfo: ExtractedInfo,
-    schema: AnalysisSchema,
-    template: Template,
-  ): Promise<Result<StructuredData, AnalysisError>> {
-    // TypeScriptでテンプレート処理
-    const templateResult = await this.templateProcessor.process(
-      extractedInfo.getData(),
-      template.getContent(),
-      schema.getSchema(),
-    );
-
-    if (!templateResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "TemplateProcessingError",
-          message: templateResult.error.message,
-        },
-      };
-    }
-
-    // AIが当て込んだテンプレート結果をそのまま成果Dとして使用
-    const metadata: StructuringMetadata = {
-      structuredAt: new Date(),
-      promptUsed: "PromptB",
-      templateName: template.getName(),
-      appliedContent: analysisResult.data, // 変換後テンプレート
-      sourceMetadata: extractedInfo.getMetadata(),
-    };
-
-    return StructuredData.createFromAppliedTemplate(
-      analysisResult.data,
-      template.getName(),
-      metadata,
-    );
-  }
-
-  /** 完全な2段階処理パイプライン */
-  async analyze(
-    frontMatter: FrontMatter,
-    schema: AnalysisSchema,
-    template: Template,
-  ): Promise<Result<StructuredData, AnalysisError>> {
-    // 第1段階: 情報抽出
-    const extractionResult = await this.extractInformation(frontMatter, schema);
-    if (!extractionResult.ok) {
-      return extractionResult;
-    }
-
-    // 第2段階: テンプレート当て込み
-    return this.applyTemplate(extractionResult.data, schema, template);
+  isUnique(): boolean {
+    return this.unique;
   }
 }
 
-// ========================================
-// Domain Service Interface
-// ========================================
-
-/** AIプロバイダーインターフェース（反腐敗層） */
-export interface SchemaMapper {
-  mapFrontMatterToSchema(
-    frontMatter: Record<string, unknown>,
-    schema: object,
-  ): Promise<Result<Record<string, unknown>, MappingError>>;
-}
-
-export interface TemplateProcessor {
-  process(
-    data: Record<string, unknown>,
-    template: string,
-    schema: object,
-  ): Promise<Result<string, ProcessingError>>;
-}
-
-/** TypeScript Schemaマッパー実装 */
-export class TypeScriptSchemaMapper implements SchemaMapper {
-  async mapFrontMatterToSchema(
-    frontMatter: Record<string, unknown>,
-    schema: object,
-  ): Promise<Result<Record<string, unknown>, MappingError>> {
-    // Schema展開とマッピングロジック
-    // 詳細はdocs/architecture/schema_matching_architecture.ja.md参照
-    return { ok: true, data: frontMatter };
-  }
-}
-
-/** TypeScriptテンプレートプロセッサー実装 */
-export class TypeScriptTemplateProcessor implements TemplateProcessor {
-  async process(
-    data: Record<string, unknown>,
-    template: string,
-    schema: object,
-  ): Promise<Result<string, ProcessingError>> {
-    // テンプレート変数置換ロジック
-    // {SchemaPath}形式の変数を置換
-    return { ok: true, data: template };
-  }
-}
-
-// ========================================
-// Domain Events
-// ========================================
-
-export class InformationExtracted implements DomainEvent {
-  constructor(
-    public readonly documentId: DocumentId,
-    public readonly extractedInfo: ExtractedInfo,
-    public readonly extractedAt: Date = new Date(),
-  ) {}
-
-  getEventName(): string {
-    return "InformationExtracted";
-  }
-}
-
-export class DataStructured implements DomainEvent {
-  constructor(
-    public readonly documentId: DocumentId,
-    public readonly structuredData: StructuredData,
-    public readonly structuredAt: Date = new Date(),
-  ) {}
-
-  getEventName(): string {
-    return "DataStructured";
-  }
-}
-
-// ========================================
-// Error Types
-// ========================================
-
-export type AnalysisError =
-  | { kind: "PromptRenderError"; message: string }
-  | { kind: "TypeScriptAnalysisError"; message: string }
-  | { kind: "SchemaMappingError"; message: string }
-  | { kind: "TemplateProcessingError"; message: string }
-  | { kind: "ParseError"; message: string }
-  | { kind: "SchemaValidationError"; message: string };
-```
-
-## 3. 共通型定義
-
-### 3.1 Result型（全域性の基盤）
-
-```typescript
-// ========================================
-// Result Type - 全域性の実現
-// ========================================
-
-export type Result<T, E> =
-  | { ok: true; data: T }
-  | { ok: false; error: E };
-
-export function isOk<T, E>(
-  result: Result<T, E>,
-): result is { ok: true; data: T } {
-  return result.ok === true;
-}
-
-export function isError<T, E>(
-  result: Result<T, E>,
-): result is { ok: false; error: E } {
-  return result.ok === false;
-}
-
-export function mapResult<T, U, E>(
-  result: Result<T, E>,
-  fn: (data: T) => U,
-): Result<U, E> {
-  if (isOk(result)) {
-    return { ok: true, data: fn(result.data) };
-  }
-  return result;
-}
-
-export function flatMapResult<T, U, E>(
-  result: Result<T, E>,
-  fn: (data: T) => Result<U, E>,
-): Result<U, E> {
-  if (isOk(result)) {
-    return fn(result.data);
-  }
-  return result;
-}
-
-// ========================================
-// Domain Event Interface
-// ========================================
-
-export interface DomainEvent {
-  getEventName(): string;
-  occurredAt?: Date;
-}
-
-// ========================================
-// Common Value Objects
-// ========================================
-
-export class DocumentId {
-  private constructor(private readonly value: string) {}
-
-  static generate(seed: string): DocumentId {
-    const hash = createHash(seed + Date.now().toString());
-    return new DocumentId(hash);
-  }
-
-  getValue(): string {
-    return this.value;
-  }
-
-  equals(other: DocumentId): boolean {
-    return this.value === other.value;
-  }
-}
-
-// ========================================
-// Metadata Types
-// ========================================
-
-export interface ExtractionMetadata {
-  extractedAt: Date;
-  promptUsed: string;
-  schemaVersion: string;
-}
-
-export interface StructuringMetadata {
-  structuredAt: Date;
-  promptUsed: string;
-  templateName: string;
-  appliedContent: string; // 変換後テンプレート内容
-  sourceMetadata: ExtractionMetadata;
+/**
+ * 検証オプション
+ */
+export interface ValidationOptions {
+  readonly strict: boolean;
+  readonly allowAdditionalProperties: boolean;
+  readonly coerceTypes?: boolean;
+  readonly removeAdditional?: boolean;
 }
 ```

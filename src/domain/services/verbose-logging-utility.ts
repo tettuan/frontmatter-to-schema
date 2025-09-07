@@ -6,7 +6,7 @@
  */
 
 import { LoggerFactory } from "../shared/logger.ts";
-import { getEnvironmentConfig } from "../config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 
 /**
  * Utility to eliminate verbose logging duplication patterns
@@ -19,7 +19,7 @@ export class VerboseLoggingUtility {
    */
   private static getVerboseMode(): boolean {
     if (this.verboseMode === null) {
-      this.verboseMode = getEnvironmentConfig().getVerboseMode();
+      this.verboseMode = getGlobalEnvironmentConfig().getVerboseMode();
     }
     return this.verboseMode;
   }

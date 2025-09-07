@@ -1,8 +1,187 @@
 {
-  "version": "{version}",
-  "description": "Existing Registry",
+  "version": "1.0.0",
+  "description": "Registry generated from markdown frontmatter",
   "tools": {
-    "availableConfigs": [],
-    "commands": []
+    "availableConfigs": [
+      "build",
+      "debug",
+      "design",
+      "docs",
+      "git",
+      "meta",
+      "refactor",
+      "requirement",
+      "spec"
+    ],
+    "commands": [
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "boundary",
+        "description": "粗い考えをもとに、ドメイン境界線を引いてみる。"
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "boundary",
+        "description": "コードベースをもとに、ドメイン境界線を引く。"
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "description": "ドメイン境界情報などを元に、ドメイン設計を行う。"
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "description": "ドメイン境界情報をもとに、中心概念について、設計を行う。"
+      },
+      {
+        "c1": "design",
+        "c2": "domain",
+        "c3": "architecture",
+        "description": "ドメイン境界情報などを元に、ドメイン設計を行う。既存のドメイン情報を加味して詳細な型定義を行う。"
+      },
+      {
+        "c1": "spec",
+        "c2": "analyze-structure",
+        "c3": "requirements",
+        "description": "要求のファイルをもとに、情報を整理して、構造化されたファイルを出力する"
+      },
+      {
+        "c1": "spec",
+        "c2": "analyze",
+        "c3": "quality-metrics",
+        "description": "Analyze specification quality and completeness metrics"
+      },
+      {
+        "c1": "meta",
+        "c2": "resolve",
+        "c3": "registered-commands",
+        "description": "渡された内容に相応しい climpt-* を構築し、示す。"
+      },
+      {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "description": "使用可能な Climpt リストを作成する。パラメータで渡した値をもとに、プロンプトテンプレートの変数を置換する。"
+      },
+      {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification."
+      },
+      {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop."
+      },
+      {
+        "c1": "requirement",
+        "c2": "draft",
+        "c3": "entry",
+        "description": "entry"
+      },
+      {
+        "c1": "docs",
+        "c2": "generate-robust",
+        "c3": "instruction-doc",
+        "description": "短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める。"
+      },
+      {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "test",
+        "description": "ドメイン駆動設計と全域性（Totality）原則に基づいた、強固で堅牢なテスト構築を行う"
+      },
+      {
+        "c1": "build",
+        "c2": "robust",
+        "c3": "test",
+        "description": "変更に強く、再現性が高く、保守性に優れたテストコードを構築し、ビジネスロジックの品質を確実に保証する"
+      },
+      {
+        "c1": "git",
+        "c2": "decide-branch",
+        "c3": "working-branch",
+        "description": "作業内容に基づいてGitブランチの新規作成判断と適切なブランチ選択を行う"
+      },
+      {
+        "c1": "git",
+        "c2": "list-select",
+        "c3": "pr-branch",
+        "description": "ローカル・リモートブランチとPRを一覧化し、次に作業すべき対象を自動選択する"
+      },
+      {
+        "c1": "git",
+        "c2": "find-oldest",
+        "c3": "descendant-branch",
+        "description": "現在のGitブランチから派生した子孫ブランチと兄弟ブランチを探索し、最も古い関連ブランチの作業状態を確認してマージ処理を実行"
+      },
+      {
+        "c1": "git",
+        "c2": "document",
+        "c3": "fix-instruction",
+        "description": "問題点をまとめ、次の修正指示をGitのIssueへ登録する"
+      },
+      {
+        "c1": "git",
+        "c2": "merge-cleanup",
+        "c3": "develop-branches",
+        "description": "mergeされていないブランチを全てdevelopへ統合し、マージ後に削除。"
+      },
+      {
+        "c1": "git",
+        "c2": "group-commit",
+        "c3": "unstaged-changes",
+        "description": "Gitコミットを、ファイルの変更内容の意味的近さ単位でグループ化し、適切にまとめてコミットする"
+      },
+      {
+        "c1": "git",
+        "c2": "analyze",
+        "c3": "commit-history",
+        "description": "Analyze git commit history and generate insights"
+      },
+      {
+        "c1": "git",
+        "c2": "merge-up",
+        "c3": "base-branch",
+        "description": "作業ブランチから派生した作業ブランチを、元の作業ブランチへマージする。"
+      },
+      {
+        "c1": "git",
+        "c2": "create",
+        "c3": "refinement-issue",
+        "description": "Create a refinement issue from requirements documentation"
+      },
+      {
+        "c1": "refactor",
+        "c2": "ddd",
+        "c3": "architecture",
+        "description": "ドメイン設計のアーキテクチャを再設計する。要求をベースに、型安全性を強化して、骨格が通った芯の強いコード実装を再設計する"
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "ddd",
+        "description": "実行済の結果から導き出したネクストアクションを進める。基本事項を維持した状態で、次アクションを指示する"
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "ddd",
+        "description": "現在の実装をドメイン駆動設計と全域性（Totality）による設計で、堅牢になるようリファクタリングする"
+      },
+      {
+        "c1": "debug",
+        "c2": "analyze-deep",
+        "c3": "project-issues",
+        "description": "プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出し、ドメイン駆動設計からテスト駆動設計への移行を支援する"
+      }
+    ]
   }
 }
