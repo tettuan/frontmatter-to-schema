@@ -9,6 +9,7 @@ import {
   type Result,
 } from "../core/result.ts";
 import { SCHEMA_IDS } from "../constants/index.ts";
+import { SchemaRefResolver } from "./schema-ref-resolver.ts";
 
 /**
  * Schema configuration loader for external schema files
@@ -16,10 +17,13 @@ import { SCHEMA_IDS } from "../constants/index.ts";
 export class SchemaConfigLoader {
   private static instance: SchemaConfigLoader | null = null;
   private schemaCache: Map<string, unknown> = new Map();
+  private refResolver: SchemaRefResolver;
 
   private constructor(
     private readonly basePath: string = "./configs/schemas",
-  ) {}
+  ) {
+    this.refResolver = new SchemaRefResolver(basePath);
+  }
 
   /**
    * Get singleton instance
@@ -55,7 +59,7 @@ export class SchemaConfigLoader {
   }
 
   /**
-   * Load schema from file path
+   * Load schema from file path with $ref resolution
    */
   async loadSchemaFromFile(
     path: string,
@@ -63,7 +67,14 @@ export class SchemaConfigLoader {
     try {
       const content = await Deno.readTextFile(path);
       const schema = JSON.parse(content);
-      return { ok: true, data: schema };
+
+      // Resolve $ref references recursively
+      const resolvedResult = await this.refResolver.resolveSchema(schema, path);
+      if (!resolvedResult.ok) {
+        return resolvedResult;
+      }
+
+      return { ok: true, data: resolvedResult.data };
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         return {

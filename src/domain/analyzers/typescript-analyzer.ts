@@ -44,11 +44,14 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     }
 
     try {
-      const configPath = new URL("../../config/valid-tools.json", import.meta.url);
+      const configPath = new URL(
+        "../../config/valid-tools.json",
+        import.meta.url,
+      );
       const configContent = await Deno.readTextFile(configPath);
       const config = JSON.parse(configContent);
       this.validTools = config.validTools || [];
-      return this.validTools;
+      return this.validTools!;
     } catch {
       // Fallback to default tools if config file cannot be loaded
       this.validTools = [
@@ -62,9 +65,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         "config",
         "setup",
         "build",
-        "refactor"
+        "refactor",
       ];
-      return this.validTools;
+      return this.validTools!;
     }
   }
 
@@ -202,15 +205,13 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         };
       }
 
-      const context = contextResult.data;
+      const _context = contextResult.data;
 
-      // Transform frontmatter data to registry structure
-      const registryData = await this.transformToRegistry(context);
-      
-      // Return the transformed registry data
+      // Pass through the raw frontmatter data without transformation
+      // The template will handle the mapping
       return {
         ok: true,
-        data: ExtractedData.create(registryData.toJSON()),
+        data: ExtractedData.create(frontMatterData),
       };
     } catch (error) {
       return {
@@ -232,8 +233,11 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
   /**
    * Transform frontmatter data to registry structure
+   * @deprecated This should be handled by a separate registry-specific analyzer
    */
-  private async transformToRegistry(context: AnalysisContext): Promise<RegistryData> {
+  private async transformToRegistry(
+    context: AnalysisContext,
+  ): Promise<RegistryData> {
     const frontMatterData = context.getFrontMatterData();
     const documentPath = context.getDocumentPath();
 
@@ -243,12 +247,25 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     // Extract or generate description
     const description = this.extractDescription(frontMatterData);
 
-    // Extract tool configuration from document path
-    const toolName = await this.extractToolName(documentPath);
-    const availableConfigs = toolName ? [toolName] : [];
-
     // Create command from frontmatter and path
     const commands = this.createCommands(documentPath, frontMatterData);
+
+    // Extract available configs from commands (c1 field)
+    const availableConfigs: string[] = [];
+    for (const command of commands) {
+      const c1 = command.toJSON().c1;
+      if (c1 && !availableConfigs.includes(c1)) {
+        availableConfigs.push(c1);
+      }
+    }
+
+    // If no configs from commands, try to extract from path
+    if (availableConfigs.length === 0) {
+      const toolName = await this.extractToolName(documentPath);
+      if (toolName) {
+        availableConfigs.push(toolName);
+      }
+    }
 
     return RegistryData.create(
       version,
@@ -310,17 +327,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       const promptParts = documentPath.split("prompts/")[1]?.split("/") || [];
       if (promptParts.length > 0) {
         const toolCandidate = promptParts[0].toLowerCase();
-        const validTools = [
-          "git",
-          "spec",
-          "test",
-          "code",
-          "docs",
-          "meta",
-          "build",
-          "refactor",
-          "debug",
-        ];
+        const validTools = await this.getValidTools();
         if (validTools.includes(toolCandidate)) {
           return toolCandidate;
         }
@@ -339,17 +346,31 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   ): RegistryCommand[] {
     const commands: RegistryCommand[] = [];
 
-    // Try to create command from path
+    // Extract command fields from frontmatter
+    const c1 = String(frontMatterData.c1 || "");
+    const c2 = String(frontMatterData.c2 || "");
+    const c3 = String(frontMatterData.c3 || "");
     const description = this.extractDescription(frontMatterData);
-    const commandResult = RegistryCommand.createFromPath(
+
+    // Try to create command from frontmatter data first
+    if (c1 && c2 && c3) {
+      const commandResult = RegistryCommand.create(c1, c2, c3, description);
+      if (commandResult.ok) {
+        commands.push(commandResult.data);
+        return commands;
+      }
+    }
+
+    // Fallback: try to create command from path
+    const pathCommandResult = RegistryCommand.createFromPath(
       documentPath,
       description,
     );
 
-    if (commandResult.ok) {
-      commands.push(commandResult.data);
+    if (pathCommandResult.ok) {
+      commands.push(pathCommandResult.data);
     } else {
-      // Fallback: create a generic command if path parsing fails
+      // Final fallback: create a generic command if path parsing fails
       const parts = documentPath.split("/").filter((p) =>
         p && !p.includes(".")
       );

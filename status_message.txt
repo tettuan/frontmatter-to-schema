@@ -1,5 +1,0 @@
-**Current Situation:**
-On develop branch. CI passing with 348 tests. All work branches integrated. Template consolidation investigation complete. PR #516 (DDD refactoring) can be closed. PR #517 open for develop->main merge with RegistryBuilder tests.
-
-**Things to be Done:**
-Merge develop to main to complete integration. Close PR #516. Review and merge PR #517 to main.

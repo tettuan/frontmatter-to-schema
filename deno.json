@@ -10,11 +10,14 @@
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
-    "dev": "deno run --allow-all --watch src/main.ts",
-    "start": "deno run --allow-all src/main.ts",
+    "dev": "deno run --allow-all --watch src/cli.ts",
+    "start": "deno run --allow-all src/cli.ts",
     "test": "deno test --allow-all tests/",
-    "example:climpt": "deno run --allow-all src/main.ts --config examples/climpt-registry/config.json",
-    "example:articles": "deno run --allow-all src/main.ts --config examples/articles-index/config.json"
+    "frontmatter-to-schema": "deno run --allow-read --allow-write --allow-env src/cli.ts",
+    "fm2s": "deno run --allow-read --allow-write --allow-env src/cli.ts",
+    "example:climpt": "deno run --allow-all src/cli.ts examples/climpt-registry/schema.json output/climpt-registry.json '.agent/climpt/prompts/**/*.md'",
+    "example:articles": "deno run --allow-all src/cli.ts examples/articles-index/schema.json output/articles.yaml 'examples/articles-index/*.md'",
+    "example:new-cli": "deno run --allow-read --allow-write --allow-env src/cli.ts schemas/registry_schema.json output/registry.json '.agent/climpt/prompts/**/*.md' --verbose"
   },
   "imports": {
     "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@^1.0.89",

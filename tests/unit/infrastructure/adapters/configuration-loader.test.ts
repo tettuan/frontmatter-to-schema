@@ -43,7 +43,7 @@ function createMockAggregatedResult(
     : [];
 
   return {
-    toOutput: () => JSON.stringify(data, null, 2),
+    getRawData: () => data.results || [],
     getResults: () => mockResults,
     getFormat: () => "json" as const,
     getTimestamp: () => new Date(),
