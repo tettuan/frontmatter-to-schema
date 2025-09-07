@@ -1,0 +1,13 @@
+{
+  "validTools": [
+    "git",
+    "spec",
+    "test",
+    "code",
+    "docs",
+    "meta",
+    "debug",
+    "config",
+    "setup"
+  ]
+}

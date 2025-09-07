@@ -27,11 +27,46 @@ import { asObjectRecord } from "../shared/type-guards.ts";
  * Responsible for transforming frontmatter data to match template/schema structure
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
+  private validTools: string[] | null = null;
+
   constructor(
     private readonly defaultVersion: string = "1.0.0",
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
   ) {}
+
+  /**
+   * Get valid tools from configuration or use defaults
+   */
+  private async getValidTools(): Promise<string[]> {
+    if (this.validTools !== null) {
+      return this.validTools;
+    }
+
+    try {
+      const configPath = new URL("../../config/valid-tools.json", import.meta.url);
+      const configContent = await Deno.readTextFile(configPath);
+      const config = JSON.parse(configContent);
+      this.validTools = config.validTools || [];
+      return this.validTools;
+    } catch {
+      // Fallback to default tools if config file cannot be loaded
+      this.validTools = [
+        "git",
+        "spec",
+        "test",
+        "code",
+        "docs",
+        "meta",
+        "debug",
+        "config",
+        "setup",
+        "build",
+        "refactor"
+      ];
+      return this.validTools;
+    }
+  }
 
   /**
    * Analyze frontmatter and transform to registry structure
@@ -167,13 +202,15 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         };
       }
 
-      const _context = contextResult.data;
+      const context = contextResult.data;
 
-      // Pass through the raw frontmatter data without transformation
-      // The template will handle the mapping
+      // Transform frontmatter data to registry structure
+      const registryData = await this.transformToRegistry(context);
+      
+      // Return the transformed registry data
       return {
         ok: true,
-        data: ExtractedData.create(frontMatterData),
+        data: ExtractedData.create(registryData.toJSON()),
       };
     } catch (error) {
       return {
@@ -196,7 +233,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   /**
    * Transform frontmatter data to registry structure
    */
-  private transformToRegistry(context: AnalysisContext): RegistryData {
+  private async transformToRegistry(context: AnalysisContext): Promise<RegistryData> {
     const frontMatterData = context.getFrontMatterData();
     const documentPath = context.getDocumentPath();
 
@@ -207,7 +244,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     const description = this.extractDescription(frontMatterData);
 
     // Extract tool configuration from document path
-    const toolName = this.extractToolName(documentPath);
+    const toolName = await this.extractToolName(documentPath);
     const availableConfigs = toolName ? [toolName] : [];
 
     // Create command from frontmatter and path
@@ -255,24 +292,14 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   /**
    * Extract tool name from document path
    */
-  private extractToolName(documentPath: string): string | null {
+  private async extractToolName(documentPath: string): Promise<string | null> {
     // Extract from path like "git/merge-cleanup/develop-branches/f_default.md"
     const parts = documentPath.split("/");
 
     // Find the tool name (usually first directory in path)
     for (const part of parts) {
       const cleaned = part.toLowerCase().replace(/[^a-z]/g, "");
-      const validTools = [
-        "git",
-        "spec",
-        "test",
-        "code",
-        "docs",
-        "meta",
-        "build",
-        "refactor",
-        "debug",
-      ];
+      const validTools = await this.getValidTools();
       if (validTools.includes(cleaned)) {
         return cleaned;
       }
