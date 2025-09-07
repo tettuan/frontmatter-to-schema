@@ -11,11 +11,11 @@ import { SchemaRefResolver } from "../domain/config/schema-ref-resolver.ts";
 import type { FileSystemRepository } from "../domain/repositories/file-system-repository.ts";
 import { FrontmatterExtractor } from "../domain/services/frontmatter-extractor-v2.ts";
 import {
-  AggregationContext,
   AggregationService,
   createExpressionEvaluator,
 } from "../domain/aggregation/index.ts";
 import type { SchemaTemplateInfo } from "../domain/models/schema-extensions.ts";
+import { SchemaAggregationAdapter } from "./services/schema-aggregation-adapter.ts";
 import { expandGlob } from "jsr:@std/fs@1.0.8/expand-glob";
 import * as path from "jsr:@std/path@1.0.9";
 import * as yaml from "jsr:@std/yaml@1.0.9";
@@ -57,6 +57,7 @@ export class ProcessDocumentsUseCase {
   private readonly schemaResolver: SchemaRefResolver;
   private readonly frontmatterExtractor: FrontmatterExtractor;
   private readonly aggregationService: AggregationService;
+  private readonly schemaAggregationAdapter: SchemaAggregationAdapter;
 
   constructor(
     private readonly fileSystem: FileSystemRepository,
@@ -70,6 +71,7 @@ export class ProcessDocumentsUseCase {
     this.aggregationService = new AggregationService(
       createExpressionEvaluator(),
     );
+    this.schemaAggregationAdapter = new SchemaAggregationAdapter();
   }
 
   /**
@@ -423,55 +425,39 @@ export class ProcessDocumentsUseCase {
     templateInfo: SchemaTemplateInfo,
     schema: unknown,
   ): Result<unknown, { kind: string; message: string }> {
-    // Extract derivation rules from schema
-    const rulesResult = this.aggregationService.extractRulesFromSchema(
+    // Use SchemaAggregationAdapter for aggregation
+    const aggregationResult = this.schemaAggregationAdapter.processAggregation(
+      data,
       schema as Record<string, unknown>,
     );
 
-    let aggregatedData: Record<string, unknown> = {};
-
-    if (rulesResult.ok && rulesResult.data.length > 0) {
-      // Create aggregation context
-      const context = AggregationContext.create(rulesResult.data);
-
-      // Execute aggregation
-      const aggregateResult = this.aggregationService.aggregate(data, context);
-      if (!aggregateResult.ok) {
-        return aggregateResult;
-      }
-
-      // Apply aggregated data
-      aggregatedData = this.aggregationService.applyAggregatedData(
-        {},
-        aggregateResult.data,
-      );
+    if (!aggregationResult.ok) {
+      return aggregationResult;
     }
 
-    // Combine with individual items
-    const result = {
-      ...aggregatedData,
+    // Create base result with aggregated data
+    let result: Record<string, unknown> = {
+      ...aggregationResult.data,
       items: data,
     };
 
     // Handle x-frontmatter-part if present
     if (templateInfo.getIsFrontmatterPart()) {
-      // Find the array property marked with x-frontmatter-part
-      const schemaObj = schema as Record<string, unknown>;
-      if (schemaObj.properties) {
-        for (
-          const [key, prop] of Object.entries(
-            schemaObj.properties as Record<string, unknown>,
-          )
-        ) {
-          if (
-            prop && typeof prop === "object" &&
-            (prop as Record<string, unknown>)["x-frontmatter-part"] === true
-          ) {
-            (result as Record<string, unknown>)[key] = data;
-            delete (result as Record<string, unknown>).items;
-            break;
-          }
-        }
+      // Find properties marked with x-frontmatter-part using adapter
+      const frontmatterParts = this.schemaAggregationAdapter
+        .findFrontmatterParts(
+          schema as Record<string, unknown>,
+        );
+
+      if (frontmatterParts.length > 0) {
+        // Use the first frontmatter part property
+        const key = frontmatterParts[0];
+        result = {
+          ...aggregationResult.data,
+          [key]: data,
+        };
+        // Don't include items when we have frontmatter-part
+        delete result.items;
       }
     }
 
