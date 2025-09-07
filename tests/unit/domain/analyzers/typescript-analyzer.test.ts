@@ -129,9 +129,10 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Analyzer transforms to registry format
-      assertEquals(data.version, "1.0.0"); // Default version
-      assertEquals(data.description, "No Version Document"); // Uses title as description
+      // Analyzer now passes through raw frontmatter data
+      assertEquals(data.title, "No Version Document");
+      // Version and description are not added by analyzer anymore
+      assertEquals(data.version, undefined);
     }
   });
 
@@ -167,9 +168,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Invalid version falls back to default
-      assertEquals(data.version, "1.0.0"); // Falls back to default version
-      assertEquals(data.description, "Bad Version"); // Uses title as description
+      // Analyzer passes through raw data
+      assertEquals(data.version, "invalid-version");
+      assertEquals(data.title, "Bad Version");
     }
   });
 
@@ -197,8 +198,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result2.ok);
     if (result2.ok) {
       const data = result2.data.getData() as Record<string, unknown>;
-      // Uses title as description in registry format
-      assertEquals(data.description, "Title as description");
+      // Analyzer passes through raw data
+      assertEquals(data.title, "Title as description");
+      assertEquals(data.description, undefined);
     }
 
     // Test with summary field as fallback
@@ -209,8 +211,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result3.ok);
     if (result3.ok) {
       const data = result3.data.getData() as Record<string, unknown>;
-      // Uses summary as description in registry format
-      assertEquals(data.description, "Summary as description");
+      // Analyzer passes through raw data
+      assertEquals(data.summary, "Summary as description");
+      assertEquals(data.description, undefined);
     }
   });
 
@@ -534,8 +537,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Analyzer coerces to string in registry format
-      assertEquals(data.description, "12345");
+      // Analyzer passes through raw data without coercion
+      assertEquals(data.description, 12345);
     }
   });
 });
