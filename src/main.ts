@@ -23,8 +23,8 @@ import {
 import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
 import { PathConfigurationFactory } from "./domain/core/path-configuration.ts";
 import {
-  DenoFileSystemRepository,
   DenoEnvironmentRepository,
+  DenoFileSystemRepository,
 } from "./infrastructure/adapters/deno-file-system-repository.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
@@ -116,8 +116,11 @@ async function runBuildRegistry() {
   // Create repositories for dependency injection
   const environmentRepo = new DenoEnvironmentRepository();
   const fileSystemRepo = new DenoFileSystemRepository();
-  const pathConfigFactory = new PathConfigurationFactory(environmentRepo, fileSystemRepo);
-  
+  const pathConfigFactory = new PathConfigurationFactory(
+    environmentRepo,
+    fileSystemRepo,
+  );
+
   // Use centralized path configuration
   const pathConfig = pathConfigFactory.createDefault();
   const PROMPTS_PATH = pathConfig.registryPrompts;
@@ -360,7 +363,7 @@ Examples:
 
     // Create repositories for dependency injection
     const fileSystemRepo = new DenoFileSystemRepository();
-    
+
     // Initialize schema analyzer using TypeScript analyzer with file system repository
     const { createTypeScriptAnalyzer } = await import(
       "./domain/analyzers/typescript-analyzer.ts"

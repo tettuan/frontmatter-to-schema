@@ -50,7 +50,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     if (this.fileSystem) {
       const configPath = "./config/valid-tools.json";
       const readResult = await this.fileSystem.readFile(configPath);
-      
+
       if (readResult.ok) {
         try {
           const config = JSON.parse(readResult.data);
@@ -74,7 +74,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       "config",
       "setup",
       "build",
-      "refactor"
+      "refactor",
     ];
     return this.validTools;
   }
@@ -217,7 +217,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
       // Transform frontmatter data to registry structure
       const registryData = await this.transformToRegistry(context);
-      
+
       // Return the transformed registry data
       return {
         ok: true,
@@ -244,7 +244,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
   /**
    * Transform frontmatter data to registry structure
    */
-  private async transformToRegistry(context: AnalysisContext): Promise<RegistryData> {
+  private async transformToRegistry(
+    context: AnalysisContext,
+  ): Promise<RegistryData> {
     const frontMatterData = context.getFrontMatterData();
     const documentPath = context.getDocumentPath();
 

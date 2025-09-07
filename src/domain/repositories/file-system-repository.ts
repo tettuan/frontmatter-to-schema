@@ -1,12 +1,12 @@
 /**
  * FileSystemRepository Interface
- * 
+ *
  * Domain layer abstraction for file system operations.
  * Follows DDD principles by defining the interface in the domain layer
  * while implementation resides in the infrastructure layer.
  */
 
-import type { Result, DomainError } from "../core/result.ts";
+import type { DomainError, Result } from "../core/result.ts";
 
 /**
  * File system operations repository interface

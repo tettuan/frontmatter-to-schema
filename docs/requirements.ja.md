@@ -23,7 +23,8 @@ Markdownファイルの索引(Index)を作るためである。
 特定のパターンのみに対応するアプリケーションでは、Schema変更に対応できない。
 そのため、アプリケーションはSchemaとテンプレートを外部から読み込み、差し代え前提でSchema定義を用い、テンプレートへ出力する。
 
-これにより、索引の仕様が変わっても **Markdown側の変更を伴うこと無く**、索引側だけ定義を変えられる。
+これにより、索引の仕様が変わっても
+**Markdown側の変更を伴うこと無く**、索引側だけ定義を変えられる。
 
 また、プロンプト集の索引を作るケース、記事の索引を作るケースなども、Schemaとテンプレートのセットを差し替え、Markdownのファイルが置かれたPathや索引出力先を切り替えるだけで、同じアプリケーションで多様な索引作りが可能となる。
 
@@ -95,11 +96,9 @@ b.抽出した情報を、「解析用Schema」で指定されたテンプレー
 
 **利用するSchemaとテンプレート**:　
 
-SchemaファイルはCLI引数から得る。テンプレートはSchemaの "template" から得る。
+SchemaファイルはCLI引数から得る。テンプレートはSchemaの "x-template" 指定から得る。
 
-例:
-registry_command_schema.json
-registry_command_template.json
+例: registry_command_schema.json registry_command_template.json
 
 完成したバージョンの参考例： .agent/test-climpt/example-registed_commands.json
 （正解の出力フォーマットではない。Schemaとテンプレートを使った出力例の参考例として、理解の補助に使うだけである。）

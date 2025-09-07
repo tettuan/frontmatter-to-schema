@@ -23,10 +23,14 @@ import type { FileSystemRepository } from "../../../../src/domain/repositories/f
 // Create a mock FileSystemRepository for testing
 const createMockFileSystemRepo = (): FileSystemRepository => {
   return {
-    readFile: async () => ({ ok: false, error: { kind: "FileNotFound" as const, path: "" } }),
-    writeFile: async () => ({ ok: true, data: undefined }),
-    ensureDirectory: async () => ({ ok: true, data: undefined }),
-    exists: async () => ({ ok: true, data: false }),
+    readFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: { kind: "FileNotFound" as const, path: "" },
+      }),
+    writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+    ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+    exists: () => Promise.resolve({ ok: true, data: false }),
     findFiles: async function* () {},
   };
 };
@@ -83,7 +87,11 @@ Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
   });
 
   await t.step("should create analyzer with factory and custom values", () => {
-    const analyzer = createTypeScriptAnalyzer(createMockFileSystemRepo(), "3.0.0", "Factory created");
+    const analyzer = createTypeScriptAnalyzer(
+      createMockFileSystemRepo(),
+      "3.0.0",
+      "Factory created",
+    );
     assertExists(analyzer);
   });
 });
@@ -121,8 +129,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw frontmatter
-      assertEquals(data.title, "No Version Document");
+      // Analyzer transforms to registry format
+      assertEquals(data.version, "1.0.0"); // Default version
+      assertEquals(data.description, "No Version Document"); // Uses title as description
     }
   });
 
@@ -158,9 +167,9 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
-      assertEquals(data.version, "invalid-version");
-      assertEquals(data.title, "Bad Version");
+      // Invalid version falls back to default
+      assertEquals(data.version, "1.0.0"); // Falls back to default version
+      assertEquals(data.description, "Bad Version"); // Uses title as description
     }
   });
 
@@ -188,8 +197,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result2.ok);
     if (result2.ok) {
       const data = result2.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
-      assertEquals(data.title, "Title as description");
+      // Uses title as description in registry format
+      assertEquals(data.description, "Title as description");
     }
 
     // Test with summary field as fallback
@@ -200,8 +209,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result3.ok);
     if (result3.ok) {
       const data = result3.data.getData() as Record<string, unknown>;
-      // Now passes through raw data
-      assertEquals(data.summary, "Summary as description");
+      // Uses summary as description in registry format
+      assertEquals(data.description, "Summary as description");
     }
   });
 
@@ -466,7 +475,11 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   await t.step("should handle custom default values", async () => {
     const customVersion = "5.0.0-beta";
     const customDescription = "Custom default description";
-    const analyzer = new TypeScriptAnalyzer(createMockFileSystemRepo(), customVersion, customDescription);
+    const analyzer = new TypeScriptAnalyzer(
+      createMockFileSystemRepo(),
+      customVersion,
+      customDescription,
+    );
 
     const frontMatter = createMockFrontMatter({
       _documentPath: "test/file.md", // Add a document path
@@ -521,8 +534,8 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
     assert(result.ok);
     if (result.ok) {
       const data = result.data.getData() as Record<string, unknown>;
-      // Now passes through raw data without coercion
-      assertEquals(data.description, 12345);
+      // Analyzer coerces to string in registry format
+      assertEquals(data.description, "12345");
     }
   });
 });

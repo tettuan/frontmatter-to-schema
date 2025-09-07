@@ -9,7 +9,10 @@
  * and provides a single source of truth for path configurations.
  */
 
-import type { EnvironmentRepository, FileSystemRepository } from "../repositories/file-system-repository.ts";
+import type {
+  EnvironmentRepository,
+  FileSystemRepository,
+} from "../repositories/file-system-repository.ts";
 
 export interface PathConfiguration {
   readonly registryPrompts: string;
@@ -59,8 +62,16 @@ export class DefaultPathConfiguration implements PathConfiguration {
       ".agent/climpt/registry.json",
       environmentRepo,
     );
-    this.schemaPath = this.getPath("DEFAULT_SCHEMA_PATH", "schema.json", environmentRepo);
-    this.templatePath = this.getPath("DEFAULT_TEMPLATE_PATH", "template.json", environmentRepo);
+    this.schemaPath = this.getPath(
+      "DEFAULT_SCHEMA_PATH",
+      "schema.json",
+      environmentRepo,
+    );
+    this.templatePath = this.getPath(
+      "DEFAULT_TEMPLATE_PATH",
+      "template.json",
+      environmentRepo,
+    );
     this.commandSchemaPath = this.getPath(
       "COMMAND_SCHEMA_PATH",
       "registry_command_schema.json",
@@ -73,7 +84,11 @@ export class DefaultPathConfiguration implements PathConfiguration {
     );
   }
 
-  private getPath(envVar: string, defaultValue: string, environmentRepo?: EnvironmentRepository): string {
+  private getPath(
+    envVar: string,
+    defaultValue: string,
+    environmentRepo?: EnvironmentRepository,
+  ): string {
     if (environmentRepo) {
       return environmentRepo.getOrDefault(envVar, defaultValue);
     }
@@ -114,8 +129,11 @@ export class ExamplePathConfig implements ExamplePathConfiguration {
  * Creates appropriate configuration based on context
  */
 export class PathConfigurationFactory {
-  constructor(private readonly environmentRepo?: EnvironmentRepository, private readonly fileSystemRepo?: FileSystemRepository) {}
-  
+  constructor(
+    private readonly environmentRepo?: EnvironmentRepository,
+    private readonly fileSystemRepo?: FileSystemRepository,
+  ) {}
+
   createDefault(): PathConfiguration {
     return new DefaultPathConfiguration(this.environmentRepo);
   }
@@ -137,7 +155,7 @@ export class PathConfigurationFactory {
       // If no file system repository, return default configuration
       return new DefaultPathConfiguration(this.environmentRepo);
     }
-    
+
     const readResult = await this.fileSystemRepo.readFile(filePath);
     if (!readResult.ok) {
       console.error(
@@ -146,7 +164,7 @@ export class PathConfigurationFactory {
       );
       return new DefaultPathConfiguration(this.environmentRepo);
     }
-    
+
     try {
       const config = JSON.parse(readResult.data);
 

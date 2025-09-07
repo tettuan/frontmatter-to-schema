@@ -1,16 +1,16 @@
 /**
  * DenoFileSystemRepository Implementation
- * 
+ *
  * Infrastructure layer implementation of FileSystemRepository
  * using Deno APIs. This adapter isolates Deno-specific code
  * from the domain layer.
  */
 
-import type { 
-  FileSystemRepository, 
-  EnvironmentRepository 
+import type {
+  EnvironmentRepository,
+  FileSystemRepository,
 } from "../../domain/repositories/file-system-repository.ts";
-import type { Result, DomainError } from "../../domain/core/result.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import { expandGlob } from "jsr:@std/fs";
 
@@ -53,7 +53,10 @@ export class DenoFileSystemRepository implements FileSystemRepository {
     }
   }
 
-  async writeFile(path: string, content: string): Promise<Result<void, DomainError>> {
+  async writeFile(
+    path: string,
+    content: string,
+  ): Promise<Result<void, DomainError>> {
     try {
       await Deno.writeTextFile(path, content);
       return { ok: true, data: undefined };

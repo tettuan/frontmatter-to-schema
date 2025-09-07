@@ -65,13 +65,13 @@ export class SchemaConfigLoader {
   ): Promise<Result<unknown, DomainError & { message: string }>> {
     // Use injected FileSystemRepository instead of direct Deno API
     const readResult = await this.fileSystem.readFile(path);
-    
+
     if (!readResult.ok) {
       return {
         ok: false,
         error: createDomainError(
           readResult.error,
-          `Failed to read schema file: ${path}`
+          `Failed to read schema file: ${path}`,
         ),
       };
     }
@@ -147,10 +147,30 @@ export const getSchemaConfigLoader = (
 ): SchemaConfigLoader => {
   // If no fileSystem provided, create a stub that returns errors
   const stubFileSystem: FileSystemRepository = fileSystem || {
-    readFile: async () => ({ ok: false, error: createDomainError({ kind: "FileNotFound" as const, path: "" }) }),
-    writeFile: async () => ({ ok: false, error: createDomainError({ kind: "WriteError" as const, path: "", details: "No filesystem provided" }) }),
-    ensureDirectory: async () => ({ ok: false, error: createDomainError({ kind: "WriteError" as const, path: "", details: "No filesystem provided" }) }),
-    exists: async () => ({ ok: true, data: false }),
+    readFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({ kind: "FileNotFound" as const, path: "" }),
+      }),
+    writeFile: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "WriteError" as const,
+          path: "",
+          details: "No filesystem provided",
+        }),
+      }),
+    ensureDirectory: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "WriteError" as const,
+          path: "",
+          details: "No filesystem provided",
+        }),
+      }),
+    exists: () => Promise.resolve({ ok: true, data: false }),
     findFiles: async function* () {},
   };
   return new SchemaConfigLoader(stubFileSystem, basePath);

@@ -30,12 +30,16 @@ export class EnvironmentConfig {
   private static instance: EnvironmentConfig | null = null;
   private cache: Map<string, string | undefined> = new Map();
 
-  private constructor(private readonly environmentRepo?: EnvironmentRepository) {}
+  private constructor(
+    private readonly environmentRepo?: EnvironmentRepository,
+  ) {}
 
   /**
    * Get singleton instance
    */
-  static getInstance(environmentRepo?: EnvironmentRepository): EnvironmentConfig {
+  static getInstance(
+    environmentRepo?: EnvironmentRepository,
+  ): EnvironmentConfig {
     if (!EnvironmentConfig.instance) {
       EnvironmentConfig.instance = new EnvironmentConfig(environmentRepo);
     }
@@ -144,6 +148,8 @@ export class EnvironmentConfig {
 }
 
 // Export singleton instance getter for convenience
-export const getEnvironmentConfig = (environmentRepo?: EnvironmentRepository): EnvironmentConfig => {
+export const getEnvironmentConfig = (
+  environmentRepo?: EnvironmentRepository,
+): EnvironmentConfig => {
   return EnvironmentConfig.getInstance(environmentRepo);
 };
