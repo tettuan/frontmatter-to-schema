@@ -1,9 +1,14 @@
 import {
   assert,
   assertEquals,
-  assertRejects,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { BuildRegistryUseCase } from "../../../src/application/use-cases/build-registry-use-case.ts";
+import { RegistryResourceLoadingService } from "../../../src/domain/services/registry-resource-loading-service.ts";
+import { RegistrySchemaService } from "../../../src/domain/services/registry-schema-service.ts";
+import { RegistryConversionService } from "../../../src/domain/services/registry-conversion-service.ts";
+import { RegistryAnalyzerOrchestrator } from "../../../src/domain/services/registry-analyzer-orchestrator.ts";
+import { RegistryFileProcessingService } from "../../../src/domain/services/registry-file-processing-service.ts";
+import { RegistryResultService } from "../../../src/domain/services/registry-result-service.ts";
 import {
   FileReader,
   FileWriter,
@@ -179,10 +184,27 @@ Deno.test({
       mockFileWriter = new MockFileWriter();
       mockExtractor = new MockFrontMatterExtractor();
       mockAnalyzer = new MockAnalyzer();
-      useCase = new BuildRegistryUseCase(
+
+      // Create service instances following DDD pattern
+      const resourceLoadingService = new RegistryResourceLoadingService(
         mockFileReader,
-        mockFileWriter,
+      );
+      const schemaService = new RegistrySchemaService();
+      const conversionService = new RegistryConversionService();
+      const analyzerOrchestrator = new RegistryAnalyzerOrchestrator(
+        schemaService,
+        conversionService,
+      );
+      const fileProcessingService = new RegistryFileProcessingService(
         mockExtractor,
+        analyzerOrchestrator,
+      );
+      const resultService = new RegistryResultService(mockFileWriter);
+
+      useCase = new BuildRegistryUseCase(
+        resourceLoadingService,
+        fileProcessingService,
+        resultService,
         { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
     };
@@ -579,10 +601,26 @@ Deno.test({
 
       const errorFileReader = new ErrorFileReader();
 
-      const errorUseCase = new BuildRegistryUseCase(
+      // Create service instances with error file reader
+      const errorResourceLoadingService = new RegistryResourceLoadingService(
         errorFileReader,
-        mockFileWriter,
+      );
+      const errorSchemaService = new RegistrySchemaService();
+      const errorConversionService = new RegistryConversionService();
+      const errorAnalyzerOrchestrator = new RegistryAnalyzerOrchestrator(
+        errorSchemaService,
+        errorConversionService,
+      );
+      const errorFileProcessingService = new RegistryFileProcessingService(
         mockExtractor,
+        errorAnalyzerOrchestrator,
+      );
+      const errorResultService = new RegistryResultService(mockFileWriter);
+
+      const errorUseCase = new BuildRegistryUseCase(
+        errorResourceLoadingService,
+        errorFileProcessingService,
+        errorResultService,
         { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
 
@@ -624,22 +662,39 @@ Deno.test({
 
       const errorFileWriter = new ErrorFileWriter();
 
-      const errorUseCase = new BuildRegistryUseCase(
+      // Create service instances with error file writer
+      const errorResourceLoadingService = new RegistryResourceLoadingService(
         mockFileReader,
-        errorFileWriter,
+      );
+      const errorSchemaService = new RegistrySchemaService();
+      const errorConversionService = new RegistryConversionService();
+      const errorAnalyzerOrchestrator = new RegistryAnalyzerOrchestrator(
+        errorSchemaService,
+        errorConversionService,
+      );
+      const errorFileProcessingService = new RegistryFileProcessingService(
         mockExtractor,
+        errorAnalyzerOrchestrator,
+      );
+      const errorResultService = new RegistryResultService(errorFileWriter);
+
+      const errorUseCase = new BuildRegistryUseCase(
+        errorResourceLoadingService,
+        errorFileProcessingService,
+        errorResultService,
         { kind: "MockAnalyzer", analyzer: mockAnalyzer },
       );
 
-      // Should propagate the error
-      await assertRejects(
-        async () =>
-          await errorUseCase.execute(
-            "/test/write-error",
-            "/test/output/registry.json",
-          ),
-        Error,
-        "Failed to write file",
+      // Should return error result instead of throwing
+      const result = await errorUseCase.execute(
+        "/test/write-error",
+        "/test/output/registry.json",
+      );
+
+      assert(!result.ok, "Result should be an error");
+      assert(
+        result.error.message.includes("Failed to write file"),
+        `Error message should contain 'Failed to write file', got: ${result.error.message}`,
       );
     });
   },

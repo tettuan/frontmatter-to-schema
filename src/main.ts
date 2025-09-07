@@ -57,6 +57,12 @@ import {
 } from "./infrastructure/filesystem/file-system.ts";
 import { FrontMatterExtractor as SimpleFrontMatterExtractor } from "./domain/frontmatter/frontmatter-models.ts";
 import { BuildRegistryUseCase } from "./application/use-cases/build-registry-use-case.ts";
+import { RegistryResourceLoadingService } from "./domain/services/registry-resource-loading-service.ts";
+import { RegistrySchemaService } from "./domain/services/registry-schema-service.ts";
+import { RegistryConversionService } from "./domain/services/registry-conversion-service.ts";
+import { RegistryAnalyzerOrchestrator } from "./domain/services/registry-analyzer-orchestrator.ts";
+import { RegistryFileProcessingService } from "./domain/services/registry-file-processing-service.ts";
+import { RegistryResultService } from "./domain/services/registry-result-service.ts";
 
 /**
  * Loads AI prompt templates for schema extraction and mapping
@@ -127,10 +133,26 @@ async function runBuildRegistry() {
       },
     };
 
-    const useCase = new BuildRegistryUseCase(
+    // Create domain services following DDD pattern
+    const resourceLoadingService = new RegistryResourceLoadingService(
       fileReader,
-      fileWriter,
+    );
+    const schemaService = new RegistrySchemaService();
+    const conversionService = new RegistryConversionService();
+    const analyzerOrchestrator = new RegistryAnalyzerOrchestrator(
+      schemaService,
+      conversionService,
+    );
+    const fileProcessingService = new RegistryFileProcessingService(
       extractor,
+      analyzerOrchestrator,
+    );
+    const resultService = new RegistryResultService(fileWriter);
+
+    const useCase = new BuildRegistryUseCase(
+      resourceLoadingService,
+      fileProcessingService,
+      resultService,
       { kind: "MockAnalyzer", analyzer }, // Wrap in discriminated union
     );
 

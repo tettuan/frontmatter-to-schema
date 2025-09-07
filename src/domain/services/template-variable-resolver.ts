@@ -7,6 +7,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { ResultHandlerService } from "./result-handler-service.ts";
 import {
   PropertyPath,
   PropertyPathNavigator,
@@ -87,24 +88,15 @@ export class TemplateVariableResolver {
     TemplateVariableResolver,
     DomainError & { message: string }
   > {
-    const navigatorResult = PropertyPathNavigator.create();
-    if (!navigatorResult.ok) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "NotConfigured",
-            component: "TemplateVariableResolver",
-          },
-          `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
-        ),
-      };
-    }
-
-    return {
-      ok: true,
-      data: new TemplateVariableResolver(navigatorResult.data),
-    };
+    return ResultHandlerService.map(
+      PropertyPathNavigator.create(),
+      (navigator) => new TemplateVariableResolver(navigator),
+      {
+        operation: "create",
+        component: "TemplateVariableResolver",
+        expectedType: "PropertyPathNavigator",
+      },
+    );
   }
 
   /**
@@ -323,28 +315,22 @@ export class TemplateVariableResolver {
     const pathString = parts[0].trim();
     const defaultValue = parts[1]?.trim();
 
-    const pathResult = PropertyPath.create(pathString);
-    if (!pathResult.ok) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: pathString,
-          expectedFormat: "valid.property.path",
-        }, `Invalid property path in variable: ${pathResult.error.message}`),
-      };
-    }
-
-    return {
-      ok: true,
-      data: {
+    return ResultHandlerService.map(
+      PropertyPath.create(pathString),
+      (path): TemplateVariable => ({
         kind: "PathVariable",
         name: pathString.replace(/\./g, "_"),
-        path: pathResult.data,
+        path,
         placeholder,
         defaultValue,
+      }),
+      {
+        operation: "parsePathVariable",
+        component: "TemplateVariableResolver",
+        input: pathString,
+        expectedType: "PropertyPath",
       },
-    };
+    );
   }
 
   /**

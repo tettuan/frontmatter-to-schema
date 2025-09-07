@@ -1,0 +1,3 @@
+3 PRs open: #514 (code duplication), #513 (Phase 4), #512 (Phase 3). All CI green.
+
+Next: Merge PRs in order, close related issues, consolidate branches.
