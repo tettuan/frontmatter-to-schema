@@ -348,23 +348,52 @@ export class RegistryAggregationService {
 
     const firstObject = firstItem as Record<string, unknown>;
 
-    // Check for registry structure
+    // Check for registry structure(s) - merge multiple if present
     if ("version" in firstObject && "tools" in firstObject) {
-      const tools = firstObject.tools as Record<string, unknown>;
+      // Collect all registry structures
+      const registries = unwrappedData.filter((item) => {
+        if (typeof item === "object" && item !== null) {
+          const obj = item as Record<string, unknown>;
+          return "version" in obj && "tools" in obj;
+        }
+        return false;
+      });
+
+      // Merge all registries
+      const mergedCommands: Command[] = [];
+      const mergedConfigs = new Set<string>();
+      let latestVersion = "1.0.0";
+
+      for (const registry of registries) {
+        const reg = registry as Record<string, unknown>;
+        latestVersion = String(reg.version);
+        
+        const tools = reg.tools as Record<string, unknown>;
+        
+        // Merge availableConfigs
+        if (Array.isArray(tools.availableConfigs)) {
+          tools.availableConfigs.forEach((config) => {
+            mergedConfigs.add(String(config));
+          });
+        }
+        
+        // Merge commands
+        if (Array.isArray(tools.commands)) {
+          const commands = this.extractSuccesses(
+            tools.commands.map((cmd) =>
+              Command.fromObject(cmd as Record<string, unknown>)
+            ),
+          );
+          mergedCommands.push(...commands);
+        }
+      }
+
       return {
         kind: "Registry",
-        version: String(firstObject.version),
+        version: latestVersion,
         tools: {
-          availableConfigs: Array.isArray(tools.availableConfigs)
-            ? tools.availableConfigs.map(String)
-            : [],
-          commands: Array.isArray(tools.commands)
-            ? this.extractSuccesses(
-              tools.commands.map((cmd) =>
-                Command.fromObject(cmd as Record<string, unknown>)
-              ),
-            )
-            : [],
+          availableConfigs: Array.from(mergedConfigs).sort(),
+          commands: mergedCommands,
         },
       };
     }
@@ -461,7 +490,7 @@ export class RegistryAggregationService {
       case "Registry":
         return RegistryData.create(
           structure.version,
-          "Existing Registry",
+          "Registry generated from markdown frontmatter",
           structure.tools.commands,
           structure.tools.availableConfigs,
         );

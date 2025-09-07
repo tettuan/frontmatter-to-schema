@@ -2,6 +2,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+import { SchemaRefResolver } from "../../domain/config/schema-ref-resolver.ts";
 
 // Type guard helper following Totality principle
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -55,6 +56,7 @@ import { ResultAggregationOrchestrator } from "../../application/services/result
 export class ConfigurationLoader
   implements ConfigurationRepository, SchemaRepository, ResultRepository {
   private readonly resultOrchestrator = new ResultAggregationOrchestrator();
+  private readonly refResolver = new SchemaRefResolver(".");
   async loadProcessingConfig(
     path: ConfigPath,
   ): Promise<
@@ -187,7 +189,22 @@ export class ConfigurationLoader
 
       let schemaData: unknown;
       try {
-        schemaData = JSON.parse(content);
+        const parsedSchema = JSON.parse(content);
+        
+        // Resolve $ref references recursively
+        const resolvedResult = await this.refResolver.resolveSchema(parsedSchema, schemaPath);
+        if (!resolvedResult.ok) {
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "ReadError",
+              path: schemaPath,
+              details: `Failed to resolve $ref: ${resolvedResult.error.message}`,
+            }),
+          };
+        }
+        
+        schemaData = resolvedResult.data;
       } catch (error) {
         return {
           ok: false,

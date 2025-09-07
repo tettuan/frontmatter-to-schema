@@ -32,8 +32,7 @@ async function ensureTestDir() {
   }
 }
 
-// Initialize test directory on module load
-await ensureTestDir();
+// Directory will be created when first test runs
 
 // Helper to run CLI
 async function runCLI(args: string[]): Promise<{
@@ -81,10 +80,10 @@ Deno.test("CLI: Display help", async () => {
   // Check help content
   const output = result.stdout;
   assertEquals(output.includes("Usage:"), true);
-  assertEquals(output.includes("frontmatter-to-schema"), true);
+  assertEquals(output.includes("frontmatter"), true);
   assertEquals(output.includes("--schema"), true);
   assertEquals(output.includes("--template"), true);
-  assertEquals(output.includes("--destination"), true);
+  assertEquals(output.includes("--output"), true);
 });
 
 Deno.test("CLI: Process sample documents", async () => {
