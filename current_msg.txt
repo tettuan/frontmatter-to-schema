@@ -1,8 +1,0 @@
-CI green. PR #513 awaiting merge for issue #498. Phase 4 DDD refactoring done.
-
-Priority tasks:
-1. Merge existing PR #513
-2. Create RegistryBuilder tests (issue #499)
-3. Fix code duplication (issue #500)
-4. Build Error Handler Service
-5. Close completed issues
