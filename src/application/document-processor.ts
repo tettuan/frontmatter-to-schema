@@ -5,6 +5,7 @@ import {
   type Result,
 } from "../domain/core/result.ts";
 import { FILE_PATTERNS } from "../domain/constants/index.ts";
+import { getVersionConfig } from "../domain/config/version-config.ts";
 import { Document } from "../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -132,7 +133,8 @@ export class DocumentProcessor {
       };
     }
 
-    const schemaVersionResult = SchemaVersion.create("1.0.0");
+    const versionConfig = getVersionConfig();
+    const schemaVersionResult = SchemaVersion.create(versionConfig.getVersion());
     if (!schemaVersionResult.ok) {
       return {
         ok: false,
