@@ -248,7 +248,7 @@ registry_command_template.json
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
     "commands": [
-      // ここにregistry_command_template.jsonの繰り返しが入る。
+      // Schemaに基づき、ここにregistry_command_template.jsonの繰り返しが入る。
     ]
   }
 }
