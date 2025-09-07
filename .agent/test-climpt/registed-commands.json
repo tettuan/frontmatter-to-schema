@@ -1,8 +1,0 @@
-{
-  "version": "{version}",
-  "description": "Existing Registry",
-  "tools": {
-    "availableConfigs": [],
-    "commands": []
-  }
-}
