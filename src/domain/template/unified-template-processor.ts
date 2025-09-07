@@ -41,7 +41,11 @@ export type TemplateProcessingContext =
 /**
  * Placeholder Pattern Types (Constrained Value Type)
  */
-export type PlaceholderPatternType = "mustache" | "dollar" | "percent" | "brace";
+export type PlaceholderPatternType =
+  | "mustache"
+  | "dollar"
+  | "percent"
+  | "brace";
 
 /**
  * Processing Result - Discriminated Union (Totality Pattern)

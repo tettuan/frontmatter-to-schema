@@ -254,7 +254,8 @@ Deno.test("UnifiedTemplateProcessor - Brace Format Replacement", async (t) => {
 
   await t.step("should handle registry template format", () => {
     // Test based on requirements.ja.md examples
-    const template = '{"version": "{version}", "tools": {"availableConfigs": "{tools.availableConfigs}"}}';
+    const template =
+      '{"version": "{version}", "tools": {"availableConfigs": "{tools.availableConfigs}"}}';
     const context: TemplateProcessingContext = {
       kind: "SimpleReplacement",
       data: {
