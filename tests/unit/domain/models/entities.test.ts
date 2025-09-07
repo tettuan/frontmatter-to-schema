@@ -706,7 +706,7 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
     // assertEquals(parsed.results.length, 2);
     // assertEquals(parsed.results[0].document.title, "Mapped Title 0");
     // assertEquals(parsed.results[1].document.title, "Mapped Title 1");
-    
+
     // For now, just verify the aggregated result was created
     assertEquals(aggregated.getFormat(), "json");
     assertEquals(aggregated.getResults().length, 2);
@@ -724,7 +724,7 @@ Deno.test("AggregatedResult - Creation and Output", async (t) => {
 
     // assertEquals(output.includes("results:"), true);
     // assertEquals(output.includes("Mapped Title 0"), true);
-    
+
     // For now, just verify the aggregated result was created
     assertEquals(aggregated.getFormat(), "yaml");
     assertEquals(aggregated.getResults().length, 1);

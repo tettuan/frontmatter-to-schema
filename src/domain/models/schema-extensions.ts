@@ -71,7 +71,7 @@ export class SchemaTemplateInfo {
         },
       };
     }
-    
+
     const templatePath = schema["x-template"] as string | undefined;
     const isFrontmatterPart = schema["x-frontmatter-part"] === true;
     const derivationRules = new Map<string, DerivedFieldInfo>();
