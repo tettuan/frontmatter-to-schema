@@ -24,7 +24,7 @@ export class SchemaConfigLoader {
     private readonly fileSystem: FileSystemRepository,
     private readonly basePath: string = "./configs/schemas",
   ) {
-    this.refResolver = new SchemaRefResolver(basePath);
+    this.refResolver = new SchemaRefResolver(fileSystem, basePath);
   }
 
   /**

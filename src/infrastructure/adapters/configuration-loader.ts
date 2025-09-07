@@ -3,6 +3,7 @@
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import { SchemaRefResolver } from "../../domain/config/schema-ref-resolver.ts";
+import type { FileSystemRepository } from "../../domain/repositories/file-system-repository.ts";
 
 // Type guard helper following Totality principle
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -54,7 +55,11 @@ import type {
 
 export class ConfigurationLoader
   implements ConfigurationRepository, SchemaRepository, ResultRepository {
-  private readonly refResolver = new SchemaRefResolver(".");
+  private readonly refResolver: SchemaRefResolver;
+
+  constructor(fileSystemRepository: FileSystemRepository) {
+    this.refResolver = new SchemaRefResolver(fileSystemRepository, ".");
+  }
   async loadProcessingConfig(
     path: ConfigPath,
   ): Promise<

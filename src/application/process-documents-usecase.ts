@@ -8,6 +8,7 @@
 
 import type { Result } from "../domain/core/result.ts";
 import { SchemaRefResolver } from "../domain/config/schema-ref-resolver.ts";
+import type { FileSystemRepository } from "../domain/repositories/file-system-repository.ts";
 import { FrontmatterExtractor } from "../domain/services/frontmatter-extractor-v2.ts";
 import {
   AggregationContext,
@@ -57,8 +58,12 @@ export class ProcessDocumentsUseCase {
   private readonly frontmatterExtractor: FrontmatterExtractor;
   private readonly aggregationService: AggregationService;
 
-  constructor(private readonly options: ProcessDocumentsOptions = {}) {
+  constructor(
+    private readonly fileSystem: FileSystemRepository,
+    private readonly options: ProcessDocumentsOptions = {},
+  ) {
     this.schemaResolver = new SchemaRefResolver(
+      fileSystem,
       path.dirname(options.dryRun ? "." : "."),
     );
     this.frontmatterExtractor = new FrontmatterExtractor();
@@ -221,13 +226,22 @@ export class ProcessDocumentsUseCase {
     }, { kind: string; message: string }>
   > {
     try {
-      // Read schema file
-      const schemaContent = await Deno.readTextFile(schemaPath);
-      const rawSchema = JSON.parse(schemaContent);
+      // Read schema file using injected file system
+      const readResult = await this.fileSystem.readFile(schemaPath);
+      if (!readResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "FileNotFound",
+            message: `Schema file not found: ${schemaPath}`,
+          },
+        };
+      }
+      const rawSchema = JSON.parse(readResult.data);
 
       // Set base path for $ref resolution
       const basePath = path.dirname(schemaPath);
-      const resolver = new SchemaRefResolver(basePath);
+      const resolver = new SchemaRefResolver(this.fileSystem, basePath);
 
       // Resolve and extract template info
       const result = await resolver.resolveAndExtractTemplateInfo(rawSchema);

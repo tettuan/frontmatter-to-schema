@@ -31,14 +31,14 @@ export class EnvironmentConfig {
   private cache: Map<string, string | undefined> = new Map();
 
   private constructor(
-    private readonly environmentRepo?: EnvironmentRepository,
+    private readonly environmentRepo: EnvironmentRepository,
   ) {}
 
   /**
    * Get singleton instance
    */
   static getInstance(
-    environmentRepo?: EnvironmentRepository,
+    environmentRepo: EnvironmentRepository,
   ): EnvironmentConfig {
     if (!EnvironmentConfig.instance) {
       EnvironmentConfig.instance = new EnvironmentConfig(environmentRepo);
@@ -51,8 +51,7 @@ export class EnvironmentConfig {
    */
   private getEnvVar(key: string): string | undefined {
     if (!this.cache.has(key)) {
-      // Use repository if available, otherwise fall back to Deno.env for backward compatibility
-      const value = this.environmentRepo?.get(key) ?? Deno.env.get(key);
+      const value = this.environmentRepo.get(key);
       this.cache.set(key, value);
     }
     return this.cache.get(key);
@@ -63,6 +62,13 @@ export class EnvironmentConfig {
    */
   clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Reset singleton instance (for testing only)
+   */
+  static resetSingleton(): void {
+    EnvironmentConfig.instance = null;
   }
 
   /**
@@ -149,7 +155,7 @@ export class EnvironmentConfig {
 
 // Export singleton instance getter for convenience
 export const getEnvironmentConfig = (
-  environmentRepo?: EnvironmentRepository,
+  environmentRepo: EnvironmentRepository,
 ): EnvironmentConfig => {
   return EnvironmentConfig.getInstance(environmentRepo);
 };

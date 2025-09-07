@@ -2,14 +2,14 @@
 // Addresses Issue #410: Excessive logging verbosity and infrastructure code smell
 
 import { StructuredLogger } from "./logger.ts";
-import { getEnvironmentConfig } from "../config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 
 export class VerboseLogger {
   private readonly isVerbose: boolean;
   private readonly serviceName: string;
 
   constructor(serviceName: string) {
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     this.isVerbose = envConfig.getVerboseMode();
     this.serviceName = serviceName;
   }

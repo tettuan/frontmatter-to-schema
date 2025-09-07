@@ -13,7 +13,7 @@ import {
   isOk,
   type Result,
 } from "../core/result.ts";
-import { getEnvironmentConfig } from "../config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 import {
   AnalysisResult,
   type Document,
@@ -106,7 +106,7 @@ export class ProcessDocumentAnalysisService {
    * Extract frontmatter from document with enhanced error handling
    */
   private extractFrontMatter(document: Document) {
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const verboseMode = envConfig.getVerboseMode();
     const docPath = document.getPath().getValue();
 
@@ -151,7 +151,7 @@ export class ProcessDocumentAnalysisService {
     schema: Schema,
     docPath: string,
   ) {
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const verboseMode = envConfig.getVerboseMode();
 
     const extractedResult = await this.schemaAnalyzer.analyze(
@@ -196,7 +196,7 @@ export class ProcessDocumentAnalysisService {
     schema: Schema,
     docPath: string,
   ) {
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const verboseMode = envConfig.getVerboseMode();
 
     const schemaDefinition = schema.getDefinition().getRawDefinition();

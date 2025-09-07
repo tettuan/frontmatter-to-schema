@@ -6,6 +6,54 @@
 
 import { assert, assertEquals } from "jsr:@std/assert@1.0.9";
 import { SchemaRefResolver } from "../../../../src/domain/config/schema-ref-resolver.ts";
+import type { FileSystemRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
+import type { DomainError } from "../../../../src/domain/core/result.ts";
+
+// Mock FileSystemRepository for testing
+class TestFileSystemRepository implements FileSystemRepository {
+  private files = new Map<string, string>();
+
+  // Set test files
+  setFile(path: string, content: string): void {
+    this.files.set(path, content);
+  }
+
+  readFile(
+    path: string,
+  ): Promise<{ ok: true; data: string } | { ok: false; error: DomainError }> {
+    const content = this.files.get(path);
+    if (content === undefined) {
+      return Promise.resolve({
+        ok: false,
+        error: { kind: "FileNotFound", path },
+      });
+    }
+    return Promise.resolve({ ok: true, data: content });
+  }
+
+  writeFile(
+    _path: string,
+    _content: string,
+  ): Promise<{ ok: true; data: void } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: undefined });
+  }
+
+  ensureDirectory(
+    _path: string,
+  ): Promise<{ ok: true; data: void } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: undefined });
+  }
+
+  exists(
+    path: string,
+  ): Promise<{ ok: true; data: boolean } | { ok: false; error: DomainError }> {
+    return Promise.resolve({ ok: true, data: this.files.has(path) });
+  }
+
+  async *findFiles(_pattern: string): AsyncIterable<string> {
+    // Not needed for these tests
+  }
+}
 
 // Create test schemas
 const mainSchema = {
@@ -30,52 +78,35 @@ const commandSchema = {
 };
 
 Deno.test("SchemaRefResolver should resolve external file $ref", async () => {
-  // Create temporary test files
-  const tempDir = await Deno.makeTempDir();
+  // Create mock file system repository
+  const mockFileSystem = new TestFileSystemRepository();
 
-  try {
-    // Write main schema
-    await Deno.writeTextFile(
-      `${tempDir}/main.schema.json`,
-      JSON.stringify(mainSchema),
-    );
+  // Set up test files
+  mockFileSystem.setFile("command.schema.json", JSON.stringify(commandSchema));
 
-    // Write referenced schema
-    await Deno.writeTextFile(
-      `${tempDir}/command.schema.json`,
-      JSON.stringify(commandSchema),
-    );
+  // Create resolver with mock file system
+  const resolver = new SchemaRefResolver(mockFileSystem, ".");
 
-    // Create resolver with temp directory as base
-    const resolver = new SchemaRefResolver(tempDir);
+  // Resolve the schema
+  const result = await resolver.resolveSchema(mainSchema, "main.schema.json");
 
-    // Resolve the schema
-    const result = await resolver.resolveSchema(
-      mainSchema,
-      `${tempDir}/main.schema.json`,
-    );
+  assert(result.ok, "Resolution should succeed");
 
-    assert(result.ok, "Resolution should succeed");
+  // Check that $ref was resolved
+  const resolved = result.data as any;
+  assertEquals(resolved.type, "object");
+  assertEquals(resolved.properties.commands.type, "array");
 
-    // Check that $ref was resolved
-    const resolved = result.data as any;
-    assertEquals(resolved.type, "object");
-    assertEquals(resolved.properties.commands.type, "array");
-
-    // The $ref should be replaced with the actual schema
-    assertEquals(resolved.properties.commands.items.type, "object");
-    assertEquals(
-      resolved.properties.commands.items.properties.c1.type,
-      "string",
-    );
-    assertEquals(
-      resolved.properties.commands.items.required,
-      ["c1", "c2", "c3"],
-    );
-  } finally {
-    // Clean up
-    await Deno.remove(tempDir, { recursive: true });
-  }
+  // The $ref should be replaced with the actual schema
+  assertEquals(resolved.properties.commands.items.type, "object");
+  assertEquals(
+    resolved.properties.commands.items.properties.c1.type,
+    "string",
+  );
+  assertEquals(
+    resolved.properties.commands.items.required,
+    ["c1", "c2", "c3"],
+  );
 });
 
 Deno.test("SchemaRefResolver should handle nested $ref resolution", async () => {
@@ -110,45 +141,28 @@ Deno.test("SchemaRefResolver should handle nested $ref resolution", async () => 
     "enum": ["value1", "value2"],
   };
 
-  const tempDir = await Deno.makeTempDir();
+  // Set up mock file system with test data
+  const mockFileSystem = new TestFileSystemRepository();
+  mockFileSystem.setFile("nested.json", JSON.stringify(nestedRef));
+  mockFileSystem.setFile("leaf.json", JSON.stringify(leafSchema));
 
-  try {
-    await Deno.writeTextFile(
-      `${tempDir}/main.json`,
-      JSON.stringify(nestedSchema),
-    );
-    await Deno.writeTextFile(
-      `${tempDir}/nested.json`,
-      JSON.stringify(nestedRef),
-    );
-    await Deno.writeTextFile(
-      `${tempDir}/leaf.json`,
-      JSON.stringify(leafSchema),
-    );
+  const resolver = new SchemaRefResolver(mockFileSystem, ".");
+  const result = await resolver.resolveSchema(nestedSchema, "main.json");
 
-    const resolver = new SchemaRefResolver(tempDir);
-    const result = await resolver.resolveSchema(
-      nestedSchema,
-      `${tempDir}/main.json`,
-    );
+  assert(result.ok, "Nested resolution should succeed");
 
-    assert(result.ok, "Nested resolution should succeed");
-
-    const resolved = result.data as any;
-    // Check nested resolution
-    assertEquals(
-      resolved.properties.tools.properties.commands.items.properties.nested
-        .type,
-      "string",
-    );
-    assertEquals(
-      resolved.properties.tools.properties.commands.items.properties.nested
-        .enum,
-      ["value1", "value2"],
-    );
-  } finally {
-    await Deno.remove(tempDir, { recursive: true });
-  }
+  const resolved = result.data as any;
+  // Check nested resolution
+  assertEquals(
+    resolved.properties.tools.properties.commands.items.properties.nested
+      .type,
+    "string",
+  );
+  assertEquals(
+    resolved.properties.tools.properties.commands.items.properties.nested
+      .enum,
+    ["value1", "value2"],
+  );
 });
 
 Deno.test("SchemaRefResolver should detect circular references", async () => {
@@ -166,32 +180,19 @@ Deno.test("SchemaRefResolver should detect circular references", async () => {
     },
   };
 
-  const tempDir = await Deno.makeTempDir();
+  // Set up mock file system with circular references
+  const mockFileSystem = new TestFileSystemRepository();
+  mockFileSystem.setFile("a.json", JSON.stringify(circularA));
+  mockFileSystem.setFile("b.json", JSON.stringify(circularB));
 
-  try {
-    await Deno.writeTextFile(
-      `${tempDir}/a.json`,
-      JSON.stringify(circularA),
-    );
-    await Deno.writeTextFile(
-      `${tempDir}/b.json`,
-      JSON.stringify(circularB),
-    );
+  const resolver = new SchemaRefResolver(mockFileSystem, ".");
+  const result = await resolver.resolveSchema(circularA, "a.json");
 
-    const resolver = new SchemaRefResolver(tempDir);
-    const result = await resolver.resolveSchema(
-      circularA,
-      `${tempDir}/a.json`,
-    );
-
-    assert(!result.ok, "Should detect circular reference");
-    assert(
-      result.error.message.includes("Circular reference"),
-      "Error should mention circular reference",
-    );
-  } finally {
-    await Deno.remove(tempDir, { recursive: true });
-  }
+  assert(!result.ok, "Should detect circular reference");
+  assert(
+    result.error.message.includes("Circular reference"),
+    "Error should mention circular reference",
+  );
 });
 
 Deno.test("SchemaRefResolver should handle missing file references", async () => {
@@ -202,7 +203,8 @@ Deno.test("SchemaRefResolver should handle missing file references", async () =>
     },
   };
 
-  const resolver = new SchemaRefResolver("/tmp");
+  const mockFileSystem = new TestFileSystemRepository();
+  const resolver = new SchemaRefResolver(mockFileSystem, "/tmp");
   const result = await resolver.resolveSchema(
     schemaWithMissingRef,
     "/tmp/main.json",
@@ -231,32 +233,22 @@ Deno.test("SchemaRefResolver should preserve non-ref properties", async () => {
     "minimum": 0,
   };
 
-  const tempDir = await Deno.makeTempDir();
+  // Set up mock file system with referenced schema
+  const mockFileSystem = new TestFileSystemRepository();
+  mockFileSystem.setFile("simple.json", JSON.stringify(simpleSchema));
 
-  try {
-    await Deno.writeTextFile(
-      `${tempDir}/simple.json`,
-      JSON.stringify(simpleSchema),
-    );
+  const resolver = new SchemaRefResolver(mockFileSystem, ".");
+  const result = await resolver.resolveSchema(schemaWithMixed, "main.json");
 
-    const resolver = new SchemaRefResolver(tempDir);
-    const result = await resolver.resolveSchema(
-      schemaWithMixed,
-      `${tempDir}/main.json`,
-    );
+  assert(result.ok, "Resolution should succeed");
 
-    assert(result.ok, "Resolution should succeed");
+  const resolved = result.data as any;
+  // Check that non-ref properties are preserved
+  assertEquals(resolved.title, "Mixed Schema");
+  assertEquals(resolved.description, "Has both refs and regular properties");
+  assertEquals(resolved.properties.regular.type, "string");
 
-    const resolved = result.data as any;
-    // Check that non-ref properties are preserved
-    assertEquals(resolved.title, "Mixed Schema");
-    assertEquals(resolved.description, "Has both refs and regular properties");
-    assertEquals(resolved.properties.regular.type, "string");
-
-    // Check that ref was resolved
-    assertEquals(resolved.properties.referenced.type, "number");
-    assertEquals(resolved.properties.referenced.minimum, 0);
-  } finally {
-    await Deno.remove(tempDir, { recursive: true });
-  }
+  // Check that ref was resolved
+  assertEquals(resolved.properties.referenced.type, "number");
+  assertEquals(resolved.properties.referenced.minimum, 0);
 });

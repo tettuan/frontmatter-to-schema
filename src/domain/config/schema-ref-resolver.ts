@@ -16,6 +16,7 @@ import {
   type ExtendedSchema,
   SchemaTemplateInfo,
 } from "../models/schema-extensions.ts";
+import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 /**
  * Resolves $ref references in JSON Schema objects
@@ -25,6 +26,7 @@ export class SchemaRefResolver {
   private resolutionStack: Set<string> = new Set();
 
   constructor(
+    private readonly fileSystem: FileSystemRepository,
     private readonly basePath: string = ".",
   ) {}
 
@@ -134,9 +136,21 @@ export class SchemaRefResolver {
       ? refPath
       : path.join(this.basePath, refPath);
 
+    const readResult = await this.fileSystem.readFile(absolutePath);
+
+    if (!readResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "FileNotFound",
+          path: absolutePath,
+          ref: refPath,
+        }, `Referenced schema file not found: ${refPath}`),
+      };
+    }
+
     try {
-      const content = await Deno.readTextFile(absolutePath);
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(readResult.data);
 
       // Recursively resolve the loaded schema
       const resolvedResult = await this.resolveSchema(parsed, absolutePath);
@@ -147,17 +161,6 @@ export class SchemaRefResolver {
 
       return resolvedResult;
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "FileNotFound",
-            path: absolutePath,
-            ref: refPath,
-          }, `Referenced schema file not found: ${refPath}`),
-        };
-      }
-
       if (error instanceof SyntaxError) {
         return {
           ok: false,
@@ -311,6 +314,9 @@ export class SchemaRefResolver {
 /**
  * Factory function to create a schema resolver
  */
-export function createSchemaRefResolver(basePath?: string): SchemaRefResolver {
-  return new SchemaRefResolver(basePath);
+export function createSchemaRefResolver(
+  fileSystem: FileSystemRepository,
+  basePath?: string,
+): SchemaRefResolver {
+  return new SchemaRefResolver(fileSystem, basePath);
 }

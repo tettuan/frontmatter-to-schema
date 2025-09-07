@@ -22,6 +22,7 @@ import {
 } from "./value-objects.ts";
 import { asObjectRecord } from "../shared/type-guards.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
+import { ValidToolsConfig } from "../config/valid-tools-config.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
@@ -29,68 +30,34 @@ import type { FileSystemRepository } from "../repositories/file-system-repositor
  * Now uses dependency injection for file system operations
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
-  private validTools: string[] | null = null;
+  private validToolsConfig: ValidToolsConfig | null = null;
 
   constructor(
-    private readonly fileSystem?: FileSystemRepository,
+    private readonly fileSystem: FileSystemRepository,
     private readonly defaultVersion: string = "1.0.0",
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
   ) {}
 
   /**
-   * Get valid tools from configuration or use defaults
+   * Get valid tools configuration using Smart Constructor
    */
-  private async getValidTools(): Promise<string[]> {
-    if (this.validTools !== null) {
-      return this.validTools;
+  private async getValidToolsConfig(): Promise<ValidToolsConfig> {
+    if (this.validToolsConfig !== null) {
+      return this.validToolsConfig;
     }
 
-    // If fileSystem is injected, try to load from config file
-    if (this.fileSystem) {
-      const configPath = "./config/valid-tools.json";
-      const readResult = await this.fileSystem.readFile(configPath);
+    // Try to load from config file using Smart Constructor
+    const configResult = await ValidToolsConfig.create(this.fileSystem);
 
-      if (readResult.ok) {
-        try {
-          const config = JSON.parse(readResult.data);
-          this.validTools = config.validTools || [];
-          return this.validTools as string[];
-        } catch {
-          // Fall through to default if parse fails
-        }
-      }
-    } else {
-      // Try to load from import.meta.url if no fileSystem
-      try {
-        const configPath = new URL(
-          "../../config/valid-tools.json",
-          import.meta.url,
-        );
-        const configContent = await Deno.readTextFile(configPath);
-        const config = JSON.parse(configContent);
-        this.validTools = config.validTools || [];
-        return this.validTools!;
-      } catch {
-        // Fall through to default if file cannot be loaded
-      }
+    if (configResult.ok) {
+      this.validToolsConfig = configResult.data;
+      return this.validToolsConfig;
     }
 
-    // Fallback to default tools if config file cannot be loaded or no fileSystem
-    this.validTools = [
-      "git",
-      "spec",
-      "test",
-      "code",
-      "docs",
-      "meta",
-      "debug",
-      "config",
-      "setup",
-      "build",
-      "refactor",
-    ];
-    return this.validTools;
+    // Fallback to default configuration if loading fails
+    this.validToolsConfig = ValidToolsConfig.createDefault();
+    return this.validToolsConfig;
   }
 
   /**
@@ -336,10 +303,10 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
     const parts = documentPath.split("/");
 
     // Find the tool name (usually first directory in path)
+    const validToolsConfig = await this.getValidToolsConfig();
     for (const part of parts) {
       const cleaned = part.toLowerCase().replace(/[^a-z]/g, "");
-      const validTools = await this.getValidTools();
-      if (validTools.includes(cleaned)) {
+      if (validToolsConfig.isValidTool(cleaned)) {
         return cleaned;
       }
     }
@@ -349,8 +316,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       const promptParts = documentPath.split("prompts/")[1]?.split("/") || [];
       if (promptParts.length > 0) {
         const toolCandidate = promptParts[0].toLowerCase();
-        const validTools = await this.getValidTools();
-        if (validTools.includes(toolCandidate)) {
+        if (validToolsConfig.isValidTool(toolCandidate)) {
           return toolCandidate;
         }
       }
@@ -417,7 +383,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
  * Factory function to create TypeScriptAnalyzer
  */
 export function createTypeScriptAnalyzer(
-  fileSystem?: FileSystemRepository,
+  fileSystem: FileSystemRepository,
   defaultVersion?: string,
   defaultDescription?: string,
 ): TypeScriptAnalyzer {

@@ -9,6 +9,7 @@
 
 import { CLIArgumentParser } from "./presentation/cli-arguments.ts";
 import { ProcessDocumentsUseCase } from "./application/process-documents-usecase.ts";
+import { DenoFileSystemRepository } from "./infrastructure/adapters/deno-file-system-repository.ts";
 
 const VERSION = "1.0.0";
 
@@ -61,13 +62,19 @@ export class CLI {
     }
 
     try {
+      // Create file system repository
+      const fileSystemRepo = new DenoFileSystemRepository();
+
       // Create and execute the use case
-      const useCase = new ProcessDocumentsUseCase({
-        verbose: cliArgs.options.verbose,
-        dryRun: cliArgs.options.dryRun,
-        parallel: cliArgs.options.parallel,
-        maxWorkers: cliArgs.options.maxWorkers,
-      });
+      const useCase = new ProcessDocumentsUseCase(
+        fileSystemRepo,
+        {
+          verbose: cliArgs.options.verbose,
+          dryRun: cliArgs.options.dryRun,
+          parallel: cliArgs.options.parallel,
+          maxWorkers: cliArgs.options.maxWorkers,
+        },
+      );
 
       const result = await useCase.execute({
         schemaPath: cliArgs.schemaPath.toString(),

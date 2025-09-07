@@ -10,7 +10,7 @@ export type Result<T, E> =
 
 ## 共通エラー型
 
-```typescript
+````typescript
 export type ValidationError =
   | { kind: "EmptyInput"; message: string }
   | { kind: "PatternMismatch"; value: string; pattern: string; message: string }
@@ -73,4 +73,4 @@ export interface ExtendedSchemaProperty extends Record<string, unknown>, SchemaE
   items?: ExtendedSchemaProperty;
   $ref?: string;
 }
-```
+````

@@ -7,7 +7,7 @@ import {
   isOk,
   type Result,
 } from "../../domain/core/result.ts";
-import { getEnvironmentConfig } from "../../domain/config/environment-config.ts";
+import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
 import {
   AnalysisResult,
   type Document,
@@ -57,7 +57,7 @@ export class ProcessDocumentsUseCase {
     Result<ProcessDocumentsUseCaseOutput, DomainError & { message: string }>
   > {
     const { config } = input;
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const verboseMode = envConfig.getVerboseMode();
 
     // Verbose: Pipeline start
@@ -422,7 +422,7 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ): Promise<Result<AnalysisResult, DomainError & { message: string }>> {
-    const envConfig = getEnvironmentConfig();
+    const envConfig = getGlobalEnvironmentConfig();
     const verboseMode = envConfig.getVerboseMode();
     const docPath = document.getPath().getValue();
 
