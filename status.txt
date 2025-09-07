@@ -1,0 +1,3 @@
+PR #513 created. Need proper RegistryBuilder tests with context parameter. Issue #499 requires specification-driven testing approach.
+
+Next: Implement correct tests or move to code duplication fixes (issue #500).
