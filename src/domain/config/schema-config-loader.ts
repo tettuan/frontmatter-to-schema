@@ -139,8 +139,19 @@ export class SchemaConfigLoader {
 }
 
 // Export convenience function
+// Note: This function now requires a FileSystemRepository to be provided
+// For backward compatibility, you can pass undefined if file system access is not needed
 export const getSchemaConfigLoader = (
+  fileSystem?: FileSystemRepository,
   basePath?: string,
 ): SchemaConfigLoader => {
-  return SchemaConfigLoader.getInstance(basePath);
+  // If no fileSystem provided, create a stub that returns errors
+  const stubFileSystem: FileSystemRepository = fileSystem || {
+    readFile: async () => ({ ok: false, error: createDomainError({ kind: "FileNotFound" as const, path: "" }) }),
+    writeFile: async () => ({ ok: false, error: createDomainError({ kind: "WriteError" as const, path: "", details: "No filesystem provided" }) }),
+    ensureDirectory: async () => ({ ok: false, error: createDomainError({ kind: "WriteError" as const, path: "", details: "No filesystem provided" }) }),
+    exists: async () => ({ ok: true, data: false }),
+    findFiles: async function* () {},
+  };
+  return new SchemaConfigLoader(stubFileSystem, basePath);
 };

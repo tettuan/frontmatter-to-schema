@@ -47,7 +47,8 @@ export class EnvironmentConfig {
    */
   private getEnvVar(key: string): string | undefined {
     if (!this.cache.has(key)) {
-      const value = this.environmentRepo?.get(key);
+      // Use repository if available, otherwise fall back to Deno.env for backward compatibility
+      const value = this.environmentRepo?.get(key) ?? Deno.env.get(key);
       this.cache.set(key, value);
     }
     return this.cache.get(key);
