@@ -20,6 +20,7 @@ import { getEnvironmentConfig } from "./src/domain/config/environment-config.ts"
 import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
 import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
 import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
+import { DenoFileSystemRepository } from "./src/infrastructure/adapters/deno-file-system-repository.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
 import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
@@ -343,7 +344,10 @@ export async function main() {
       Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
     }
 
+    // Create file system repository for TypeScript analyzer
+    const fileSystemRepo = new DenoFileSystemRepository();
     const schemaAnalyzer = createTypeScriptAnalyzer(
+      fileSystemRepo,
       "1.0.0",
       "Climpt Command Registry",
     );

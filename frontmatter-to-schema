@@ -4,4 +4,4 @@
 # Replaces compiled binary with deno run execution
 #
 
-exec deno run --allow-read --allow-write --allow-env --allow-run "$(dirname "$0")/src/main.ts" "$@"
+exec deno run --allow-read --allow-write --allow-env --allow-run "$(dirname "$0")/cli.ts" "$@"

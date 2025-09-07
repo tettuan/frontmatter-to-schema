@@ -22,6 +22,10 @@ import {
 } from "./domain/core/logging-service.ts";
 import { EnvironmentConfig } from "./infrastructure/adapters/environment-config.ts";
 import { PathConfigurationFactory } from "./domain/core/path-configuration.ts";
+import {
+  DenoFileSystemRepository,
+  DenoEnvironmentRepository,
+} from "./infrastructure/adapters/deno-file-system-repository.ts";
 // Future factory architecture - will be integrated in next phase
 // import type {
 //   FactoryConfigurationBuilder,
@@ -109,8 +113,13 @@ Return ONLY a JSON object with the mapped data.`,
  * @deprecated Will be replaced by the modern schema-driven approach
  */
 async function runBuildRegistry() {
+  // Create repositories for dependency injection
+  const environmentRepo = new DenoEnvironmentRepository();
+  const fileSystemRepo = new DenoFileSystemRepository();
+  const pathConfigFactory = new PathConfigurationFactory(environmentRepo, fileSystemRepo);
+  
   // Use centralized path configuration
-  const pathConfig = PathConfigurationFactory.createDefault();
+  const pathConfig = pathConfigFactory.createDefault();
   const PROMPTS_PATH = pathConfig.registryPrompts;
   const OUTPUT_PATH = pathConfig.registryOutput;
 
@@ -349,11 +358,15 @@ Examples:
     // Load prompt templates
     const _prompts = await loadPromptTemplates();
 
-    // Initialize schema analyzer using TypeScript analyzer
+    // Create repositories for dependency injection
+    const fileSystemRepo = new DenoFileSystemRepository();
+    
+    // Initialize schema analyzer using TypeScript analyzer with file system repository
     const { createTypeScriptAnalyzer } = await import(
       "./domain/analyzers/typescript-analyzer.ts"
     );
     const schemaAnalyzer = createTypeScriptAnalyzer(
+      fileSystemRepo,
       "1.0.0",
       "Main Application",
     );

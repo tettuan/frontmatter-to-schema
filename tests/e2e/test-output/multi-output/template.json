@@ -1,0 +1,24 @@
+{
+  "results": [
+    {
+      "ok": true,
+      "data": {
+        "tools": {
+          "commands[]": {
+            "description": "Test registry document 1"
+          }
+        }
+      }
+    },
+    {
+      "ok": true,
+      "data": {
+        "tools": {
+          "commands[]": {
+            "description": "Test registry document 2"
+          }
+        }
+      }
+    }
+  ]
+}
