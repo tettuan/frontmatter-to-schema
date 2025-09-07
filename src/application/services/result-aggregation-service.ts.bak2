@@ -18,6 +18,7 @@ import type {
   ResultAggregator,
   ResultRepository,
 } from "../../domain/services/interfaces.ts";
+import { LoggingDecoratorService } from "../../domain/services/logging-decorator-service.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 
 export interface ProcessingResults {
@@ -101,6 +102,11 @@ export class ResultAggregationService {
       errors: progress.errors,
     };
 
+    LoggingDecoratorService.logInfo(
+      { service: "ResultAggregationService", operation: "aggregateResults" },
+      `Results aggregated: ${finalResults.processedCount} processed, ${finalResults.failedCount} failed`,
+    );
+
     return { ok: true, data: finalResults };
   }
 
@@ -123,6 +129,11 @@ export class ResultAggregationService {
         });
       }
     }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResultAggregationService", operation: "categorizeResults" },
+      `Categorized results: ${successful.length} successful, ${errors.length} failed`,
+    );
 
     return { successful, errors };
   }

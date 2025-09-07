@@ -101,6 +101,11 @@ export class ResultAggregationService {
       errors: progress.errors,
     };
 
+    LoggingDecoratorService.logInfo(
+      { service: "ResultAggregationService", operation: "aggregateResults" },
+      `Results aggregated: ${finalResults.processedCount} processed, ${finalResults.failedCount} failed`,
+    );
+
     return { ok: true, data: finalResults };
   }
 
@@ -123,6 +128,11 @@ export class ResultAggregationService {
         });
       }
     }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResultAggregationService", operation: "categorizeResults" },
+      `Categorized results: ${successful.length} successful, ${errors.length} failed`,
+    );
 
     return { successful, errors };
   }

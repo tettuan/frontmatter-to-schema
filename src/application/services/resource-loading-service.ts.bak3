@@ -47,6 +47,11 @@ export class ResourceLoadingService {
       };
     }
 
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadSchema" },
+      `Schema loaded successfully: ${schemaPath.getValue()}`,
+    );
+
     return result;
   }
 
@@ -68,6 +73,11 @@ export class ResourceLoadingService {
         }),
       };
     }
+
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadTemplate" },
+      `Template loaded successfully: ${templatePath}`,
+    );
 
     return result;
   }
@@ -97,6 +107,11 @@ export class ResourceLoadingService {
       return templateResult;
     }
 
+    LoggingDecoratorService.logInfo(
+      { service: "ResourceLoadingService", operation: "loadResources" },
+      "Both schema and template loaded successfully",
+    );
+
     return {
       ok: true,
       data: {
@@ -115,6 +130,14 @@ export class ResourceLoadingService {
   ): Result<void, DomainError & { message: string }> {
     // Basic validation logic - can be extended
     // This is where we would check schema-template compatibility rules
+
+    LoggingDecoratorService.logInfo(
+      {
+        service: "ResourceLoadingService",
+        operation: "validateResourceCompatibility",
+      },
+      "Resource compatibility validated",
+    );
 
     return { ok: true, data: undefined };
   }

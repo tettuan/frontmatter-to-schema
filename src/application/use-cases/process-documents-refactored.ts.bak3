@@ -63,6 +63,11 @@ export class ProcessDocumentsUseCase {
     const envConfig = getEnvironmentConfig();
     const concurrentMode = !envConfig.getDebugMode(); // Use concurrent unless in debug mode
 
+    LoggingDecoratorService.logInfo(
+      { service: "ProcessDocumentsUseCase", operation: "execute" },
+      "Starting document processing pipeline",
+    );
+
     // Step 1: Load resources (schema and template)
     const resourcesResult = await this.resourceLoadingService.loadResources(
       config.schemaPath,
@@ -103,6 +108,11 @@ export class ProcessDocumentsUseCase {
       return aggregationResult;
     }
 
+    LoggingDecoratorService.logInfo(
+      { service: "ProcessDocumentsUseCase", operation: "execute" },
+      `Pipeline completed: ${aggregationResult.data.processedCount} processed, ${aggregationResult.data.failedCount} failed`,
+    );
+
     return aggregationResult;
   }
 
@@ -137,6 +147,11 @@ export class ProcessDocumentsUseCase {
       };
     }
 
+    LoggingDecoratorService.logInfo(
+      { service: "ProcessDocumentsUseCase", operation: "loadDocuments" },
+      `Loaded ${documentsResult.data.length} documents`,
+    );
+
     return documentsResult;
   }
 
@@ -148,6 +163,11 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ) {
+    LoggingDecoratorService.logInfo(
+      { service: "ProcessDocumentsUseCase", operation: "processConcurrent" },
+      `Processing ${documents.length} documents concurrently`,
+    );
+
     const promises = documents.map((doc) =>
       this.documentProcessingService.processDocument(doc, schema, template)
     );
@@ -163,6 +183,11 @@ export class ProcessDocumentsUseCase {
     schema: Schema,
     template: Template,
   ) {
+    LoggingDecoratorService.logInfo(
+      { service: "ProcessDocumentsUseCase", operation: "processSequential" },
+      `Processing ${documents.length} documents sequentially`,
+    );
+
     const results = [];
     for (const doc of documents) {
       const result = await this.documentProcessingService

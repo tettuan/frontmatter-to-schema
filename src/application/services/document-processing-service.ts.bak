@@ -46,6 +46,8 @@ export class DocumentProcessingService {
     schema: Schema,
     template: Template,
   ): Promise<Result<AnalysisResult, DomainError & { message: string }>> {
+    const docPath = document.getPath().getValue();
+
     // Step 1: Extract frontmatter
     const frontMatterResult = await this.extractFrontMatter(document);
     if (isError(frontMatterResult)) {
@@ -54,8 +56,7 @@ export class DocumentProcessingService {
         error: createDomainError({
           kind: "ExtractionStrategyFailed",
           strategy: "frontmatter",
-          input: frontMatterResult.error.message ||
-            "Failed to extract frontmatter",
+          input: frontMatterResult.error.message || "Failed to extract frontmatter",
         }),
       };
     }
@@ -106,6 +107,11 @@ export class DocumentProcessingService {
       mappingResult.data,
     );
 
+    LoggingDecoratorService.logInfo(
+      { service: "DocumentProcessingService", operation: "processDocument" },
+      `Successfully processed document: ${docPath}`,
+    );
+
     return { ok: true, data: result };
   }
 
@@ -133,6 +139,11 @@ export class DocumentProcessingService {
       };
     }
 
+    LoggingDecoratorService.logInfo(
+      { service: "DocumentProcessingService", operation: "extractFrontMatter" },
+      `Frontmatter extracted from: ${document.getPath().getValue()}`,
+    );
+
     return { ok: true, data: frontMatterResult.data.frontMatter };
   }
 
@@ -151,6 +162,11 @@ export class DocumentProcessingService {
     if (isError(analysisResult)) {
       return analysisResult;
     }
+
+    LoggingDecoratorService.logInfo(
+      { service: "DocumentProcessingService", operation: "analyzeWithSchema" },
+      "Schema analysis completed successfully",
+    );
 
     return analysisResult;
   }
@@ -171,6 +187,14 @@ export class DocumentProcessingService {
     if (isError(mappingResult)) {
       return mappingResult;
     }
+
+    LoggingDecoratorService.logInfo(
+      {
+        service: "DocumentProcessingService",
+        operation: "applyTemplateMapping",
+      },
+      "Template mapping completed successfully",
+    );
 
     return mappingResult;
   }
