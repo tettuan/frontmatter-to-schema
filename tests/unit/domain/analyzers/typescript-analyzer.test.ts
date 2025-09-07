@@ -58,6 +58,7 @@ Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
 
   await t.step("should create analyzer with custom values", () => {
     const analyzer = new TypeScriptAnalyzer(
+      undefined, // fileSystem
       "2.0.0",
       "Custom registry description",
     );
@@ -70,7 +71,7 @@ Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
   });
 
   await t.step("should create analyzer with factory and custom values", () => {
-    const analyzer = createTypeScriptAnalyzer("3.0.0", "Factory created");
+    const analyzer = createTypeScriptAnalyzer(undefined, "3.0.0", "Factory created");
     assertExists(analyzer);
   });
 });
@@ -453,7 +454,7 @@ Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
   await t.step("should handle custom default values", async () => {
     const customVersion = "5.0.0-beta";
     const customDescription = "Custom default description";
-    const analyzer = new TypeScriptAnalyzer(customVersion, customDescription);
+    const analyzer = new TypeScriptAnalyzer(undefined, customVersion, customDescription);
 
     const frontMatter = createMockFrontMatter({
       _documentPath: "test/file.md", // Add a document path

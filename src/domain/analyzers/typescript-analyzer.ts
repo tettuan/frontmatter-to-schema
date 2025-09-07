@@ -21,15 +21,18 @@ import {
   RegistryVersion,
 } from "./value-objects.ts";
 import { asObjectRecord } from "../shared/type-guards.ts";
+import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
  * Responsible for transforming frontmatter data to match template/schema structure
+ * Now uses dependency injection for file system operations
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
   private validTools: string[] | null = null;
 
   constructor(
+    private readonly fileSystem?: FileSystemRepository,
     private readonly defaultVersion: string = "1.0.0",
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
@@ -43,29 +46,37 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       return this.validTools;
     }
 
-    try {
-      const configPath = new URL("../../config/valid-tools.json", import.meta.url);
-      const configContent = await Deno.readTextFile(configPath);
-      const config = JSON.parse(configContent);
-      this.validTools = config.validTools || [];
-      return this.validTools;
-    } catch {
-      // Fallback to default tools if config file cannot be loaded
-      this.validTools = [
-        "git",
-        "spec",
-        "test",
-        "code",
-        "docs",
-        "meta",
-        "debug",
-        "config",
-        "setup",
-        "build",
-        "refactor"
-      ];
-      return this.validTools;
+    // If fileSystem is injected, try to load from config file
+    if (this.fileSystem) {
+      const configPath = "./config/valid-tools.json";
+      const readResult = await this.fileSystem.readFile(configPath);
+      
+      if (readResult.ok) {
+        try {
+          const config = JSON.parse(readResult.data);
+          this.validTools = config.validTools || [];
+          return this.validTools as string[];
+        } catch {
+          // Fall through to default if parse fails
+        }
+      }
     }
+
+    // Fallback to default tools if config file cannot be loaded or no fileSystem
+    this.validTools = [
+      "git",
+      "spec",
+      "test",
+      "code",
+      "docs",
+      "meta",
+      "debug",
+      "config",
+      "setup",
+      "build",
+      "refactor"
+    ];
+    return this.validTools;
   }
 
   /**
@@ -374,8 +385,9 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
  * Factory function to create TypeScriptAnalyzer
  */
 export function createTypeScriptAnalyzer(
+  fileSystem?: FileSystemRepository,
   defaultVersion?: string,
   defaultDescription?: string,
 ): TypeScriptAnalyzer {
-  return new TypeScriptAnalyzer(defaultVersion, defaultDescription);
+  return new TypeScriptAnalyzer(fileSystem, defaultVersion, defaultDescription);
 }

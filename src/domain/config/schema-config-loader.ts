@@ -9,26 +9,29 @@ import {
   type Result,
 } from "../core/result.ts";
 import { SCHEMA_IDS } from "../constants/index.ts";
+import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 /**
  * Schema configuration loader for external schema files
+ * Now uses dependency injection for file system operations
  */
 export class SchemaConfigLoader {
-  private static instance: SchemaConfigLoader | null = null;
   private schemaCache: Map<string, unknown> = new Map();
 
-  private constructor(
+  constructor(
+    private readonly fileSystem: FileSystemRepository,
     private readonly basePath: string = "./configs/schemas",
   ) {}
 
   /**
-   * Get singleton instance
+   * Factory method for backward compatibility
+   * @deprecated Use constructor with FileSystemRepository instead
    */
-  static getInstance(basePath?: string): SchemaConfigLoader {
-    if (!SchemaConfigLoader.instance) {
-      SchemaConfigLoader.instance = new SchemaConfigLoader(basePath);
-    }
-    return SchemaConfigLoader.instance;
+  static create(
+    fileSystem: FileSystemRepository,
+    basePath?: string,
+  ): SchemaConfigLoader {
+    return new SchemaConfigLoader(fileSystem, basePath);
   }
 
   /**
@@ -60,21 +63,23 @@ export class SchemaConfigLoader {
   async loadSchemaFromFile(
     path: string,
   ): Promise<Result<unknown, DomainError & { message: string }>> {
+    // Use injected FileSystemRepository instead of direct Deno API
+    const readResult = await this.fileSystem.readFile(path);
+    
+    if (!readResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          readResult.error,
+          `Failed to read schema file: ${path}`
+        ),
+      };
+    }
+
     try {
-      const content = await Deno.readTextFile(path);
-      const schema = JSON.parse(content);
+      const schema = JSON.parse(readResult.data);
       return { ok: true, data: schema };
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "FileNotFound",
-            path,
-          }, `Schema file not found: ${path}`),
-        };
-      }
-
       if (error instanceof SyntaxError) {
         return {
           ok: false,
