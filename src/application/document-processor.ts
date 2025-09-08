@@ -30,7 +30,14 @@ import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { VERSION_CONFIG } from "../config/version.ts";
 import type { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
-import type { ApplicationConfiguration } from "./configuration.ts";
+import type {
+  ApplicationConfiguration,
+  InputConfiguration,
+  OutputFormat,
+  ProcessingConfiguration,
+  SchemaFormat,
+  TemplateFormat,
+} from "./configuration.ts";
 
 export class DocumentProcessor {
   constructor(
@@ -72,13 +79,13 @@ export class DocumentProcessor {
       const transformResult = await this.transformDocument(
         document,
         schema,
-        config.processing?.extractionPrompt,
-        config.processing?.mappingPrompt,
+        this.getExtractionPrompt(config.processing),
+        this.getMappingPrompt(config.processing),
       );
 
       if (isOk(transformResult)) {
         results.push(transformResult.data);
-      } else if (config.processing?.continueOnError !== false) {
+      } else if (this.shouldContinueOnError(config.processing)) {
         errors.push({
           document,
           error: transformResult.error,
@@ -105,11 +112,11 @@ export class DocumentProcessor {
   }
 
   private loadSchema(
-    config: { definition: unknown; format: "json" | "yaml" | "custom" },
+    config: { definition: unknown; format: SchemaFormat },
   ): Result<Schema, DomainError> {
     const definitionResult = SchemaDefinition.create(
       config.definition,
-      config.format,
+      config.format.getValue(),
     );
     if (!definitionResult.ok) {
       // Convert ValidationError to DomainError
@@ -158,12 +165,12 @@ export class DocumentProcessor {
   private loadTemplate(
     config: {
       definition: string;
-      format: "json" | "yaml" | "handlebars" | "custom";
+      format: TemplateFormat;
     },
   ): Result<Template, DomainError> {
     const definitionResult = TemplateDefinition.create(
       config.definition,
-      config.format,
+      config.format.getValue(),
     );
     if (!definitionResult.ok) {
       return definitionResult;
@@ -177,11 +184,17 @@ export class DocumentProcessor {
   }
 
   private async discoverDocuments(
-    config: { path: string; pattern?: string },
+    config: InputConfiguration,
   ): Promise<Result<Document[], DomainError>> {
+    // Extract path and pattern from discriminated union
+    const path = config.path;
+    const pattern = config.kind === "PatternBased"
+      ? config.pattern
+      : FILE_PATTERNS.MARKDOWN;
+
     const filesResult = await this.fileSystem.listFiles(
-      config.path,
-      config.pattern || FILE_PATTERNS.MARKDOWN,
+      path,
+      pattern,
     );
     if (!filesResult.ok) {
       return filesResult;
@@ -287,7 +300,7 @@ export class DocumentProcessor {
   private async generateOutput(
     batchResult: BatchTransformationResult,
     template: Template,
-    config: { path: string; format: "json" | "yaml" | "markdown" },
+    config: { path: string; format: OutputFormat },
   ): Promise<Result<void, DomainError>> {
     const aggregatedData = batchResult.aggregateData();
 
@@ -295,7 +308,7 @@ export class DocumentProcessor {
     const templateMappingResult = this.applyTemplateMapping(
       aggregatedData,
       template,
-      config.format,
+      config.format.getValue(),
     );
 
     if (!templateMappingResult.ok) {
@@ -387,6 +400,52 @@ export class DocumentProcessor {
           message: `Failed to apply template mapping: ${String(error)}`,
         } as DomainError,
       };
+    }
+  }
+
+  /**
+   * Extract extraction prompt from ProcessingConfiguration discriminated union
+   */
+  private getExtractionPrompt(
+    processing: ProcessingConfiguration,
+  ): string | undefined {
+    switch (processing.kind) {
+      case "CustomPrompts":
+      case "FullCustom":
+        return processing.extractionPrompt;
+      case "BasicProcessing":
+      case "ParallelProcessing":
+        return undefined;
+    }
+  }
+
+  /**
+   * Extract mapping prompt from ProcessingConfiguration discriminated union
+   */
+  private getMappingPrompt(
+    processing: ProcessingConfiguration,
+  ): string | undefined {
+    switch (processing.kind) {
+      case "CustomPrompts":
+      case "FullCustom":
+        return processing.mappingPrompt;
+      case "BasicProcessing":
+      case "ParallelProcessing":
+        return undefined;
+    }
+  }
+
+  /**
+   * Determine if processing should continue on error from ProcessingConfiguration
+   */
+  private shouldContinueOnError(processing: ProcessingConfiguration): boolean {
+    switch (processing.kind) {
+      case "ParallelProcessing":
+      case "FullCustom":
+        return processing.continueOnError;
+      case "BasicProcessing":
+      case "CustomPrompts":
+        return false; // Default to false for basic processing
     }
   }
 }

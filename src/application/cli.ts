@@ -3,6 +3,9 @@ import type { DomainError, Result } from "../domain/core/result.ts";
 import {
   type ApplicationConfiguration,
   ConfigurationValidator,
+  OutputFormat,
+  SchemaFormat,
+  TemplateFormat,
 } from "./configuration.ts";
 import { DocumentProcessor } from "./document-processor.ts";
 import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
@@ -155,6 +158,7 @@ export class CLI {
     // Input configuration
     if (args.input) {
       config.input = {
+        kind: "DirectPath",
         path: args.input as string,
       };
     }
@@ -169,14 +173,22 @@ export class CLI {
 
       try {
         const schema = JSON.parse(fileResult.data);
+        const formatResult = SchemaFormat.create("json");
+        if (!formatResult.ok) {
+          return formatResult;
+        }
         config.schema = {
           definition: schema,
-          format: "json",
+          format: formatResult.data,
         };
       } catch {
+        const formatResult = SchemaFormat.create("custom");
+        if (!formatResult.ok) {
+          return formatResult;
+        }
         config.schema = {
           definition: fileResult.data,
-          format: "custom",
+          format: formatResult.data,
         };
       }
     }
@@ -189,26 +201,40 @@ export class CLI {
         return fileResult;
       }
 
+      const formatString = templatePath.endsWith(".json")
+        ? "json"
+        : templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+        ? "yaml"
+        : "custom";
+
+      const formatResult = TemplateFormat.create(formatString);
+      if (!formatResult.ok) {
+        return formatResult;
+      }
+
       config.template = {
         definition: fileResult.data,
-        format: templatePath.endsWith(".json")
-          ? "json"
-          : templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
-          ? "yaml"
-          : "custom",
+        format: formatResult.data,
       };
     }
 
     // Output configuration
     if (args.output) {
       const outputPath = args.output as string;
+      const formatString = outputPath.endsWith(".json")
+        ? "json"
+        : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
+        ? "yaml"
+        : "markdown";
+
+      const formatResult = OutputFormat.create(formatString);
+      if (!formatResult.ok) {
+        return formatResult;
+      }
+
       config.output = {
         path: outputPath,
-        format: outputPath.endsWith(".json")
-          ? "json"
-          : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
-          ? "yaml"
-          : "markdown",
+        format: formatResult.data,
       };
     }
 

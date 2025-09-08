@@ -120,7 +120,32 @@ export class OutputPath {
       };
     }
 
-    const format = ext === "yml" ? "yaml" : ext as OutputFormat;
+    // Smart Constructor pattern: explicit validation without type assertions
+    const normalizedExt = ext === "yml" ? "yaml" : ext;
+
+    // Exhaustive validation using switch statement for type safety
+    let format: OutputFormat;
+    switch (normalizedExt) {
+      case "json":
+        format = "json";
+        break;
+      case "yaml":
+        format = "yaml";
+        break;
+      case "toml":
+        format = "toml";
+        break;
+      default:
+        return {
+          ok: false,
+          error: {
+            kind: "UnsupportedFormat",
+            message:
+              `Invalid output format "${normalizedExt}". Supported formats: json, yaml, toml`,
+          },
+        };
+    }
+
     return { ok: true, data: new OutputPath(path, format) };
   }
 

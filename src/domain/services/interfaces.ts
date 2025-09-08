@@ -224,18 +224,22 @@ export interface ConfigurationRepository {
   ): Result<void, DomainError & { message: string }>;
 }
 
-// Configuration types
+// Configuration types - kept as interface for backward compatibility
+// Note: This represents domain-level configuration which is different from application-layer ProcessingConfiguration
 export interface ProcessingConfiguration {
   documentsPath: DocumentPath;
   schemaPath: ConfigPath;
   templatePath: TemplatePath;
   outputPath: OutputPath;
-  options: {
-    parallel?: boolean;
-    maxConcurrency?: number;
-    continueOnError?: boolean;
-  };
+  options: ProcessingOptions;
 }
+
+// Totality-compliant options using discriminated union instead of optional properties
+export type ProcessingOptions =
+  | { kind: "BasicOptions" }
+  | { kind: "ParallelOptions"; maxConcurrency: number }
+  | { kind: "ResilientOptions"; continueOnError: boolean }
+  | { kind: "FullOptions"; maxConcurrency: number; continueOnError: boolean };
 
 // Domain event interfaces (for future event sourcing)
 export interface DomainEvent {
