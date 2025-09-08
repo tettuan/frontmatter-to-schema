@@ -9,6 +9,16 @@ import type { Result } from "../core/result.ts";
 import { JSONPathExpression } from "./jsonpath-expression.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Represents a derivation rule for aggregating data
  */
 export class DerivationRule {
@@ -203,8 +213,8 @@ export class AggregatedResult {
     let current: unknown = this.data;
 
     for (const part of parts) {
-      if (current && typeof current === "object" && part in current) {
-        current = (current as Record<string, unknown>)[part];
+      if (isValidRecordData(current) && part in current) {
+        current = current[part];
       } else {
         return undefined;
       }

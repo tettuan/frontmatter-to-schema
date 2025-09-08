@@ -14,6 +14,16 @@ import {
 } from "../../domain/models/value-objects.ts";
 import type { DocumentRepository } from "../../domain/services/interfaces.ts";
 
+/**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
 export class DenoDocumentRepository implements DocumentRepository {
   async findAll(
     path: DocumentPath,
@@ -215,12 +225,12 @@ export class DenoDocumentRepository implements DocumentRepository {
         const extracted = extract(content);
         // Use attrs (parsed object) instead of frontMatter (raw string)
         if (
-          extracted.attrs && typeof extracted.attrs === "object" &&
+          isValidRecordData(extracted.attrs) &&
           Object.keys(extracted.attrs).length > 0
         ) {
           // Create FrontMatterContent from the parsed object
           const frontMatterContentResult = FrontMatterContent.fromObject(
-            extracted.attrs as Record<string, unknown>,
+            extracted.attrs,
           );
 
           if (frontMatterContentResult.ok) {

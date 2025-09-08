@@ -18,6 +18,16 @@ import type { DomainError } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Template Processing Context - Discriminated Union (Totality Pattern)
  */
 export type TemplateProcessingContext =
@@ -403,8 +413,8 @@ export class UnifiedTemplateProcessor {
         return undefined;
       }
 
-      if (typeof current === "object" && !Array.isArray(current)) {
-        current = (current as Record<string, unknown>)[part];
+      if (isValidRecordData(current)) {
+        current = current[part];
       } else if (Array.isArray(current)) {
         // Handle array properties like .length
         if (part === "length") {

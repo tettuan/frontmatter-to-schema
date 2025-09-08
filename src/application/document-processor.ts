@@ -39,6 +39,16 @@ import type {
   TemplateFormat,
 } from "./configuration.ts";
 
+/**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
 export class DocumentProcessor {
   constructor(
     private readonly fileSystem: FileSystemPort,
@@ -267,9 +277,7 @@ export class DocumentProcessor {
       const frontMatter = frontMatterResult.data;
       const contentJson = frontMatter.getContent().toJSON();
       extractedData = ExtractedData.create(
-        typeof contentJson === "object" && contentJson !== null
-          ? contentJson as Record<string, unknown>
-          : {},
+        isValidRecordData(contentJson) ? contentJson : {},
       );
     } else {
       // No frontmatter present or error occurred
@@ -349,8 +357,8 @@ export class DocumentProcessor {
         .join("\n");
     }
 
-    if (typeof data === "object") {
-      const entries = Object.entries(data as Record<string, unknown>);
+    if (isValidRecordData(data)) {
+      const entries = Object.entries(data);
       if (entries.length === 0) {
         return "{}";
       }

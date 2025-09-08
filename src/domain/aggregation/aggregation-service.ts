@@ -16,6 +16,16 @@ import {
 import { ExpressionEvaluator } from "./expression-evaluator.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Service for executing aggregation processes
  */
 export class AggregationService {
@@ -125,10 +135,10 @@ export class AggregationService {
       prefix = "",
     ): void => {
       for (const [key, value] of Object.entries(properties)) {
-        if (!value || typeof value !== "object") continue;
+        if (!isValidRecordData(value)) continue;
 
         const fieldName = prefix ? `${prefix}.${key}` : key;
-        const property = value as Record<string, unknown>;
+        const property = value;
 
         // Check for x-derived-from
         const ruleResult = DerivationRule.fromSchemaProperty(
@@ -142,19 +152,19 @@ export class AggregationService {
         }
 
         // Recursively process nested properties
-        if (property.properties && typeof property.properties === "object") {
+        if (property.properties && isValidRecordData(property.properties)) {
           processProperties(
-            property.properties as Record<string, unknown>,
+            property.properties,
             fieldName,
           );
         }
 
         // Process array items
-        if (property.items && typeof property.items === "object") {
-          const items = property.items as Record<string, unknown>;
-          if (items.properties && typeof items.properties === "object") {
+        if (property.items && isValidRecordData(property.items)) {
+          const items = property.items;
+          if (items.properties && isValidRecordData(items.properties)) {
             processProperties(
-              items.properties as Record<string, unknown>,
+              items.properties,
               `${fieldName}[]`,
             );
           }
@@ -163,8 +173,8 @@ export class AggregationService {
     };
 
     // Start processing from root properties
-    if (schema.properties && typeof schema.properties === "object") {
-      processProperties(schema.properties as Record<string, unknown>);
+    if (schema.properties && isValidRecordData(schema.properties)) {
+      processProperties(schema.properties);
     }
 
     if (errors.length > 0) {
@@ -197,19 +207,18 @@ export class AggregationService {
 
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
-        if (typeof current === "object" && current !== null) {
-          const obj = current as Record<string, unknown>;
-          if (!(part in obj)) {
-            obj[part] = {};
+        if (isValidRecordData(current)) {
+          if (!(part in current)) {
+            current[part] = {};
           }
-          current = obj[part];
+          current = current[part];
         }
       }
 
       // Set the value
       const lastPart = parts[parts.length - 1];
-      if (typeof current === "object" && current !== null) {
-        (current as Record<string, unknown>)[lastPart] = value;
+      if (isValidRecordData(current)) {
+        current[lastPart] = value;
       }
     }
 
