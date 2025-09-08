@@ -35,11 +35,9 @@ export class DerivationRule {
       };
     }
 
-    // Validate target field name format (allow dot notation for nested fields)
+    // Validate target field name format (supports nested paths with dots)
     const trimmedTarget = targetField.trim();
-    if (
-      !/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/.test(trimmedTarget)
-    ) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(trimmedTarget)) {
       return {
         ok: false,
         error: {
