@@ -45,6 +45,7 @@ import {
 import type {
   ConfigurationRepository,
   ProcessingConfiguration,
+  ProcessingOptions,
   ResultRepository,
   SchemaRepository,
   TemplateRepository,
@@ -128,16 +129,38 @@ export class ConfigurationLoader
         };
       }
 
+      // Create ProcessingOptions using discriminated union following Totality principle
+      const parallel = config.options?.parallel ?? true;
+      const maxConcurrency = config.options?.maxConcurrency ?? 5;
+      const continueOnError = config.options?.continueOnError ?? false;
+
+      let options: ProcessingOptions;
+      if (parallel && continueOnError) {
+        options = {
+          kind: "FullOptions",
+          maxConcurrency,
+          continueOnError,
+        };
+      } else if (parallel) {
+        options = {
+          kind: "ParallelOptions",
+          maxConcurrency,
+        };
+      } else if (continueOnError) {
+        options = {
+          kind: "ResilientOptions",
+          continueOnError,
+        };
+      } else {
+        options = { kind: "BasicOptions" };
+      }
+
       const processingConfig: ProcessingConfiguration = {
         documentsPath: documentsPathResult.data,
         schemaPath: schemaPathResult.data,
         templatePath: templatePathResult.data,
         outputPath: outputPathResult.data,
-        options: {
-          parallel: config.options?.parallel ?? true,
-          maxConcurrency: config.options?.maxConcurrency ?? 5,
-          continueOnError: config.options?.continueOnError ?? false,
-        },
+        options,
       };
 
       return { ok: true, data: processingConfig };
