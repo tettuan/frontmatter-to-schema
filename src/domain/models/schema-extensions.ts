@@ -53,7 +53,7 @@ export interface ExtendedSchemaProperty extends Record<string, unknown> {
  */
 export class SchemaTemplateInfo {
   private constructor(
-    private readonly templatePath: string | undefined,
+    private readonly templatePath: Result<string, void>,
     private readonly isFrontmatterPart: boolean,
     private readonly derivationRules: Map<string, DerivedFieldInfo>,
   ) {}
@@ -72,7 +72,9 @@ export class SchemaTemplateInfo {
       };
     }
 
-    const templatePath = schema["x-template"] as string | undefined;
+    const templatePath = typeof schema["x-template"] === "string"
+      ? { ok: true as const, data: schema["x-template"] }
+      : { ok: false as const, error: undefined };
     const isFrontmatterPart = schema["x-frontmatter-part"] === true;
     const derivationRules = new Map<string, DerivedFieldInfo>();
 
@@ -100,7 +102,7 @@ export class SchemaTemplateInfo {
     };
   }
 
-  getTemplatePath(): string | undefined {
+  getTemplatePath(): Result<string, void> {
     return this.templatePath;
   }
 
@@ -199,9 +201,11 @@ export function isFrontmatterPart(prop: ExtendedSchemaProperty): boolean {
  */
 export function getTemplatePath(
   schemaOrProp: ExtendedSchema | ExtendedSchemaProperty,
-): string | undefined {
+): Result<string, void> {
   const template = schemaOrProp["x-template"];
-  return typeof template === "string" ? template : undefined;
+  return typeof template === "string"
+    ? { ok: true as const, data: template }
+    : { ok: false as const, error: undefined };
 }
 
 /**
