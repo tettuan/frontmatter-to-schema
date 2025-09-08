@@ -6,6 +6,11 @@
  */
 
 import type { Result } from "../domain/core/result.ts";
+import {
+  CLI_OPTIONS,
+  getOptionProperty,
+  isCLIOption,
+} from "./cli-constants.ts";
 
 /**
  * CLI argument values after parsing
@@ -181,7 +186,10 @@ export class CLIArgumentParser {
     args: string[],
   ): Result<CLIArguments, { kind: string; message: string }> {
     // Check for help or version flags first
-    if (args.includes("-h") || args.includes("--help")) {
+    if (
+      args.includes(CLI_OPTIONS.HELP_SHORT) ||
+      args.includes(CLI_OPTIONS.HELP_LONG)
+    ) {
       // Return early with help flag - actual paths won't be used
       const dummySchema = SchemaPath.create("dummy.json");
       const dummyOutput = OutputPath.create("dummy.json");
@@ -210,7 +218,7 @@ export class CLIArgumentParser {
       };
     }
 
-    if (args.includes("--version")) {
+    if (args.includes(CLI_OPTIONS.VERSION)) {
       // Return early with version flag - actual paths won't be used
       const dummySchema = SchemaPath.create("dummy.json");
       const dummyOutput = OutputPath.create("dummy.json");
@@ -255,32 +263,38 @@ export class CLIArgumentParser {
       const arg = args[i];
 
       if (arg.startsWith("-")) {
-        // Handle options
-        switch (arg) {
-          case "-v":
-          case "--verbose":
-            options.verbose = true;
-            break;
-          case "-q":
-          case "--quiet":
-            options.quiet = true;
-            break;
-          case "--dry-run":
-            options.dryRun = true;
-            break;
-          case "-p":
-          case "--parallel":
-            options.parallel = true;
-            break;
-          case "--max-workers":
-            if (i + 1 < args.length) {
-              const workers = parseInt(args[i + 1], 10);
-              if (!isNaN(workers) && workers > 0) {
-                options.maxWorkers = workers;
-                i++; // Skip next arg
-              }
+        // Handle options using constants
+        if (isCLIOption(arg)) {
+          const optionProperty = getOptionProperty(arg);
+
+          if (optionProperty) {
+            switch (arg) {
+              case CLI_OPTIONS.VERBOSE_SHORT:
+              case CLI_OPTIONS.VERBOSE_LONG:
+                options.verbose = true;
+                break;
+              case CLI_OPTIONS.QUIET_SHORT:
+              case CLI_OPTIONS.QUIET_LONG:
+                options.quiet = true;
+                break;
+              case CLI_OPTIONS.DRY_RUN:
+                options.dryRun = true;
+                break;
+              case CLI_OPTIONS.PARALLEL_SHORT:
+              case CLI_OPTIONS.PARALLEL_LONG:
+                options.parallel = true;
+                break;
+              case CLI_OPTIONS.MAX_WORKERS:
+                if (i + 1 < args.length) {
+                  const workers = parseInt(args[i + 1], 10);
+                  if (!isNaN(workers) && workers > 0) {
+                    options.maxWorkers = workers;
+                    i++; // Skip next arg
+                  }
+                }
+                break;
             }
-            break;
+          }
         }
       } else {
         // Positional argument

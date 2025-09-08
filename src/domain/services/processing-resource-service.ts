@@ -20,6 +20,7 @@ import type {
   TemplateRepository,
 } from "./interfaces.ts";
 import { StructuredLogger } from "../shared/logger.ts";
+import { DOMAIN_ERROR_KINDS } from "./processing-error-constants.ts";
 
 /**
  * Loaded resources result type following totality principle
@@ -103,10 +104,11 @@ export class ProcessDocumentResourceService {
     if (isError(schemaResult)) {
       // Enhanced error message based on error type
       let reason = "Failed to load schema";
-      if (schemaResult.error.kind === "FileNotFound") {
+      if (schemaResult.error.kind === DOMAIN_ERROR_KINDS.FILE_NOT_FOUND) {
         reason = "Schema file not found";
       } else if (
-        schemaResult.error.kind === "ReadError" && schemaResult.error.details
+        schemaResult.error.kind === DOMAIN_ERROR_KINDS.READ_ERROR &&
+        schemaResult.error.details
       ) {
         reason = `Schema load error: ${schemaResult.error.details}`;
       } else if (schemaResult.error.message) {
@@ -137,10 +139,10 @@ export class ProcessDocumentResourceService {
     if (isError(templateResult)) {
       // Enhanced error message based on error type
       let reason = "Failed to load template";
-      if (templateResult.error.kind === "FileNotFound") {
+      if (templateResult.error.kind === DOMAIN_ERROR_KINDS.FILE_NOT_FOUND) {
         reason = "Template file not found";
       } else if (
-        templateResult.error.kind === "ReadError" &&
+        templateResult.error.kind === DOMAIN_ERROR_KINDS.READ_ERROR &&
         templateResult.error.details
       ) {
         reason = `Template load error: ${templateResult.error.details}`;
