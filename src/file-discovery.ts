@@ -1,6 +1,7 @@
 import { walk } from "jsr:@std/fs@1/walk";
 import { basename, relative } from "jsr:@std/path@1";
 import type { CommandStructure, PromptFile } from "./domain/core/types.ts";
+import { FILE_NAMING } from "./config/version.ts";
 
 /**
  * Discovers all f_*.md files in the prompts directory
@@ -53,7 +54,10 @@ export function parseCommandStructure(
 
   // Parse filename: f_{input}_{adaptation} or f_{input}
   const filenameParts = filename.split("_");
-  if (filenameParts.length < 2 || filenameParts[0] !== "f") {
+  if (
+    filenameParts.length < 2 ||
+    filenameParts[0] !== FILE_NAMING.FRONTMATTER_PREFIX
+  ) {
     throw new Error(`Invalid filename format: ${filename}`);
   }
 

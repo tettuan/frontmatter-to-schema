@@ -3,6 +3,7 @@ import {
   type Command,
   type Registry,
 } from "../../domain/core/types.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 export class RegistryAggregator {
   private commands: Command[] = [];
@@ -39,7 +40,7 @@ export class RegistryAggregator {
 
   build(): Registry {
     return {
-      version: "1.0.0",
+      version: VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
       description:
         "Climpt comprehensive configuration for MCP server and command registry",
       tools: {

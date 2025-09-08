@@ -4,6 +4,7 @@ import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import { SchemaRefResolver } from "../../domain/config/schema-ref-resolver.ts";
 import type { FileSystemRepository } from "../../domain/repositories/file-system-repository.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 // Type guard helper following Totality principle
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -253,7 +254,11 @@ export class ConfigurationLoader
 
       const definitionResult = SchemaDefinition.create(
         data,
-        getStringProperty(data, "version", "1.0.0"),
+        getStringProperty(
+          data,
+          "version",
+          VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
+        ),
       );
       if (!definitionResult.ok) {
         return {
@@ -267,7 +272,11 @@ export class ConfigurationLoader
       }
 
       const versionResult = SchemaVersion.create(
-        getStringProperty(data, "version", "1.0.0"),
+        getStringProperty(
+          data,
+          "version",
+          VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
+        ),
       );
       if (!versionResult.ok) {
         return {

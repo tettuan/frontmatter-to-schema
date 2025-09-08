@@ -27,6 +27,7 @@ import {
 } from "../domain/models/transformation.ts";
 import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
+import { VERSION_CONFIG } from "../config/version.ts";
 import type { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type { ApplicationConfiguration } from "./configuration.ts";
@@ -132,7 +133,9 @@ export class DocumentProcessor {
       };
     }
 
-    const schemaVersionResult = SchemaVersion.create("1.0.0");
+    const schemaVersionResult = SchemaVersion.create(
+      VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
+    );
     if (!schemaVersionResult.ok) {
       return {
         ok: false,

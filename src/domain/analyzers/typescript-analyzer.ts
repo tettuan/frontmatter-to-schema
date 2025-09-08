@@ -23,6 +23,8 @@ import {
 import { asObjectRecord } from "../shared/type-guards.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 import { ValidToolsConfig } from "../config/valid-tools-config.ts";
+import { SchemaRefResolver } from "../config/schema-ref-resolver.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
@@ -31,13 +33,18 @@ import { ValidToolsConfig } from "../config/valid-tools-config.ts";
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
   private validToolsConfig: ValidToolsConfig | null = null;
+  private readonly schemaResolver: SchemaRefResolver;
 
   constructor(
     private readonly fileSystem: FileSystemRepository,
-    private readonly defaultVersion: string = "1.0.0",
+    private readonly defaultVersion: string =
+      VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
-  ) {}
+    basePath: string = ".",
+  ) {
+    this.schemaResolver = new SchemaRefResolver(fileSystem, basePath);
+  }
 
   /**
    * Get valid tools configuration using Smart Constructor
@@ -62,14 +69,12 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
   /**
    * Analyze frontmatter and transform to registry structure
+   * Supports $ref resolution for complex schemas as per requirements.ja.md line 46
    */
   async analyze(
     frontMatter: FrontMatter,
     schema: Schema,
   ): Promise<Result<ExtractedData, DomainError & { message: string }>> {
-    // Add await to satisfy linter
-    await Promise.resolve();
-
     try {
       // Extract frontmatter data with safe type checking
       const frontMatterJson = frontMatter.getContent().toJSON();
@@ -143,12 +148,17 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
       // Create analysis context - get schema data safely
       let schemaData: Record<string, unknown> = {};
+      let rawSchemaData: unknown = {};
+
       if (typeof schema.getDefinition === "function") {
         const definition = schema.getDefinition();
         // SchemaDefinition has getValue() method, not toJSON()
         if (typeof definition.getValue === "function") {
-          const schemaValue = definition.getValue();
-          const schemaResult = asObjectRecord(schemaValue, "schema definition");
+          rawSchemaData = definition.getValue();
+          const schemaResult = asObjectRecord(
+            rawSchemaData,
+            "schema definition",
+          );
           if (schemaResult.ok) {
             schemaData = schemaResult.data;
           } else {
@@ -156,6 +166,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
             schemaData = {};
           }
         } else {
+          rawSchemaData = definition;
           const definitionResult = asObjectRecord(
             definition,
             "schema definition object",
@@ -166,10 +177,37 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         }
       } else {
         // Schema might be the raw data itself
+        rawSchemaData = schema;
         const rawSchemaResult = asObjectRecord(schema, "raw schema");
         if (rawSchemaResult.ok) {
           schemaData = rawSchemaResult.data;
         }
+      }
+
+      // Resolve $ref references in the schema recursively
+      const resolvedSchemaResult = await this.schemaResolver.resolveSchema(
+        rawSchemaData,
+        documentPath,
+      );
+
+      if (!resolvedSchemaResult.ok) {
+        return {
+          ok: false,
+          error: createProcessingStageError(
+            "schema resolution",
+            resolvedSchemaResult.error,
+            `Failed to resolve $ref in schema: ${resolvedSchemaResult.error.message}`,
+          ),
+        };
+      }
+
+      // Update schemaData with resolved schema
+      const resolvedResult = asObjectRecord(
+        resolvedSchemaResult.data,
+        "resolved schema",
+      );
+      if (resolvedResult.ok) {
+        schemaData = resolvedResult.data;
       }
 
       const contextResult = AnalysisContext.create(
@@ -386,6 +424,12 @@ export function createTypeScriptAnalyzer(
   fileSystem: FileSystemRepository,
   defaultVersion?: string,
   defaultDescription?: string,
+  basePath?: string,
 ): TypeScriptAnalyzer {
-  return new TypeScriptAnalyzer(fileSystem, defaultVersion, defaultDescription);
+  return new TypeScriptAnalyzer(
+    fileSystem,
+    defaultVersion,
+    defaultDescription,
+    basePath,
+  );
 }

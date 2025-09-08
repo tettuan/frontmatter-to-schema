@@ -11,3 +11,7 @@ export const VERSION_CONFIG = {
 export const DEFAULTS = {
   UNKNOWN: "unknown",
 } as const;
+
+export const FILE_NAMING = {
+  FRONTMATTER_PREFIX: "f",
+} as const;

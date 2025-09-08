@@ -28,6 +28,7 @@ import {
   SchemaAnalysisFactory,
   type SchemaAnalysisProcessor as _SchemaAnalysisProcessor,
 } from "../../domain/analysis/schema-driven.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 /**
  * Climpt command registry schema definition
@@ -292,7 +293,7 @@ export class ClimptConfigurationProvider
 
   private getDefaultTemplate(): ClimptRegistrySchema {
     return {
-      version: "1.0.0",
+      version: VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
       description:
         "Climpt comprehensive configuration for MCP server and command registry",
       tools: {
@@ -352,7 +353,7 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<
     output: FrontMatterOutput<ClimptRegistrySchema>,
   ): ClimptRegistrySchema {
     const baseRegistry: ClimptRegistrySchema = {
-      version: "1.0.0",
+      version: VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
       description:
         "Climpt comprehensive configuration for MCP server and command registry",
       tools: {

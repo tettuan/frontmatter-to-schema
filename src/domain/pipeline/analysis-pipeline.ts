@@ -5,6 +5,7 @@
 import { type AnalysisContext, AnalysisResult } from "../core/types.ts";
 import { DocumentPath } from "../models/value-objects.ts";
 import { SchemaDefinition } from "../models/value-objects.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 // Note: DocumentPath and DocumentPath replaced with DocumentPath
 import type {
   AnalysisEngine,
@@ -122,7 +123,10 @@ export class AnalysisPipeline<TOutput = unknown> {
     // Prepare context
     // Prepare schema
     const schemaResult = this.config.output.schema
-      ? SchemaDefinition.create(this.config.output.schema, "1.0.0")
+      ? SchemaDefinition.create(
+        this.config.output.schema,
+        VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
+      )
       : null;
 
     if (this.config.output.schema && (!schemaResult || !schemaResult.ok)) {
