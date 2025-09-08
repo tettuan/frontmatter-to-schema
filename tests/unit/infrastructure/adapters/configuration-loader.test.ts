@@ -169,9 +169,12 @@ Deno.test("ConfigurationLoader - Comprehensive Test Suite", async (t) => {
           "./template.json",
         );
         assertEquals(processingConfig.outputPath.getValue(), "./output.json");
-        assertEquals(processingConfig.options.parallel, true);
-        assertEquals(processingConfig.options.maxConcurrency, 8);
-        assertEquals(processingConfig.options.continueOnError, true);
+        // Test the discriminated union structure
+        assertEquals(processingConfig.options.kind, "FullOptions");
+        if (processingConfig.options.kind === "FullOptions") {
+          assertEquals(processingConfig.options.maxConcurrency, 8);
+          assertEquals(processingConfig.options.continueOnError, true);
+        }
       }
     });
 
@@ -216,9 +219,11 @@ Deno.test("ConfigurationLoader - Comprehensive Test Suite", async (t) => {
         assertEquals(processingConfig.schemaPath.getValue(), "schema.json");
         assertEquals(processingConfig.templatePath.getValue(), "template.json");
         assertEquals(processingConfig.outputPath.getValue(), "output.json");
-        assertEquals(processingConfig.options.parallel, true);
-        assertEquals(processingConfig.options.maxConcurrency, 5);
-        assertEquals(processingConfig.options.continueOnError, false);
+        // Test the discriminated union structure (parallel=true, continueOnError=false)
+        assertEquals(processingConfig.options.kind, "ParallelOptions");
+        if (processingConfig.options.kind === "ParallelOptions") {
+          assertEquals(processingConfig.options.maxConcurrency, 5);
+        }
       }
     });
 

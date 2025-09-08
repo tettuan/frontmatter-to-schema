@@ -9,6 +9,16 @@ import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Template Content Value Object - Ensures valid template content
  */
 export class TemplateContent {
@@ -127,7 +137,7 @@ export class TemplateSchema {
   static create(
     schema: unknown,
   ): Result<TemplateSchema, DomainError & { message: string }> {
-    if (!schema || typeof schema !== "object") {
+    if (!isValidRecordData(schema)) {
       return {
         ok: false,
         error: createDomainError({
@@ -138,7 +148,7 @@ export class TemplateSchema {
       };
     }
 
-    const schemaObj = schema as Record<string, unknown>;
+    const schemaObj = schema;
 
     if (!schemaObj.properties || typeof schemaObj.properties !== "object") {
       return {
@@ -171,16 +181,17 @@ export class TemplateSchema {
     key: string,
     value: unknown,
   ): PropertyDefinition {
-    if (!value || typeof value !== "object") {
+    if (!isValidRecordData(value)) {
       return { name: key, type: "unknown", optional: true };
     }
 
-    const prop = value as Record<string, unknown>;
+    const prop = value;
     return {
       name: key,
-      type: (prop.type as string) || "unknown",
+      type: (typeof prop.type === "string" ? prop.type : "unknown"),
       optional: !prop.required,
-      description: prop.description as string | undefined,
+      description:
+        (typeof prop.description === "string" ? prop.description : undefined),
     };
   }
 
@@ -258,8 +269,8 @@ export class TemplateStructure {
       };
     }
 
-    if (typeof value === "object" && value !== null) {
-      const obj = value as Record<string, unknown>;
+    if (isValidRecordData(value)) {
+      const obj = value;
       if (obj.template) {
         return {
           ok: true,

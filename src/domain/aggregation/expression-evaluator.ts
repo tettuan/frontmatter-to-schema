@@ -12,6 +12,16 @@ import {
 } from "./jsonpath-expression.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Evaluates expressions against data objects
  */
 export class ExpressionEvaluator {
@@ -72,11 +82,8 @@ export class ExpressionEvaluator {
 
         switch (part.type) {
           case "property": {
-            if (
-              typeof item === "object" &&
-              part.value in (item as Record<string, unknown>)
-            ) {
-              next.push((item as Record<string, unknown>)[part.value]);
+            if (isValidRecordData(item) && part.value in item) {
+              next.push(item[part.value]);
             }
             break;
           }

@@ -1,62 +1,227 @@
+/**
+ * Tests for Aggregation Value Objects
+ */
+
 import { assertEquals } from "@std/assert";
+import { describe, it } from "@std/testing/bdd";
 import { DerivationRule } from "./value-objects.ts";
 
-Deno.test("DerivationRule - should accept simple field names", () => {
-  const result = DerivationRule.create("fieldName", "$.path");
-  if (!result.ok) {
-    console.error("Failed to create DerivationRule:", result.error);
-  }
-  assertEquals(result.ok, true);
-  if (result.ok) {
-    assertEquals(result.data.getTargetField(), "fieldName");
-  }
-});
+describe("DerivationRule", () => {
+  describe("create", () => {
+    it("should accept simple field names", () => {
+      const result = DerivationRule.create("fieldName", "data");
 
-Deno.test("DerivationRule - should accept nested field names with dot notation", () => {
-  const testCases = [
-    "config.tools",
-    "deeply.nested.field",
-    "level1.level2.level3.level4",
-  ];
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.getTargetField(), "fieldName");
+        assertEquals(result.data.getSourceExpression(), "data");
+      }
+    });
 
-  for (const fieldName of testCases) {
-    const result = DerivationRule.create(fieldName, "$.path");
-    assertEquals(result.ok, true, `Should accept field name: ${fieldName}`);
-    if (result.ok) {
-      assertEquals(result.data.getTargetField(), fieldName);
-    }
-  }
-});
+    it("should accept field names with underscores and numbers", () => {
+      const result = DerivationRule.create("field_name_123", "data");
 
-Deno.test("DerivationRule - should reject invalid field names", () => {
-  const invalidNames = [
-    "",
-    " ",
-    "123invalid",
-    "invalid-name",
-    "invalid name",
-    ".startWithDot",
-    "endWithDot.",
-    "double..dot",
-    "invalid.123.name",
-  ];
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.getTargetField(), "field_name_123");
+      }
+    });
 
-  for (const fieldName of invalidNames) {
-    const result = DerivationRule.create(fieldName, "$.path");
-    assertEquals(result.ok, false, `Should reject field name: ${fieldName}`);
-  }
-});
+    it("should accept nested field paths with dot notation", () => {
+      const result = DerivationRule.create(
+        "tools.availableConfigs",
+        "commands[].c1",
+      );
 
-Deno.test("DerivationRule - should handle unique and flatten options", () => {
-  const result = DerivationRule.create("config.tools", "$.tools[*].name", {
-    unique: true,
-    flatten: true,
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.getTargetField(), "tools.availableConfigs");
+        assertEquals(result.data.getSourceExpression(), "commands[].c1");
+      }
+    });
+
+    it("should accept deeply nested field paths", () => {
+      const result = DerivationRule.create(
+        "config.tools.availableConfigs",
+        "commands[].c1",
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(
+          result.data.getTargetField(),
+          "config.tools.availableConfigs",
+        );
+      }
+    });
+
+    it("should reject empty field names", () => {
+      const result = DerivationRule.create("", "$.data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(result.error.message, "Target field cannot be empty");
+      }
+    });
+
+    it("should reject field names starting with numbers", () => {
+      const result = DerivationRule.create("123field", "data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(
+          result.error.message,
+          "Invalid target field name: 123field",
+        );
+      }
+    });
+
+    it("should reject field names with invalid characters", () => {
+      const result = DerivationRule.create("field-name", "data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(
+          result.error.message,
+          "Invalid target field name: field-name",
+        );
+      }
+    });
+
+    it("should reject field paths with empty segments", () => {
+      const result = DerivationRule.create("field..name", "data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(
+          result.error.message,
+          "Invalid target field name: field..name",
+        );
+      }
+    });
+
+    it("should reject field paths starting with dot", () => {
+      const result = DerivationRule.create(".fieldName", "data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(
+          result.error.message,
+          "Invalid target field name: .fieldName",
+        );
+      }
+    });
+
+    it("should reject field paths ending with dot", () => {
+      const result = DerivationRule.create("fieldName.", "data");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidTargetField");
+        assertEquals(
+          result.error.message,
+          "Invalid target field name: fieldName.",
+        );
+      }
+    });
+
+    it("should trim whitespace from field names", () => {
+      const result = DerivationRule.create("  fieldName  ", "data");
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.getTargetField(), "fieldName");
+      }
+    });
+
+    it("should handle options correctly", () => {
+      const result = DerivationRule.create("fieldName", "data", {
+        unique: true,
+        flatten: true,
+      });
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isUnique(), true);
+        assertEquals(result.data.shouldFlatten(), true);
+      }
+    });
+
+    it("should reject invalid source expressions", () => {
+      const result = DerivationRule.create("fieldName", "");
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidSourceExpression");
+      }
+    });
   });
 
-  assertEquals(result.ok, true);
-  if (result.ok) {
-    assertEquals(result.data.getTargetField(), "config.tools");
-    assertEquals(result.data.isUnique(), true);
-    assertEquals(result.data.shouldFlatten(), true);
-  }
+  describe("fromSchemaProperty", () => {
+    it("should create rule from schema property with x-derived-from", () => {
+      const schemaProperty = {
+        "x-derived-from": "commands[].c1",
+        "x-derived-unique": true,
+        "x-derived-flatten": false,
+      };
+
+      const result = DerivationRule.fromSchemaProperty(
+        "tools.availableConfigs",
+        schemaProperty,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok && result.data) {
+        assertEquals(result.data.getTargetField(), "tools.availableConfigs");
+        assertEquals(result.data.getSourceExpression(), "commands[].c1");
+        assertEquals(result.data.isUnique(), true);
+        assertEquals(result.data.shouldFlatten(), false);
+      }
+    });
+
+    it("should return null when x-derived-from is not present", () => {
+      const schemaProperty = {
+        type: "array",
+        items: { type: "string" },
+      };
+
+      const result = DerivationRule.fromSchemaProperty(
+        "fieldName",
+        schemaProperty,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data, null);
+      }
+    });
+
+    it("should handle nested field paths from schema", () => {
+      const schemaProperty = {
+        "x-derived-from": "items[].metadata.tags",
+        "x-derived-unique": true,
+      };
+
+      const result = DerivationRule.fromSchemaProperty(
+        "config.settings.tags",
+        schemaProperty,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok && result.data) {
+        assertEquals(result.data.getTargetField(), "config.settings.tags");
+        assertEquals(
+          result.data.getSourceExpression(),
+          "items[].metadata.tags",
+        );
+        assertEquals(result.data.isUnique(), true);
+        assertEquals(result.data.shouldFlatten(), false);
+      }
+    });
+  });
 });

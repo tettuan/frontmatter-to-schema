@@ -30,6 +30,33 @@ import {
 import { createDomainError } from "../../domain/core/result.ts";
 
 /**
+ * Type guard for UnifiedTemplateProcessor
+ * Eliminates type assertions following Totality principles
+ */
+function isUnifiedTemplateProcessor(
+  value: unknown,
+): value is UnifiedTemplateProcessor {
+  return value !== null &&
+    typeof value === "object" &&
+    "process" in value &&
+    typeof (value as { process?: unknown }).process === "function";
+}
+
+/**
+ * Type guard for TemplateProcessingResult
+ * Eliminates type assertions following Totality principles
+ */
+function isTemplateProcessingResult(
+  value: unknown,
+): value is TemplateProcessingResult {
+  return value !== null &&
+    typeof value === "object" &&
+    "kind" in value &&
+    "content" in value &&
+    "statistics" in value;
+}
+
+/**
  * Adapter that wraps UnifiedTemplateProcessor to implement TemplateMapper interface
  */
 export class UnifiedTemplateMapperAdapter implements TemplateMapper {
@@ -48,9 +75,15 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
       if (this.isDomainError(result)) {
         throw new Error(`Failed to create processor: ${result.message}`);
       }
-      this.processor = result as UnifiedTemplateProcessor;
+      if (!isUnifiedTemplateProcessor(result)) {
+        throw new Error("Factory returned invalid processor type");
+      }
+      this.processor = result;
     }
-    return this.processor as UnifiedTemplateProcessor;
+    if (!isUnifiedTemplateProcessor(this.processor)) {
+      throw new Error("Processor is not a valid UnifiedTemplateProcessor");
+    }
+    return this.processor;
   }
 
   /**
@@ -85,7 +118,17 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
       }
 
       // Convert result to MappedData
-      const processedResult = result as TemplateProcessingResult;
+      if (!isTemplateProcessingResult(result)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "InvalidFormat",
+            input: String(result),
+            expectedFormat: "TemplateProcessingResult",
+          }, "Invalid processing result format"),
+        };
+      }
+      const processedResult = result;
       const mappedData = this.createMappedData(
         processedResult.content,
         data,

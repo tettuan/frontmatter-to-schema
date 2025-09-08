@@ -46,21 +46,26 @@ export function printUsage() {
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
 Usage:
-  frontmatter-to-schema <schema-file> <output-file> <input-pattern> [options]
+  frontmatter-to-schema <input-dir> --schema=<schema-file> --output=<output-file> [options]
+  frontmatter-to-schema <schema-file> <output-file> <input-pattern> [options]  (deprecated)
 
 Arguments:
+  input-dir        Path to markdown files directory
   schema-file      Path to schema file (JSON or YAML)
   output-file      Path to output file
   input-pattern    Path to markdown files directory or pattern
 
 Options:
+  --schema=<file>           Path to schema file (JSON or YAML)
+  --output=<file>           Path to output file
   --destination=<dir>       Output directory (optional, defaults to current directory)
   --verbose                 Enable detailed progress output
   --help                    Show this help message
 
 Examples:
-  frontmatter-to-schema schema.json registry.json "./docs/*.md"
-  frontmatter-to-schema config/schema.yml books.yml "./prompts/**/*.md" --destination=./output
+  frontmatter-to-schema ./docs --schema=schema.json --output=registry.json
+  frontmatter-to-schema ./prompts --schema=config/schema.yml --output=books.yml --destination=./output
+  frontmatter-to-schema schema.json registry.json "./docs/*.md"  (deprecated)
 `);
 }
 
@@ -127,6 +132,8 @@ export async function main() {
   const args = parseArgs(processedArgs, {
     string: [
       "destination",
+      "schema",
+      "output",
       "mode",
       "command-schema",
       "command-template",
@@ -137,22 +144,54 @@ export async function main() {
     stopEarly: false,
   });
 
-  if (args.help || args._.length < 3) {
+  if (args.help) {
     printUsage();
-    Deno.exit(args.help ? 0 : 1);
+    Deno.exit(0);
   }
 
-  // Parse positional arguments: <schema-file> <output-file> <input-pattern>
-  const schemaPath = args._[0] as string;
-  const outputPath = args._[1] as string;
-  const inputPattern = args._[2] as string;
+  // Determine CLI format and parse arguments
+  let schemaPath: string;
+  let outputPath: string;
+  let inputPattern: string;
+
+  if (args.schema && args.output) {
+    // New format: <input-dir> --schema=<file> --output=<file>
+    if (args._.length < 1) {
+      cliLogger.error(
+        "Error: Input directory argument is required when using --schema and --output flags",
+      );
+      printUsage();
+      Deno.exit(1);
+    }
+    const inputDir = args._[0] as string;
+    schemaPath = args.schema;
+    outputPath = args.output;
+    inputPattern = inputDir.endsWith(".md") || inputDir.endsWith(".markdown")
+      ? inputDir
+      : `${inputDir}/*.md`;
+  } else if (args._.length >= 3) {
+    // Legacy format: <schema-file> <output-file> <input-pattern>
+    cliLogger.warn(
+      "⚠️  Using deprecated CLI format. Please use: frontmatter-to-schema <input-dir> --schema=<file> --output=<file>",
+    );
+    schemaPath = args._[0] as string;
+    outputPath = args._[1] as string;
+    inputPattern = args._[2] as string;
+  } else {
+    cliLogger.error(
+      "Error: Invalid arguments. Use --help for usage information.",
+    );
+    printUsage();
+    Deno.exit(1);
+  }
+
   const destinationDir = args.destination || ".";
   const verboseMode = args.verbose || false;
 
   // Validate required arguments
   if (!schemaPath || !outputPath || !inputPattern) {
     cliLogger.error(
-      "Error: <schema-file>, <output-file>, and <input-pattern> arguments are required",
+      "Error: schema, output, and input arguments are required",
     );
     printUsage();
     Deno.exit(1);

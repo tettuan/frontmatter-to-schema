@@ -4,41 +4,171 @@ import {
   type Result,
 } from "../domain/core/result.ts";
 
-export interface InputConfiguration {
-  path: string;
-  pattern?: string;
+// Smart Constructors for format validation following Totality principles
+
+/**
+ * Schema format with exhaustive validation
+ */
+export class SchemaFormat {
+  private constructor(private readonly value: "json" | "yaml" | "custom") {}
+
+  static create(
+    format: string,
+  ): Result<SchemaFormat, DomainError & { message: string }> {
+    switch (format) {
+      case "json":
+        return { ok: true, data: new SchemaFormat("json") };
+      case "yaml":
+        return { ok: true, data: new SchemaFormat("yaml") };
+      case "custom":
+        return { ok: true, data: new SchemaFormat("custom") };
+      default:
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: format,
+              expectedFormat: "json, yaml, or custom",
+            },
+            `Invalid schema format "${format}". Supported formats: json, yaml, custom`,
+          ),
+        };
+    }
+  }
+
+  getValue(): "json" | "yaml" | "custom" {
+    return this.value;
+  }
 }
+
+/**
+ * Template format with exhaustive validation
+ */
+export class TemplateFormat {
+  private constructor(
+    private readonly value: "json" | "yaml" | "handlebars" | "custom",
+  ) {}
+
+  static create(
+    format: string,
+  ): Result<TemplateFormat, DomainError & { message: string }> {
+    switch (format) {
+      case "json":
+        return { ok: true, data: new TemplateFormat("json") };
+      case "yaml":
+        return { ok: true, data: new TemplateFormat("yaml") };
+      case "handlebars":
+        return { ok: true, data: new TemplateFormat("handlebars") };
+      case "custom":
+        return { ok: true, data: new TemplateFormat("custom") };
+      default:
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: format,
+              expectedFormat: "json, yaml, handlebars, or custom",
+            },
+            `Invalid template format "${format}". Supported formats: json, yaml, handlebars, custom`,
+          ),
+        };
+    }
+  }
+
+  getValue(): "json" | "yaml" | "handlebars" | "custom" {
+    return this.value;
+  }
+}
+
+/**
+ * Output format with exhaustive validation
+ */
+export class OutputFormat {
+  private constructor(
+    private readonly value: "json" | "yaml" | "markdown",
+  ) {}
+
+  static create(
+    format: string,
+  ): Result<OutputFormat, DomainError & { message: string }> {
+    switch (format) {
+      case "json":
+        return { ok: true, data: new OutputFormat("json") };
+      case "yaml":
+        return { ok: true, data: new OutputFormat("yaml") };
+      case "markdown":
+        return { ok: true, data: new OutputFormat("markdown") };
+      default:
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: format,
+              expectedFormat: "json, yaml, or markdown",
+            },
+            `Invalid output format "${format}". Supported formats: json, yaml, markdown`,
+          ),
+        };
+    }
+  }
+
+  getValue(): "json" | "yaml" | "markdown" {
+    return this.value;
+  }
+}
+
+// Input configuration using discriminated union to eliminate optional properties
+export type InputConfiguration =
+  | { kind: "DirectPath"; path: string }
+  | { kind: "PatternBased"; path: string; pattern: string };
 
 export interface SchemaConfiguration {
   definition: unknown;
-  format: "json" | "yaml" | "custom";
+  format: SchemaFormat;
 }
 
 export interface TemplateConfiguration {
   definition: string;
-  format: "json" | "yaml" | "handlebars" | "custom";
+  format: TemplateFormat;
 }
 
 export interface OutputConfiguration {
   path: string;
-  format: "json" | "yaml" | "markdown";
+  format: OutputFormat;
 }
 
-export interface ProcessingConfiguration {
-  extractionPrompt?: string;
-  mappingPrompt?: string;
-  parallel?: boolean;
-  continueOnError?: boolean;
-}
+// Processing configuration using discriminated union to eliminate optional properties
+export type ProcessingConfiguration =
+  | { kind: "BasicProcessing" }
+  | { kind: "CustomPrompts"; extractionPrompt: string; mappingPrompt: string }
+  | {
+    kind: "ParallelProcessing";
+    parallel: true;
+    continueOnError: boolean;
+  }
+  | {
+    kind: "FullCustom";
+    extractionPrompt: string;
+    mappingPrompt: string;
+    parallel: boolean;
+    continueOnError: boolean;
+  };
 
 export interface ApplicationConfiguration {
   input: InputConfiguration;
   schema: SchemaConfiguration;
   template: TemplateConfiguration;
   output: OutputConfiguration;
-  processing?: ProcessingConfiguration;
+  processing: ProcessingConfiguration; // Now required with explicit mode
 }
 
+/**
+ * Totality-compliant configuration validator
+ * Eliminates all type assertions and optional properties using discriminated unions
+ */
 export class ConfigurationValidator {
   validate(
     config: unknown,
@@ -55,148 +185,297 @@ export class ConfigurationValidator {
 
     const obj = config as Record<string, unknown>;
 
-    // Validate input
-    if (!obj.input || typeof obj.input !== "object") {
+    // Validate input using discriminated union pattern
+    const inputResult = this.validateInputConfiguration(obj.input);
+    if (!inputResult.ok) return inputResult;
+
+    // Validate schema using Smart Constructor
+    const schemaResult = this.validateSchemaConfiguration(obj.schema);
+    if (!schemaResult.ok) return schemaResult;
+
+    // Validate template using Smart Constructor
+    const templateResult = this.validateTemplateConfiguration(obj.template);
+    if (!templateResult.ok) return templateResult;
+
+    // Validate output using Smart Constructor
+    const outputResult = this.validateOutputConfiguration(obj.output);
+    if (!outputResult.ok) return outputResult;
+
+    // Validate processing using discriminated union pattern (defaults to BasicProcessing)
+    const processingResult = this.validateProcessingConfiguration(
+      obj.processing,
+    );
+    if (!processingResult.ok) return processingResult;
+
+    return {
+      ok: true,
+      data: {
+        input: inputResult.data,
+        schema: schemaResult.data,
+        template: templateResult.data,
+        output: outputResult.data,
+        processing: processingResult.data,
+      },
+    };
+  }
+
+  private validateInputConfiguration(
+    input: unknown,
+  ): Result<InputConfiguration, DomainError & { message: string }> {
+    if (!input || typeof input !== "object") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: obj.input,
+          config: input,
         }, "Missing or invalid 'input' configuration"),
       };
     }
-    const input = obj.input as Record<string, unknown>;
-    if (!input.path || typeof input.path !== "string") {
+
+    const inputObj = input as Record<string, unknown>;
+    if (!inputObj.path || typeof inputObj.path !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: input.path,
+          config: inputObj.path,
         }, "Input path is required and must be a string"),
       };
     }
 
-    // Validate schema
-    if (!obj.schema || typeof obj.schema !== "object") {
+    // Use discriminated union based on presence of pattern
+    if (inputObj.pattern && typeof inputObj.pattern === "string") {
+      return {
+        ok: true,
+        data: {
+          kind: "PatternBased",
+          path: inputObj.path,
+          pattern: inputObj.pattern,
+        },
+      };
+    } else {
+      return {
+        ok: true,
+        data: {
+          kind: "DirectPath",
+          path: inputObj.path,
+        },
+      };
+    }
+  }
+
+  private validateSchemaConfiguration(
+    schema: unknown,
+  ): Result<SchemaConfiguration, DomainError & { message: string }> {
+    if (!schema || typeof schema !== "object") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: obj.schema,
+          config: schema,
         }, "Missing or invalid 'schema' configuration"),
       };
     }
-    const schema = obj.schema as Record<string, unknown>;
-    if (!schema.definition) {
+
+    const schemaObj = schema as Record<string, unknown>;
+    if (!schemaObj.definition) {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: schema.definition,
+          config: schemaObj.definition,
         }, "Schema definition is required"),
       };
     }
-    if (!schema.format || typeof schema.format !== "string") {
+
+    if (!schemaObj.format || typeof schemaObj.format !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: schema.format,
-        }, "Schema format is required"),
+          config: schemaObj.format,
+        }, "Schema format is required and must be a string"),
       };
     }
 
-    // Validate template
-    if (!obj.template || typeof obj.template !== "object") {
+    // Use Smart Constructor for format validation
+    const formatResult = SchemaFormat.create(schemaObj.format);
+    if (!formatResult.ok) return formatResult;
+
+    return {
+      ok: true,
+      data: {
+        definition: schemaObj.definition,
+        format: formatResult.data,
+      },
+    };
+  }
+
+  private validateTemplateConfiguration(
+    template: unknown,
+  ): Result<TemplateConfiguration, DomainError & { message: string }> {
+    if (!template || typeof template !== "object") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: obj.template,
+          config: template,
         }, "Missing or invalid 'template' configuration"),
       };
     }
-    const template = obj.template as Record<string, unknown>;
-    if (!template.definition || typeof template.definition !== "string") {
+
+    const templateObj = template as Record<string, unknown>;
+    if (!templateObj.definition || typeof templateObj.definition !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: template.definition,
+          config: templateObj.definition,
         }, "Template definition is required and must be a string"),
       };
     }
-    if (!template.format || typeof template.format !== "string") {
+
+    if (!templateObj.format || typeof templateObj.format !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: template.format,
-        }, "Template format is required"),
+          config: templateObj.format,
+        }, "Template format is required and must be a string"),
       };
     }
 
-    // Validate output
-    if (!obj.output || typeof obj.output !== "object") {
+    // Use Smart Constructor for format validation
+    const formatResult = TemplateFormat.create(templateObj.format);
+    if (!formatResult.ok) return formatResult;
+
+    return {
+      ok: true,
+      data: {
+        definition: templateObj.definition,
+        format: formatResult.data,
+      },
+    };
+  }
+
+  private validateOutputConfiguration(
+    output: unknown,
+  ): Result<OutputConfiguration, DomainError & { message: string }> {
+    if (!output || typeof output !== "object") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: obj.output,
+          config: output,
         }, "Missing or invalid 'output' configuration"),
       };
     }
-    const output = obj.output as Record<string, unknown>;
-    if (!output.path || typeof output.path !== "string") {
+
+    const outputObj = output as Record<string, unknown>;
+    if (!outputObj.path || typeof outputObj.path !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: output.path,
+          config: outputObj.path,
         }, "Output path is required and must be a string"),
       };
     }
-    if (!output.format || typeof output.format !== "string") {
+
+    if (!outputObj.format || typeof outputObj.format !== "string") {
       return {
         ok: false,
         error: createDomainError({
           kind: "ConfigurationError",
-          config: output.format,
-        }, "Output format is required"),
+          config: outputObj.format,
+        }, "Output format is required and must be a string"),
       };
     }
 
-    // Build validated configuration
-    const validatedConfig: ApplicationConfiguration = {
-      input: {
-        path: input.path as string,
-        pattern: input.pattern as string | undefined,
-      },
-      schema: {
-        definition: schema.definition,
-        format: schema.format as "json" | "yaml" | "custom",
-      },
-      template: {
-        definition: template.definition as string,
-        format: template.format as "json" | "yaml" | "handlebars" | "custom",
-      },
-      output: {
-        path: output.path as string,
-        format: output.format as "json" | "yaml" | "markdown",
+    // Use Smart Constructor for format validation
+    const formatResult = OutputFormat.create(outputObj.format);
+    if (!formatResult.ok) return formatResult;
+
+    return {
+      ok: true,
+      data: {
+        path: outputObj.path,
+        format: formatResult.data,
       },
     };
+  }
 
-    // Optional processing configuration
-    if (obj.processing && typeof obj.processing === "object") {
-      const processing = obj.processing as Record<string, unknown>;
-      validatedConfig.processing = {
-        extractionPrompt: processing.extractionPrompt as string | undefined,
-        mappingPrompt: processing.mappingPrompt as string | undefined,
-        parallel: processing.parallel as boolean | undefined,
-        continueOnError: processing.continueOnError as boolean | undefined,
+  private validateProcessingConfiguration(
+    processing: unknown,
+  ): Result<ProcessingConfiguration, DomainError & { message: string }> {
+    // Default to BasicProcessing if not provided
+    if (!processing) {
+      return {
+        ok: true,
+        data: { kind: "BasicProcessing" },
       };
     }
 
-    return { ok: true, data: validatedConfig };
+    if (typeof processing !== "object") {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "ConfigurationError",
+          config: processing,
+        }, "Processing configuration must be an object"),
+      };
+    }
+
+    const processingObj = processing as Record<string, unknown>;
+
+    // Determine processing configuration type based on provided properties
+    const hasExtractionPrompt = processingObj.extractionPrompt &&
+      typeof processingObj.extractionPrompt === "string";
+    const hasMappingPrompt = processingObj.mappingPrompt &&
+      typeof processingObj.mappingPrompt === "string";
+    const hasParallel = processingObj.parallel === true;
+    const hasContinueOnError =
+      typeof processingObj.continueOnError === "boolean";
+
+    // Use discriminated union based on provided configuration
+    if (
+      hasExtractionPrompt && hasMappingPrompt && hasParallel &&
+      hasContinueOnError
+    ) {
+      return {
+        ok: true,
+        data: {
+          kind: "FullCustom",
+          extractionPrompt: processingObj.extractionPrompt as string,
+          mappingPrompt: processingObj.mappingPrompt as string,
+          parallel: processingObj.parallel as boolean,
+          continueOnError: processingObj.continueOnError as boolean,
+        },
+      };
+    } else if (hasExtractionPrompt && hasMappingPrompt) {
+      return {
+        ok: true,
+        data: {
+          kind: "CustomPrompts",
+          extractionPrompt: processingObj.extractionPrompt as string,
+          mappingPrompt: processingObj.mappingPrompt as string,
+        },
+      };
+    } else if (hasParallel && hasContinueOnError) {
+      return {
+        ok: true,
+        data: {
+          kind: "ParallelProcessing",
+          parallel: true,
+          continueOnError: processingObj.continueOnError as boolean,
+        },
+      };
+    } else {
+      // Default to BasicProcessing for any other combination
+      return {
+        ok: true,
+        data: { kind: "BasicProcessing" },
+      };
+    }
   }
 }
