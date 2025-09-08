@@ -1,0 +1,61 @@
+{
+  "scriptId": "397",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/config/schema-ref-resolver.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7563, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 546, "endOffset": 603, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaRefResolver",
+      "ranges": [{ "startOffset": 607, "endOffset": 788, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveSchema",
+      "ranges": [{ "startOffset": 858, "endOffset": 3092, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveRef",
+      "ranges": [{ "startOffset": 3142, "endOffset": 4864, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveJsonPointer",
+      "ranges": [{ "startOffset": 4922, "endOffset": 5326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "clearCache",
+      "ranges": [{ "startOffset": 5367, "endOffset": 5450, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractTemplateInfo",
+      "ranges": [{ "startOffset": 5518, "endOffset": 5933, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveAndExtractTemplateInfo",
+      "ranges": [{ "startOffset": 6009, "endOffset": 6560, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasFrontmatterParts",
+      "ranges": [{ "startOffset": 6616, "endOffset": 7384, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createSchemaRefResolver",
+      "ranges": [{ "startOffset": 7450, "endOffset": 7562, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "scriptId": "400",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/services/schema-aggregation-adapter.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4618, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 664, "endOffset": 682, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaAggregationAdapter",
+      "ranges": [{ "startOffset": 686, "endOffset": 807, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "convertToDerivationRule",
+      "ranges": [{ "startOffset": 868, "endOffset": 1040, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractAggregationContext",
+      "ranges": [{ "startOffset": 1098, "endOffset": 2214, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processAggregation",
+      "ranges": [{ "startOffset": 2294, "endOffset": 2818, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isFrontmatterPartSchema",
+      "ranges": [{ "startOffset": 2883, "endOffset": 2970, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "findFrontmatterParts",
+      "ranges": [{ "startOffset": 3039, "endOffset": 3909, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "applyToTemplate",
+      "ranges": [{ "startOffset": 3963, "endOffset": 4438, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createSchemaAggregationAdapter",
+      "ranges": [{ "startOffset": 4513, "endOffset": 4617, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

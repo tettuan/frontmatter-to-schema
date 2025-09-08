@@ -1,0 +1,101 @@
+{
+  "scriptId": "447",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/config/environment-config.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3233, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 626, "endOffset": 676, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 645, "endOffset": 667, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "EnvironmentConfig",
+      "ranges": [{ "startOffset": 680, "endOffset": 785, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getInstance",
+      "ranges": [{ "startOffset": 833, "endOffset": 1026, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getEnvVar",
+      "ranges": [{ "startOffset": 1088, "endOffset": 1263, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "clearCache",
+      "ranges": [{ "startOffset": 1314, "endOffset": 1356, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resetSingleton",
+      "ranges": [{ "startOffset": 1425, "endOffset": 1486, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getVerboseMode",
+      "ranges": [{ "startOffset": 1529, "endOffset": 1612, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDebugMode",
+      "ranges": [{ "startOffset": 1675, "endOffset": 1811, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getBreakdownLogEnabled",
+      "ranges": [{ "startOffset": 1855, "endOffset": 1947, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getNodeEnv",
+      "ranges": [{ "startOffset": 1986, "endOffset": 2067, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getLogLevel",
+      "ranges": [{ "startOffset": 2099, "endOffset": 2175, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getClaudeApiKey",
+      "ranges": [{ "startOffset": 2212, "endOffset": 2596, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isProduction",
+      "ranges": [{ "startOffset": 2645, "endOffset": 2712, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isDevelopment",
+      "ranges": [{ "startOffset": 2762, "endOffset": 2831, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isTest",
+      "ranges": [{ "startOffset": 2874, "endOffset": 2929, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getCustom",
+      "ranges": [{ "startOffset": 2979, "endOffset": 3061, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getEnvironmentConfig",
+      "ranges": [{ "startOffset": 3152, "endOffset": 3231, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

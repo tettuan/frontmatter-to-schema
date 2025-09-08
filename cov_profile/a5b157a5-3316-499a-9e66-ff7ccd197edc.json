@@ -1,0 +1,140 @@
+{
+  "scriptId": "327",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/presentation/cli-arguments.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 8768, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 259, "endOffset": 264, "count": 1 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "SchemaPath",
+      "ranges": [{ "startOffset": 268, "endOffset": 315, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 325, "endOffset": 895, "count": 1 },
+        { "startOffset": 383, "endOffset": 538, "count": 0 },
+        { "startOffset": 572, "endOffset": 746, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "toString",
+      "ranges": [{ "startOffset": 898, "endOffset": 937, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getDirectory",
+      "ranges": [{ "startOffset": 940, "endOffset": 1083, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFileName",
+      "ranges": [{ "startOffset": 1086, "endOffset": 1236, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1308, "endOffset": 1323, "count": 1 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "OutputPath",
+      "ranges": [{ "startOffset": 1327, "endOffset": 1408, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 1418, "endOffset": 2150, "count": 1 },
+        { "startOffset": 1476, "endOffset": 1631, "count": 0 },
+        { "startOffset": 1825, "endOffset": 2020, "count": 0 },
+        { "startOffset": 2054, "endOffset": 2062, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "toString",
+      "ranges": [{ "startOffset": 2153, "endOffset": 2192, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 2195, "endOffset": 2236, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2312, "endOffset": 2317, "count": 1 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "InputPattern",
+      "ranges": [{ "startOffset": 2321, "endOffset": 2368, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 2378, "endOffset": 2690, "count": 1 },
+        { "startOffset": 2445, "endOffset": 2605, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "toString",
+      "ranges": [{ "startOffset": 2693, "endOffset": 2732, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toGlob",
+      "ranges": [
+        { "startOffset": 2735, "endOffset": 2999, "count": 2 },
+        { "startOffset": 2843, "endOffset": 2873, "count": 0 },
+        { "startOffset": 2875, "endOffset": 2972, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parse",
+      "ranges": [
+        { "startOffset": 3151, "endOffset": 7066, "count": 1 },
+        { "startOffset": 3266, "endOffset": 4102, "count": 0 },
+        { "startOffset": 4139, "endOffset": 4981, "count": 0 },
+        { "startOffset": 5255, "endOffset": 6179, "count": 4 },
+        { "startOffset": 5315, "endOffset": 6086, "count": 1 },
+        { "startOffset": 5374, "endOffset": 5384, "count": 0 },
+        { "startOffset": 5395, "endOffset": 5467, "count": 0 },
+        { "startOffset": 5478, "endOffset": 5488, "count": 0 },
+        { "startOffset": 5499, "endOffset": 5567, "count": 0 },
+        { "startOffset": 5660, "endOffset": 5670, "count": 0 },
+        { "startOffset": 5681, "endOffset": 5755, "count": 0 },
+        { "startOffset": 5766, "endOffset": 6068, "count": 0 },
+        { "startOffset": 6086, "endOffset": 6162, "count": 3 },
+        { "startOffset": 6257, "endOffset": 6469, "count": 0 },
+        { "startOffset": 6589, "endOffset": 6623, "count": 0 },
+        { "startOffset": 6709, "endOffset": 6743, "count": 0 },
+        { "startOffset": 6833, "endOffset": 6868, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getUsage",
+      "ranges": [{ "startOffset": 7111, "endOffset": 8005, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getHelp",
+      "ranges": [{ "startOffset": 8049, "endOffset": 8765, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

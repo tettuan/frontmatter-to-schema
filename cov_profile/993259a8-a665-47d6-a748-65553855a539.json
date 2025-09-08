@@ -1,0 +1,49 @@
+{
+  "scriptId": "368",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/aggregation/expression-evaluator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3610, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "evaluate",
+      "ranges": [
+        { "startOffset": 621, "endOffset": 1304, "count": 4 },
+        { "startOffset": 787, "endOffset": 945, "count": 0 },
+        { "startOffset": 1100, "endOffset": 1300, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "evaluateParts",
+      "ranges": [
+        { "startOffset": 1368, "endOffset": 2649, "count": 4 },
+        { "startOffset": 1425, "endOffset": 1469, "count": 0 },
+        { "startOffset": 1537, "endOffset": 2625, "count": 8 },
+        { "startOffset": 1595, "endOffset": 2597, "count": 10 },
+        { "startOffset": 1646, "endOffset": 1677, "count": 0 },
+        { "startOffset": 1715, "endOffset": 1909, "count": 8 },
+        { "startOffset": 1920, "endOffset": 2114, "count": 2 },
+        { "startOffset": 2125, "endOffset": 2579, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractUnique",
+      "ranges": [{ "startOffset": 2716, "endOffset": 3182, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getUniqueKey",
+      "ranges": [{ "startOffset": 3243, "endOffset": 3461, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createExpressionEvaluator",
+      "ranges": [{ "startOffset": 3533, "endOffset": 3609, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

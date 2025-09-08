@@ -1,0 +1,46 @@
+{
+  "scriptId": "373",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/config/valid-tools-config.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3262, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 321, "endOffset": 326, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ValidToolsConfig",
+      "ranges": [{ "startOffset": 330, "endOffset": 377, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 460, "endOffset": 2641, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createDefault",
+      "ranges": [{ "startOffset": 2703, "endOffset": 2927, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTools",
+      "ranges": [{ "startOffset": 2973, "endOffset": 3012, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isValidTool",
+      "ranges": [{ "startOffset": 3053, "endOffset": 3180, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getCount",
+      "ranges": [{ "startOffset": 3213, "endOffset": 3259, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

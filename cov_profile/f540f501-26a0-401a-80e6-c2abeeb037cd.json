@@ -1,0 +1,115 @@
+{
+  "scriptId": "371",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-engine-core.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 5987, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 415, "endOffset": 422, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "GenericAnalysisEngine",
+      "ranges": [{ "startOffset": 426, "endOffset": 487, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 490, "endOffset": 2156, "count": 6 },
+        { "startOffset": 668, "endOffset": 883, "count": 2 },
+        { "startOffset": 890, "endOffset": 918, "count": 4 },
+        { "startOffset": 924, "endOffset": 1479, "count": 4 },
+        { "startOffset": 1479, "endOffset": 2152, "count": 2 },
+        { "startOffset": 1781, "endOffset": 2152, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1053, "endOffset": 1170, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1105, "endOffset": 1146, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateInput",
+      "ranges": [
+        { "startOffset": 2213, "endOffset": 2405, "count": 6 },
+        { "startOffset": 2252, "endOffset": 2341, "count": 2 },
+        { "startOffset": 2341, "endOffset": 2404, "count": 4 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTimeoutState",
+      "ranges": [
+        { "startOffset": 2469, "endOffset": 2656, "count": 2 },
+        { "startOffset": 2611, "endOffset": 2655, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "cleanupTimeout",
+      "ranges": [
+        { "startOffset": 2724, "endOffset": 2928, "count": 2 },
+        { "startOffset": 2867, "endOffset": 2881, "count": 0 },
+        { "startOffset": 2888, "endOffset": 2918, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "analyze",
+      "ranges": [
+        { "startOffset": 3115, "endOffset": 3545, "count": 4 },
+        { "startOffset": 3338, "endOffset": 3448, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isValidResultType",
+      "ranges": [{ "startOffset": 3620, "endOffset": 3778, "count": 6 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "hasValidationMethod",
+      "ranges": [{ "startOffset": 3848, "endOffset": 4004, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "process",
+      "ranges": [
+        { "startOffset": 4007, "endOffset": 5303, "count": 3 },
+        { "startOffset": 4328, "endOffset": 4517, "count": 1 },
+        { "startOffset": 4517, "endOffset": 4642, "count": 2 },
+        { "startOffset": 4642, "endOffset": 4868, "count": 0 },
+        { "startOffset": 4868, "endOffset": 5095, "count": 2 },
+        { "startOffset": 5095, "endOffset": 5299, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractSchemaValidationCapability",
+      "ranges": [
+        { "startOffset": 5382, "endOffset": 5664, "count": 3 },
+        { "startOffset": 5613, "endOffset": 5663, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "performSchemaValidation",
+      "ranges": [
+        { "startOffset": 5742, "endOffset": 5984, "count": 3 },
+        { "startOffset": 5891, "endOffset": 5974, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

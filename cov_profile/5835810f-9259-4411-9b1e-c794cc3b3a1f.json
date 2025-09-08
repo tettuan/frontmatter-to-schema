@@ -1,0 +1,90 @@
+{
+  "scriptId": "336",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/registry.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2505, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 173, "endOffset": 192, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "add",
+      "ranges": [{ "startOffset": 251, "endOffset": 308, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get",
+      "ranges": [{ "startOffset": 356, "endOffset": 404, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "has",
+      "ranges": [{ "startOffset": 445, "endOffset": 493, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "keys",
+      "ranges": [{ "startOffset": 525, "endOffset": 581, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "values",
+      "ranges": [{ "startOffset": 616, "endOffset": 676, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "size",
+      "ranges": [{ "startOffset": 721, "endOffset": 763, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "clear",
+      "ranges": [{ "startOffset": 800, "endOffset": 839, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "transform",
+      "ranges": [{ "startOffset": 901, "endOffset": 977, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "merge",
+      "ranges": [{ "startOffset": 1033, "endOffset": 1140, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "filter",
+      "ranges": [
+        { "startOffset": 1195, "endOffset": 1403, "count": 1 },
+        { "startOffset": 1297, "endOffset": 1378, "count": 3 },
+        { "startOffset": 1328, "endOffset": 1372, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "map",
+      "ranges": [{ "startOffset": 1448, "endOffset": 1611, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toObject",
+      "ranges": [{ "startOffset": 1656, "endOffset": 2098, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasExtractedData",
+      "ranges": [{ "startOffset": 2173, "endOffset": 2328, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toArray",
+      "ranges": [{ "startOffset": 2378, "endOffset": 2502, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

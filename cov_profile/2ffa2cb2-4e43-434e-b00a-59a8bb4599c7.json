@@ -1,0 +1,51 @@
+{
+  "scriptId": "329",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/adapters/deno-file-system-repository.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3987, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "readFile",
+      "ranges": [{ "startOffset": 414, "endOffset": 1266, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "writeFile",
+      "ranges": [{ "startOffset": 1269, "endOffset": 1920, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "ensureDirectory",
+      "ranges": [{ "startOffset": 1923, "endOffset": 2589, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "exists",
+      "ranges": [{ "startOffset": 2592, "endOffset": 3375, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "findFiles",
+      "ranges": [{ "startOffset": 3378, "endOffset": 3693, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "get",
+      "ranges": [{ "startOffset": 3801, "endOffset": 3845, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getOrDefault",
+      "ranges": [{ "startOffset": 3848, "endOffset": 3931, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getCurrentDirectory",
+      "ranges": [{ "startOffset": 3934, "endOffset": 3984, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

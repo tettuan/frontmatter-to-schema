@@ -1,0 +1,68 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/unit/domain/services/schema-validator.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4595, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaId",
+      "ranges": [
+        { "startOffset": 349, "endOffset": 545, "count": 4 },
+        { "startOffset": 439, "endOffset": 521, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaVersion",
+      "ranges": [
+        { "startOffset": 546, "endOffset": 777, "count": 4 },
+        { "startOffset": 666, "endOffset": 753, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaDefinition",
+      "ranges": [
+        { "startOffset": 778, "endOffset": 1023, "count": 4 },
+        { "startOffset": 909, "endOffset": 999, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1053, "endOffset": 4592, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1165, "endOffset": 1858, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1906, "endOffset": 2680, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2725, "endOffset": 3260, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 3310, "endOffset": 3850, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 3911, "endOffset": 4588, "count": 1 },
+        { "startOffset": 4194, "endOffset": 4584, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

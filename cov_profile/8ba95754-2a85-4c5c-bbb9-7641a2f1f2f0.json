@@ -1,0 +1,109 @@
+{
+  "scriptId": "367",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/aggregation/aggregation-service.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6513, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 358, "endOffset": 367, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AggregationService",
+      "ranges": [{ "startOffset": 371, "endOffset": 430, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "aggregate",
+      "ranges": [
+        { "startOffset": 490, "endOffset": 2870, "count": 2 },
+        { "startOffset": 988, "endOffset": 1843, "count": 4 },
+        { "startOffset": 1173, "endOffset": 1683, "count": 2 },
+        { "startOffset": 1693, "endOffset": 1835, "count": 0 },
+        { "startOffset": 2070, "endOffset": 2200, "count": 1 },
+        { "startOffset": 2379, "endOffset": 2490, "count": 0 },
+        { "startOffset": 2761, "endOffset": 2771, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "flatten",
+      "ranges": [
+        { "startOffset": 1257, "endOffset": 1564, "count": 7 },
+        { "startOffset": 1335, "endOffset": 1521, "count": 10 },
+        { "startOffset": 1377, "endOffset": 1505, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2288, "endOffset": 2302, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2444, "endOffset": 2480, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2699, "endOffset": 2722, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractRulesFromSchema",
+      "ranges": [{ "startOffset": 2927, "endOffset": 4532, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "applyAggregatedData",
+      "ranges": [
+        { "startOffset": 4589, "endOffset": 5367, "count": 2 },
+        { "startOffset": 5073, "endOffset": 5114, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "filterValues",
+      "ranges": [{ "startOffset": 5428, "endOffset": 5656, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 5485, "endOffset": 5650, "count": 9 },
+        { "startOffset": 5542, "endOffset": 5555, "count": 0 },
+        { "startOffset": 5612, "endOffset": 5625, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getUniqueValues",
+      "ranges": [
+        { "startOffset": 5706, "endOffset": 5975, "count": 1 },
+        { "startOffset": 5814, "endOffset": 5952, "count": 4 },
+        { "startOffset": 5886, "endOffset": 5946, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getUniqueKey",
+      "ranges": [
+        { "startOffset": 6036, "endOffset": 6320, "count": 4 },
+        { "startOffset": 6082, "endOffset": 6096, "count": 0 },
+        { "startOffset": 6126, "endOffset": 6145, "count": 0 },
+        { "startOffset": 6181, "endOffset": 6290, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createAggregationService",
+      "ranges": [{ "startOffset": 6391, "endOffset": 6512, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

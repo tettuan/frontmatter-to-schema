@@ -1,0 +1,116 @@
+{
+  "scriptId": "342",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/aggregation/value-objects.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4171, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 324, "endOffset": 376, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "DerivationRule",
+      "ranges": [{ "startOffset": 380, "endOffset": 596, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 606, "endOffset": 1726, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTargetField",
+      "ranges": [{ "startOffset": 1729, "endOffset": 1780, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSourceExpression",
+      "ranges": [{ "startOffset": 1783, "endOffset": 1860, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSourceExpressionObject",
+      "ranges": [{ "startOffset": 1863, "endOffset": 1930, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isUnique",
+      "ranges": [{ "startOffset": 1933, "endOffset": 1973, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "shouldFlatten",
+      "ranges": [{ "startOffset": 1976, "endOffset": 2022, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromSchemaProperty",
+      "ranges": [{ "startOffset": 2094, "endOffset": 2554, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2653, "endOffset": 2669, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "AggregationContext",
+      "ranges": [{ "startOffset": 2673, "endOffset": 2757, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 2767, "endOffset": 3000, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getRules",
+      "ranges": [{ "startOffset": 3003, "endOffset": 3059, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getOptions",
+      "ranges": [{ "startOffset": 3062, "endOffset": 3122, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "addRule",
+      "ranges": [{ "startOffset": 3125, "endOffset": 3234, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3315, "endOffset": 3331, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "AggregatedResult",
+      "ranges": [{ "startOffset": 3335, "endOffset": 3419, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 3429, "endOffset": 3749, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getData",
+      "ranges": [{ "startOffset": 3752, "endOffset": 3806, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getMetadata",
+      "ranges": [{ "startOffset": 3809, "endOffset": 3871, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getField",
+      "ranges": [{ "startOffset": 3874, "endOffset": 4168, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

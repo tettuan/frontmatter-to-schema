@@ -1,0 +1,209 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/template/unified-template-processor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 11364, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 701, "endOffset": 716, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "PlaceholderPattern",
+      "ranges": [{ "startOffset": 720, "endOffset": 801, "count": 14 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 811, "endOffset": 1641, "count": 15 },
+        { "startOffset": 864, "endOffset": 951, "count": 6 },
+        { "startOffset": 958, "endOffset": 1039, "count": 1 },
+        { "startOffset": 1046, "endOffset": 1125, "count": 1 },
+        { "startOffset": 1132, "endOffset": 1391, "count": 6 },
+        { "startOffset": 1398, "endOffset": 1631, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1755, "endOffset": 1762, "count": 19 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ValidatedTemplateContent",
+      "ranges": [{ "startOffset": 1766, "endOffset": 1819, "count": 19 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 1829, "endOffset": 2286, "count": 22 },
+        { "startOffset": 1884, "endOffset": 2087, "count": 1 },
+        { "startOffset": 2087, "endOffset": 2119, "count": 21 },
+        { "startOffset": 2119, "endOffset": 2232, "count": 2 },
+        { "startOffset": 2232, "endOffset": 2285, "count": 19 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2577, "endOffset": 2591, "count": 12 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "UnifiedTemplateProcessor",
+      "ranges": [{ "startOffset": 2595, "endOffset": 2669, "count": 12 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 2806, "endOffset": 3257, "count": 12 },
+        { "startOffset": 3069, "endOffset": 3253, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "process",
+      "ranges": [
+        { "startOffset": 3533, "endOffset": 5012, "count": 19 },
+        { "startOffset": 3785, "endOffset": 3823, "count": 1 },
+        { "startOffset": 3823, "endOffset": 3942, "count": 18 },
+        { "startOffset": 3942, "endOffset": 4089, "count": 10 },
+        { "startOffset": 4096, "endOffset": 4233, "count": 3 },
+        { "startOffset": 4240, "endOffset": 4391, "count": 4 },
+        { "startOffset": 4398, "endOffset": 4747, "count": 1 },
+        { "startOffset": 4753, "endOffset": 5011, "count": 17 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processSimpleReplacement",
+      "ranges": [
+        { "startOffset": 5105, "endOffset": 5966, "count": 10 },
+        { "startOffset": 5262, "endOffset": 5291, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 5419, "endOffset": 5759, "count": 17 },
+        { "startOffset": 5590, "endOffset": 5703, "count": 16 },
+        { "startOffset": 5703, "endOffset": 5758, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processSchemaGuided",
+      "ranges": [
+        { "startOffset": 6071, "endOffset": 6676, "count": 3 },
+        { "startOffset": 6538, "endOffset": 6675, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processTypeScriptTemplate",
+      "ranges": [{ "startOffset": 6768, "endOffset": 8078, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 7301, "endOffset": 7845, "count": 5 },
+        { "startOffset": 7542, "endOffset": 7693, "count": 0 },
+        { "startOffset": 7755, "endOffset": 7770, "count": 0 },
+        { "startOffset": 7779, "endOffset": 7793, "count": 0 },
+        { "startOffset": 7802, "endOffset": 7831, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getValueByPath",
+      "ranges": [
+        { "startOffset": 8150, "endOffset": 8938, "count": 22 },
+        { "startOffset": 8267, "endOffset": 8914, "count": 37 },
+        { "startOffset": 8322, "endOffset": 8357, "count": 0 },
+        { "startOffset": 8424, "endOffset": 8466, "count": 35 },
+        { "startOffset": 8466, "endOffset": 8908, "count": 2 },
+        { "startOffset": 8581, "endOffset": 8859, "count": 1 },
+        { "startOffset": 8800, "endOffset": 8849, "count": 0 },
+        { "startOffset": 8867, "endOffset": 8908, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseTemplateStructure",
+      "ranges": [
+        { "startOffset": 8941, "endOffset": 9112, "count": 3 },
+        { "startOffset": 9025, "endOffset": 9108, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "applyDataToTemplate",
+      "ranges": [
+        { "startOffset": 9115, "endOffset": 9477, "count": 3 },
+        { "startOffset": 9410, "endOffset": 9440, "count": 1 },
+        { "startOffset": 9440, "endOffset": 9476, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveSchemaPath",
+      "ranges": [{ "startOffset": 9480, "endOffset": 9576, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "formatValue",
+      "ranges": [
+        { "startOffset": 9579, "endOffset": 9920, "count": 5 },
+        { "startOffset": 9638, "endOffset": 9890, "count": 3 },
+        { "startOffset": 9670, "endOffset": 9716, "count": 1 },
+        { "startOffset": 9725, "endOffset": 9798, "count": 1 },
+        { "startOffset": 9807, "endOffset": 9819, "count": 1 },
+        { "startOffset": 9828, "endOffset": 9876, "count": 1 },
+        { "startOffset": 9890, "endOffset": 9919, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 9765, "endOffset": 9784, "count": 3 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isDomainError",
+      "ranges": [
+        { "startOffset": 9969, "endOffset": 10092, "count": 29 },
+        { "startOffset": 10066, "endOffset": 10087, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isProcessingResult",
+      "ranges": [{ "startOffset": 10095, "endOffset": 10223, "count": 17 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createSimpleProcessor",
+      "ranges": [{ "startOffset": 10536, "endOffset": 10720, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createSchemaProcessor",
+      "ranges": [{ "startOffset": 10853, "endOffset": 11040, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTypeScriptProcessor",
+      "ranges": [{ "startOffset": 11174, "endOffset": 11361, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

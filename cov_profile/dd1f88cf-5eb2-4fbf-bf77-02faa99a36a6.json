@@ -1,0 +1,196 @@
+{
+  "scriptId": "339",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/helpers/test-utilities.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 18044, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validFilePath",
+      "ranges": [{ "startOffset": 814, "endOffset": 1040, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "markdownFilePath",
+      "ranges": [{ "startOffset": 1106, "endOffset": 1344, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "frontMatterContent",
+      "ranges": [{ "startOffset": 1420, "endOffset": 1673, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "frontMatterFromYaml",
+      "ranges": [{ "startOffset": 1754, "endOffset": 1990, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "schemaDefinition",
+      "ranges": [{ "startOffset": 2052, "endOffset": 2309, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "sourceFile",
+      "ranges": [{ "startOffset": 2471, "endOffset": 2699, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "analysisResult",
+      "ranges": [{ "startOffset": 2759, "endOffset": 3149, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 3236, "endOffset": 3272, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "assertSuccess",
+      "ranges": [{ "startOffset": 3355, "endOffset": 4102, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "assertError",
+      "ranges": [{ "startOffset": 4183, "endOffset": 5069, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "assertValidationError",
+      "ranges": [{ "startOffset": 5147, "endOffset": 5390, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "assertAnalysisError",
+      "ranges": [{ "startOffset": 5467, "endOffset": 5706, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 5783, "endOffset": 5831, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "MockAnalysisStrategy",
+      "ranges": [{ "startOffset": 5835, "endOffset": 6061, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "execute",
+      "ranges": [{ "startOffset": 6064, "endOffset": 6421, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setSuccess",
+      "ranges": [{ "startOffset": 6461, "endOffset": 6609, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setError",
+      "ranges": [{ "startOffset": 6612, "endOffset": 6718, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "schemaAnalysis",
+      "ranges": [{ "startOffset": 6850, "endOffset": 7091, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "templateMapping",
+      "ranges": [{ "startOffset": 7162, "endOffset": 7469, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validationOnly",
+      "ranges": [{ "startOffset": 7539, "endOffset": 7882, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "basicExtraction",
+      "ranges": [{ "startOffset": 7953, "endOffset": 8128, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "frontMatter",
+      "ranges": [{ "startOffset": 8295, "endOffset": 10482, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "markdownWithFrontMatter",
+      "ranges": [{ "startOffset": 10558, "endOffset": 11765, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "commandSchema",
+      "ranges": [{ "startOffset": 11822, "endOffset": 12921, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "commandTemplate",
+      "ranges": [{ "startOffset": 12980, "endOffset": 13434, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 13508, "endOffset": 13544, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "measureTime",
+      "ranges": [{ "startOffset": 13615, "endOffset": 14187, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "benchmarkFunction",
+      "ranges": [{ "startOffset": 14261, "endOffset": 15366, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "assertPerformance",
+      "ranges": [{ "startOffset": 15423, "endOffset": 15634, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 15719, "endOffset": 15725, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TestWithBreakdown",
+      "ranges": [{ "startOffset": 15729, "endOffset": 15837, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "runTest",
+      "ranges": [{ "startOffset": 15911, "endOffset": 17324, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getLogger",
+      "ranges": [{ "startOffset": 17383, "endOffset": 17424, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 17482, "endOffset": 17506, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "register",
+      "ranges": [{ "startOffset": 17589, "endOffset": 17643, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "runAll",
+      "ranges": [{ "startOffset": 17702, "endOffset": 17825, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createTempRegistry",
+      "ranges": [{ "startOffset": 17901, "endOffset": 18041, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

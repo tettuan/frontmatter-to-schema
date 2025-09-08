@@ -1,0 +1,125 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/type-guards.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4667, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isObject",
+      "ranges": [
+        { "startOffset": 389, "endOffset": 496, "count": 96 },
+        { "startOffset": 451, "endOffset": 468, "count": 74 },
+        { "startOffset": 469, "endOffset": 493, "count": 66 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "asObjectRecord",
+      "ranges": [
+        { "startOffset": 588, "endOffset": 947, "count": 36 },
+        { "startOffset": 653, "endOffset": 712, "count": 19 },
+        { "startOffset": 712, "endOffset": 914, "count": 17 },
+        { "startOffset": 914, "endOffset": 932, "count": 14 },
+        { "startOffset": 933, "endOffset": 937, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getObjectProperty",
+      "ranges": [
+        { "startOffset": 1021, "endOffset": 1353, "count": 16 },
+        { "startOffset": 1087, "endOffset": 1149, "count": 12 },
+        { "startOffset": 1149, "endOffset": 1320, "count": 4 },
+        { "startOffset": 1320, "endOffset": 1338, "count": 2 },
+        { "startOffset": 1339, "endOffset": 1343, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getObjectPropertyAsObject",
+      "ranges": [{ "startOffset": 1422, "endOffset": 1716, "count": 7 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ResultHandlerService.flatMap.operation",
+      "ranges": [
+        { "startOffset": 1554, "endOffset": 1633, "count": 6 },
+        { "startOffset": 1612, "endOffset": 1623, "count": 4 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateMappingResult",
+      "ranges": [
+        { "startOffset": 1797, "endOffset": 2189, "count": 8 },
+        { "startOffset": 1867, "endOffset": 1889, "count": 6 },
+        { "startOffset": 1891, "endOffset": 2126, "count": 3 },
+        { "startOffset": 2007, "endOffset": 2026, "count": 1 },
+        { "startOffset": 2089, "endOffset": 2107, "count": 2 },
+        { "startOffset": 2108, "endOffset": 2112, "count": 1 },
+        { "startOffset": 2126, "endOffset": 2185, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateJsonParseResult",
+      "ranges": [
+        { "startOffset": 2246, "endOffset": 2708, "count": 8 },
+        { "startOffset": 2329, "endOffset": 2357, "count": 6 },
+        { "startOffset": 2358, "endOffset": 2387, "count": 5 },
+        { "startOffset": 2389, "endOffset": 2642, "count": 4 },
+        { "startOffset": 2605, "endOffset": 2623, "count": 2 },
+        { "startOffset": 2624, "endOffset": 2628, "count": 2 },
+        { "startOffset": 2642, "endOffset": 2704, "count": 4 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "hasStringKeys",
+      "ranges": [
+        { "startOffset": 2790, "endOffset": 3016, "count": 15 },
+        { "startOffset": 2846, "endOffset": 2869, "count": 7 },
+        { "startOffset": 2869, "endOffset": 3015, "count": 8 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2982, "endOffset": 3012, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "safeObjectTraversal",
+      "ranges": [
+        { "startOffset": 3076, "endOffset": 3997, "count": 11 },
+        { "startOffset": 3186, "endOffset": 3947, "count": 26 },
+        { "startOffset": 3252, "endOffset": 3263, "count": 22 },
+        { "startOffset": 3328, "endOffset": 3613, "count": 4 },
+        { "startOffset": 3613, "endOffset": 3642, "count": 22 },
+        { "startOffset": 3642, "endOffset": 3914, "count": 2 },
+        { "startOffset": 3914, "endOffset": 3947, "count": 20 },
+        { "startOffset": 3947, "endOffset": 3996, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "validateObjectArray",
+      "ranges": [
+        { "startOffset": 4043, "endOffset": 4666, "count": 11 },
+        { "startOffset": 4119, "endOffset": 4356, "count": 5 },
+        { "startOffset": 4319, "endOffset": 4337, "count": 2 },
+        { "startOffset": 4338, "endOffset": 4342, "count": 3 },
+        { "startOffset": 4356, "endOffset": 4425, "count": 6 },
+        { "startOffset": 4425, "endOffset": 4609, "count": 13 },
+        { "startOffset": 4486, "endOffset": 4496, "count": 11 },
+        { "startOffset": 4531, "endOffset": 4563, "count": 3 },
+        { "startOffset": 4563, "endOffset": 4609, "count": 10 },
+        { "startOffset": 4609, "endOffset": 4665, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

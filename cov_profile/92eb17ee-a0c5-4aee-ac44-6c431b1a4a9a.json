@@ -1,0 +1,76 @@
+{
+  "scriptId": "402",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/infrastructure/services/dependency-container.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2100, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<static_initializer>",
+      "ranges": [{ "startOffset": 438, "endOffset": 460, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 464, "endOffset": 539, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "DependencyContainer",
+      "ranges": [{ "startOffset": 543, "endOffset": 558, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getInstance",
+      "ranges": [{ "startOffset": 568, "endOffset": 739, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getEnvironmentRepository",
+      "ranges": [{ "startOffset": 742, "endOffset": 908, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getFileSystemRepository",
+      "ranges": [{ "startOffset": 911, "endOffset": 1072, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getEnvironmentConfig",
+      "ranges": [{ "startOffset": 1075, "endOffset": 1265, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "setEnvironmentRepository",
+      "ranges": [{ "startOffset": 1324, "endOffset": 1460, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "setFileSystemRepository",
+      "ranges": [{ "startOffset": 1463, "endOffset": 1530, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "reset",
+      "ranges": [{ "startOffset": 1556, "endOffset": 1669, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getGlobalEnvironmentConfig",
+      "ranges": [{ "startOffset": 1774, "endOffset": 1848, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getGlobalFileSystemRepository",
+      "ranges": [{ "startOffset": 1895, "endOffset": 1972, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getGlobalEnvironmentRepository",
+      "ranges": [{ "startOffset": 2020, "endOffset": 2098, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

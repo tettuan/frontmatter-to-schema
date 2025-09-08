@@ -1,0 +1,51 @@
+{
+  "scriptId": "333",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/services/registry-aggregator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1411, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 155, "endOffset": 191, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "addAnalysisResult",
+      "ranges": [
+        { "startOffset": 195, "endOffset": 863, "count": 5 },
+        { "startOffset": 385, "endOffset": 418, "count": 0 },
+        { "startOffset": 420, "endOffset": 461, "count": 0 },
+        { "startOffset": 596, "endOffset": 707, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 801, "endOffset": 851, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "build",
+      "ranges": [{ "startOffset": 866, "endOffset": 1179, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "sortCommands",
+      "ranges": [{ "startOffset": 1182, "endOffset": 1408, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 1232, "endOffset": 1402, "count": 5 },
+        { "startOffset": 1267, "endOffset": 1299, "count": 3 },
+        { "startOffset": 1299, "endOffset": 1357, "count": 2 },
+        { "startOffset": 1357, "endOffset": 1401, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

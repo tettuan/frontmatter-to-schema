@@ -1,0 +1,165 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/services/frontmatter-extractor.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 16584, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 451, "endOffset": 494, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaDefinition",
+      "ranges": [{ "startOffset": 498, "endOffset": 667, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 677, "endOffset": 3009, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getVersionRule",
+      "ranges": [{ "startOffset": 3012, "endOffset": 3063, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescriptionRule",
+      "ranges": [{ "startOffset": 3066, "endOffset": 3125, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getToolsRule",
+      "ranges": [{ "startOffset": 3128, "endOffset": 3175, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3209, "endOffset": 3240, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ExtractedData",
+      "ranges": [{ "startOffset": 3244, "endOffset": 3377, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 3387, "endOffset": 3487, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getVersion",
+      "ranges": [{ "startOffset": 3490, "endOffset": 3533, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 3536, "endOffset": 3587, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTools",
+      "ranges": [{ "startOffset": 3590, "endOffset": 3629, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractFrontmatterToSchema",
+      "ranges": [{ "startOffset": 3956, "endOffset": 4899, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractVersion",
+      "ranges": [{ "startOffset": 4968, "endOffset": 5854, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractDescription",
+      "ranges": [{ "startOffset": 5927, "endOffset": 6315, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractTools",
+      "ranges": [{ "startOffset": 6382, "endOffset": 6941, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractConfigs",
+      "ranges": [{ "startOffset": 7003, "endOffset": 7841, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractCommands",
+      "ranges": [{ "startOffset": 7904, "endOffset": 8361, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "parseFrontmatterAndExtract",
+      "ranges": [{ "startOffset": 8599, "endOffset": 9159, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractAccordingToSchema",
+      "ranges": [
+        { "startOffset": 9501, "endOffset": 10837, "count": 6 },
+        { "startOffset": 10127, "endOffset": 10356, "count": 14 },
+        { "startOffset": 10164, "endOffset": 10173, "count": 1 },
+        { "startOffset": 10173, "endOffset": 10356, "count": 13 },
+        { "startOffset": 10416, "endOffset": 10835, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractSchemaProperty",
+      "ranges": [
+        { "startOffset": 10906, "endOffset": 12557, "count": 13 },
+        { "startOffset": 11079, "endOffset": 11790, "count": 3 },
+        { "startOffset": 11236, "endOffset": 11786, "count": 0 },
+        { "startOffset": 11790, "endOffset": 12516, "count": 10 },
+        { "startOffset": 11918, "endOffset": 11943, "count": 3 },
+        { "startOffset": 11944, "endOffset": 11979, "count": 3 },
+        { "startOffset": 11981, "endOffset": 12295, "count": 3 },
+        { "startOffset": 12134, "endOffset": 12217, "count": 5 },
+        { "startOffset": 12295, "endOffset": 12334, "count": 7 },
+        { "startOffset": 12334, "endOffset": 12414, "count": 0 },
+        { "startOffset": 12414, "endOffset": 12512, "count": 7 },
+        { "startOffset": 12516, "endOffset": 12556, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createLegacySchemaDefinition",
+      "ranges": [{ "startOffset": 12811, "endOffset": 13020, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractFrontmatterToSchemaLegacy",
+      "ranges": [{ "startOffset": 13153, "endOffset": 14146, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractAccordingToSchemaLegacy",
+      "ranges": [
+        { "startOffset": 14277, "endOffset": 15465, "count": 6 },
+        { "startOffset": 14430, "endOffset": 14666, "count": 0 },
+        { "startOffset": 14828, "endOffset": 15440, "count": 13 },
+        { "startOffset": 14860, "endOffset": 14935, "count": 3 },
+        { "startOffset": 14942, "endOffset": 15237, "count": 3 },
+        { "startOffset": 15076, "endOffset": 15175, "count": 5 },
+        { "startOffset": 15138, "endOffset": 15155, "count": 0 },
+        { "startOffset": 15244, "endOffset": 15356, "count": 0 },
+        { "startOffset": 15363, "endOffset": 15430, "count": 7 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseFrontmatterAndExtractLegacy",
+      "ranges": [{ "startOffset": 15598, "endOffset": 16583, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

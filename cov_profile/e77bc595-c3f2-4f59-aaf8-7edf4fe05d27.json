@@ -1,0 +1,51 @@
+{
+  "scriptId": "328",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/process-documents-usecase.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 11485, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 841, "endOffset": 954, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "ProcessDocumentsUseCase",
+      "ranges": [{ "startOffset": 958, "endOffset": 1376, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "execute",
+      "ranges": [{ "startOffset": 1415, "endOffset": 4650, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "loadAndResolveSchema",
+      "ranges": [{ "startOffset": 4713, "endOffset": 6349, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "findMarkdownFiles",
+      "ranges": [{ "startOffset": 6414, "endOffset": 6940, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processMarkdownFile",
+      "ranges": [{ "startOffset": 6989, "endOffset": 9208, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateResults",
+      "ranges": [{ "startOffset": 9271, "endOffset": 10295, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "writeOutput",
+      "ranges": [{ "startOffset": 10358, "endOffset": 11482, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

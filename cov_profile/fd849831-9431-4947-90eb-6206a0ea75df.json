@@ -1,0 +1,95 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/unit/domain/models/schema-business.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 11977, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaId",
+      "ranges": [
+        { "startOffset": 278, "endOffset": 474, "count": 9 },
+        { "startOffset": 368, "endOffset": 450, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaVersion",
+      "ranges": [
+        { "startOffset": 475, "endOffset": 706, "count": 9 },
+        { "startOffset": 595, "endOffset": 682, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createTestSchemaDefinition",
+      "ranges": [
+        { "startOffset": 707, "endOffset": 952, "count": 9 },
+        { "startOffset": 838, "endOffset": 928, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1273, "endOffset": 8851, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1371, "endOffset": 4016, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 1465, "endOffset": 2706, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 2801, "endOffset": 4010, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 4097, "endOffset": 7161, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 4175, "endOffset": 5738, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 5817, "endOffset": 7155, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 7253, "endOffset": 8847, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 7341, "endOffset": 8841, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8902, "endOffset": 11974, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8974, "endOffset": 10409, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 10473, "endOffset": 11970, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

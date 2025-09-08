@@ -1,0 +1,81 @@
+{
+  "scriptId": "331",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/config/schema-ref-resolver.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7563, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 546, "endOffset": 603, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "SchemaRefResolver",
+      "ranges": [{ "startOffset": 607, "endOffset": 788, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveSchema",
+      "ranges": [
+        { "startOffset": 858, "endOffset": 3092, "count": 17 },
+        { "startOffset": 987, "endOffset": 1057, "count": 0 },
+        { "startOffset": 1124, "endOffset": 1194, "count": 9 },
+        { "startOffset": 1194, "endOffset": 1247, "count": 8 },
+        { "startOffset": 1247, "endOffset": 1553, "count": 0 },
+        { "startOffset": 1553, "endOffset": 1656, "count": 8 },
+        { "startOffset": 1656, "endOffset": 1693, "count": 0 },
+        { "startOffset": 1695, "endOffset": 2742, "count": 0 },
+        { "startOffset": 2742, "endOffset": 2867, "count": 8 },
+        { "startOffset": 2867, "endOffset": 3031, "count": 16 },
+        { "startOffset": 2958, "endOffset": 2990, "count": 0 },
+        { "startOffset": 3031, "endOffset": 3091, "count": 8 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveRef",
+      "ranges": [{ "startOffset": 3142, "endOffset": 4864, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveJsonPointer",
+      "ranges": [{ "startOffset": 4922, "endOffset": 5326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "clearCache",
+      "ranges": [{ "startOffset": 5367, "endOffset": 5450, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractTemplateInfo",
+      "ranges": [
+        { "startOffset": 5518, "endOffset": 5933, "count": 1 },
+        { "startOffset": 5595, "endOffset": 5839, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveAndExtractTemplateInfo",
+      "ranges": [
+        { "startOffset": 6009, "endOffset": 6560, "count": 1 },
+        { "startOffset": 6204, "endOffset": 6239, "count": 0 },
+        { "startOffset": 6382, "endOffset": 6418, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "hasFrontmatterParts",
+      "ranges": [{ "startOffset": 6616, "endOffset": 7384, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createSchemaRefResolver",
+      "ranges": [{ "startOffset": 7450, "endOffset": 7562, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

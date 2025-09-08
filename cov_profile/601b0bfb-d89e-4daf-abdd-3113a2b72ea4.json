@@ -1,0 +1,11 @@
+{
+  "scriptId": "364",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-engine/index.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 724, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

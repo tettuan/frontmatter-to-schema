@@ -1,0 +1,75 @@
+{
+  "scriptId": "373",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-processors-strategies.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 5417, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 614, "endOffset": 656, "count": 8 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ContextualAnalysisProcessor",
+      "ranges": [{ "startOffset": 660, "endOffset": 826, "count": 8 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "processWithContext",
+      "ranges": [
+        { "startOffset": 829, "endOffset": 3091, "count": 9 },
+        { "startOffset": 984, "endOffset": 1196, "count": 2 },
+        { "startOffset": 1203, "endOffset": 1650, "count": 3 },
+        { "startOffset": 1283, "endOffset": 1403, "count": 2 },
+        { "startOffset": 1404, "endOffset": 1473, "count": 1 },
+        { "startOffset": 1507, "endOffset": 1553, "count": 0 },
+        { "startOffset": 1657, "endOffset": 2160, "count": 1 },
+        { "startOffset": 1801, "endOffset": 2064, "count": 0 },
+        { "startOffset": 2167, "endOffset": 2739, "count": 3 },
+        { "startOffset": 2407, "endOffset": 2411, "count": 0 },
+        { "startOffset": 2608, "endOffset": 2616, "count": 1 },
+        { "startOffset": 2824, "endOffset": 3081, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 3281, "endOffset": 3319, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 3323, "endOffset": 4728, "count": 5 },
+        { "startOffset": 3501, "endOffset": 3717, "count": 2 },
+        { "startOffset": 3717, "endOffset": 3889, "count": 3 },
+        { "startOffset": 3891, "endOffset": 4301, "count": 0 },
+        { "startOffset": 4301, "endOffset": 4440, "count": 3 },
+        { "startOffset": 4440, "endOffset": 4640, "count": 0 },
+        { "startOffset": 4640, "endOffset": 4727, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 4805, "endOffset": 4819, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaMappingStrategy",
+      "ranges": [{ "startOffset": 4823, "endOffset": 4914, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 4917, "endOffset": 5252, "count": 2 },
+        { "startOffset": 4985, "endOffset": 5251, "count": 1 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

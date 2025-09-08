@@ -1,0 +1,87 @@
+{
+  "scriptId": "372",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-template-mapper.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6378, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "map",
+      "ranges": [
+        { "startOffset": 451, "endOffset": 1176, "count": 4 },
+        { "startOffset": 678, "endOffset": 729, "count": 1 },
+        { "startOffset": 729, "endOffset": 866, "count": 3 },
+        { "startOffset": 868, "endOffset": 1090, "count": 3 },
+        { "startOffset": 1096, "endOffset": 1175, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isTemplateDefinition",
+      "ranges": [
+        { "startOffset": 1247, "endOffset": 1386, "count": 4 },
+        { "startOffset": 1357, "endOffset": 1380, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "mapInternal",
+      "ranges": [
+        { "startOffset": 1458, "endOffset": 2179, "count": 3 },
+        { "startOffset": 1507, "endOffset": 1712, "count": 0 },
+        { "startOffset": 1955, "endOffset": 2175, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "transformWithTemplate",
+      "ranges": [
+        { "startOffset": 2182, "endOffset": 3250, "count": 3 },
+        { "startOffset": 2666, "endOffset": 2704, "count": 0 },
+        { "startOffset": 2706, "endOffset": 2795, "count": 0 },
+        { "startOffset": 2885, "endOffset": 2919, "count": 0 },
+        { "startOffset": 3193, "endOffset": 3227, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseTemplateDefinition",
+      "ranges": [
+        { "startOffset": 3318, "endOffset": 4884, "count": 3 },
+        { "startOffset": 3530, "endOffset": 3811, "count": 0 },
+        { "startOffset": 3958, "endOffset": 3963, "count": 2 },
+        { "startOffset": 4132, "endOffset": 4153, "count": 2 },
+        { "startOffset": 4155, "endOffset": 4237, "count": 2 },
+        { "startOffset": 4399, "endOffset": 4880, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractMappingRules",
+      "ranges": [
+        { "startOffset": 4958, "endOffset": 5150, "count": 3 },
+        { "startOffset": 5001, "endOffset": 5029, "count": 0 },
+        { "startOffset": 5031, "endOffset": 5101, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractTemplateStructure",
+      "ranges": [
+        { "startOffset": 5215, "endOffset": 5433, "count": 3 },
+        { "startOffset": 5356, "endOffset": 5423, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "applyMappingRules",
+      "ranges": [
+        { "startOffset": 5505, "endOffset": 6375, "count": 3 },
+        { "startOffset": 5607, "endOffset": 6325, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "scriptId": "335",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/verbose-logger.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1512, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 342, "endOffset": 366, "count": 25 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "VerboseLogger",
+      "ranges": [{ "startOffset": 370, "endOffset": 536, "count": 25 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "info",
+      "ranges": [
+        { "startOffset": 603, "endOffset": 768, "count": 7 },
+        { "startOffset": 649, "endOffset": 764, "count": 5 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "warn",
+      "ranges": [
+        { "startOffset": 838, "endOffset": 1003, "count": 4 },
+        { "startOffset": 884, "endOffset": 999, "count": 3 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "error",
+      "ranges": [
+        { "startOffset": 1071, "endOffset": 1238, "count": 3 },
+        { "startOffset": 1118, "endOffset": 1234, "count": 2 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get enabled",
+      "ranges": [{ "startOffset": 1305, "endOffset": 1351, "count": 9 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "createScoped",
+      "ranges": [{ "startOffset": 1422, "endOffset": 1509, "count": 5 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

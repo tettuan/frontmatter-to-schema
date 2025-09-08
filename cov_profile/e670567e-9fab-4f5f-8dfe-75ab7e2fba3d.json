@@ -1,0 +1,36 @@
+{
+  "scriptId": "343",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/aggregation/expression-evaluator.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3610, "count": 2 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "evaluate",
+      "ranges": [{ "startOffset": 621, "endOffset": 1304, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "evaluateParts",
+      "ranges": [{ "startOffset": 1368, "endOffset": 2649, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractUnique",
+      "ranges": [{ "startOffset": 2716, "endOffset": 3182, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getUniqueKey",
+      "ranges": [{ "startOffset": 3243, "endOffset": 3461, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createExpressionEvaluator",
+      "ranges": [{ "startOffset": 3533, "endOffset": 3609, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

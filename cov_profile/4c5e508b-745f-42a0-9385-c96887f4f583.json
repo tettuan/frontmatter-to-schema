@@ -1,0 +1,46 @@
+{
+  "scriptId": "338",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/analysis-types.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 924, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isSchemaAnalysis",
+      "ranges": [{ "startOffset": 217, "endOffset": 328, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 423, "endOffset": 453, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "AnalysisResult",
+      "ranges": [{ "startOffset": 457, "endOffset": 571, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "get extractedData",
+      "ranges": [{ "startOffset": 612, "endOffset": 659, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "addMetadata",
+      "ranges": [{ "startOffset": 662, "endOffset": 723, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getMetadata",
+      "ranges": [{ "startOffset": 726, "endOffset": 863, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasMetadata",
+      "ranges": [{ "startOffset": 866, "endOffset": 921, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "scriptId": "373",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/application/process-documents-usecase.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 11485, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 841, "endOffset": 954, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ProcessDocumentsUseCase",
+      "ranges": [
+        { "startOffset": 958, "endOffset": 1376, "count": 4 },
+        { "startOffset": 1147, "endOffset": 1152, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "execute",
+      "ranges": [
+        { "startOffset": 1415, "endOffset": 4650, "count": 4 },
+        { "startOffset": 1547, "endOffset": 1621, "count": 0 },
+        { "startOffset": 1766, "endOffset": 4382, "count": 0 },
+        { "startOffset": 4383, "endOffset": 4394, "count": 0 },
+        { "startOffset": 4420, "endOffset": 4646, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "loadAndResolveSchema",
+      "ranges": [
+        { "startOffset": 4713, "endOffset": 6349, "count": 4 },
+        { "startOffset": 4912, "endOffset": 5095, "count": 0 },
+        { "startOffset": 5434, "endOffset": 5653, "count": 0 },
+        { "startOffset": 5718, "endOffset": 5901, "count": 0 },
+        { "startOffset": 6132, "endOffset": 6302, "count": 0 },
+        { "startOffset": 6303, "endOffset": 6318, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "findMarkdownFiles",
+      "ranges": [{ "startOffset": 6414, "endOffset": 6940, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "processMarkdownFile",
+      "ranges": [{ "startOffset": 6989, "endOffset": 9208, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "aggregateResults",
+      "ranges": [{ "startOffset": 9271, "endOffset": 10295, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "writeOutput",
+      "ranges": [{ "startOffset": 10358, "endOffset": 11482, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

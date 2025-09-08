@@ -1,0 +1,106 @@
+{
+  "scriptId": "380",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/core/command-types.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4815, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 476, "endOffset": 532, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "CommandOptions",
+      "ranges": [{ "startOffset": 536, "endOffset": 752, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 762, "endOffset": 1177, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getInput",
+      "ranges": [{ "startOffset": 1180, "endOffset": 1236, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getAdaptation",
+      "ranges": [{ "startOffset": 1239, "endOffset": 1305, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getInputFile",
+      "ranges": [{ "startOffset": 1308, "endOffset": 1372, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getStdin",
+      "ranges": [{ "startOffset": 1375, "endOffset": 1431, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDestination",
+      "ranges": [{ "startOffset": 1434, "endOffset": 1502, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 1580, "endOffset": 1587, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ValidatedCommand",
+      "ranges": [{ "startOffset": 1591, "endOffset": 1644, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1654, "endOffset": 3580, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getCommand",
+      "ranges": [{ "startOffset": 3583, "endOffset": 3626, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSchemaCommand",
+      "ranges": [{ "startOffset": 3629, "endOffset": 3686, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getC1",
+      "ranges": [{ "startOffset": 3736, "endOffset": 3794, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getC2",
+      "ranges": [{ "startOffset": 3797, "endOffset": 3855, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getC3",
+      "ranges": [{ "startOffset": 3858, "endOffset": 3916, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getUsage",
+      "ranges": [{ "startOffset": 3919, "endOffset": 4121, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getOptions",
+      "ranges": [{ "startOffset": 4124, "endOffset": 4330, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createCommand",
+      "ranges": [{ "startOffset": 4403, "endOffset": 4814, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

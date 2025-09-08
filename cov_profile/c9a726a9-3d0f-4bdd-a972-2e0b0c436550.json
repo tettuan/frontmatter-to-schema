@@ -1,0 +1,40 @@
+{
+  "scriptId": "333",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/file-discovery.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2443, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "discoverPromptFiles",
+      "ranges": [
+        { "startOffset": 218, "endOffset": 718, "count": 1 },
+        { "startOffset": 463, "endOffset": 694, "count": 29 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "parseCommandStructure",
+      "ranges": [
+        { "startOffset": 860, "endOffset": 1747, "count": 29 },
+        { "startOffset": 1043, "endOffset": 1113, "count": 0 },
+        { "startOffset": 1485, "endOffset": 1551, "count": 0 },
+        { "startOffset": 1632, "endOffset": 1666, "count": 2 },
+        { "startOffset": 1667, "endOffset": 1678, "count": 27 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractFrontmatter",
+      "ranges": [{ "startOffset": 1809, "endOffset": 2107, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "findTemplateVariables",
+      "ranges": [{ "startOffset": 2162, "endOffset": 2442, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

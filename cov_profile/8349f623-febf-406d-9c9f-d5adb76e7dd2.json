@@ -1,0 +1,34 @@
+{
+  "scriptId": "326",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/cli.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 3647, "count": 3 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "run",
+      "ranges": [
+        { "startOffset": 661, "endOffset": 3360, "count": 1 },
+        { "startOffset": 782, "endOffset": 927, "count": 0 },
+        { "startOffset": 1015, "endOffset": 1084, "count": 0 },
+        { "startOffset": 1140, "endOffset": 1236, "count": 0 },
+        { "startOffset": 1330, "endOffset": 1374, "count": 0 },
+        { "startOffset": 1408, "endOffset": 1758, "count": 0 },
+        { "startOffset": 2446, "endOffset": 2683, "count": 0 },
+        { "startOffset": 2718, "endOffset": 3136, "count": 0 },
+        { "startOffset": 3143, "endOffset": 3356, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "main",
+      "ranges": [
+        { "startOffset": 3398, "endOffset": 3570, "count": 1 },
+        { "startOffset": 3489, "endOffset": 3568, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

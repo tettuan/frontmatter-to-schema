@@ -1,0 +1,96 @@
+{
+  "scriptId": "385",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/schema-command.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7194, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "extractFieldMappingFromSchema",
+      "ranges": [{ "startOffset": 820, "endOffset": 2355, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2497, "endOffset": 2517, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaCommand",
+      "ranges": [{ "startOffset": 2521, "endOffset": 2617, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 2704, "endOffset": 4229, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "fromLegacy",
+      "ranges": [{ "startOffset": 4302, "endOffset": 4564, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDomain",
+      "ranges": [{ "startOffset": 4617, "endOffset": 4690, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getAction",
+      "ranges": [{ "startOffset": 4743, "endOffset": 4816, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTarget",
+      "ranges": [{ "startOffset": 4869, "endOffset": 4942, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTitle",
+      "ranges": [{ "startOffset": 4983, "endOffset": 5159, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 5206, "endOffset": 5406, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getUsage",
+      "ranges": [{ "startOffset": 5447, "endOffset": 5623, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getOptions",
+      "ranges": [{ "startOffset": 5666, "endOffset": 5944, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getIdentifier",
+      "ranges": [{ "startOffset": 5990, "endOffset": 6085, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toLegacy",
+      "ranges": [{ "startOffset": 6154, "endOffset": 6308, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "toObject",
+      "ranges": [{ "startOffset": 6355, "endOffset": 6410, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getAdditionalData",
+      "ranges": [{ "startOffset": 6475, "endOffset": 6826, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "matches",
+      "ranges": [{ "startOffset": 6879, "endOffset": 7191, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

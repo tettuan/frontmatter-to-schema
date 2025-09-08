@@ -1,0 +1,101 @@
+{
+  "scriptId": "382",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/template-value-objects.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 6703, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 880, "endOffset": 898, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "TemplateFormat",
+      "ranges": [{ "startOffset": 902, "endOffset": 992, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 1237, "endOffset": 1974, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getFormat",
+      "ranges": [{ "startOffset": 2022, "endOffset": 2063, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTemplate",
+      "ranges": [{ "startOffset": 2107, "endOffset": 2152, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 2629, "endOffset": 2658, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "MappingRule",
+      "ranges": [{ "startOffset": 2662, "endOffset": 2789, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 3099, "endOffset": 3408, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getSource",
+      "ranges": [{ "startOffset": 3453, "endOffset": 3494, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getTarget",
+      "ranges": [{ "startOffset": 3539, "endOffset": 3580, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "apply",
+      "ranges": [{ "startOffset": 3770, "endOffset": 4045, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getValueByPath",
+      "ranges": [{ "startOffset": 4293, "endOffset": 4802, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 5318, "endOffset": 5363, "count": 0 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "ProcessingOptions",
+      "ranges": [{ "startOffset": 5367, "endOffset": 5542, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 5753, "endOffset": 6360, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "isParallel",
+      "ranges": [{ "startOffset": 6419, "endOffset": 6463, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getMaxConcurrency",
+      "ranges": [{ "startOffset": 6516, "endOffset": 6573, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "shouldContinueOnError",
+      "ranges": [{ "startOffset": 6638, "endOffset": 6700, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

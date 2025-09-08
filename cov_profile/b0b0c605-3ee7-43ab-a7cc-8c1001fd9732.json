@@ -1,0 +1,21 @@
+{
+  "scriptId": "384",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/constants/command-fields.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2190, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getRequiredCommandFields",
+      "ranges": [{ "startOffset": 1640, "endOffset": 1793, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasRequiredCommandFields",
+      "ranges": [{ "startOffset": 1873, "endOffset": 2189, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "scriptId": "372",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/shared/type-guards.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 4667, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "isObject",
+      "ranges": [{ "startOffset": 389, "endOffset": 496, "count": 2 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "asObjectRecord",
+      "ranges": [
+        { "startOffset": 588, "endOffset": 947, "count": 2 },
+        { "startOffset": 712, "endOffset": 932, "count": 0 },
+        { "startOffset": 933, "endOffset": 937, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getObjectProperty",
+      "ranges": [{ "startOffset": 1021, "endOffset": 1353, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getObjectPropertyAsObject",
+      "ranges": [{ "startOffset": 1422, "endOffset": 1716, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateMappingResult",
+      "ranges": [{ "startOffset": 1797, "endOffset": 2189, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateJsonParseResult",
+      "ranges": [{ "startOffset": 2246, "endOffset": 2708, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasStringKeys",
+      "ranges": [{ "startOffset": 2790, "endOffset": 3016, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "safeObjectTraversal",
+      "ranges": [{ "startOffset": 3076, "endOffset": 3997, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validateObjectArray",
+      "ranges": [{ "startOffset": 4043, "endOffset": 4666, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

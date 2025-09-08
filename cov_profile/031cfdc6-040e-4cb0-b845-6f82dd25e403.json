@@ -1,0 +1,93 @@
+{
+  "scriptId": "334",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/config/schema-ref-resolver.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 7563, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 546, "endOffset": 603, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaRefResolver",
+      "ranges": [{ "startOffset": 607, "endOffset": 788, "count": 5 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveSchema",
+      "ranges": [
+        { "startOffset": 858, "endOffset": 3092, "count": 69 },
+        { "startOffset": 987, "endOffset": 1057, "count": 0 },
+        { "startOffset": 1124, "endOffset": 1194, "count": 29 },
+        { "startOffset": 1194, "endOffset": 1247, "count": 40 },
+        { "startOffset": 1247, "endOffset": 1553, "count": 2 },
+        { "startOffset": 1308, "endOffset": 1482, "count": 5 },
+        { "startOffset": 1402, "endOffset": 1438, "count": 0 },
+        { "startOffset": 1553, "endOffset": 1656, "count": 38 },
+        { "startOffset": 1656, "endOffset": 1693, "count": 8 },
+        { "startOffset": 1695, "endOffset": 2742, "count": 8 },
+        { "startOffset": 1818, "endOffset": 2085, "count": 1 },
+        { "startOffset": 2085, "endOffset": 2306, "count": 7 },
+        { "startOffset": 2306, "endOffset": 2346, "count": 3 },
+        { "startOffset": 2346, "endOffset": 2505, "count": 4 },
+        { "startOffset": 2505, "endOffset": 2707, "count": 0 },
+        { "startOffset": 2707, "endOffset": 2742, "count": 4 },
+        { "startOffset": 2742, "endOffset": 2867, "count": 30 },
+        { "startOffset": 2867, "endOffset": 3031, "count": 53 },
+        { "startOffset": 2958, "endOffset": 2990, "count": 8 },
+        { "startOffset": 2990, "endOffset": 3031, "count": 45 },
+        { "startOffset": 3031, "endOffset": 3091, "count": 22 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveRef",
+      "ranges": [
+        { "startOffset": 3142, "endOffset": 4864, "count": 7 },
+        { "startOffset": 3242, "endOffset": 3336, "count": 0 },
+        { "startOffset": 3445, "endOffset": 3512, "count": 0 },
+        { "startOffset": 3602, "endOffset": 3611, "count": 0 },
+        { "startOffset": 3742, "endOffset": 3971, "count": 1 },
+        { "startOffset": 3971, "endOffset": 4185, "count": 6 },
+        { "startOffset": 4185, "endOffset": 4255, "count": 4 },
+        { "startOffset": 4255, "endOffset": 4291, "count": 6 },
+        { "startOffset": 4291, "endOffset": 4860, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "resolveJsonPointer",
+      "ranges": [{ "startOffset": 4922, "endOffset": 5326, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "clearCache",
+      "ranges": [{ "startOffset": 5367, "endOffset": 5450, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "extractTemplateInfo",
+      "ranges": [{ "startOffset": 5518, "endOffset": 5933, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "resolveAndExtractTemplateInfo",
+      "ranges": [{ "startOffset": 6009, "endOffset": 6560, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "hasFrontmatterParts",
+      "ranges": [{ "startOffset": 6616, "endOffset": 7384, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "createSchemaRefResolver",
+      "ranges": [{ "startOffset": 7450, "endOffset": 7562, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}

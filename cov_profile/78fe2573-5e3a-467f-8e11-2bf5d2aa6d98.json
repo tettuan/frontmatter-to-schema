@@ -1,0 +1,101 @@
+{
+  "scriptId": "332",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/tests/unit/domain/models/entities-business.test.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 15645, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 671, "endOffset": 5031, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 767, "endOffset": 3936, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 860, "endOffset": 2097, "count": 1 },
+        { "startOffset": 1097, "endOffset": 1104, "count": 0 },
+        { "startOffset": 1331, "endOffset": 1338, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 2189, "endOffset": 3930, "count": 1 },
+        { "startOffset": 2434, "endOffset": 2441, "count": 0 },
+        { "startOffset": 2882, "endOffset": 2889, "count": 0 },
+        { "startOffset": 3226, "endOffset": 3233, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 4026, "endOffset": 5027, "count": 1 },
+        { "startOffset": 4440, "endOffset": 4447, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 5099, "endOffset": 9118, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 5193, "endOffset": 6334, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 6424, "endOffset": 8086, "count": 1 },
+        { "startOffset": 6664, "endOffset": 6671, "count": 0 },
+        { "startOffset": 6834, "endOffset": 6841, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 8169, "endOffset": 9114, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 9186, "endOffset": 11537, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 9294, "endOffset": 11533, "count": 1 },
+        { "startOffset": 9677, "endOffset": 9684, "count": 0 },
+        { "startOffset": 9847, "endOffset": 9854, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 11601, "endOffset": 15642, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "",
+      "ranges": [
+        { "startOffset": 11696, "endOffset": 15638, "count": 1 },
+        { "startOffset": 11985, "endOffset": 11992, "count": 0 },
+        { "startOffset": 12463, "endOffset": 12470, "count": 0 },
+        { "startOffset": 12881, "endOffset": 12888, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    }
+  ]
+}

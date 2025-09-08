@@ -1,0 +1,11 @@
+{
+  "scriptId": "337",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/constants/index.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 1630, "count": 1 }],
+      "isBlockCoverage": true
+    }
+  ]
+}

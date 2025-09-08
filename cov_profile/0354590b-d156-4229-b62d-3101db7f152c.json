@@ -1,0 +1,89 @@
+{
+  "scriptId": "372",
+  "url": "file:///Users/tettuan/github/frontmatter-to-schema/src/domain/models/schema-entities.ts",
+  "functions": [
+    {
+      "functionName": "",
+      "ranges": [{ "startOffset": 0, "endOffset": 2156, "count": 1 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 103, "endOffset": 108, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "SchemaId",
+      "ranges": [{ "startOffset": 112, "endOffset": 159, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [
+        { "startOffset": 169, "endOffset": 402, "count": 4 },
+        { "startOffset": 224, "endOffset": 330, "count": 0 }
+      ],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getValue",
+      "ranges": [{ "startOffset": 405, "endOffset": 444, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "equals",
+      "ranges": [{ "startOffset": 447, "endOffset": 505, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "<instance_members_initializer>",
+      "ranges": [{ "startOffset": 549, "endOffset": 591, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "Schema",
+      "ranges": [{ "startOffset": 595, "endOffset": 765, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "create",
+      "ranges": [{ "startOffset": 775, "endOffset": 891, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getId",
+      "ranges": [{ "startOffset": 894, "endOffset": 927, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDefinition",
+      "ranges": [{ "startOffset": 930, "endOffset": 979, "count": 4 }],
+      "isBlockCoverage": true
+    },
+    {
+      "functionName": "getVersion",
+      "ranges": [{ "startOffset": 982, "endOffset": 1025, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getDescription",
+      "ranges": [{ "startOffset": 1028, "endOffset": 1079, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "validate",
+      "ranges": [{ "startOffset": 1234, "endOffset": 1782, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getProperties",
+      "ranges": [{ "startOffset": 1895, "endOffset": 1960, "count": 0 }],
+      "isBlockCoverage": false
+    },
+    {
+      "functionName": "getRequiredFields",
+      "ranges": [{ "startOffset": 2080, "endOffset": 2153, "count": 0 }],
+      "isBlockCoverage": false
+    }
+  ]
+}
