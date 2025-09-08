@@ -10,6 +10,16 @@ import { createDomainError } from "../core/result.ts";
 import { ResultHandlerService } from "../services/result-handler-service.ts";
 
 /**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
+/**
  * Common interface for template format handling
  * Following Totality principle - all operations return Result types
  */
@@ -359,8 +369,8 @@ export class YAMLTemplateHandler implements TemplateFormatHandler {
         .join("\n");
     }
 
-    if (typeof data === "object") {
-      const entries = Object.entries(data as Record<string, unknown>);
+    if (isValidRecordData(data)) {
+      const entries = Object.entries(data);
       if (entries.length === 0) {
         return `${indentStr}{}`;
       }
