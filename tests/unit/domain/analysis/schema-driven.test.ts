@@ -151,7 +151,7 @@ Deno.test("GenericSchemaAnalyzer", async (t) => {
     await assertRejects(
       () => invalidAnalyzer.analyze(data, schema),
       Error,
-      "Analysis result does not conform to schema",
+      "Analysis result cannot be null or undefined",
     );
   });
 
