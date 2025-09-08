@@ -59,8 +59,8 @@ export class JSONPathExpression {
   private static validateSyntax(
     expression: string,
   ): Result<void, { kind: string; message: string }> {
-    // Check for invalid characters
-    if (/[^a-zA-Z0-9_\[\]\.\*]/.test(expression)) {
+    // Check for invalid characters (allow $ for JSONPath root)
+    if (/[^a-zA-Z0-9_\[\]\.\*\$]/.test(expression)) {
       return {
         ok: false,
         error: {
@@ -192,8 +192,10 @@ export class JSONPathExpression {
         }
         parts.push({ type: "property", value: propName });
       } else if (token) {
-        // First property (no leading dot)
-        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) {
+        // First property (no leading dot) or root symbol ($)
+        if (token === "$") {
+          parts.push({ type: "root", value: "$" });
+        } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) {
           return {
             ok: false,
             error: {
@@ -201,8 +203,9 @@ export class JSONPathExpression {
               message: `Invalid property name: ${token}`,
             },
           };
+        } else {
+          parts.push({ type: "property", value: token });
         }
-        parts.push({ type: "property", value: token });
       }
     }
 
@@ -252,6 +255,6 @@ export class JSONPathExpression {
  * Represents a part of an expression
  */
 export interface ExpressionPart {
-  type: "property" | "array" | "index";
+  type: "property" | "array" | "index" | "root";
   value: string;
 }
