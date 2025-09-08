@@ -7,7 +7,7 @@
  * frontmatter-to-schema <schema> <output> <pattern> [options]
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert@1";
 import { exists } from "jsr:@std/fs@1";
 import { join } from "jsr:@std/path@1";
 
@@ -79,7 +79,11 @@ Deno.test("CLI: Display version", async () => {
   assertEquals(result.success, true);
   assertEquals(result.code, 0);
   assertEquals(result.stdout.includes("frontmatter-to-schema"), true);
-  assertEquals(result.stdout.includes("1.0.0"), true);
+  // Version should be present, but we don't hardcode the exact version
+  assert(
+    result.stdout.match(/v\d+\.\d+\.\d+/),
+    "Version number should be present",
+  );
 });
 
 Deno.test("CLI: Process sample documents with JSON output", async () => {

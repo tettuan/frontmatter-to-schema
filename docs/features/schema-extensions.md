@@ -1,10 +1,12 @@
 # Schema Extension Properties
 
-This document describes the x-* extension properties supported for JSON Schema in the frontmatter-to-schema project.
+This document describes the x-* extension properties supported for JSON Schema
+in the frontmatter-to-schema project.
 
 ## Overview
 
-Schema extensions enable advanced data aggregation and processing capabilities through custom x-* properties in your JSON Schema definitions.
+Schema extensions enable advanced data aggregation and processing capabilities
+through custom x-* properties in your JSON Schema definitions.
 
 ## Supported Extensions
 
@@ -13,6 +15,7 @@ Schema extensions enable advanced data aggregation and processing capabilities t
 Aggregates values from multiple documents using JSONPath-like expressions.
 
 **Example:**
+
 ```json
 {
   "availableConfigs": {
@@ -26,13 +29,16 @@ Aggregates values from multiple documents using JSONPath-like expressions.
 }
 ```
 
-This will collect all `c1` values from the `commands` array across all processed documents.
+This will collect all `c1` values from the `commands` array across all processed
+documents.
 
 ### x-derived-unique
 
-When used with `x-derived-from`, removes duplicate values from the aggregated results.
+When used with `x-derived-from`, removes duplicate values from the aggregated
+results.
 
 **Example:**
+
 ```json
 {
   "tools": {
@@ -48,6 +54,7 @@ When used with `x-derived-from`, removes duplicate values from the aggregated re
 Flattens nested arrays into a single-level array.
 
 **Example:**
+
 ```json
 {
   "allItems": {
@@ -58,14 +65,15 @@ Flattens nested arrays into a single-level array.
 }
 ```
 
-Input: `[["item1", "item2"], ["item3"]]`
-Output: `["item1", "item2", "item3"]`
+Input: `[["item1", "item2"], ["item3"]]` Output: `["item1", "item2", "item3"]`
 
 ### x-frontmatter-part
 
-Marks array properties that should be used for iterating over markdown files in batch processing.
+Marks array properties that should be used for iterating over markdown files in
+batch processing.
 
 **Example:**
+
 ```json
 {
   "commands": {
@@ -119,7 +127,9 @@ Complete schema with multiple extensions:
 
 ## Implementation
 
-The schema extensions are processed by the `SchemaAggregationAdapter` which bridges the schema definition with the aggregation service. The processing pipeline:
+The schema extensions are processed by the `SchemaAggregationAdapter` which
+bridges the schema definition with the aggregation service. The processing
+pipeline:
 
 1. Schema parsing - Extract x-* properties
 2. Rule creation - Convert to aggregation rules
@@ -129,4 +139,5 @@ The schema extensions are processed by the `SchemaAggregationAdapter` which brid
 
 ## Testing
 
-All schema extensions are covered by comprehensive unit tests in `schema-aggregation-adapter_test.ts`.
+All schema extensions are covered by comprehensive unit tests in
+`schema-aggregation-adapter_test.ts`.
