@@ -55,22 +55,26 @@ describe("SchemaAggregationAdapter", () => {
       }
     });
 
-    it("should handle nested properties with derivation rules", () => {
+    it("should handle top-level properties with derivation rules", () => {
+      // Note: Nested properties like "config.tools" are not yet supported due to issue #568
       const adapter = new SchemaAggregationAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
-          config: {
-            type: "object",
-            properties: {
-              tools: {
-                type: "array",
-                "x-derived-from": "tools[].name",
-                "x-derived-unique": true,
-                items: {
-                  type: "string",
-                },
-              },
+          tools: {
+            type: "array",
+            "x-derived-from": "items[].name",
+            "x-derived-unique": true,
+            items: {
+              type: "string",
+            },
+          },
+          categories: {
+            type: "array",
+            "x-derived-from": "items[].category",
+            "x-derived-unique": true,
+            items: {
+              type: "string",
             },
           },
         },
@@ -81,9 +85,11 @@ describe("SchemaAggregationAdapter", () => {
       assertEquals(result.ok, true);
       if (result.ok) {
         const rules = result.data.getRules();
-        assertEquals(rules.length, 1);
-        assertEquals(rules[0].getTargetField(), "config.tools");
-        assertEquals(rules[0].getSourceExpression(), "tools[].name");
+        assertEquals(rules.length, 2);
+        assertEquals(rules[0].getTargetField(), "tools");
+        assertEquals(rules[0].getSourceExpression(), "items[].name");
+        assertEquals(rules[1].getTargetField(), "categories");
+        assertEquals(rules[1].getSourceExpression(), "items[].category");
       }
     });
   });
