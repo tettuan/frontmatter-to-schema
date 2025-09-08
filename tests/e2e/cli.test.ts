@@ -33,7 +33,14 @@ async function runCLI(args: string[]): Promise<{
   code: number;
 }> {
   const cmd = new Deno.Command("deno", {
-    args: ["run", "--allow-read", "--allow-write", CLI_PATH, ...args],
+    args: [
+      "run",
+      "--allow-read",
+      "--allow-write",
+      "--allow-env",
+      CLI_PATH,
+      ...args,
+    ],
     stdout: "piped",
     stderr: "piped",
   });

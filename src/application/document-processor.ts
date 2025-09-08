@@ -134,7 +134,9 @@ export class DocumentProcessor {
     }
 
     const versionConfig = getVersionConfig();
-    const schemaVersionResult = SchemaVersion.create(versionConfig.getVersion());
+    const schemaVersionResult = SchemaVersion.create(
+      versionConfig.getVersion(),
+    );
     if (!schemaVersionResult.ok) {
       return {
         ok: false,

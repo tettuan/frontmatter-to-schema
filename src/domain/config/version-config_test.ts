@@ -80,7 +80,7 @@ describe("VersionConfig", () => {
     it("should return true for equal configs", () => {
       const result1 = VersionConfig.createWithValues("1.0.0", "0.9.0");
       const result2 = VersionConfig.createWithValues("1.0.0", "0.9.0");
-      
+
       assertEquals(result1.ok, true);
       assertEquals(result2.ok, true);
       if (result1.ok && result2.ok) {
@@ -91,7 +91,7 @@ describe("VersionConfig", () => {
     it("should return false for different versions", () => {
       const result1 = VersionConfig.createWithValues("1.0.0");
       const result2 = VersionConfig.createWithValues("2.0.0");
-      
+
       assertEquals(result1.ok, true);
       assertEquals(result2.ok, true);
       if (result1.ok && result2.ok) {

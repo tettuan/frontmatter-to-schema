@@ -1,6 +1,6 @@
 /**
  * Version Configuration Value Object
- * 
+ *
  * Following DDD principles and Totality to ensure type-safe version management
  * Eliminates hardcoding violations by centralizing version configuration
  */
@@ -36,12 +36,12 @@ export class VersionConfig {
    * Totality: Always returns a valid VersionConfig
    */
   static create(): VersionConfig {
-    const version = Deno.env.get("APP_VERSION") || 
-                   Deno.env.get("VERSION") || 
-                   "1.0.0";
-    
+    const version = Deno.env.get("APP_VERSION") ||
+      Deno.env.get("VERSION") ||
+      "1.0.0";
+
     const fallbackVersion = Deno.env.get("FALLBACK_VERSION") || "1.0.0";
-    
+
     return new VersionConfig(version, fallbackVersion);
   }
 
@@ -55,14 +55,14 @@ export class VersionConfig {
   ): Result<VersionConfig, { message: string }> {
     // Validate version format
     const versionRegex = /^\d+\.\d+\.\d+(-.*)?$/;
-    
+
     if (!versionRegex.test(version)) {
       return {
         ok: false,
         error: { message: `Invalid version format: ${version}` },
       };
     }
-    
+
     const fallback = fallbackVersion || version;
     if (!versionRegex.test(fallback)) {
       return {
@@ -70,7 +70,7 @@ export class VersionConfig {
         error: { message: `Invalid fallback version format: ${fallback}` },
       };
     }
-    
+
     return {
       ok: true,
       data: new VersionConfig(version, fallback),
@@ -82,7 +82,7 @@ export class VersionConfig {
    */
   equals(other: VersionConfig): boolean {
     return this.version === other.version &&
-           this.fallbackVersion === other.fallbackVersion;
+      this.fallbackVersion === other.fallbackVersion;
   }
 
   /**
