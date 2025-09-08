@@ -149,7 +149,6 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
       // Create analysis context - get schema data safely
       let schemaData: Record<string, unknown> = {};
-      let rawSchemaData: unknown = {};
 
       if (typeof schema.getDefinition === "function") {
         const definition = schema.getDefinition();
@@ -183,7 +182,6 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
             schemaData = {};
           }
         } else {
-          rawSchemaData = definition;
           const definitionResult = asObjectRecord(
             definition,
             "schema definition object",
@@ -210,7 +208,6 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         }
       } else {
         // Schema might be the raw data itself
-        rawSchemaData = schema;
         const rawSchemaResult = asObjectRecord(schema, "raw schema");
         if (rawSchemaResult.ok) {
           // Resolve $ref for raw schema
