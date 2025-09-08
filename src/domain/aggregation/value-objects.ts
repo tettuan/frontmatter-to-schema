@@ -6,6 +6,7 @@
  */
 
 import type { Result } from "../core/result.ts";
+import { JSONPathExpression } from "./jsonpath-expression.ts";
 
 /**
  * Represents a derivation rule for aggregating data
@@ -13,7 +14,7 @@ import type { Result } from "../core/result.ts";
 export class DerivationRule {
   private constructor(
     private readonly targetField: string,
-    private readonly sourceExpression: string,
+    private readonly sourceExpression: JSONPathExpression,
     private readonly unique: boolean = false,
     private readonly flatten: boolean = false,
   ) {}
@@ -23,6 +24,7 @@ export class DerivationRule {
     sourceExpression: string,
     options?: { unique?: boolean; flatten?: boolean },
   ): Result<DerivationRule, { kind: string; message: string }> {
+    // Validate target field
     if (!targetField || targetField.trim().length === 0) {
       return {
         ok: false,
@@ -33,12 +35,28 @@ export class DerivationRule {
       };
     }
 
-    if (!sourceExpression || sourceExpression.trim().length === 0) {
+    // Validate target field name format (allow dot notation for nested fields)
+    const trimmedTarget = targetField.trim();
+    if (
+      !/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/.test(trimmedTarget)
+    ) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidTargetField",
+          message: `Invalid target field name: ${trimmedTarget}`,
+        },
+      };
+    }
+
+    // Validate source expression using Smart Constructor
+    const expressionResult = JSONPathExpression.create(sourceExpression);
+    if (!expressionResult.ok) {
       return {
         ok: false,
         error: {
           kind: "InvalidSourceExpression",
-          message: "Source expression cannot be empty",
+          message: expressionResult.error.message,
         },
       };
     }
@@ -46,8 +64,8 @@ export class DerivationRule {
     return {
       ok: true,
       data: new DerivationRule(
-        targetField.trim(),
-        sourceExpression.trim(),
+        trimmedTarget,
+        expressionResult.data,
         options?.unique ?? false,
         options?.flatten ?? false,
       ),
@@ -59,6 +77,10 @@ export class DerivationRule {
   }
 
   getSourceExpression(): string {
+    return this.sourceExpression.getExpression();
+  }
+
+  getSourceExpressionObject(): JSONPathExpression {
     return this.sourceExpression;
   }
 

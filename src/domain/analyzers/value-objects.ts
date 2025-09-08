@@ -5,6 +5,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 /**
  * Registry Version value object
@@ -31,7 +32,7 @@ export class RegistryVersion {
   }
 
   static createDefault(): RegistryVersion {
-    return new RegistryVersion("1.0.0");
+    return new RegistryVersion(VERSION_CONFIG.DEFAULT_SCHEMA_VERSION);
   }
 
   getValue(): string {

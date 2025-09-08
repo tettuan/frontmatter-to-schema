@@ -10,6 +10,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { VERSION_CONFIG } from "../../config/version.ts";
 
 /**
  * Represents a schema definition for validating frontmatter data
@@ -40,12 +41,12 @@ export class SchemaDefinition {
    * Creates a validated SchemaDefinition instance
    *
    * @param definition - The schema definition object
-   * @param version - Schema version (defaults to "1.0.0")
+   * @param version - Schema version (defaults to VERSION_CONFIG.DEFAULT_SCHEMA_VERSION)
    * @returns Result containing either a valid SchemaDefinition or validation error
    */
   static create(
     definition: unknown,
-    version: string = "1.0.0",
+    version: string = VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
   ): Result<SchemaDefinition, DomainError & { message: string }> {
     if (!definition) {
       return {

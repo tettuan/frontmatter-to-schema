@@ -17,27 +17,27 @@ import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import { basename, join } from "jsr:@std/path@1.1.2";
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { getEnvironmentConfig } from "./src/domain/config/environment-config.ts";
-import { ProcessDocumentsUseCase } from "./src/application/use-cases/process-documents.ts";
-import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
-import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
+import { ProcessDocumentsUseCase } from "./src/application/process-documents-usecase.ts";
+// import { DenoDocumentRepository } from "./src/infrastructure/adapters/deno-document-repository.ts";
+// import { createTypeScriptAnalyzer } from "./src/domain/analyzers/typescript-analyzer.ts";
 import {
   DenoEnvironmentRepository,
   DenoFileSystemRepository,
 } from "./src/infrastructure/adapters/deno-file-system-repository.ts";
 // SimpleTemplateMapper replaced by NativeTemplateStrategy with shared infrastructure
-import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
-import {
-  ConfigurationLoader,
-  TemplateLoader,
-} from "./src/infrastructure/adapters/configuration-loader.ts";
+// import { FrontMatterExtractorImpl } from "./src/infrastructure/adapters/frontmatter-extractor-impl.ts";
+// import { ResultAggregatorImpl } from "./src/infrastructure/adapters/result-aggregator-impl.ts";
+// import {
+//   ConfigurationLoader,
+//   TemplateLoader,
+// } from "./src/infrastructure/adapters/configuration-loader.ts";
 import {
   ConfigPath,
   DocumentPath,
   OutputPath,
   TemplatePath,
 } from "./src/domain/models/value-objects.ts";
-import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
+// import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
 
 // Create global CLI logger
 const cliLogger: Logger = LoggerFactory.createLogger("CLI");
@@ -272,66 +272,66 @@ export async function main() {
 
     // Create file system repository
     const fileSystemRepo = new DenoFileSystemRepository();
-    const configLoader = new ConfigurationLoader(fileSystemRepo);
-    const templateLoader = new TemplateLoader();
-    const documentRepo = new DenoDocumentRepository();
-    const frontMatterExtractor = new FrontMatterExtractorImpl();
+    //     const configLoader = new ConfigurationLoader(fileSystemRepo);
+    //     const templateLoader = new TemplateLoader();
+    //     const documentRepo = new DenoDocumentRepository();
+    //     const frontMatterExtractor = new FrontMatterExtractorImpl();
     // Use NativeTemplateStrategy instead of deprecated SimpleTemplateMapper
     // Note: This is a temporary solution, should be properly injected
-    const { MappedData } = await import("./src/domain/models/entities.ts");
-    const { createDomainError } = await import("./src/domain/core/result.ts");
+    //     const { MappedData } = await import("./src/domain/models/entities.ts");
+    //     const { createDomainError } = await import("./src/domain/core/result.ts");
 
-    const templateMapper = {
-      map: (data: ExtractedData, template: Template) => {
-        try {
-          // Simplified fallback - in production should use proper DI
-          const mappedResult = template.applyRules(data.getData(), {
-            kind: "SimpleMapping",
-          });
-          const mappedData = MappedData.create(mappedResult);
-          return { ok: true as const, data: mappedData };
-        } catch (error) {
-          return {
-            ok: false as const,
-            error: createDomainError(
-              {
-                kind: "ProcessingStageError",
-                stage: "template mapping",
-                error: {
-                  kind: "InvalidResponse",
-                  service: "template",
-                  response: error instanceof Error
-                    ? error.message
-                    : "Template mapping failed",
-                },
-              },
-              error instanceof Error
-                ? error.message
-                : "Template mapping failed",
-            ),
-          };
-        }
-      },
-      async mapWithOrchestrator(
-        _frontMatter: unknown,
-        _schema: unknown,
-        _template: unknown,
-      ) {
-        // Fallback to legacy behavior - orchestrator not configured
-        return await Promise.resolve({
-          ok: false as const,
-          error: createDomainError(
-            {
-              kind: "ReadError",
-              path: "orchestrator",
-              details: "TypeScriptAnalysisOrchestrator not configured",
-            },
-            "TypeScriptAnalysisOrchestrator not configured",
-          ),
-        });
-      },
-    };
-    const resultAggregator = new ResultAggregatorImpl("json");
+    //     const templateMapper = {
+    //       map: (data: ExtractedData, template: Template) => {
+    //         try {
+    //           // Simplified fallback - in production should use proper DI
+    //           const mappedResult = template.applyRules(data.getData(), {
+    //             kind: "SimpleMapping",
+    //           });
+    //           const mappedData = MappedData.create(mappedResult);
+    //           return { ok: true as const, data: mappedData };
+    //         } catch (error) {
+    //           return {
+    //             ok: false as const,
+    //             error: createDomainError(
+    //               {
+    //                 kind: "ProcessingStageError",
+    //                 stage: "template mapping",
+    //                 error: {
+    //                   kind: "InvalidResponse",
+    //                   service: "template",
+    //                   response: error instanceof Error
+    //                     ? error.message
+    //                     : "Template mapping failed",
+    //                 },
+    //               },
+    //               error instanceof Error
+    //                 ? error.message
+    //                 : "Template mapping failed",
+    //             ),
+    //           };
+    //         }
+    //       },
+    //       async mapWithOrchestrator(
+    //         _frontMatter: unknown,
+    //         _schema: unknown,
+    //         _template: unknown,
+    //       ) {
+    //         // Fallback to legacy behavior - orchestrator not configured
+    //         return await Promise.resolve({
+    //           ok: false as const,
+    //           error: createDomainError(
+    //             {
+    //               kind: "ReadError",
+    //               path: "orchestrator",
+    //               details: "TypeScriptAnalysisOrchestrator not configured",
+    //             },
+    //             "TypeScriptAnalysisOrchestrator not configured",
+    //           ),
+    //         });
+    //       },
+    // //     };
+    //     const resultAggregator = new ResultAggregatorImpl("json");
     if (verboseMode) {
       logger.debug("Document repository initialized");
       logger.debug("Template mapper initialized");
@@ -351,26 +351,20 @@ export async function main() {
       Deno.env.set("FRONTMATTER_VERBOSE_MODE", "true");
     }
 
-    // Create TypeScript analyzer using existing file system repository
-    const schemaAnalyzer = createTypeScriptAnalyzer(
-      fileSystemRepo,
-      "1.0.0",
-      "Climpt Command Registry",
-    );
+    // TypeScript analyzer is created internally by ProcessDocumentsUseCase
+    // const schemaAnalyzer = createTypeScriptAnalyzer(
+    //   fileSystemRepo,
+    //   "1.0.0",
+    //   "Climpt Command Registry",
+    // );
 
     // Create use case
     if (debugMode) {
       cliLogger.debug("🎯 Creating ProcessDocumentsUseCase...");
     }
     const processDocumentsUseCase = new ProcessDocumentsUseCase(
-      documentRepo,
-      configLoader,
-      templateLoader,
-      configLoader,
-      frontMatterExtractor,
-      schemaAnalyzer,
-      templateMapper,
-      resultAggregator,
+      fileSystemRepo,
+      { dryRun: false },
     );
 
     // Execute processing
@@ -404,16 +398,16 @@ export async function main() {
       throw new Error("Schema or template path validation failed unexpectedly");
     }
 
-    const processingConfig = {
-      documentsPath: documentsPathResult.data,
-      schemaPath: schemaPathResult.data,
-      templatePath: templatePathResult.data,
-      outputPath: outputPathResult.data,
-      options: {
-        parallel: true,
-        continueOnError: false,
-      },
-    };
+    //     const processingConfig = {
+    //       documentsPath: documentsPathResult.data,
+    //       schemaPath: schemaPathResult.data,
+    //       templatePath: templatePathResult.data,
+    //       outputPath: outputPathResult.data,
+    //       options: {
+    //         parallel: true,
+    //         continueOnError: false,
+    //       },
+    //     };
 
     cliLogger.info("⚡ Processing documents...");
     cliLogger.info(
@@ -422,25 +416,33 @@ export async function main() {
 
     // Process documents
     const result = await processDocumentsUseCase.execute({
-      config: processingConfig,
+      schemaPath: schemaPathResult.data.getValue(),
+      outputPath: outputPathResult.data.getValue(),
+      inputPattern: documentsPathResult.data.getValue(),
+      outputFormat:
+        templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+          ? "yaml"
+          : "json",
     });
 
     if (result.ok) {
       cliLogger.info("\n✅ Processing completed successfully!");
       cliLogger.info(`📊 Processed: ${result.data.processedCount} documents`);
-      cliLogger.info(`❌ Failed: ${result.data.failedCount} documents`);
+      // failedCount is not available in ProcessDocumentsOutput
       cliLogger.info(`💾 Output saved to: ${result.data.outputPath}`);
     } else {
       cliLogger.error("\n❌ Processing failed: " + result.error.message);
 
-      // Show more details for ConfigurationInvalid errors
-      if (
-        result.error.kind === "ConfigurationMissing" &&
-        "requiredConfig" in result.error
-      ) {
+      // Show more details for errors
+      if (result.error.kind === "ConfigurationMissing") {
         cliLogger.error("\nConfiguration errors:");
-        for (const config of result.error.requiredConfig) {
-          cliLogger.error(`  - Missing: ${config}`);
+        if (
+          "requiredConfig" in result.error &&
+          Array.isArray(result.error.requiredConfig)
+        ) {
+          for (const config of result.error.requiredConfig as string[]) {
+            cliLogger.error(`  - Missing: ${config}`);
+          }
         }
       }
 

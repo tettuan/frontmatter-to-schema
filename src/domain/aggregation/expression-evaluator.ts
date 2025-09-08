@@ -6,6 +6,10 @@
  */
 
 import type { Result } from "../core/result.ts";
+import {
+  type ExpressionPart,
+  JSONPathExpression,
+} from "./jsonpath-expression.ts";
 
 /**
  * Evaluates expressions against data objects
@@ -22,19 +26,20 @@ export class ExpressionEvaluator {
     data: unknown,
     expression: string,
   ): Result<unknown[], { kind: string; message: string }> {
-    if (!expression || expression.trim().length === 0) {
+    // Validate expression using Smart Constructor
+    const exprResult = JSONPathExpression.create(expression);
+    if (!exprResult.ok) {
       return {
         ok: false,
         error: {
           kind: "InvalidExpression",
-          message: "Expression cannot be empty",
+          message: exprResult.error.message,
         },
       };
     }
 
     try {
-      const parts = this.parseExpression(expression);
-      const result = this.evaluateParts(data, parts);
+      const result = this.evaluateParts(data, exprResult.data.getParts());
       return { ok: true, data: result };
     } catch (error) {
       return {
@@ -45,48 +50,6 @@ export class ExpressionEvaluator {
         },
       };
     }
-  }
-
-  /**
-   * Parse expression into navigable parts
-   */
-  private parseExpression(expression: string): ExpressionPart[] {
-    const parts: ExpressionPart[] = [];
-    const tokens = expression.split(/(?=\[)|(?=\.)/);
-
-    for (const token of tokens) {
-      if (token.startsWith("[]")) {
-        // Array iterator
-        parts.push({ type: "array", value: "[]" });
-        // Handle property after []
-        const remainder = token.substring(2);
-        if (remainder.startsWith(".")) {
-          const propName = remainder.substring(1);
-          if (propName) {
-            parts.push({ type: "property", value: propName });
-          }
-        }
-      } else if (token.startsWith("[")) {
-        // Array index or slice
-        const match = token.match(/\[(\d+|\*)\]/);
-        if (match) {
-          parts.push({ type: "index", value: match[1] });
-        } else if (token === "[]") {
-          parts.push({ type: "array", value: "[]" });
-        }
-      } else if (token.startsWith(".")) {
-        // Property access
-        const propName = token.substring(1);
-        if (propName) {
-          parts.push({ type: "property", value: propName });
-        }
-      } else if (token) {
-        // First property (no leading dot)
-        parts.push({ type: "property", value: token });
-      }
-    }
-
-    return parts;
   }
 
   /**
@@ -186,14 +149,6 @@ export class ExpressionEvaluator {
     }
     return String(value);
   }
-}
-
-/**
- * Represents a part of an expression
- */
-interface ExpressionPart {
-  type: "property" | "array" | "index";
-  value: string;
 }
 
 /**

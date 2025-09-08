@@ -94,6 +94,19 @@ Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
     );
     assertExists(analyzer);
   });
+
+  await t.step(
+    "should create analyzer with factory including base path",
+    () => {
+      const analyzer = createTypeScriptAnalyzer(
+        createMockFileSystemRepo(),
+        "3.0.0",
+        "Factory created",
+        "./schemas",
+      );
+      assertExists(analyzer);
+    },
+  );
 });
 
 Deno.test("TypeScriptAnalyzer - analyze method", async (t) => {
@@ -628,5 +641,220 @@ Deno.test("TypeScriptAnalyzer - command creation edge cases", async (t) => {
 
     const result = await analyzer.analyze(frontMatter, schema);
     assert(result.ok);
+  });
+});
+
+Deno.test("TypeScriptAnalyzer - $ref resolution support", async (t) => {
+  await t.step("should resolve external $ref in schema", async () => {
+    // Create mock file system with referenced schema
+    const mockFileSystem: FileSystemRepository = {
+      readFile: (path: string) => {
+        if (path.includes("command.json")) {
+          return Promise.resolve({
+            ok: true,
+            data: JSON.stringify({
+              type: "object",
+              properties: {
+                c1: { type: "string" },
+                c2: { type: "string" },
+                c3: { type: "string" },
+              },
+              required: ["c1", "c2", "c3"],
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path },
+        });
+      },
+      writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+      ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+      exists: () => Promise.resolve({ ok: true, data: false }),
+      findFiles: async function* () {},
+    };
+
+    const analyzer = new TypeScriptAnalyzer(
+      mockFileSystem,
+      "1.0.0",
+      "Test",
+      ".",
+    );
+
+    // Create schema with $ref
+    const schemaWithRef = createMockSchema({
+      type: "object",
+      properties: {
+        commands: {
+          type: "array",
+          items: { "$ref": "command.json" },
+        },
+      },
+    });
+
+    const frontMatter = createMockFrontMatter({
+      c1: "config",
+      c2: "short",
+      c3: "long description",
+    });
+
+    const result = await analyzer.analyze(frontMatter, schemaWithRef);
+    assert(result.ok, "Analysis should succeed with $ref resolution");
+
+    if (result.ok) {
+      const data = result.data.getData();
+      assertExists(data);
+      assertEquals(typeof data, "object");
+    }
+  });
+
+  await t.step("should handle nested $ref resolution", async () => {
+    // Create mock file system with nested schema references
+    const mockFileSystem: FileSystemRepository = {
+      readFile: (path: string) => {
+        if (path.includes("base.json")) {
+          return Promise.resolve({
+            ok: true,
+            data: JSON.stringify({
+              type: "object",
+              properties: {
+                nested: { "$ref": "nested.json" },
+              },
+            }),
+          });
+        }
+        if (path.includes("nested.json")) {
+          return Promise.resolve({
+            ok: true,
+            data: JSON.stringify({
+              type: "object",
+              properties: {
+                value: { type: "string" },
+              },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path },
+        });
+      },
+      writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+      ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+      exists: () => Promise.resolve({ ok: true, data: false }),
+      findFiles: async function* () {},
+    };
+
+    const analyzer = new TypeScriptAnalyzer(
+      mockFileSystem,
+      "1.0.0",
+      "Test",
+      ".",
+    );
+
+    const schemaWithNestedRef = createMockSchema({
+      type: "object",
+      properties: {
+        data: { "$ref": "base.json" },
+      },
+    });
+
+    const frontMatter = createMockFrontMatter({
+      nested: { value: "test value" },
+    });
+
+    const result = await analyzer.analyze(frontMatter, schemaWithNestedRef);
+    assert(result.ok, "Analysis should succeed with nested $ref resolution");
+  });
+
+  await t.step("should handle missing $ref file gracefully", async () => {
+    // Mock file system that returns file not found for all reads
+    const mockFileSystem: FileSystemRepository = {
+      readFile: () =>
+        Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path: "missing.json" },
+        }),
+      writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+      ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+      exists: () => Promise.resolve({ ok: true, data: false }),
+      findFiles: async function* () {},
+    };
+
+    const analyzer = new TypeScriptAnalyzer(
+      mockFileSystem,
+      "1.0.0",
+      "Test",
+      ".",
+    );
+
+    const schemaWithMissingRef = createMockSchema({
+      type: "object",
+      properties: {
+        data: { "$ref": "missing.json" },
+      },
+    });
+
+    const frontMatter = createMockFrontMatter({
+      title: "Test",
+    });
+
+    const result = await analyzer.analyze(frontMatter, schemaWithMissingRef);
+    // The analyzer should handle the error gracefully
+    assert(!result.ok, "Analysis should fail when $ref file is missing");
+    if (!result.ok) {
+      assert(
+        result.error.message.includes("ref"),
+        "Error should mention ref resolution",
+      );
+    }
+  });
+
+  await t.step("should resolve $ref with custom base path", async () => {
+    const mockFileSystem: FileSystemRepository = {
+      readFile: (path: string) => {
+        if (path.includes("schemas/types/command.json")) {
+          return Promise.resolve({
+            ok: true,
+            data: JSON.stringify({
+              type: "object",
+              properties: {
+                name: { type: "string" },
+              },
+            }),
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path },
+        });
+      },
+      writeFile: () => Promise.resolve({ ok: true, data: undefined }),
+      ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
+      exists: () => Promise.resolve({ ok: true, data: false }),
+      findFiles: async function* () {},
+    };
+
+    // Create analyzer with custom base path
+    const analyzer = new TypeScriptAnalyzer(
+      mockFileSystem,
+      "1.0.0",
+      "Test",
+      "schemas/types",
+    );
+
+    const schemaWithRef = createMockSchema({
+      type: "object",
+      properties: {
+        command: { "$ref": "command.json" },
+      },
+    });
+
+    const frontMatter = createMockFrontMatter({
+      command: { name: "test-command" },
+    });
+
+    const result = await analyzer.analyze(frontMatter, schemaWithRef);
+    assert(result.ok, "Analysis should succeed with custom base path");
   });
 });
