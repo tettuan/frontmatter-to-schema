@@ -47,21 +47,21 @@ export function printUsage() {
 frontmatter-to-schema - Extract and transform markdown frontmatter using AI
 
 Usage:
-  frontmatter-to-schema <markdownfile_root_dir> --schema=<schema_file> --template=<template_file> [options]
+  frontmatter-to-schema <schema-file> <output-file> <input-pattern> [options]
 
 Arguments:
-  markdownfile_root_dir    Path to markdown files directory or pattern
+  schema-file      Path to schema file (JSON or YAML)
+  output-file      Path to output file
+  input-pattern    Path to markdown files directory or pattern
 
 Options:
-  --schema=<file>           Path to schema file (JSON or YAML)
-  --template=<file>         Path to template file (any format)
-  --destination=<dir>       Output directory (optional, defaults to markdown directory)
+  --destination=<dir>       Output directory (optional, defaults to current directory)
   --verbose                 Enable detailed progress output
   --help                    Show this help message
 
 Examples:
-  frontmatter-to-schema ./docs --schema=schema.json --template=template.md
-  frontmatter-to-schema ./prompts/* --schema=config/schema.yml --template=config/template.txt --destination=./output
+  frontmatter-to-schema schema.json registry.json "./docs/*.md"
+  frontmatter-to-schema config/schema.yml books.yml "./prompts/**/*.md" --destination=./output
 `);
 }
 
@@ -127,8 +127,6 @@ export async function main() {
 
   const args = parseArgs(processedArgs, {
     string: [
-      "schema",
-      "template",
       "destination",
       "mode",
       "command-schema",
@@ -140,20 +138,22 @@ export async function main() {
     stopEarly: false,
   });
 
-  if (args.help || args._.length === 0) {
+  if (args.help || args._.length < 3) {
     printUsage();
     Deno.exit(args.help ? 0 : 1);
   }
 
-  const markdownDir = args._[0] as string;
-  const schemaPath = args.schema;
-  const templatePath = args.template;
-  const destinationDir = args.destination || markdownDir;
+  // Parse positional arguments: <schema-file> <output-file> <input-pattern>
+  const schemaPath = args._[0] as string;
+  const outputPath = args._[1] as string;
+  const inputPattern = args._[2] as string;
+  const destinationDir = args.destination || ".";
   const verboseMode = args.verbose || false;
+  
   // Validate required arguments
-  if (!schemaPath || !templatePath) {
+  if (!schemaPath || !outputPath || !inputPattern) {
     cliLogger.error(
-      "Error: --schema and --template options are required",
+      "Error: <schema-file>, <output-file>, and <input-pattern> arguments are required",
     );
     printUsage();
     Deno.exit(1);
@@ -161,11 +161,9 @@ export async function main() {
 
   try {
     cliLogger.info("🚀 Starting frontmatter-to-schema CLI...");
-    cliLogger.info(`📁 Markdown directory: ${markdownDir}`);
-
     cliLogger.info(`📋 Schema: ${schemaPath}`);
-    cliLogger.info(`📝 Template: ${templatePath}`);
-
+    cliLogger.info(`📄 Output: ${outputPath}`);
+    cliLogger.info(`📁 Input pattern: ${inputPattern}`);
     cliLogger.info(`💾 Destination: ${destinationDir}`);
 
     // Verbose: Check file existence before processing
@@ -183,31 +181,23 @@ export async function main() {
         });
       }
 
-      if (templatePath) {
-        try {
-          const templateStats = await Deno.stat(templatePath);
-          logger.debug("Template file exists", {
-            path: templatePath,
-            sizeKB: (templateStats.size / 1024).toFixed(1),
-          });
-        } catch (error) {
-          logger.debug("Template file check failed", {
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
-
       try {
-        const dirStats = await Deno.stat(markdownDir);
-        cliLogger.debug("Directory exists", {
-          path: markdownDir,
-          isDirectory: dirStats.isDirectory,
+        const outputStats = await Deno.stat(outputPath);
+        logger.debug("Output file exists", {
+          path: outputPath,
+          sizeKB: (outputStats.size / 1024).toFixed(1),
         });
       } catch (error) {
-        cliLogger.debug("Directory check failed", {
-          error: error instanceof Error ? error.message : String(error),
+        logger.debug("Output file check (will be created)", {
+          path: outputPath,
+          note: "File will be created if it doesn't exist",
         });
       }
+
+      logger.debug("Input pattern check", {
+        pattern: inputPattern,
+        note: "Pattern will be processed for markdown files",
+      });
 
       logger.debug("Creating value objects");
     }
@@ -216,38 +206,18 @@ export async function main() {
     // DocumentPath expects markdown files, but CLI accepts directories
     // So we need to handle this differently
     const documentsPathResult = DocumentPath.create(
-      markdownDir.endsWith(".md") || markdownDir.endsWith(".markdown")
-        ? markdownDir
-        : `${markdownDir}/*.md`,
+      inputPattern.endsWith(".md") || inputPattern.endsWith(".markdown")
+        ? inputPattern
+        : `${inputPattern}/*.md`,
     );
-    // Create schema and template paths
+    // Create schema path
     const schemaPathResult = ConfigPath.create(schemaPath);
-    const templatePathResult = TemplatePath.create(templatePath);
-
-    // Determine output path - if destination already has an extension, use it as-is
-    // Otherwise, append the appropriate extension based on template
-    let outputPath: string;
-    if (
-      destinationDir.endsWith(".json") || destinationDir.endsWith(".yaml") ||
-      destinationDir.endsWith(".yml") || destinationDir.endsWith(".toml")
-    ) {
-      outputPath = destinationDir;
-    } else {
-      const templateExt = templatePath &&
-          (templatePath.endsWith(".yaml") || templatePath.endsWith(".yml"))
-        ? "yaml"
-        : "json";
-      // Extract base filename from template path instead of hardcoding "registry"
-      // Remove extension (any extension, not just json/yaml/yml)
-      const templateBaseName = basename(templatePath).replace(/\.[^.]+$/, "");
-      const outputFileName = `${templateBaseName}.${templateExt}`;
-      outputPath = join(destinationDir, outputFileName);
-    }
+    // Create output path directly from positional argument
     const outputPathResult = OutputPath.create(outputPath);
 
     if (
       !documentsPathResult.ok || !outputPathResult.ok ||
-      !schemaPathResult.ok || !templatePathResult.ok
+      !schemaPathResult.ok
     ) {
       cliLogger.error("Error: Invalid paths provided");
       if (!documentsPathResult.ok) {
@@ -255,9 +225,6 @@ export async function main() {
       }
       if (!schemaPathResult.ok) {
         cliLogger.error(`  Schema: ${schemaPathResult.error.message}`);
-      }
-      if (!templatePathResult.ok) {
-        cliLogger.error(`  Template: ${templatePathResult.error.message}`);
       }
       if (!outputPathResult.ok) {
         cliLogger.error(`  Output: ${outputPathResult.error.message}`);
@@ -379,9 +346,6 @@ export async function main() {
             schemaPath: schemaPathResult && schemaPathResult.ok
               ? schemaPathResult.data.getValue()
               : "invalid",
-            templatePath: templatePathResult && templatePathResult.ok
-              ? templatePathResult.data.getValue()
-              : "invalid",
             outputPath: outputPathResult.ok
               ? outputPathResult.data.getValue()
               : "invalid",
@@ -394,8 +358,8 @@ export async function main() {
 
     const _startTime = Date.now();
     // At this point, validation has passed, so we can safely assert these exist
-    if (!schemaPathResult?.ok || !templatePathResult?.ok) {
-      throw new Error("Schema or template path validation failed unexpectedly");
+    if (!schemaPathResult?.ok) {
+      throw new Error("Schema path validation failed unexpectedly");
     }
 
     //     const processingConfig = {
@@ -420,7 +384,7 @@ export async function main() {
       outputPath: outputPathResult.data.getValue(),
       inputPattern: documentsPathResult.data.getValue(),
       outputFormat:
-        templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
+        outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
           ? "yaml"
           : "json",
     });
