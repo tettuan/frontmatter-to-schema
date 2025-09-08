@@ -52,8 +52,9 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
       };
 
       // Use fromObject instead of create with JSON string
+      // enhancedFrontMatter is guaranteed to be Record<string, unknown> from object spread
       const frontMatterContentResult = FrontMatterContent.fromObject(
-        enhancedFrontMatter as Record<string, unknown>,
+        enhancedFrontMatter,
       );
 
       if (!frontMatterContentResult.ok) {

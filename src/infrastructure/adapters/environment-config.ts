@@ -11,6 +11,15 @@ import type {
   LogLevel,
 } from "../../domain/shared/logger.ts";
 
+/**
+ * Type guard for validating LogLevel
+ * Eliminates type assertions following Totality principles
+ */
+function isValidLogLevel(level: unknown): level is LogLevel {
+  return typeof level === "string" &&
+    ["error", "warn", "info", "debug", "trace"].includes(level);
+}
+
 export class EnvironmentConfig {
   /**
    * Initializes domain services with environment-based configuration
@@ -40,8 +49,8 @@ export class EnvironmentConfig {
       }
 
       // Set log level if provided
-      if (logLevel) {
-        config.logLevel = logLevel as LogLevel;
+      if (logLevel && isValidLogLevel(logLevel)) {
+        config.logLevel = logLevel;
       }
     } catch {
       // If we can't access environment variables, use defaults
