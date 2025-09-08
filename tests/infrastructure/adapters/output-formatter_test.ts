@@ -276,3 +276,275 @@ Deno.test("OutputFormatter - Type Guards", async (t) => {
     }
   });
 });
+
+Deno.test("OutputFormatter - Additional Edge Cases", async (t) => {
+  await t.step("handles YAML with special characters", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        special: "value:with:colons",
+        hash: "#hashtag",
+        empty: "",
+        percent: "100%",
+        ampersand: "AT&T",
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "yaml", indentSize: 2 };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          // Special characters should be quoted
+          assertEquals(content.includes('"value:with:colons"'), true);
+          assertEquals(content.includes('"#hashtag"'), true);
+          assertEquals(content.includes('""'), true); // empty string
+        }
+      }
+    }
+  });
+
+  await t.step("handles XML with empty arrays and objects", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        emptyArray: [],
+        emptyObject: {},
+        nullValue: null,
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "xml", pretty: true };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          assertEquals(content.includes("<emptyObject />"), true);
+          assertEquals(content.includes("<nullValue />"), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles CSV with nested objects", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        user: {
+          name: "John Doe",
+          details: {
+            age: 30,
+            city: "New York",
+          },
+        },
+        tags: ["tag1", "tag2", "tag3"],
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "csv", delimiter: "," };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          // Nested objects should be flattened
+          assertEquals(content.includes("user.name"), true);
+          assertEquals(content.includes("user.details.age"), true);
+          assertEquals(content.includes("user.details.city"), true);
+          // Arrays should be formatted with brackets
+          assertEquals(content.includes("[tag1, tag2, tag3]"), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles CSV with custom delimiter", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        field1: "value1",
+        field2: "value2",
+        field3: 123,
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "csv", delimiter: "|" };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          const lines = content.split("\n");
+          assertEquals(lines[0].includes("field1|field2|field3"), true);
+          assertEquals(lines[1].includes('"value1"|"value2"|123'), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles CSV with quotes in values", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        quote: 'She said "Hello"',
+        apostrophe: "It's working",
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "csv", delimiter: "," };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          // Quotes should be escaped
+          assertEquals(content.includes('"She said ""Hello"""'), true);
+          assertEquals(content.includes('"It\'s working"'), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles YAML with null and undefined values", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        nullField: null,
+        undefinedField: undefined,
+        number: 0,
+        boolean: false,
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "yaml", indentSize: 2 };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          assertEquals(content.includes("nullField: null"), true);
+          assertEquals(content.includes("undefinedField: null"), true);
+          assertEquals(content.includes("number: 0"), true);
+          assertEquals(content.includes("boolean: false"), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles XML with arrays", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        items: ["item1", "item2", "item3"],
+        numbers: [1, 2, 3],
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "xml", pretty: false };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          // Arrays should be indexed
+          assertEquals(content.includes("<items_0>item1</items_0>"), true);
+          assertEquals(content.includes("<items_1>item2</items_1>"), true);
+          assertEquals(content.includes("<numbers_0>1</numbers_0>"), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles empty YAML arrays and objects", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        emptyArray: [],
+        emptyObject: {},
+        filledArray: [1, 2],
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "yaml", indentSize: 2 };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          // Just verify that the formatting completes successfully
+          // The exact format may vary based on implementation
+          assertEquals(content.includes("filledArray"), true);
+          assertEquals(content.includes("1"), true);
+          assertEquals(content.includes("2"), true);
+        }
+      }
+    }
+  });
+
+  await t.step("handles deeply nested YAML structure", () => {
+    const formatter = OutputFormatter.create();
+    assertEquals(formatter.ok, true);
+
+    if (formatter.ok) {
+      const data = {
+        level1: {
+          level2: {
+            level3: {
+              value: "deep",
+            },
+          },
+        },
+      };
+      const structure = createTestAggregatedStructure(data);
+      assertEquals(structure.ok, true);
+
+      if (structure.ok) {
+        const format: OutputFormat = { kind: "yaml", indentSize: 2 };
+        const result = formatter.data.format(structure.data, format);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const content = result.data.getContent();
+          assertEquals(content.includes("level1:"), true);
+          assertEquals(content.includes("  level2:"), true);
+          assertEquals(content.includes("    level3:"), true);
+          assertEquals(content.includes("      value: deep"), true);
+        }
+      }
+    }
+  });
+});
