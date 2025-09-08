@@ -1,6 +1,5 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
 import type { DomainError, Result } from "../domain/core/result.ts";
-import { createDomainError } from "../domain/core/result.ts";
 import {
   type ApplicationConfiguration,
   ConfigurationValidator,
@@ -14,46 +13,6 @@ import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
-
-/**
- * Smart Constructor for validating CLI string arguments
- * Eliminates type assertions following Totality principles
- */
-class CLIStringArgument {
-  private constructor(private readonly value: string) {}
-
-  static validate(
-    arg: unknown,
-    argName: string,
-  ): Result<CLIStringArgument, DomainError & { message: string }> {
-    if (typeof arg !== "string") {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: String(arg),
-          expectedFormat: "string",
-        }, `Argument '${argName}' must be a string, got: ${typeof arg}`),
-      };
-    }
-
-    if (arg.trim().length === 0) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "EmptyInput",
-          field: argName,
-        }, `Argument '${argName}' cannot be empty`),
-      };
-    }
-
-    return { ok: true, data: new CLIStringArgument(arg.trim()) };
-  }
-
-  getValue(): string {
-    return this.value;
-  }
-}
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
@@ -165,14 +124,7 @@ export class CLI {
   ): Promise<Result<ApplicationConfiguration, DomainError>> {
     // If config file is specified, load it
     if (args.config) {
-      const configPathResult = CLIStringArgument.validate(
-        args.config,
-        "config",
-      );
-      if (!configPathResult.ok) {
-        return configPathResult;
-      }
-      const configPath = configPathResult.data.getValue();
+      const configPath = args.config as string;
       const fileResult = await this.fileSystem.readFile(configPath);
       if (!fileResult.ok) {
         return fileResult;
@@ -205,26 +157,15 @@ export class CLI {
 
     // Input configuration
     if (args.input) {
-      const inputPathResult = CLIStringArgument.validate(args.input, "input");
-      if (!inputPathResult.ok) {
-        return inputPathResult;
-      }
       config.input = {
         kind: "DirectPath",
-        path: inputPathResult.data.getValue(),
+        path: args.input as string,
       };
     }
 
     // Schema configuration
     if (args.schema) {
-      const schemaPathResult = CLIStringArgument.validate(
-        args.schema,
-        "schema",
-      );
-      if (!schemaPathResult.ok) {
-        return schemaPathResult;
-      }
-      const schemaPath = schemaPathResult.data.getValue();
+      const schemaPath = args.schema as string;
       const fileResult = await this.fileSystem.readFile(schemaPath);
       if (!fileResult.ok) {
         return fileResult;
@@ -254,14 +195,7 @@ export class CLI {
 
     // Template configuration
     if (args.template) {
-      const templatePathResult = CLIStringArgument.validate(
-        args.template,
-        "template",
-      );
-      if (!templatePathResult.ok) {
-        return templatePathResult;
-      }
-      const templatePath = templatePathResult.data.getValue();
+      const templatePath = args.template as string;
       const fileResult = await this.fileSystem.readFile(templatePath);
       if (!fileResult.ok) {
         return fileResult;
@@ -286,14 +220,7 @@ export class CLI {
 
     // Output configuration
     if (args.output) {
-      const outputPathResult = CLIStringArgument.validate(
-        args.output,
-        "output",
-      );
-      if (!outputPathResult.ok) {
-        return outputPathResult;
-      }
-      const outputPath = outputPathResult.data.getValue();
+      const outputPath = args.output as string;
       const formatString = outputPath.endsWith(".json")
         ? "json"
         : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
