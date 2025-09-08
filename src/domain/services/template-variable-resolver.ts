@@ -12,6 +12,11 @@ import {
   PropertyPath,
   PropertyPathNavigator,
 } from "../models/property-path.ts";
+import {
+  PATH_NAVIGATION_KINDS,
+  RESOLUTION_RESULT_KINDS,
+  TEMPLATE_VARIABLE_KINDS,
+} from "./template-resolution-constants.ts";
 
 /**
  * Template Variable Types - Discriminated Union following Totality principle
@@ -183,20 +188,20 @@ export class TemplateVariableResolver {
       }
 
       switch (resolutionResult.data.kind) {
-        case "Success":
-        case "DefaultUsed":
+        case RESOLUTION_RESULT_KINDS.SUCCESS:
+        case RESOLUTION_RESULT_KINDS.DEFAULT_USED:
           processedTemplate = processedTemplate.replace(
             new RegExp(this.escapeRegExp(variable.placeholder), "g"),
-            resolutionResult.data.kind === "Success"
+            resolutionResult.data.kind === RESOLUTION_RESULT_KINDS.SUCCESS
               ? resolutionResult.data.resolvedValue
               : resolutionResult.data.defaultValue,
           );
           resolvedVariables.push(variable.name);
           break;
 
-        case "VariableNotFound":
-        case "PathNotResolved":
-        case "ConditionalEvaluationFailed":
+        case RESOLUTION_RESULT_KINDS.VARIABLE_NOT_FOUND:
+        case RESOLUTION_RESULT_KINDS.PATH_NOT_RESOLVED:
+        case RESOLUTION_RESULT_KINDS.CONDITIONAL_EVALUATION_FAILED:
           unresolvedVariables.push(variable);
           if (!allowPartialResolution) {
             errors.push({
@@ -395,11 +400,11 @@ export class TemplateVariableResolver {
     useDefaults: boolean,
   ): Result<VariableResolutionResult, DomainError & { message: string }> {
     switch (variable.kind) {
-      case "SimpleVariable":
+      case TEMPLATE_VARIABLE_KINDS.SIMPLE:
         return this.resolveSimpleVariable(variable, data, useDefaults);
-      case "PathVariable":
+      case TEMPLATE_VARIABLE_KINDS.PATH:
         return this.resolvePathVariable(variable, data, useDefaults);
-      case "ConditionalVariable":
+      case TEMPLATE_VARIABLE_KINDS.CONDITIONAL:
         return this.resolveConditionalVariable(variable, data);
       default: {
         // Exhaustive check - TypeScript will error if we miss a case
@@ -470,11 +475,11 @@ export class TemplateVariableResolver {
     }
 
     switch (navigationResult.data.kind) {
-      case "Success":
+      case PATH_NAVIGATION_KINDS.SUCCESS:
         return {
           ok: true,
           data: {
-            kind: "Success",
+            kind: RESOLUTION_RESULT_KINDS.SUCCESS,
             resolvedValue: String(navigationResult.data.value),
           },
         };
