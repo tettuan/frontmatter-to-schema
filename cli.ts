@@ -14,7 +14,7 @@
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
-import { basename, join } from "jsr:@std/path@1.1.2";
+// Path utilities removed as they're no longer needed
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { getEnvironmentConfig } from "./src/domain/config/environment-config.ts";
 import { ProcessDocumentsUseCase } from "./src/application/process-documents-usecase.ts";
@@ -35,7 +35,6 @@ import {
   ConfigPath,
   DocumentPath,
   OutputPath,
-  TemplatePath,
 } from "./src/domain/models/value-objects.ts";
 // import type { ExtractedData, Template } from "./src/domain/models/entities.ts";
 
@@ -149,7 +148,7 @@ export async function main() {
   const inputPattern = args._[2] as string;
   const destinationDir = args.destination || ".";
   const verboseMode = args.verbose || false;
-  
+
   // Validate required arguments
   if (!schemaPath || !outputPath || !inputPattern) {
     cliLogger.error(
@@ -187,7 +186,7 @@ export async function main() {
           path: outputPath,
           sizeKB: (outputStats.size / 1024).toFixed(1),
         });
-      } catch (error) {
+      } catch (_error) {
         logger.debug("Output file check (will be created)", {
           path: outputPath,
           note: "File will be created if it doesn't exist",
@@ -383,10 +382,9 @@ export async function main() {
       schemaPath: schemaPathResult.data.getValue(),
       outputPath: outputPathResult.data.getValue(),
       inputPattern: documentsPathResult.data.getValue(),
-      outputFormat:
-        outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
-          ? "yaml"
-          : "json",
+      outputFormat: outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
+        ? "yaml"
+        : "json",
     });
 
     if (result.ok) {

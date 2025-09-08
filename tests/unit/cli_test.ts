@@ -566,7 +566,7 @@ Deno.test("CLI: Main function with verbose mode", async () => {
     Object.defineProperty(Deno, "args", {
       value: [
         "schema.json",
-        "output.json", 
+        "output.json",
         "./docs",
         "--verbose",
       ],
