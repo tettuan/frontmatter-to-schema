@@ -23,21 +23,27 @@ import {
 import { asObjectRecord } from "../shared/type-guards.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 import { ValidToolsConfig } from "../config/valid-tools-config.ts";
+import { SchemaRefResolver } from "../config/schema-ref-resolver.ts";
 
 /**
  * TypeScript Analyzer Aggregate Root
  * Responsible for transforming frontmatter data to match template/schema structure
  * Now uses dependency injection for file system operations
+ * Supports recursive $ref resolution as required by requirements.ja.md line 46
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
   private validToolsConfig: ValidToolsConfig | null = null;
+  private schemaResolver: SchemaRefResolver;
 
   constructor(
     private readonly fileSystem: FileSystemRepository,
     private readonly defaultVersion: string = "1.0.0",
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
-  ) {}
+    private readonly basePath: string = ".",
+  ) {
+    this.schemaResolver = new SchemaRefResolver(fileSystem, basePath);
+  }
 
   /**
    * Get valid tools configuration using Smart Constructor
@@ -62,14 +68,12 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
   /**
    * Analyze frontmatter and transform to registry structure
+   * Supports recursive $ref resolution in schemas
    */
   async analyze(
     frontMatter: FrontMatter,
     schema: Schema,
   ): Promise<Result<ExtractedData, DomainError & { message: string }>> {
-    // Add await to satisfy linter
-    await Promise.resolve();
-
     try {
       // Extract frontmatter data with safe type checking
       const frontMatterJson = frontMatter.getContent().toJSON();
@@ -148,7 +152,26 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         // SchemaDefinition has getValue() method, not toJSON()
         if (typeof definition.getValue === "function") {
           const schemaValue = definition.getValue();
-          const schemaResult = asObjectRecord(schemaValue, "schema definition");
+
+          // Resolve $ref references in the schema recursively
+          const resolvedSchemaResult = await this.schemaResolver.resolveSchema(
+            schemaValue,
+          );
+          if (!resolvedSchemaResult.ok) {
+            return {
+              ok: false,
+              error: createProcessingStageError(
+                "schema $ref resolution",
+                resolvedSchemaResult.error,
+                `Failed to resolve $ref in schema: ${resolvedSchemaResult.error.message}`,
+              ),
+            };
+          }
+
+          const schemaResult = asObjectRecord(
+            resolvedSchemaResult.data,
+            "resolved schema definition",
+          );
           if (schemaResult.ok) {
             schemaData = schemaResult.data;
           } else {
@@ -161,14 +184,46 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
             "schema definition object",
           );
           if (definitionResult.ok) {
-            schemaData = definitionResult.data;
+            // Also resolve $ref for this case
+            const resolvedResult = await this.schemaResolver.resolveSchema(
+              definitionResult.data,
+            );
+            if (resolvedResult.ok) {
+              const finalResult = asObjectRecord(
+                resolvedResult.data,
+                "resolved schema",
+              );
+              if (finalResult.ok) {
+                schemaData = finalResult.data;
+              } else {
+                schemaData = definitionResult.data;
+              }
+            } else {
+              schemaData = definitionResult.data;
+            }
           }
         }
       } else {
         // Schema might be the raw data itself
         const rawSchemaResult = asObjectRecord(schema, "raw schema");
         if (rawSchemaResult.ok) {
-          schemaData = rawSchemaResult.data;
+          // Resolve $ref for raw schema
+          const resolvedResult = await this.schemaResolver.resolveSchema(
+            rawSchemaResult.data,
+          );
+          if (resolvedResult.ok) {
+            const finalResult = asObjectRecord(
+              resolvedResult.data,
+              "resolved raw schema",
+            );
+            if (finalResult.ok) {
+              schemaData = finalResult.data;
+            } else {
+              schemaData = rawSchemaResult.data;
+            }
+          } else {
+            schemaData = rawSchemaResult.data;
+          }
         }
       }
 
@@ -381,11 +436,21 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
 /**
  * Factory function to create TypeScriptAnalyzer
+ * @param fileSystem - File system repository for file operations
+ * @param defaultVersion - Default version for registry
+ * @param defaultDescription - Default description for registry
+ * @param basePath - Base path for resolving $ref references (default: ".")
  */
 export function createTypeScriptAnalyzer(
   fileSystem: FileSystemRepository,
   defaultVersion?: string,
   defaultDescription?: string,
+  basePath?: string,
 ): TypeScriptAnalyzer {
-  return new TypeScriptAnalyzer(fileSystem, defaultVersion, defaultDescription);
+  return new TypeScriptAnalyzer(
+    fileSystem,
+    defaultVersion,
+    defaultDescription,
+    basePath,
+  );
 }

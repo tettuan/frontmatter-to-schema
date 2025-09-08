@@ -279,9 +279,11 @@ frontmatter-to-schema analyze    # Run AI analysis
 
 ## Schema Extensions (x-* Properties)
 
-This application defines custom JSON Schema extensions for enhanced functionality:
+This application defines custom JSON Schema extensions for enhanced
+functionality:
 
 ### x-template
+
 Specifies the template file to use for rendering output from this schema.
 
 ```json
@@ -296,7 +298,9 @@ Specifies the template file to use for rendering output from this schema.
 ```
 
 ### x-frontmatter-part
-Marks array properties for individual frontmatter processing. When `true`, each item in the array corresponds to a separate markdown file.
+
+Marks array properties for individual frontmatter processing. When `true`, each
+item in the array corresponds to a separate markdown file.
 
 ```json
 {
@@ -309,7 +313,9 @@ Marks array properties for individual frontmatter processing. When `true`, each 
 ```
 
 ### x-derived-from
-Creates derived fields by aggregating values from nested properties. Uses JSONPath-like expressions.
+
+Creates derived fields by aggregating values from nested properties. Uses
+JSONPath-like expressions.
 
 ```json
 {
@@ -323,7 +329,9 @@ Creates derived fields by aggregating values from nested properties. Uses JSONPa
 ```
 
 ### x-derived-unique
-When used with `x-derived-from`, ensures derived values are unique (removes duplicates).
+
+When used with `x-derived-from`, ensures derived values are unique (removes
+duplicates).
 
 ## Configuration Options
 
