@@ -1,207 +1,164 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
 import type { ApplicationConfiguration } from "../../../src/application/configuration.ts";
+import {
+  OutputFormat,
+  SchemaFormat,
+  TemplateFormat,
+} from "../../../src/application/configuration.ts";
 
 /**
  * Simplified DocumentProcessor tests focusing on configuration validation
- * and basic functionality without complex dependency mocking.
+ * and basic functionality with the new Totality-compliant configuration types.
  */
 
 Deno.test({
   name: "DocumentProcessor - Configuration Tests",
-  sanitizeResources: false,
   sanitizeOps: false,
   fn: async (t) => {
-    await t.step("should validate required configuration structure", () => {
-      // Test configuration structure validation
-      const validConfig: ApplicationConfiguration = {
-        schema: {
-          definition: {
-            type: "object",
-            properties: { title: { type: "string" } },
-          },
-          format: "json" as const,
-        },
-        template: {
-          definition: '{ "result": "{{title}}" }',
-          format: "json" as const,
-        },
-        input: {
-          path: "/test/input",
-          pattern: "\\.md$",
-        },
-        output: {
-          path: "/test/output.json",
-          format: "json" as const,
-        },
-      };
+    await t.step(
+      "should validate configuration structure with Smart Constructors",
+      () => {
+        // Create formats using Smart Constructors
+        const schemaFormat = SchemaFormat.create("json");
+        const templateFormat = TemplateFormat.create("json");
+        const outputFormat = OutputFormat.create("json");
 
-      // Basic validation that the config structure is accepted
-      assertEquals(typeof validConfig.schema.definition, "object");
-      assertEquals(validConfig.schema.format, "json");
-      assertEquals(typeof validConfig.template.definition, "string");
-      assertEquals(validConfig.input.path, "/test/input");
-      assertEquals(validConfig.output.format, "json");
+        // Verify all Smart Constructors succeed
+        assertEquals(schemaFormat.ok, true);
+        assertEquals(templateFormat.ok, true);
+        assertEquals(outputFormat.ok, true);
 
-      console.log("✅ DocumentProcessor configuration validation passed");
-    });
+        if (!schemaFormat.ok || !templateFormat.ok || !outputFormat.ok) {
+          throw new Error("Smart Constructor creation failed");
+        }
 
-    await t.step("should handle various output formats", () => {
-      const templateFormats = ["json", "yaml", "handlebars"] as const;
-      const outputFormats = ["json", "yaml", "markdown"] as const;
-
-      templateFormats.forEach((templateFormat) => {
-        outputFormats.forEach((outputFormat) => {
-          const config: ApplicationConfiguration = {
-            schema: {
-              definition: { type: "object" },
-              format: "json" as const,
-            },
-            template: {
-              definition: "template content",
-              format: templateFormat,
-            },
-            input: {
-              path: "/test/input",
-            },
-            output: {
-              path: `/test/output.${outputFormat}`,
-              format: outputFormat,
-            },
-          };
-
-          assertEquals(config.output.format, outputFormat);
-          assertEquals(config.template.format, templateFormat);
-        });
-      });
-
-      console.log("✅ DocumentProcessor output format validation passed");
-    });
-
-    await t.step("should handle optional processing configuration", () => {
-      const configWithProcessing: ApplicationConfiguration = {
-        schema: {
-          definition: { type: "object" },
-          format: "json" as const,
-        },
-        template: {
-          definition: "template",
-          format: "json" as const,
-        },
-        input: {
-          path: "/test/input",
-          pattern: "custom-pattern",
-        },
-        output: {
-          path: "/test/output.json",
-          format: "json" as const,
-        },
-        processing: {
-          extractionPrompt: "Extract the data",
-          mappingPrompt: "Map to schema",
-          continueOnError: false,
-        },
-      };
-
-      // Validate processing options
-      assertEquals(
-        configWithProcessing.processing?.extractionPrompt,
-        "Extract the data",
-      );
-      assertEquals(
-        configWithProcessing.processing?.mappingPrompt,
-        "Map to schema",
-      );
-      assertEquals(configWithProcessing.processing?.continueOnError, false);
-      assertEquals(configWithProcessing.input.pattern, "custom-pattern");
-
-      console.log(
-        "✅ DocumentProcessor processing configuration validation passed",
-      );
-    });
-
-    await t.step("should validate input patterns", () => {
-      const patterns = [
-        "\\.md$",
-        "\\.markdown$",
-        ".*\\.txt$",
-        "test-.*\\.md$",
-      ];
-
-      patterns.forEach((pattern) => {
-        const config: ApplicationConfiguration = {
+        // Test configuration structure with new discriminated union types
+        const validConfig: ApplicationConfiguration = {
           schema: {
-            definition: { type: "object" },
-            format: "json" as const,
+            definition: {
+              type: "object",
+              properties: { title: { type: "string" } },
+            },
+            format: schemaFormat.data,
           },
           template: {
-            definition: "template",
-            format: "json" as const,
+            definition: '{ "result": "{{title}}" }',
+            format: templateFormat.data,
           },
           input: {
+            kind: "PatternBased",
             path: "/test/input",
-            pattern: pattern,
+            pattern: "\\.md$",
           },
           output: {
             path: "/test/output.json",
-            format: "json" as const,
+            format: outputFormat.data,
+          },
+          processing: {
+            kind: "BasicProcessing",
           },
         };
 
-        assertEquals(config.input.pattern, pattern);
-        // Validate pattern is a valid regex
-        const regex = new RegExp(pattern);
-        assertEquals(typeof regex.test, "function");
-      });
+        // Basic validation that the config structure is accepted
+        assertEquals(typeof validConfig.schema.definition, "object");
+        assertEquals(validConfig.schema.format.getValue(), "json");
+        assertEquals(typeof validConfig.template.definition, "string");
+        assertEquals(validConfig.input.path, "/test/input");
+        assertEquals(validConfig.output.format.getValue(), "json");
 
-      console.log("✅ DocumentProcessor input pattern validation passed");
-    });
-  },
-});
+        console.log("✅ DocumentProcessor configuration validation passed");
+      },
+    );
 
-Deno.test({
-  name: "DocumentProcessor - Error Handling Structure",
-  sanitizeResources: false,
-  sanitizeOps: false,
-  fn: async (t) => {
-    await t.step("should define proper error handling types", () => {
-      // Test that error types are properly structured
-      type ExpectedDomainError = {
-        kind: "ValidationError" | "ProcessingError" | "IOError";
-        message?: string;
+    await t.step("should handle different input configuration types", () => {
+      // Test DirectPath input configuration
+      const directPathConfig: ApplicationConfiguration["input"] = {
+        kind: "DirectPath",
+        path: "/direct/path",
       };
 
-      type ExpectedResult<T, E> = {
-        ok: true;
-        data: T;
-      } | {
-        ok: false;
-        error: E;
+      // Test PatternBased input configuration
+      const patternBasedConfig: ApplicationConfiguration["input"] = {
+        kind: "PatternBased",
+        path: "/pattern/path",
+        pattern: "*.md",
       };
 
-      // Validate type structure (compile-time check)
-      const successResult: ExpectedResult<string, ExpectedDomainError> = {
-        ok: true,
-        data: "success",
-      };
-
-      const errorResult: ExpectedResult<string, ExpectedDomainError> = {
-        ok: false,
-        error: { kind: "ValidationError", message: "Test error" },
-      };
-
-      assertEquals(successResult.ok, true);
-      if (successResult.ok) {
-        assertEquals(successResult.data, "success");
-      }
-
-      assertEquals(errorResult.ok, false);
-      if (!errorResult.ok) {
-        assertEquals(errorResult.error.kind, "ValidationError");
-      }
+      assertEquals(directPathConfig.kind, "DirectPath");
+      assertEquals(directPathConfig.path, "/direct/path");
+      assertEquals(patternBasedConfig.kind, "PatternBased");
+      assertEquals(patternBasedConfig.path, "/pattern/path");
+      assertEquals(patternBasedConfig.pattern, "*.md");
 
       console.log(
-        "✅ DocumentProcessor error handling structure validation passed",
+        "✅ Input configuration discriminated union validation passed",
       );
+    });
+
+    await t.step(
+      "should handle different processing configuration types",
+      () => {
+        // Test all processing configuration variants
+        const basicProcessing: ApplicationConfiguration["processing"] = {
+          kind: "BasicProcessing",
+        };
+
+        const customPrompts: ApplicationConfiguration["processing"] = {
+          kind: "CustomPrompts",
+          extractionPrompt: "extract",
+          mappingPrompt: "map",
+        };
+
+        const parallelProcessing: ApplicationConfiguration["processing"] = {
+          kind: "ParallelProcessing",
+          parallel: true,
+          continueOnError: false,
+        };
+
+        const fullCustom: ApplicationConfiguration["processing"] = {
+          kind: "FullCustom",
+          extractionPrompt: "custom extract",
+          mappingPrompt: "custom map",
+          parallel: true,
+          continueOnError: true,
+        };
+
+        assertEquals(basicProcessing.kind, "BasicProcessing");
+        assertEquals(customPrompts.kind, "CustomPrompts");
+        assertEquals(customPrompts.extractionPrompt, "extract");
+        assertEquals(parallelProcessing.kind, "ParallelProcessing");
+        assertEquals(parallelProcessing.parallel, true);
+        assertEquals(fullCustom.kind, "FullCustom");
+        assertEquals(fullCustom.continueOnError, true);
+
+        console.log(
+          "✅ Processing configuration discriminated union validation passed",
+        );
+      },
+    );
+
+    await t.step("should validate Smart Constructor error handling", () => {
+      // Test invalid format handling
+      const invalidSchemaFormat = SchemaFormat.create("invalid");
+      const invalidTemplateFormat = TemplateFormat.create("invalid");
+      const invalidOutputFormat = OutputFormat.create("invalid");
+
+      assertEquals(invalidSchemaFormat.ok, false);
+      assertEquals(invalidTemplateFormat.ok, false);
+      assertEquals(invalidOutputFormat.ok, false);
+
+      if (!invalidSchemaFormat.ok) {
+        assertExists(invalidSchemaFormat.error.message);
+        assertEquals(
+          invalidSchemaFormat.error.message.includes("invalid"),
+          true,
+        );
+      }
+
+      console.log("✅ Smart Constructor error handling validation passed");
     });
   },
 });
