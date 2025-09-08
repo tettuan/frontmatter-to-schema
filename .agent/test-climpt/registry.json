@@ -1,497 +1,582 @@
 {
-  "version": "1.0.0",
-  "description": "Command Registry",
-  "tools": {
-    "availableConfigs": [
-      "code",
-      "debug",
-      "docs",
-      "git",
-      "meta",
-      "spec",
-      "test"
-    ],
-    "commands": [
-      {
-        "c1": "test",
-        "c2": "analyze",
-        "c3": "test-results",
-        "title": "テスト結果分析",
-        "description": "テスト実行結果を分析し、品質状況と改善点を特定する",
-        "usage": "climpt-test analyze test-results\nclimpt-test analyze test-results < input.txt\nclimpt-test analyze test-results -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
+  "tools.availableConfigs": [],
+  "items": [
+    {
+      "c1": "build",
+      "c2": "robust",
+      "c3": "code",
+      "title": "Robust Code Construction",
+      "description": "Constructs robust and resilient code/API based on domain-driven design and totality principles.",
+      "usage": "climpt-build robust code -f requirements.md -i=additional_instructions -o code_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
       },
-      {
-        "c1": "test",
-        "c2": "execute",
-        "c3": "verification-plan",
-        "title": "検証計画実行",
-        "description": "検証計画に基づいてテストを実行し、結果を記録する",
-        "usage": "climpt-test execute verification-plan\nclimpt-test execute verification-plan < input.txt\nclimpt-test execute verification-plan -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "init",
-        "c3": "frontmatter",
-        "title": "フロントマター初期化",
-        "description": "仕様書のフロントマターを初期化し、メタデータを設定する",
-        "usage": "climpt-spec init frontmatter\nclimpt-spec init frontmatter < input.txt\nclimpt-spec init frontmatter -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "validate",
-        "c3": "consistency",
-        "title": "整合性検証",
-        "description": "仕様書の整合性を検証し、矛盾や不整合を特定する",
-        "usage": "climpt-spec validate consistency\nclimpt-spec validate consistency < input.txt\nclimpt-spec validate consistency -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "define",
-        "c3": "use-cases",
-        "title": "ユースケース定義",
-        "description": "システムのユースケースを定義し、利用シナリオを明確化する",
-        "usage": "climpt-spec define use-cases\nclimpt-spec define use-cases < input.txt\nclimpt-spec define use-cases -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "ambiguity",
-        "title": "曖昧性分析",
-        "description": "仕様書の曖昧な表現を特定し、明確化が必要な箇所を分析する",
-        "usage": "climpt-spec analyze ambiguity\nclimpt-spec analyze ambiguity < input.txt\nclimpt-spec analyze ambiguity -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "precision",
-        "title": "精度分析",
-        "description": "仕様書の精度を分析し、定量的・具体的な記述への改善点を特定する",
-        "usage": "climpt-spec analyze precision\nclimpt-spec analyze precision < input.txt\nclimpt-spec analyze precision -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "request",
-        "c3": "approval",
-        "title": "承認申請",
-        "description": "仕様書の承認を申請し、レビュープロセスを開始する",
-        "usage": "climpt-spec request approval\nclimpt-spec request approval < input.txt\nclimpt-spec request approval -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "quality-metrics",
-        "title": "品質メトリクス分析",
-        "description": "仕様書の品質メトリクスを測定し、改善すべき指標を特定する",
-        "usage": "climpt-spec analyze quality-metrics\nclimpt-spec analyze quality-metrics < input.txt\nclimpt-spec analyze quality-metrics -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "approved-requests",
-        "title": "承認済み要求分析",
-        "description": "承認された要求事項を分析し、実装に向けた詳細化を行う",
-        "usage": "climpt-spec analyze approved-requests\nclimpt-spec analyze approved-requests < input.txt\nclimpt-spec analyze approved-requests -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "scope-breakdown",
-        "title": "スコープ分解",
-        "description": "仕様のスコープを分解し、実装単位に細分化する",
-        "usage": "climpt-spec analyze scope-breakdown\nclimpt-spec analyze scope-breakdown < input.txt\nclimpt-spec analyze scope-breakdown -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "analyze",
-        "c3": "approved-requirements",
-        "title": "承認済み要件分析",
-        "description": "承認された要件を分析し、実装可能な仕様に展開する",
-        "usage": "climpt-spec analyze approved-requirements\nclimpt-spec analyze approved-requirements < input.txt\nclimpt-spec analyze approved-requirements -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "refine",
-        "c3": "section",
-        "title": "セクション詳細化",
-        "description": "仕様書の特定セクションを詳細化し、内容を充実させる",
-        "usage": "climpt-spec refine section\nclimpt-spec refine section < input.txt\nclimpt-spec refine section -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "spec",
-        "c2": "create",
-        "c3": "design-doc",
-        "title": "設計書作成",
-        "description": "仕様に基づいて詳細な設計ドキュメントを作成する",
-        "usage": "climpt-spec create design-doc\nclimpt-spec create design-doc < input.txt\nclimpt-spec create design-doc -f=input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "code",
-        "c2": "register",
-        "c3": "dev-task",
-        "title": "開発タスク登録",
-        "description": "承認された仕様を開発タスクとして体系的に登録し、タスク管理システムに実装可能な粒度で分解して登録する",
-        "usage": "climpt-code register dev-task < spec.md\nclimpt-code register dev-task -f=spec.md\ncat spec.md | climpt-code register dev-task\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "title": "登録コマンド解決",
-        "description": "渡された内容に相応しいclimpt-*コマンドを構築し、利用可能なコマンドの一覧と使用方法を提供する",
-        "usage": "climpt-meta resolve registered-commands\necho \"使いたい内容\" | climpt-meta resolve registered-commands\nclimpt-meta resolve registered-commands < input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "title": "登録コマンド解決",
-        "description": "渡された内容に相応しいclimpt-*コマンドを構築し、利用可能なコマンドの一覧と使用方法を提供する",
-        "usage": "climpt-meta resolve registered-commands\necho \"使いたい内容\" | climpt-meta resolve registered-commands\nclimpt-meta resolve registered-commands < input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "title": "登録コマンド解決",
-        "description": "渡された内容に相応しいclimpt-*コマンドを構築し、利用可能なコマンドの一覧と使用方法を提供する",
-        "usage": "climpt-meta resolve registered-commands\necho \"使いたい内容\" | climpt-meta resolve registered-commands\nclimpt-meta resolve registered-commands < input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": ["database-specialist"],
-          "file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "title": "登録コマンド解決",
-        "description": "渡された内容に相応しいclimpt-*コマンドを構築し、利用可能なコマンドの一覧と使用方法を提供する",
-        "usage": "climpt-meta resolve registered-commands\necho \"使いたい内容\" | climpt-meta resolve registered-commands\nclimpt-meta resolve registered-commands < input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "resolve",
-        "c3": "registered-commands",
-        "title": "登録コマンド解決",
-        "description": "渡された内容に相応しいclimpt-*コマンドを構築し、利用可能なコマンドの一覧と使用方法を提供する",
-        "usage": "climpt-meta resolve registered-commands\necho \"使いたい内容\" | climpt-meta resolve registered-commands\nclimpt-meta resolve registered-commands < input.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "build-list",
-        "c3": "command-registry",
-        "title": "コマンドレジストリ構築",
-        "description": "利用可能なClimptコマンドの一覧を構築し、プロンプトファイルから自動的にコマンドレジストリを生成する",
-        "usage": "climpt-meta build-list command-registry\nclimpt-meta build-list command-registry < config.txt\nclimpt-meta build-list command-registry -f=config.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "build-list",
-        "c3": "command-registry",
-        "title": "レジストリJSON生成",
-        "description": "既存のClimptコマンド、設定、プロンプトファイルを分析してMCPサーバー設定用のregistry.jsonファイルを自動生成し、C3L仕様に従った包括的なツールレジストリを作成する",
-        "usage": "climpt-meta build-list command-registry --adaptation=registry\nclimpt-meta build-list command-registry -f=config.json --adaptation=registry\n",
-        "options": {
-          "input": ["default", "registry"],
-          "adaptation": ["registry"],
-          "file": [false],
-          "stdin": [false],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "meta",
-        "c2": "build-list",
-        "c3": "command-registry",
-        "title": "コマンドレジストリ構築",
-        "description": "Claude Codeを使用してClimptの利用可能なコマンドリストを生成し、プロンプトファイルを機械的にリストアップして分析する",
-        "usage": "climpt-meta build-list command-registry\nclimpt-meta build-list command-registry < config.txt\nclimpt-meta build-list command-registry -f=config.txt\n",
-        "options": {
-          "input": ["claude"],
-          "adaptation": ["claude"],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "docs",
-        "c2": "generate-robust",
-        "c3": "instruction-doc",
-        "title": "高再現性指示書生成",
-        "description": "短い指示文からでも、既存情報を補完して高再現性の指示書を作成するための標準手順と品質基準を定める",
-        "usage": "climpt-docs generate-robust instruction-doc < brief.txt\nclimpt-docs generate-robust instruction-doc -f=brief.txt --destination=output.md\necho \"短い指示内容\" | climpt-docs generate-robust instruction-doc\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [true]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "decide-branch",
-        "c3": "working-branch",
-        "title": "作業ブランチ判定",
-        "description": "現在の作業内容に基づいて新規ブランチの作成が必要か判断し、適切なブランチ名で作成または現在のブランチを継続する",
-        "usage": "echo \"今回の作業内容\" | climpt-git decide-branch working-branch\nclimpt-git decide-branch working-branch < work_description.txt\nclimpt-git decide-branch working-branch -f=work_description.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "list-select",
-        "c3": "pr-branch",
-        "title": "PR・ブランチ選択",
-        "description": "ローカル・リモートブランチとPRを一覧化し、優先度マトリクスに基づいて次に作業すべき対象を自動選択して作業を進める",
-        "usage": "climpt-git list-select pr-branch\nclimpt-git list-select pr-branch < criteria.txt\nclimpt-git list-select pr-branch -f=criteria.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "find-oldest",
-        "c3": "descendant-branch",
-        "title": "最古子孫ブランチ探索",
-        "description": "現在のブランチから派生した子孫ブランチと同じ親から派生した兄弟ブランチを探索し、最も古い関連ブランチを特定してマージ処理を実行する",
-        "usage": "climpt-git find-oldest descendant-branch\nclimpt-git find-oldest descendant-branch < options.txt\nclimpt-git find-oldest descendant-branch -f=options.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "group-commit",
-        "c3": "unstaged-changes",
-        "title": "意味的グループコミット",
-        "description": "Gitコミットをファイルの変更内容の意味的近さでグループ化し、関連する変更をまとめて複数回に分けてコミットする",
-        "usage": "climpt-git group-commit unstaged-changes\nclimpt-git group-commit unstaged-changes < changes.txt\nclimpt-git group-commit unstaged-changes -f=changes.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "merge-up",
-        "c3": "base-branch",
-        "title": "親ブランチへマージ",
-        "description": "作業ブランチから派生した現在のブランチを、元の親ブランチを特定してマージPRを作成・実行する",
-        "usage": "climpt-git merge-up base-branch\nclimpt-git merge-up base-branch < merge_info.txt\nclimpt-git merge-up base-branch -f=merge_info.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "create",
-        "c3": "verification-issue",
-        "title": "検証チケット作成",
-        "description": "仕様の検証が必要な項目をGitHub Issueとして体系的に登録し、設計レビューや技術検証、統合テストなどの品質保証プロセスを管理可能にする",
-        "usage": "climpt-git create verification-issue < spec.md\nclimpt-git create verification-issue -f=spec.md\ncat spec.md | climpt-git create verification-issue\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "git",
-        "c2": "create",
-        "c3": "refinement-issue",
-        "title": "詳細化Issue作成",
-        "description": "要求や要件の詳細化が必要な項目をGitHub Issueとして体系的に登録し、チームでの作業分担と進捗管理を可能にする",
-        "usage": "climpt-git create refinement-issue < requirements.md\nclimpt-git create refinement-issue -f=requirements.md\ncat requirements.md | climpt-git create refinement-issue\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
-      },
-      {
-        "c1": "debug",
-        "c2": "analyze-deep",
-        "c3": "project-issues",
-        "title": "プロジェクト課題深掘り分析",
-        "description": "プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出してGitHub Issueを作成する",
-        "usage": "climpt-debug analyze-deep project-issues\nclimpt-debug analyze-deep project-issues < requirements.txt\nclimpt-debug analyze-deep project-issues -f=requirements.txt\n",
-        "options": {
-          "input": ["default"],
-          "adaptation": [],
-          "file": [true],
-          "stdin": [true],
-          "destination": [false]
-        }
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/build/robust/code/f_default.md",
+        "format": "yaml"
       }
-    ]
-  }
+    },
+    {
+      "c1": "build",
+      "c2": "robust",
+      "c3": "test",
+      "title": "Robust Test Construction",
+      "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
+      "usage": "climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/build/robust/test/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "build",
+      "c2": "robust",
+      "c3": "test",
+      "title": "Robust and Resilient Test Construction Guide",
+      "description": "Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.",
+      "usage": "climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/",
+      "options": {
+        "adaptation": [
+          "strict"
+        ],
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/build/robust/test/f_default_strict.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "debug",
+      "c2": "analyze-deep",
+      "c3": "project-issues",
+      "title": "Deep Project Analysis and Issue Identification",
+      "description": "Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.",
+      "usage": "climpt-debug analyze-deep project-issues -o project_analysis.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/debug/analyze-deep/project-issues/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Core Domain Architecture Design",
+      "description": "Core domain architecture design with focus on central concepts and detailed domain-specific implementation.",
+      "usage": "climpt-design domain architecture -a=core -f domain_info.md -o core_design/",
+      "options": {
+        "input": [
+          "core"
+        ],
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/design/domain/architecture/f_core.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Domain Architecture Design",
+      "description": "Performs domain design based on domain boundary information and related materials.",
+      "usage": "climpt-design domain architecture -f boundary_info.md -o design_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/design/domain/architecture/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Detailed Domain Architecture Design",
+      "description": "Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.",
+      "usage": "climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/",
+      "options": {
+        "input": [
+          "detail"
+        ],
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/design/domain/architecture/f_detail.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "boundary",
+      "title": "コードベースドメイン境界線設計",
+      "description": "コードベースをもとに、ドメイン境界線を引く。",
+      "usage": "climpt-design domain boundary -a=code --input=\"ソースコード\"\n実装コードを分析してドメイン境界線を設計します。\n",
+      "options": {
+        "input": [
+          "code"
+        ],
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/design/domain/boundary/f_code.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "boundary",
+      "title": "ドメイン境界線設計",
+      "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+      "usage": "climpt-design domain boundary --input=\"原案テキスト\"\n原案をもとにドメイン駆動設計の境界線分析を行い、境界線を設計します。\n",
+      "options": {
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/design/domain/boundary/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "docs",
+      "c2": "generate-robust",
+      "c3": "instruction-doc",
+      "title": "Robust Instruction Document Generator",
+      "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
+      "usage": "climpt-docs generate-robust instruction-doc -i=description -o instruction.md",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/docs/generate-robust/instruction-doc/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "analyze",
+      "c3": "commit-history",
+      "title": "Analyze Commit History",
+      "description": "Analyze git commit history and generate insights",
+      "usage": "echo \"main..feature\" | climpt-git analyze commit-history",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/analyze/commit-history/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "create",
+      "c3": "refinement-issue",
+      "title": "Create Refinement Issue",
+      "description": "Create a refinement issue from requirements documentation",
+      "usage": "climpt-git create refinement-issue -f requirements.md",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/create/refinement-issue/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "decide-branch",
+      "c3": "working-branch",
+      "title": "Git Branch Creation Decision and New Branch Setup",
+      "description": "Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.",
+      "usage": "climpt-git decide-branch working-branch -i=\"work description within 30 chars\"",
+      "options": {
+        "stdin": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/decide-branch/working-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "document",
+      "c3": "fix-instruction",
+      "title": "Document Fix Instructions",
+      "description": "Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.",
+      "usage": "climpt-git document fix-instruction -i=\"problem description and fix direction\"",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/document/fix-instruction/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "find-oldest",
+      "c3": "descendant-branch",
+      "title": "Git Related Branch Discovery and Merge Processing",
+      "description": "Discovers related Git branches and executes merge processing based on branch relationships and age.",
+      "usage": "climpt-git find-oldest descendant-branch -o merge_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/find-oldest/descendant-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "group-commit",
+      "c3": "unstaged-changes",
+      "title": "Group Commits by Semantic Proximity",
+      "description": "Groups Git commits based on semantic proximity of file changes and creates organized commit units.",
+      "usage": "climpt-git group-commit unstaged-changes -o commit_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/group-commit/unstaged-changes/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "list-select",
+      "c3": "pr-branch",
+      "title": "List and Select PR/Branch for Next Work",
+      "description": "Lists existing PRs and branches to help select the next work target based on priority and status.",
+      "usage": "climpt-git list-select pr-branch -o selection_output.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/list-select/pr-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "merge-cleanup",
+      "c3": "develop-branches",
+      "title": "Merge to Develop and Clean Up Unnecessary Branches",
+      "description": "Merges all unmerged branches into develop and deletes them after successful merge operations.",
+      "usage": "climpt-git merge-cleanup develop-branches -o cleanup_report.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/merge-cleanup/develop-branches/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "merge-up",
+      "c3": "base-branch",
+      "title": "Merge Processing Between Working Branches",
+      "description": "Merges derived working branches back into their original base working branches.",
+      "usage": "climpt-git merge-up base-branch -o merge_status.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/git/merge-up/base-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Available Commands List Generation (Claude Code Version)",
+      "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
+      "usage": "climpt-meta build-list command-registry -a=claude -o tools-list.md",
+      "options": {
+        "input": [
+          "claude"
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/meta/build-list/command-registry/f_claude.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Executable Commands List Builder",
+      "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
+      "usage": "climpt-meta build-list command-registry -o registered-commands.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/meta/build-list/command-registry/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Registry.json Generation",
+      "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
+      "usage": "climpt-meta build-list command-registry -a=registry -o registry.json",
+      "options": {
+        "adaptation": [
+          "registry"
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/meta/build-list/command-registry/f_default_registry.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "resolve",
+      "c3": "registered-commands",
+      "title": "Climpt Command Builder",
+      "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
+      "usage": "climpt-meta resolve registered-commands -i=content -o command_output.txt",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/meta/resolve/registered-commands/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "basedon",
+      "c3": "ddd",
+      "title": "Domain-Driven Design and Totality-Based Refactoring",
+      "description": "Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.",
+      "usage": "climpt-refactor basedon ddd -o refactor_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/refactor/basedon/ddd/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "basedon",
+      "c3": "ddd",
+      "title": "Domain-Driven Design Next Action Execution",
+      "description": "Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.",
+      "usage": "climpt-refactor basedon ddd -a=nextaction -i=next_action_instructions --uv-scope=\"execution scope\"",
+      "options": {
+        "input": [
+          "nextaction"
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/refactor/basedon/ddd/f_nextaction.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "ddd",
+      "c3": "architecture",
+      "title": "Domain-Driven Design Architecture Refactoring",
+      "description": "Refactors project architecture based on domain-driven design principles and redesigns domain architecture.",
+      "usage": "climpt-refactor ddd architecture --uv-scope=\"domain architecture redesign\"",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/refactor/ddd/architecture/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "requirement",
+      "c2": "draft",
+      "c3": "entry",
+      "title": "requirement",
+      "description": "entry",
+      "usage": "climpt-requirement basedon ddd -o refactor_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/requirements/draft/entry/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "spec",
+      "c2": "analyze-structure",
+      "c3": "requirements",
+      "title": "Requirements Structure Analysis",
+      "description": "Break down and structure requirements through process decomposition and user flow analysis.",
+      "usage": "climpt-spec analyze-structure requirements -f requirements.md -o structured_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/spec/analyze-structure/requirements/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "spec",
+      "c2": "analyze",
+      "c3": "quality-metrics",
+      "title": "Analyze Specification Quality",
+      "description": "Analyze specification quality and completeness metrics",
+      "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/spec/analyze/quality-metrics/f_default.md",
+        "format": "yaml"
+      }
+    }
+  ]
 }
