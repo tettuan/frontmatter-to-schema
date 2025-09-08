@@ -30,6 +30,7 @@ import { VERSION_CONFIG } from "../../config/version.ts";
  * TypeScript Analyzer Aggregate Root
  * Responsible for transforming frontmatter data to match template/schema structure
  * Now uses dependency injection for file system operations
+ * Supports recursive $ref resolution as required by requirements.ja.md line 46
  */
 export class TypeScriptAnalyzer implements SchemaAnalyzer {
   private validToolsConfig: ValidToolsConfig | null = null;
@@ -41,7 +42,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
       VERSION_CONFIG.DEFAULT_SCHEMA_VERSION,
     private readonly defaultDescription: string =
       "Registry generated from markdown frontmatter",
-    basePath: string = ".",
+    private readonly basePath: string = ".",
   ) {
     this.schemaResolver = new SchemaRefResolver(fileSystem, basePath);
   }
@@ -69,7 +70,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
   /**
    * Analyze frontmatter and transform to registry structure
-   * Supports $ref resolution for complex schemas as per requirements.ja.md line 46
+   * Supports recursive $ref resolution in schemas
    */
   async analyze(
     frontMatter: FrontMatter,
@@ -154,10 +155,26 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         const definition = schema.getDefinition();
         // SchemaDefinition has getValue() method, not toJSON()
         if (typeof definition.getValue === "function") {
-          rawSchemaData = definition.getValue();
+          const schemaValue = definition.getValue();
+
+          // Resolve $ref references in the schema recursively
+          const resolvedSchemaResult = await this.schemaResolver.resolveSchema(
+            schemaValue,
+          );
+          if (!resolvedSchemaResult.ok) {
+            return {
+              ok: false,
+              error: createProcessingStageError(
+                "schema $ref resolution",
+                resolvedSchemaResult.error,
+                `Failed to resolve $ref in schema: ${resolvedSchemaResult.error.message}`,
+              ),
+            };
+          }
+
           const schemaResult = asObjectRecord(
-            rawSchemaData,
-            "schema definition",
+            resolvedSchemaResult.data,
+            "resolved schema definition",
           );
           if (schemaResult.ok) {
             schemaData = schemaResult.data;
@@ -172,7 +189,23 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
             "schema definition object",
           );
           if (definitionResult.ok) {
-            schemaData = definitionResult.data;
+            // Also resolve $ref for this case
+            const resolvedResult = await this.schemaResolver.resolveSchema(
+              definitionResult.data,
+            );
+            if (resolvedResult.ok) {
+              const finalResult = asObjectRecord(
+                resolvedResult.data,
+                "resolved schema",
+              );
+              if (finalResult.ok) {
+                schemaData = finalResult.data;
+              } else {
+                schemaData = definitionResult.data;
+              }
+            } else {
+              schemaData = definitionResult.data;
+            }
           }
         }
       } else {
@@ -180,34 +213,24 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         rawSchemaData = schema;
         const rawSchemaResult = asObjectRecord(schema, "raw schema");
         if (rawSchemaResult.ok) {
-          schemaData = rawSchemaResult.data;
+          // Resolve $ref for raw schema
+          const resolvedResult = await this.schemaResolver.resolveSchema(
+            rawSchemaResult.data,
+          );
+          if (resolvedResult.ok) {
+            const finalResult = asObjectRecord(
+              resolvedResult.data,
+              "resolved raw schema",
+            );
+            if (finalResult.ok) {
+              schemaData = finalResult.data;
+            } else {
+              schemaData = rawSchemaResult.data;
+            }
+          } else {
+            schemaData = rawSchemaResult.data;
+          }
         }
-      }
-
-      // Resolve $ref references in the schema recursively
-      const resolvedSchemaResult = await this.schemaResolver.resolveSchema(
-        rawSchemaData,
-        documentPath,
-      );
-
-      if (!resolvedSchemaResult.ok) {
-        return {
-          ok: false,
-          error: createProcessingStageError(
-            "schema resolution",
-            resolvedSchemaResult.error,
-            `Failed to resolve $ref in schema: ${resolvedSchemaResult.error.message}`,
-          ),
-        };
-      }
-
-      // Update schemaData with resolved schema
-      const resolvedResult = asObjectRecord(
-        resolvedSchemaResult.data,
-        "resolved schema",
-      );
-      if (resolvedResult.ok) {
-        schemaData = resolvedResult.data;
       }
 
       const contextResult = AnalysisContext.create(
@@ -419,6 +442,10 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
 
 /**
  * Factory function to create TypeScriptAnalyzer
+ * @param fileSystem - File system repository for file operations
+ * @param defaultVersion - Default version for registry
+ * @param defaultDescription - Default description for registry
+ * @param basePath - Base path for resolving $ref references (default: ".")
  */
 export function createTypeScriptAnalyzer(
   fileSystem: FileSystemRepository,
