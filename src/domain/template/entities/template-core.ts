@@ -1,0 +1,158 @@
+// Template domain entities following DDD principles
+
+import type { Result } from "../../core/result.ts";
+import type { DomainError } from "../../core/result.ts";
+import { createDomainError } from "../../core/result.ts";
+import type {
+  MappingRule,
+  TemplateFormat,
+} from "../../../domain/models/value-objects.ts";
+import { PropertyPathNavigator } from "../../../domain/models/property-path.ts";
+import { TemplateApplicationService } from "../services/template-applier.ts";
+
+// Discriminated union for template parsing results
+export type TemplateParsingResult = {
+  kind: "JsonParsed";
+  template: Record<string, unknown>;
+} | {
+  kind: "ParseFailed";
+  reason: string;
+} | {
+  kind: "NoPlaceholders";
+};
+
+// Discriminated union for template application modes following totality principle
+export type TemplateApplicationMode =
+  | {
+    kind: "WithStructuralValidation";
+    schemaData: unknown;
+    templateStructure: unknown;
+  }
+  | { kind: "SimpleMapping" };
+
+export class TemplateId {
+  private constructor(private readonly value: string) {}
+
+  static create(
+    value: string,
+  ): Result<TemplateId, DomainError> {
+    if (!value || value.trim() === "") {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+        } as DomainError,
+      };
+    }
+    return { ok: true, data: new TemplateId(value) };
+  }
+
+  getValue(): string {
+    return this.value;
+  }
+
+  equals(other: TemplateId): boolean {
+    return this.value === other.value;
+  }
+}
+
+export class Template {
+  private readonly pathNavigator: PropertyPathNavigator;
+
+  private constructor(
+    private readonly id: TemplateId,
+    private readonly format: TemplateFormat,
+    private readonly mappingRules: MappingRule[],
+    private readonly description: string,
+    pathNavigator: PropertyPathNavigator,
+  ) {
+    this.pathNavigator = pathNavigator;
+  }
+
+  static create(
+    id: TemplateId,
+    format: TemplateFormat,
+    mappingRules: MappingRule[],
+    description: string = "",
+  ): Result<Template, DomainError & { message: string }> {
+    // Initialize PropertyPathNavigator service
+    const navigatorResult = PropertyPathNavigator.create();
+    if (!navigatorResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "NotConfigured",
+            component: "PropertyPathNavigator",
+          },
+          `Failed to initialize PropertyPathNavigator: ${navigatorResult.error.message}`,
+        ),
+      };
+    }
+    return {
+      ok: true,
+      data: new Template(
+        id,
+        format,
+        mappingRules,
+        description,
+        navigatorResult.data,
+      ),
+    };
+  }
+
+  /**
+   * Legacy backward compatibility method for tests during migration
+   * @deprecated Use create() method that returns Result<Template, Error>
+   * This method throws on error for backward compatibility
+   */
+  static createLegacy(
+    id: TemplateId,
+    format: TemplateFormat,
+    mappingRules: MappingRule[],
+    description: string = "",
+  ): Template {
+    const result = Template.create(id, format, mappingRules, description);
+    if (!result.ok) {
+      throw new Error(`Template creation failed: ${result.error.message}`);
+    }
+    return result.data;
+  }
+
+  getId(): TemplateId {
+    return this.id;
+  }
+
+  getFormat(): TemplateFormat {
+    return this.format;
+  }
+
+  getMappingRules(): MappingRule[] {
+    return this.mappingRules;
+  }
+
+  getDescription(): string {
+    return this.description;
+  }
+
+  /**
+   * Get the path navigator for this template
+   * This is used by the template application service
+   */
+  getPathNavigator(): PropertyPathNavigator {
+    return this.pathNavigator;
+  }
+
+  /**
+   * Backward compatibility method for applyRules
+   * @deprecated Use TemplateApplicationService.applyRules() for new code
+   * This method provides backward compatibility during migration
+   */
+  applyRules(
+    data: Record<string, unknown>,
+    mode: TemplateApplicationMode,
+  ): Result<Record<string, unknown>, DomainError & { message: string }> {
+    const service = TemplateApplicationService.create();
+    return service.applyRules(this, data, mode);
+  }
+}

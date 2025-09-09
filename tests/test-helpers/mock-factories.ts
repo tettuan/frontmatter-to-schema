@@ -92,13 +92,8 @@ export function createMockSchema(name: string): Schema {
     version.data,
     `Mock schema for ${name}`,
   );
-  if (!schema.ok) {
-    throw new Error(
-      `Failed to create mock schema: ${JSON.stringify(schema.error)}`,
-    );
-  }
 
-  return schema.data;
+  return schema;
 }
 
 /**

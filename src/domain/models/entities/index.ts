@@ -4,33 +4,32 @@
 export type {
   DocumentFrontMatterState,
   FrontMatterInput,
-} from "../../document/entities.ts";
-export { Document, DocumentId } from "../../document/entities.ts";
+} from "../../frontmatter/entities/frontmatter.ts";
+export { Document, DocumentId } from "../../document/entities/document.ts";
 
 // FrontMatter Context
-export type { PathResolutionResult } from "../../frontmatter/entities.ts";
-export { FrontMatter } from "../../frontmatter/entities.ts";
+export type { PathResolutionResult } from "../../frontmatter/entities/frontmatter.ts";
+export { FrontMatter } from "../../frontmatter/entities/frontmatter.ts";
 
 // Schema Management Context
-export type { ValidatedData } from "../../entities/schema.ts";
-export { Schema } from "../../entities/schema.ts";
-export { SchemaId } from "../../value-objects/ids.ts";
+export type { ValidatedData } from "../../schema/entities/schema.ts";
+export { Schema, SchemaId } from "../../schema/entities/schema.ts";
 
 // Template Management Context
 export type {
   TemplateApplicationMode,
   TemplateParsingResult,
-} from "../../template/entities.ts";
-export { Template, TemplateId } from "../../template/entities.ts";
+} from "../../template/entities/template-core.ts";
+export { Template, TemplateId } from "../../template/entities/template-core.ts";
 
-// Analysis Context
+// Aggregation Context
 export {
   AggregatedResult,
   AnalysisId,
   AnalysisResult,
   ExtractedData,
   MappedData,
-} from "../../analysis/entities.ts";
+} from "../../aggregation/entities/aggregation.ts";
 
 // Re-export value objects needed by infrastructure
 export { SchemaVersion } from "../value-objects.ts";

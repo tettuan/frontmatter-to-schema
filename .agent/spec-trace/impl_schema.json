@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Implementation Level Traceability Registry",
+  "x-template": "impl_template.json",
+  "description": "Registry for implementation level traceability IDs",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Registry description",
+      "default": "Implementation level traceability IDs"
+    },
+    "impl": {
+      "type": "array",
+      "description": "Implementation level traceability IDs",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "traceability_impl_schema.json" }
+    }
+  },
+  "required": ["version", "description", "impl"],
+  "additionalProperties": false
+}

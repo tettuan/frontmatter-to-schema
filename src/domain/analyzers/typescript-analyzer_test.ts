@@ -154,17 +154,12 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schemaResult = Schema.create(
+      const schema = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Test schema",
       );
-
-      if (!schemaResult.ok) {
-        throw new Error("Failed to create schema for test");
-      }
-      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -243,17 +238,12 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schemaResult = Schema.create(
+      const schema = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Schema with $ref",
       );
-
-      if (!schemaResult.ok) {
-        throw new Error("Failed to create schema for test");
-      }
-      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -334,17 +324,12 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schemaResult = Schema.create(
+      const schema = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Circular $ref schema",
       );
-
-      if (!schemaResult.ok) {
-        throw new Error("Failed to create schema for test");
-      }
-      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -396,17 +381,12 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schemaResult = Schema.create(
+      const schema = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Missing $ref schema",
       );
-
-      if (!schemaResult.ok) {
-        throw new Error("Failed to create schema for test");
-      }
-      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);

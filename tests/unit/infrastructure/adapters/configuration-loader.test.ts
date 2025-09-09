@@ -20,7 +20,7 @@ import {
   type AnalysisResult,
   type Document,
   type ExtractedData,
-  type MappedData,
+  MappedData,
   Template,
   TemplateId,
 } from "../../../../src/domain/models/entities.ts";
@@ -101,14 +101,7 @@ function createMockAggregatedResult(
 
 function createMockAnalysisResult(jsonData: string): AnalysisResult {
   const data = JSON.parse(jsonData);
-  const mappedData = {
-    toJSON: () => data,
-    getData: () => data,
-    toYAML: () => "",
-    isEmpty: () => false,
-    hasProperty: (key: string) => key in data,
-    getProperty: (key: string) => data[key],
-  } as MappedData;
+  const mappedData = MappedData.create(data);
 
   const pathResult = DocumentPath.create("test.md");
   const mockDocument = {

@@ -44,14 +44,13 @@ function createTestSchema(
   const schemaDefinition = createTestSchemaDefinition(definition);
   const schemaVersion = createTestSchemaVersion(version);
 
-  const schemaResult = Schema.create(
+  const schema = Schema.create(
     schemaId,
     schemaDefinition,
     schemaVersion,
     description,
   );
-  if (!schemaResult.ok) throw new Error("Failed to create test schema");
-  return schemaResult.data;
+  return schema;
 }
 
 const TEST_DEFINITION = {

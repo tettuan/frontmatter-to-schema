@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Design Level Traceability Registry",
+  "x-template": "design_template.json",
+  "description": "Registry for design level traceability IDs",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Registry description",
+      "default": "Design level traceability IDs"
+    },
+    "design": {
+      "type": "array",
+      "description": "Design level traceability IDs",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "traceability_design_schema.json" }
+    }
+  },
+  "required": ["version", "description", "design"],
+  "additionalProperties": false
+}

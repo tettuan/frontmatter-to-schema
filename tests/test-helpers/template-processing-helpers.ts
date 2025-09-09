@@ -11,7 +11,7 @@ import type {
   TemplateMapper,
 } from "../../src/domain/services/interfaces.ts";
 import type { ExtractedData } from "../../src/domain/models/entities.ts";
-import { MappedData } from "../../src/domain/analysis/entities.ts";
+import { MappedData } from "../../src/domain/models/entities.ts";
 import type { DomainError, Result } from "../../src/domain/core/result.ts";
 import { createDomainError } from "../../src/domain/core/result.ts";
 
