@@ -153,13 +153,16 @@ export class DocumentProcessor {
       };
     }
 
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaIdResult.data,
       definitionResult.data,
       schemaVersionResult.data,
       "Main processing schema",
     );
-    return { ok: true, data: schema };
+    if (!schemaResult.ok) {
+      return schemaResult;
+    }
+    return { ok: true, data: schemaResult.data };
   }
 
   private loadTemplate(

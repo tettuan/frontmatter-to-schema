@@ -184,7 +184,8 @@ Deno.test("ResultAggregatorImpl - Comprehensive Test Suite", async (t) => {
         // Verify ordering is preserved by checking the mapped data
         for (let i = 0; i < 10; i++) {
           const mappedData = aggregatedResults[i].getMappedData();
-          const data = JSON.parse(mappedData.toJSON());
+          const jsonString = mappedData.toJSON();
+          const data = JSON.parse(jsonString);
           assertEquals(data.index, i);
           assertEquals(data.title, `Result ${i}`);
         }

@@ -1,304 +1,194 @@
-// Deno-based document repository implementation
+/**
+ * Deno-based Document Repository Implementation (Refactored)
+ *
+ * Orchestrates file discovery, reading, and frontmatter extraction services
+ * Part of the File Management Context (Infrastructure Layer)
+ * Follows DDD and Totality principles with Result types
+ */
 
-import { walk } from "jsr:@std/fs@1.0.8/walk";
-import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-// Removed unused imports: createError, IOError
 import { VerboseLoggingUtility } from "../../domain/services/verbose-logging-utility.ts";
-import { Document, FrontMatter } from "../../domain/models/entities.ts";
+import { Document } from "../../domain/models/entities.ts";
 import {
   DocumentContent,
   DocumentPath,
-  FrontMatterContent,
 } from "../../domain/models/value-objects.ts";
 import type { DocumentRepository } from "../../domain/services/interfaces.ts";
 
-/**
- * Type guard for validating unknown data as Record<string, unknown>
- * Eliminates type assertions following Totality principles
- */
-function isValidRecordData(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" &&
-    data !== null &&
-    !Array.isArray(data);
-}
+// Service imports
+import { FileDiscoveryService } from "../file-system/file-discovery.service.ts";
+import { DocumentReaderService } from "../file-system/document-reader.service.ts";
+import { FrontmatterExtractorService } from "../../domain/frontmatter/frontmatter-extractor.service.ts";
 
+/**
+ * Refactored Document Repository that orchestrates specialized services
+ * Each service handles a specific aspect of document processing
+ */
 export class DenoDocumentRepository implements DocumentRepository {
+  private readonly fileDiscovery: FileDiscoveryService;
+  private readonly documentReader: DocumentReaderService;
+  private readonly frontmatterExtractor: FrontmatterExtractorService;
+
+  constructor() {
+    this.fileDiscovery = new FileDiscoveryService();
+    this.documentReader = new DocumentReaderService();
+    this.frontmatterExtractor = new FrontmatterExtractorService();
+  }
+
+  /**
+   * Find all documents matching the path pattern
+   */
   async findAll(
     path: DocumentPath,
   ): Promise<Result<Document[], DomainError & { message: string }>> {
-    const documents: Document[] = [];
-    const pathValue = path.getValue();
-
     VerboseLoggingUtility.logInfo(
       "deno-document-repository",
-      "Searching for documents",
-      { path: pathValue },
+      "Starting document discovery",
+      { path: path.getValue() },
     );
 
-    // Extract directory from glob pattern (e.g., "dir/*.md" -> "dir")
-    let dirPath = pathValue;
-    if (pathValue.includes("*.md") || pathValue.includes("*.markdown")) {
-      // Remove the glob pattern to get the directory
-      dirPath = pathValue.replace(/\/?\*\.(md|markdown)$/, "");
-      if (!dirPath) dirPath = ".";
+    // Step 1: Discover files
+    const discoveryResult = await this.fileDiscovery.findMarkdownFiles(path);
+    if (!discoveryResult.ok) {
+      return discoveryResult;
     }
+
+    const filePaths = discoveryResult.data;
     VerboseLoggingUtility.logInfo(
       "deno-document-repository",
-      "Resolved directory path",
-      { dirPath },
+      "Files discovered, reading content",
+      { fileCount: filePaths.length },
     );
 
-    try {
-      // Check if path exists
-      const stat = await Deno.stat(dirPath);
-      if (!stat.isDirectory) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "ReadError",
-            path: dirPath,
-            details: "Path is not a directory",
-          }),
-        };
-      }
-
-      // Walk through directory to find markdown files
-      VerboseLoggingUtility.logInfo(
-        "deno-document-repository",
-        "Starting directory walk",
-        { dirPath },
-      );
-
-      let fileCount = 0;
-      for await (
-        const entry of walk(dirPath, {
-          exts: [".md", ".markdown"],
-          skip: [/node_modules/, /\.git/],
-        })
-      ) {
-        VerboseLoggingUtility.logDebug(
-          "deno-document-repository",
-          "Found entry",
-          {
-            path: entry.path,
-            isFile: entry.isFile,
-          },
-        );
-
-        if (entry.isFile) {
-          fileCount++;
-          VerboseLoggingUtility.logDebug(
+    // Step 2: Read file contents
+    const documents: Document[] = [];
+    for (const filePath of filePaths) {
+      const docPathResult = DocumentPath.create(filePath);
+      if (docPathResult.ok) {
+        const docResult = await this.read(docPathResult.data);
+        if (docResult.ok) {
+          documents.push(docResult.data);
+        } else {
+          VerboseLoggingUtility.logWarn(
             "deno-document-repository",
-            "Processing file",
+            "Failed to process document",
             {
-              fileCount,
-              path: entry.path,
+              path: filePath,
+              error: docResult.error.message || docResult.error.kind,
             },
           );
-
-          const docPathResult = DocumentPath.create(entry.path);
-          if (docPathResult.ok) {
-            const docResult = await this.read(docPathResult.data);
-            if (docResult.ok) {
-              documents.push(docResult.data);
-              VerboseLoggingUtility.logDebug(
-                "deno-document-repository",
-                "Successfully processed file",
-                { path: entry.path },
-              );
-            } else {
-              VerboseLoggingUtility.logWarn(
-                "deno-document-repository",
-                "Failed to read file",
-                {
-                  path: entry.path,
-                  error: docResult.error.message || docResult.error.kind,
-                },
-              );
-            }
-          } else {
-            VerboseLoggingUtility.logWarn(
-              "deno-document-repository",
-              "Invalid document path",
-              { path: entry.path },
-            );
-          }
         }
       }
-
-      VerboseLoggingUtility.logInfo(
-        "deno-document-repository",
-        "Walk completed",
-        {
-          fileCount,
-          processedCount: documents.length,
-        },
-      );
-
-      return { ok: true, data: documents };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({ kind: "FileNotFound", path: dirPath }),
-        };
-      }
-      if (error instanceof Deno.errors.PermissionDenied) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "PermissionDenied",
-            path: dirPath,
-            operation: "read",
-          }),
-        };
-      }
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ReadError",
-          path: dirPath,
-          details: error instanceof Error ? error.message : "Unknown error",
-        }),
-      };
     }
+
+    VerboseLoggingUtility.logInfo(
+      "deno-document-repository",
+      "Document processing completed",
+      {
+        discoveredFiles: filePaths.length,
+        processedDocuments: documents.length,
+      },
+    );
+
+    return { ok: true, data: documents };
   }
 
+  /**
+   * Find documents by regex pattern
+   */
   async findByPattern(
     pattern: string,
     basePath: string = ".",
   ): Promise<Result<Document[], DomainError & { message: string }>> {
-    const documents: Document[] = [];
-    const regex = new RegExp(pattern);
+    VerboseLoggingUtility.logInfo(
+      "deno-document-repository",
+      "Starting pattern-based discovery",
+      { pattern, basePath },
+    );
 
-    try {
-      for await (
-        const entry of walk(basePath, {
-          exts: [".md", ".markdown"],
-          skip: [/node_modules/, /\.git/],
-          match: [regex],
-        })
-      ) {
-        if (entry.isFile) {
-          const docPathResult = DocumentPath.create(entry.path);
-          if (docPathResult.ok) {
-            const docResult = await this.read(docPathResult.data);
-            if (docResult.ok) {
-              documents.push(docResult.data);
-            }
-          }
+    // Step 1: Discover files by pattern
+    const discoveryResult = await this.fileDiscovery.findByPattern(
+      pattern,
+      basePath,
+    );
+    if (!discoveryResult.ok) {
+      return discoveryResult;
+    }
+
+    // Step 2: Process discovered files
+    const documents: Document[] = [];
+    for (const filePath of discoveryResult.data) {
+      const docPathResult = DocumentPath.create(filePath);
+      if (docPathResult.ok) {
+        const docResult = await this.read(docPathResult.data);
+        if (docResult.ok) {
+          documents.push(docResult.data);
         }
       }
-
-      return { ok: true, data: documents };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ReadError",
-          path: basePath,
-          details: error instanceof Error ? error.message : "Unknown error",
-        }),
-      };
     }
+
+    return { ok: true, data: documents };
   }
 
+  /**
+   * Read a single document from path
+   */
   async read(
     path: DocumentPath,
   ): Promise<Result<Document, DomainError & { message: string }>> {
     const filePath = path.getValue();
 
-    try {
-      const content = await Deno.readTextFile(filePath);
+    VerboseLoggingUtility.logDebug(
+      "deno-document-repository",
+      "Reading document",
+      { path: filePath },
+    );
 
-      // Extract frontmatter using discriminated union for totality
-      type FrontMatterExtractionResult =
-        | { kind: "Present"; frontMatter: FrontMatter }
-        | { kind: "Absent" };
+    // Step 1: Read file content
+    const contentResult = await this.documentReader.readFileContent(filePath);
+    if (!contentResult.ok) {
+      return contentResult;
+    }
 
-      let frontMatterResult: FrontMatterExtractionResult = { kind: "Absent" };
-      let bodyContent = content;
+    // Step 2: Extract frontmatter
+    const extractionResult = this.frontmatterExtractor.extractFromContent(
+      contentResult.data.content,
+    );
 
-      try {
-        const extracted = extract(content);
-        // Use attrs (parsed object) instead of frontMatter (raw string)
-        if (
-          isValidRecordData(extracted.attrs) &&
-          Object.keys(extracted.attrs).length > 0
-        ) {
-          // Create FrontMatterContent from the parsed object
-          const frontMatterContentResult = FrontMatterContent.fromObject(
-            extracted.attrs,
-          );
-
-          if (frontMatterContentResult.ok) {
-            // Get raw frontmatter section - extracted.frontMatter contains the raw YAML
-            const rawFrontMatter = typeof extracted.frontMatter === "string"
-              ? extracted.frontMatter
-              : "";
-            const frontMatter = FrontMatter.create(
-              frontMatterContentResult.data,
-              rawFrontMatter,
-            );
-            frontMatterResult = { kind: "Present", frontMatter };
-          }
-        }
-        bodyContent = extracted.body;
-      } catch {
-        // If frontmatter extraction fails, treat entire content as body
-        frontMatterResult = { kind: "Absent" };
-      }
-
-      const documentContentResult = DocumentContent.create(bodyContent);
-      if (!documentContentResult.ok) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "ReadError",
-            path: filePath,
-            details: "Invalid document content",
-          }),
-        };
-      }
-
-      // Create document using discriminated union result
-      const frontMatter = frontMatterResult.kind === "Present"
-        ? frontMatterResult.frontMatter
-        : null;
-
-      const document = Document.createWithFrontMatter(
-        path,
-        frontMatter,
-        documentContentResult.data,
-      );
-      return { ok: true, data: document };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: createDomainError({ kind: "FileNotFound", path: filePath }),
-        };
-      }
-      if (error instanceof Deno.errors.PermissionDenied) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "PermissionDenied",
-            path: filePath,
-            operation: "read",
-          }),
-        };
-      }
+    // Step 3: Create document content
+    const documentContentResult = DocumentContent.create(extractionResult.body);
+    if (!documentContentResult.ok) {
       return {
         ok: false,
         error: createDomainError({
           kind: "ReadError",
           path: filePath,
-          details: error instanceof Error ? error.message : "Unknown error",
+          details: "Invalid document content",
         }),
       };
     }
+
+    // Step 4: Assemble document
+    const frontMatter = extractionResult.kind === "Present"
+      ? extractionResult.frontMatter
+      : null;
+
+    const document = Document.createWithFrontMatter(
+      path,
+      frontMatter,
+      documentContentResult.data,
+    );
+
+    VerboseLoggingUtility.logDebug(
+      "deno-document-repository",
+      "Document created successfully",
+      {
+        path: filePath,
+        hasFrontMatter: extractionResult.kind === "Present",
+      },
+    );
+
+    return { ok: true, data: document };
   }
 }

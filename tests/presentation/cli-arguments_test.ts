@@ -383,7 +383,7 @@ Deno.test("CLIArgumentParser.parse should reject insufficient arguments", () => 
     assertEquals(result.error.kind, "InsufficientArguments");
     assertEquals(
       result.error.message,
-      "Expected 3 arguments (schema, output, pattern), got 2",
+      "Expected at least 3 arguments (schema, output, pattern/files), got 2",
     );
   }
 });
@@ -396,7 +396,7 @@ Deno.test("CLIArgumentParser.parse should reject no arguments", () => {
     assertEquals(result.error.kind, "InsufficientArguments");
     assertEquals(
       result.error.message,
-      "Expected 3 arguments (schema, output, pattern), got 0",
+      "Expected at least 3 arguments (schema, output, pattern/files), got 0",
     );
   }
 });
@@ -425,6 +425,32 @@ Deno.test("CLIArgumentParser.parse should propagate InputPattern errors", () => 
   assertEquals(result.ok, false);
   if (!result.ok) {
     assertEquals(result.error.kind, "EmptyPattern");
+  }
+});
+
+Deno.test("CLIArgumentParser.parse should handle multiple file arguments from shell expansion", () => {
+  const args = [
+    "schema.json",
+    "output.json",
+    "file1.md",
+    "file2.md",
+    "file3.md",
+  ];
+  const result = CLIArgumentParser.parse(args);
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.data.schemaPath.toString(), "schema.json");
+    assertEquals(result.data.outputPath.toString(), "output.json");
+    assertEquals(
+      result.data.inputPattern.toString(),
+      "file1.md,file2.md,file3.md",
+    );
+    assertEquals(result.data.inputPattern.isMultiple(), true);
+    assertEquals(result.data.inputPattern.getFiles(), [
+      "file1.md",
+      "file2.md",
+      "file3.md",
+    ]);
   }
 });
 

@@ -7,12 +7,15 @@ import { describe, it } from "jsr:@std/testing@1.0.8/bdd";
 import { TypeScriptAnalyzer } from "./typescript-analyzer.ts";
 import { FrontMatter } from "../models/entities.ts";
 import { FrontMatterContent } from "../models/document-value-objects.ts";
-import { Schema, SchemaId } from "../models/schema-entities.ts";
+import { Schema, SchemaId } from "../models/entities.ts";
 import {
   SchemaDefinition,
   SchemaVersion,
 } from "../models/schema-value-objects.ts";
-import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
+import type {
+  FileInfo,
+  FileSystemRepository,
+} from "../repositories/file-system-repository.ts";
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
 
@@ -79,6 +82,31 @@ class MockFileSystemRepository implements FileSystemRepository {
       }
     }
   }
+
+  async stat(
+    path: string,
+  ): Promise<Result<FileInfo, DomainError & { message: string }>> {
+    await Promise.resolve(); // Satisfy linter
+    if (this.files.has(path)) {
+      return {
+        ok: true,
+        data: {
+          isFile: true,
+          isDirectory: false,
+          size: this.files.get(path)?.length || 0,
+          mtime: new Date(),
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "FileNotFound",
+        path,
+        message: `File not found: ${path}`,
+      } as DomainError & { message: string },
+    };
+  }
 }
 
 describe("TypeScriptAnalyzer", () => {
@@ -126,12 +154,17 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Test schema",
       );
+
+      if (!schemaResult.ok) {
+        throw new Error("Failed to create schema for test");
+      }
+      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -210,12 +243,17 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Schema with $ref",
       );
+
+      if (!schemaResult.ok) {
+        throw new Error("Failed to create schema for test");
+      }
+      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -296,12 +334,17 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Circular $ref schema",
       );
+
+      if (!schemaResult.ok) {
+        throw new Error("Failed to create schema for test");
+      }
+      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);
@@ -353,12 +396,17 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Missing $ref schema",
       );
+
+      if (!schemaResult.ok) {
+        throw new Error("Failed to create schema for test");
+      }
+      const schema = schemaResult.data;
 
       // Act
       const result = await analyzer.analyze(frontMatter, schema);

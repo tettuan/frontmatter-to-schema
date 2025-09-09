@@ -8,6 +8,7 @@
 
 import type {
   EnvironmentRepository,
+  FileInfo,
   FileSystemRepository,
 } from "../../domain/repositories/file-system-repository.ts";
 import type { DomainError, Result } from "../../domain/core/result.ts";
@@ -147,6 +148,49 @@ export class DenoFileSystemRepository implements FileSystemRepository {
     } catch (error) {
       // Log error but continue iteration
       console.error(`Error finding files with pattern ${pattern}:`, error);
+    }
+  }
+
+  async stat(path: string): Promise<Result<FileInfo, DomainError>> {
+    try {
+      const stat = await Deno.stat(path);
+      return {
+        ok: true,
+        data: {
+          isFile: stat.isFile,
+          isDirectory: stat.isDirectory,
+          size: stat.size,
+          mtime: stat.mtime,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "FileNotFound",
+            path,
+          }),
+        };
+      }
+      if (error instanceof Deno.errors.PermissionDenied) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "PermissionDenied",
+            path,
+            operation: "stat",
+          }),
+        };
+      }
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "ReadError",
+          path,
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+      };
     }
   }
 }

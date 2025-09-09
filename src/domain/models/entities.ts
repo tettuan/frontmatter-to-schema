@@ -8,7 +8,6 @@ export type {
   TemplateApplicationMode,
   TemplateParsingResult,
   ValidatedData,
-  ValidationMetadata,
 } from "./entities/index.ts";
 
 export {
