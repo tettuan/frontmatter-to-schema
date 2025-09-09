@@ -154,16 +154,11 @@ Deno.test("SchemaValidator", async (t) => {
     } else {
       const schemaId = createTestSchemaId("test");
       const schemaVersion = createTestSchemaVersion("1.0.0");
-      const schemaResult = Schema.create(
+      const schema = Schema.create(
         schemaId,
         schemaDefResult.data,
         schemaVersion,
       );
-
-      if (!schemaResult.ok) {
-        throw new Error("Failed to create schema for test");
-      }
-      const schema = schemaResult.data;
 
       const result = validator.validate({}, schema);
       assertEquals(result.ok, false);
