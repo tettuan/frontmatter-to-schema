@@ -1,3 +1,8 @@
 #!/bin/bash
 
-echo "現在のコードベースを調べ、問題を gh issue へ登録する。"
+echo '{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "GitHub issue を管理するドキュメント係である。"
+  }
+}'
