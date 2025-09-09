@@ -9,7 +9,7 @@
 import type { UseCase } from "../base.usecase.ts";
 import type { DomainError, Result } from "../../../domain/core/result.ts";
 import { createDomainError } from "../../../domain/core/result.ts";
-import { expandGlob } from "jsr:@std/fs@1.0.8/expand-glob";
+import type { FileSystemRepository } from "../../../domain/repositories/file-system-repository.ts";
 import * as path from "jsr:@std/path@1.0.9";
 
 /**
@@ -34,6 +34,7 @@ export interface DiscoverFilesOutput {
  */
 export class DiscoverFilesUseCase
   implements UseCase<DiscoverFilesInput, DiscoverFilesOutput> {
+  constructor(private readonly fileSystem: FileSystemRepository) {}
   async execute(
     input: DiscoverFilesInput,
   ): Promise<Result<DiscoverFilesOutput, DomainError & { message: string }>> {
@@ -47,13 +48,9 @@ export class DiscoverFilesUseCase
         for (const file of fileList) {
           const trimmedFile = file.trim();
           if (this.hasValidExtension(trimmedFile, extensions)) {
-            try {
-              const stat = await Deno.stat(trimmedFile);
-              if (stat.isFile) {
-                files.push(trimmedFile);
-              }
-            } catch {
-              // File doesn't exist, skip
+            const statResult = await this.fileSystem.stat(trimmedFile);
+            if (statResult.ok && statResult.data.isFile) {
+              files.push(trimmedFile);
             }
           }
         }
@@ -64,8 +61,9 @@ export class DiscoverFilesUseCase
       }
 
       // Check if pattern is existing file
-      try {
-        const stat = await Deno.stat(input.pattern);
+      const statResult = await this.fileSystem.stat(input.pattern);
+      if (statResult.ok) {
+        const stat = statResult.data;
         if (stat.isFile && this.hasValidExtension(input.pattern, extensions)) {
           return {
             ok: true,
@@ -77,24 +75,20 @@ export class DiscoverFilesUseCase
             input.pattern,
             `**/*{${extensions.join(",")}}`,
           );
-          for await (const entry of expandGlob(dirPattern)) {
-            if (entry.isFile) {
-              files.push(entry.path);
-            }
+          for await (const filePath of this.fileSystem.findFiles(dirPattern)) {
+            files.push(filePath);
           }
           return {
             ok: true,
             data: { files, count: files.length },
           };
         }
-      } catch {
-        // Not a file or directory, treat as glob
       }
 
       // Treat as glob pattern
-      for await (const entry of expandGlob(input.pattern)) {
-        if (entry.isFile && this.hasValidExtension(entry.path, extensions)) {
-          files.push(entry.path);
+      for await (const filePath of this.fileSystem.findFiles(input.pattern)) {
+        if (this.hasValidExtension(filePath, extensions)) {
+          files.push(filePath);
         }
       }
 

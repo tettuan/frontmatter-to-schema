@@ -11,9 +11,12 @@ import { LoadSchemaUseCase } from "../use-cases/load-schema/load-schema.usecase.
 import { DiscoverFilesUseCase } from "../use-cases/discover-files/discover-files.usecase.ts";
 import { ExtractFrontmatterUseCase } from "../use-cases/extract-frontmatter/extract-frontmatter.usecase.ts";
 import { ValidateFrontmatterUseCase } from "../use-cases/validate-frontmatter/validate-frontmatter.usecase.ts";
+import { ProcessTemplateUseCase } from "../use-cases/process-template/process-template.usecase.ts";
 import { AggregateResultsUseCase } from "../use-cases/aggregate-results/aggregate-results.usecase.ts";
 import { WriteOutputUseCase } from "../use-cases/write-output/write-output.usecase.ts";
 import type { FileSystemRepository } from "../../domain/repositories/file-system-repository.ts";
+import type { ITemplateRepository } from "../../domain/repositories/template-repository.ts";
+import { TemplatePath } from "../../domain/repositories/template-repository.ts";
 import type { Logger } from "../../domain/shared/logger.ts";
 
 /**
@@ -46,17 +49,20 @@ export class ProcessDocumentsOrchestrator {
   private readonly discoverFiles: DiscoverFilesUseCase;
   private readonly extractFrontmatter: ExtractFrontmatterUseCase;
   private readonly validateFrontmatter: ValidateFrontmatterUseCase;
+  private readonly processTemplate: ProcessTemplateUseCase;
   private readonly aggregateResults: AggregateResultsUseCase;
   private readonly writeOutput: WriteOutputUseCase;
 
   constructor(
-    fileSystem: FileSystemRepository,
+    private readonly fileSystem: FileSystemRepository,
+    private readonly templateRepository: ITemplateRepository,
     private readonly logger: Logger,
   ) {
     this.loadSchema = new LoadSchemaUseCase(fileSystem);
-    this.discoverFiles = new DiscoverFilesUseCase();
+    this.discoverFiles = new DiscoverFilesUseCase(fileSystem);
     this.extractFrontmatter = new ExtractFrontmatterUseCase();
     this.validateFrontmatter = new ValidateFrontmatterUseCase();
+    this.processTemplate = new ProcessTemplateUseCase();
     this.aggregateResults = new AggregateResultsUseCase();
     this.writeOutput = new WriteOutputUseCase();
   }
@@ -95,24 +101,25 @@ export class ProcessDocumentsOrchestrator {
     // Step 3: Process each file
     const processedData: unknown[] = [];
 
-    // Read file contents for each discovered file
+    // Process each discovered file
     for (const filePath of filesResult.data.files) {
       if (input.verbose) {
         this.logger.info(`Processing: ${filePath}`);
       }
 
-      // Read file content (should be handled by infrastructure)
-      let content: string;
-      try {
-        content = await Deno.readTextFile(filePath);
-      } catch (error) {
+      // Read file content using FileSystemRepository (following domain boundaries)
+      const contentResult = await this.fileSystem.readFile(filePath);
+      if (!contentResult.ok) {
         this.logger.error(
           `Failed to read ${filePath}: ${
-            error instanceof Error ? error.message : String(error)
+            contentResult.error.kind === "FileNotFound"
+              ? "File not found"
+              : contentResult.error.kind || "Unknown error"
           }`,
         );
         continue;
       }
+      const content = contentResult.data;
 
       // Extract frontmatter
       const extractResult = await this.extractFrontmatter.execute({
@@ -149,7 +156,60 @@ export class ProcessDocumentsOrchestrator {
         );
       }
 
-      processedData.push(extractResult.data.data);
+      // Step 3.3: Process through template (NEW - Critical Fix)
+      const templatePathResult = schemaResult.data.templateInfo
+        .getTemplatePath();
+      if (!templatePathResult.ok) {
+        // No template specified, skip template processing (use raw data)
+        processedData.push(extractResult.data.data);
+        continue;
+      }
+
+      const templatePathObj = TemplatePath.create(templatePathResult.data);
+      if (!templatePathObj.ok) {
+        this.logger.error(
+          `Invalid template path for ${filePath}: ${templatePathObj.error.message}`,
+        );
+        processedData.push(extractResult.data.data); // Fallback to raw data
+        continue;
+      }
+
+      const templateResult = await this.templateRepository.load(
+        templatePathObj.data,
+      );
+      if (!templateResult.ok) {
+        this.logger.error(
+          `Failed to load template for ${filePath}: ${
+            templateResult.error.kind || "Unknown error"
+          }`,
+        );
+        processedData.push(extractResult.data.data); // Fallback to raw data
+        continue;
+      }
+
+      const templateProcessResult = await this.processTemplate.execute({
+        data: extractResult.data.data,
+        template: templateResult.data,
+        schemaMode: { kind: "WithSchema", schema: schemaResult.data.schema },
+        filePath: filePath,
+      });
+
+      if (!templateProcessResult.ok) {
+        this.logger.error(
+          `Template processing failed for ${filePath}: ${templateProcessResult.error.message}`,
+        );
+        processedData.push(extractResult.data.data); // Fallback to raw data
+        continue;
+      }
+
+      if (input.verbose) {
+        this.logger.info(
+          `Template applied for ${filePath}: ${templateProcessResult.data.metadata.templateApplied}`,
+        );
+      }
+
+      // Add template-transformed data instead of raw data
+      processedData.push(templateProcessResult.data.transformedData.getData());
     }
 
     // Step 4: Aggregate results

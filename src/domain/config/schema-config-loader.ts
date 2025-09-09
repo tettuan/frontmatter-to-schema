@@ -183,6 +183,14 @@ export const getSchemaConfigLoader = (
       }),
     exists: () => Promise.resolve({ ok: true, data: false }),
     findFiles: async function* () {},
+    stat: () =>
+      Promise.resolve({
+        ok: false,
+        error: createDomainError({
+          kind: "FileNotFound" as const,
+          path: "",
+        }),
+      }),
   };
   return new SchemaConfigLoader(stubFileSystem, basePath);
 };

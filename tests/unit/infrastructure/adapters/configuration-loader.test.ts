@@ -27,7 +27,10 @@ import {
 import type {
   ProcessingConfiguration,
 } from "../../../../src/domain/services/interfaces.ts";
-import type { FileSystemRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
+import type {
+  FileInfo,
+  FileSystemRepository,
+} from "../../../../src/domain/repositories/file-system-repository.ts";
 import type { DomainError } from "../../../../src/domain/core/result.ts";
 import { join } from "jsr:@std/path";
 
@@ -60,6 +63,20 @@ class MockFileSystemRepository implements FileSystemRepository {
 
   async *findFiles(_pattern: string): AsyncIterable<string> {
     // Not needed for this test
+  }
+
+  stat(
+    _path: string,
+  ): Promise<{ ok: true; data: FileInfo } | { ok: false; error: DomainError }> {
+    return Promise.resolve({
+      ok: true,
+      data: {
+        isFile: true,
+        isDirectory: false,
+        size: 0,
+        mtime: new Date(),
+      },
+    });
   }
 }
 

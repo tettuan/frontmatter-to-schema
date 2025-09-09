@@ -12,7 +12,10 @@ import {
   SchemaDefinition,
   SchemaVersion,
 } from "../models/schema-value-objects.ts";
-import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
+import type {
+  FileInfo,
+  FileSystemRepository,
+} from "../repositories/file-system-repository.ts";
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
 
@@ -78,6 +81,31 @@ class MockFileSystemRepository implements FileSystemRepository {
         yield filePath;
       }
     }
+  }
+
+  async stat(
+    path: string,
+  ): Promise<Result<FileInfo, DomainError & { message: string }>> {
+    await Promise.resolve(); // Satisfy linter
+    if (this.files.has(path)) {
+      return {
+        ok: true,
+        data: {
+          isFile: true,
+          isDirectory: false,
+          size: this.files.get(path)?.length || 0,
+          mtime: new Date(),
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "FileNotFound",
+        path,
+        message: `File not found: ${path}`,
+      } as DomainError & { message: string },
+    };
   }
 }
 

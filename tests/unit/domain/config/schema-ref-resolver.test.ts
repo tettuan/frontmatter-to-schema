@@ -6,7 +6,10 @@
 
 import { assert, assertEquals } from "jsr:@std/assert@1.0.9";
 import { SchemaRefResolver } from "../../../../src/domain/config/schema-ref-resolver.ts";
-import type { FileSystemRepository } from "../../../../src/domain/repositories/file-system-repository.ts";
+import type {
+  FileInfo,
+  FileSystemRepository,
+} from "../../../../src/domain/repositories/file-system-repository.ts";
 import type { DomainError } from "../../../../src/domain/core/result.ts";
 
 // Mock FileSystemRepository for testing
@@ -52,6 +55,26 @@ class TestFileSystemRepository implements FileSystemRepository {
 
   async *findFiles(_pattern: string): AsyncIterable<string> {
     // Not needed for these tests
+  }
+
+  stat(
+    path: string,
+  ): Promise<{ ok: true; data: FileInfo } | { ok: false; error: DomainError }> {
+    if (this.files.has(path)) {
+      return Promise.resolve({
+        ok: true,
+        data: {
+          isFile: true,
+          isDirectory: false,
+          size: this.files.get(path)?.length || 0,
+          mtime: new Date(),
+        },
+      });
+    }
+    return Promise.resolve({
+      ok: false,
+      error: { kind: "FileNotFound", path },
+    });
   }
 }
 
