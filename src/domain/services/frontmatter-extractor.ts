@@ -8,14 +8,29 @@ import { isObject } from "../shared/type-guards.ts";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 import { ResultHandlerService } from "./result-handler-service.ts";
+import {
+  parseSimpleYamlFormat,
+  parseYamlFrontmatter,
+} from "../extractors/yaml-extractor.ts";
+import {
+  extractAccordingToSchema as extractAccordingToSchemaImpl,
+  extractDescription as extractDescriptionImpl,
+  type ExtractedDescription,
+  type ExtractedTools,
+  type ExtractedVersion,
+  extractTools as extractToolsImpl,
+  extractVersion as extractVersionImpl,
+  type SchemaExtractionResult,
+} from "../extractors/schema-extractor.ts";
 
-/**
- * Extracted frontmatter data
- */
-export interface ExtractedFrontmatter {
-  content: string;
-  format: "yaml" | "json" | "toml";
-}
+// Re-export types from extractor modules
+export type { ExtractedFrontmatter } from "../extractors/extractor-factory.ts";
+export type {
+  ExtractedDescription,
+  ExtractedTools,
+  ExtractedVersion,
+  SchemaExtractionResult,
+} from "../extractors/schema-extractor.ts";
 
 // Totality-compliant schema definition using discriminated unions
 type SchemaVersionRule = {
@@ -183,31 +198,6 @@ export class SchemaDefinition {
   }
 }
 
-// Totality-compliant extracted data using discriminated unions instead of null
-type ExtractedVersion = {
-  kind: "Present";
-  value: string;
-} | {
-  kind: "NotPresent";
-};
-
-type ExtractedDescription = {
-  kind: "Present";
-  value: string;
-} | {
-  kind: "NotPresent";
-};
-
-type ExtractedTools = {
-  kind: "Present";
-  availableConfigs: { kind: "Present"; values: string[] } | {
-    kind: "NotPresent";
-  };
-  commands: { kind: "Present"; values: unknown[] } | { kind: "NotPresent" };
-} | {
-  kind: "NotPresent";
-};
-
 export class ExtractedData {
   private constructor(
     private readonly version: ExtractedVersion,
@@ -294,31 +284,15 @@ function extractVersion(
   frontmatterData: Record<string, unknown>,
   versionRule: SchemaVersionRule | undefined,
 ): ExtractedVersion {
-  if (!versionRule || frontmatterData.version === undefined) {
+  if (!versionRule) {
     return { kind: "NotPresent" };
   }
 
-  const version = frontmatterData.version;
-  if (typeof version !== "string") {
-    return { kind: "NotPresent" };
-  }
-
-  // Handle pattern validation using discriminated union
-  switch (versionRule.kind) {
-    case "WithPattern":
-      try {
-        const pattern = new RegExp(versionRule.pattern);
-        if (pattern.test(version)) {
-          return { kind: "Present", value: version };
-        }
-        return { kind: "NotPresent" };
-      } catch {
-        // Invalid regex pattern
-        return { kind: "NotPresent" };
-      }
-    case "WithoutPattern":
-      return { kind: "Present", value: version };
-  }
+  // Use pattern from rule if it exists
+  const pattern = versionRule.kind === "WithPattern"
+    ? versionRule.pattern
+    : undefined;
+  return extractVersionImpl(frontmatterData, pattern);
 }
 
 /**
@@ -328,16 +302,11 @@ function extractDescription(
   frontmatterData: Record<string, unknown>,
   descriptionRule: SchemaDescriptionRule | undefined,
 ): ExtractedDescription {
-  if (!descriptionRule || frontmatterData.description === undefined) {
+  if (!descriptionRule) {
     return { kind: "NotPresent" };
   }
 
-  const description = frontmatterData.description;
-  if (typeof description === "string") {
-    return { kind: "Present", value: description };
-  }
-
-  return { kind: "NotPresent" };
+  return extractDescriptionImpl(frontmatterData);
 }
 
 /**
@@ -347,90 +316,11 @@ function extractTools(
   frontmatterData: Record<string, unknown>,
   toolsRule: SchemaToolsRule | undefined,
 ): ExtractedTools {
-  if (!toolsRule || frontmatterData.tools === undefined) {
+  if (!toolsRule) {
     return { kind: "NotPresent" };
   }
 
-  const tools = frontmatterData.tools;
-  if (!isObject(tools)) {
-    return { kind: "NotPresent" };
-  }
-
-  // Extract configs based on rule
-  const availableConfigs = extractConfigs(tools, toolsRule.availableConfigs);
-
-  // Extract commands based on rule
-  const commands = extractCommands(tools, toolsRule.commands);
-
-  return {
-    kind: "Present",
-    availableConfigs,
-    commands,
-  };
-}
-
-/**
- * Extract configs using discriminated union pattern
- */
-function extractConfigs(
-  toolsData: Record<string, unknown>,
-  configRule: SchemaConfigRule,
-): { kind: "Present"; values: string[] } | { kind: "NotPresent" } {
-  if (toolsData.availableConfigs === undefined) {
-    return { kind: "NotPresent" };
-  }
-
-  const configs = toolsData.availableConfigs;
-  if (!Array.isArray(configs)) {
-    return { kind: "NotPresent" };
-  }
-
-  const validConfigs: string[] = [];
-
-  switch (configRule.kind) {
-    case "WithEnum":
-      for (const config of configs) {
-        if (
-          typeof config === "string" &&
-          configRule.allowedValues.includes(config)
-        ) {
-          validConfigs.push(config);
-        }
-      }
-      break;
-    case "WithoutEnum":
-      for (const config of configs) {
-        if (typeof config === "string") {
-          validConfigs.push(config);
-        }
-      }
-      break;
-  }
-
-  return validConfigs.length > 0
-    ? { kind: "Present", values: validConfigs }
-    : { kind: "NotPresent" };
-}
-
-/**
- * Extract commands using discriminated union pattern
- */
-function extractCommands(
-  toolsData: Record<string, unknown>,
-  _commandRule: SchemaCommandRule,
-): { kind: "Present"; values: unknown[] } | { kind: "NotPresent" } {
-  if (toolsData.commands === undefined) {
-    return { kind: "NotPresent" };
-  }
-
-  const commands = toolsData.commands;
-  if (!Array.isArray(commands)) {
-    return { kind: "NotPresent" };
-  }
-
-  // For now, accept all commands regardless of rule type
-  // In a full implementation, we would validate based on commandRule.kind
-  return { kind: "Present", values: commands };
+  return extractToolsImpl(frontmatterData);
 }
 
 /**
@@ -443,37 +333,14 @@ export function parseFrontmatterAndExtract(
   yamlContent: string,
   schema: SchemaDefinition,
 ): Result<ExtractedData, DomainError & { message: string }> {
-  // Simple YAML parsing for the given example
-  const frontmatterData: Record<string, unknown> = {};
-
-  // Parse simple key-value pairs from YAML
-  const lines = yamlContent.split("\n");
-  for (const line of lines) {
-    const match = line.match(/^(\w+):\s*(.+)$/);
-    if (match) {
-      const [, key, value] = match;
-      // Remove quotes if present
-      const cleanValue = value.replace(/^["']|["']$/g, "");
-      frontmatterData[key] = cleanValue;
-    }
+  // Use YAML extractor module
+  const parseResult = parseYamlFrontmatter(yamlContent);
+  if (!parseResult.ok) {
+    return parseResult;
   }
 
-  return extractFrontmatterToSchema(frontmatterData, schema);
+  return extractFrontmatterToSchema(parseResult.data, schema);
 }
-
-// Totality-compliant schema property extractor result
-type SchemaExtractionResult = {
-  kind: "StringValue";
-  value: string;
-} | {
-  kind: "ObjectValue";
-  properties: Record<string, SchemaExtractionResult>;
-} | {
-  kind: "ArrayValue";
-  elements: unknown[];
-} | {
-  kind: "NotPresent";
-};
 
 /**
  * Main extraction function as specified in the task
@@ -489,108 +356,14 @@ export function extractAccordingToSchema(
   Record<string, SchemaExtractionResult>,
   DomainError & { message: string }
 > {
-  try {
-    // Parse the frontmatter
-    const frontmatterData: Record<string, unknown> = {};
-
-    // Handle the specific format from the task (e.g., "title:プロジェクト全体の深掘り調査と修正タスク洗い出し")
-    const parts = frontmatterYaml.split(":");
-    if (parts.length >= 2) {
-      const key = parts[0].trim();
-      const value = parts.slice(1).join(":").trim();
-      frontmatterData[key] = value;
-    }
-
-    // Extract according to schema structure using discriminated unions
-    const result: Record<string, SchemaExtractionResult> = {};
-
-    // Check each property in the schema
-    for (const [schemaKey, schemaValue] of Object.entries(schema)) {
-      if (schemaKey === "$schema") continue; // Skip meta properties
-
-      // Extract based on frontmatter presence and schema type
-      result[schemaKey] = extractSchemaProperty(
-        frontmatterData,
-        schemaKey,
-        schemaValue,
-      );
-    }
-
-    return { ok: true, data: result };
-  } catch (error) {
-    return ResultHandlerService.createError(
-      createDomainError(
-        {
-          kind: "ProcessingStageError",
-          stage: "schema extraction",
-          error: {
-            kind: "InvalidResponse",
-            service: "schema-extractor",
-            response: String(error),
-          },
-        },
-        `Schema extraction failed: ${error}`,
-      ),
-      {
-        operation: "extractAccordingToSchema",
-        component: "FrontmatterExtractor",
-      },
-    );
-  }
-}
-
-/**
- * Extract a single schema property using Totality patterns
- */
-function extractSchemaProperty(
-  frontmatterData: Record<string, unknown>,
-  schemaKey: string,
-  schemaValue: unknown,
-): SchemaExtractionResult {
-  // If the frontmatter has a matching key, use it
-  if (frontmatterData[schemaKey] !== undefined) {
-    const value = frontmatterData[schemaKey];
-    if (typeof value === "string") {
-      return { kind: "StringValue", value };
-    }
-    if (Array.isArray(value)) {
-      return { kind: "ArrayValue", elements: value };
-    }
-    if (isObject(value)) {
-      const properties: Record<string, SchemaExtractionResult> = {};
-      for (const [key, val] of Object.entries(value)) {
-        if (typeof val === "string") {
-          properties[key] = { kind: "StringValue", value: val };
-        } else {
-          properties[key] = { kind: "NotPresent" };
-        }
-      }
-      return { kind: "ObjectValue", properties };
-    }
+  // Parse the simple YAML format
+  const parseResult = parseSimpleYamlFormat(frontmatterYaml);
+  if (!parseResult.ok) {
+    return parseResult;
   }
 
-  // Check if schema defines structure for missing values
-  if (isObject(schemaValue)) {
-    if (
-      schemaValue.type === "object" && schemaValue.properties &&
-      isObject(schemaValue.properties)
-    ) {
-      // Create object structure with NotPresent values
-      const properties: Record<string, SchemaExtractionResult> = {};
-      for (const nestedKey of Object.keys(schemaValue.properties)) {
-        properties[nestedKey] = { kind: "NotPresent" };
-      }
-      return { kind: "ObjectValue", properties };
-    }
-    if (schemaValue.type === "array") {
-      return { kind: "ArrayValue", elements: [] };
-    }
-    if (schemaValue.type === "string") {
-      return { kind: "NotPresent" };
-    }
-  }
-
-  return { kind: "NotPresent" };
+  // Extract according to schema using the schema extractor module
+  return extractAccordingToSchemaImpl(parseResult.data, schema);
 }
 
 // BACKWARD COMPATIBILITY LAYER - TO BE DEPRECATED
