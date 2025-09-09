@@ -9,6 +9,16 @@
 import type { DomainError, Result } from "../core/result.ts";
 
 /**
+ * File information returned by stat operations
+ */
+export interface FileInfo {
+  readonly isFile: boolean;
+  readonly isDirectory: boolean;
+  readonly size: number;
+  readonly mtime: Date | null;
+}
+
+/**
  * File system operations repository interface
  * Abstracts all file I/O operations from the domain layer
  */
@@ -48,6 +58,13 @@ export interface FileSystemRepository {
    * @returns AsyncIterable of file paths
    */
   findFiles(pattern: string): AsyncIterable<string>;
+
+  /**
+   * Get file or directory information
+   * @param path The file or directory path to stat
+   * @returns Result with file info or error
+   */
+  stat(path: string): Promise<Result<FileInfo, DomainError>>;
 }
 
 /**
