@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:src/domain/document/entities.ts
 /**
  * Document domain entities following DDD principles
  * Part of Document Management bounded context
@@ -24,6 +25,22 @@ export type FrontMatterInput = {
 /**
  * Document identifier value object with Smart Constructor pattern
  */
+========
+// Document domain entities following DDD principles
+
+import type { Result } from "../../core/result.ts";
+import type { DomainError } from "../../core/result.ts";
+import type {
+  DocumentContent,
+  DocumentPath,
+} from "../../../domain/models/value-objects.ts";
+import type {
+  DocumentFrontMatterState,
+  FrontMatter,
+  FrontMatterInput,
+} from "../../frontmatter/entities/frontmatter.ts";
+
+>>>>>>>> refactor/ddd-totality-architectural-violations:src/domain/document/entities/document.ts
 export class DocumentId {
   private constructor(private readonly value: string) {}
 
@@ -54,10 +71,13 @@ export class DocumentId {
   }
 }
 
+<<<<<<<< HEAD:src/domain/document/entities.ts
 /**
  * Document aggregate root
  * Represents a document with its content and frontmatter state
  */
+========
+>>>>>>>> refactor/ddd-totality-architectural-violations:src/domain/document/entities/document.ts
 export class Document {
   constructor(
     private readonly id: DocumentId,
@@ -126,9 +146,14 @@ export class Document {
     return this.content;
   }
 
+  getContent(): DocumentContent {
+    return this.content;
+  }
+
   hasFrontMatter(): boolean {
     return this.frontMatterState.kind === "WithFrontMatter";
   }
+<<<<<<<< HEAD:src/domain/document/entities.ts
 
   // Totality-compliant method using exhaustive pattern matching
   getFrontMatter(): FrontMatter | null {
@@ -153,4 +178,6 @@ export class Document {
   equals(other: Document): boolean {
     return this.id.equals(other.id);
   }
+========
+>>>>>>>> refactor/ddd-totality-architectural-violations:src/domain/document/entities/document.ts
 }

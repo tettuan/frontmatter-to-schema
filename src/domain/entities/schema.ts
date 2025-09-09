@@ -44,24 +44,12 @@ export class Schema {
     definition: SchemaDefinition,
     version: SchemaVersion,
     description?: string,
-  ): Result<Schema, DomainError> {
+  ): Schema {
     const safeDescription = description ?? "";
-
-    // Validate that definition has required structure
     if (!definition) {
-      return {
-        ok: false,
-        error: {
-          kind: "EmptyInput",
-          field: "definition",
-        } as DomainError,
-      };
+      throw new Error("Definition is required for schema creation");
     }
-
-    return {
-      ok: true,
-      data: new Schema(id, definition, version, safeDescription),
-    };
+    return new Schema(id, definition, version, safeDescription);
   }
 
   /**

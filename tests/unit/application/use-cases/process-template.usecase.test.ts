@@ -19,7 +19,7 @@ import type {
   ExtractedData,
   Template,
 } from "../../../../src/domain/models/entities.ts";
-import { MappedData } from "../../../../src/domain/analysis/entities.ts";
+import { MappedData } from "../../../../src/domain/models/entities.ts";
 import type {
   DomainError,
   Result,

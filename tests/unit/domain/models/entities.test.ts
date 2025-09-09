@@ -274,14 +274,13 @@ Deno.test("Schema - Entity Creation and Validation", async (t) => {
     });
     const version = createSchemaVersion("1.0.0");
 
-    const schemaResult = Schema.create(
+    const schema = Schema.create(
       idResult.data,
       definition,
       version,
       description,
     );
-    if (!isOk(schemaResult)) throw new Error("Failed to create Schema");
-    return schemaResult.data;
+    return schema;
   };
 
   await t.step("should create schema with description", () => {
