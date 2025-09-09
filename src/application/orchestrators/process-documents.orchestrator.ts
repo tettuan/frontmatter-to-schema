@@ -18,6 +18,7 @@ import type { FileSystemRepository } from "../../domain/repositories/file-system
 import type { ITemplateRepository } from "../../domain/repositories/template-repository.ts";
 import { TemplatePath } from "../../domain/repositories/template-repository.ts";
 import type { Logger } from "../../domain/shared/logger.ts";
+import * as path from "jsr:@std/path@1.0.9";
 
 /**
  * Input for document processing orchestration
@@ -165,7 +166,13 @@ export class ProcessDocumentsOrchestrator {
         continue;
       }
 
-      const templatePathObj = TemplatePath.create(templatePathResult.data);
+      // Resolve template path relative to schema file location
+      const schemaDir = path.dirname(input.schemaPath);
+      const resolvedTemplatePath = path.resolve(
+        schemaDir,
+        templatePathResult.data,
+      );
+      const templatePathObj = TemplatePath.create(resolvedTemplatePath);
       if (!templatePathObj.ok) {
         this.logger.error(
           `Invalid template path for ${filePath}: ${templatePathObj.error.message}`,
