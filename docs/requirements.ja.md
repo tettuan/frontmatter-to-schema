@@ -191,6 +191,7 @@ registry_command_template.json
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Registry Schema",
+  "x-template": "registry_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
@@ -232,6 +233,7 @@ registry_command_template.json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "x-template": "registry_command_template.json",
   "title": "Command Schema",
   "description": "Schema for a single command definition",
   "properties": {
