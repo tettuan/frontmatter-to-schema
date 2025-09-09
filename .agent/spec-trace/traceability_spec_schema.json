@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object", 
+  "title": "Specification Level Traceability Schema",
+  "description": "Schema for specification level traceability items where id.level == 'spec'",
+  "properties": {
+    "id": {
+      "type": "object",
+      "properties": {
+        "full": { "type": "string" },
+        "level": { "type": "string", "const": "spec" },
+        "scope": { "type": "string" },
+        "semantic": { "type": "string" },
+        "hash": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "required": ["full", "level", "scope", "semantic"]
+    },
+    "summary": { "type": "string" },
+    "description": { "type": "string" },
+    "status": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "derived_from": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "trace_to": {
+      "type": "array", 
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["id", "summary", "status"]
+}

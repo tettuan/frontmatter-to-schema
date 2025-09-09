@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Traceability Registry Schema",
+  "description": "Schema for extracting and organizing traceability IDs from spec-trace documents",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Registry description",
+      "default": "Traceability ID registry organized by level"
+    },
+    "traceability": {
+      "type": "object",
+      "description": "Traceability items organized by level",
+      "properties": {
+        "req": {
+          "type": "array",
+          "description": "Requirement level traceability IDs",
+          "x-frontmatter-part": true,
+          "items": { "$ref": "traceability_req_schema.json" }
+        },
+        "spec": {
+          "type": "array", 
+          "description": "Specification level traceability IDs",
+          "x-frontmatter-part": true,
+          "items": { "$ref": "traceability_spec_schema.json" }
+        },
+        "design": {
+          "type": "array",
+          "description": "Design level traceability IDs",
+          "x-frontmatter-part": true,
+          "items": {
+            "type": "string",
+            "description": "Full traceability ID"
+          }
+        },
+        "impl": {
+          "type": "array",
+          "description": "Implementation level traceability IDs",
+          "x-frontmatter-part": true,
+          "items": {
+            "type": "string",
+            "description": "Full traceability ID"
+          }
+        },
+        "test": {
+          "type": "array",
+          "description": "Test level traceability IDs",
+          "x-frontmatter-part": true,
+          "items": {
+            "type": "string",
+            "description": "Full traceability ID"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "traceability"],
+  "additionalProperties": false,
+  "$defs": {
+    "traceabilityItem": {
+      "type": "object",
+      "description": "Individual traceability item extracted from frontmatter",
+      "properties": {
+        "id": {
+          "type": "object",
+          "description": "Traceability ID information",
+          "properties": {
+            "full": {
+              "type": "string",
+              "description": "Complete traceability ID"
+            },
+            "level": {
+              "type": "string",
+              "description": "Traceability level (req, spec, design, impl, test)"
+            },
+            "scope": {
+              "type": "string",
+              "description": "Functional scope or domain"
+            },
+            "semantic": {
+              "type": "string",
+              "description": "Semantic identifier"
+            },
+            "hash": {
+              "type": "string",
+              "description": "Hash identifier"
+            },
+            "version": {
+              "type": "string",
+              "description": "Version identifier"
+            }
+          },
+          "required": ["full", "level", "scope", "semantic"],
+          "additionalProperties": false
+        },
+        "summary": {
+          "type": "string",
+          "description": "Brief summary of the traceability item"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status (draft, active, deprecated, etc.)"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Associated tags",
+          "items": {
+            "type": "string"
+          }
+        },
+        "derived_from": {
+          "type": "array",
+          "description": "Parent traceability IDs",
+          "items": {
+            "type": "string"
+          }
+        },
+        "trace_to": {
+          "type": "array",
+          "description": "Child traceability IDs",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["id", "summary", "status"],
+      "additionalProperties": false
+    }
+  },
+  "x-template": "template.json"
+}
