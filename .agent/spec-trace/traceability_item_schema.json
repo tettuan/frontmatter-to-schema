@@ -1,14 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "Specification Level Traceability Schema",
-  "description": "Schema for specification level traceability items where id.level == 'spec'",
+  "title": "Traceability Item Schema",
+  "x-template": "traceability_item_template.json",
+  "description": "Unified schema for all traceability items across all levels",
   "properties": {
     "id": {
       "type": "object",
       "properties": {
         "full": { "type": "string" },
-        "level": { "type": "string", "const": "spec" },
+        "level": { 
+          "type": "string", 
+          "enum": ["req", "spec", "design", "impl", "test"] 
+        },
         "scope": { "type": "string" },
         "semantic": { "type": "string" },
         "hash": { "type": "string" },

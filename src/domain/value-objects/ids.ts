@@ -3,6 +3,7 @@
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { DocumentPath } from "../models/value-objects.ts";
 
 /**
@@ -14,13 +15,11 @@ export class DocumentId {
 
   static create(
     value: string,
-  ): Result<DocumentId, DomainError> {
+  ): Result<DocumentId, DomainError & { message: string }> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "EmptyInput",
-        } as DomainError,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
     return { ok: true, data: new DocumentId(value.trim()) };
@@ -52,13 +51,11 @@ export class SchemaId {
 
   static create(
     value: string,
-  ): Result<SchemaId, DomainError> {
+  ): Result<SchemaId, DomainError & { message: string }> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "EmptyInput",
-        } as DomainError,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
     return { ok: true, data: new SchemaId(value.trim()) };
@@ -86,13 +83,11 @@ export class TemplateId {
 
   static create(
     value: string,
-  ): Result<TemplateId, DomainError> {
+  ): Result<TemplateId, DomainError & { message: string }> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "EmptyInput",
-        } as DomainError,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
     return { ok: true, data: new TemplateId(value.trim()) };
@@ -120,13 +115,11 @@ export class AnalysisId {
 
   static create(
     value: string,
-  ): Result<AnalysisId, DomainError> {
+  ): Result<AnalysisId, DomainError & { message: string }> {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
-          kind: "EmptyInput",
-        } as DomainError,
+        error: createDomainError({ kind: "EmptyInput" }),
       };
     }
     return { ok: true, data: new AnalysisId(value.trim()) };

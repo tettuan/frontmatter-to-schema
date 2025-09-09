@@ -103,6 +103,35 @@ export class ValidatedSchema {
     }
     return null;
   }
+
+  /**
+   * Check if data is compatible with schema level constraints
+   * Returns true if data level matches schema constraints or no constraints exist
+   */
+  isLevelCompatible(data: Record<string, unknown>): boolean {
+    const properties = this.getProperties();
+    if (!properties) return true;
+
+    // Check for id.level constraints in nested schema
+    const idPropertySchema = properties.getPropertySchema("id");
+    if (!idPropertySchema) return true;
+
+    const idProperties = idPropertySchema.getValue().properties;
+    if (!isRecord(idProperties)) return true;
+
+    const levelProperty = idProperties.level;
+    if (!isRecord(levelProperty)) return true;
+
+    const levelConstraint = levelProperty.const;
+    if (typeof levelConstraint !== "string") return true;
+
+    // Check if data has matching level
+    const dataId = data.id;
+    if (!isRecord(dataId)) return false;
+
+    const dataLevel = dataId.level;
+    return typeof dataLevel === "string" && dataLevel === levelConstraint;
+  }
 }
 
 /**
@@ -184,6 +213,14 @@ export class ValidatedPropertySchema {
   getType(): string | null {
     const type = this.propertySchema.type;
     return typeof type === "string" ? type : null;
+  }
+
+  getConstValue(): unknown {
+    return this.propertySchema.const;
+  }
+
+  hasConstConstraint(): boolean {
+    return "const" in this.propertySchema;
   }
 }
 

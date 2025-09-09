@@ -51,11 +51,18 @@ Deno.test("SchemaValidator", async (t) => {
 
     const schemaId = createTestSchemaId("test");
     const schemaVersion = createTestSchemaVersion("1.0.0");
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaId,
       schemaDefinition,
       schemaVersion,
+      "Test schema description",
     );
+    if (!schemaResult.ok) {
+      throw new Error(
+        `Failed to create test schema: ${schemaResult.error.message}`,
+      );
+    }
+    const schema = schemaResult.data;
 
     const data = {
       name: "John",
@@ -80,11 +87,18 @@ Deno.test("SchemaValidator", async (t) => {
 
     const schemaId = createTestSchemaId("test");
     const schemaVersion = createTestSchemaVersion("1.0.0");
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaId,
       schemaDefinition,
       schemaVersion,
+      "Test schema description",
     );
+    if (!schemaResult.ok) {
+      throw new Error(
+        `Failed to create test schema: ${schemaResult.error.message}`,
+      );
+    }
+    const schema = schemaResult.data;
 
     const invalidData = {
       name: "John",
@@ -108,11 +122,18 @@ Deno.test("SchemaValidator", async (t) => {
 
     const schemaId = createTestSchemaId("test");
     const schemaVersion = createTestSchemaVersion("1.0.0");
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaId,
       schemaDefinition,
       schemaVersion,
+      "Test schema description",
     );
+    if (!schemaResult.ok) {
+      throw new Error(
+        `Failed to create test schema: ${schemaResult.error.message}`,
+      );
+    }
+    const schema = schemaResult.data;
 
     const result = validator.validate(null, schema);
 
@@ -130,11 +151,18 @@ Deno.test("SchemaValidator", async (t) => {
 
     const schemaId = createTestSchemaId("test");
     const schemaVersion = createTestSchemaVersion("1.0.0");
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaId,
       schemaDefinition,
       schemaVersion,
+      "Test schema description",
     );
+    if (!schemaResult.ok) {
+      throw new Error(
+        `Failed to create test schema: ${schemaResult.error.message}`,
+      );
+    }
+    const schema = schemaResult.data;
 
     const result = validator.validate(undefined, schema);
 
@@ -154,13 +182,19 @@ Deno.test("SchemaValidator", async (t) => {
     } else {
       const schemaId = createTestSchemaId("test");
       const schemaVersion = createTestSchemaVersion("1.0.0");
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaId,
         schemaDefResult.data,
         schemaVersion,
+        "Test schema description",
       );
+      if (!schemaResult.ok) {
+        throw new Error(
+          `Failed to create test schema: ${schemaResult.error.message}`,
+        );
+      }
 
-      const result = validator.validate({}, schema);
+      const result = validator.validate({}, schemaResult.data);
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidFormat");

@@ -64,13 +64,17 @@ function createMockSchema(schemaData: Record<string, unknown>): Schema {
     );
   }
 
-  const schema = Schema.create(
+  const result = Schema.create(
     idResult.data,
     definitionResult.data,
     versionResult.data,
+    "Test analyzer schema",
   );
 
-  return schema;
+  if (!result.ok) {
+    throw new Error(`Failed to create test Schema: ${result.error.message}`);
+  }
+  return result.data;
 }
 
 Deno.test("TypeScriptAnalyzer - constructor", async (t) => {

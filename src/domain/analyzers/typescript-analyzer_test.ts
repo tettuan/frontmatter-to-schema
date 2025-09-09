@@ -154,15 +154,21 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Test schema",
       );
 
+      if (!schemaResult.ok) {
+        throw new Error(
+          `Failed to create test schema: ${schemaResult.error.message}`,
+        );
+      }
+
       // Act
-      const result = await analyzer.analyze(frontMatter, schema);
+      const result = await analyzer.analyze(frontMatter, schemaResult.data);
 
       // Assert
       assertEquals(result.ok, true);
@@ -238,15 +244,21 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Schema with $ref",
       );
 
+      if (!schemaResult.ok) {
+        throw new Error(
+          `Failed to create test schema: ${schemaResult.error.message}`,
+        );
+      }
+
       // Act
-      const result = await analyzer.analyze(frontMatter, schema);
+      const result = await analyzer.analyze(frontMatter, schemaResult.data);
 
       // Assert
       assertEquals(result.ok, true);
@@ -324,15 +336,21 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Circular $ref schema",
       );
 
+      if (!schemaResult.ok) {
+        throw new Error(
+          `Failed to create test schema: ${schemaResult.error.message}`,
+        );
+      }
+
       // Act
-      const result = await analyzer.analyze(frontMatter, schema);
+      const result = await analyzer.analyze(frontMatter, schemaResult.data);
 
       // Assert
       assertEquals(result.ok, false);
@@ -381,15 +399,21 @@ describe("TypeScriptAnalyzer", () => {
         throw new Error("Failed to create schema version");
       }
 
-      const schema = Schema.create(
+      const schemaResult = Schema.create(
         schemaIdResult.data,
         schemaDefinitionResult.data,
         schemaVersionResult.data,
         "Missing $ref schema",
       );
 
+      if (!schemaResult.ok) {
+        throw new Error(
+          `Failed to create test schema: ${schemaResult.error.message}`,
+        );
+      }
+
       // Act
-      const result = await analyzer.analyze(frontMatter, schema);
+      const result = await analyzer.analyze(frontMatter, schemaResult.data);
 
       // Assert
       assertEquals(result.ok, false);

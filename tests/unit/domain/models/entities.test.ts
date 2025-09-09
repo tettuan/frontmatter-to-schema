@@ -261,7 +261,10 @@ Deno.test("FrontMatter - Entity Creation and Methods", async (t) => {
 });
 
 Deno.test("Schema - Entity Creation and Validation", async (t) => {
-  const createTestSchema = (id: string, description?: string) => {
+  const createTestSchema = (
+    id: string,
+    description: string = "Test schema description",
+  ) => {
     const idResult = SchemaId.create(id);
     if (!isOk(idResult)) throw new Error("Failed to create SchemaId");
 
@@ -274,13 +277,16 @@ Deno.test("Schema - Entity Creation and Validation", async (t) => {
     });
     const version = createSchemaVersion("1.0.0");
 
-    const schema = Schema.create(
+    const result = Schema.create(
       idResult.data,
       definition,
       version,
       description,
     );
-    return schema;
+    if (!result.ok) {
+      throw new Error(`Failed to create test Schema: ${result.error.message}`);
+    }
+    return result.data;
   };
 
   await t.step("should create schema with description", () => {
@@ -291,11 +297,11 @@ Deno.test("Schema - Entity Creation and Validation", async (t) => {
     assertEquals(schema.getVersion().toString(), "1.0.0");
   });
 
-  await t.step("should create schema without description", () => {
+  await t.step("should create schema with default description", () => {
     const schema = createTestSchema("minimal-schema");
 
     assertEquals(schema.getId().getValue(), "minimal-schema");
-    assertEquals(schema.getDescription(), "");
+    assertEquals(schema.getDescription(), "Test schema description");
     assertEquals(schema.getVersion().toString(), "1.0.0");
   });
 

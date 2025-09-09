@@ -1,7 +1,20 @@
 /**
  * Process Documents Orchestrator Service
- * Extracted from process-documents-usecase.ts for better domain separation
- * Orchestrates the document processing workflow following DDD principles
+ *
+ * @deprecated ARCHITECTURAL VIOLATION: This service bypasses template processing
+ *
+ * CRITICAL ISSUE: This implementation violates the canonical processing path by:
+ * 1. Bypassing the mandatory template transformation phase
+ * 2. Processing raw frontmatter data without template integration
+ * 3. Violating the Single Path Rule established in architectural documentation
+ *
+ * REQUIRED ACTION: All document processing must route through DocumentProcessor
+ * which properly integrates the UnifiedTemplateProcessor for template transformation.
+ *
+ * SEE: docs/architecture/canonical-processing-paths.md
+ * SEE: Issue #592 - Template Processing Integrity Violation
+ *
+ * This class will be removed in favor of the canonical DocumentProcessor path.
  */
 
 import type { Result } from "../../domain/core/result.ts";
@@ -29,6 +42,18 @@ export class ProcessDocumentsOrchestratorService {
     private readonly fileSystem: FileSystemRepository,
     private readonly options: ProcessDocumentsOptions,
   ) {
+    // ARCHITECTURAL VIOLATION WARNING
+    console.warn(
+      "🚨 ARCHITECTURAL VIOLATION: ProcessDocumentsOrchestrator bypasses template processing!",
+    );
+    console.warn("   This violates the canonical processing path requirement.");
+    console.warn(
+      "   Use DocumentProcessor instead for proper template integration.",
+    );
+    console.warn(
+      "   See Issue #592 and docs/architecture/canonical-processing-paths.md",
+    );
+
     this.schemaLoadingService = new SchemaLoadingService(fileSystem);
     this.fileDiscoveryService = new FileDiscoveryService();
     this.markdownProcessingService = new MarkdownProcessingService();
