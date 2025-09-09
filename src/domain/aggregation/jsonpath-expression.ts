@@ -59,7 +59,7 @@ export class JSONPathExpression {
   private static validateSyntax(
     expression: string,
   ): Result<void, { kind: string; message: string }> {
-    // Check for invalid characters (allow $ for JSONPath root)
+    // Check for invalid characters (allow $ for root selector)
     if (/[^a-zA-Z0-9_\[\]\.\*\$]/.test(expression)) {
       return {
         ok: false,
@@ -192,8 +192,9 @@ export class JSONPathExpression {
         }
         parts.push({ type: "property", value: propName });
       } else if (token) {
-        // First property (no leading dot) or root symbol ($)
+        // First property (no leading dot) or root selector
         if (token === "$") {
+          // Root selector
           parts.push({ type: "root", value: "$" });
         } else if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) {
           return {

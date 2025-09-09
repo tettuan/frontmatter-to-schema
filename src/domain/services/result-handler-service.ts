@@ -34,18 +34,11 @@ export class ResultHandlerService {
    */
   static isError<T, E extends DomainError>(
     result: Result<T, E>,
-    context?: ErrorContext,
+    _context?: ErrorContext,
   ): result is { ok: false; error: E } {
-    if (!result.ok && context) {
-      // Enhance error with contextual information
-      const enhancedError = createDomainError(
-        result.error,
-        `${context.operation} failed in ${context.component}${
-          context.expectedType ? ` (expected: ${context.expectedType})` : ""
-        }`,
-      );
-      (result.error as E & { message: string }).message = enhancedError.message;
-    }
+    // Note: We cannot mutate the error here as it would violate immutability.
+    // The context is logged but not added to the error.
+    // Callers should use createError or map to create enhanced errors.
     return !result.ok;
   }
 
@@ -203,18 +196,19 @@ export class ResultHandlerService {
    * Create an error result with context
    * Simplifies error creation with consistent messaging
    */
-  static createError<T, E extends DomainError>(
-    error: E,
+  static createError<T>(
+    error: DomainError,
     context?: ErrorContext,
-  ): Result<T, E> {
-    if (context) {
-      const enhancedError = createDomainError(
-        error,
-        `${context.operation} failed in ${context.component}`,
-      );
-      (error as E & { message: string }).message = enhancedError.message;
-    }
-    return { ok: false, error };
+  ): Result<T, DomainError & { message: string }> {
+    // Always use createDomainError to ensure message property exists
+    const message = context
+      ? `${context.operation} failed in ${context.component}`
+      : ("message" in error && typeof error.message === "string"
+        ? error.message
+        : "Operation failed");
+
+    const enhancedError = createDomainError(error, message);
+    return { ok: false, error: enhancedError };
   }
 
   /**

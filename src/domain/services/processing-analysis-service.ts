@@ -134,9 +134,15 @@ export class ProcessDocumentAnalysisService {
       const verboseLogger = StructuredLogger.getServiceLogger(
         "process-documents-verbose",
       );
+      const frontMatterObj = frontMatter.toObject();
+      const keys =
+        typeof frontMatterObj === "object" && frontMatterObj !== null &&
+          !Array.isArray(frontMatterObj)
+          ? Object.keys(frontMatterObj)
+          : [];
       verboseLogger.info("[成果B] Frontmatter extracted", {
         document: docPath,
-        keys: Object.keys(frontMatter.toObject() as Record<string, unknown>),
+        keys,
       });
     }
 

@@ -16,6 +16,7 @@ import {
   type ExtendedSchema,
   SchemaTemplateInfo,
 } from "../models/schema-extensions.ts";
+import { isObject } from "../shared/type-guards.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 /**
@@ -60,8 +61,13 @@ export class SchemaRefResolver {
       return { ok: true, data: resolved };
     }
 
-    // Handle objects
-    const schemaObj = schema as Record<string, unknown>;
+    // Handle objects - schema is already verified to be an object at this point
+    // We've already handled null, undefined, primitives, and arrays above
+    if (!isObject(schema)) {
+      // This should never happen given the checks above, but TypeScript needs this
+      return { ok: true, data: schema };
+    }
+    const schemaObj = schema;
 
     // Check for $ref
     if ("$ref" in schemaObj && typeof schemaObj.$ref === "string") {
@@ -92,9 +98,20 @@ export class SchemaRefResolver {
       const { $ref: _$ref, ...otherProps } = schemaObj;
       if (Object.keys(otherProps).length > 0) {
         // If there are other properties, merge them
+        // Ensure resolved data is an object before spreading
+        if (!isObject(resolvedResult.data)) {
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "InvalidFormat",
+              input: refPath,
+              expectedFormat: "object reference",
+            }, `$ref resolved to non-object type: ${refPath}`),
+          };
+        }
         return {
           ok: true,
-          data: { ...resolvedResult.data as object, ...otherProps },
+          data: { ...resolvedResult.data, ...otherProps },
         };
       }
 
@@ -216,7 +233,7 @@ export class SchemaRefResolver {
   extractTemplateInfo(
     schema: unknown,
   ): Result<SchemaTemplateInfo, DomainError & { message: string }> {
-    if (!schema || typeof schema !== "object") {
+    if (!isObject(schema)) {
       return {
         ok: false,
         error: createDomainError({
@@ -227,11 +244,29 @@ export class SchemaRefResolver {
       };
     }
 
-    const extendedSchema = schema as ExtendedSchema;
-    return SchemaTemplateInfo.extract(extendedSchema) as Result<
-      SchemaTemplateInfo,
-      DomainError & { message: string }
-    >;
+    // Type assertion is necessary here because ExtendedSchema extends Record<string, unknown>
+    // but TypeScript cannot infer this from runtime checks alone.
+    // The isObject check ensures safety, and SchemaTemplateInfo.extract will validate structure.
+    const result = SchemaTemplateInfo.extract(schema as ExtendedSchema);
+
+    // Transform the result to match our DomainError type
+    if (!result.ok) {
+      // Map the error kind to a DomainError - the error structure from SchemaTemplateInfo
+      // doesn't match DomainError exactly, so we need to create a proper DomainError
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "schema",
+            expectedFormat: "valid schema structure",
+          },
+          result.error.message,
+        ),
+      };
+    }
+
+    return { ok: true, data: result.data };
   }
 
   /**
@@ -271,7 +306,7 @@ export class SchemaRefResolver {
    * Check if schema has frontmatter parts
    */
   hasFrontmatterParts(schema: unknown): boolean {
-    if (!schema || typeof schema !== "object") {
+    if (!isObject(schema)) {
       return false;
     }
 
@@ -282,24 +317,17 @@ export class SchemaRefResolver {
       }
 
       // Check properties
-      if (obj.properties && typeof obj.properties === "object") {
-        for (
-          const prop of Object.values(obj.properties as Record<string, unknown>)
-        ) {
-          if (
-            prop && typeof prop === "object" &&
-            checkObject(prop as Record<string, unknown>)
-          ) {
+      if (obj.properties && isObject(obj.properties)) {
+        for (const prop of Object.values(obj.properties)) {
+          if (isObject(prop) && checkObject(prop)) {
             return true;
           }
         }
       }
 
       // Check items
-      if (
-        obj.items && typeof obj.items === "object" && !Array.isArray(obj.items)
-      ) {
-        if (checkObject(obj.items as Record<string, unknown>)) {
+      if (obj.items && isObject(obj.items)) {
+        if (checkObject(obj.items)) {
           return true;
         }
       }
@@ -307,7 +335,7 @@ export class SchemaRefResolver {
       return false;
     };
 
-    return checkObject(schema as Record<string, unknown>);
+    return checkObject(schema);
   }
 }
 
