@@ -10,6 +10,7 @@
 import { CLIArgumentParser } from "./presentation/cli-arguments.ts";
 import { ProcessDocumentsOrchestrator } from "./application/orchestrators/process-documents.orchestrator.ts";
 import { DenoFileSystemRepository } from "./infrastructure/adapters/deno-file-system-repository.ts";
+import { TemplateRepositoryImpl } from "./infrastructure/repositories/template-repository-impl.ts";
 import { ConsoleLogger } from "./domain/shared/logger.ts";
 import { VERSION_CONFIG } from "./config/version.ts";
 
@@ -62,8 +63,9 @@ export class CLI {
     }
 
     try {
-      // Create file system repository and logger
+      // Create repositories and logger
       const fileSystemRepo = new DenoFileSystemRepository();
+      const templateRepo = new TemplateRepositoryImpl();
       const logger = new ConsoleLogger(
         "cli",
         cliArgs.options.quiet ? "error" : "info",
@@ -72,6 +74,7 @@ export class CLI {
       // Create and execute the orchestrator
       const orchestrator = new ProcessDocumentsOrchestrator(
         fileSystemRepo,
+        templateRepo,
         logger,
       );
 
