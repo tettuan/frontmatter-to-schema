@@ -1,5 +1,1 @@
-CI passing with 424 tests. Deep investigation completed via climpt-debug.
-Created issue #616 for critical test gaps: DocumentProcessor has zero tests, 5
-CLI tests disabled. Open P1 issues: #592 (schema processing), #590 (architecture
-refactoring), #591 (implementation strategy). Need to address test coverage gaps
-and continue with high-priority refactoring tasks.
+CI passing with 424 tests. Created PR #622 for issue #592 (schema level filtering fix). Fixed extractRequiredLevel method and CLI configuration handling. Open P1 issues remain: #616 (missing DocumentProcessor tests), #590 (architecture refactoring), #591 (implementation strategy). Branch fix/schema-level-filtering-592 ready for review. Next: address test coverage gaps or continue with remaining P1 issues.
