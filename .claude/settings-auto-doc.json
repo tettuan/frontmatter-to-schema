@@ -1,14 +1,21 @@
 {
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "climpt"
-  ],
+  "enabledMcpjsonServers": ["climpt"],
   "permissions": {
-    "allow": [
-      "Climpt__*"
-    ]
+    "allow": ["Climpt__*"]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/doc_session_start.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
