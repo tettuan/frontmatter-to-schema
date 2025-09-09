@@ -442,13 +442,13 @@ export class ClimptAnalysisPipeline extends FrontMatterAnalysisPipeline<
     };
 
     const logger = this.loggerProvider?.getLogger("climpt-summary") ??
-      // Fallback for backward compatibility
-      {
-        info: () => {},
-        warn: () => {},
-        error: () => {},
-        debug: () => {},
-      } as Logger;
+      // Fallback for backward compatibility - proper Logger implementation
+      new (class implements Logger {
+        info(): void {}
+        warn(): void {}
+        error(): void {}
+        debug(): void {}
+      })();
 
     logger.info("Processing summary", {
       totalFiles: summaryObj.totalFiles ?? "N/A",

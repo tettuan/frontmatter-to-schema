@@ -1,4 +1,5 @@
 import {
+  createDomainError,
   createProcessingStageError,
   type DomainError,
   isOk,
@@ -28,6 +29,16 @@ import {
 import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { VERSION_CONFIG } from "../config/version.ts";
+
+/**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
 import type { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type {
@@ -188,7 +199,7 @@ export class DocumentProcessor {
   ): Promise<Result<Document[], DomainError>> {
     // Extract path and pattern from discriminated union
     const path = config.path;
-    const pattern = config.kind === "PatternBased"
+    const pattern = config.kind === "DirectoryInput"
       ? config.pattern
       : FILE_PATTERNS.MARKDOWN;
 
@@ -267,9 +278,7 @@ export class DocumentProcessor {
       const frontMatter = frontMatterResult.data;
       const contentJson = frontMatter.getContent().toJSON();
       extractedData = ExtractedData.create(
-        typeof contentJson === "object" && contentJson !== null
-          ? contentJson as Record<string, unknown>
-          : {},
+        isValidRecordData(contentJson) ? contentJson : {},
       );
     } else {
       // No frontmatter present or error occurred
@@ -349,8 +358,8 @@ export class DocumentProcessor {
         .join("\n");
     }
 
-    if (typeof data === "object") {
-      const entries = Object.entries(data as Record<string, unknown>);
+    if (isValidRecordData(data)) {
+      const entries = Object.entries(data);
       if (entries.length === 0) {
         return "{}";
       }
@@ -364,6 +373,38 @@ export class DocumentProcessor {
     return String(data);
   }
 
+  private convertToXml(data: unknown): string {
+    // Simple XML conversion for basic data structures
+    if (Array.isArray(data)) {
+      return `<items>\n${
+        data.map((item) => `  <item>${this.convertToXml(item)}</item>`).join(
+          "\n",
+        )
+      }\n</items>`;
+    }
+
+    if (isValidRecordData(data)) {
+      const entries = Object.entries(data);
+      return entries.map(([key, value]) =>
+        `<${key}>${this.convertToXml(value)}</${key}>`
+      ).join("");
+    }
+
+    if (typeof data === "string") {
+      return data.replace(/[<>&"]/g, (match) => {
+        const escapes: Record<string, string> = {
+          "<": "&lt;",
+          ">": "&gt;",
+          "&": "&amp;",
+          '"': "&quot;",
+        };
+        return escapes[match] || match;
+      });
+    }
+
+    return String(data);
+  }
+
   /**
    * Apply template mapping following Totality principle
    * Integrates the strict structure matching template system
@@ -371,7 +412,7 @@ export class DocumentProcessor {
   private applyTemplateMapping(
     data: unknown[],
     template: Template,
-    format: "json" | "yaml" | "markdown",
+    format: "json" | "yaml" | "xml" | "custom",
   ): Result<string, DomainError> {
     // Type-safe data wrapping based on format
     const outputData = format === "json" || format === "yaml"
@@ -387,18 +428,19 @@ export class DocumentProcessor {
         ? JSON.stringify(outputData, null, 2)
         : format === "yaml"
         ? this.convertToYaml(outputData, 0)
-        : JSON.stringify(outputData, null, 2);
+        : format === "xml"
+        ? this.convertToXml(outputData)
+        : JSON.stringify(outputData, null, 2); // Default for "custom" and others
 
       return { ok: true, data: outputString };
     } catch (error) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "TemplateMappingFailed",
           template,
           source: data,
-          message: `Failed to apply template mapping: ${String(error)}`,
-        } as DomainError,
+        }, `Failed to apply template mapping: ${String(error)}`),
       };
     }
   }

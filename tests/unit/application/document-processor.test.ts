@@ -38,10 +38,10 @@ Deno.test({
         // Test configuration structure with new discriminated union types
         const validConfig: ApplicationConfiguration = {
           schema: {
-            definition: {
+            definition: JSON.stringify({
               type: "object",
               properties: { title: { type: "string" } },
-            },
+            }),
             format: schemaFormat.data,
           },
           template: {
@@ -49,7 +49,7 @@ Deno.test({
             format: templateFormat.data,
           },
           input: {
-            kind: "PatternBased",
+            kind: "DirectoryInput",
             path: "/test/input",
             pattern: "\\.md$",
           },
@@ -63,7 +63,7 @@ Deno.test({
         };
 
         // Basic validation that the config structure is accepted
-        assertEquals(typeof validConfig.schema.definition, "object");
+        assertEquals(typeof validConfig.schema.definition, "string");
         assertEquals(validConfig.schema.format.getValue(), "json");
         assertEquals(typeof validConfig.template.definition, "string");
         assertEquals(validConfig.input.path, "/test/input");
@@ -74,24 +74,24 @@ Deno.test({
     );
 
     await t.step("should handle different input configuration types", () => {
-      // Test DirectPath input configuration
-      const directPathConfig: ApplicationConfiguration["input"] = {
-        kind: "DirectPath",
+      // Test FileInput input configuration
+      const fileInputConfig: ApplicationConfiguration["input"] = {
+        kind: "FileInput",
         path: "/direct/path",
       };
 
-      // Test PatternBased input configuration
-      const patternBasedConfig: ApplicationConfiguration["input"] = {
-        kind: "PatternBased",
+      // Test DirectoryInput input configuration
+      const directoryInputConfig: ApplicationConfiguration["input"] = {
+        kind: "DirectoryInput",
         path: "/pattern/path",
         pattern: "*.md",
       };
 
-      assertEquals(directPathConfig.kind, "DirectPath");
-      assertEquals(directPathConfig.path, "/direct/path");
-      assertEquals(patternBasedConfig.kind, "PatternBased");
-      assertEquals(patternBasedConfig.path, "/pattern/path");
-      assertEquals(patternBasedConfig.pattern, "*.md");
+      assertEquals(fileInputConfig.kind, "FileInput");
+      assertEquals(fileInputConfig.path, "/direct/path");
+      assertEquals(directoryInputConfig.kind, "DirectoryInput");
+      assertEquals(directoryInputConfig.path, "/pattern/path");
+      assertEquals(directoryInputConfig.pattern, "*.md");
 
       console.log(
         "✅ Input configuration discriminated union validation passed",

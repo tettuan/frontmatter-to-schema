@@ -3,12 +3,17 @@
  *
  * Responsible for validating frontmatter data against schema
  * Part of the Schema Management Context (validation aspect) in DDD
- * Follows Totality principles with Result types
+ * Follows Totality principles with Result types and Smart Constructors
  */
 
 import type { UseCase } from "../base.usecase.ts";
 import type { DomainError, Result } from "../../../domain/core/result.ts";
 import { createDomainError } from "../../../domain/core/result.ts";
+import {
+  ValidatedInputData,
+  ValidatedSchema,
+  ValidationResult,
+} from "../../../domain/value-objects/validated-data.ts";
 
 /**
  * Input for frontmatter validation
@@ -44,63 +49,57 @@ export class ValidateFrontmatterUseCase
     await Promise.resolve();
 
     try {
-      // Ensure data is an object
-      if (
-        !input.data || typeof input.data !== "object" ||
-        Array.isArray(input.data)
-      ) {
+      // Validate input data using Smart Constructor
+      const validatedDataResult = ValidatedInputData.create(input.data);
+      if (!validatedDataResult.ok) {
         return {
           ok: false,
-          error: createDomainError(
-            {
-              kind: "InvalidFormat",
-              input: String(input.data),
-              expectedFormat: "object",
-            },
-            "Data to validate must be an object",
-          ),
+          error: validatedDataResult.error,
         };
       }
 
-      const data = input.data as Record<string, unknown>;
+      const validatedData = validatedDataResult.data;
       const validationErrors: string[] = [];
 
       // Basic schema validation if schema is provided
-      if (
-        input.schema && typeof input.schema === "object" &&
-        !Array.isArray(input.schema)
-      ) {
-        const schema = input.schema as Record<string, unknown>;
+      if (input.schema) {
+        const validatedSchemaResult = ValidatedSchema.create(input.schema);
+        if (!validatedSchemaResult.ok) {
+          return {
+            ok: false,
+            error: validatedSchemaResult.error,
+          };
+        }
 
-        // Check for required fields if defined
-        if (schema.required && Array.isArray(schema.required)) {
-          for (const field of schema.required) {
-            if (typeof field === "string" && !(field in data)) {
-              validationErrors.push(`Missing required field: ${field}`);
-            }
+        const validatedSchema = validatedSchemaResult.data;
+
+        // Check for required fields
+        const requiredFields = validatedSchema.getRequiredFields();
+        for (const field of requiredFields) {
+          if (!validatedData.hasField(field)) {
+            validationErrors.push(`Missing required field: ${field}`);
           }
         }
 
         // Check for property types if defined
-        if (schema.properties && typeof schema.properties === "object") {
-          const properties = schema.properties as Record<string, unknown>;
+        const properties = validatedSchema.getProperties();
+        if (properties) {
+          for (const propertyName of properties.getPropertyNames()) {
+            if (validatedData.hasField(propertyName)) {
+              const propertySchema = properties.getPropertySchema(propertyName);
+              if (propertySchema) {
+                const expectedType = propertySchema.getType();
+                if (expectedType) {
+                  const value = validatedData.getField(propertyName);
+                  const actualType = Array.isArray(value)
+                    ? "array"
+                    : typeof value;
 
-          for (const [key, propSchema] of Object.entries(properties)) {
-            if (key in data && propSchema && typeof propSchema === "object") {
-              const prop = propSchema as Record<string, unknown>;
-              const value = data[key];
-
-              // Basic type checking
-              if (prop.type) {
-                const expectedType = prop.type as string;
-                const actualType = Array.isArray(value)
-                  ? "array"
-                  : typeof value;
-
-                if (expectedType !== actualType) {
-                  validationErrors.push(
-                    `Field '${key}' has wrong type: expected ${expectedType}, got ${actualType}`,
-                  );
+                  if (expectedType !== actualType) {
+                    validationErrors.push(
+                      `Field '${propertyName}' has wrong type: expected ${expectedType}, got ${actualType}`,
+                    );
+                  }
                 }
               }
             }
@@ -108,23 +107,20 @@ export class ValidateFrontmatterUseCase
         }
       }
 
-      // Return validation result
-      if (validationErrors.length > 0) {
-        return {
-          ok: true,
-          data: {
-            valid: false,
-            data,
-            validationErrors,
-          },
-        };
-      }
+      // Create validation result using domain object
+      const validationResult = validationErrors.length > 0
+        ? ValidationResult.createInvalid(validatedData, validationErrors)
+        : ValidationResult.createValid(validatedData);
 
+      // Return result in expected format
       return {
         ok: true,
         data: {
-          valid: true,
-          data,
+          valid: validationResult.isValid(),
+          data: validationResult.getData(),
+          validationErrors: validationResult.hasErrors()
+            ? validationResult.getErrors()
+            : undefined,
         },
       };
     } catch (error) {

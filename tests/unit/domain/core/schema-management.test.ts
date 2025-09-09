@@ -528,8 +528,9 @@ Deno.test("SchemaSwitcher", async (t) => {
   await t.step("should get current schema", () => {
     const switcher = new SchemaSwitcher();
 
-    // Initially no schema
-    assertEquals(switcher.getCurrentSchema(), null);
+    // Initially no schema - should return error Result
+    const initialResult = switcher.getCurrentSchema();
+    assertEquals(initialResult.ok, false);
 
     // After registering and switching
     const validSchema = ValidSchema.create("active", { type: "object" }, {}, {
@@ -540,8 +541,11 @@ Deno.test("SchemaSwitcher", async (t) => {
       switcher.registerSchema(validSchema.data);
       switcher.switchToSchema("active");
 
-      const current = switcher.getCurrentSchema();
-      assertEquals(current?.kind, "Loaded");
+      const currentResult = switcher.getCurrentSchema();
+      assertEquals(currentResult.ok, true);
+      if (currentResult.ok) {
+        assertEquals(currentResult.data.kind, "Loaded");
+      }
     }
   });
 
@@ -559,12 +563,18 @@ Deno.test("SchemaSwitcher", async (t) => {
       switcher.switchToSchema("to-remove");
 
       assertEquals(switcher.listAvailableSchemas().length, 1);
-      assertEquals(switcher.getCurrentSchema()?.kind, "Loaded");
+      const currentResult = switcher.getCurrentSchema();
+      assertEquals(currentResult.ok, true);
+      if (currentResult.ok) {
+        assertEquals(currentResult.data.kind, "Loaded");
+      }
 
       switcher.unregisterSchema("to-remove");
 
       assertEquals(switcher.listAvailableSchemas().length, 0);
-      assertEquals(switcher.getCurrentSchema(), null);
+      // After unregistering - should return error Result (no active schema)
+      const afterUnregisterResult = switcher.getCurrentSchema();
+      assertEquals(afterUnregisterResult.ok, false);
     }
   });
 
@@ -599,7 +609,9 @@ Deno.test("SchemaSwitcher", async (t) => {
     switcher.clearAll();
 
     assertEquals(switcher.listAvailableSchemas().length, 0);
-    assertEquals(switcher.getCurrentSchema(), null);
+    // After clearing all - should return error Result (no active schema)
+    const afterClearResult = switcher.getCurrentSchema();
+    assertEquals(afterClearResult.ok, false);
   });
 
   await t.step("should handle invalid schema registration", () => {
@@ -1083,8 +1095,11 @@ Deno.test("Schema Management Integration", async (t) => {
         assertEquals(switchResult.ok, true);
 
         // Verify active schema
-        const currentSchema = switcher.getCurrentSchema();
-        assertEquals(currentSchema?.kind, "Loaded");
+        const currentSchemaResult = switcher.getCurrentSchema();
+        assertEquals(currentSchemaResult.ok, true);
+        if (currentSchemaResult.ok) {
+          assertEquals(currentSchemaResult.data.kind, "Loaded");
+        }
       }
     }
 

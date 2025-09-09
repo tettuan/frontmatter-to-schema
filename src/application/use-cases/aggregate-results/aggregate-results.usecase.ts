@@ -93,9 +93,17 @@ export class AggregateResultsUseCase
         if (frontmatterParts.length > 0) {
           // Use the first frontmatter part property
           const key = frontmatterParts[0];
+
+          // Apply level-based filtering before assigning data
+          const filteredData = this.applyLevelFiltering(
+            input.data,
+            input.schema as Record<string, unknown>,
+            key,
+          );
+
           result = {
             ...aggregationResult.data,
-            [key]: input.data,
+            [key]: filteredData,
           };
           // Don't include items when we have frontmatter-part
           delete result.items;
@@ -143,5 +151,87 @@ export class AggregateResultsUseCase
         ),
       };
     }
+  }
+
+  /**
+   * Apply level-based filtering for traceability items
+   * Filters items based on schema constraints (e.g., level: "req")
+   */
+  private applyLevelFiltering(
+    data: unknown[],
+    schema: Record<string, unknown>,
+    key: string,
+  ): unknown[] {
+    try {
+      // Extract the required level from schema constraints
+      const requiredLevel = this.extractRequiredLevel(schema, key);
+      if (!requiredLevel) {
+        // No level constraint found, return all data
+        return data;
+      }
+
+      // Filter data based on traceability level
+      return data.filter((item) => {
+        if (!this.isValidRecord(item)) return false;
+
+        const traceability = item.traceability;
+        if (!Array.isArray(traceability)) return false;
+
+        // Check if any traceability item matches the required level
+        return traceability.some((trace: unknown) => {
+          if (!this.isValidRecord(trace)) return false;
+
+          const id = trace.id;
+          if (!this.isValidRecord(id)) return false;
+
+          return id.level === requiredLevel;
+        });
+      });
+    } catch (error) {
+      // On error, return original data to maintain functionality
+      console.warn("Level filtering failed:", error);
+      return data;
+    }
+  }
+
+  /**
+   * Extract required level from schema constraints
+   */
+  private extractRequiredLevel(
+    schema: Record<string, unknown>,
+    propertyKey: string,
+  ): string | null {
+    try {
+      const properties = schema.properties;
+      if (!this.isValidRecord(properties)) return null;
+
+      const property = properties[propertyKey];
+      if (!this.isValidRecord(property)) return null;
+
+      const items = property.items;
+      if (!this.isValidRecord(items)) return null;
+
+      // Handle $ref resolution - get the referenced schema
+      const ref = items["$ref"];
+      if (typeof ref === "string") {
+        // For now, extract level from the ref name (e.g., traceability_req_schema.json -> "req")
+        const match = ref.match(/traceability_(\w+)_schema\.json/);
+        if (match) {
+          return match[1];
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn("Failed to extract required level:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Type guard for record objects
+   */
+  private isValidRecord(data: unknown): data is Record<string, unknown> {
+    return typeof data === "object" && data !== null && !Array.isArray(data);
   }
 }

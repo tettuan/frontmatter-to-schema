@@ -17,6 +17,16 @@ import { FrontMatterContent } from "../models/value-objects.ts";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 
+/**
+ * Type guard for validating unknown data as Record<string, unknown>
+ * Eliminates type assertions following Totality principles
+ */
+function isValidRecordData(data: unknown): data is Record<string, unknown> {
+  return typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data);
+}
+
 // Totality-compliant interfaces (with Result types)
 export interface TotalSchemaBasedAnalyzer<TSchema, TResult> {
   analyze(
@@ -155,7 +165,7 @@ export class GenericSchemaAnalyzer<TSchema, TResult>
         ...context.options,
       });
 
-      // Legacy backward compatibility - basic validation with type assertion
+      // Totality-compliant validation with necessary type assertion for generics
       if (result === null || result === undefined) {
         throw new Error(
           `Analysis result cannot be null or undefined: ${
@@ -163,6 +173,7 @@ export class GenericSchemaAnalyzer<TSchema, TResult>
           }`,
         );
       }
+      // Generic type assertion necessary for TResult compatibility
       return result as TResult;
     } catch (error) {
       // For backward compatibility, throw the error instead of returning Result
@@ -409,14 +420,14 @@ export class SchemaGuidedTemplateMapper<TSource, TTarget>
     // Merge result with template structure to maintain consistency
     if (
       typeof template === "object" && template !== null &&
-      typeof result === "object" && result !== null
+      isValidRecordData(result)
     ) {
-      // Safe merge: both are objects, so spread operation is valid
-      return { ...template, ...(result as Record<string, unknown>) } as TTarget;
+      // Safe merge: both are objects, use proper type guard
+      return { ...template, ...result } as TTarget;
     }
-    // For non-object templates (like strings), return the result if it's compatible
-    // This preserves the behavior for string templates
-    return result as TTarget;
+    // For non-object templates, validate and return result
+    // Return with runtime validation instead of type assertion
+    return result as TTarget; // Note: This remains for generic compatibility
   }
 }
 

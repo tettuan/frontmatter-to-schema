@@ -1,28 +1,29 @@
 /**
- * Process Documents Use Case
+ * Process Documents Use Case (refactored)
  *
- * Application layer use case implementing the two-phase processing pipeline:
- * Phase 1: Process individual Markdown files
- * Phase 2: Aggregate results and apply derivation rules
+ * This file has been refactored following DDD principles:
+ * - Extracted value objects for input validation and output representation
+ * - Decomposed monolithic use case into focused services (562 lines → facade pattern)
+ * - Proper domain service separation with single responsibility principle
+ * - Orchestrator service coordinates the complete workflow
+ *
+ * NOTE: Maintained functional compatibility while improving architectural design
+ * The refactoring follows DDD bounded context separation and service composition
  */
 
 import type { Result } from "../domain/core/result.ts";
-import { SchemaRefResolver } from "../domain/config/schema-ref-resolver.ts";
 import type { FileSystemRepository } from "../domain/repositories/file-system-repository.ts";
-import { FrontmatterExtractor } from "../domain/services/frontmatter-extractor-v2.ts";
 import {
-  AggregationService,
-  createExpressionEvaluator,
-} from "../domain/aggregation/index.ts";
-import type { SchemaTemplateInfo } from "../domain/models/schema-extensions.ts";
-import { SchemaAggregationAdapter } from "./services/schema-aggregation-adapter.ts";
-import { expandGlob } from "jsr:@std/fs@1.0.8/expand-glob";
-import * as path from "jsr:@std/path@1.0.9";
-import * as yaml from "jsr:@std/yaml@1.0.9";
-import * as toml from "jsr:@std/toml@1.0.1";
+  ProcessDocumentsInput as ProcessDocumentsInputVO,
+} from "./value-objects/process-documents-input.value-object.ts";
+import {
+  ProcessDocumentsOptions as ProcessDocumentsOptionsVO,
+} from "./value-objects/process-documents-options.value-object.ts";
+import { ProcessDocumentsOrchestratorService } from "./services/process-documents-orchestrator.service.ts";
 
 /**
- * Use case input parameters
+ * Use case input parameters (backward compatibility interface)
+ * @deprecated Use ProcessDocumentsInput value object from value-objects/process-documents-input.value-object.ts
  */
 export interface ProcessDocumentsInput {
   schemaPath: string;
@@ -32,7 +33,8 @@ export interface ProcessDocumentsInput {
 }
 
 /**
- * Use case output result
+ * Use case output result (backward compatibility interface)
+ * @deprecated Use ProcessDocumentsOutput value object from value-objects/process-documents-output.value-object.ts
  */
 export interface ProcessDocumentsOutput {
   processedCount: number;
@@ -41,7 +43,8 @@ export interface ProcessDocumentsOutput {
 }
 
 /**
- * Use case configuration options
+ * Use case configuration options (backward compatibility interface)
+ * @deprecated Use ProcessDocumentsOptions value object from value-objects/process-documents-options.value-object.ts
  */
 export interface ProcessDocumentsOptions {
   verbose?: boolean;
@@ -51,31 +54,30 @@ export interface ProcessDocumentsOptions {
 }
 
 /**
- * Process Documents Use Case
+ * Process Documents Use Case (facade pattern for backward compatibility)
+ * @deprecated Use ProcessDocumentsOrchestratorService directly for better separation of concerns
  */
 export class ProcessDocumentsUseCase {
-  private readonly schemaResolver: SchemaRefResolver;
-  private readonly frontmatterExtractor: FrontmatterExtractor;
-  private readonly aggregationService: AggregationService;
-  private readonly schemaAggregationAdapter: SchemaAggregationAdapter;
+  private readonly orchestrator: ProcessDocumentsOrchestratorService;
 
   constructor(
     private readonly fileSystem: FileSystemRepository,
     private readonly options: ProcessDocumentsOptions = {},
   ) {
-    this.schemaResolver = new SchemaRefResolver(
+    // Convert legacy options to value object
+    const optionsResult = ProcessDocumentsOptionsVO.create(options);
+    if (!optionsResult.ok) {
+      throw new Error(`Invalid options: ${optionsResult.error.message}`);
+    }
+
+    this.orchestrator = new ProcessDocumentsOrchestratorService(
       fileSystem,
-      path.dirname(options.dryRun ? "." : "."),
+      optionsResult.data,
     );
-    this.frontmatterExtractor = new FrontmatterExtractor();
-    this.aggregationService = new AggregationService(
-      createExpressionEvaluator(),
-    );
-    this.schemaAggregationAdapter = new SchemaAggregationAdapter();
   }
 
   /**
-   * Execute the use case
+   * Execute the use case (delegates to orchestrator service)
    */
   async execute(
     input: ProcessDocumentsInput,
@@ -85,478 +87,28 @@ export class ProcessDocumentsUseCase {
       { kind: string; message: string; details?: unknown }
     >
   > {
-    const warnings: string[] = [];
-
-    try {
-      // Phase 0: Load and resolve schema
-      if (this.options.verbose) {
-        console.log(`Loading schema from: ${input.schemaPath}`);
-      }
-
-      const schemaResult = await this.loadAndResolveSchema(input.schemaPath);
-      if (!schemaResult.ok) {
-        return schemaResult;
-      }
-
-      const { schema, templateInfo } = schemaResult.data;
-
-      // Phase 1: Process individual Markdown files
-      if (this.options.verbose) {
-        console.log(`Scanning for files matching: ${input.inputPattern}`);
-      }
-
-      const filesResult = await this.findMarkdownFiles(input.inputPattern);
-      if (!filesResult.ok) {
-        return filesResult;
-      }
-
-      const files = filesResult.data;
-      if (files.length === 0) {
-        return {
-          ok: false,
-          error: {
-            kind: "NoFilesFound",
-            message: `No files found matching pattern: ${input.inputPattern}`,
-          },
-        };
-      }
-
-      if (this.options.verbose) {
-        console.log(`Found ${files.length} files to process`);
-      }
-
-      // Process each file
-      const processedData: unknown[] = [];
-      const processingErrors: string[] = [];
-
-      for (const file of files) {
-        if (this.options.verbose) {
-          console.log(`Processing: ${file}`);
-        }
-
-        const result = await this.processMarkdownFile(file, schema);
-        if (result.ok) {
-          processedData.push(result.data);
-        } else {
-          const errorMsg = `${file}: ${result.error.message}`;
-          if (this.options.verbose) {
-            console.warn(errorMsg);
-          }
-          processingErrors.push(errorMsg);
-        }
-      }
-
-      if (processedData.length === 0) {
-        return {
-          ok: false,
-          error: {
-            kind: "ProcessingFailed",
-            message: "No files could be processed successfully",
-            details: processingErrors,
-          },
-        };
-      }
-
-      warnings.push(...processingErrors);
-
-      // Phase 2: Aggregate and apply derivation rules
-      if (this.options.verbose) {
-        console.log("Applying aggregation and derivation rules");
-      }
-
-      const finalResult = this.aggregateResults(
-        processedData,
-        templateInfo,
-        schema,
-      );
-
-      if (!finalResult.ok) {
-        return finalResult;
-      }
-
-      // Phase 3: Write output
-      if (!this.options.dryRun) {
-        const writeResult = await this.writeOutput(
-          finalResult.data,
-          input.outputPath,
-          input.outputFormat,
-        );
-
-        if (!writeResult.ok) {
-          return writeResult;
-        }
-      } else if (this.options.verbose) {
-        console.log(
-          "Dry-run mode: Output would be written to",
-          input.outputPath,
-        );
-        console.log(
-          "Output preview:",
-          JSON.stringify(finalResult.data, null, 2).substring(0, 500),
-        );
-      }
-
-      return {
-        ok: true,
-        data: {
-          processedCount: processedData.length,
-          outputPath: input.outputPath,
-          warnings: warnings.length > 0 ? warnings : undefined,
-        },
-      };
-    } catch (error) {
+    // Convert legacy input to value object
+    const inputResult = ProcessDocumentsInputVO.create(input);
+    if (!inputResult.ok) {
       return {
         ok: false,
         error: {
-          kind: "UnexpectedError",
-          message: error instanceof Error ? error.message : String(error),
-          details: error,
+          kind: "InputValidationError",
+          message: `Invalid input: ${inputResult.error.message}`,
         },
       };
     }
-  }
 
-  /**
-   * Load and resolve schema with $ref resolution
-   */
-  private async loadAndResolveSchema(
-    schemaPath: string,
-  ): Promise<
-    Result<{
-      schema: unknown;
-      templateInfo: SchemaTemplateInfo;
-    }, { kind: string; message: string }>
-  > {
-    try {
-      // Read schema file using injected file system
-      const readResult = await this.fileSystem.readFile(schemaPath);
-      if (!readResult.ok) {
-        return {
-          ok: false,
-          error: {
-            kind: "FileNotFound",
-            message: `Schema file not found: ${schemaPath}`,
-          },
-        };
-      }
-      const rawSchema = JSON.parse(readResult.data);
-
-      // Set base path for $ref resolution
-      const basePath = path.dirname(schemaPath);
-      const resolver = new SchemaRefResolver(this.fileSystem, basePath);
-
-      // Resolve and extract template info
-      const result = await resolver.resolveAndExtractTemplateInfo(rawSchema);
-      if (!result.ok) {
-        return result;
-      }
-
-      return {
-        ok: true,
-        data: {
-          schema: result.data.resolved,
-          templateInfo: result.data.templateInfo,
-        },
-      };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: {
-            kind: "FileNotFound",
-            message: `Schema file not found: ${schemaPath}`,
-          },
-        };
-      }
-
-      if (error instanceof SyntaxError) {
-        return {
-          ok: false,
-          error: {
-            kind: "ParseError",
-            message: `Invalid JSON in schema file: ${error.message}`,
-          },
-        };
-      }
-
-      return {
-        ok: false,
-        error: {
-          kind: "SchemaLoadError",
-          message: `Failed to load schema: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      };
-    }
-  }
-
-  /**
-   * Find Markdown files matching the input pattern
-   */
-  private async findMarkdownFiles(
-    pattern: string,
-  ): Promise<Result<string[], { kind: string; message: string }>> {
-    try {
-      const files: string[] = [];
-
-      // Check if pattern contains comma-separated files (from shell expansion)
-      if (pattern.includes(",")) {
-        const fileList = pattern.split(",");
-        for (const file of fileList) {
-          const trimmedFile = file.trim();
-          if (trimmedFile.endsWith(".md")) {
-            // Verify file exists
-            try {
-              const stat = await Deno.stat(trimmedFile);
-              if (stat.isFile) {
-                files.push(trimmedFile);
-              }
-            } catch {
-              // File doesn't exist, skip it
-            }
-          }
-        }
-        return { ok: true, data: files };
-      }
-
-      // Check if the pattern is an existing file (single file passed)
-      try {
-        const stat = await Deno.stat(pattern);
-        if (stat.isFile && pattern.endsWith(".md")) {
-          // Single file was passed
-          files.push(pattern);
-          return { ok: true, data: files };
-        } else if (stat.isDirectory) {
-          // Directory was passed, find all .md files in it recursively
-          const dirPattern = path.join(pattern, "**/*.md");
-          for await (const entry of expandGlob(dirPattern)) {
-            if (entry.isFile) {
-              files.push(entry.path);
-            }
-          }
-          return { ok: true, data: files };
-        }
-      } catch {
-        // Not a file or directory, treat as glob pattern
-      }
-
-      // Treat as glob pattern
-      for await (const entry of expandGlob(pattern)) {
-        if (entry.isFile && entry.path.endsWith(".md")) {
-          files.push(entry.path);
-        }
-      }
-
-      return { ok: true, data: files };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "GlobError",
-          message: `Failed to scan files: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      };
-    }
-  }
-
-  /**
-   * Process a single Markdown file
-   */
-  private async processMarkdownFile(
-    filePath: string,
-    _schema: unknown,
-  ): Promise<Result<unknown, { kind: string; message: string }>> {
-    try {
-      // Read file content
-      const content = await Deno.readTextFile(filePath);
-
-      // Extract frontmatter
-      const extractResult = this.frontmatterExtractor.extract(content);
-      if (!extractResult.ok) {
-        return {
-          ok: false,
-          error: {
-            kind: "FrontmatterExtractionFailed",
-            message: extractResult.error.message,
-          },
-        };
-      }
-
-      // Parse frontmatter based on format
-      const frontmatter = extractResult.data;
-      let parsed: unknown;
-
-      try {
-        switch (frontmatter.format) {
-          case "yaml":
-            parsed = yaml.parse(frontmatter.content);
-            break;
-          case "json":
-            parsed = JSON.parse(frontmatter.content);
-            break;
-          case "toml":
-            parsed = toml.parse(frontmatter.content);
-            break;
-          default:
-            return {
-              ok: false,
-              error: {
-                kind: "UnsupportedFormat",
-                message:
-                  `Unsupported frontmatter format: ${frontmatter.format}`,
-              },
-            };
-        }
-      } catch (parseError) {
-        return {
-          ok: false,
-          error: {
-            kind: "ParseError",
-            message: `Failed to parse frontmatter: ${
-              parseError instanceof Error
-                ? parseError.message
-                : String(parseError)
-            }`,
-          },
-        };
-      }
-
-      // TODO: Validate against schema (requires schema validator implementation)
-      // For now, return the parsed data with file metadata
-      return {
-        ok: true,
-        data: {
-          ...parsed as Record<string, unknown>,
-          _metadata: {
-            filePath,
-            format: frontmatter.format,
-          },
-        },
-      };
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        return {
-          ok: false,
-          error: {
-            kind: "FileNotFound",
-            message: `File not found: ${filePath}`,
-          },
-        };
-      }
-
-      return {
-        ok: false,
-        error: {
-          kind: "ProcessingError",
-          message: `Failed to process file: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      };
-    }
-  }
-
-  /**
-   * Aggregate results and apply derivation rules
-   */
-  private aggregateResults(
-    data: unknown[],
-    templateInfo: SchemaTemplateInfo,
-    schema: unknown,
-  ): Result<unknown, { kind: string; message: string }> {
-    // Use SchemaAggregationAdapter for aggregation
-    const aggregationResult = this.schemaAggregationAdapter.processAggregation(
-      data,
-      schema as Record<string, unknown>,
-    );
-
-    if (!aggregationResult.ok) {
-      return aggregationResult;
+    // Delegate to orchestrator
+    const result = await this.orchestrator.execute(inputResult.data);
+    if (!result.ok) {
+      return result;
     }
 
-    // Create base result with aggregated data
-    let result: Record<string, unknown> = {
-      ...aggregationResult.data,
-      items: data,
+    // Convert value object back to legacy interface for backward compatibility
+    return {
+      ok: true,
+      data: result.data.toObject() as ProcessDocumentsOutput,
     };
-
-    // Handle x-frontmatter-part if present
-    if (templateInfo.getIsFrontmatterPart()) {
-      // Find properties marked with x-frontmatter-part using adapter
-      const frontmatterParts = this.schemaAggregationAdapter
-        .findFrontmatterParts(
-          schema as Record<string, unknown>,
-        );
-
-      if (frontmatterParts.length > 0) {
-        // Use the first frontmatter part property
-        const key = frontmatterParts[0];
-        result = {
-          ...aggregationResult.data,
-          [key]: data,
-        };
-        // Don't include items when we have frontmatter-part
-        delete result.items;
-      }
-    }
-
-    return { ok: true, data: result };
-  }
-
-  /**
-   * Write output to file in the specified format
-   */
-  private async writeOutput(
-    data: unknown,
-    outputPath: string,
-    format: "json" | "yaml" | "toml",
-  ): Promise<Result<void, { kind: string; message: string }>> {
-    try {
-      let content: string;
-
-      switch (format) {
-        case "json":
-          content = JSON.stringify(data, null, 2);
-          break;
-        case "yaml":
-          content = yaml.stringify(data);
-          break;
-        case "toml":
-          content = toml.stringify(data as Record<string, unknown>);
-          break;
-        default:
-          return {
-            ok: false,
-            error: {
-              kind: "UnsupportedFormat",
-              message: `Unsupported output format: ${format}`,
-            },
-          };
-      }
-
-      // Ensure directory exists
-      const dir = path.dirname(outputPath);
-      if (dir && dir !== ".") {
-        await Deno.mkdir(dir, { recursive: true });
-      }
-
-      // Write file
-      await Deno.writeTextFile(outputPath, content);
-
-      return { ok: true, data: undefined };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "WriteError",
-          message: `Failed to write output: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        },
-      };
-    }
   }
 }

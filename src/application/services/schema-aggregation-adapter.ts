@@ -209,6 +209,46 @@ export class SchemaAggregationAdapter {
       aggregatedResult.data,
     );
   }
+
+  /**
+   * Convert SchemaTemplateInfo to AggregationContext for compatibility
+   */
+  convertTemplateInfo(
+    templateInfo: SchemaTemplateInfo,
+  ): Result<AggregationContext, { kind: string; message: string }> {
+    const derivationRules = templateInfo.getDerivationRules();
+
+    // Convert DerivedFieldInfo to DerivationRule
+    const rules: DerivationRule[] = [];
+    const errors: string[] = [];
+
+    for (const [_, info] of derivationRules) {
+      const ruleResult = this.convertToDerivationRule(info);
+      if (!ruleResult.ok) {
+        errors.push(ruleResult.error.message);
+      } else {
+        rules.push(ruleResult.data);
+      }
+    }
+
+    if (errors.length > 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConversionError",
+          message: `Failed to convert derivation rules: ${errors.join(", ")}`,
+        },
+      };
+    }
+
+    // Create aggregation context with default options
+    const context = AggregationContext.create(rules, {
+      skipNull: true,
+      skipUndefined: true,
+    });
+
+    return { ok: true, data: context };
+  }
 }
 
 /**

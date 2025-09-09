@@ -158,7 +158,7 @@ export class CLI {
     // Input configuration
     if (args.input) {
       config.input = {
-        kind: "DirectPath",
+        kind: "FileInput",
         path: args.input as string,
       };
     }
