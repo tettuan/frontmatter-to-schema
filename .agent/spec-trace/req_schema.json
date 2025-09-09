@@ -11,7 +11,7 @@
       "default": "1.0.0"
     },
     "description": {
-      "type": "string", 
+      "type": "string",
       "description": "Registry description",
       "default": "Requirement level traceability IDs"
     },

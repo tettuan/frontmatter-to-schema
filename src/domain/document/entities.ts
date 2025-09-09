@@ -1,12 +1,12 @@
-// Document-related entities following DDD principles
+/**
+ * Document domain entities following DDD principles
+ * Part of Document Management bounded context
+ */
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
-import type {
-  DocumentContent,
-  DocumentPath,
-  FrontMatterContent,
-} from "./value-objects.ts";
+import type { DocumentContent, DocumentPath } from "../models/value-objects.ts";
+import type { FrontMatter } from "../frontmatter/entities.ts";
 
 // Discriminated union for document frontmatter state following totality principle
 export type DocumentFrontMatterState =
@@ -21,25 +21,24 @@ export type FrontMatterInput = {
   kind: "NotPresent";
 };
 
-// DocumentId value object
+/**
+ * Document identifier value object with Smart Constructor pattern
+ */
 export class DocumentId {
-  private constructor(private readonly value: string) {
-    Object.freeze(this);
-  }
+  private constructor(private readonly value: string) {}
 
   static create(
     value: string,
-  ): Result<DocumentId, DomainError & { message: string }> {
-    if (!value || typeof value !== "string" || value.trim().length === 0) {
+  ): Result<DocumentId, DomainError> {
+    if (!value || value.trim() === "") {
       return {
         ok: false,
         error: {
           kind: "EmptyInput",
-          message: "DocumentId cannot be empty",
-        } as DomainError & { message: string },
+        } as DomainError,
       };
     }
-    return { ok: true, data: new DocumentId(value.trim()) };
+    return { ok: true, data: new DocumentId(value) };
   }
 
   static fromPath(path: DocumentPath): DocumentId {
@@ -55,7 +54,10 @@ export class DocumentId {
   }
 }
 
-// Document entity
+/**
+ * Document aggregate root
+ * Represents a document with its content and frontmatter state
+ */
 export class Document {
   constructor(
     private readonly id: DocumentId,
@@ -116,97 +118,39 @@ export class Document {
     return this.path;
   }
 
-  getContent(): DocumentContent {
-    return this.content;
-  }
-
   getFrontMatterState(): DocumentFrontMatterState {
     return this.frontMatterState;
   }
 
-  /**
-   * Get front matter as a Result type following totality principle
-   * This method eliminates null returns and provides explicit error handling
-   */
-  getFrontMatterResult(): Result<FrontMatter, DomainError> {
-    switch (this.frontMatterState.kind) {
-      case "WithFrontMatter":
-        return { ok: true, data: this.frontMatterState.frontMatter };
-      case "NoFrontMatter":
-        return {
-          ok: false,
-          error: {
-            kind: "NoFrontMatterPresent",
-          } as DomainError,
-        };
-      default: {
-        // Exhaustive check - TypeScript will error if we miss a case
-        const _exhaustiveCheck: never = this.frontMatterState;
-        return {
-          ok: false,
-          error: {
-            kind: "InvalidState",
-            expected: "WithFrontMatter or NoFrontMatter",
-            actual: String(_exhaustiveCheck),
-          } as DomainError,
-        };
-      }
-    }
+  getContent(): DocumentContent {
+    return this.content;
   }
 
   hasFrontMatter(): boolean {
     return this.frontMatterState.kind === "WithFrontMatter";
   }
-}
 
-// FrontMatter entity
-export class FrontMatter {
-  constructor(
-    private readonly content: FrontMatterContent,
-    private readonly raw: string,
-  ) {}
-
-  static create(
-    content: FrontMatterContent,
-    raw: string,
-  ): FrontMatter {
-    return new FrontMatter(content, raw);
+  // Totality-compliant method using exhaustive pattern matching
+  getFrontMatter(): FrontMatter | null {
+    switch (this.frontMatterState.kind) {
+      case "WithFrontMatter":
+        return this.frontMatterState.frontMatter;
+      case "NoFrontMatter":
+        return null;
+    }
   }
 
-  getContent(): FrontMatterContent {
-    return this.content;
+  // Legacy method for backward compatibility with tests
+  getFrontMatterResult(): Result<FrontMatter, DomainError> {
+    switch (this.frontMatterState.kind) {
+      case "WithFrontMatter":
+        return { ok: true, data: this.frontMatterState.frontMatter };
+      case "NoFrontMatter":
+        return { ok: false, error: { kind: "NotFound" } as DomainError };
+    }
   }
 
-  getRaw(): string {
-    return this.raw;
-  }
-
-  toObject(): unknown {
-    return this.content.toJSON();
-  }
-
-  getData(): FrontMatterContent {
-    return this.content;
-  }
-
-  getValue(key: string): unknown {
-    const data = this.content.toJSON();
-    return data && typeof data === "object" && !Array.isArray(data)
-      ? (data as Record<string, unknown>)[key]
-      : undefined;
-  }
-
-  hasProperty(key: string): boolean {
-    const data = this.content.toJSON();
-    return data && typeof data === "object" && !Array.isArray(data)
-      ? key in (data as Record<string, unknown>)
-      : false;
-  }
-
-  getKeys(): string[] {
-    const data = this.content.toJSON();
-    return data && typeof data === "object" && !Array.isArray(data)
-      ? Object.keys(data as Record<string, unknown>)
-      : [];
+  equals(other: Document): boolean {
+    return this.id.equals(other.id);
   }
 }

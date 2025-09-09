@@ -12,7 +12,7 @@
     },
     "description": {
       "type": "string",
-      "description": "Registry description", 
+      "description": "Registry description",
       "default": "Specification level traceability IDs"
     },
     "spec": {

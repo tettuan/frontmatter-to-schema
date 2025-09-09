@@ -274,7 +274,14 @@ Deno.test("Schema - Entity Creation and Validation", async (t) => {
     });
     const version = createSchemaVersion("1.0.0");
 
-    return Schema.create(idResult.data, definition, version, description);
+    const schemaResult = Schema.create(
+      idResult.data,
+      definition,
+      version,
+      description,
+    );
+    if (!isOk(schemaResult)) throw new Error("Failed to create Schema");
+    return schemaResult.data;
   };
 
   await t.step("should create schema with description", () => {
@@ -537,8 +544,8 @@ Deno.test("MappedData - Creation and Output Methods", async (t) => {
 
     const mapped = MappedData.create(data);
 
-    const jsonOutput = mapped.toJSON();
-    const parsed = JSON.parse(jsonOutput);
+    const jsonString = mapped.toJSON();
+    const parsed = JSON.parse(jsonString);
 
     assertEquals(parsed.title, "Mapped Document");
     assertEquals(parsed.author, "Mapped Author");

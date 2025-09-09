@@ -24,7 +24,7 @@
       "items": { "type": "string" }
     },
     "derived_from": {
-      "type": "array", 
+      "type": "array",
       "items": { "type": "string" }
     },
     "trace_to": {

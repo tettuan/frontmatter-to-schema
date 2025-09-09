@@ -34,6 +34,26 @@ function createTestSchemaDefinition(definition: unknown): SchemaDefinition {
   return result.data;
 }
 
+function createTestSchema(
+  id: string,
+  definition: unknown,
+  version: string = "1.0.0",
+  description?: string,
+): Schema {
+  const schemaId = createTestSchemaId(id);
+  const schemaDefinition = createTestSchemaDefinition(definition);
+  const schemaVersion = createTestSchemaVersion(version);
+
+  const schemaResult = Schema.create(
+    schemaId,
+    schemaDefinition,
+    schemaVersion,
+    description,
+  );
+  if (!schemaResult.ok) throw new Error("Failed to create test schema");
+  return schemaResult.data;
+}
+
 const TEST_DEFINITION = {
   type: "object",
   properties: {
@@ -45,14 +65,10 @@ const TEST_DEFINITION = {
 
 Deno.test("Schema - DDD Compliant Tests", async (t) => {
   await t.step("should create valid schema with all parameters", () => {
-    const schemaId = createTestSchemaId("test-schema");
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("1.0.0");
-
-    const schema = Schema.create(
-      schemaId,
-      definition,
-      version,
+    const schema = createTestSchema(
+      "test-schema",
+      TEST_DEFINITION,
+      "1.0.0",
       "Test schema for documents",
     );
 
@@ -63,11 +79,7 @@ Deno.test("Schema - DDD Compliant Tests", async (t) => {
   });
 
   await t.step("should create schema with minimal parameters", () => {
-    const schemaId = createTestSchemaId("minimal-schema");
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("1.0.0");
-
-    const schema = Schema.create(schemaId, definition, version);
+    const schema = createTestSchema("minimal-schema", TEST_DEFINITION, "1.0.0");
 
     assertEquals(schema.getId().getValue(), "minimal-schema");
     assertEquals(schema.getDefinition().getRawDefinition(), TEST_DEFINITION);
@@ -77,22 +89,18 @@ Deno.test("Schema - DDD Compliant Tests", async (t) => {
 
   await t.step("should handle complex schema IDs", () => {
     const complexId = "schema-with-dashes_and_underscores.v1";
-    const schemaId = createTestSchemaId(complexId);
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("2.1.0");
-
-    const schema = Schema.create(schemaId, definition, version);
+    const schema = createTestSchema(complexId, TEST_DEFINITION, "2.1.0");
 
     assertEquals(schema.getId().getValue(), complexId);
     assertEquals(schema.getVersion().toString(), "2.1.0");
   });
 
   await t.step("should provide access to schema definition", () => {
-    const schemaId = createTestSchemaId("definition-test");
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("1.0.0");
-
-    const schema = Schema.create(schemaId, definition, version);
+    const schema = createTestSchema(
+      "definition-test",
+      TEST_DEFINITION,
+      "1.0.0",
+    );
     const retrievedDefinition = schema.getDefinition();
 
     assertEquals(retrievedDefinition.getRawDefinition(), TEST_DEFINITION);
@@ -100,15 +108,11 @@ Deno.test("Schema - DDD Compliant Tests", async (t) => {
   });
 
   await t.step("should handle schema description properly", () => {
-    const schemaId = createTestSchemaId("description-test");
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("1.0.0");
     const testDescription = "This is a test schema description";
-
-    const schema = Schema.create(
-      schemaId,
-      definition,
-      version,
+    const schema = createTestSchema(
+      "description-test",
+      TEST_DEFINITION,
+      "1.0.0",
       testDescription,
     );
 
@@ -116,11 +120,11 @@ Deno.test("Schema - DDD Compliant Tests", async (t) => {
   });
 
   await t.step("should default to empty description when not provided", () => {
-    const schemaId = createTestSchemaId("no-description-test");
-    const definition = createTestSchemaDefinition(TEST_DEFINITION);
-    const version = createTestSchemaVersion("1.0.0");
-
-    const schema = Schema.create(schemaId, definition, version);
+    const schema = createTestSchema(
+      "no-description-test",
+      TEST_DEFINITION,
+      "1.0.0",
+    );
 
     assertEquals(schema.getDescription(), "");
   });

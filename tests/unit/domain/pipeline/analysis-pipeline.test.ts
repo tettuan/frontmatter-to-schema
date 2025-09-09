@@ -117,10 +117,10 @@ class MockAnalysisEngine implements AnalysisEngine {
   }
 }
 
-class MockTransformer implements Transformer<unknown, string> {
-  transform(data: Map<string, AnalysisResult<unknown>>): string {
+class MockTransformer implements Transformer<unknown, unknown[]> {
+  transform(data: Map<string, AnalysisResult<unknown>>): unknown[] {
     const results = Array.from(data.values()).map((result) => result.data);
-    return JSON.stringify({ results }, null, 2);
+    return results;
   }
 }
 

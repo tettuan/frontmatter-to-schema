@@ -34,6 +34,26 @@ function createTestSchemaDefinition(definition: unknown): SchemaDefinition {
   return result.data;
 }
 
+function createTestSchema(
+  id: string,
+  definition: unknown,
+  version: string = "1.0.0",
+  description?: string,
+): Schema {
+  const schemaId = createTestSchemaId(id);
+  const schemaDefinition = createTestSchemaDefinition(definition);
+  const schemaVersion = createTestSchemaVersion(version);
+
+  const schemaResult = Schema.create(
+    schemaId,
+    schemaDefinition,
+    schemaVersion,
+    description,
+  );
+  if (!schemaResult.ok) throw new Error("Failed to create test schema");
+  return schemaResult.data;
+}
+
 /**
  * Business-focused Schema Domain Tests
  *
@@ -60,14 +80,10 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             required: ["title", "author"],
           };
 
-          const schemaDefinition = createTestSchemaDefinition(blogPostSchema);
-          const schemaId = createTestSchemaId("blog-post");
-          const schemaVersion = createTestSchemaVersion("1.0.0");
-
-          const schema = Schema.create(
-            schemaId,
-            schemaDefinition,
-            schemaVersion,
+          const schema = createTestSchema(
+            "blog-post",
+            blogPostSchema,
+            "1.0.0",
             "Blog post validation schema",
           );
 
@@ -78,7 +94,7 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             publishedAt: "2024-01-15",
           };
 
-          const validationResult = schemaDefinition.validate(
+          const validationResult = schema.getDefinition().validate(
             documentFrontmatter,
           );
 
@@ -103,14 +119,10 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             required: ["title", "author"],
           };
 
-          const schemaDefinition = createTestSchemaDefinition(strictBlogSchema);
-          const schemaId = createTestSchemaId("strict-blog");
-          const schemaVersion = createTestSchemaVersion("1.0.0");
-
-          const schema = Schema.create(
-            schemaId,
-            schemaDefinition,
-            schemaVersion,
+          const schema = createTestSchema(
+            "strict-blog",
+            strictBlogSchema,
+            "1.0.0",
             "Strict blog validation schema",
           );
 
@@ -119,7 +131,7 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             title: "Only has title", // missing author
           };
 
-          const validationResult = schemaDefinition.validate(
+          const validationResult = schema.getDefinition().validate(
             incompleteDocument,
           );
 
@@ -151,14 +163,10 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             required: ["title", "version", "category"],
           };
 
-          const schemaDefinition = createTestSchemaDefinition(techDocSchema);
-          const schemaId = createTestSchemaId("tech-doc");
-          const schemaVersion = createTestSchemaVersion("2.0.0");
-
-          const schema = Schema.create(
-            schemaId,
-            schemaDefinition,
-            schemaVersion,
+          const schema = createTestSchema(
+            "tech-doc",
+            techDocSchema,
+            "2.0.0",
             "Technical documentation schema",
           );
 
@@ -171,7 +179,9 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             lastUpdated: "2024-01-15",
           };
 
-          const validationResult = schemaDefinition.validate(techDocument);
+          const validationResult = schema.getDefinition().validate(
+            techDocument,
+          );
 
           // Assert - Document should validate successfully
           assertEquals(validationResult.ok, true);
@@ -200,16 +210,10 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             required: ["title"], // Only title required for personal blogs
           };
 
-          const schemaDefinition = createTestSchemaDefinition(
+          const schema = createTestSchema(
+            "personal-blog",
             personalBlogSchema,
-          );
-          const schemaId = createTestSchemaId("personal-blog");
-          const schemaVersion = createTestSchemaVersion("1.5.0");
-
-          const schema = Schema.create(
-            schemaId,
-            schemaDefinition,
-            schemaVersion,
+            "1.5.0",
             "Personal blog schema with flexible fields",
           );
 
@@ -218,7 +222,9 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             title: "My Thoughts Today",
           };
 
-          const validationResult = schemaDefinition.validate(minimalBlogPost);
+          const validationResult = schema.getDefinition().validate(
+            minimalBlogPost,
+          );
 
           // Assert - Should accept minimal structure
           assertEquals(validationResult.ok, true);
@@ -253,14 +259,10 @@ Deno.test("Schema Domain - Business Requirements", async (t) => {
             required: ["title", "workflow"],
           };
 
-          const schemaDefinition = createTestSchemaDefinition(workflowSchema);
-          const schemaId = createTestSchemaId("workflow-doc");
-          const schemaVersion = createTestSchemaVersion("3.0.0");
-
-          const schema = Schema.create(
-            schemaId,
-            schemaDefinition,
-            schemaVersion,
+          const schema = createTestSchema(
+            "workflow-doc",
+            workflowSchema,
+            "3.0.0",
             "Document workflow processing schema",
           );
 
@@ -309,17 +311,17 @@ Deno.test("Schema Business Logic - Edge Cases", async (t) => {
     };
 
     // Act - Create schemas with different versions
-    const schemaV1 = Schema.create(
-      createTestSchemaId("doc-schema"),
-      createTestSchemaDefinition(schemaV1Definition),
-      createTestSchemaVersion("1.0.0"),
+    const schemaV1 = createTestSchema(
+      "doc-schema",
+      schemaV1Definition,
+      "1.0.0",
       "Document schema v1",
     );
 
-    const schemaV2 = Schema.create(
-      createTestSchemaId("doc-schema"),
-      createTestSchemaDefinition(schemaV2Definition),
-      createTestSchemaVersion("2.0.0"),
+    const schemaV2 = createTestSchema(
+      "doc-schema",
+      schemaV2Definition,
+      "2.0.0",
       "Document schema v2 with metadata",
     );
 
@@ -354,17 +356,17 @@ Deno.test("Schema Business Logic - Edge Cases", async (t) => {
     };
 
     // Act - Create schemas representing different aspects
-    const contentSchema = Schema.create(
-      createTestSchemaId("base-content"),
-      createTestSchemaDefinition(baseContentSchema),
-      createTestSchemaVersion("1.0.0"),
+    const contentSchema = createTestSchema(
+      "base-content",
+      baseContentSchema,
+      "1.0.0",
       "Base content structure",
     );
 
-    const publishingPipeline = Schema.create(
-      createTestSchemaId("publishing-pipeline"),
-      createTestSchemaDefinition(publishingSchema),
-      createTestSchemaVersion("1.0.0"),
+    const publishingPipeline = createTestSchema(
+      "publishing-pipeline",
+      publishingSchema,
+      "1.0.0",
       "Publishing workflow schema",
     );
 

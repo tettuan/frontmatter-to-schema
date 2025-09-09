@@ -1,11 +1,7 @@
 {
   "items": [
     {
-      "data": "test",
-      "_metadata": {
-        "filePath": "/Users/tettuan/github/frontmatter-to-schema/tests/e2e/test-output/quiet-test/test.md",
-        "format": "yaml"
-      }
+      "data": "test"
     }
   ]
 }

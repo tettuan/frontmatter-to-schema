@@ -241,13 +241,24 @@ export class SchemaRepositoryImpl implements SchemaRepository {
       };
     }
 
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       idResult.data,
       definitionResult.data,
       versionResult.data,
       getStringProperty(data, "description", ""),
     );
 
-    return { ok: true, data: schema };
+    if (!schemaResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "ReadError",
+          path: schemaPath,
+          details: "Failed to create schema entity",
+        }, "Schema creation failed"),
+      };
+    }
+
+    return { ok: true, data: schemaResult.data };
   }
 }

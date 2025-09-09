@@ -8,8 +8,9 @@
  */
 
 import { CLIArgumentParser } from "./presentation/cli-arguments.ts";
-import { ProcessDocumentsUseCase } from "./application/process-documents-usecase.ts";
+import { ProcessDocumentsOrchestrator } from "./application/orchestrators/process-documents.orchestrator.ts";
 import { DenoFileSystemRepository } from "./infrastructure/adapters/deno-file-system-repository.ts";
+import { ConsoleLogger } from "./domain/shared/logger.ts";
 import { VERSION_CONFIG } from "./config/version.ts";
 
 /**
@@ -61,25 +62,26 @@ export class CLI {
     }
 
     try {
-      // Create file system repository
+      // Create file system repository and logger
       const fileSystemRepo = new DenoFileSystemRepository();
-
-      // Create and execute the use case
-      const useCase = new ProcessDocumentsUseCase(
-        fileSystemRepo,
-        {
-          verbose: cliArgs.options.verbose,
-          dryRun: cliArgs.options.dryRun,
-          parallel: cliArgs.options.parallel,
-          maxWorkers: cliArgs.options.maxWorkers,
-        },
+      const logger = new ConsoleLogger(
+        "cli",
+        cliArgs.options.quiet ? "error" : "info",
       );
 
-      const result = await useCase.execute({
+      // Create and execute the orchestrator
+      const orchestrator = new ProcessDocumentsOrchestrator(
+        fileSystemRepo,
+        logger,
+      );
+
+      const result = await orchestrator.execute({
         schemaPath: cliArgs.schemaPath.toString(),
+        sourcePath: cliArgs.inputPattern.toGlob(),
         outputPath: cliArgs.outputPath.toString(),
-        inputPattern: cliArgs.inputPattern.toGlob(),
-        outputFormat: cliArgs.outputPath.getFormat(),
+        format: cliArgs.outputPath.getFormat() as "json" | "yaml" | "toml",
+        dryRun: cliArgs.options.dryRun,
+        verbose: cliArgs.options.verbose,
       });
 
       if (!result.ok) {
@@ -92,16 +94,8 @@ export class CLI {
 
       if (!cliArgs.options.quiet) {
         console.log(
-          `✅ Successfully processed ${result.data.processedCount} files`,
+          `✅ Successfully processed ${result.data.filesProcessed} files`,
         );
-        if (result.data.warnings && result.data.warnings.length > 0) {
-          console.warn(`⚠️  ${result.data.warnings.length} warnings:}`);
-          if (cliArgs.options.verbose) {
-            for (const warning of result.data.warnings) {
-              console.warn(`  - ${warning}`);
-            }
-          }
-        }
       }
     } catch (error) {
       console.error("Unexpected error:", error);

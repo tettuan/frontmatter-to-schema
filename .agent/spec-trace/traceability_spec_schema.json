@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object", 
+  "type": "object",
   "title": "Specification Level Traceability Schema",
   "description": "Schema for specification level traceability items where id.level == 'spec'",
   "properties": {
@@ -28,7 +28,7 @@
       "items": { "type": "string" }
     },
     "trace_to": {
-      "type": "array", 
+      "type": "array",
       "items": { "type": "string" }
     }
   },

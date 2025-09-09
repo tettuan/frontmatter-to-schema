@@ -25,7 +25,7 @@
           "items": { "$ref": "traceability_req_schema.json" }
         },
         "spec": {
-          "type": "array", 
+          "type": "array",
           "description": "Specification level traceability IDs",
           "x-frontmatter-part": true,
           "items": { "$ref": "traceability_spec_schema.json" }
