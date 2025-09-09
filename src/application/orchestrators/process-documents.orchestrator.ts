@@ -14,6 +14,7 @@ import { ValidateFrontmatterUseCase } from "../use-cases/validate-frontmatter/va
 import { ProcessTemplateUseCase } from "../use-cases/process-template/process-template.usecase.ts";
 import { AggregateResultsUseCase } from "../use-cases/aggregate-results/aggregate-results.usecase.ts";
 import { WriteOutputUseCase } from "../use-cases/write-output/write-output.usecase.ts";
+import { SchemaConstraints } from "../../domain/entities/schema-constraints.ts";
 import type { FileSystemRepository } from "../../domain/repositories/file-system-repository.ts";
 import type { ITemplateRepository } from "../../domain/repositories/template-repository.ts";
 import { TemplatePath } from "../../domain/repositories/template-repository.ts";
@@ -99,8 +100,19 @@ export class ProcessDocumentsOrchestrator {
       return filesResult;
     }
 
+    // Step 2.5: Extract schema constraints for pre-filtering
+    const constraintsResult = SchemaConstraints.extract(
+      schemaResult.data.schema,
+    );
+    if (!constraintsResult.ok) {
+      this.logger.warn(
+        `Failed to extract schema constraints: ${constraintsResult.error.message}`,
+      );
+    }
+
     // Step 3: Process each file
     const processedData: unknown[] = [];
+    let filesFiltered = 0;
 
     // Process each discovered file
     for (const filePath of filesResult.data.files) {
@@ -133,6 +145,37 @@ export class ProcessDocumentsOrchestrator {
           `Failed to extract from ${filePath}: ${extractResult.error.message}`,
         );
         continue;
+      }
+
+      // Pre-filter based on schema constraints (Issue #592 fix)
+      if (constraintsResult.ok) {
+        const filterResult = constraintsResult.data.shouldProcessFile(
+          extractResult.data.data,
+        );
+        if (!filterResult.ok) {
+          this.logger.error(
+            `Failed to evaluate constraints for ${filePath}: ${filterResult.error.message}`,
+          );
+          continue;
+        }
+
+        if (!filterResult.data.shouldProcess) {
+          filesFiltered++;
+          if (input.verbose) {
+            this.logger.info(
+              `Filtered ${filePath}: ${
+                filterResult.data.reason || "Does not match schema constraints"
+              }`,
+            );
+          }
+          continue; // Skip this file as it doesn't match constraints
+        }
+
+        if (input.verbose && filterResult.data.shouldProcess) {
+          this.logger.info(
+            `${filePath} matches schema constraints, processing...`,
+          );
+        }
       }
 
       // Validate frontmatter
@@ -248,10 +291,24 @@ export class ProcessDocumentsOrchestrator {
       outputPath = input.outputPath;
     }
 
+    const actualProcessed = filesResult.data.files.length - filesFiltered;
+
+    if (input.verbose && filesFiltered > 0) {
+      this.logger.info(
+        `Filtered ${filesFiltered} files based on schema constraints`,
+      );
+    }
+
+    if (input.verbose) {
+      this.logger.info(
+        `Successfully processed ${actualProcessed} of ${filesResult.data.files.length} discovered files`,
+      );
+    }
+
     return {
       ok: true,
       data: {
-        filesProcessed: filesResult.data.files.length,
+        filesProcessed: actualProcessed,
         outputPath,
         result: aggregateResult.data.aggregated,
       },
