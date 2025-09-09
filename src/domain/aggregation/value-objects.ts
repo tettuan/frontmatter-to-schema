@@ -45,10 +45,13 @@ export class DerivationRule {
       };
     }
 
-    // Validate target field name format (allow dot notation for nested fields)
+    // Validate target field name format (allow dot notation for nested fields and array notation)
     const trimmedTarget = targetField.trim();
+    // Pattern allows: field, field.nested, field[].nested, field[].nested[].deep
     if (
-      !/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/.test(trimmedTarget)
+      !/^[a-zA-Z_][a-zA-Z0-9_]*(\[\])?(\.[a-zA-Z_][a-zA-Z0-9_]*(\[\])?)*$/.test(
+        trimmedTarget,
+      )
     ) {
       return {
         ok: false,

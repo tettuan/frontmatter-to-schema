@@ -13,6 +13,13 @@ import {
 } from "./cli-constants.ts";
 
 /**
+ * Named constants to avoid magic numbers (Totality principle)
+ */
+const PATH_SEPARATOR_NOT_FOUND = -1;
+const CURRENT_DIRECTORY = ".";
+const PATH_SEPARATOR = "/";
+
+/**
  * CLI argument values after parsing
  */
 export interface CLIArguments {
@@ -73,13 +80,17 @@ export class SchemaPath {
   }
 
   getDirectory(): string {
-    const lastSlash = this.value.lastIndexOf("/");
-    return lastSlash === -1 ? "." : this.value.substring(0, lastSlash);
+    const lastSlash = this.value.lastIndexOf(PATH_SEPARATOR);
+    return lastSlash === PATH_SEPARATOR_NOT_FOUND
+      ? CURRENT_DIRECTORY
+      : this.value.substring(0, lastSlash);
   }
 
   getFileName(): string {
-    const lastSlash = this.value.lastIndexOf("/");
-    return lastSlash === -1 ? this.value : this.value.substring(lastSlash + 1);
+    const lastSlash = this.value.lastIndexOf(PATH_SEPARATOR);
+    return lastSlash === PATH_SEPARATOR_NOT_FOUND
+      ? this.value
+      : this.value.substring(lastSlash + 1);
   }
 }
 

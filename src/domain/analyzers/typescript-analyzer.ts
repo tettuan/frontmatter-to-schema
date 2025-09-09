@@ -86,6 +86,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
         typeof frontMatterJson === "object" && frontMatterJson !== null &&
         !Array.isArray(frontMatterJson)
       ) {
+        // TypeScript infers frontMatterJson as object but needs explicit typing
         frontMatterData = frontMatterJson as Record<string, unknown>;
       } else if (typeof frontMatterJson === "string") {
         // Try to parse string as YAML/JSON
@@ -246,7 +247,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
               kind: "InvalidResponse",
               service: "analysis",
               response: contextResult.error.message,
-            } as DomainError,
+            },
             `Analysis context creation failed: ${contextResult.error.message}`,
           ),
         };
@@ -269,7 +270,7 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
             kind: "InvalidResponse",
             service: "analyzer",
             response: error instanceof Error ? error.message : "Unknown error",
-          } as DomainError,
+          },
           `TypeScript analysis failed: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
@@ -326,8 +327,8 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
    * Extract or generate version
    */
   private extractVersion(data: Record<string, unknown>): RegistryVersion {
-    const versionValue = data.version as string;
-    if (versionValue) {
+    const versionValue = data.version;
+    if (typeof versionValue === "string" && versionValue) {
       const versionResult = RegistryVersion.create(versionValue);
       if (versionResult.ok) {
         return versionResult.data;
@@ -343,14 +344,12 @@ export class TypeScriptAnalyzer implements SchemaAnalyzer {
    */
   private extractDescription(data: Record<string, unknown>): string {
     // Try multiple possible fields for description
-    const description = (
-      data.description ||
+    const description = data.description ||
       data.title ||
       data.summary ||
-      this.defaultDescription
-    ) as string;
+      this.defaultDescription;
 
-    return String(description);
+    return String(description || this.defaultDescription);
   }
 
   /**

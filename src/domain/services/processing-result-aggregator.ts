@@ -7,6 +7,7 @@
  */
 
 import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import { ResultHandlerService } from "./result-handler-service.ts";
 import { ProcessingProgressTracker } from "./processing-progress-tracker.ts";
 import type { AnalysisResult, Document } from "../models/entities.ts";
@@ -189,14 +190,17 @@ export class ProcessingResultAggregator {
 
     const collectResult = ResultHandlerService.collectResults(results, context);
     if (!collectResult.ok) {
-      // Ensure the error has a message property
-      const errorWithMessage = collectResult.error as DomainError & {
-        message: string;
-      };
-      if (!errorWithMessage.message) {
-        errorWithMessage.message =
-          `${context.operation} failed in ${context.component}`;
-      }
+      // Use createDomainError to ensure message property exists
+      // Check if error already has a message property
+      const existingMessage = "message" in collectResult.error &&
+          typeof collectResult.error.message === "string"
+        ? collectResult.error.message
+        : undefined;
+      const errorWithMessage = createDomainError(
+        collectResult.error,
+        existingMessage ||
+          `${context.operation} failed in ${context.component}`,
+      );
       return { ok: false, error: errorWithMessage };
     }
 
