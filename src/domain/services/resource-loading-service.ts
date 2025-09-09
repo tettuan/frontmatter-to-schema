@@ -183,8 +183,8 @@ export class ResourceLoadingService {
       error.kind === "ReadError" && "details" in error && error.details
     ) {
       reason = `Schema load error: ${error.details}`;
-    } else if ("message" in error && error.message) {
-      reason = error.message as string;
+    } else if ("message" in error && typeof error.message === "string") {
+      reason = error.message;
     }
 
     return createDomainError({
@@ -192,7 +192,7 @@ export class ResourceLoadingService {
       path: schemaPath.getValue(),
       details: reason,
       message: reason,
-    }) as DomainError & { message: string };
+    });
   }
 
   /**
@@ -210,8 +210,8 @@ export class ResourceLoadingService {
       error.kind === "ReadError" && "details" in error && error.details
     ) {
       reason = `Template load error: ${error.details}`;
-    } else if ("message" in error && error.message) {
-      reason = error.message as string;
+    } else if ("message" in error && typeof error.message === "string") {
+      reason = error.message;
     }
 
     return createDomainError({
@@ -219,6 +219,6 @@ export class ResourceLoadingService {
       path: templatePath.getValue(),
       details: reason,
       message: reason,
-    }) as DomainError & { message: string };
+    });
   }
 }

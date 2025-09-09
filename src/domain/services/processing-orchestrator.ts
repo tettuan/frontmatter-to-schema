@@ -75,12 +75,14 @@ export class ProcessDocumentOrchestrator {
       return preValidationResult;
     }
 
-    if (preValidationResult.data.kind === "ValidationFailure") {
+    // If validation failed, return the failure
+    if (preValidationResult.data !== null) {
       return {
         ok: true,
         data: preValidationResult.data,
       };
     }
+    // Otherwise validation passed (null), continue processing
 
     // Step 2: Document analysis
     const analysisResult = await this.performDocumentAnalysis(
@@ -131,10 +133,11 @@ export class ProcessDocumentOrchestrator {
 
   /**
    * Validate document before processing
+   * Returns ValidationFailure if validation fails, or null to continue processing
    */
   private validateDocumentPreprocessing(
     document: Document,
-  ): Result<ProcessingOutcome, DomainError & { message: string }> {
+  ): Result<ProcessingOutcome | null, DomainError & { message: string }> {
     const docPath = document.getPath().getValue();
 
     const validationResult = this.validationService.validateDocument(
@@ -156,13 +159,11 @@ export class ProcessDocumentOrchestrator {
       };
     }
 
+    // Validation passed - return null to indicate processing should continue
+    // The actual ProcessingOutcome will be created after full processing completes
     return {
       ok: true,
-      data: {
-        kind: "Success",
-        result: {} as AnalysisResult, // Placeholder, not used in pre-validation
-        validationResult: validationResult.data,
-      },
+      data: null,
     };
   }
 

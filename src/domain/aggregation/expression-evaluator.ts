@@ -81,6 +81,12 @@ export class ExpressionEvaluator {
         }
 
         switch (part.type) {
+          case "root": {
+            // Root selector just passes through the current item
+            next.push(item);
+            break;
+          }
+
           case "property": {
             if (isValidRecordData(item) && part.value in item) {
               next.push(item[part.value]);

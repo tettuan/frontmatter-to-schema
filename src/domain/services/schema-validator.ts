@@ -1,5 +1,6 @@
 import type { DomainError, Result } from "../core/result.ts";
 import type { Schema } from "../models/entities.ts";
+import { isObject } from "../shared/type-guards.ts";
 
 // Totality-compliant validation result using discriminated unions
 export type ValidationResult = {
@@ -97,8 +98,19 @@ export class SchemaValidator {
       };
     }
 
-    // We already validated data is an object above
-    const dataObj = data as Record<string, unknown>;
+    // Use type guard to safely access object properties
+    if (!isObject(data)) {
+      // This should never happen as we validated above, but satisfies TypeScript
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          input: typeof data,
+          expectedFormat: "object",
+        },
+      };
+    }
+    const dataObj = data;
 
     // Extract properties using Totality patterns
     const properties = this.extractProperties(schema);

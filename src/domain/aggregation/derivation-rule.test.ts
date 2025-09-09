@@ -44,6 +44,29 @@ describe("DerivationRule", () => {
         }
       });
 
+      it("should create rule with array notation in field names", () => {
+        const testCases = [
+          "items[]",
+          "items[].field",
+          "items[].nested.field",
+          "parent.items[]",
+          "parent.items[].child",
+          "items[].nested[].deep",
+        ];
+
+        for (const fieldName of testCases) {
+          const result = DerivationRule.create(fieldName, "$.data");
+          assertEquals(
+            result.ok,
+            true,
+            `Should accept field name with array notation: ${fieldName}`,
+          );
+          if (result.ok) {
+            assertEquals(result.data.getTargetField(), fieldName);
+          }
+        }
+      });
+
       it("should accept valid JSONPath expressions", () => {
         const validExpressions = [
           "$",
@@ -114,6 +137,11 @@ describe("DerivationRule", () => {
           "double..dot", // consecutive dots
           "invalid.123.name", // segment starts with number
           "field.invalid-segment", // segment contains hyphen
+          "field[", // incomplete array notation
+          "field]", // incomplete array notation
+          "field[0]", // indexed array notation not allowed
+          "field[].", // ends with dot after array
+          "[].field", // starts with array notation
         ];
 
         for (const fieldName of invalidNames) {

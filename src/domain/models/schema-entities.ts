@@ -37,7 +37,8 @@ export class SchemaId {
         ok: false,
         error: {
           kind: "EmptyInput",
-        } as DomainError,
+          field: "SchemaId",
+        },
       };
     }
     return { ok: true, data: new SchemaId(value) };
@@ -90,15 +91,16 @@ export class Schema {
    * Validate data against schema and return typed, validated data
    * Following totality principle - returns validated data instead of void
    */
-  validate<T = unknown>(data: unknown): Result<ValidatedData<T>, DomainError> {
+  validate(data: unknown): Result<ValidatedData<unknown>, DomainError> {
     const result = this.definition.validate(data);
     if (result.ok) {
       // Return validated data with metadata
+      // The schema has validated the data, so we return it with metadata
       return {
         ok: true,
         data: {
           kind: "Valid",
-          data: data as T,
+          data: data,
           metadata: {
             schemaId: this.id.getValue(),
             schemaVersion: this.version.toString(),
