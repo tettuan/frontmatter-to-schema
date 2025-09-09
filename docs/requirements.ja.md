@@ -90,6 +90,27 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 registry_schema.json 内部で指定される。
 （つまりregistry_schema.jsonファイルは、役割的にはidnex_schema.jsonと同じ意味である。）
 
+### テンプレート指定機能
+
+Schemaは、出力時に用いるテンプレートを内部的に指定できる。
+`"x-template": "registry_command_template.json"`
+
+テンプレートには、Schema階層を指定した変数名を記載しており、テンプレート処理は `{id.full}` 形式で参照した変数をSchema値で置換する。
+例) `{id.full}`は、`req:api:deepresearch-3f8d2a#20250909` へ置換される。
+
+Schemaのroot階層は、"x-template" と並列の"properties"を起点とする。
+{id.full} と記述する場合は
+
+```json
+"x-template": "registry_command_template.json",
+"properties":
+  "id":
+    "full":
+```
+
+である。
+
+
 ### 集約機能
 
 一覧は、集約機能を持つ。 `"x-derived-from": "commands[].c1"`
