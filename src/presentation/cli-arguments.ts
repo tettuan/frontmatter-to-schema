@@ -173,7 +173,10 @@ export class OutputPath {
  * Input file pattern value object
  */
 export class InputPattern {
-  private constructor(private readonly value: string) {}
+  private constructor(
+    private readonly value: string,
+    private readonly isMultipleFiles: boolean = false,
+  ) {}
 
   static create(
     pattern: string,
@@ -188,7 +191,23 @@ export class InputPattern {
       };
     }
 
-    return { ok: true, data: new InputPattern(pattern.trim()) };
+    return { ok: true, data: new InputPattern(pattern.trim(), false) };
+  }
+
+  static createFromMultipleFiles(
+    files: string,
+  ): Result<InputPattern, { kind: string; message: string }> {
+    if (!files || files.trim().length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyPattern",
+          message: "Input files cannot be empty",
+        },
+      };
+    }
+
+    return { ok: true, data: new InputPattern(files.trim(), true) };
   }
 
   toString(): string {
@@ -196,6 +215,11 @@ export class InputPattern {
   }
 
   toGlob(): string {
+    // If multiple files were provided (shell expansion), return as-is
+    if (this.isMultipleFiles) {
+      return this.value;
+    }
+    
     // If it's a directory path without wildcards, add **/*.md
     if (!this.value.includes("*") && !this.value.includes(".md")) {
       return this.value.endsWith("/")
@@ -203,6 +227,17 @@ export class InputPattern {
         : `${this.value}/**/*.md`;
     }
     return this.value;
+  }
+
+  isMultiple(): boolean {
+    return this.isMultipleFiles;
+  }
+
+  getFiles(): string[] {
+    if (this.isMultipleFiles) {
+      return this.value.split(",");
+    }
+    return [this.value];
   }
 }
 
@@ -339,14 +374,14 @@ export class CLIArgumentParser {
       i++;
     }
 
-    // Require exactly 3 positional arguments
+    // Require at least 3 positional arguments
     if (positional.length < 3) {
       return {
         ok: false,
         error: {
           kind: "InsufficientArguments",
           message:
-            `Expected 3 arguments (schema, output, pattern), got ${positional.length}`,
+            `Expected at least 3 arguments (schema, output, pattern/files), got ${positional.length}`,
         },
       };
     }
@@ -362,7 +397,20 @@ export class CLIArgumentParser {
       return outputResult;
     }
 
-    const patternResult = InputPattern.create(positional[2]);
+    // Handle multiple input files (when shell expands glob)
+    // If we have more than 3 positional args, treat args 2+ as individual files
+    let patternResult: Result<InputPattern, { kind: string; message: string }>;
+    
+    if (positional.length > 3) {
+      // Shell expanded the glob - join all remaining args as individual files
+      // Create a pattern that will match these specific files
+      const files = positional.slice(2).join(",");
+      patternResult = InputPattern.createFromMultipleFiles(files);
+    } else {
+      // Single pattern argument (may be glob or single file)
+      patternResult = InputPattern.create(positional[2]);
+    }
+    
     if (!patternResult.ok) {
       return patternResult;
     }
