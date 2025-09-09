@@ -175,11 +175,11 @@ export class CLI {
       const formatResult = schemaPath.endsWith(".json")
         ? SchemaFormat.create("json")
         : SchemaFormat.create("custom");
-      
+
       if (!formatResult.ok) {
         return formatResult;
       }
-      
+
       config.schema = {
         definition: fileResult.data, // Keep as string
         format: formatResult.data,

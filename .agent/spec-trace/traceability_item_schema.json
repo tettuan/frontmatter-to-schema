@@ -9,9 +9,9 @@
       "type": "object",
       "properties": {
         "full": { "type": "string" },
-        "level": { 
-          "type": "string", 
-          "enum": ["req", "spec", "design", "impl", "test"] 
+        "level": {
+          "type": "string",
+          "enum": ["req", "spec", "design", "impl", "test"]
         },
         "scope": { "type": "string" },
         "semantic": { "type": "string" },

@@ -205,9 +205,11 @@ export class AggregateResultsUseCase
       // First, check if the schema itself specifies a level constraint
       // This would be in schemas like level_req_schema.json
       // The property key should give us a hint about the level (e.g., "req", "spec", "design")
-      if (propertyKey === "req" || propertyKey === "spec" || 
-          propertyKey === "design" || propertyKey === "impl" || 
-          propertyKey === "test") {
+      if (
+        propertyKey === "req" || propertyKey === "spec" ||
+        propertyKey === "design" || propertyKey === "impl" ||
+        propertyKey === "test"
+      ) {
         return propertyKey;
       }
 
@@ -240,12 +242,15 @@ export class AggregateResultsUseCase
         const patterns = [
           /traceability_(\w+)_schema\.json/,
           /level_(\w+)_schema\.json/,
-          /_(\w+)_schema\.json/
+          /_(\w+)_schema\.json/,
         ];
-        
+
         for (const pattern of patterns) {
           const match = ref.match(pattern);
-          if (match && ["req", "spec", "design", "impl", "test"].includes(match[1])) {
+          if (
+            match &&
+            ["req", "spec", "design", "impl", "test"].includes(match[1])
+          ) {
             return match[1];
           }
         }
