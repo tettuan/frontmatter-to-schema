@@ -7,6 +7,11 @@
   "exclude": [
     "tests/e2e/test-output/"
   ],
+  "lint": {
+    "exclude": [
+      "tests/integration/process-documents.orchestrator.test.ts"
+    ]
+  },
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",

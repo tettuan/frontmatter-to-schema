@@ -20,7 +20,7 @@ import {
   AnalysisResult,
   ExtractedData,
   type MappedData,
-} from "../../domain/models/analysis-entities.ts";
+} from "../../domain/analysis/entities.ts";
 import type {
   FrontMatterExtractor,
   SchemaAnalyzer,

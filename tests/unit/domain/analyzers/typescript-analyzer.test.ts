@@ -32,6 +32,11 @@ const createMockFileSystemRepo = (): FileSystemRepository => {
     ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
     exists: () => Promise.resolve({ ok: true, data: false }),
     findFiles: async function* () {},
+    stat: () =>
+      Promise.resolve({
+        ok: false,
+        error: { kind: "FileNotFound" as const, path: "" },
+      }),
   };
 };
 
@@ -59,11 +64,17 @@ function createMockSchema(schemaData: Record<string, unknown>): Schema {
     );
   }
 
-  return Schema.create(
+  const schemaResult = Schema.create(
     idResult.data,
     definitionResult.data,
     versionResult.data,
   );
+
+  if (!schemaResult.ok) {
+    throw new Error("Failed to create schema");
+  }
+
+  return schemaResult.data;
 }
 
 Deno.test("TypeScriptAnalyzer - constructor", async (t) => {
@@ -672,6 +683,11 @@ Deno.test("TypeScriptAnalyzer - $ref resolution support", async (t) => {
       ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
       exists: () => Promise.resolve({ ok: true, data: false }),
       findFiles: async function* () {},
+      stat: () =>
+        Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path: "" },
+        }),
     };
 
     const analyzer = new TypeScriptAnalyzer(
@@ -743,6 +759,11 @@ Deno.test("TypeScriptAnalyzer - $ref resolution support", async (t) => {
       ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
       exists: () => Promise.resolve({ ok: true, data: false }),
       findFiles: async function* () {},
+      stat: () =>
+        Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path: "" },
+        }),
     };
 
     const analyzer = new TypeScriptAnalyzer(
@@ -779,6 +800,11 @@ Deno.test("TypeScriptAnalyzer - $ref resolution support", async (t) => {
       ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
       exists: () => Promise.resolve({ ok: true, data: false }),
       findFiles: async function* () {},
+      stat: () =>
+        Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path: "" },
+        }),
     };
 
     const analyzer = new TypeScriptAnalyzer(
@@ -833,6 +859,11 @@ Deno.test("TypeScriptAnalyzer - $ref resolution support", async (t) => {
       ensureDirectory: () => Promise.resolve({ ok: true, data: undefined }),
       exists: () => Promise.resolve({ ok: true, data: false }),
       findFiles: async function* () {},
+      stat: () =>
+        Promise.resolve({
+          ok: false,
+          error: { kind: "FileNotFound" as const, path: "" },
+        }),
     };
 
     // Create analyzer with custom base path

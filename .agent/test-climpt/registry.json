@@ -20,7 +20,561 @@
         ]
       },
       "_metadata": {
-        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts/build/robust/code/f_default.md",
+        "filePath": ".agent/test-climpt/prompts/build/robust/code/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "build",
+      "c2": "robust",
+      "c3": "test",
+      "title": "Robust and Resilient Test Construction Guide",
+      "description": "Comprehensive guide for constructing robust, change-resilient, and maintainable test code with business logic quality assurance.",
+      "usage": "climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/",
+      "options": {
+        "adaptation": [
+          "strict"
+        ],
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/build/robust/test/f_default_strict.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "build",
+      "c2": "robust",
+      "c3": "test",
+      "title": "Robust Test Construction",
+      "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
+      "usage": "climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/build/robust/test/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "debug",
+      "c2": "analyze-deep",
+      "c3": "project-issues",
+      "title": "Deep Project Analysis and Issue Identification",
+      "description": "Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.",
+      "usage": "climpt-debug analyze-deep project-issues -o project_analysis.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/debug/analyze-deep/project-issues/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Core Domain Architecture Design",
+      "description": "Core domain architecture design with focus on central concepts and detailed domain-specific implementation.",
+      "usage": "climpt-design domain architecture -a=core -f domain_info.md -o core_design/",
+      "options": {
+        "input": [
+          "core"
+        ],
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/design/domain/architecture/f_core.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Domain Architecture Design",
+      "description": "Performs domain design based on domain boundary information and related materials.",
+      "usage": "climpt-design domain architecture -f boundary_info.md -o design_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/design/domain/architecture/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "architecture",
+      "title": "Detailed Domain Architecture Design",
+      "description": "Detailed domain architecture design based on domain boundary information with comprehensive type definitions and implementation considerations.",
+      "usage": "climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/",
+      "options": {
+        "input": [
+          "detail"
+        ],
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/design/domain/architecture/f_detail.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "boundary",
+      "title": "コードベースドメイン境界線設計",
+      "description": "コードベースをもとに、ドメイン境界線を引く。",
+      "usage": "climpt-design domain boundary -a=code --input=\"ソースコード\"\n実装コードを分析してドメイン境界線を設計します。\n",
+      "options": {
+        "input": [
+          "code"
+        ],
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/design/domain/boundary/f_code.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "design",
+      "c2": "domain",
+      "c3": "boundary",
+      "title": "ドメイン境界線設計",
+      "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
+      "usage": "climpt-design domain boundary --input=\"原案テキスト\"\n原案をもとにドメイン駆動設計の境界線分析を行い、境界線を設計します。\n",
+      "options": {
+        "file": [
+          true
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/design/domain/boundary/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "docs",
+      "c2": "generate-robust",
+      "c3": "instruction-doc",
+      "title": "Robust Instruction Document Generator",
+      "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
+      "usage": "climpt-docs generate-robust instruction-doc -i=description -o instruction.md",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/docs/generate-robust/instruction-doc/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "analyze",
+      "c3": "commit-history",
+      "title": "Analyze Commit History",
+      "description": "Analyze git commit history and generate insights",
+      "usage": "echo \"main..feature\" | climpt-git analyze commit-history",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/analyze/commit-history/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "create",
+      "c3": "refinement-issue",
+      "title": "Create Refinement Issue",
+      "description": "Create a refinement issue from requirements documentation",
+      "usage": "climpt-git create refinement-issue -f requirements.md",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/create/refinement-issue/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "decide-branch",
+      "c3": "working-branch",
+      "title": "Git Branch Creation Decision and New Branch Setup",
+      "description": "Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.",
+      "usage": "climpt-git decide-branch working-branch -i=\"work description within 30 chars\"",
+      "options": {
+        "stdin": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/decide-branch/working-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "document",
+      "c3": "fix-instruction",
+      "title": "Document Fix Instructions",
+      "description": "Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.",
+      "usage": "climpt-git document fix-instruction -i=\"problem description and fix direction\"",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/document/fix-instruction/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "find-oldest",
+      "c3": "descendant-branch",
+      "title": "Git Related Branch Discovery and Merge Processing",
+      "description": "Discovers related Git branches and executes merge processing based on branch relationships and age.",
+      "usage": "climpt-git find-oldest descendant-branch -o merge_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/find-oldest/descendant-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "group-commit",
+      "c3": "unstaged-changes",
+      "title": "Group Commits by Semantic Proximity",
+      "description": "Groups Git commits based on semantic proximity of file changes and creates organized commit units.",
+      "usage": "climpt-git group-commit unstaged-changes -o commit_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/group-commit/unstaged-changes/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "list-select",
+      "c3": "pr-branch",
+      "title": "List and Select PR/Branch for Next Work",
+      "description": "Lists existing PRs and branches to help select the next work target based on priority and status.",
+      "usage": "climpt-git list-select pr-branch -o selection_output.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/list-select/pr-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "merge-cleanup",
+      "c3": "develop-branches",
+      "title": "Merge to Develop and Clean Up Unnecessary Branches",
+      "description": "Merges all unmerged branches into develop and deletes them after successful merge operations.",
+      "usage": "climpt-git merge-cleanup develop-branches -o cleanup_report.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/merge-cleanup/develop-branches/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "git",
+      "c2": "merge-up",
+      "c3": "base-branch",
+      "title": "Merge Processing Between Working Branches",
+      "description": "Merges derived working branches back into their original base working branches.",
+      "usage": "climpt-git merge-up base-branch -o merge_status.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/git/merge-up/base-branch/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Available Commands List Generation (Claude Code Version)",
+      "description": "Generates available commands list using Claude Code with shell scripting. Lists prompt files mechanically with sh, then analyzes each file content using claude -p in a loop.",
+      "usage": "climpt-meta build-list command-registry -a=claude -o tools-list.md",
+      "options": {
+        "input": [
+          "claude"
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/meta/build-list/command-registry/f_claude.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Registry.json Generation",
+      "description": "Automatically generates a registry.json file for MCP server configuration by analyzing existing Climpt commands, configurations, and prompt files. Creates a comprehensive tool registry following the C3L (Climpt 3-word Language) specification.",
+      "usage": "climpt-meta build-list command-registry -a=registry -o registry.json",
+      "options": {
+        "adaptation": [
+          "registry"
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/meta/build-list/command-registry/f_default_registry.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "build-list",
+      "c3": "command-registry",
+      "title": "Climpt Executable Commands List Builder",
+      "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
+      "usage": "climpt-meta build-list command-registry -o registered-commands.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/meta/build-list/command-registry/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "meta",
+      "c2": "resolve",
+      "c3": "registered-commands",
+      "title": "Climpt Command Builder",
+      "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
+      "usage": "climpt-meta resolve registered-commands -i=content -o command_output.txt",
+      "options": {
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/meta/resolve/registered-commands/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "basedon",
+      "c3": "ddd",
+      "title": "Domain-Driven Design and Totality-Based Refactoring",
+      "description": "Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.",
+      "usage": "climpt-refactor basedon ddd -o refactor_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/refactor/basedon/ddd/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "basedon",
+      "c3": "ddd",
+      "title": "Domain-Driven Design Next Action Execution",
+      "description": "Executes next actions derived from completed results while maintaining fundamental principles of domain-driven design and totality.",
+      "usage": "climpt-refactor basedon ddd -a=nextaction -i=next_action_instructions --uv-scope=\"execution scope\"",
+      "options": {
+        "input": [
+          "nextaction"
+        ],
+        "stdin": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/refactor/basedon/ddd/f_nextaction.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "refactor",
+      "c2": "ddd",
+      "c3": "architecture",
+      "title": "Domain-Driven Design Architecture Refactoring",
+      "description": "Refactors project architecture based on domain-driven design principles and redesigns domain architecture.",
+      "usage": "climpt-refactor ddd architecture --uv-scope=\"domain architecture redesign\"",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/refactor/ddd/architecture/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "requirement",
+      "c2": "draft",
+      "c3": "entry",
+      "title": "requirement",
+      "description": "entry",
+      "usage": "climpt-requirement basedon ddd -o refactor_plan.md",
+      "options": {
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/requirements/draft/entry/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "spec",
+      "c2": "analyze-structure",
+      "c3": "requirements",
+      "title": "Requirements Structure Analysis",
+      "description": "Break down and structure requirements through process decomposition and user flow analysis.",
+      "usage": "climpt-spec analyze-structure requirements -f requirements.md -o structured_output/",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/spec/analyze-structure/requirements/f_default.md",
+        "format": "yaml"
+      }
+    },
+    {
+      "c1": "spec",
+      "c2": "analyze",
+      "c3": "quality-metrics",
+      "title": "Analyze Specification Quality",
+      "description": "Analyze specification quality and completeness metrics",
+      "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
+      "options": {
+        "file": [
+          true
+        ],
+        "destination": [
+          true
+        ]
+      },
+      "_metadata": {
+        "filePath": ".agent/test-climpt/prompts/spec/analyze/quality-metrics/f_default.md",
         "format": "yaml"
       }
     }
