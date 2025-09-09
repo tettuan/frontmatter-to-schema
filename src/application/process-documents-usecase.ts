@@ -300,6 +300,48 @@ export class ProcessDocumentsUseCase {
     try {
       const files: string[] = [];
 
+      // Check if pattern contains comma-separated files (from shell expansion)
+      if (pattern.includes(",")) {
+        const fileList = pattern.split(",");
+        for (const file of fileList) {
+          const trimmedFile = file.trim();
+          if (trimmedFile.endsWith(".md")) {
+            // Verify file exists
+            try {
+              const stat = await Deno.stat(trimmedFile);
+              if (stat.isFile) {
+                files.push(trimmedFile);
+              }
+            } catch {
+              // File doesn't exist, skip it
+            }
+          }
+        }
+        return { ok: true, data: files };
+      }
+
+      // Check if the pattern is an existing file (single file passed)
+      try {
+        const stat = await Deno.stat(pattern);
+        if (stat.isFile && pattern.endsWith(".md")) {
+          // Single file was passed
+          files.push(pattern);
+          return { ok: true, data: files };
+        } else if (stat.isDirectory) {
+          // Directory was passed, find all .md files in it recursively
+          const dirPattern = path.join(pattern, "**/*.md");
+          for await (const entry of expandGlob(dirPattern)) {
+            if (entry.isFile) {
+              files.push(entry.path);
+            }
+          }
+          return { ok: true, data: files };
+        }
+      } catch {
+        // Not a file or directory, treat as glob pattern
+      }
+
+      // Treat as glob pattern
       for await (const entry of expandGlob(pattern)) {
         if (entry.isFile && entry.path.endsWith(".md")) {
           files.push(entry.path);
