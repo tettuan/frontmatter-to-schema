@@ -19,7 +19,7 @@
       "type": "array",
       "description": "Design level traceability IDs",
       "x-frontmatter-part": true,
-      "items": { "$ref": "traceability_design_schema.json" }
+      "items": { "$ref": "traceability_item_schema.json" }
     }
   },
   "required": ["version", "description", "design"],

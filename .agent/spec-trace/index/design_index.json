@@ -38,6 +38,10 @@
         "importance": 9,
         "urgency": 7,
         "complexity": 7
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/deep-research-api.md",
+        "format": "yaml"
       }
     },
     {
@@ -77,6 +81,10 @@
         "importance": 8,
         "urgency": 6,
         "complexity": 8
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/ir-crawler.md",
+        "format": "yaml"
       }
     },
     {
@@ -117,6 +125,10 @@
         "importance": 10,
         "urgency": 9,
         "complexity": 9
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/stock-multitenant.md",
+        "format": "yaml"
       }
     },
     {
@@ -144,7 +156,11 @@
       "title": "Dashboard UI Design Specification",
       "category": "UI Design",
       "priority": "SHOULD",
-      "created_at": "2025-09-09T00:00:00.000Z"
+      "created_at": "2025-09-09T00:00:00.000Z",
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/test-design-level.md",
+        "format": "yaml"
+      }
     },
     {
       "traceability": [
@@ -182,6 +198,10 @@
         "importance": 9,
         "urgency": 8,
         "complexity": 8
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/user-ai-settings.md",
+        "format": "yaml"
       }
     },
     {
@@ -218,6 +238,10 @@
         "importance": 10,
         "urgency": 9,
         "complexity": 7
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/user-auth-management.md",
+        "format": "yaml"
       }
     },
     {
@@ -259,6 +283,10 @@
         "importance": 9,
         "urgency": 7,
         "complexity": 9
+      },
+      "_metadata": {
+        "filePath": "/Users/tettuan/github/frontmatter-to-schema/.agent/spec-trace/docs/workflow-automation.md",
+        "format": "yaml"
       }
     }
   ]

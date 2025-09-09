@@ -37,6 +37,7 @@ export type ValidationError =
 // Analysis domain specific errors
 export type AnalysisError =
   | { kind: "SchemaValidationFailed"; schema: unknown; data: unknown }
+  | { kind: "LevelMismatch"; schema: unknown; data: unknown }
   | { kind: "TemplateMappingFailed"; template: unknown; source: unknown }
   | { kind: "ExtractionStrategyFailed"; strategy: string; input: unknown }
   | { kind: "AIServiceError"; service: string; statusCode?: number }

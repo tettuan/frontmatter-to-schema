@@ -1,7 +1,0 @@
-{
-  "version": "{version}",
-  "description": "{description}",
-  "test": {
-    "$includeArray": "traceability_item_template.json"
-  }
-}

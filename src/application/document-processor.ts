@@ -39,7 +39,10 @@ function isValidRecordData(data: unknown): data is Record<string, unknown> {
     data !== null &&
     !Array.isArray(data);
 }
-import type { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
+import type {
+  TemplateProcessingContext,
+  UnifiedTemplateProcessor,
+} from "../domain/template/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type {
   ApplicationConfiguration,
@@ -164,13 +167,21 @@ export class DocumentProcessor {
       };
     }
 
-    const schema = Schema.create(
+    const schemaResult = Schema.create(
       schemaIdResult.data,
       definitionResult.data,
       schemaVersionResult.data,
       "Main processing schema",
     );
-    return { ok: true, data: schema };
+
+    if (!schemaResult.ok) {
+      return {
+        ok: false,
+        error: schemaResult.error,
+      };
+    }
+
+    return { ok: true, data: schemaResult.data };
   }
 
   private loadTemplate(
@@ -407,30 +418,118 @@ export class DocumentProcessor {
 
   /**
    * Apply template mapping following Totality principle
-   * Integrates the strict structure matching template system
+   * Integrates UnifiedTemplateProcessor for proper variable substitution
    */
   private applyTemplateMapping(
     data: unknown[],
     template: Template,
     format: "json" | "yaml" | "xml" | "custom",
   ): Result<string, DomainError> {
-    // Type-safe data wrapping based on format
-    const outputData = format === "json" || format === "yaml"
-      ? data
-      : { items: data };
-
-    // Apply template mapping using TemplateMapper
     try {
-      // For now, use direct serialization as fallback
-      // The template integration requires resolving the ExtractedData/Template type compatibility
-      // This maintains backward compatibility while providing a clear integration point
-      const outputString = format === "json"
-        ? JSON.stringify(outputData, null, 2)
-        : format === "yaml"
-        ? this.convertToYaml(outputData, 0)
-        : format === "xml"
-        ? this.convertToXml(outputData)
-        : JSON.stringify(outputData, null, 2); // Default for "custom" and others
+      // Get template content from Template entity
+      const templateContent = template.getDefinition().getDefinition();
+
+      // Prepare data for template processing with field mapping
+      const processedItems: Record<string, unknown>[] = [];
+
+      for (const item of data) {
+        if (isValidRecordData(item)) {
+          // Apply field mapping from frontmatter fields to template variables
+          const mappedItem: Record<string, unknown> = {};
+
+          // Map domain/action/target to c1/c2/c3 for legacy template compatibility
+          if (item.domain) mappedItem.c1 = item.domain;
+          if (item.action) mappedItem.c2 = item.action;
+          if (item.target) mappedItem.c3 = item.target;
+
+          // Map other standard fields directly
+          if (item.title) mappedItem.title = item.title;
+          if (item.description) mappedItem.description = item.description;
+          if (item.usage) mappedItem.usage = item.usage;
+
+          // Handle options mapping
+          if (item.config) {
+            const config = item.config as Record<string, unknown>;
+            mappedItem.options = {
+              input: config.input_formats || [],
+              adaptation: config.processing_modes || [],
+              file: config.supports &&
+                  (config.supports as Record<string, unknown>).file_input
+                ? [true]
+                : [false],
+              stdin: config.supports &&
+                  (config.supports as Record<string, unknown>).stdin_input
+                ? [true]
+                : [false],
+              destination: config.supports &&
+                  (config.supports as Record<string, unknown>)
+                    .output_destination
+                ? [true]
+                : [false],
+            };
+          }
+
+          processedItems.push(mappedItem);
+        }
+      }
+
+      // Create template processing context using SimpleReplacement approach
+      const processingContext: TemplateProcessingContext = {
+        kind: "SimpleReplacement",
+        data: processedItems.length === 1
+          ? processedItems[0]
+          : { items: processedItems },
+        placeholderPattern: "brace", // Handles {variable} patterns like {c1}, {c2}
+      };
+
+      // Process template using UnifiedTemplateProcessor
+      const templateResult = this.templateProcessor.process(
+        templateContent,
+        processingContext,
+      );
+
+      // Handle template processing result following Totality principle
+      if (this.isDomainError(templateResult)) {
+        const errorMessage = ("message" in templateResult &&
+            typeof templateResult.message === "string")
+          ? templateResult.message
+          : JSON.stringify(templateResult);
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "TemplateMappingFailed",
+            template,
+            source: data,
+          }, `Template processing failed: ${errorMessage}`),
+        };
+      }
+
+      // Extract content from successful result
+      const processedContent = templateResult.content;
+
+      // Apply format-specific serialization to processed content
+      let outputString: string;
+
+      if (format === "json") {
+        // If template already produced JSON-like content, use it directly
+        try {
+          // Validate that it's proper JSON
+          JSON.parse(processedContent);
+          outputString = processedContent;
+        } catch {
+          // Fallback to JSON stringification if template didn't produce valid JSON
+          outputString = JSON.stringify({ content: processedContent }, null, 2);
+        }
+      } else if (format === "yaml") {
+        // For YAML, convert the processed content appropriately
+        outputString = this.convertToYaml({ content: processedContent }, 0);
+      } else if (format === "xml") {
+        // For XML, convert the processed content appropriately
+        outputString = this.convertToXml({ content: processedContent });
+      } else {
+        // Default for "custom" and others - use processed content directly
+        outputString = processedContent;
+      }
 
       return { ok: true, data: outputString };
     } catch (error) {
@@ -443,6 +542,36 @@ export class DocumentProcessor {
         }, `Failed to apply template mapping: ${String(error)}`),
       };
     }
+  }
+
+  /**
+   * Type guard to check if a value is a DomainError
+   */
+  private isDomainError(value: unknown): value is DomainError {
+    if (typeof value !== "object" || value === null || !("kind" in value)) {
+      return false;
+    }
+
+    const kind = (value as { kind?: unknown }).kind;
+    // Template processing success result has kind: "Success", not an error
+    if (kind === "Success") {
+      return false;
+    }
+
+    // Check for actual domain error kinds
+    return typeof kind === "string" && (
+      kind.includes("Error") ||
+      kind.includes("Failed") ||
+      kind.includes("Missing") ||
+      kind.includes("Invalid") ||
+      kind.includes("Empty") ||
+      kind.includes("Parse") ||
+      kind.includes("Configuration") ||
+      kind.includes("NotFound") ||
+      kind.includes("OutOfRange") ||
+      kind.includes("TemplateMappingFailed") ||
+      kind.includes("ProcessingStageError")
+    );
   }
 
   /**

@@ -38,19 +38,22 @@ function createTestSchema(
   id: string,
   definition: unknown,
   version: string = "1.0.0",
-  description?: string,
+  description: string = "Test schema description",
 ): Schema {
   const schemaId = createTestSchemaId(id);
   const schemaDefinition = createTestSchemaDefinition(definition);
   const schemaVersion = createTestSchemaVersion(version);
 
-  const schema = Schema.create(
+  const result = Schema.create(
     schemaId,
     schemaDefinition,
     schemaVersion,
     description,
   );
-  return schema;
+  if (!result.ok) {
+    throw new Error(`Failed to create test Schema: ${result.error.message}`);
+  }
+  return result.data;
 }
 
 /**

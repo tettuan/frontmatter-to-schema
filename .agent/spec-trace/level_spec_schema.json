@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "title": "Test Level Traceability Registry",
-  "x-template": "test_template.json",
-  "description": "Registry for test level traceability IDs",
+  "title": "Specification Level Traceability Registry",
+  "x-template": "spec_template.json",
+  "description": "Registry for specification level traceability IDs",
   "properties": {
     "version": {
       "type": "string",
@@ -13,15 +13,15 @@
     "description": {
       "type": "string",
       "description": "Registry description",
-      "default": "Test level traceability IDs"
+      "default": "Specification level traceability IDs"
     },
-    "test": {
+    "spec": {
       "type": "array",
-      "description": "Test level traceability IDs",
+      "description": "Specification level traceability IDs",
       "x-frontmatter-part": true,
-      "items": { "$ref": "traceability_test_schema.json" }
+      "items": { "$ref": "traceability_item_schema.json" }
     }
   },
-  "required": ["version", "description", "test"],
+  "required": ["version", "description", "spec"],
   "additionalProperties": false
 }

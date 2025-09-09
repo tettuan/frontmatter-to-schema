@@ -26,6 +26,7 @@
     "jsr:@std/path@1.1.2": "1.1.2",
     "jsr:@std/path@^1.0.8": "1.1.2",
     "jsr:@std/testing@*": "1.0.15",
+    "jsr:@std/testing@1.0.7": "1.0.7",
     "jsr:@std/testing@1.0.8": "1.0.8",
     "jsr:@std/testing@^1.0.15": "1.0.15",
     "jsr:@std/toml@1.0.1": "1.0.1",
@@ -94,6 +95,13 @@
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
       "dependencies": [
         "jsr:@std/internal@^1.0.10"
+      ]
+    },
+    "@std/testing@1.0.7": {
+      "integrity": "aa5f0507352449064b09eff70ac1b6da3f765ee66bcc20dad9e5e433776580d5",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.10",
+        "jsr:@std/internal@^1.0.5"
       ]
     },
     "@std/testing@1.0.8": {

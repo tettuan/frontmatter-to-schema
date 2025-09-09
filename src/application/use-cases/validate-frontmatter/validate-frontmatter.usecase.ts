@@ -73,6 +73,21 @@ export class ValidateFrontmatterUseCase
 
         const validatedSchema = validatedSchemaResult.data;
 
+        // Pre-filtering: Check level compatibility before validation
+        if (!validatedSchema.isLevelCompatible(validatedData.getValue())) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "LevelMismatch",
+                schema: input.schema,
+                data: input.data,
+              },
+              "Document level does not match schema level constraints",
+            ),
+          };
+        }
+
         // Check for required fields
         const requiredFields = validatedSchema.getRequiredFields();
         for (const field of requiredFields) {
@@ -98,6 +113,19 @@ export class ValidateFrontmatterUseCase
                   if (expectedType !== actualType) {
                     validationErrors.push(
                       `Field '${propertyName}' has wrong type: expected ${expectedType}, got ${actualType}`,
+                    );
+                  }
+                }
+
+                // Check const constraints
+                if (propertySchema.hasConstConstraint()) {
+                  const expectedValue = propertySchema.getConstValue();
+                  const value = validatedData.getField(propertyName);
+                  if (value !== expectedValue) {
+                    validationErrors.push(
+                      `Field '${propertyName}' has wrong value: expected ${
+                        String(expectedValue)
+                      }, got ${String(value)}`,
                     );
                   }
                 }

@@ -90,6 +90,27 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 registry_schema.json 内部で指定される。
 （つまりregistry_schema.jsonファイルは、役割的にはidnex_schema.jsonと同じ意味である。）
 
+### テンプレート指定機能
+
+Schemaは、出力時に用いるテンプレートを内部的に指定できる。
+`"x-template": "registry_command_template.json"`
+
+テンプレートには、Schema階層を指定した変数名を記載しており、テンプレート処理は `{id.full}` 形式で参照した変数をSchema値で置換する。
+例) `{id.full}`は、`req:api:deepresearch-3f8d2a#20250909` へ置換される。
+
+Schemaのroot階層は、"x-template" と並列の"properties"を起点とする。
+{id.full} と記述する場合は
+
+```json
+"x-template": "registry_command_template.json",
+"properties":
+  "id":
+    "full":
+```
+
+である。
+
+
 ### 集約機能
 
 一覧は、集約機能を持つ。 `"x-derived-from": "commands[].c1"`
@@ -170,6 +191,7 @@ registry_command_template.json
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Registry Schema",
+  "x-template": "registry_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
@@ -211,6 +233,7 @@ registry_command_template.json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "x-template": "registry_command_template.json",
   "title": "Command Schema",
   "description": "Schema for a single command definition",
   "properties": {
