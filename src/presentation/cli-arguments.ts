@@ -219,7 +219,7 @@ export class InputPattern {
     if (this.isMultipleFiles) {
       return this.value;
     }
-    
+
     // If it's a directory path without wildcards, add **/*.md
     if (!this.value.includes("*") && !this.value.includes(".md")) {
       return this.value.endsWith("/")
@@ -400,7 +400,7 @@ export class CLIArgumentParser {
     // Handle multiple input files (when shell expands glob)
     // If we have more than 3 positional args, treat args 2+ as individual files
     let patternResult: Result<InputPattern, { kind: string; message: string }>;
-    
+
     if (positional.length > 3) {
       // Shell expanded the glob - join all remaining args as individual files
       // Create a pattern that will match these specific files
@@ -410,7 +410,7 @@ export class CLIArgumentParser {
       // Single pattern argument (may be glob or single file)
       patternResult = InputPattern.create(positional[2]);
     }
-    
+
     if (!patternResult.ok) {
       return patternResult;
     }
