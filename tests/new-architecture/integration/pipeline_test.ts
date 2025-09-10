@@ -184,7 +184,25 @@ class MockTemplateRenderer {
     data: ValidatedData[],
     template: TemplateConfig,
   ): Promise<Result<RenderedContent, DomainError>> {
-    if (!template.definition || template.definition.trim() === "") {
+    // Handle discriminated union
+    let definition: string;
+
+    switch (template.kind) {
+      case "file":
+        return Promise.resolve({
+          ok: false,
+          error: {
+            kind: "TemplateError",
+            message: "File templates not supported in mock",
+          },
+        });
+
+      case "inline":
+        definition = template.definition;
+        break;
+    }
+
+    if (!definition || definition.trim() === "") {
       return Promise.resolve({
         ok: false,
         error: {
@@ -195,7 +213,7 @@ class MockTemplateRenderer {
     }
 
     // Simulate template processing without bypass
-    const renderedContent = template.definition.replace(
+    const renderedContent = definition.replace(
       /\{(\w+)\}/g,
       (match, field) => {
         const firstDoc = data[0];
@@ -238,10 +256,9 @@ interface ProcessingConfiguration {
   aggregation?: { rules: string[] };
 }
 
-interface TemplateConfig {
-  definition: string;
-  format: string;
-}
+type TemplateConfig =
+  | { kind: "file"; path: string; format: string }
+  | { kind: "inline"; definition: string; format: string };
 
 interface ExtractedData {
   path: string;
@@ -302,6 +319,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}\n\n{description}",
           format: "custom",
         },
@@ -325,6 +343,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}\n\n{description}",
           format: "custom",
         },
@@ -354,6 +373,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}",
           format: "custom",
         },
@@ -375,6 +395,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}",
           format: "custom",
         },
@@ -396,6 +417,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "", // Empty template
           format: "custom",
         },
@@ -422,6 +444,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "Processed: {title}",
           format: "custom",
         },
@@ -455,6 +478,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "Template: {title} - {description}",
           format: "custom",
         },
@@ -494,6 +518,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}",
           format: "custom",
         },
@@ -518,6 +543,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}",
           format: "custom",
         },
@@ -536,6 +562,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "# {title}",
           format: "custom",
         },
@@ -560,6 +587,7 @@ describe("Processing Pipeline Integration", () => {
           format: "json",
         },
         template: {
+          kind: "inline",
           definition: "Document: {title}",
           format: "custom",
         },
