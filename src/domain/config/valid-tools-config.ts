@@ -3,65 +3,12 @@
  * Following DDD and Totality principles
  */
 
-import type { Result } from "../core/result.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
-/**
- * Configuration error types using discriminated union for Totality
- */
-export type ConfigError =
-  | { kind: "FileNotFound"; path: string; message: string }
-  | {
-    kind: "InvalidFormat";
-    input: string;
-    expectedFormat: string;
-    message: string;
-  }
-  | { kind: "EmptyInput"; field?: string; message: string }
-  | { kind: "ParseError"; input: string; details?: string; message: string };
-
-/**
- * Helper functions to create ConfigError instances without type assertions
- */
-const createFileNotFoundError = (path: string): ConfigError => ({
-  kind: "FileNotFound",
-  path,
-  message: `Configuration file not found: ${path}`,
-});
-
-const createInvalidFormatError = (
-  input: string,
-  expectedFormat: string,
-  customMessage?: string,
-): ConfigError => ({
-  kind: "InvalidFormat",
-  input,
-  expectedFormat,
-  message: customMessage ||
-    `Invalid format: expected ${expectedFormat}, got "${input}"`,
-});
-
-const createEmptyInputError = (
-  field?: string,
-  customMessage?: string,
-): ConfigError => ({
-  kind: "EmptyInput",
-  field,
-  message: customMessage ||
-    `Input cannot be empty${field ? ` (field: ${field})` : ""}`,
-});
-
-const createParseError = (
-  input: string,
-  details?: string,
-  customMessage?: string,
-): ConfigError => ({
-  kind: "ParseError",
-  input,
-  details,
-  message: customMessage ||
-    `Failed to parse "${input}"${details ? `: ${details}` : ""}`,
-});
+// Using base DomainError with message - no custom type needed
+// This eliminates type assertions and follows Totality principles
 
 /**
  * Valid Tools Configuration Value Object
@@ -76,13 +23,16 @@ export class ValidToolsConfig {
   static async create(
     fileSystem: FileSystemRepository,
     configPath = "src/config/valid-tools.json",
-  ): Promise<Result<ValidToolsConfig, ConfigError>> {
+  ): Promise<Result<ValidToolsConfig, DomainError & { message: string }>> {
     const result = await fileSystem.readFile(configPath);
 
     if (!result.ok) {
       return {
         ok: false,
-        error: createFileNotFoundError(configPath),
+        error: createDomainError({
+          kind: "FileNotFound" as const,
+          path: configPath,
+        }, `Configuration file not found: ${configPath}`),
       };
     }
 
@@ -92,11 +42,11 @@ export class ValidToolsConfig {
       if (!config || typeof config !== "object") {
         return {
           ok: false,
-          error: createInvalidFormatError(
-            result.data.substring(0, 100),
-            "JSON object",
-            "Configuration must be a valid JSON object",
-          ),
+          error: createDomainError({
+            kind: "InvalidFormat" as const,
+            input: result.data.substring(0, 100),
+            expectedFormat: "JSON object",
+          }, "Configuration must be a valid JSON object"),
         };
       }
 
@@ -105,21 +55,21 @@ export class ValidToolsConfig {
       if (!Array.isArray(validTools)) {
         return {
           ok: false,
-          error: createInvalidFormatError(
-            String(validTools),
-            "array of strings",
-            "validTools must be an array",
-          ),
+          error: createDomainError({
+            kind: "InvalidFormat" as const,
+            input: String(validTools),
+            expectedFormat: "array of strings",
+          }, "validTools must be an array"),
         };
       }
 
       if (validTools.length === 0) {
         return {
           ok: false,
-          error: createEmptyInputError(
-            "validTools",
-            "validTools array cannot be empty",
-          ),
+          error: createDomainError({
+            kind: "EmptyInput" as const,
+            field: "validTools",
+          }, "validTools array cannot be empty"),
         };
       }
 
@@ -128,11 +78,11 @@ export class ValidToolsConfig {
         if (typeof tool !== "string" || tool.trim().length === 0) {
           return {
             ok: false,
-            error: createInvalidFormatError(
-              String(tool),
-              "non-empty string",
-              `Invalid tool name: ${String(tool)}`,
-            ),
+            error: createDomainError({
+              kind: "InvalidFormat" as const,
+              input: String(tool),
+              expectedFormat: "non-empty string",
+            }, `Invalid tool name: ${String(tool)}`),
           };
         }
       }
@@ -144,11 +94,11 @@ export class ValidToolsConfig {
     } catch (error) {
       return {
         ok: false,
-        error: createParseError(
-          result.data.substring(0, 100),
-          error instanceof Error ? error.message : String(error),
-          "Failed to parse configuration JSON",
-        ),
+        error: createDomainError({
+          kind: "ParseError" as const,
+          input: result.data.substring(0, 100),
+          details: error instanceof Error ? error.message : String(error),
+        }, "Failed to parse configuration JSON"),
       };
     }
   }

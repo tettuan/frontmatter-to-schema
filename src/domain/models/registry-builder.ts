@@ -12,7 +12,7 @@ import { createDomainError } from "../core/result.ts";
 import { DEFAULT_VALUES } from "../constants/index.ts";
 import type { Template } from "./entities.ts";
 import type { Schema } from "./entities.ts";
-import type { Command } from "./command-processor.ts";
+import type { Command } from "../core/command-types.ts";
 
 /**
  * Registry represents the final aggregated structure (最終成果物Z)
@@ -154,7 +154,7 @@ export class RegistryBuilder {
     const uniqueC1Values = new Set<string>();
 
     for (const command of commands) {
-      const c1Value = command.getC1();
+      const c1Value = command.c1;
       if (c1Value && c1Value.trim()) {
         uniqueC1Values.add(c1Value.trim());
       }

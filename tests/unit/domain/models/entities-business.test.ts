@@ -131,7 +131,7 @@ Domain-driven design is a software development approach...`;
             "Document should be identifiable for processing pipeline",
           );
           assertEquals(
-            typeof document.getFrontMatterResult(),
+            typeof document.getFrontMatter(),
             "object",
             "Document should enable frontmatter extraction for transformation",
           );
@@ -472,7 +472,7 @@ This prompt helps design domain boundaries...`;
       );
 
       // Step 2: Frontmatter Extraction
-      const frontMatterResult = document.getFrontMatterResult();
+      const frontMatterResult = document.getFrontMatter();
       assertEquals(
         frontMatterResult.ok,
         true,

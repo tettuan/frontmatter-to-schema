@@ -5,22 +5,15 @@ import {
   type OutputFormat,
   OutputFormatter,
 } from "../../../src/infrastructure/adapters/output-formatter.ts";
-import {
-  AggregatedStructure,
-} from "../../../src/domain/services/structured-aggregator.ts";
+// StructuredAggregator was removed in DDD refactoring
+// import {
+//   AggregatedStructure,
+// } from "../../../src/domain/services/structured-aggregator.ts";
 
 // Helper function to create a simple aggregated structure for testing
 function createTestAggregatedStructure(data: Record<string, unknown>) {
-  return AggregatedStructure.create(
-    data,
-    { kind: "replace_values", priority: "latest" },
-    {
-      kind: "parent_template",
-      arrayFields: [],
-      scalarFields: Object.keys(data),
-      nestedStructures: {},
-    },
-  );
+  // Return the data directly since AggregatedStructure was removed
+  return { ok: true, data };
 }
 
 Deno.test("OutputFormatter - Smart Constructor", async (t) => {

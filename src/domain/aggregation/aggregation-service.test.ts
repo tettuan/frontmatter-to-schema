@@ -14,6 +14,7 @@ import {
 import {
   AggregatedResult,
   AggregationContext,
+  AggregationMetadataBuilder,
   DerivationRule,
 } from "./value-objects.ts";
 import { ExpressionEvaluator } from "./expression-evaluator.ts";
@@ -280,7 +281,7 @@ describe("AggregationService", () => {
 
         const metadata = result.data.getMetadata();
         // No warnings are generated for missing properties - this is normal JSONPath behavior
-        assertEquals(metadata.warnings, undefined);
+        assertEquals(metadata.warnings, null);
       }
     });
   });
@@ -423,15 +424,16 @@ describe("AggregationService", () => {
         existingField: "value",
       };
 
+      const metadata = AggregationMetadataBuilder.basic(
+        2,
+        ["newField"],
+      );
+
       const aggregatedResult = AggregatedResult.create(
         {
           newField: ["item1", "item2"],
         },
-        {
-          processedCount: 2,
-          aggregatedAt: new Date(),
-          appliedRules: ["newField"],
-        },
+        metadata,
       );
 
       if (!aggregatedResult.ok) throw new Error("Failed to create result");
@@ -447,15 +449,16 @@ describe("AggregationService", () => {
 
       const base = {};
 
+      const metadata = AggregationMetadataBuilder.basic(
+        2,
+        ["config.tools.available"],
+      );
+
       const aggregatedResult = AggregatedResult.create(
         {
           "config.tools.available": ["tool1", "tool2"],
         },
-        {
-          processedCount: 2,
-          aggregatedAt: new Date(),
-          appliedRules: ["config.tools.available"],
-        },
+        metadata,
       );
 
       if (!aggregatedResult.ok) throw new Error("Failed to create result");
@@ -481,15 +484,16 @@ describe("AggregationService", () => {
         },
       };
 
+      const metadata = AggregationMetadataBuilder.basic(
+        2,
+        ["config.tools.available"],
+      );
+
       const aggregatedResult = AggregatedResult.create(
         {
           "config.tools.available": ["tool1", "tool2"],
         },
-        {
-          processedCount: 2,
-          aggregatedAt: new Date(),
-          appliedRules: ["config.tools.available"],
-        },
+        metadata,
       );
 
       if (!aggregatedResult.ok) throw new Error("Failed to create result");

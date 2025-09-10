@@ -11,6 +11,11 @@ import {
   getOptionProperty,
   isCLIOption,
 } from "./cli-constants.ts";
+import {
+  FILE_PATTERNS,
+  isMarkdownFile,
+  SCHEMA_EXTENSIONS,
+} from "../domain/core/file-extensions.constants.ts";
 
 /**
  * Named constants to avoid magic numbers (Totality principle)
@@ -61,12 +66,13 @@ export class SchemaPath {
       };
     }
 
-    if (!path.endsWith(".json")) {
+    if (!path.endsWith(SCHEMA_EXTENSIONS.JSON)) {
       return {
         ok: false,
         error: {
           kind: "InvalidExtension",
-          message: `Schema file must be .json, got: ${path}`,
+          message:
+            `Schema file must be ${SCHEMA_EXTENSIONS.JSON}, got: ${path}`,
         },
       };
     }
@@ -220,11 +226,11 @@ export class InputPattern {
       return this.value;
     }
 
-    // If it's a directory path without wildcards, add **/*.md
-    if (!this.value.includes("*") && !this.value.includes(".md")) {
+    // If it's a directory path without wildcards, add **/*.md pattern
+    if (!this.value.includes("*") && !isMarkdownFile(this.value)) {
       return this.value.endsWith("/")
-        ? `${this.value}**/*.md`
-        : `${this.value}/**/*.md`;
+        ? `${this.value}${FILE_PATTERNS.ALL_MARKDOWN}`
+        : `${this.value}/${FILE_PATTERNS.ALL_MARKDOWN}`;
     }
     return this.value;
   }
@@ -262,8 +268,8 @@ export class CLIArgumentParser {
       args.includes(CLI_OPTIONS.HELP_LONG)
     ) {
       // Return early with help flag - actual paths won't be used
-      const dummySchema = SchemaPath.create("dummy.json");
-      const dummyOutput = OutputPath.create("dummy.json");
+      const dummySchema = SchemaPath.create(`dummy${SCHEMA_EXTENSIONS.JSON}`);
+      const dummyOutput = OutputPath.create(`dummy${SCHEMA_EXTENSIONS.JSON}`);
       const dummyPattern = InputPattern.create("dummy");
 
       if (!dummySchema.ok || !dummyOutput.ok || !dummyPattern.ok) {
@@ -291,8 +297,8 @@ export class CLIArgumentParser {
 
     if (args.includes(CLI_OPTIONS.VERSION)) {
       // Return early with version flag - actual paths won't be used
-      const dummySchema = SchemaPath.create("dummy.json");
-      const dummyOutput = OutputPath.create("dummy.json");
+      const dummySchema = SchemaPath.create(`dummy${SCHEMA_EXTENSIONS.JSON}`);
+      const dummyOutput = OutputPath.create(`dummy${SCHEMA_EXTENSIONS.JSON}`);
       const dummyPattern = InputPattern.create("dummy");
 
       if (!dummySchema.ok || !dummyOutput.ok || !dummyPattern.ok) {

@@ -112,7 +112,7 @@ function createMockAnalysisResult(jsonData: string): AnalysisResult {
 
   const pathResult = DocumentPath.create("test.md");
   const mockDocument = {
-    getFrontMatterResult: () => ({
+    getFrontMatter: () => ({
       ok: false,
       error: { kind: "NoFrontMatterPresent" },
     }),

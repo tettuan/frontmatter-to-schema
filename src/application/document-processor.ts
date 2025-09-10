@@ -29,6 +29,7 @@ import {
 import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { VERSION_CONFIG } from "../config/version.ts";
+import { getConfig, getKind, getSupports } from "../domain/core/type-guards.ts";
 
 /**
  * Type guard for validating unknown data as Record<string, unknown>
@@ -283,8 +284,8 @@ export class DocumentProcessor {
     // Extract data using AI if prompts are provided
     let extractedData: ExtractedData;
 
-    // Use totality-compliant getFrontMatterResult()
-    const frontMatterResult = document.getFrontMatterResult();
+    // Use totality-compliant getFrontMatter()
+    const frontMatterResult = document.getFrontMatter();
     if (isOk(frontMatterResult)) {
       const frontMatter = frontMatterResult.data;
       const contentJson = frontMatter.getContent().toJSON();
@@ -449,23 +450,28 @@ export class DocumentProcessor {
 
           // Handle options mapping
           if (item.config) {
-            const config = item.config as Record<string, unknown>;
+            const configResult = getConfig(item, "mappingItem");
+            if (!configResult.ok) {
+              return {
+                ok: false,
+                error: createProcessingStageError(
+                  "ConfigMapping",
+                  configResult.error,
+                ),
+              };
+            }
+            const config = configResult.data;
+
+            // Safe supports extraction
+            const supportsResult = getSupports(config, "mappingItem.config");
+            const supports = supportsResult.ok ? supportsResult.data : {};
+
             mappedItem.options = {
               input: config.input_formats || [],
               adaptation: config.processing_modes || [],
-              file: config.supports &&
-                  (config.supports as Record<string, unknown>).file_input
-                ? [true]
-                : [false],
-              stdin: config.supports &&
-                  (config.supports as Record<string, unknown>).stdin_input
-                ? [true]
-                : [false],
-              destination: config.supports &&
-                  (config.supports as Record<string, unknown>)
-                    .output_destination
-                ? [true]
-                : [false],
+              file: supports.file_input ? [true] : [false],
+              stdin: supports.stdin_input ? [true] : [false],
+              destination: supports.output_destination ? [true] : [false],
             };
           }
 
@@ -552,7 +558,11 @@ export class DocumentProcessor {
       return false;
     }
 
-    const kind = (value as { kind?: unknown }).kind;
+    const kindResult = getKind(value, "isDomainError");
+    if (!kindResult.ok) {
+      return false;
+    }
+    const kind = kindResult.data;
     // Template processing success result has kind: "Success", not an error
     if (kind === "Success") {
       return false;

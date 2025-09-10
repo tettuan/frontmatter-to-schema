@@ -112,7 +112,45 @@ export class ValidatedSchema {
     const properties = this.getProperties();
     if (!properties) return true;
 
-    // Check for id.level constraints in nested schema
+    // First check if we have an array property with x-frontmatter-part
+    for (const propName of properties.getPropertyNames()) {
+      const prop = this.schema.properties;
+      if (!isRecord(prop)) continue;
+
+      const propSchema = prop[propName];
+      if (!isRecord(propSchema)) continue;
+
+      // Check if this is a frontmatter part array
+      if (propSchema["x-frontmatter-part"] === true && propSchema.items) {
+        const items = propSchema.items;
+        if (!isRecord(items)) continue;
+
+        // Check for level constraint in item properties
+        const itemProps = items.properties;
+        if (!isRecord(itemProps)) continue;
+
+        const idProp = itemProps.id;
+        if (!isRecord(idProp)) continue;
+
+        const idProperties = idProp.properties;
+        if (!isRecord(idProperties)) continue;
+
+        const levelProp = idProperties.level;
+        if (!isRecord(levelProp)) continue;
+
+        const levelConstraint = levelProp.const;
+        if (typeof levelConstraint !== "string") continue;
+
+        // Check if data has matching level
+        const dataId = data.id;
+        if (!isRecord(dataId)) return false;
+
+        const dataLevel = dataId.level;
+        return typeof dataLevel === "string" && dataLevel === levelConstraint;
+      }
+    }
+
+    // Fallback to checking direct id.level constraints
     const idPropertySchema = properties.getPropertySchema("id");
     if (!idPropertySchema) return true;
 

@@ -17,8 +17,8 @@ export class FrontMatterExtractorImpl implements FrontMatterExtractor {
   extract(
     document: Document,
   ): Result<FrontMatterExtractionResult, DomainError & { message: string }> {
-    // Use totality-compliant getFrontMatterResult()
-    const frontMatterResult = document.getFrontMatterResult();
+    // Use totality-compliant getFrontMatter()
+    const frontMatterResult = document.getFrontMatter();
     if (frontMatterResult.ok) {
       const frontMatter = frontMatterResult.data;
       return { ok: true, data: { kind: "Extracted", frontMatter } };

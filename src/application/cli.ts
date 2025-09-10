@@ -13,6 +13,7 @@ import { SchemaValidator } from "../domain/services/schema-validator.ts";
 import { UnifiedTemplateProcessor } from "../domain/template/unified-template-processor.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
+import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
@@ -122,10 +123,18 @@ export class CLI {
   private async loadConfiguration(
     args: Record<string, unknown>,
   ): Promise<Result<ApplicationConfiguration, DomainError>> {
+    // Validate CLI arguments first
+    const validatedArgsResult = CliArgumentsValidator.validate(args);
+    if (!validatedArgsResult.ok) {
+      return validatedArgsResult;
+    }
+    const validatedArgs = validatedArgsResult.data;
+
     // If config file is specified, load it
-    if (args.config) {
-      const configPath = args.config as string;
-      const fileResult = await this.fileSystem.readFile(configPath);
+    if (validatedArgs.configPath) {
+      const fileResult = await this.fileSystem.readFile(
+        validatedArgs.configPath.toString(),
+      );
       if (!fileResult.ok) {
         return fileResult;
       }
@@ -156,16 +165,16 @@ export class CLI {
     const config: Partial<ApplicationConfiguration> = {};
 
     // Input configuration
-    if (args.input) {
+    if (validatedArgs.inputPath) {
       config.input = {
         kind: "FileInput",
-        path: args.input as string,
+        path: validatedArgs.inputPath.toString(),
       };
     }
 
     // Schema configuration
-    if (args.schema) {
-      const schemaPath = args.schema as string;
+    if (validatedArgs.schemaPath) {
+      const schemaPath = validatedArgs.schemaPath.toString();
       const fileResult = await this.fileSystem.readFile(schemaPath);
       if (!fileResult.ok) {
         return fileResult;
@@ -187,8 +196,8 @@ export class CLI {
     }
 
     // Template configuration
-    if (args.template) {
-      const templatePath = args.template as string;
+    if (validatedArgs.templatePath) {
+      const templatePath = validatedArgs.templatePath.toString();
       const fileResult = await this.fileSystem.readFile(templatePath);
       if (!fileResult.ok) {
         return fileResult;
@@ -212,8 +221,8 @@ export class CLI {
     }
 
     // Output configuration
-    if (args.output) {
-      const outputPath = args.output as string;
+    if (validatedArgs.outputPath) {
+      const outputPath = validatedArgs.outputPath.toString();
       const formatString = outputPath.endsWith(".json")
         ? "json"
         : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")

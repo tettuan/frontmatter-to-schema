@@ -7,7 +7,6 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import { ResultHandlerService } from "../services/result-handler-service.ts";
 
 /**
  * Checks if a value is a non-null object
@@ -75,15 +74,11 @@ export function getObjectPropertyAsObject(
   key: string,
   context?: string,
 ): Result<Record<string, unknown>, DomainError> {
-  return ResultHandlerService.flatMap(
-    getObjectProperty(obj, key, context),
-    (propertyValue) =>
-      asObjectRecord(propertyValue, `${context || "object"}.${key}`),
-    {
-      operation: "getObjectPropertyAsObject",
-      component: "TypeGuards",
-    },
-  );
+  const propertyResult = getObjectProperty(obj, key, context);
+  if (!propertyResult.ok) {
+    return propertyResult;
+  }
+  return asObjectRecord(propertyResult.data, `${context || "object"}.${key}`);
 }
 
 /**
