@@ -65,11 +65,14 @@ class JSONPath {
     }
 
     let current: unknown = data;
-    
+
     // Special handling for frontmatter data with traceability array
     if (this.segments[0] === "traceability" && !Array.isArray(data)) {
       const frontmatterData = data as Record<string, unknown>;
-      if (frontmatterData.traceability && Array.isArray(frontmatterData.traceability)) {
+      if (
+        frontmatterData.traceability &&
+        Array.isArray(frontmatterData.traceability)
+      ) {
         // Extract from first element of traceability array
         const traceability = frontmatterData.traceability;
         if (traceability.length === 0) {
@@ -87,7 +90,7 @@ class JSONPath {
         return current;
       }
     }
-    
+
     // Regular path extraction
     for (const segment of this.segments) {
       if (!current || typeof current !== "object") {
@@ -274,7 +277,7 @@ function extractConstraintsRecursive(
       if (!propSchema || typeof propSchema !== "object") continue;
 
       const prop = propSchema as Record<string, unknown>;
-      
+
       // Special handling for x-frontmatter-part arrays
       // For these, we look for "traceability" array in the frontmatter
       if (prop["x-frontmatter-part"] === true && prop.items) {
@@ -284,7 +287,7 @@ function extractConstraintsRecursive(
       } else {
         // Regular property handling
         const currentPath = basePath ? `${basePath}.${key}` : key;
-        
+
         // Extract constraints at this level
         extractConstraintsFromLevel(prop, currentPath, constraints);
 
