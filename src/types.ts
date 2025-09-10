@@ -17,7 +17,11 @@ export type ValidationError =
 export type ProcessingError =
   | { kind: "SchemaValidationFailed"; schema: unknown; data: unknown }
   | { kind: "TemplateRenderFailed"; template: string; data: unknown }
-  | { kind: "FrontmatterExtractionFailed"; content: string };
+  | { kind: "FrontmatterExtractionFailed"; content: string }
+  | { kind: "SchemaNotFound"; path: string }
+  | { kind: "ArrayItemsSchemaNotFound"; path: string }
+  | { kind: "ArrayTemplateResolutionFailed"; path: string; details: string }
+  | { kind: "TemplateLoadFailed"; path: string; details: string };
 
 export type FileSystemError =
   | { kind: "FileNotFound"; path: string }

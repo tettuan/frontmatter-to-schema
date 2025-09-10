@@ -70,8 +70,11 @@ export class Processor {
     const aggregationResult = this.aggregator.aggregate(validationResults);
     if (!aggregationResult.ok) return aggregationResult;
 
-    // Step 6: Render template
-    return await this.renderer.render(config.template, aggregationResult.data);
+    // Step 6: Render template with schema context
+    return await this.renderer.render(config.template, {
+      aggregatedData: aggregationResult.data.aggregatedData,
+      schema: schemaResult.data.definition,
+    });
   }
 
   private async discoverFiles(
