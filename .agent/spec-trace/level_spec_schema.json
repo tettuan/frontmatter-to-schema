@@ -19,7 +19,22 @@
       "type": "array",
       "description": "Specification level traceability IDs",
       "x-frontmatter-part": true,
-      "items": { "$ref": "traceability_item_schema.json" }
+      "items": {
+        "allOf": [
+          { "$ref": "traceability_item_schema.json" },
+          {
+            "properties": {
+              "id": {
+                "properties": {
+                  "level": {
+                    "const": "spec"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   },
   "required": ["version", "description", "spec"],

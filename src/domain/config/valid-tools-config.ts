@@ -3,11 +3,8 @@
  * Following DDD and Totality principles
  */
 
-import {
-  createDomainError,
-  type DomainError,
-  type Result,
-} from "../core/result.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 // Using base DomainError with message - no custom type needed
