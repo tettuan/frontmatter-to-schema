@@ -15,11 +15,49 @@
       "description": "Registry description",
       "default": "Requirement level traceability IDs"
     },
+    "traceability": {
+      "type": "array",
+      "description": "Source traceability data for level filtering",
+      "items": {
+        "allOf": [
+          { "$ref": "traceability_item_schema.json" },
+          {
+            "properties": {
+              "id": {
+                "properties": {
+                  "level": {
+                    "const": "req"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
     "req": {
       "type": "array",
       "description": "Requirement level traceability IDs",
       "x-frontmatter-part": true,
-      "items": { "$ref": "traceability_item_schema.json" }
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "object",
+            "properties": {
+              "full": { "type": "string" },
+              "level": { "type": "string" },
+              "scope": { "type": "string" },
+              "semantic": { "type": "string" },
+              "hash": { "type": "string" },
+              "version": { "type": "string" }
+            }
+          },
+          "summary": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
     }
   },
   "required": ["version", "description", "req"],

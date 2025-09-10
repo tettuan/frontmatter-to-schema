@@ -19,7 +19,22 @@
       "type": "array",
       "description": "Implementation level traceability IDs",
       "x-frontmatter-part": true,
-      "items": { "$ref": "traceability_item_schema.json" }
+      "items": {
+        "allOf": [
+          { "$ref": "traceability_item_schema.json" },
+          {
+            "properties": {
+              "id": {
+                "properties": {
+                  "level": {
+                    "const": "impl"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
     }
   },
   "required": ["version", "description", "impl"],

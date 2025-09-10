@@ -348,4 +348,17 @@ function extractConstraintsFromLevel(
       // Invalid regex pattern, skip
     }
   }
+
+  // Handle allOf schemas (Issue #592 fix)
+  if (schema.allOf && Array.isArray(schema.allOf)) {
+    for (const subSchema of schema.allOf) {
+      if (subSchema && typeof subSchema === "object") {
+        extractConstraintsRecursive(
+          subSchema as Record<string, unknown>,
+          path,
+          constraints,
+        );
+      }
+    }
+  }
 }
