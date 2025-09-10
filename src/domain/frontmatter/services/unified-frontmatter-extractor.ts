@@ -12,6 +12,11 @@ import type { DomainError, Result } from "../../core/result.ts";
 import { createDomainError } from "../../core/result.ts";
 import * as yaml from "jsr:@std/yaml@1.0.9";
 import * as toml from "jsr:@std/toml@1.0.1";
+import {
+  parseJSON,
+  parseTOMLWithModule,
+  parseYAMLWithModule,
+} from "../../core/safe-parsers.ts";
 
 /**
  * Supported frontmatter formats
@@ -68,32 +73,14 @@ export class UnifiedFrontmatterExtractor {
   private parseYaml(
     raw: string,
   ): Result<ExtractedFrontmatter, DomainError & { message: string }> {
-    try {
-      const data = yaml.parse(raw) as Record<string, unknown>;
+    const parseResult = parseYAMLWithModule(raw, yaml, "frontmatter YAML");
+    if (!parseResult.ok) {
+      return parseResult;
+    }
 
-      if (!data || typeof data !== "object" || Array.isArray(data)) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "ParseError",
-              input: raw,
-              parser: "yaml",
-            },
-            "YAML frontmatter must be an object",
-          ),
-        };
-      }
+    const data = parseResult.data;
 
-      return {
-        ok: true,
-        data: {
-          data,
-          format: "yaml",
-          raw,
-        },
-      };
-    } catch (error) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return {
         ok: false,
         error: createDomainError(
@@ -102,12 +89,19 @@ export class UnifiedFrontmatterExtractor {
             input: raw,
             parser: "yaml",
           },
-          `Failed to parse YAML: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          "YAML frontmatter must be an object",
         ),
       };
     }
+
+    return {
+      ok: true,
+      data: {
+        data,
+        format: "yaml",
+        raw,
+      },
+    };
   }
 
   /**
@@ -116,32 +110,14 @@ export class UnifiedFrontmatterExtractor {
   private parseToml(
     raw: string,
   ): Result<ExtractedFrontmatter, DomainError & { message: string }> {
-    try {
-      const data = toml.parse(raw) as Record<string, unknown>;
+    const parseResult = parseTOMLWithModule(raw, toml, "frontmatter TOML");
+    if (!parseResult.ok) {
+      return parseResult;
+    }
 
-      if (!data || typeof data !== "object" || Array.isArray(data)) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "ParseError",
-              input: raw,
-              parser: "toml",
-            },
-            "TOML frontmatter must be an object",
-          ),
-        };
-      }
+    const data = parseResult.data;
 
-      return {
-        ok: true,
-        data: {
-          data,
-          format: "toml",
-          raw,
-        },
-      };
-    } catch (error) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return {
         ok: false,
         error: createDomainError(
@@ -150,12 +126,19 @@ export class UnifiedFrontmatterExtractor {
             input: raw,
             parser: "toml",
           },
-          `Failed to parse TOML: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          "TOML frontmatter must be an object",
         ),
       };
     }
+
+    return {
+      ok: true,
+      data: {
+        data,
+        format: "toml",
+        raw,
+      },
+    };
   }
 
   /**
@@ -164,32 +147,14 @@ export class UnifiedFrontmatterExtractor {
   private parseJson(
     raw: string,
   ): Result<ExtractedFrontmatter, DomainError & { message: string }> {
-    try {
-      const data = JSON.parse(raw) as Record<string, unknown>;
+    const parseResult = parseJSON(raw, "frontmatter JSON");
+    if (!parseResult.ok) {
+      return parseResult;
+    }
 
-      if (!data || typeof data !== "object" || Array.isArray(data)) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "ParseError",
-              input: raw,
-              parser: "json",
-            },
-            "JSON frontmatter must be an object",
-          ),
-        };
-      }
+    const data = parseResult.data;
 
-      return {
-        ok: true,
-        data: {
-          data,
-          format: "json",
-          raw,
-        },
-      };
-    } catch (error) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return {
         ok: false,
         error: createDomainError(
@@ -198,12 +163,19 @@ export class UnifiedFrontmatterExtractor {
             input: raw,
             parser: "json",
           },
-          `Failed to parse JSON: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          "JSON frontmatter must be an object",
         ),
       };
     }
+
+    return {
+      ok: true,
+      data: {
+        data,
+        format: "json",
+        raw,
+      },
+    };
   }
 
   /**

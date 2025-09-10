@@ -234,14 +234,23 @@ export class AggregatedResult {
 
 /**
  * Metadata about the aggregation process
+ * Follows Totality principles - no optional properties
  */
-export interface AggregationMetadata {
-  processedCount: number;
-  aggregatedAt: Date;
-  appliedRules: string[];
-  warnings?: string[];
-  statistics?: AggregationStatistics;
-}
+export type AggregationMetadata =
+  & {
+    processedCount: number;
+    aggregatedAt: Date;
+    appliedRules: string[];
+  }
+  & (
+    | {
+      kind: "WithStatistics";
+      warnings: string[];
+      statistics: AggregationStatistics;
+    }
+    | { kind: "WithWarnings"; warnings: string[]; statistics: null }
+    | { kind: "Basic"; warnings: null; statistics: null }
+  );
 
 /**
  * Statistics collected during aggregation
@@ -251,6 +260,59 @@ export interface AggregationStatistics {
   uniqueValues: Record<string, number>;
   nullCount: Record<string, number>;
   arrayLengths: Record<string, number[]>;
+}
+
+/**
+ * Helper functions to create AggregationMetadata following Totality principles
+ */
+export class AggregationMetadataBuilder {
+  static basic(
+    processedCount: number,
+    appliedRules: string[],
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "Basic",
+      warnings: null,
+      statistics: null,
+    };
+  }
+
+  static withWarnings(
+    processedCount: number,
+    appliedRules: string[],
+    warnings: string[],
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "WithWarnings",
+      warnings,
+      statistics: null,
+    };
+  }
+
+  static withStatistics(
+    processedCount: number,
+    appliedRules: string[],
+    warnings: string[],
+    statistics: AggregationStatistics,
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "WithStatistics",
+      warnings,
+      statistics,
+    };
+  }
 }
 
 /**

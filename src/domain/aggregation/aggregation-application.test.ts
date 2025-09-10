@@ -8,7 +8,10 @@
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { createAggregationService } from "./aggregation-service.ts";
-import { AggregatedResult } from "./value-objects.ts";
+import {
+  AggregatedResult,
+  AggregationMetadataBuilder,
+} from "./value-objects.ts";
 
 describe("AggregationService - Data Application", () => {
   describe("applyAggregatedData()", () => {
@@ -26,11 +29,10 @@ describe("AggregationService - Data Application", () => {
         categories: ["A", "B"],
       };
 
-      const metadata = {
-        processedCount: 3,
-        appliedRules: ["allNames", "totalCount", "categories"],
-        aggregatedAt: new Date(),
-      };
+      const metadata = AggregationMetadataBuilder.basic(
+        3,
+        ["allNames", "totalCount", "categories"],
+      );
 
       const aggregatedResultCreation = AggregatedResult.create(
         aggregatedData,
@@ -66,15 +68,14 @@ describe("AggregationService - Data Application", () => {
         "metadata.lastUpdated": "2023-01-01",
       };
 
-      const metadata = {
-        processedCount: 10,
-        appliedRules: [
+      const metadata = AggregationMetadataBuilder.basic(
+        10,
+        [
           "summary.userCount",
           "summary.categories",
           "metadata.lastUpdated",
         ],
-        aggregatedAt: new Date(),
-      };
+      );
 
       const aggregatedResultCreation = AggregatedResult.create(
         aggregatedData,
@@ -112,11 +113,10 @@ describe("AggregationService - Data Application", () => {
         "config.settings.processedAt": "2023-01-01T00:00:00Z",
       };
 
-      const metadata = {
-        processedCount: 5,
-        appliedRules: ["config.itemCount", "config.settings.processedAt"],
-        aggregatedAt: new Date(),
-      };
+      const metadata = AggregationMetadataBuilder.basic(
+        5,
+        ["config.itemCount", "config.settings.processedAt"],
+      );
 
       const aggregatedResultCreation = AggregatedResult.create(
         aggregatedData,
@@ -145,11 +145,10 @@ describe("AggregationService - Data Application", () => {
       };
 
       const aggregatedData = {};
-      const metadata = {
-        processedCount: 0,
-        appliedRules: [],
-        aggregatedAt: new Date(),
-      };
+      const metadata = AggregationMetadataBuilder.basic(
+        0,
+        [],
+      );
 
       const aggregatedResultCreation = AggregatedResult.create(
         aggregatedData,
@@ -173,11 +172,10 @@ describe("AggregationService - Data Application", () => {
         nested: { prop: 123 },
       };
 
-      const metadata = {
-        processedCount: 1,
-        appliedRules: ["newProperty", "nested.prop"],
-        aggregatedAt: new Date(),
-      };
+      const metadata = AggregationMetadataBuilder.basic(
+        1,
+        ["newProperty", "nested.prop"],
+      );
 
       const aggregatedResultCreation = AggregatedResult.create(
         aggregatedData,

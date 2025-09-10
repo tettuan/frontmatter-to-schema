@@ -109,14 +109,47 @@ export class AggregationService {
       aggregated[targetField] = finalValues;
     }
 
-    // Create metadata
-    const metadata: AggregationMetadata = {
-      processedCount: items.length,
-      aggregatedAt: new Date(),
-      appliedRules: context.getRules().map((r) => r.getTargetField()),
-      warnings: warnings.length > 0 ? warnings : undefined,
-      statistics,
-    };
+    // Create metadata using Totality principles
+    const hasStatistics = Object.keys(statistics.uniqueValues).length > 0 ||
+      Object.keys(statistics.arrayLengths).length > 0;
+
+    const metadata: AggregationMetadata = (() => {
+      const baseData = {
+        processedCount: items.length,
+        aggregatedAt: new Date(),
+        appliedRules: context.getRules().map((r) => r.getTargetField()),
+      };
+
+      if (hasStatistics && warnings.length > 0) {
+        return {
+          ...baseData,
+          kind: "WithStatistics" as const,
+          warnings,
+          statistics,
+        };
+      } else if (warnings.length > 0) {
+        return {
+          ...baseData,
+          kind: "WithWarnings" as const,
+          warnings,
+          statistics: null,
+        };
+      } else if (hasStatistics) {
+        return {
+          ...baseData,
+          kind: "WithStatistics" as const,
+          warnings: [],
+          statistics,
+        };
+      } else {
+        return {
+          ...baseData,
+          kind: "Basic" as const,
+          warnings: null,
+          statistics: null,
+        };
+      }
+    })();
 
     return AggregatedResult.create(aggregated, metadata);
   }

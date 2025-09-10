@@ -15,6 +15,7 @@ import { SchemaTemplateInfo } from "../../domain/models/schema-extensions.ts";
 import {
   AggregatedResult,
   AggregationContext,
+  AggregationMetadataBuilder,
   DerivationRule,
 } from "../../domain/aggregation/value-objects.ts";
 import { AggregationService } from "../../domain/aggregation/aggregation-service.ts";
@@ -193,11 +194,8 @@ export class SchemaAggregationAdapter {
     aggregatedData: Record<string, unknown>,
   ): Record<string, unknown> {
     // Create a proper AggregatedResult using the factory method
-    const aggregatedResult = AggregatedResult.create(aggregatedData, {
-      processedCount: 0,
-      aggregatedAt: new Date(),
-      appliedRules: [],
-    });
+    const metadata = AggregationMetadataBuilder.basic(0, []);
+    const aggregatedResult = AggregatedResult.create(aggregatedData, metadata);
 
     if (!aggregatedResult.ok) {
       // If creation fails, return template unchanged
