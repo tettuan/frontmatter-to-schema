@@ -65,10 +65,21 @@ export async function main() {
   // This ensures template processing is properly executed (fixes issue #613)
   try {
     const cli = new CLI();
-    await cli.run(Deno.args);
+    const result = await cli.run(Deno.args);
+
+    if (!result.ok) {
+      cliLogger.error(
+        `🚨 Processing failed: ${result.error.kind}`,
+        { error: result.error },
+      );
+      Deno.exit(1);
+    }
+
+    // Success - exit cleanly
+    Deno.exit(0);
   } catch (error) {
     cliLogger.error(
-      `🚨 Processing failed: ${
+      `🚨 Unexpected error: ${
         error instanceof Error ? error.message : String(error)
       }`,
     );

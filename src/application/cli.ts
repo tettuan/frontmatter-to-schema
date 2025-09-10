@@ -15,7 +15,6 @@ import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
 import {
-  type ExitContext,
   type ExitHandler,
   ExitHandlerFactory,
 } from "../domain/services/exit-handler.ts";
@@ -93,23 +92,12 @@ export class CLI {
 
     if (parsed.help) {
       this.printHelp();
-      const context: ExitContext = {
-        operation: "help-display",
-        additionalInfo: { args },
-      };
-      this.exitHandler.handleSuccess(context);
       return { ok: true, data: undefined };
     }
 
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
     if (!configResult.ok) {
-      const context: ExitContext = {
-        operation: "configuration-loading",
-        error: configResult.error,
-        additionalInfo: { args: parsed },
-      };
-      this.exitHandler.handleError(context);
       return configResult;
     }
 
@@ -126,12 +114,6 @@ export class CLI {
     const result = await this.processor.processDocuments(config);
 
     if (!result.ok) {
-      const context: ExitContext = {
-        operation: "document-processing",
-        error: result.error,
-        additionalInfo: { config },
-      };
-      this.exitHandler.handleError(context);
       return result;
     }
 
@@ -162,17 +144,6 @@ export class CLI {
       outputPath: config.output.path,
     });
 
-    // Handle successful completion
-    const context: ExitContext = {
-      operation: "document-processing-complete",
-      additionalInfo: {
-        successful: batchResult.getSuccessCount(),
-        failed: batchResult.getErrorCount(),
-        total: batchResult.getTotalCount(),
-        outputPath: config.output.path,
-      },
-    };
-    this.exitHandler.handleSuccess(context);
     return { ok: true, data: undefined };
   }
 
