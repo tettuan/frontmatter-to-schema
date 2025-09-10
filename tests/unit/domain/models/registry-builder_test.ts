@@ -7,7 +7,7 @@ import {
   RegistryBuilder,
   type RegistryBuildingContext,
 } from "../../../../src/domain/models/registry-builder.ts";
-import { Command } from "../../../../src/domain/models/command-processor.ts";
+import type { Command } from "../../../../src/domain/core/command-types.ts";
 import { DEFAULT_VALUES } from "../../../../src/domain/constants/index.ts";
 import { isError, isOk } from "../../../../src/domain/core/result.ts";
 

@@ -19,8 +19,7 @@ export type { FileSystemAdapter } from "../services/schema-loader.service.ts";
 export { SchemaSwitcher } from "../services/schema-switcher.service.ts";
 export { ExecutablePipeline } from "../services/executable-pipeline.service.ts";
 
-// Re-export deprecated factory (for backward compatibility)
-export { DynamicPipelineFactory } from "../services/dynamic-pipeline-factory.service.ts";
+// Deprecated factory removed - use ComponentFactory instead
 
 // Re-export type definitions
 export type {
