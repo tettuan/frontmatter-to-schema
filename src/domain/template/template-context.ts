@@ -134,7 +134,7 @@ export class TemplateContext {
       const renderedContent: RenderedContent = {
         content: postProcessResult.data,
         templateProcessed: true, // CRITICAL: Always true
-        variables: variablesResult.data.getVariableNames(),
+        variables: variablesResult.data.getNames(),
         renderTime: new Date(),
         bypassDetected: false, // CRITICAL: Always false
       };

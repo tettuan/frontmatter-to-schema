@@ -6,7 +6,7 @@
  */
 
 import type { Result } from "../../core/result.ts";
-import { createDomainError, type DomainError } from "../../core/result.ts";
+import type { DomainError } from "../../core/result.ts";
 import { VariableValidator } from "../services/variable-validator.ts";
 import { VariableResolver } from "../services/variable-resolver.ts";
 
@@ -355,90 +355,5 @@ export class VariableMap {
       info.value,
       info.type,
     ]);
-  }
-
-  // Backward compatibility methods for existing tests
-  /**
-   * @deprecated Use size() instead
-   */
-  count(): number {
-    return this.size();
-  }
-
-  /**
-   * @deprecated Use has() instead
-   */
-  hasVariable(name: string): boolean {
-    return this.has(name);
-  }
-
-  /**
-   * @deprecated Use get() instead
-   */
-  getValue(
-    name: string,
-  ): Result<VariableValue, DomainError & { message: string }> {
-    if (!this.has(name)) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "NotFound", resource: "variable", name },
-          `Variable '${name}' not found`,
-        ),
-      };
-    }
-    const value = this.get(name);
-    // Since has(name) returned true, value cannot be undefined
-    return { ok: true, data: value! };
-  }
-
-  /**
-   * @deprecated Use getInfo() instead
-   */
-  getVariableInfo(
-    name: string,
-  ): Result<VariableInfo, DomainError & { message: string }> {
-    const info = this.getInfo(name);
-    if (info === undefined) {
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "NotFound", resource: "variable", name },
-          `Variable '${name}' not found`,
-        ),
-      };
-    }
-    return { ok: true, data: info };
-  }
-
-  /**
-   * @deprecated Use getNames() instead
-   */
-  getVariableNames(): string[] {
-    return this.getNames();
-  }
-
-  /**
-   * @deprecated Use filter() with required predicate instead
-   */
-  getRequiredVariables(): Array<[string, VariableInfo]> {
-    const result: Array<[string, VariableInfo]> = [];
-    for (const [name, info] of this.variables) {
-      if (info.required === true) {
-        result.push([name, { ...info }]);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * @deprecated Use entries() instead
-   */
-  toInfoObject(): Record<string, VariableInfo> {
-    const result: Record<string, VariableInfo> = {};
-    for (const [name, info] of this.variables) {
-      result[name] = { ...info };
-    }
-    return result;
   }
 }

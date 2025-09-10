@@ -43,7 +43,7 @@ function isValidRecordData(data: unknown): data is Record<string, unknown> {
 import type {
   TemplateProcessingContext,
   UnifiedTemplateProcessor,
-} from "../domain/template/unified-template-processor.ts";
+} from "../domain/template/services/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type {
   ApplicationConfiguration,

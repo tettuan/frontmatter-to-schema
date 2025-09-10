@@ -14,7 +14,7 @@ import type { FrontMatterExtractor } from "../domain/services/interfaces.ts";
 import type { SchemaValidator } from "../domain/services/schema-validator.ts";
 import type {
   UnifiedTemplateProcessor,
-} from "../domain/template/unified-template-processor.ts";
+} from "../domain/template/services/unified-template-processor.ts";
 import type { FileSystemPort } from "../infrastructure/ports/index.ts";
 import type { ApplicationConfiguration } from "./configuration.ts";
 import { FileOperations } from "./document-processing/file-operations.ts";

@@ -16,7 +16,7 @@ import {
   TemplateProcessorFactory,
   UnifiedTemplateProcessor,
   ValidatedTemplateContent,
-} from "../../../../src/domain/template/unified-template-processor.ts";
+} from "../../../../src/domain/template/services/unified-template-processor.ts";
 
 // Test Data
 const sampleData = {

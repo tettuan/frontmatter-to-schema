@@ -1,24 +1,11 @@
 /**
- * UnifiedTemplateProcessor - Legacy Wrapper (Deprecated)
+ * UnifiedTemplateProcessor - Legacy Compatibility Facade
  *
- * This file is being phased out in favor of smaller, specialized processors.
- * Use the new decomposed services in the services/ directory.
+ * This facade maintains backward compatibility for existing imports
+ * while the implementation has been moved to the services directory.
  *
- * @deprecated Use services/unified-template-processor.ts and specialized processors instead
+ * @deprecated Import directly from services/unified-template-processor.ts instead
  */
 
-// Re-export types and classes from new decomposed structure
-export type { PlaceholderPatternType } from "./services/placeholder-pattern.ts";
-export type {
-  MappedSchemaData,
-  ProcessingStatistics,
-  SchemaDefinition,
-  TemplateProcessingContext,
-  TemplateProcessingOptions,
-  TemplateProcessingResult,
-} from "./models/template-processing-types.ts";
-
-export { PlaceholderPattern } from "./services/placeholder-pattern.ts";
-export { ValidatedTemplateContent } from "./services/template-content-validator.ts";
-export { UnifiedTemplateProcessor } from "./services/unified-template-processor.ts";
-export { TemplateProcessorFactory } from "./services/template-processor-factory.ts";
+// Re-export everything from the canonical implementation
+export * from "./services/unified-template-processor.ts";

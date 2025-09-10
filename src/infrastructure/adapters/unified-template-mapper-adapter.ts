@@ -26,7 +26,7 @@ import {
   type TemplateProcessingResult,
   TemplateProcessorFactory,
   type UnifiedTemplateProcessor,
-} from "../../domain/template/unified-template-processor.ts";
+} from "../../domain/template/services/unified-template-processor.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 
 /**

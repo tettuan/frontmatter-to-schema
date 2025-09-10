@@ -3,8 +3,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
-import type { DocumentId } from "./ids.ts";
-import { AnalysisId } from "./ids.ts";
+import type { AnalysisId, DocumentId } from "./ids.ts";
 import type { Document } from "../entities/document.ts";
 
 /**
@@ -31,14 +30,6 @@ export class ExtractedData {
       };
     }
     return { ok: true, data: new ExtractedData(data) };
-  }
-
-  /**
-   * @deprecated Use create() with Result type
-   * Kept for backward compatibility
-   */
-  static createUnsafe(data: Record<string, unknown>): ExtractedData {
-    return new ExtractedData(data);
   }
 
   getData(): Record<string, unknown> {
@@ -96,14 +87,6 @@ export class MappedData {
       };
     }
     return { ok: true, data: new MappedData(data) };
-  }
-
-  /**
-   * @deprecated Use create() with Result type
-   * Kept for backward compatibility
-   */
-  static createUnsafe(data: Record<string, unknown>): MappedData {
-    return new MappedData(data);
   }
 
   getData(): Record<string, unknown> {
@@ -214,24 +197,6 @@ export class AnalysisResult {
         safeTimestamp,
       ),
     };
-  }
-
-  /**
-   * @deprecated Use create() with Result type
-   * Factory method for backward compatibility
-   */
-  static createUnsafe(
-    document: Document,
-    extractedData: ExtractedData,
-    mappedData: MappedData,
-  ): AnalysisResult {
-    return new AnalysisResult(
-      AnalysisId.generate(),
-      document,
-      extractedData,
-      mappedData,
-      new Date(),
-    );
   }
 
   getId(): AnalysisId {

@@ -62,24 +62,6 @@ export class Template {
     };
   }
 
-  /**
-   * Legacy backward compatibility method for tests during migration
-   * @deprecated Use create() method that returns Result<Template, Error>
-   * This method throws on error for backward compatibility
-   */
-  static createLegacy(
-    id: TemplateId,
-    format: TemplateFormat,
-    mappingRules: MappingRule[],
-    description: string = "",
-  ): Template {
-    const result = Template.create(id, format, mappingRules, description);
-    if (!result.ok) {
-      throw new Error(`Template creation failed: ${result.error.message}`);
-    }
-    return result.data;
-  }
-
   getId(): TemplateId {
     return this.id;
   }

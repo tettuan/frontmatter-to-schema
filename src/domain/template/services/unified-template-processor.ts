@@ -133,3 +133,15 @@ export class UnifiedTemplateProcessor {
       ("content" in value);
   }
 }
+
+// Re-export types and classes for backward compatibility
+export type {
+  TemplateProcessingContext,
+  TemplateProcessingOptions,
+  TemplateProcessingResult,
+} from "../models/template-processing-types.ts";
+
+export type { PlaceholderPatternType } from "./placeholder-pattern.ts";
+export { PlaceholderPattern } from "./placeholder-pattern.ts";
+export { ValidatedTemplateContent } from "./template-content-validator.ts";
+export { TemplateProcessorFactory } from "./template-processor-factory.ts";
