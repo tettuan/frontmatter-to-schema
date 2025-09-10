@@ -37,6 +37,46 @@ export interface RegistryBuildingContext {
 }
 
 /**
+ * Type guards for safe data access without type assertions
+ */
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) &&
+    value.every((item) => typeof item === "string");
+}
+
+function isCommandArray(value: unknown): value is Command[] {
+  return Array.isArray(value) &&
+    value.every((item) => item && typeof item === "object" && "c1" in item);
+}
+
+function isValidToolsObject(value: unknown): value is {
+  availableConfigs: string[];
+  commands: Command[];
+} {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return "availableConfigs" in obj &&
+    "commands" in obj &&
+    isStringArray(obj.availableConfigs) &&
+    isCommandArray(obj.commands);
+}
+
+function isValidRegistryData(value: unknown): value is {
+  version: string;
+  description: string;
+  tools: { availableConfigs: string[]; commands: Command[] };
+} {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return "version" in obj &&
+    "description" in obj &&
+    "tools" in obj &&
+    typeof obj.version === "string" &&
+    typeof obj.description === "string" &&
+    isValidToolsObject(obj.tools);
+}
+
+/**
  * RegistryBuilder - Aggregate Root for Stage 2 processing
  */
 export class RegistryBuilder {
@@ -152,35 +192,19 @@ export class RegistryBuilder {
         }
       }
 
-      // Validate tools structure
-      if (registryData.tools && typeof registryData.tools === "object") {
-        const tools = registryData.tools as Record<string, unknown>;
-
-        if (!Array.isArray(tools.availableConfigs)) {
-          return {
-            ok: false,
-            error: createDomainError({
-              kind: "SchemaValidationFailed",
-              schema: {},
-              data: {},
-              field: "tools.availableConfigs",
-              details: "availableConfigs must be an array",
-            }),
-          };
-        }
-
-        if (!Array.isArray(tools.commands)) {
-          return {
-            ok: false,
-            error: createDomainError({
-              kind: "SchemaValidationFailed",
-              schema: {},
-              data: {},
-              field: "tools.commands",
-              details: "commands must be an array",
-            }),
-          };
-        }
+      // Validate tools structure using type guard
+      if (!isValidToolsObject(registryData.tools)) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "SchemaValidationFailed",
+            schema: {},
+            data: {},
+            field: "tools",
+            details:
+              "Registry tools must have valid availableConfigs and commands arrays",
+          }),
+        };
       }
 
       return { ok: true, data: registryData };
@@ -276,52 +300,28 @@ export class RegistryBuilder {
       };
     }
 
-    if (!data.tools || typeof data.tools !== "object") {
+    // Use type guard to validate complete registry structure
+    if (!isValidRegistryData(data)) {
       return {
         ok: false,
         error: createDomainError({
           kind: "SchemaValidationFailed",
           schema: {},
           data: {},
-          field: "tools",
-          details: "Registry tools object is required",
+          field: "registry",
+          details:
+            "Invalid registry structure: must have version, description, and valid tools object",
         }),
       };
     }
 
-    const tools = data.tools as Record<string, unknown>;
-
-    if (!Array.isArray(tools.availableConfigs)) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "SchemaValidationFailed",
-          schema: {},
-          data: {},
-          field: "tools.availableConfigs",
-          details: "availableConfigs must be an array",
-        }),
-      };
-    }
-
-    if (!Array.isArray(tools.commands)) {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "SchemaValidationFailed",
-          schema: {},
-          data: {},
-        }),
-      };
-    }
-
-    // Create validated registry object
+    // After type guard validation, data is safely typed
     const registry: Registry = {
-      version: data.version as string,
-      description: data.description as string,
+      version: data.version,
+      description: data.description,
       tools: {
-        availableConfigs: tools.availableConfigs as string[],
-        commands: tools.commands as Command[],
+        availableConfigs: data.tools.availableConfigs,
+        commands: data.tools.commands,
       },
     };
 
@@ -333,22 +333,5 @@ export class RegistryBuilder {
  * Type guard for Registry interface
  */
 export function isRegistry(value: unknown): value is Registry {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const registry = value as Record<string, unknown>;
-
-  const isValidVersion: boolean = typeof registry.version === "string";
-  const isValidDescription: boolean = typeof registry.description === "string";
-  const hasTools: boolean = Boolean(
-    registry.tools && typeof registry.tools === "object",
-  );
-  const hasValidAvailableConfigs: boolean = hasTools &&
-    Array.isArray((registry.tools as Record<string, unknown>).availableConfigs);
-  const hasValidCommands: boolean = hasTools &&
-    Array.isArray((registry.tools as Record<string, unknown>).commands);
-
-  return isValidVersion && isValidDescription && hasValidAvailableConfigs &&
-    hasValidCommands;
+  return isValidRegistryData(value);
 }
