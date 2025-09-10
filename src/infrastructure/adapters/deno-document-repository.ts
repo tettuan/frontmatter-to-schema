@@ -8,7 +8,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { VerboseLoggingUtility } from "../../domain/services/verbose-logging-utility.ts";
+import { VerboseLoggerService } from "../../domain/services/verbose-logger-service.ts";
 import { Document } from "../../domain/models/entities.ts";
 import {
   DocumentContent,
@@ -42,7 +42,7 @@ export class DenoDocumentRepository implements DocumentRepository {
   async findAll(
     path: DocumentPath,
   ): Promise<Result<Document[], DomainError & { message: string }>> {
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "deno-document-repository",
       "Starting document discovery",
       { path: path.getValue() },
@@ -55,7 +55,7 @@ export class DenoDocumentRepository implements DocumentRepository {
     }
 
     const filePaths = discoveryResult.data;
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "deno-document-repository",
       "Files discovered, reading content",
       { fileCount: filePaths.length },
@@ -70,7 +70,7 @@ export class DenoDocumentRepository implements DocumentRepository {
         if (docResult.ok) {
           documents.push(docResult.data);
         } else {
-          VerboseLoggingUtility.logWarn(
+          VerboseLoggerService.logWarn(
             "deno-document-repository",
             "Failed to process document",
             {
@@ -82,7 +82,7 @@ export class DenoDocumentRepository implements DocumentRepository {
       }
     }
 
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "deno-document-repository",
       "Document processing completed",
       {
@@ -101,7 +101,7 @@ export class DenoDocumentRepository implements DocumentRepository {
     pattern: string,
     basePath: string = ".",
   ): Promise<Result<Document[], DomainError & { message: string }>> {
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "deno-document-repository",
       "Starting pattern-based discovery",
       { pattern, basePath },
@@ -139,7 +139,7 @@ export class DenoDocumentRepository implements DocumentRepository {
   ): Promise<Result<Document, DomainError & { message: string }>> {
     const filePath = path.getValue();
 
-    VerboseLoggingUtility.logDebug(
+    VerboseLoggerService.logDebug(
       "deno-document-repository",
       "Reading document",
       { path: filePath },
@@ -180,7 +180,7 @@ export class DenoDocumentRepository implements DocumentRepository {
       documentContentResult.data,
     );
 
-    VerboseLoggingUtility.logDebug(
+    VerboseLoggerService.logDebug(
       "deno-document-repository",
       "Document created successfully",
       {

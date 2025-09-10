@@ -15,13 +15,14 @@ import { StructuredLogger } from "../shared/logger.ts";
 export type VerboseLevel = "info" | "debug" | "trace";
 
 /**
- * Verbose log context
+ * Verbose log context - flexible to accept any additional properties
  */
 export interface VerboseContext {
-  operation: string;
+  operation?: string;
   document?: string;
   stage?: string;
   data?: Record<string, unknown>;
+  [key: string]: unknown; // Allow any additional properties
 }
 
 /**
@@ -30,6 +31,7 @@ export interface VerboseContext {
  */
 export class VerboseLoggerService {
   private static readonly SERVICE_NAME = "verbose-logger";
+  private static defaultInstance: VerboseLoggerService | null = null;
   private readonly logger: ReturnType<typeof StructuredLogger.getServiceLogger>;
   private readonly isVerboseMode: boolean;
 
@@ -37,6 +39,82 @@ export class VerboseLoggerService {
     this.logger = StructuredLogger.getServiceLogger(serviceName);
     const envConfig = getGlobalEnvironmentConfig();
     this.isVerboseMode = envConfig.getVerboseMode();
+  }
+
+  /**
+   * Get default instance for static methods
+   */
+  private static getDefaultInstance(): VerboseLoggerService {
+    if (!VerboseLoggerService.defaultInstance) {
+      VerboseLoggerService.defaultInstance = new VerboseLoggerService();
+    }
+    return VerboseLoggerService.defaultInstance;
+  }
+
+  /**
+   * Static method for debug logging
+   */
+  static logDebug(
+    serviceNameOrMessage: string,
+    messageOrContext?: string | VerboseContext,
+    context?: VerboseContext,
+  ): void {
+    // Handle both 2-arg and 3-arg calls for backward compatibility
+    if (typeof messageOrContext === "string") {
+      // 3-arg call: (serviceName, message, context)
+      const logger = VerboseLoggerService.forService(serviceNameOrMessage);
+      logger.debug(messageOrContext, context);
+    } else {
+      // 2-arg call: (message, context)
+      VerboseLoggerService.getDefaultInstance().debug(
+        serviceNameOrMessage,
+        messageOrContext,
+      );
+    }
+  }
+
+  /**
+   * Static method for warning logging
+   */
+  static logWarn(
+    serviceNameOrMessage: string,
+    messageOrContext?: string | VerboseContext,
+    context?: VerboseContext,
+  ): void {
+    // Handle both 2-arg and 3-arg calls for backward compatibility
+    if (typeof messageOrContext === "string") {
+      // 3-arg call: (serviceName, message, context)
+      const logger = VerboseLoggerService.forService(serviceNameOrMessage);
+      logger.info(messageOrContext, context);
+    } else {
+      // 2-arg call: (message, context)
+      VerboseLoggerService.getDefaultInstance().info(
+        serviceNameOrMessage,
+        messageOrContext,
+      );
+    }
+  }
+
+  /**
+   * Static method for info logging
+   */
+  static logInfo(
+    serviceNameOrMessage: string,
+    messageOrContext?: string | VerboseContext,
+    context?: VerboseContext,
+  ): void {
+    // Handle both 2-arg and 3-arg calls for backward compatibility
+    if (typeof messageOrContext === "string") {
+      // 3-arg call: (serviceName, message, context)
+      const logger = VerboseLoggerService.forService(serviceNameOrMessage);
+      logger.info(messageOrContext, context);
+    } else {
+      // 2-arg call: (message, context)
+      VerboseLoggerService.getDefaultInstance().info(
+        serviceNameOrMessage,
+        messageOrContext,
+      );
+    }
   }
 
   /**

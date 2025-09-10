@@ -8,7 +8,7 @@ import type {
   TemplateFormat,
 } from "../../../domain/models/value-objects.ts";
 import { PropertyPathNavigator } from "../../../domain/models/property-path.ts";
-import { TemplateApplicationService } from "../services/template-applier.ts";
+import { UnifiedTemplateRenderer } from "../services/unified-template-renderer.ts";
 
 // Discriminated union for template parsing results
 export type TemplateParsingResult = {
@@ -145,14 +145,43 @@ export class Template {
 
   /**
    * Backward compatibility method for applyRules
-   * @deprecated Use TemplateApplicationService.applyRules() for new code
+   * @deprecated Use UnifiedTemplateRenderer.render() for new code
    * This method provides backward compatibility during migration
    */
   applyRules(
     data: Record<string, unknown>,
-    mode: TemplateApplicationMode,
+    _mode: TemplateApplicationMode,
   ): Result<Record<string, unknown>, DomainError & { message: string }> {
-    const service = TemplateApplicationService.create();
-    return service.applyRules(this, data, mode);
+    const renderer = new UnifiedTemplateRenderer();
+    // Convert mapping rules to template structure
+    const templateStructure: Record<string, unknown> = {};
+    for (const rule of this.getMappingRules()) {
+      const source = rule.getSource();
+      const target = rule.getTarget();
+      if (source && target) {
+        templateStructure[target] = `{{${source}}}`;
+      }
+    }
+    const templateString = JSON.stringify(templateStructure);
+    const result = renderer.render(templateString, data);
+
+    if (!result.ok) {
+      return result;
+    }
+
+    // Parse the rendered result back to object
+    try {
+      const parsed = JSON.parse(result.data.content);
+      return { ok: true, data: parsed };
+    } catch {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "InvalidFormat",
+          input: result.data.content,
+          expectedFormat: "JSON object",
+        }),
+      };
+    }
   }
 }

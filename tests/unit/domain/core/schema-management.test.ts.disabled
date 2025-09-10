@@ -6,11 +6,11 @@
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
-  ExecutablePipeline,
+  // ExecutablePipeline, // Removed in DDD refactoring
   type ExecutionConfiguration,
   SchemaLoader,
   type SchemaProcessor,
-  SchemaSwitcher,
+  // SchemaSwitcher, // Removed in DDD refactoring
   ValidSchema,
 } from "../../../../src/domain/core/schema-management.ts";
 import {
@@ -447,138 +447,138 @@ Deno.test("SchemaLoader", async (t) => {
   // Clean up after each test - handled manually in test steps
 });
 
-Deno.test("SchemaSwitcher", async (t) => {
+Deno.test.ignore("SchemaSwitcher (REMOVED IN DDD REFACTORING)", async (t) => {
   await t.step("should register and switch schemas successfully", () => {
-    const switcher = new SchemaSwitcher();
-    const schema1 = { type: "string" };
-    const template1 = { output: "{{value}}" };
-    const prompts1 = { extraction: "Extract1", mapping: "Map1" };
+//    // const switcher = new SchemaSwitcher();
+//    const schema1 = { type: "string" };
+//    const template1 = { output: "{{value}}" };
+//    const prompts1 = { extraction: "Extract1", mapping: "Map1" };
 
-    const validSchema = ValidSchema.create(
-      "schema1",
-      schema1,
-      template1,
-      prompts1,
-    );
-    assertEquals(validSchema.ok, true);
+//    const validSchema = ValidSchema.create(
+//      "schema1",
+//      schema1,
+//      template1,
+//      prompts1,
+//    );
+//    assertEquals(validSchema.ok, true);
 
-    if (validSchema.ok) {
-      const registerResult = switcher.registerSchema(validSchema.data);
-      assertEquals(registerResult.ok, true);
+//    if (validSchema.ok) {
+//      const registerResult = switcher.registerSchema(validSchema.data);
+//      assertEquals(registerResult.ok, true);
 
-      const switchResult = switcher.switchToSchema("schema1");
-      assertEquals(switchResult.ok, true);
+//      const switchResult = switcher.switchToSchema("schema1");
+//      assertEquals(switchResult.ok, true);
 
-      if (switchResult.ok) {
-        assertEquals(switchResult.data.kind, "Loaded");
-        if (switchResult.data.kind === "Loaded") {
-          assertEquals(switchResult.data.name, "schema1");
-        }
-      }
-    }
-  });
+//      if (switchResult.ok) {
+//        assertEquals(switchResult.data.kind, "Loaded");
+//        if (switchResult.data.kind === "Loaded") {
+//          assertEquals(switchResult.data.name, "schema1");
+//        }
+//      }
+//    }
+//  });
 
-  await t.step("should list available schemas", () => {
-    const switcher = new SchemaSwitcher();
+//  await t.step("should list available schemas", () => {
+//    // const switcher = new SchemaSwitcher();
 
-    // Initially empty
-    assertEquals(switcher.listAvailableSchemas().length, 0);
+//    // Initially empty
+//    assertEquals(switcher.listAvailableSchemas().length, 0);
 
-    // Add schemas
-    const schema1Result = ValidSchema.create(
-      "schema1",
-      { type: "string" },
-      {},
-      { extraction: "E1", mapping: "M1" },
-    );
-    const schema2Result = ValidSchema.create(
-      "schema2",
-      { type: "number" },
-      {},
-      { extraction: "E2", mapping: "M2" },
-    );
+//    // Add schemas
+//    const schema1Result = ValidSchema.create(
+//      "schema1",
+//      { type: "string" },
+//      {},
+//      { extraction: "E1", mapping: "M1" },
+//    );
+//    const schema2Result = ValidSchema.create(
+//      "schema2",
+//      { type: "number" },
+//      {},
+//      { extraction: "E2", mapping: "M2" },
+//    );
 
-    if (schema1Result.ok && schema2Result.ok) {
-      switcher.registerSchema(schema1Result.data);
-      switcher.registerSchema(schema2Result.data);
+//    if (schema1Result.ok && schema2Result.ok) {
+//      switcher.registerSchema(schema1Result.data);
+//      switcher.registerSchema(schema2Result.data);
 
-      const available = switcher.listAvailableSchemas();
-      assertEquals(available.length, 2);
-      assertEquals(available.includes("schema1"), true);
-      assertEquals(available.includes("schema2"), true);
-    }
-  });
+//      const available = switcher.listAvailableSchemas();
+//      assertEquals(available.length, 2);
+//      assertEquals(available.includes("schema1"), true);
+//      assertEquals(available.includes("schema2"), true);
+//    }
+//  });
 
-  await t.step("should fail to switch to non-existent schema", () => {
-    const switcher = new SchemaSwitcher();
+//  await t.step("should fail to switch to non-existent schema", () => {
+//    // const switcher = new SchemaSwitcher();
 
-    const result = switcher.switchToSchema("nonexistent");
+//    const result = switcher.switchToSchema("nonexistent");
 
-    assertEquals(result.ok, false);
-    if (!result.ok) {
-      assertEquals(result.error.kind, "NotFound");
-      if (result.error.kind === "NotFound") {
-        assertEquals(result.error.resource, "schema");
-        assertEquals(result.error.name, "nonexistent");
-      }
-    }
-  });
+//    assertEquals(result.ok, false);
+//    if (!result.ok) {
+//      assertEquals(result.error.kind, "NotFound");
+//      if (result.error.kind === "NotFound") {
+//        assertEquals(result.error.resource, "schema");
+//        assertEquals(result.error.name, "nonexistent");
+//      }
+//    }
+//  });
 
-  await t.step("should get current schema", () => {
-    const switcher = new SchemaSwitcher();
+//  await t.step("should get current schema", () => {
+//    // const switcher = new SchemaSwitcher();
 
-    // Initially no schema - should return error Result
-    const initialResult = switcher.getCurrentSchema();
-    assertEquals(initialResult.ok, false);
+//    // Initially no schema - should return error Result
+//    const initialResult = switcher.getCurrentSchema();
+//    assertEquals(initialResult.ok, false);
 
-    // After registering and switching
-    const validSchema = ValidSchema.create("active", { type: "object" }, {}, {
-      extraction: "Extract",
-      mapping: "Map",
-    });
-    if (validSchema.ok) {
-      switcher.registerSchema(validSchema.data);
-      switcher.switchToSchema("active");
+//    // After registering and switching
+//    const validSchema = ValidSchema.create("active", { type: "object" }, {}, {
+//      extraction: "Extract",
+//      mapping: "Map",
+//    });
+//    if (validSchema.ok) {
+//      switcher.registerSchema(validSchema.data);
+//      switcher.switchToSchema("active");
 
-      const currentResult = switcher.getCurrentSchema();
-      assertEquals(currentResult.ok, true);
-      if (currentResult.ok) {
-        assertEquals(currentResult.data.kind, "Loaded");
-      }
-    }
-  });
+//      const currentResult = switcher.getCurrentSchema();
+//      assertEquals(currentResult.ok, true);
+//      if (currentResult.ok) {
+//        assertEquals(currentResult.data.kind, "Loaded");
+//      }
+//    }
+//  });
 
-  await t.step("should unregister schemas", () => {
-    const switcher = new SchemaSwitcher();
+//  await t.step("should unregister schemas", () => {
+//    // const switcher = new SchemaSwitcher();
 
-    const validSchema = ValidSchema.create(
-      "to-remove",
-      { type: "boolean" },
-      {},
-      { extraction: "E", mapping: "M" },
-    );
-    if (validSchema.ok) {
-      switcher.registerSchema(validSchema.data);
-      switcher.switchToSchema("to-remove");
+//    const validSchema = ValidSchema.create(
+//      "to-remove",
+//      { type: "boolean" },
+//      {},
+//      { extraction: "E", mapping: "M" },
+//    );
+//    if (validSchema.ok) {
+//      switcher.registerSchema(validSchema.data);
+//      switcher.switchToSchema("to-remove");
 
-      assertEquals(switcher.listAvailableSchemas().length, 1);
-      const currentResult = switcher.getCurrentSchema();
-      assertEquals(currentResult.ok, true);
-      if (currentResult.ok) {
-        assertEquals(currentResult.data.kind, "Loaded");
-      }
+//      assertEquals(switcher.listAvailableSchemas().length, 1);
+//      const currentResult = switcher.getCurrentSchema();
+//      assertEquals(currentResult.ok, true);
+//      if (currentResult.ok) {
+//        assertEquals(currentResult.data.kind, "Loaded");
+//      }
 
-      switcher.unregisterSchema("to-remove");
+//      switcher.unregisterSchema("to-remove");
 
-      assertEquals(switcher.listAvailableSchemas().length, 0);
-      // After unregistering - should return error Result (no active schema)
-      const afterUnregisterResult = switcher.getCurrentSchema();
-      assertEquals(afterUnregisterResult.ok, false);
-    }
-  });
+//      assertEquals(switcher.listAvailableSchemas().length, 0);
+//      // After unregistering - should return error Result (no active schema)
+//      const afterUnregisterResult = switcher.getCurrentSchema();
+//      assertEquals(afterUnregisterResult.ok, false);
+//    }
+//  });
 
   await t.step("should clear all schemas", () => {
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
 
     // Add multiple schemas
     const schemas = [
@@ -665,7 +665,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
 
   await t.step("should create pipeline successfully", async () => {
     setupMockData();
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const factory = new DynamicPipelineFactory(switcher, processors);
     const config = createValidConfig();
 
@@ -681,7 +681,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
 
   await t.step("should handle schema loading failure", async () => {
     setupMockData();
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const factory = new DynamicPipelineFactory(switcher, processors);
     const config = createValidConfig();
 
@@ -697,7 +697,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
 
   await t.step("should handle template loading failure", async () => {
     setupMockData();
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const factory = new DynamicPipelineFactory(switcher, processors);
     const config = createValidConfig();
 
@@ -713,7 +713,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
 
   await t.step("should handle prompts loading failure", async () => {
     setupMockData();
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const factory = new DynamicPipelineFactory(switcher, processors);
     const config = createValidConfig();
 
@@ -729,7 +729,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
 
   await t.step("should use default name when not provided", async () => {
     setupMockData();
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const factory = new DynamicPipelineFactory(switcher, processors);
     const config = createValidConfig();
     delete config.name;
@@ -1029,6 +1029,8 @@ Deno.test("ExecutablePipeline", async (t) => {
     }
   });
 });
+*/
+// End of commented DynamicPipelineFactory test
 
 // Integration test removed - uses DynamicPipelineFactory which was deleted
 /*
@@ -1062,7 +1064,7 @@ Deno.test("Schema Management Integration", async (t) => {
 
     // Test complete workflow
     const loader = new SchemaLoader(mockFS);
-    const switcher = new SchemaSwitcher();
+    // const switcher = new SchemaSwitcher();
     const processors = new Map<string, SchemaProcessor>();
     processors.set("default", mockProcessor);
     const factory = new DynamicPipelineFactory(switcher, processors);
@@ -1197,3 +1199,4 @@ Deno.test("Schema Management Integration", async (t) => {
   });
 });
 */
+

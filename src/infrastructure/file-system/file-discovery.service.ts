@@ -9,7 +9,7 @@
 import { walk } from "jsr:@std/fs@1.0.8/walk";
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { VerboseLoggingUtility } from "../../domain/services/verbose-logging-utility.ts";
+import { VerboseLoggerService } from "../../domain/services/verbose-logger-service.ts";
 import type { DocumentPath } from "../../domain/models/value-objects.ts";
 
 /**
@@ -24,7 +24,7 @@ export class FileDiscoveryService {
   ): Promise<Result<string[], DomainError & { message: string }>> {
     const pathValue = path.getValue();
 
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "file-discovery-service",
       "Starting file discovery",
       { path: pathValue },
@@ -38,7 +38,7 @@ export class FileDiscoveryService {
       if (!dirPath) dirPath = ".";
     }
 
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "file-discovery-service",
       "Resolved directory path",
       { dirPath },
@@ -94,7 +94,7 @@ export class FileDiscoveryService {
     pattern: string,
     basePath: string = ".",
   ): Promise<Result<string[], DomainError & { message: string }>> {
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "file-discovery-service",
       "Starting pattern-based discovery",
       { pattern, basePath },
@@ -116,7 +116,7 @@ export class FileDiscoveryService {
         }
       }
 
-      VerboseLoggingUtility.logInfo(
+      VerboseLoggerService.logInfo(
         "file-discovery-service",
         "Pattern discovery completed",
         { foundFiles: filePaths.length },
@@ -143,7 +143,7 @@ export class FileDiscoveryService {
   ): Promise<Result<string[], DomainError & { message: string }>> {
     const filePaths: string[] = [];
 
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "file-discovery-service",
       "Starting directory walk",
       { dirPath },
@@ -157,7 +157,7 @@ export class FileDiscoveryService {
           skip: [/node_modules/, /\.git/],
         })
       ) {
-        VerboseLoggingUtility.logDebug(
+        VerboseLoggerService.logDebug(
           "file-discovery-service",
           "Found entry",
           {
@@ -170,7 +170,7 @@ export class FileDiscoveryService {
           fileCount++;
           filePaths.push(entry.path);
 
-          VerboseLoggingUtility.logDebug(
+          VerboseLoggerService.logDebug(
             "file-discovery-service",
             "Added file to collection",
             {
@@ -181,7 +181,7 @@ export class FileDiscoveryService {
         }
       }
 
-      VerboseLoggingUtility.logInfo(
+      VerboseLoggerService.logInfo(
         "file-discovery-service",
         "Directory walk completed",
         {

@@ -9,7 +9,7 @@
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import { VerboseLoggingUtility } from "../services/verbose-logging-utility.ts";
+import { VerboseLoggerService } from "../services/verbose-logger-service.ts";
 import { FrontMatter } from "../models/entities.ts";
 import { FrontMatterContent } from "../models/value-objects.ts";
 
@@ -40,7 +40,7 @@ export class FrontmatterExtractorService {
    * Returns discriminated union for complete type safety
    */
   extractFromContent(content: string): FrontmatterExtractionResult {
-    VerboseLoggingUtility.logDebug(
+    VerboseLoggerService.logDebug(
       "frontmatter-extractor-service",
       "Starting frontmatter extraction",
       { contentLength: content.length },
@@ -54,7 +54,7 @@ export class FrontmatterExtractorService {
         isValidRecordData(extracted.attrs) &&
         Object.keys(extracted.attrs).length > 0
       ) {
-        VerboseLoggingUtility.logDebug(
+        VerboseLoggerService.logDebug(
           "frontmatter-extractor-service",
           "Frontmatter found, creating domain objects",
           {
@@ -79,7 +79,7 @@ export class FrontmatterExtractorService {
             rawFrontMatter,
           );
 
-          VerboseLoggingUtility.logDebug(
+          VerboseLoggerService.logDebug(
             "frontmatter-extractor-service",
             "Frontmatter extraction successful",
             { hasRawContent: rawFrontMatter.length > 0 },
@@ -91,14 +91,14 @@ export class FrontmatterExtractorService {
             body: extracted.body,
           };
         } else {
-          VerboseLoggingUtility.logWarn(
+          VerboseLoggerService.logWarn(
             "frontmatter-extractor-service",
             "Failed to create FrontMatterContent",
             { error: frontMatterContentResult.error },
           );
         }
       } else {
-        VerboseLoggingUtility.logDebug(
+        VerboseLoggerService.logDebug(
           "frontmatter-extractor-service",
           "No valid frontmatter found",
           { hasAttrs: !!extracted.attrs },
@@ -110,7 +110,7 @@ export class FrontmatterExtractorService {
         body: extracted.body,
       };
     } catch (error) {
-      VerboseLoggingUtility.logWarn(
+      VerboseLoggerService.logWarn(
         "frontmatter-extractor-service",
         "Frontmatter extraction failed, treating as no frontmatter",
         { error: error instanceof Error ? error.message : "Unknown error" },

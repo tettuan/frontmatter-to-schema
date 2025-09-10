@@ -8,7 +8,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { VerboseLoggingUtility } from "../../domain/services/verbose-logging-utility.ts";
+import { VerboseLoggerService } from "../../domain/services/verbose-logger-service.ts";
 
 /**
  * Result of reading file content with metadata
@@ -28,7 +28,7 @@ export class DocumentReaderService {
   async readFileContent(
     filePath: string,
   ): Promise<Result<FileContentResult, DomainError & { message: string }>> {
-    VerboseLoggingUtility.logDebug(
+    VerboseLoggerService.logDebug(
       "document-reader-service",
       "Reading file",
       { path: filePath },
@@ -37,7 +37,7 @@ export class DocumentReaderService {
     try {
       const content = await Deno.readTextFile(filePath);
 
-      VerboseLoggingUtility.logDebug(
+      VerboseLoggerService.logDebug(
         "document-reader-service",
         "File read successfully",
         {
@@ -64,7 +64,7 @@ export class DocumentReaderService {
   async readMultipleFiles(
     filePaths: string[],
   ): Promise<Result<FileContentResult[], DomainError & { message: string }>> {
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "document-reader-service",
       "Reading multiple files",
       { fileCount: filePaths.length },
@@ -79,7 +79,7 @@ export class DocumentReaderService {
         results.push(result.data);
       } else {
         errors.push(`${filePath}: ${result.error.message}`);
-        VerboseLoggingUtility.logWarn(
+        VerboseLoggerService.logWarn(
           "document-reader-service",
           "Failed to read file",
           {
@@ -90,7 +90,7 @@ export class DocumentReaderService {
       }
     }
 
-    VerboseLoggingUtility.logInfo(
+    VerboseLoggerService.logInfo(
       "document-reader-service",
       "Multiple file read completed",
       {
