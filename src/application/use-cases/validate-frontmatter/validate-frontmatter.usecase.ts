@@ -73,20 +73,8 @@ export class ValidateFrontmatterUseCase
 
         const validatedSchema = validatedSchemaResult.data;
 
-        // Pre-filtering: Check level compatibility before validation
-        if (!validatedSchema.isLevelCompatible(validatedData.getValue())) {
-          return {
-            ok: false,
-            error: createDomainError(
-              {
-                kind: "LevelMismatch",
-                schema: input.schema,
-                data: input.data,
-              },
-              "Document level does not match schema level constraints",
-            ),
-          };
-        }
+        // Note: Level filtering is already done by SchemaConstraints in ProcessDocumentsOrchestrator
+        // We don't need to check level compatibility here again
 
         // Check for required fields
         const requiredFields = validatedSchema.getRequiredFields();

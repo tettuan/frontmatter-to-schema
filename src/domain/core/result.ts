@@ -32,7 +32,15 @@ export type ValidationError =
   | { kind: "AlreadyExecuted"; pipeline: string }
   | { kind: "InvalidState"; expected: string; actual: string }
   | { kind: "NoFrontMatterPresent" }
-  | { kind: "MissingRequiredField"; fields: string[] };
+  | { kind: "MissingRequiredField"; fields: string[] }
+  | { kind: "TooDeep"; currentDepth: number; maxDepth: number }
+  | { kind: "CircularReference"; reference: string; visitedRefs: string[] }
+  | { kind: "InvalidReference"; reference: string; reason: string }
+  | { kind: "ReferenceLoadError"; reference: string; reason: string }
+  | { kind: "ExtractionError"; property?: string; reason: string }
+  | { kind: "SecurityViolation"; path: string; reason: string }
+  | { kind: "RenderError"; template: string; details: string }
+  | { kind: "ComputationError"; expression: string; details: string };
 
 // Analysis domain specific errors
 export type AnalysisError =
