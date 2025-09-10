@@ -32,41 +32,63 @@ import { SchemaPath } from "../domain/value-objects/schema-path.ts";
 import { DocumentPath } from "../domain/value-objects/document-path.ts";
 import { TemplatePath } from "../domain/value-objects/template-path.ts";
 
+// Services
+import {
+  type ProcessingOptions,
+  ProcessingOptionsBuilder,
+} from "./services/processing-options-builder.ts";
+import { FilePatternMatcher } from "../domain/services/file-pattern-matcher.ts";
+
+/**
+ * Template format types following totality principle
+ */
+export type TemplateFormat = "json" | "yaml" | "xml" | "custom";
+
+/**
+ * Template source discriminated union - eliminates invalid state combinations
+ * Follows totality principle: no optional properties creating ambiguous states
+ */
+export type TemplateSource =
+  | { kind: "file"; path: string; format: TemplateFormat }
+  | { kind: "inline"; definition: string; format: TemplateFormat };
+
+/**
+ * Schema source configuration
+ */
+export type SchemaSource = {
+  readonly path: string;
+  readonly format: "json" | "yaml";
+};
+
+/**
+ * Input source configuration
+ */
+export type InputSource = {
+  readonly pattern: string;
+  readonly baseDirectory?: string;
+};
+
+/**
+ * Output target configuration
+ */
+export type OutputTarget = {
+  readonly path: string;
+  readonly format: TemplateFormat;
+};
+
 /**
  * Processing configuration - single source of truth
+ * Updated to follow totality principles with discriminated unions
  */
 export interface ProcessingConfiguration {
-  readonly schema: {
-    readonly path: string;
-    readonly format: "json" | "yaml";
-  };
-  readonly input: {
-    readonly pattern: string;
-    readonly baseDirectory?: string;
-  };
-  readonly template: {
-    readonly path?: string;
-    readonly definition?: string;
-    readonly format: "json" | "yaml" | "xml" | "custom";
-  };
-  readonly output: {
-    readonly path: string;
-    readonly format: "json" | "yaml" | "xml" | "custom";
-  };
+  readonly schema: SchemaSource;
+  readonly input: InputSource;
+  readonly template: TemplateSource;
+  readonly output: OutputTarget;
   readonly options?: ProcessingOptions;
 }
 
-/**
- * Processing options
- */
-export interface ProcessingOptions {
-  readonly strict: boolean;
-  readonly allowEmptyFrontmatter: boolean;
-  readonly allowMissingVariables: boolean;
-  readonly validateSchema: boolean;
-  readonly parallelProcessing: boolean;
-  readonly maxFiles: number;
-}
+// ProcessingOptions now imported from ProcessingOptionsBuilder
 
 /**
  * Processing result - complete output
@@ -135,15 +157,6 @@ export class ProcessCoordinator {
   private readonly frontmatterContext: FrontmatterContext;
   private readonly templateContext: TemplateContext;
 
-  private readonly defaultOptions: ProcessingOptions = {
-    strict: true,
-    allowEmptyFrontmatter: false,
-    allowMissingVariables: false,
-    validateSchema: true,
-    parallelProcessing: false, // Sequential processing for reliability
-    maxFiles: 1000,
-  };
-
   constructor() {
     this.schemaContext = new SchemaContext();
     this.frontmatterContext = new FrontmatterContext();
@@ -161,7 +174,19 @@ export class ProcessCoordinator {
     configuration: ProcessingConfiguration,
   ): Promise<Result<ProcessingResult, DomainError & { message: string }>> {
     const startTime = Date.now();
-    const options = { ...this.defaultOptions, ...configuration.options };
+
+    // Use ProcessingOptionsBuilder for validated options
+    const optionsBuilderResult = ProcessingOptionsBuilder.create(
+      configuration.options,
+    );
+    if (!optionsBuilderResult.ok) {
+      return this.createProcessingError(
+        "OptionsValidation",
+        optionsBuilderResult.error,
+      );
+    }
+
+    const options = optionsBuilderResult.data.getOptions();
 
     try {
       // CANONICAL PROCESSING PATH - STEP BY STEP, NO SHORTCUTS
@@ -295,15 +320,32 @@ export class ProcessCoordinator {
       const files: DocumentPath[] = [];
 
       for await (const entry of Deno.readDir(baseDir)) {
-        if (entry.isFile && this.matchesPattern(entry.name, pattern)) {
-          const fullPath = `${baseDir}/${entry.name}`;
-          const documentPathResult = DocumentPath.create(fullPath);
+        if (entry.isFile) {
+          const matchResult = this.matchesPattern(entry.name, pattern);
+          if (!matchResult.ok) {
+            return {
+              ok: false,
+              error: createDomainError(
+                {
+                  kind: "FileDiscoveryFailed",
+                  directory: baseDir,
+                  pattern,
+                },
+                `Pattern matching failed: ${matchResult.error.message}`,
+              ),
+            };
+          }
 
-          if (documentPathResult.ok) {
-            files.push(documentPathResult.data);
+          if (matchResult.data) {
+            const fullPath = `${baseDir}/${entry.name}`;
+            const documentPathResult = DocumentPath.create(fullPath);
 
-            if (files.length >= options.maxFiles) {
-              break;
+            if (documentPathResult.ok) {
+              files.push(documentPathResult.data);
+
+              if (files.length >= options.maxFiles) {
+                break;
+              }
             }
           }
         }
@@ -465,44 +507,46 @@ export class ProcessCoordinator {
    */
   private async renderTemplate(
     validatedDocuments: ValidatedData[],
-    templateConfig: ProcessingConfiguration["template"],
+    templateConfig: TemplateSource,
     options: ProcessingOptions,
   ): Promise<Result<RenderedContent, DomainError & { message: string }>> {
     // Combine all validated data for template rendering
     const combinedData = this.combineValidatedData(validatedDocuments);
 
-    // Create template configuration
-    const templateConfigObj: TemplateConfig = {
-      definition: templateConfig.definition || "",
-      format: templateConfig.format,
-    };
+    // Handle discriminated union - follows totality principle with exhaustive switch
+    switch (templateConfig.kind) {
+      case "file": {
+        const templatePathResult = TemplatePath.create(templateConfig.path);
+        if (!templatePathResult.ok) {
+          return templatePathResult;
+        }
 
-    // Load template from file if path provided
-    if (templateConfig.path) {
-      const templatePathResult = TemplatePath.create(templateConfig.path);
-      if (!templatePathResult.ok) {
-        return templatePathResult;
+        return await this.templateContext.renderTemplateFromFile(
+          combinedData,
+          templatePathResult.data,
+          {
+            allowMissingVariables: options.allowMissingVariables,
+            strict: options.strict,
+          },
+        );
       }
 
-      return await this.templateContext.renderTemplateFromFile(
-        combinedData,
-        templatePathResult.data,
-        {
-          allowMissingVariables: options.allowMissingVariables,
-          strict: options.strict,
-        },
-      );
-    }
+      case "inline": {
+        const templateConfigObj: TemplateConfig = {
+          definition: templateConfig.definition,
+          format: templateConfig.format,
+        };
 
-    // Render from definition
-    return this.templateContext.renderTemplate(
-      combinedData,
-      templateConfigObj,
-      {
-        allowMissingVariables: options.allowMissingVariables,
-        strict: options.strict,
-      },
-    );
+        return this.templateContext.renderTemplate(
+          combinedData,
+          templateConfigObj,
+          {
+            allowMissingVariables: options.allowMissingVariables,
+            strict: options.strict,
+          },
+        );
+      }
+    }
   }
 
   /**
@@ -599,16 +643,18 @@ export class ProcessCoordinator {
   // Utility methods
 
   /**
-   * Check if filename matches pattern
+   * Check if filename matches pattern using FilePatternMatcher service
    */
-  private matchesPattern(filename: string, pattern: string): boolean {
-    // Basic glob pattern matching
-    const regex = new RegExp(
-      pattern
-        .replace(/\*/g, ".*")
-        .replace(/\?/g, "."),
-    );
-    return regex.test(filename);
+  private matchesPattern(
+    filename: string,
+    pattern: string,
+  ): Result<boolean, DomainError & { message: string }> {
+    const matcherResult = FilePatternMatcher.createGlob(pattern);
+    if (!matcherResult.ok) {
+      return matcherResult;
+    }
+
+    return { ok: true, data: matcherResult.data.matches(filename) };
   }
 
   /**

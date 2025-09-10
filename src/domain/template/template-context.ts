@@ -21,6 +21,7 @@ import {
   type VariableValue,
 } from "./value-objects/variable-map.ts";
 import type { ValidatedData } from "../schema/schema-context.ts";
+import { FormatDetector } from "../services/format-detector.ts";
 
 /**
  * Rendered template content with metadata
@@ -170,10 +171,16 @@ export class TemplateContext {
       return templateResult;
     }
 
+    // Detect format
+    const formatResult = this.detectFormat(templatePath);
+    if (!formatResult.ok) {
+      return formatResult;
+    }
+
     // Convert to TemplateConfig and render
     const templateConfig: TemplateConfig = {
       definition: templateResult.data.getContent(),
-      format: this.detectFormat(templatePath),
+      format: formatResult.data,
     };
 
     return this.renderTemplate(data, templateConfig, options);
@@ -247,9 +254,12 @@ export class TemplateContext {
 
     try {
       const content = await Deno.readTextFile(pathValue);
-      const format = this.detectFormat(templatePath);
+      const formatResult = this.detectFormat(templatePath);
+      if (!formatResult.ok) {
+        return formatResult;
+      }
 
-      const engine = this.mapFormatToEngine(format);
+      const engine = this.mapFormatToEngine(formatResult.data);
       const templateResult = TemplateDefinition.create(content, engine);
       if (!templateResult.ok) {
         return templateResult;
@@ -499,20 +509,21 @@ export class TemplateContext {
   }
 
   /**
-   * Detect template format from file extension
+   * Detect template format using FormatDetector service
    */
   private detectFormat(
     templatePath: TemplatePath,
-  ): "json" | "yaml" | "xml" | "custom" {
-    const pathValue = templatePath.getValue().toLowerCase();
-
-    if (pathValue.endsWith(".json")) return "json";
-    if (pathValue.endsWith(".yaml") || pathValue.endsWith(".yml")) {
-      return "yaml";
+  ): Result<
+    "json" | "yaml" | "xml" | "custom",
+    DomainError & { message: string }
+  > {
+    const detectorResult = FormatDetector.createDefault();
+    if (!detectorResult.ok) {
+      return detectorResult;
     }
-    if (pathValue.endsWith(".xml")) return "xml";
 
-    return "custom";
+    const format = detectorResult.data.detect(templatePath.getValue());
+    return { ok: true, data: format };
   }
 
   /**
