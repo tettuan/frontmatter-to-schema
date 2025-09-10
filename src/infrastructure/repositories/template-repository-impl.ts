@@ -6,7 +6,6 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { ResultHandlerService } from "../../domain/services/result-handler-service.ts";
 import type { ITemplateRepository } from "../../domain/repositories/template-repository.ts";
 import type { TemplatePath } from "../../domain/repositories/template-repository.ts";
 import type { Template } from "../../domain/models/entities.ts";
@@ -45,8 +44,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       try {
         content = await Deno.readTextFile(path);
       } catch (error) {
-        return ResultHandlerService.createError(
-          createDomainError(
+        return {
+          ok: false,
+          error: createDomainError(
             {
               kind: "ReadError",
               path: path,
@@ -54,11 +54,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
             },
             `Failed to read template file: ${templatePath}`,
           ),
-          {
-            operation: "load",
-            component: "TemplateRepositoryImpl",
-          },
-        );
+        };
       }
 
       // Create Template entity
@@ -74,8 +70,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       this.templateCache.set(path, templateResult.data);
       return templateResult;
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ProcessingStageError",
             stage: "template loading",
@@ -87,11 +84,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
           },
           `Unexpected error loading template: ${error}`,
         ),
-        {
-          operation: "load",
-          component: "TemplateRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -112,8 +105,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       this.templateCache.set(templatePath, template);
       return { ok: true, data: undefined };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "WriteError",
             path: templatePath,
@@ -121,11 +115,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
           },
           `Failed to save template: ${error}`,
         ),
-        {
-          operation: "save",
-          component: "TemplateRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -139,19 +129,16 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
   ): Result<void, DomainError & { message: string }> {
     // Check required properties
     if (!template.getId() || !template.getFormat()) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "MissingRequiredField",
             fields: ["id", "format"],
           },
           "Invalid template: missing required fields",
         ),
-        {
-          operation: "validate",
-          component: "TemplateRepositoryImpl",
-        },
-      );
+      };
     }
 
     return { ok: true, data: undefined };
@@ -171,8 +158,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       // Create TemplateId
       const idResult = TemplateId.create(path);
       if (!idResult.ok) {
-        return ResultHandlerService.createError(
-          createDomainError(
+        return {
+          ok: false,
+          error: createDomainError(
             {
               kind: "ProcessingStageError",
               stage: "template creation",
@@ -180,11 +168,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
             },
             "Failed to create Template ID",
           ),
-          {
-            operation: "createTemplateEntity",
-            component: "TemplateRepositoryImpl",
-          },
-        );
+        };
       }
 
       // Create TemplateFormat
@@ -193,8 +177,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
         content,
       );
       if (!formatResult.ok) {
-        return ResultHandlerService.createError(
-          createDomainError(
+        return {
+          ok: false,
+          error: createDomainError(
             {
               kind: "ProcessingStageError",
               stage: "template creation",
@@ -202,11 +187,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
             },
             "Failed to create Template format",
           ),
-          {
-            operation: "createTemplateEntity",
-            component: "TemplateRepositoryImpl",
-          },
-        );
+        };
       }
 
       // Extract mapping rules (simplified for now)
@@ -221,8 +202,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       );
 
       if (!templateResult.ok) {
-        return ResultHandlerService.createError(
-          createDomainError(
+        return {
+          ok: false,
+          error: createDomainError(
             {
               kind: "ProcessingStageError",
               stage: "template creation",
@@ -230,17 +212,14 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
             },
             "Failed to create Template entity",
           ),
-          {
-            operation: "createTemplateEntity",
-            component: "TemplateRepositoryImpl",
-          },
-        );
+        };
       }
 
       return templateResult;
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "InvalidFormat",
             input: content,
@@ -248,11 +227,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
           },
           `Failed to parse template: ${error}`,
         ),
-        {
-          operation: "createTemplateEntity",
-          component: "TemplateRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -277,8 +252,9 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
       if (error instanceof Deno.errors.NotFound) {
         return { ok: true, data: false };
       }
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ReadError",
             path: path.getPath(),
@@ -286,11 +262,7 @@ export class TemplateRepositoryImpl implements ITemplateRepository {
           },
           `Failed to check template existence: ${error}`,
         ),
-        {
-          operation: "exists",
-          component: "TemplateRepositoryImpl",
-        },
-      );
+      };
     }
   }
 

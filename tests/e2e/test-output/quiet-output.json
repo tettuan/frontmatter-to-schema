@@ -1,7 +1,8 @@
 {
   "items": [
     {
-      "data": "test"
+      "data": "test",
+      "_documentPath": "/Users/tettuan/github/frontmatter-to-schema/tests/e2e/test-output/quiet-test/test.md"
     }
   ]
 }

@@ -5,7 +5,6 @@
 import { extract as extractFrontMatter } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import { ResultHandlerService } from "../services/result-handler-service.ts";
 
 export interface FrontMatterData {
   readonly data: Record<string, unknown>;
@@ -26,16 +25,13 @@ export class TypeScriptFrontMatterExtractor {
       const extracted = extractFrontMatter(content);
 
       if (!extracted || !this.isValidFrontMatterAttrs(extracted.attrs)) {
-        return ResultHandlerService.createError(
-          createDomainError({
+        return {
+          ok: false,
+          error: createDomainError({
             kind: "NotFound",
             resource: "frontmatter",
           }, "No valid frontmatter found in content"),
-          {
-            operation: "extract",
-            component: "TypeScriptFrontMatterExtractor",
-          },
-        );
+        };
       }
 
       // Get raw frontmatter text for later processing
@@ -52,8 +48,9 @@ export class TypeScriptFrontMatterExtractor {
         data: frontMatterData,
       };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ParseError",
             input: content,
@@ -63,11 +60,7 @@ export class TypeScriptFrontMatterExtractor {
             error instanceof Error ? error.message : String(error)
           }`,
         ),
-        {
-          operation: "extract",
-          component: "TypeScriptFrontMatterExtractor",
-        },
-      );
+      };
     }
   }
 
@@ -135,8 +128,9 @@ export class TypeScriptFrontMatterExtractor {
         data: variables,
       };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ParseError",
             input: templateContent,
@@ -146,11 +140,7 @@ export class TypeScriptFrontMatterExtractor {
             error instanceof Error ? error.message : String(error)
           }`,
         ),
-        {
-          operation: "extractTemplateVariables",
-          component: "TypeScriptFrontMatterExtractor",
-        },
-      );
+      };
     }
   }
 }

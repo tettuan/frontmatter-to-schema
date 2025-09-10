@@ -171,26 +171,19 @@ export class CLI {
         return fileResult;
       }
 
-      try {
-        const schema = JSON.parse(fileResult.data);
-        const formatResult = SchemaFormat.create("json");
-        if (!formatResult.ok) {
-          return formatResult;
-        }
-        config.schema = {
-          definition: schema,
-          format: formatResult.data,
-        };
-      } catch {
-        const formatResult = SchemaFormat.create("custom");
-        if (!formatResult.ok) {
-          return formatResult;
-        }
-        config.schema = {
-          definition: fileResult.data,
-          format: formatResult.data,
-        };
+      // Always pass the raw string content, let the processor handle parsing
+      const formatResult = schemaPath.endsWith(".json")
+        ? SchemaFormat.create("json")
+        : SchemaFormat.create("custom");
+
+      if (!formatResult.ok) {
+        return formatResult;
       }
+
+      config.schema = {
+        definition: fileResult.data, // Keep as string
+        format: formatResult.data,
+      };
     }
 
     // Template configuration
@@ -235,6 +228,13 @@ export class CLI {
       config.output = {
         path: outputPath,
         format: formatResult.data,
+      };
+    }
+
+    // Add default processing configuration if not provided
+    if (!config.processing) {
+      config.processing = {
+        kind: "BasicProcessing",
       };
     }
 
