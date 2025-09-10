@@ -14,6 +14,15 @@ import { UnifiedTemplateProcessor } from "../domain/template/services/unified-te
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
+import {
+  type ExitContext,
+  type ExitHandler,
+  ExitHandlerFactory,
+} from "../domain/services/exit-handler.ts";
+import {
+  type FileFormatDetector,
+  FormatDetectorFactory,
+} from "../domain/services/file-format-detector.ts";
 
 export class CLI {
   private readonly configValidator = new ConfigurationValidator();
@@ -22,8 +31,33 @@ export class CLI {
   private readonly schemaValidator = new SchemaValidator();
   private readonly templateProcessor: UnifiedTemplateProcessor;
   private readonly processor: DocumentProcessor;
+  private readonly exitHandler: ExitHandler;
+  private readonly formatDetector: FileFormatDetector;
 
-  constructor() {
+  constructor(
+    exitHandler?: ExitHandler,
+    formatDetector?: FileFormatDetector,
+  ) {
+    // Initialize exit handler (default to production mode)
+    const exitResult = exitHandler
+      ? { ok: true as const, data: exitHandler }
+      : ExitHandlerFactory.createProduction(
+        LoggerFactory.createLogger("cli-exit"),
+      );
+    if (!exitResult.ok) {
+      throw new Error("Failed to create exit handler");
+    }
+    this.exitHandler = exitResult.data;
+
+    // Initialize format detector (default configuration)
+    const formatResult = formatDetector
+      ? { ok: true as const, data: formatDetector }
+      : FormatDetectorFactory.createDefault();
+    if (!formatResult.ok) {
+      throw new Error("Failed to create format detector");
+    }
+    this.formatDetector = formatResult.data;
+
     const templateProcessorResult = UnifiedTemplateProcessor.create();
     if ("kind" in templateProcessorResult) {
       throw new Error(
@@ -42,7 +76,7 @@ export class CLI {
     );
   }
 
-  async run(args: string[]): Promise<void> {
+  async run(args: string[]): Promise<Result<void, DomainError>> {
     const parsed = parseArgs(args, {
       string: ["config", "input", "output", "schema", "template"],
       boolean: ["help", "verbose"],
@@ -59,17 +93,24 @@ export class CLI {
 
     if (parsed.help) {
       this.printHelp();
-      return;
+      const context: ExitContext = {
+        operation: "help-display",
+        additionalInfo: { args },
+      };
+      this.exitHandler.handleSuccess(context);
+      return { ok: true, data: undefined };
     }
 
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
     if (!configResult.ok) {
-      const logger = LoggerFactory.createLogger("cli-config");
-      logger.error("Configuration error", {
-        error: String(configResult.error.kind),
-      });
-      Deno.exit(1);
+      const context: ExitContext = {
+        operation: "configuration-loading",
+        error: configResult.error,
+        additionalInfo: { args: parsed },
+      };
+      this.exitHandler.handleError(context);
+      return configResult;
     }
 
     const config = configResult.data;
@@ -85,11 +126,13 @@ export class CLI {
     const result = await this.processor.processDocuments(config);
 
     if (!result.ok) {
-      const errorLogger = LoggerFactory.createLogger("cli-error");
-      errorLogger.error("Processing error", {
-        error: String(result.error.kind),
-      });
-      Deno.exit(1);
+      const context: ExitContext = {
+        operation: "document-processing",
+        error: result.error,
+        additionalInfo: { config },
+      };
+      this.exitHandler.handleError(context);
+      return result;
     }
 
     const batchResult = result.data;
@@ -118,6 +161,19 @@ export class CLI {
     outputLogger.info("Output written successfully", {
       outputPath: config.output.path,
     });
+
+    // Handle successful completion
+    const context: ExitContext = {
+      operation: "document-processing-complete",
+      additionalInfo: {
+        successful: batchResult.getSuccessCount(),
+        failed: batchResult.getErrorCount(),
+        total: batchResult.getTotalCount(),
+        outputPath: config.output.path,
+      },
+    };
+    this.exitHandler.handleSuccess(context);
+    return { ok: true, data: undefined };
   }
 
   private async loadConfiguration(
@@ -180,10 +236,10 @@ export class CLI {
         return fileResult;
       }
 
-      // Always pass the raw string content, let the processor handle parsing
-      const formatResult = schemaPath.endsWith(".json")
-        ? SchemaFormat.create("json")
-        : SchemaFormat.create("custom");
+      // Use format detector to determine schema format
+      const detectedFormat = this.formatDetector.detectFormat(schemaPath);
+      const formatString = detectedFormat.ok ? detectedFormat.data : "custom";
+      const formatResult = SchemaFormat.create(formatString);
 
       if (!formatResult.ok) {
         return formatResult;
@@ -203,12 +259,9 @@ export class CLI {
         return fileResult;
       }
 
-      const formatString = templatePath.endsWith(".json")
-        ? "json"
-        : templatePath.endsWith(".yaml") || templatePath.endsWith(".yml")
-        ? "yaml"
-        : "custom";
-
+      // Use format detector to determine template format
+      const detectedFormat = this.formatDetector.detectFormat(templatePath);
+      const formatString = detectedFormat.ok ? detectedFormat.data : "custom";
       const formatResult = TemplateFormat.create(formatString);
       if (!formatResult.ok) {
         return formatResult;
@@ -223,12 +276,9 @@ export class CLI {
     // Output configuration
     if (validatedArgs.outputPath) {
       const outputPath = validatedArgs.outputPath.toString();
-      const formatString = outputPath.endsWith(".json")
-        ? "json"
-        : outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")
-        ? "yaml"
-        : "markdown";
-
+      // Use format detector to determine output format (default to markdown)
+      const detectedFormat = this.formatDetector.detectFormat(outputPath);
+      const formatString = detectedFormat.ok ? detectedFormat.data : "markdown";
       const formatResult = OutputFormat.create(formatString);
       if (!formatResult.ok) {
         return formatResult;
