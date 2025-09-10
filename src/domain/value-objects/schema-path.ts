@@ -1,6 +1,6 @@
 /**
  * SchemaPath Value Object
- * 
+ *
  * Represents a validated path to a schema file
  * Follows Totality principles with Smart Constructor pattern
  */
@@ -118,15 +118,17 @@ export class SchemaPath {
    * Check if path is absolute
    */
   isAbsolute(): boolean {
-    return this.value.startsWith("/") || 
-           this.value.includes(":\\") || // Windows absolute path
-           this.value.startsWith("\\");
+    return this.value.startsWith("/") ||
+      this.value.includes(":\\") || // Windows absolute path
+      this.value.startsWith("\\");
   }
 
   /**
    * Create a relative path from this path
    */
-  makeRelative(basePath: string): Result<SchemaPath, DomainError & { message: string }> {
+  makeRelative(
+    basePath: string,
+  ): Result<SchemaPath, DomainError & { message: string }> {
     if (!this.value.startsWith(basePath)) {
       return {
         ok: false,
@@ -142,9 +144,10 @@ export class SchemaPath {
     }
 
     const relativePath = this.value.slice(basePath.length);
-    const cleanPath = relativePath.startsWith("/") || relativePath.startsWith("\\")
-      ? relativePath.slice(1)
-      : relativePath;
+    const cleanPath =
+      relativePath.startsWith("/") || relativePath.startsWith("\\")
+        ? relativePath.slice(1)
+        : relativePath;
 
     return SchemaPath.create(cleanPath);
   }
