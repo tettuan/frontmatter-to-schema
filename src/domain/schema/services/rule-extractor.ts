@@ -12,7 +12,7 @@ import type {
   RuleType,
   ValidationRule,
 } from "../../value-objects/validation-rules.ts";
-import { RuleValidator } from "./rule-validator.ts";
+import { UnifiedRuleValidator } from "./unified-rule-validator.ts";
 
 /**
  * Domain service for rule extraction and collection operations
@@ -81,7 +81,7 @@ export class RuleExtractor {
       }
 
       // Validate complete rule structure using RuleValidator
-      const ruleValidation = RuleValidator.validateRule(rule);
+      const ruleValidation = UnifiedRuleValidator.validateRule(rule);
       if (!ruleValidation.ok) {
         return ruleValidation;
       }
