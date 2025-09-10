@@ -5,7 +5,7 @@
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { TemplateDefinition } from "../../../../src/domain/value-objects/template-definition.ts";
+import { TemplateDefinition } from "../../../../src/domain/template/value-objects/template-definition.ts";
 
 Deno.test("TemplateDefinition - should create valid Handlebars template", () => {
   const content = "<h1>{{title}}</h1><p>Hello {{name}}!</p>";

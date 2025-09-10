@@ -115,14 +115,24 @@ export class PropertyPath {
 
   /**
    * Get parent path (all segments except the last one)
+   * Following Totality principles with Result type
    */
-  getParentPath(): PropertyPath | null {
+  getParentPath(): Result<PropertyPath, DomainError> {
     if (this.segments.length <= 1) {
-      return null;
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "NotFound",
+          resource: "parentPath",
+        }, "No parent path available for root or single-segment path"),
+      };
     }
 
     const parentSegments = this.segments.slice(0, -1);
-    return new PropertyPath(parentSegments, parentSegments.join("."));
+    return {
+      ok: true,
+      data: new PropertyPath(parentSegments, parentSegments.join(".")),
+    };
   }
 
   /**

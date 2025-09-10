@@ -16,14 +16,14 @@ import { createDomainError } from "../../core/result.ts";
  */
 export interface ValidationResult {
   valid: boolean;
-  errors: ValidationError[];
+  errors: SchemaValidationError[];
   warnings: ValidationWarning[];
 }
 
 /**
- * Validation error details
+ * Schema validation error details
  */
-export interface ValidationError {
+export interface SchemaValidationError {
   path: string;
   message: string;
   rule: string;
@@ -94,7 +94,7 @@ export class UnifiedSchemaValidator {
     data: unknown,
     schema: SchemaDefinition,
   ): Result<ValidationResult, DomainError & { message: string }> {
-    const errors: ValidationError[] = [];
+    const errors: SchemaValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
     try {
@@ -132,7 +132,7 @@ export class UnifiedSchemaValidator {
     value: unknown,
     schema: SchemaProperty | SchemaDefinition,
     path: string,
-    errors: ValidationError[],
+    errors: SchemaValidationError[],
     warnings: ValidationWarning[],
   ): void {
     // Type validation

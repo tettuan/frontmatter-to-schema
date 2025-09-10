@@ -5,7 +5,11 @@
  * Follows Totality principles with discriminated unions and Result types
  */
 
-import type { DomainError, Result } from "../core/result.ts";
+import {
+  createDomainError,
+  type DomainError,
+  type Result,
+} from "../core/result.ts";
 import type { DocumentContent, DocumentPath } from "../models/value-objects.ts";
 import type {
   DocumentFrontMatterState,
@@ -86,27 +90,27 @@ export class Document {
    * Get front matter as a Result type following totality principle
    * This method eliminates null returns and provides explicit error handling
    */
-  getFrontMatterResult(): Result<FrontMatter, DomainError> {
+  getFrontMatter(): Result<FrontMatter, DomainError> {
     switch (this.frontMatterState.kind) {
       case "WithFrontMatter":
         return { ok: true, data: this.frontMatterState.frontMatter };
       case "NoFrontMatter":
         return {
           ok: false,
-          error: {
+          error: createDomainError({
             kind: "NoFrontMatterPresent",
-          } as DomainError,
+          }),
         };
       default: {
         // Exhaustive check - TypeScript will error if we miss a case
         const _exhaustiveCheck: never = this.frontMatterState;
         return {
           ok: false,
-          error: {
+          error: createDomainError({
             kind: "InvalidState",
             expected: "WithFrontMatter or NoFrontMatter",
             actual: String(_exhaustiveCheck),
-          } as DomainError,
+          }),
         };
       }
     }

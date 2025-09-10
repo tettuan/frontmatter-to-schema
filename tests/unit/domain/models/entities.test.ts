@@ -204,7 +204,7 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
-    const frontMatterResult = document.getFrontMatterResult();
+    const frontMatterResult = document.getFrontMatter();
     if (!frontMatterResult.ok) {
       throw new Error("Expected frontMatter to be present");
     }
@@ -223,7 +223,7 @@ Deno.test("Document - Entity Creation and Methods", async (t) => {
 
     assertEquals(document.getPath(), path);
     assertEquals(document.getContent(), content);
-    const frontMatterResult = document.getFrontMatterResult();
+    const frontMatterResult = document.getFrontMatter();
     assertEquals(frontMatterResult.ok, false);
     assertEquals(document.hasFrontMatter(), false);
   });

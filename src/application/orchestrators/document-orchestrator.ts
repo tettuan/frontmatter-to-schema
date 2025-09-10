@@ -1,6 +1,6 @@
 /**
  * Document Processing Orchestrator
- * 
+ *
  * Coordinates the high-level document processing workflow following DDD principles.
  * Split from DocumentProcessor to respect AI complexity control (<200 lines).
  */
@@ -12,9 +12,9 @@ import {
 } from "../../domain/core/result.ts";
 import {
   BatchTransformationResult,
-  TransformationResult,
+  type TransformationResult,
 } from "../../domain/models/transformation.ts";
-import { Document } from "../../domain/models/entities.ts";
+import type { Document } from "../../domain/models/entities.ts";
 import type { SchemaRepository } from "../../domain/repositories/schema-repository.ts";
 import type { ITemplateRepository } from "../../domain/repositories/template-repository.ts";
 import { TemplatePath } from "../../domain/repositories/template-repository.ts";
@@ -26,7 +26,7 @@ import type { ApplicationConfiguration } from "../configuration.ts";
 
 /**
  * Orchestrates document processing workflow across domain boundaries
- * 
+ *
  * Following DDD: coordinates domain services without implementing domain logic
  */
 export class DocumentOrchestrator {
@@ -41,7 +41,7 @@ export class DocumentOrchestrator {
 
   /**
    * Main orchestration method for document processing
-   * 
+   *
    * @param config Application configuration
    * @returns Result containing batch transformation results
    */
@@ -57,13 +57,15 @@ export class DocumentOrchestrator {
     }
     const schema = schemaResult.data;
 
-    // Load template from Template Context  
+    // Load template from Template Context
     // TODO: Adapt config.template to match ITemplateRepository.load(TemplatePath) signature
     const templatePathResult = TemplatePath.create(config.template.definition);
     if (!templatePathResult.ok) {
       return templatePathResult;
     }
-    const templateResult = await this.templateRepository.load(templatePathResult.data);
+    const templateResult = await this.templateRepository.load(
+      templatePathResult.data,
+    );
     if (!templateResult.ok) {
       return templateResult;
     }
@@ -100,7 +102,9 @@ export class DocumentOrchestrator {
 
       if (isOk(transformResult)) {
         results.push(transformResult.data);
-      } else if (this.configExtractor.shouldContinueOnError(config.processing)) {
+      } else if (
+        this.configExtractor.shouldContinueOnError(config.processing)
+      ) {
         errors.push({
           document,
           error: transformResult.error,

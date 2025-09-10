@@ -22,7 +22,7 @@ export type ValidationError =
   | { kind: "InvalidFormat"; input: string; expectedFormat: string }
   | { kind: "OutOfRange"; value: unknown; min?: number; max?: number }
   | { kind: "PatternMismatch"; value: string; pattern: string }
-  | { kind: "ParseError"; input: string; details?: string }
+  | { kind: "ParseError"; input: string; details?: string; parser?: string }
   | { kind: "TooLong"; value: string; maxLength: number }
   | { kind: "TooShort"; value: string; minLength: number }
   | { kind: "InvalidRegex"; pattern: string }
@@ -129,8 +129,8 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Value "${error.value}" does not match pattern ${error.pattern}`;
     case "ParseError":
       return `Cannot parse "${error.input}"${
-        error.details ? `: ${error.details}` : ""
-      }`;
+        error.parser ? ` as ${error.parser}` : ""
+      }${error.details ? `: ${error.details}` : ""}`;
     case "TooLong":
       return `Value "${error.value}" exceeds maximum length of ${error.maxLength}`;
     case "TooShort":

@@ -2,7 +2,7 @@
 // Core aggregate root for document processing
 
 import type { Result } from "../core/result.ts";
-import type { DomainError } from "../core/result.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 import type { DocumentContent, DocumentPath } from "../models/value-objects.ts";
 import type { DocumentId } from "../value-objects/ids.ts";
 import { DocumentId as DocumentIdImpl } from "../value-objects/ids.ts";
@@ -93,16 +93,16 @@ export class Document {
    * Get frontmatter with Result type
    * Eliminates null returns for explicit error handling
    */
-  getFrontMatterResult(): Result<FrontMatter, DomainError> {
+  getFrontMatter(): Result<FrontMatter, DomainError> {
     switch (this.frontMatterState.kind) {
       case "WithFrontMatter":
         return { ok: true, data: this.frontMatterState.frontMatter };
       case "NoFrontMatter":
         return {
           ok: false,
-          error: {
+          error: createDomainError({
             kind: "NoFrontMatterPresent",
-          } as DomainError,
+          }),
         };
     }
   }

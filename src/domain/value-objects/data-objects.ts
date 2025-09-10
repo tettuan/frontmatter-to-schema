@@ -2,7 +2,7 @@
 // Value objects for data extraction and transformation results
 
 import type { Result } from "../core/result.ts";
-import type { DomainError } from "../core/result.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 import type { DocumentId } from "./ids.ts";
 import { AnalysisId } from "./ids.ts";
 import type { Document } from "../entities/document.ts";
@@ -24,10 +24,10 @@ export class ExtractedData {
     if (!data) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
           field: "data",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new ExtractedData(data) };
@@ -89,10 +89,10 @@ export class MappedData {
     if (!data) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
           field: "data",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new MappedData(data) };
@@ -197,10 +197,10 @@ export class AnalysisResult {
     if (!document || !extractedData || !mappedData) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
           field: "required parameters",
-        } as DomainError,
+        }),
       };
     }
 
@@ -293,10 +293,10 @@ export class AggregatedResult {
     if (!results || results.length === 0) {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
           field: "results",
-        } as DomainError,
+        }),
       };
     }
 
