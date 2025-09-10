@@ -4,7 +4,11 @@
  * Follows Totality principles and DDD identifier patterns
  */
 
-import type { DomainError, Result } from "../core/result.ts";
+import {
+  createDomainError,
+  type DomainError,
+  type Result,
+} from "../core/result.ts";
 import type { DocumentPath } from "../models/value-objects.ts";
 
 /**
@@ -20,9 +24,9 @@ export class DocumentId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new DocumentId(value) };
@@ -54,9 +58,9 @@ export class SchemaId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new SchemaId(value) };
@@ -84,9 +88,9 @@ export class TemplateId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new TemplateId(value) };
@@ -114,9 +118,9 @@ export class AnalysisId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new AnalysisId(value) };

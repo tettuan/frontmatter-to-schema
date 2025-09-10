@@ -127,6 +127,14 @@ export class AggregationService {
   extractRulesFromSchema(
     schema: Record<string, unknown>,
   ): Result<DerivationRule[], { kind: string; message: string }> {
+    // Handle null or invalid schema gracefully
+    if (!schema || typeof schema !== "object") {
+      return {
+        ok: true,
+        data: [],
+      };
+    }
+
     const rules: DerivationRule[] = [];
     const errors: string[] = [];
 

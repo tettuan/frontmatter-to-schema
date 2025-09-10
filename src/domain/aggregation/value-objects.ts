@@ -117,8 +117,13 @@ export class DerivationRule {
       return { ok: true, data: null };
     }
 
-    const unique = schemaProperty["x-derived-unique"] === true;
-    const flatten = schemaProperty["x-derived-flatten"] === true;
+    // Check for aggregation options in x-aggregation-options object or direct properties
+    const aggregationOptions =
+      schemaProperty["x-aggregation-options"] as Record<string, unknown> || {};
+    const unique = aggregationOptions.unique === true ||
+      schemaProperty["x-derived-unique"] === true;
+    const flatten = aggregationOptions.flatten === true ||
+      schemaProperty["x-derived-flatten"] === true;
 
     return DerivationRule.create(fieldName, derivedFrom, { unique, flatten });
   }

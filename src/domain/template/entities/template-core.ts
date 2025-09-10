@@ -39,9 +39,9 @@ export class TemplateId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new TemplateId(value) };

@@ -8,7 +8,7 @@ import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
   VariableMap,
   type VariableValue,
-} from "../../../../src/domain/value-objects/variable-map.ts";
+} from "../../../../src/domain/template/value-objects/variable-map.ts";
 
 Deno.test("VariableMap - should create valid variable map from object", () => {
   const variables = {
