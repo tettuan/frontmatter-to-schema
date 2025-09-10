@@ -1,7 +1,22 @@
 {
-  "version": "{version}",
-  "description": "{description}",
-  "req": {
-    "$includeArray": "traceability_item_template.json"
-  }
+  "items": [
+    {
+      "items": []
+    },
+    {
+      "items": []
+    },
+    {
+      "items": []
+    },
+    {
+      "items": []
+    },
+    {
+      "items": []
+    },
+    {
+      "items": []
+    }
+  ]
 }

@@ -114,7 +114,7 @@ Nested content.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        const frontMatterResult = doc.getFrontMatterResult();
+        const frontMatterResult = doc.getFrontMatter();
         assertEquals(frontMatterResult.ok, true);
 
         if (frontMatterResult.ok) {
@@ -138,7 +138,7 @@ Nested content.`,
         const doc = result.data;
         // Document should exist but frontmatter should be null
         assertExists(doc.getContent());
-        const frontMatterResult = doc.getFrontMatterResult();
+        const frontMatterResult = doc.getFrontMatter();
         assertEquals(frontMatterResult.ok, false);
       }
     }
@@ -384,7 +384,7 @@ Content here.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        const frontMatterResult = doc.getFrontMatterResult();
+        const frontMatterResult = doc.getFrontMatter();
         assertEquals(frontMatterResult.ok, false);
         assertEquals(doc.getContent().getValue(), "");
       }
@@ -407,7 +407,7 @@ Content here.`,
 
       if (isOk(result)) {
         const doc = result.data;
-        const frontMatterResult = doc.getFrontMatterResult();
+        const frontMatterResult = doc.getFrontMatter();
         assertEquals(frontMatterResult.ok, true);
         // Body should be empty or minimal
         assertEquals(doc.getContent().getValue().trim().length <= 1, true);
@@ -596,7 +596,7 @@ Math: ∑∞∫∆∇⊕⊗`;
 
         if (isOk(result)) {
           const doc = result.data;
-          const frontMatterResult = doc.getFrontMatterResult();
+          const frontMatterResult = doc.getFrontMatter();
           assertEquals(frontMatterResult.ok, true);
           const content = doc.getContent().getValue();
           // Verify the document was read successfully and contains some content
@@ -653,7 +653,7 @@ Content with complex frontmatter.`;
 
         if (isOk(result)) {
           const doc = result.data;
-          const frontMatterResult = doc.getFrontMatterResult();
+          const frontMatterResult = doc.getFrontMatter();
           assertEquals(frontMatterResult.ok, true);
           if (frontMatterResult.ok) {
             const frontMatter = frontMatterResult.data;

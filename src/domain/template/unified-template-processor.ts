@@ -16,16 +16,13 @@
 
 import type { DomainError } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-
-/**
- * Type guard for validating unknown data as Record<string, unknown>
- * Eliminates type assertions following Totality principles
- */
-function isValidRecordData(data: unknown): data is Record<string, unknown> {
-  return typeof data === "object" &&
-    data !== null &&
-    !Array.isArray(data);
-}
+import {
+  applyDataToTemplate,
+  formatValue,
+  getValueByPath,
+  isDomainError,
+  parseTemplateStructure,
+} from "./services/template-utils.service.ts";
 
 /**
  * Template Processing Context - Discriminated Union (Totality Pattern)
@@ -218,7 +215,7 @@ export class UnifiedTemplateProcessor {
 
     // Validate template content using smart constructor
     const validatedContent = ValidatedTemplateContent.create(templateContent);
-    if (this.isDomainError(validatedContent)) {
+    if (isDomainError(validatedContent)) {
       return validatedContent;
     }
 
@@ -278,7 +275,7 @@ export class UnifiedTemplateProcessor {
     context: Extract<TemplateProcessingContext, { kind: "SimpleReplacement" }>,
   ): TemplateProcessingResult | DomainError {
     const pattern = PlaceholderPattern.create(context.placeholderPattern);
-    if (this.isDomainError(pattern)) {
+    if (isDomainError(pattern)) {
       return pattern;
     }
 
@@ -289,7 +286,7 @@ export class UnifiedTemplateProcessor {
       pattern.pattern,
       (match, variableName) => {
         const trimmedName = variableName.trim();
-        const value = this.getValueByPath(context.data, trimmedName);
+        const value = getValueByPath(context.data, trimmedName);
 
         if (value !== undefined) {
           replacedVariables.push(trimmedName);
@@ -323,9 +320,9 @@ export class UnifiedTemplateProcessor {
     context: Extract<TemplateProcessingContext, { kind: "SchemaGuided" }>,
   ): TemplateProcessingResult | DomainError {
     // Apply schema-guided processing (consolidate from TemplateMapper)
-    const result = this.applyDataToTemplate(
+    const result = applyDataToTemplate(
       context.data,
-      this.parseTemplateStructure(content),
+      parseTemplateStructure(content),
       context.data,
     );
 
@@ -375,7 +372,7 @@ export class UnifiedTemplateProcessor {
 
       if (value !== undefined) {
         replacedVariables.push(path.trim());
-        return this.formatValue(value, effectiveOptions.arrayFormat);
+        return formatValue(value, effectiveOptions.arrayFormat);
       }
 
       // Handle missing variables based on options
@@ -402,183 +399,11 @@ export class UnifiedTemplateProcessor {
     };
   }
 
-  /**
-   * Utility Methods (Consolidating from multiple sources)
-   */
-
-  private getValueByPath(data: Record<string, unknown>, path: string): unknown {
-    const parts = path.split(".");
-    let current: unknown = data;
-
-    for (const part of parts) {
-      if (current === null || current === undefined) {
-        return undefined;
-      }
-
-      if (isValidRecordData(current)) {
-        current = current[part];
-      } else if (Array.isArray(current)) {
-        // Handle array properties like .length
-        if (part === "length") {
-          current = current.length;
-        } else {
-          const index = parseInt(part, 10);
-          if (!isNaN(index) && index >= 0 && index < current.length) {
-            current = current[index];
-          } else {
-            return undefined;
-          }
-        }
-      } else {
-        return undefined;
-      }
-    }
-
-    return current;
-  }
-
-  private parseTemplateStructure(content: string): unknown {
-    try {
-      return JSON.parse(content);
-    } catch {
-      // If not JSON, treat as string template
-      return content;
-    }
-  }
-
-  private applyDataToTemplate(
-    data: unknown,
-    template: unknown,
-    rootData: unknown,
-  ): string | unknown {
-    // Handle string templates with placeholder replacement
-    if (typeof template === "string") {
-      // Apply placeholder replacement for {path} patterns
-      return template.replace(/\{([^}]+)\}/g, (match, path) => {
-        const value = this.getValueByPath(
-          isValidRecordData(rootData) ? rootData : {},
-          path.trim(),
-        );
-        return value !== undefined ? String(value) : match;
-      });
-    }
-
-    // Handle object templates (including $includeArray)
-    if (isValidRecordData(template)) {
-      const result: Record<string, unknown> = {};
-
-      for (const [key, value] of Object.entries(template)) {
-        if (key === "$includeArray" && typeof value === "string") {
-          // Handle $includeArray directive - look for array data in the current data context
-          let arrayData: unknown;
-
-          // If we're processing a specific property, get its data from rootData
-          if (isValidRecordData(rootData)) {
-            // Try to find array data by looking for common property names
-            for (const propName of Object.keys(rootData)) {
-              if (Array.isArray(rootData[propName])) {
-                arrayData = rootData[propName];
-                break;
-              }
-            }
-          }
-
-          // Fallback to direct data if it's an array
-          if (!arrayData && Array.isArray(data)) {
-            arrayData = data;
-          }
-
-          const arrayResult = this.processIncludeArrayDirective(
-            arrayData || [],
-            value,
-            rootData,
-          );
-          return arrayResult;
-        } else {
-          // Recursively process nested templates
-          result[key] = this.applyDataToTemplate(data, value, rootData);
-        }
-      }
-
-      return result;
-    }
-
-    // Handle arrays
-    if (Array.isArray(template)) {
-      return template.map((item) =>
-        this.applyDataToTemplate(data, item, rootData)
-      );
-    }
-
-    // Return primitives as-is
-    return template;
-  }
-
-  /**
-   * Process $includeArray directive
-   * Loads external template and applies it to each array item
-   */
-  private processIncludeArrayDirective(
-    data: unknown,
-    templateFileName: string,
-    _rootData: unknown,
-  ): unknown[] {
-    // For now, we'll inline the traceability_item_template.json logic
-    // TODO: Implement actual file loading when file system access is available
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    // Apply the template to each item in the array
-    return data.map((item) => {
-      // Handle the specific case of traceability_item_template.json: "{id.full}"
-      if (templateFileName === "traceability_item_template.json") {
-        if (
-          isValidRecordData(item) && isValidRecordData(item.id) &&
-          typeof item.id.full === "string"
-        ) {
-          return item.id.full;
-        }
-      }
-
-      // For other templates, we would load and process the template file
-      // For now, return the item as-is
-      return item;
-    });
-  }
-
   private resolveSchemaPath(
     mappedData: MappedSchemaData,
     path: string,
   ): unknown {
-    return this.getValueByPath(mappedData.data, path);
-  }
-
-  private formatValue(value: unknown, format: "json" | "csv" | "list"): string {
-    if (Array.isArray(value)) {
-      switch (format) {
-        case "csv":
-          return value.join(", ");
-        case "list":
-          return value.map((item) => `- ${item}`).join("\\n");
-        case "json":
-        default:
-          return JSON.stringify(value);
-      }
-    }
-
-    return String(value);
-  }
-
-  /**
-   * Type Guards (Totality Pattern)
-   */
-  private isDomainError(value: unknown): value is DomainError {
-    return value !== null &&
-      typeof value === "object" &&
-      "kind" in value &&
-      "message" in value;
+    return getValueByPath(mappedData.data, path);
   }
 
   private isProcessingResult(

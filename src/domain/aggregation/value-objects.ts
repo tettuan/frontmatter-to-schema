@@ -117,8 +117,13 @@ export class DerivationRule {
       return { ok: true, data: null };
     }
 
-    const unique = schemaProperty["x-derived-unique"] === true;
-    const flatten = schemaProperty["x-derived-flatten"] === true;
+    // Check for aggregation options in x-aggregation-options object or direct properties
+    const aggregationOptions =
+      schemaProperty["x-aggregation-options"] as Record<string, unknown> || {};
+    const unique = aggregationOptions.unique === true ||
+      schemaProperty["x-derived-unique"] === true;
+    const flatten = aggregationOptions.flatten === true ||
+      schemaProperty["x-derived-flatten"] === true;
 
     return DerivationRule.create(fieldName, derivedFrom, { unique, flatten });
   }
@@ -229,14 +234,23 @@ export class AggregatedResult {
 
 /**
  * Metadata about the aggregation process
+ * Follows Totality principles - no optional properties
  */
-export interface AggregationMetadata {
-  processedCount: number;
-  aggregatedAt: Date;
-  appliedRules: string[];
-  warnings?: string[];
-  statistics?: AggregationStatistics;
-}
+export type AggregationMetadata =
+  & {
+    processedCount: number;
+    aggregatedAt: Date;
+    appliedRules: string[];
+  }
+  & (
+    | {
+      kind: "WithStatistics";
+      warnings: string[];
+      statistics: AggregationStatistics;
+    }
+    | { kind: "WithWarnings"; warnings: string[]; statistics: null }
+    | { kind: "Basic"; warnings: null; statistics: null }
+  );
 
 /**
  * Statistics collected during aggregation
@@ -246,6 +260,59 @@ export interface AggregationStatistics {
   uniqueValues: Record<string, number>;
   nullCount: Record<string, number>;
   arrayLengths: Record<string, number[]>;
+}
+
+/**
+ * Helper functions to create AggregationMetadata following Totality principles
+ */
+export class AggregationMetadataBuilder {
+  static basic(
+    processedCount: number,
+    appliedRules: string[],
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "Basic",
+      warnings: null,
+      statistics: null,
+    };
+  }
+
+  static withWarnings(
+    processedCount: number,
+    appliedRules: string[],
+    warnings: string[],
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "WithWarnings",
+      warnings,
+      statistics: null,
+    };
+  }
+
+  static withStatistics(
+    processedCount: number,
+    appliedRules: string[],
+    warnings: string[],
+    statistics: AggregationStatistics,
+    aggregatedAt: Date = new Date(),
+  ): AggregationMetadata {
+    return {
+      processedCount,
+      aggregatedAt,
+      appliedRules,
+      kind: "WithStatistics",
+      warnings,
+      statistics,
+    };
+  }
 }
 
 /**

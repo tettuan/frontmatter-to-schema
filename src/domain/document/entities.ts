@@ -4,7 +4,7 @@
  */
 
 import type { Result } from "../core/result.ts";
-import type { DomainError } from "../core/result.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 import type { DocumentContent, DocumentPath } from "../models/value-objects.ts";
 import type { FrontMatter } from "../frontmatter/entities.ts";
 
@@ -33,9 +33,9 @@ export class DocumentId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new DocumentId(value) };
@@ -129,23 +129,19 @@ export class Document {
   hasFrontMatter(): boolean {
     return this.frontMatterState.kind === "WithFrontMatter";
   }
-  // Totality-compliant method using exhaustive pattern matching
-  getFrontMatter(): FrontMatter | null {
-    switch (this.frontMatterState.kind) {
-      case "WithFrontMatter":
-        return this.frontMatterState.frontMatter;
-      case "NoFrontMatter":
-        return null;
-    }
-  }
-
-  // Legacy method for backward compatibility with tests
-  getFrontMatterResult(): Result<FrontMatter, DomainError> {
+  // Totality-compliant method using Result types (Smart Constructor pattern)
+  getFrontMatter(): Result<FrontMatter, DomainError> {
     switch (this.frontMatterState.kind) {
       case "WithFrontMatter":
         return { ok: true, data: this.frontMatterState.frontMatter };
       case "NoFrontMatter":
-        return { ok: false, error: { kind: "NotFound" } as DomainError };
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "NotFound",
+            resource: "frontmatter",
+          }),
+        };
     }
   }
 

@@ -1,7 +1,5 @@
 {
-  "version": "{version}",
-  "description": "{description}",
-  "test": {
-    "$includeArray": "traceability_item_template.json"
-  }
+  "version": "1.0.0",
+  "description": "Test level traceability IDs",
+  "test": []
 }

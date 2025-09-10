@@ -7,7 +7,8 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import type { AggregatedStructure } from "../../domain/services/structured-aggregator.ts";
+// AggregatedStructure type moved inline
+type AggregatedStructure = Record<string, unknown>;
 
 // Type guard helper following Totality principle
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -102,7 +103,7 @@ export class OutputFormatter {
     format: OutputFormat,
   ): Result<FormattedOutput, DomainError & { message: string }> {
     try {
-      const data = structure.getStructure();
+      const data = structure;
       let content: string;
 
       switch (format.kind) {

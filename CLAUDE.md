@@ -1,6 +1,7 @@
 # behavior
 
 - Compact often.
+- Don't create *.md and status report at project root. use tmp/ always.
 
 # MCP and CLI
 

@@ -6,7 +6,6 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { ResultHandlerService } from "../../domain/services/result-handler-service.ts";
 import type { ResultRepository } from "../../domain/repositories/result-repository.ts";
 import type { ProcessingResult } from "../../domain/core/abstractions.ts";
 
@@ -34,8 +33,9 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
       this.resultsStore.set(id, result);
       return { ok: true, data: undefined };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ProcessingStageError",
             stage: "result storage",
@@ -47,11 +47,7 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
           },
           `Failed to store result: ${error}`,
         ),
-        {
-          operation: "store",
-          component: "ResultRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -68,8 +64,9 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
       await Promise.resolve();
       const result = this.resultsStore.get(id);
       if (!result) {
-        return ResultHandlerService.createError(
-          createDomainError(
+        return {
+          ok: false,
+          error: createDomainError(
             {
               kind: "NotFound",
               resource: "ProcessingResult",
@@ -77,17 +74,14 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
             },
             `Result not found: ${id}`,
           ),
-          {
-            operation: "retrieve",
-            component: "ResultRepositoryImpl",
-          },
-        );
+        };
       }
 
       return { ok: true, data: result };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ProcessingStageError",
             stage: "result retrieval",
@@ -99,11 +93,7 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
           },
           `Failed to retrieve result: ${error}`,
         ),
-        {
-          operation: "retrieve",
-          component: "ResultRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -120,8 +110,9 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
       const results = Array.from(this.resultsStore.values());
       return { ok: true, data: results };
     } catch (error) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "ProcessingStageError",
             stage: "result listing",
@@ -133,11 +124,7 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
           },
           `Failed to list results: ${error}`,
         ),
-        {
-          operation: "list",
-          component: "ResultRepositoryImpl",
-        },
-      );
+      };
     }
   }
 
@@ -154,19 +141,16 @@ export class ResultRepositoryImpl<T = unknown> implements ResultRepository {
       result.data === undefined || result.errors === undefined ||
       result.isValid === undefined
     ) {
-      return ResultHandlerService.createError(
-        createDomainError(
+      return {
+        ok: false,
+        error: createDomainError(
           {
             kind: "MissingRequiredField",
             fields: ["data", "errors", "isValid"],
           },
           "Invalid result: missing required fields",
         ),
-        {
-          operation: "validate",
-          component: "ResultRepositoryImpl",
-        },
-      );
+      };
     }
 
     return { ok: true, data: undefined };

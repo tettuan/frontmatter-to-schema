@@ -22,7 +22,7 @@ export type ValidationError =
   | { kind: "InvalidFormat"; input: string; expectedFormat: string }
   | { kind: "OutOfRange"; value: unknown; min?: number; max?: number }
   | { kind: "PatternMismatch"; value: string; pattern: string }
-  | { kind: "ParseError"; input: string; details?: string }
+  | { kind: "ParseError"; input: string; details?: string; parser?: string }
   | { kind: "TooLong"; value: string; maxLength: number }
   | { kind: "TooShort"; value: string; minLength: number }
   | { kind: "InvalidRegex"; pattern: string }
@@ -32,11 +32,20 @@ export type ValidationError =
   | { kind: "AlreadyExecuted"; pipeline: string }
   | { kind: "InvalidState"; expected: string; actual: string }
   | { kind: "NoFrontMatterPresent" }
-  | { kind: "MissingRequiredField"; fields: string[] };
+  | { kind: "MissingRequiredField"; fields: string[] }
+  | { kind: "TooDeep"; currentDepth: number; maxDepth: number }
+  | { kind: "CircularReference"; reference: string; visitedRefs: string[] }
+  | { kind: "InvalidReference"; reference: string; reason: string }
+  | { kind: "ReferenceLoadError"; reference: string; reason: string }
+  | { kind: "ExtractionError"; property?: string; reason: string }
+  | { kind: "SecurityViolation"; path: string; reason: string }
+  | { kind: "RenderError"; template: string; details: string }
+  | { kind: "ComputationError"; expression: string; details: string };
 
 // Analysis domain specific errors
 export type AnalysisError =
   | { kind: "SchemaValidationFailed"; schema: unknown; data: unknown }
+  | { kind: "LevelMismatch"; schema: unknown; data: unknown }
   | { kind: "TemplateMappingFailed"; template: unknown; source: unknown }
   | { kind: "ExtractionStrategyFailed"; strategy: string; input: unknown }
   | { kind: "AIServiceError"; service: string; statusCode?: number }
@@ -120,8 +129,8 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Value "${error.value}" does not match pattern ${error.pattern}`;
     case "ParseError":
       return `Cannot parse "${error.input}"${
-        error.details ? `: ${error.details}` : ""
-      }`;
+        error.parser ? ` as ${error.parser}` : ""
+      }${error.details ? `: ${error.details}` : ""}`;
     case "TooLong":
       return `Value "${error.value}" exceeds maximum length of ${error.maxLength}`;
     case "TooShort":

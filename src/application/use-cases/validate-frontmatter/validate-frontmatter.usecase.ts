@@ -73,6 +73,9 @@ export class ValidateFrontmatterUseCase
 
         const validatedSchema = validatedSchemaResult.data;
 
+        // Note: Level filtering is already done by SchemaConstraints in ProcessDocumentsOrchestrator
+        // We don't need to check level compatibility here again
+
         // Check for required fields
         const requiredFields = validatedSchema.getRequiredFields();
         for (const field of requiredFields) {
@@ -98,6 +101,19 @@ export class ValidateFrontmatterUseCase
                   if (expectedType !== actualType) {
                     validationErrors.push(
                       `Field '${propertyName}' has wrong type: expected ${expectedType}, got ${actualType}`,
+                    );
+                  }
+                }
+
+                // Check const constraints
+                if (propertySchema.hasConstConstraint()) {
+                  const expectedValue = propertySchema.getConstValue();
+                  const value = validatedData.getField(propertyName);
+                  if (value !== expectedValue) {
+                    validationErrors.push(
+                      `Field '${propertyName}' has wrong value: expected ${
+                        String(expectedValue)
+                      }, got ${String(value)}`,
                     );
                   }
                 }

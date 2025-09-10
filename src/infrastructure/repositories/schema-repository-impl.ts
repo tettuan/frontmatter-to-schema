@@ -241,13 +241,31 @@ export class SchemaRepositoryImpl implements SchemaRepository {
       };
     }
 
-    const schema = Schema.create(
+    const description = getStringProperty(data, "description", "");
+    if (!description || description.trim() === "") {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "description",
+        }),
+      };
+    }
+
+    const schemaResult = Schema.create(
       idResult.data,
       definitionResult.data,
       versionResult.data,
-      getStringProperty(data, "description", ""),
+      description,
     );
 
-    return { ok: true, data: schema };
+    if (!schemaResult.ok) {
+      return {
+        ok: false,
+        error: schemaResult.error,
+      };
+    }
+
+    return { ok: true, data: schemaResult.data };
   }
 }

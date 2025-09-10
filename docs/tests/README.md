@@ -140,6 +140,8 @@ Tests are automatically executed as part of the CI pipeline:
 
 - [Testing Guidelines](./testing_guidelines.md) - Detailed TDD and testing
   practices
+- [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing
+  infrastructure for parallel-safe, change-resistant tests
 - [Comprehensive Test Strategy](../testing/comprehensive-test-strategy.md) -
   Overall testing approach
 - [Schema Matching Test Spec](../test-specifications/schema-matching-test-spec.md) -

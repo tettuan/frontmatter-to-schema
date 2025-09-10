@@ -4,7 +4,7 @@
  */
 
 import type { Result } from "../core/result.ts";
-import type { DomainError } from "../core/result.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 import type { Document } from "../document/entities.ts";
 
 /**
@@ -19,9 +19,9 @@ export class AnalysisId {
     if (!value || value.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new AnalysisId(value) };

@@ -86,14 +86,20 @@ export function createMockSchema(name: string): Schema {
     );
   }
 
-  const schema = Schema.create(
+  const schemaResult = Schema.create(
     schemaId.data,
     definition.data,
     version.data,
     `Mock schema for ${name}`,
   );
 
-  return schema;
+  if (!schemaResult.ok) {
+    throw new Error(
+      `Failed to create mock schema: ${schemaResult.error.message}`,
+    );
+  }
+
+  return schemaResult.data;
 }
 
 /**

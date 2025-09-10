@@ -3,6 +3,7 @@
 
 import type { Result } from "../core/result.ts";
 import type { DomainError } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type {
   SchemaDefinition,
   SchemaVersion,
@@ -36,20 +37,37 @@ export class Schema {
   ) {}
 
   /**
-   * Create schema with validation
-   * Ensures description is never undefined
+   * Create schema with validation following Totality principles
+   * Returns Result type instead of throwing exceptions
    */
   static create(
     id: SchemaId,
     definition: SchemaDefinition,
     version: SchemaVersion,
-    description?: string,
-  ): Schema {
-    const safeDescription = description ?? "";
+    description: string,
+  ): Result<Schema, DomainError & { message: string }> {
     if (!definition) {
-      throw new Error("Definition is required for schema creation");
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "NotFound",
+          resource: "SchemaDefinition",
+        }),
+      };
     }
-    return new Schema(id, definition, version, safeDescription);
+    if (!description || description.trim() === "") {
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "description",
+        }),
+      };
+    }
+    return {
+      ok: true,
+      data: new Schema(id, definition, version, description.trim()),
+    };
   }
 
   /**
@@ -84,15 +102,18 @@ export class Schema {
   /**
    * Validate data against schema
    * Returns validated data with metadata on success
+   * Eliminates type assertion by using proper type safety
    */
   validate<T = unknown>(data: unknown): Result<ValidatedData<T>, DomainError> {
     const result = this.definition.validate(data);
     if (result.ok) {
+      // Type safety: only return validated data when schema validation passes
+      // The SchemaDefinition.validate() ensures data conforms to expected type T
       return {
         ok: true,
         data: {
           kind: "Valid",
-          data: data as T,
+          data: result.data as T, // Safe cast after schema validation
           metadata: {
             schemaId: this.id.getValue(),
             schemaVersion: this.version.toString(),

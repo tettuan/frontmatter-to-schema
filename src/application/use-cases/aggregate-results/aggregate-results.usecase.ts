@@ -202,22 +202,57 @@ export class AggregateResultsUseCase
     propertyKey: string,
   ): string | null {
     try {
+      // First, check if the schema itself specifies a level constraint
+      // This would be in schemas like level_req_schema.json
+      // The property key should give us a hint about the level (e.g., "req", "spec", "design")
+      if (
+        propertyKey === "req" || propertyKey === "spec" ||
+        propertyKey === "design" || propertyKey === "impl" ||
+        propertyKey === "test"
+      ) {
+        return propertyKey;
+      }
+
+      // Otherwise, check the property definition
       const properties = schema.properties;
       if (!this.isValidRecord(properties)) return null;
 
       const property = properties[propertyKey];
       if (!this.isValidRecord(property)) return null;
 
+      // Check if the property has an x-level constraint
+      if (typeof property["x-level"] === "string") {
+        return property["x-level"];
+      }
+
       const items = property.items;
       if (!this.isValidRecord(items)) return null;
+
+      // Check if items have an x-level constraint
+      if (typeof items["x-level"] === "string") {
+        return items["x-level"];
+      }
 
       // Handle $ref resolution - get the referenced schema
       const ref = items["$ref"];
       if (typeof ref === "string") {
-        // For now, extract level from the ref name (e.g., traceability_req_schema.json -> "req")
-        const match = ref.match(/traceability_(\w+)_schema\.json/);
-        if (match) {
-          return match[1];
+        // Extract level from various ref patterns
+        // e.g., traceability_req_schema.json -> "req"
+        // e.g., level_req_schema.json -> "req"
+        const patterns = [
+          /traceability_(\w+)_schema\.json/,
+          /level_(\w+)_schema\.json/,
+          /_(\w+)_schema\.json/,
+        ];
+
+        for (const pattern of patterns) {
+          const match = ref.match(pattern);
+          if (
+            match &&
+            ["req", "spec", "design", "impl", "test"].includes(match[1])
+          ) {
+            return match[1];
+          }
         }
       }
 

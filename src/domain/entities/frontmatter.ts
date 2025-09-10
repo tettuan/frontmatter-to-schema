@@ -3,7 +3,7 @@
 
 import type { FrontMatterContent } from "../models/value-objects.ts";
 import type { Result } from "../core/result.ts";
-import type { DomainError } from "../core/result.ts";
+import { createDomainError, type DomainError } from "../core/result.ts";
 
 /**
  * FrontMatter entity
@@ -26,9 +26,9 @@ export class FrontMatter {
     if (!raw || raw.trim() === "") {
       return {
         ok: false,
-        error: {
+        error: createDomainError({
           kind: "EmptyInput",
-        } as DomainError,
+        }),
       };
     }
     return { ok: true, data: new FrontMatter(content, raw) };
