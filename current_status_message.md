@@ -1,30 +1,29 @@
-# Current Status: Frontmatter Context Domain Services Completed
+# Current Status: Deprecated Code Removal Progress
 
-## Completed Implementation
+## Completed Refactoring
 
-Successfully implemented Frontmatter Context domain services following DDD and
-Totality principles:
+Successfully removed deprecated code and consolidated duplicate services:
 
-1. **FrontmatterProcessor Domain Service**
-   - Extracts frontmatter from Markdown (YAML, JSON, TOML)
-   - Smart Constructor pattern with Result<T,E> error handling
-   - Format detection and validation
-   - 18 comprehensive test cases
+1. **Deleted 11 deprecated files (2,707 lines removed)**
+   - src/domain/shared/errors.ts (entire deprecated error system)
+   - src/domain/models/command-processor.ts
+   - src/domain/services/dynamic-pipeline-factory.service.ts
+   - src/application/services/process-documents-orchestrator.service.ts
+   - 4 duplicate service files
+   - 3 backup/legacy files
 
-2. **FrontmatterValidator Domain Service**
-   - Validates frontmatter against Schema Context rules
-   - Supports required fields, type checking, format validation
-   - Range, enum, pattern, and length constraints
-   - 14 comprehensive test cases
+2. **Fixed import references**
+   - Updated Command imports to use command-types.ts
+   - Removed DynamicPipelineFactory exports
+   - Stubbed ProcessDocumentsUseCase pending full refactor
 
-## CI Verification
+## Current State
 
-- ✅ 631 tests passing
-- ✅ Type checking passed
-- ✅ JSR compatibility verified
-- ✅ Lint and format checks passed
+- **Code reduction**: 2,707 lines removed (8% toward 95% goal)
+- **Files**: 332 (from 343)
+- **Tests**: 666 passing, 2 failing
+- **CI Status**: 13 type errors remaining
 
-## Next Phase Ready
+## Next Steps
 
-Phase 2 (Frontmatter Context) complete. Ready for Phase 3: Template Context
-domain services (TemplateRepository, TemplateRenderer, VariableResolver).
+Fix remaining 13 type errors in CI, then continue architectural simplification toward 95% reduction goal (33k→1.5k lines).

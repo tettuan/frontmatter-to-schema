@@ -8,6 +8,7 @@ import {
   type RegistryBuildingContext,
 } from "../../../../src/domain/models/registry-builder.ts";
 import type { Command } from "../../../../src/domain/core/command-types.ts";
+import { createCommand } from "../../../../src/domain/core/command-types.ts";
 import { DEFAULT_VALUES } from "../../../../src/domain/constants/index.ts";
 import { isError, isOk } from "../../../../src/domain/core/result.ts";
 
@@ -31,9 +32,9 @@ describe("RegistryBuilder", () => {
   });
 
   describe("buildRegistry()", () => {
-    // Create mock commands using the Command.create smart constructor
+    // Create mock commands using the createCommand function
     const createMockCommand = (c1: string, c2: string, c3: string) => {
-      const commandResult = Command.create({
+      return createCommand({
         c1,
         c2,
         c3,
@@ -41,12 +42,6 @@ describe("RegistryBuilder", () => {
         usage: `${c1}-${c2} ${c3} default`,
         options: {},
       });
-
-      if (!isOk(commandResult)) {
-        throw new Error("Failed to create command");
-      }
-
-      return commandResult.data;
     };
 
     // Create minimal mock schema
@@ -432,7 +427,7 @@ describe("RegistryBuilder", () => {
         throw new Error("Failed to create builder");
       }
 
-      const command = Command.create({
+      const command = createCommand({
         c1: "test",
         c2: "cmd",
         c3: "one",
@@ -441,11 +436,7 @@ describe("RegistryBuilder", () => {
         options: {},
       });
 
-      if (!isOk(command)) {
-        throw new Error("Failed to create command");
-      }
-
-      const commands = [command.data];
+      const commands = [command];
 
       const mockTemplate = {
         applyRules: (data: any) => data,
@@ -517,7 +508,7 @@ describe("RegistryBuilder", () => {
         throw new Error("Failed to create builder");
       }
 
-      const command = Command.create({
+      const command = createCommand({
         c1: "test",
         c2: "cmd",
         c3: "one",
@@ -526,11 +517,7 @@ describe("RegistryBuilder", () => {
         options: {},
       });
 
-      if (!isOk(command)) {
-        throw new Error("Failed to create command");
-      }
-
-      const commands = [command.data];
+      const commands = [command];
 
       const mockSchema = {
         getProperties: () => ({}),

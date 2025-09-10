@@ -73,7 +73,7 @@ export class ProcessDocumentsUseCase {
   /**
    * Execute the use case (delegates to orchestrator service)
    */
-  async execute(
+  execute(
     input: ProcessDocumentsInput,
   ): Promise<
     Result<
@@ -84,24 +84,26 @@ export class ProcessDocumentsUseCase {
     // Convert legacy input to value object
     const inputResult = ProcessDocumentsInputVO.create(input);
     if (!inputResult.ok) {
-      return {
+      return Promise.resolve({
         ok: false,
         error: {
           kind: "InputValidationError",
           message: `Invalid input: ${inputResult.error.message}`,
         },
-      };
+      });
     }
 
     // TODO: Refactor to use DocumentProcessor
     // For now, return a stub response to prevent breaking tests
-    return {
+    return Promise.resolve({
       ok: true,
       data: {
         processedCount: 0,
         outputPath: input.outputPath,
-        warnings: ["ProcessDocumentsUseCase is deprecated - refactor to use DocumentProcessor"],
+        warnings: [
+          "ProcessDocumentsUseCase is deprecated - refactor to use DocumentProcessor",
+        ],
       },
-    };
+    });
   }
 }

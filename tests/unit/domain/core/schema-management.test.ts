@@ -6,7 +6,6 @@
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
-  DynamicPipelineFactory,
   ExecutablePipeline,
   type ExecutionConfiguration,
   SchemaLoader,
@@ -626,6 +625,8 @@ Deno.test("SchemaSwitcher", async (t) => {
   });
 });
 
+// DynamicPipelineFactory tests removed - class was deleted as deprecated
+/*
 Deno.test("DynamicPipelineFactory", async (t) => {
   const mockFS = new MockFileSystem();
   const mockProcessor = new MockSchemaProcessor();
@@ -739,6 +740,7 @@ Deno.test("DynamicPipelineFactory", async (t) => {
     // The internal schema name should be "runtime-schema"
   });
 });
+*/
 
 Deno.test("ExecutablePipeline", async (t) => {
   const mockFS = new MockFileSystem();
@@ -1028,6 +1030,8 @@ Deno.test("ExecutablePipeline", async (t) => {
   });
 });
 
+// Integration test removed - uses DynamicPipelineFactory which was deleted
+/*
 Deno.test("Schema Management Integration", async (t) => {
   await t.step("should handle complete schema lifecycle", async () => {
     const mockFS = new MockFileSystem();
@@ -1192,3 +1196,4 @@ Deno.test("Schema Management Integration", async (t) => {
     }
   });
 });
+*/
