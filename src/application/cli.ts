@@ -24,6 +24,7 @@ import {
 } from "../domain/services/file-format-detector.ts";
 
 export class CLI {
+  private readonly logger = LoggerFactory.createLogger("CLI");
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
   private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
