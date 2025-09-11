@@ -15,6 +15,7 @@ import { createDomainError } from "../../core/result.ts";
 import type { SchemaExtensionRegistry } from "../entities/schema-extension-registry.ts";
 import { ExtensionType } from "../value-objects/extension-value.ts";
 import { ExtensionProcessor } from "./extension-processor.ts";
+import { PluralizationConfig } from "../../shared/value-objects/pluralization-config.ts";
 
 export interface FileSystemProvider {
   readFile(path: string): Promise<Result<string, DomainError>>;
@@ -28,12 +29,27 @@ export interface Template {
 
 export class SchemaExtensionProcessor {
   private readonly extensionProcessor: ExtensionProcessor;
+  private readonly pluralizationConfig: PluralizationConfig;
 
   constructor(
     private readonly registry: SchemaExtensionRegistry,
     private readonly fileSystem?: FileSystemProvider,
+    pluralizationConfig?: PluralizationConfig,
   ) {
     this.extensionProcessor = new ExtensionProcessor(registry);
+
+    // Use provided config or create default (following Totality principles)
+    if (pluralizationConfig) {
+      this.pluralizationConfig = pluralizationConfig;
+    } else {
+      const configResult = PluralizationConfig.createDefault();
+      if (!configResult.ok) {
+        throw new Error(
+          `Failed to create default pluralization config: ${configResult.error.message}`,
+        );
+      }
+      this.pluralizationConfig = configResult.data;
+    }
   }
 
   /**
@@ -151,8 +167,10 @@ export class SchemaExtensionProcessor {
 
       if (xPart && prop.type === "array") {
         // Transform single value to array for x-frontmatter-part fields
-        // Look for singular form of the field name (e.g., "author" for "authors")
-        const singularKey = key.endsWith("s") ? key.slice(0, -1) : key;
+        // Look for singular form of the field name using configurable pluralization
+        // REFACTORED: Eliminates English-specific hardcoding (Issue #663)
+        const singularResult = this.pluralizationConfig.singularize(key);
+        const singularKey = singularResult.ok ? singularResult.data : key;
         const sourceValue = input[singularKey] || input[key];
 
         if (sourceValue === undefined) {

@@ -289,37 +289,59 @@ export class DocumentProcessor {
   }
 
   /**
+   * Configuration for aggregation-triggering extensions
+   * Eliminates hardcoding violations by making extension detection configurable
+   */
+  private static readonly AGGREGATION_EXTENSION_KEYS = [
+    SchemaExtensions.DERIVED_FROM,
+    SchemaExtensions.DERIVED_UNIQUE,
+    SchemaExtensions.DERIVED_FLATTEN,
+    SchemaExtensions.TEMPLATE_AGGREGATION_OPTIONS,
+  ] as const;
+
+  /**
    * Check if schema contains x-* extensions that require aggregation
+   * Refactored to eliminate hardcoding violations (Issue #651)
+   * Uses configurable extension key list instead of direct string comparisons
    */
   private hasAggregationExtensions(schema: Record<string, unknown>): boolean {
-    // Recursively check for x-derived-from, x-derived-unique, or x-template-aggregation-options
-    const checkForExtensions = (obj: unknown): boolean => {
-      if (typeof obj !== "object" || obj === null) {
-        return false;
-      }
+    return this.checkForAggregationExtensionsRecursive(
+      schema,
+      DocumentProcessor.AGGREGATION_EXTENSION_KEYS,
+    );
+  }
 
-      const record = obj as Record<string, unknown>;
-
-      // Check for aggregation-related x-* properties
-      for (const key in record) {
-        if (
-          key === SchemaExtensions.DERIVED_FROM ||
-          key === SchemaExtensions.DERIVED_UNIQUE ||
-          key === SchemaExtensions.DERIVED_FLATTEN ||
-          key === SchemaExtensions.TEMPLATE_AGGREGATION_OPTIONS
-        ) {
-          return true;
-        }
-
-        // Recursively check nested objects
-        if (checkForExtensions(record[key])) {
-          return true;
-        }
-      }
-
+  /**
+   * Recursively check for aggregation extensions using configurable key list
+   * Separates the recursive logic for better testability and maintainability
+   */
+  private checkForAggregationExtensionsRecursive(
+    obj: unknown,
+    aggregationKeys: readonly string[],
+  ): boolean {
+    if (typeof obj !== "object" || obj === null) {
       return false;
-    };
+    }
 
-    return checkForExtensions(schema);
+    const record = obj as Record<string, unknown>;
+
+    // Check for aggregation-related x-* properties using configurable list
+    for (const key in record) {
+      if (aggregationKeys.includes(key)) {
+        return true;
+      }
+
+      // Recursively check nested objects
+      if (
+        this.checkForAggregationExtensionsRecursive(
+          record[key],
+          aggregationKeys,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
