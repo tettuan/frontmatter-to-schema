@@ -28,17 +28,6 @@ export class SchemaConfigLoader {
   }
 
   /**
-   * Factory method for backward compatibility
-   * @deprecated Use constructor with FileSystemRepository instead
-   */
-  static create(
-    fileSystem: FileSystemRepository,
-    basePath?: string,
-  ): SchemaConfigLoader {
-    return new SchemaConfigLoader(fileSystem, basePath);
-  }
-
-  /**
    * Load CLI registry schema from external file
    */
   async loadCliRegistrySchema(): Promise<

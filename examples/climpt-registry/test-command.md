@@ -14,7 +14,8 @@ options:
 
 # Git Refinement Issue Creator
 
-This command creates refinement issues in Git repositories to track code improvements and technical debt.
+This command creates refinement issues in Git repositories to track code
+improvements and technical debt.
 
 ## Usage Examples
 

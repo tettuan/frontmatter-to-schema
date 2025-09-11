@@ -7,7 +7,6 @@
 import { assertEquals, assertExists, assertRejects } from "jsr:@std/assert";
 import {
   GenericSchemaAnalyzer,
-  SchemaAnalysisFactory,
   SchemaAnalysisProcessor,
   SchemaGuidedTemplateMapper,
   TotalGenericSchemaAnalyzer,
@@ -431,12 +430,12 @@ Deno.test("SchemaAnalysisProcessor", async (t) => {
   );
 });
 
-Deno.test("SchemaAnalysisFactory", async (t) => {
+Deno.test("Component Creation", async (t) => {
   const mockService = new MockExternalAnalysisService();
   const mockPrompts = createMockPrompts();
 
   await t.step("should create analyzer instance", () => {
-    const analyzer = SchemaAnalysisFactory.createAnalyzer(
+    const analyzer = new GenericSchemaAnalyzer(
       mockService,
       mockPrompts,
     );
@@ -446,7 +445,7 @@ Deno.test("SchemaAnalysisFactory", async (t) => {
   });
 
   await t.step("should create mapper instance", () => {
-    const mapper = SchemaAnalysisFactory.createMapper(
+    const mapper = new SchemaGuidedTemplateMapper(
       mockService,
       mockPrompts,
     );
@@ -459,9 +458,14 @@ Deno.test("SchemaAnalysisFactory", async (t) => {
     const schema = { type: "object" };
     const template = { output: "{{result}}" };
 
-    const processor = SchemaAnalysisFactory.createProcessor(
+    const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
       mockService,
       mockPrompts,
+    );
+    const processor = new SchemaAnalysisProcessor(
+      analyzer,
+      mapper,
       schema,
       template,
     );
@@ -474,9 +478,14 @@ Deno.test("SchemaAnalysisFactory", async (t) => {
     const schema = { type: "object" };
     const template = { greeting: "Hello {{name}}" };
 
-    const processor = SchemaAnalysisFactory.createProcessor(
+    const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
       mockService,
       mockPrompts,
+    );
+    const processor = new SchemaAnalysisProcessor(
+      analyzer,
+      mapper,
       schema,
       template,
     );
@@ -543,9 +552,14 @@ Deno.test("Schema-Driven Analysis Integration", async (t) => {
       categories: ["tech", "tutorial"],
     };
 
-    const processor = SchemaAnalysisFactory.createProcessor(
+    const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
       mockService,
       mockPrompts,
+    );
+    const processor = new SchemaAnalysisProcessor(
+      analyzer,
+      mapper,
       schema,
       template,
     );
@@ -577,17 +591,23 @@ Deno.test("Schema-Driven Analysis Integration", async (t) => {
     });
 
     assertEquals(result.isValid, true);
-    assertEquals(result.data.title, "Test Article");
-    assertEquals(result.data.byline, "By John Doe on 2023-01-01");
-    assertEquals(result.data.summary, "3 sections, 2 tags");
+    const data = result.data as Record<string, unknown>;
+    assertEquals(data.title, "Test Article");
+    assertEquals(data.byline, "By John Doe on 2023-01-01");
+    assertEquals(data.summary, "3 sections, 2 tags");
   });
 
   await t.step("should handle edge cases and error conditions", async () => {
     const mockService = new MockExternalAnalysisService();
     const mockPrompts = createMockPrompts();
-    const processor = SchemaAnalysisFactory.createProcessor(
+    const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
       mockService,
       mockPrompts,
+    );
+    const processor = new SchemaAnalysisProcessor(
+      analyzer,
+      mapper,
       {},
       {},
     );
