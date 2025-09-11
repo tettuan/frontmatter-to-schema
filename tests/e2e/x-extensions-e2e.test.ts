@@ -15,6 +15,7 @@ import { assertEquals, assertExists, assertObjectMatch } from "jsr:@std/assert";
 import { SchemaExtensionProcessor } from "../../src/domain/schema/services/schema-extension-processor.ts";
 import { TemplateVariableResolver } from "../../src/domain/template/services/template-variable-resolver.ts";
 import { AggregationService } from "../../src/domain/aggregation/services/aggregation.service.ts";
+import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
 import {
   MockFactory,
   ResultTestHelpers,
@@ -28,7 +29,7 @@ Deno.test("E2E: x-template dynamic template selection", async () => {
       type: { type: "string" },
       title: { type: "string" },
     },
-    "x-template": {
+    [SchemaExtensions.TEMPLATE]: {
       blog: "blog-template.json",
       article: "article-template.json",
       default: "default-template.json",
@@ -81,9 +82,13 @@ Deno.test("E2E: x-template dynamic template selection", async () => {
   }
 
   // Verify schema structure
-  assertEquals(typeof schema["x-template"], "object");
-  assertExists(schema["x-template"].blog);
-  assertExists(schema["x-template"].default);
+  assertEquals(typeof schema[SchemaExtensions.TEMPLATE], "object");
+  assertExists(
+    (schema[SchemaExtensions.TEMPLATE] as Record<string, string>).blog,
+  );
+  assertExists(
+    (schema[SchemaExtensions.TEMPLATE] as Record<string, string>).default,
+  );
 });
 
 Deno.test("E2E: x-derived-from aggregation with real markdown files", () => {
@@ -93,8 +98,8 @@ Deno.test("E2E: x-derived-from aggregation with real markdown files", () => {
     properties: {
       tags: {
         type: "array",
-        "x-derived-from": "categories",
-        "x-derived-unique": true,
+        [SchemaExtensions.DERIVED_FROM]: "categories",
+        [SchemaExtensions.DERIVED_UNIQUE]: true,
       },
     },
   };
@@ -128,8 +133,9 @@ Deno.test("E2E: x-derived-from aggregation with real markdown files", () => {
   assertEquals(tags.sort(), expected.sort());
 
   // Verify schema properties
-  assertExists(schema.properties.tags["x-derived-from"]);
-  assertEquals(schema.properties.tags["x-derived-unique"], true);
+  const tagsSchema = schema.properties.tags as Record<string, unknown>;
+  assertExists(tagsSchema[SchemaExtensions.DERIVED_FROM]);
+  assertEquals(tagsSchema[SchemaExtensions.DERIVED_UNIQUE], true);
 });
 
 Deno.test("E2E: x-frontmatter-part array processing workflow", () => {
@@ -139,7 +145,7 @@ Deno.test("E2E: x-frontmatter-part array processing workflow", () => {
     properties: {
       authors: {
         type: "array",
-        "x-frontmatter-part": "author",
+        [SchemaExtensions.FRONTMATTER_PART]: "author",
         items: { type: "string" },
       },
     },
@@ -174,8 +180,9 @@ Deno.test("E2E: x-frontmatter-part array processing workflow", () => {
   }
 
   // Verify schema structure
-  assertExists(schema.properties.authors["x-frontmatter-part"]);
-  assertEquals(schema.properties.authors.type, "array");
+  const authorsSchema = schema.properties.authors as Record<string, unknown>;
+  assertExists(authorsSchema[SchemaExtensions.FRONTMATTER_PART]);
+  assertEquals(authorsSchema.type, "array");
 });
 
 Deno.test("E2E: x-derived-unique deduplication in practice", () => {
@@ -185,8 +192,8 @@ Deno.test("E2E: x-derived-unique deduplication in practice", () => {
     properties: {
       allTags: {
         type: "array",
-        "x-derived-from": "tags",
-        "x-derived-unique": true,
+        [SchemaExtensions.DERIVED_FROM]: "tags",
+        [SchemaExtensions.DERIVED_UNIQUE]: true,
       },
     },
   };
@@ -219,7 +226,8 @@ Deno.test("E2E: x-derived-unique deduplication in practice", () => {
   assertEquals(new Set(allTags).size, allTags.length);
 
   // Verify schema property
-  assertEquals(schema.properties.allTags["x-derived-unique"], true);
+  const allTagsSchema = schema.properties.allTags as Record<string, unknown>;
+  assertEquals(allTagsSchema[SchemaExtensions.DERIVED_UNIQUE], true);
 });
 
 Deno.test("E2E: Nested $ref resolution with x-* properties", () => {
@@ -229,7 +237,7 @@ Deno.test("E2E: Nested $ref resolution with x-* properties", () => {
     properties: {
       metadata: {
         "$ref": "#/definitions/metadata",
-        "x-template": "metadata-template.json",
+        [SchemaExtensions.TEMPLATE]: "metadata-template.json",
       },
     },
     definitions: {
@@ -244,8 +252,9 @@ Deno.test("E2E: Nested $ref resolution with x-* properties", () => {
   };
 
   // TODO: Implement $ref resolution with x-* properties
-  assertExists(schema.properties.metadata["$ref"]);
-  assertExists(schema.properties.metadata["x-template"]);
+  const metadataSchema = schema.properties.metadata as Record<string, unknown>;
+  assertExists(metadataSchema["$ref"]);
+  assertExists(metadataSchema[SchemaExtensions.TEMPLATE]);
 });
 
 Deno.test("E2E: Multi-file batch processing with aggregation", () => {
@@ -272,13 +281,14 @@ Deno.test("E2E: Error handling for invalid x-* configurations", () => {
     properties: {
       field: {
         type: "string",
-        "x-template": 123, // Should be string or object
+        [SchemaExtensions.TEMPLATE]: 123, // Should be string or object
       },
     },
   };
 
   // TODO: Implement error validation
-  assertEquals(typeof invalidSchema.properties.field["x-template"], "number");
+  const fieldSchema = invalidSchema.properties.field as Record<string, unknown>;
+  assertEquals(typeof fieldSchema[SchemaExtensions.TEMPLATE], "number");
 });
 
 Deno.test("E2E: Performance test with 1000+ files simulation", () => {
@@ -299,8 +309,8 @@ Deno.test("E2E: Performance test with 1000+ files simulation", () => {
     properties: {
       allTags: {
         type: "array",
-        "x-derived-from": "tags",
-        "x-derived-unique": true,
+        [SchemaExtensions.DERIVED_FROM]: "tags",
+        [SchemaExtensions.DERIVED_UNIQUE]: true,
       },
     },
   };
@@ -334,24 +344,25 @@ Deno.test("E2E: Schema validation with x-* extensions", () => {
   // Comprehensive schema with multiple x-* properties
   const schema = {
     type: "object",
-    "x-schema-version": "1.0",
+    [SchemaExtensions.SCHEMA_VERSION]: "1.0",
     properties: {
       title: {
         type: "string",
-        "x-required": true,
-        "x-validation": "^[A-Z].*", // Must start with capital
+        [SchemaExtensions.REQUIRED]: true,
+        [SchemaExtensions.VALIDATION]: "^[A-Z].*", // Must start with capital
       },
       tags: {
         type: "array",
-        "x-min-items": 1,
-        "x-max-items": 5,
+        [SchemaExtensions.MIN_ITEMS]: 1,
+        [SchemaExtensions.MAX_ITEMS]: 5,
       },
     },
   };
 
   // TODO: Implement validation tests
-  assertExists(schema["x-schema-version"]);
-  assertExists(schema.properties.title["x-validation"]);
+  assertExists(schema[SchemaExtensions.SCHEMA_VERSION]);
+  const titleSchema = schema.properties.title as Record<string, unknown>;
+  assertExists(titleSchema[SchemaExtensions.VALIDATION]);
 });
 
 Deno.test("E2E: Template variable substitution edge cases", () => {

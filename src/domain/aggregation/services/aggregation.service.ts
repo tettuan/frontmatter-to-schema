@@ -8,6 +8,7 @@
 
 import type { Result } from "../../core/result.ts";
 import type { DomainError } from "../../core/result.ts";
+import { SchemaExtensions } from "../../schema/value-objects/schema-extensions.ts";
 
 export interface AggregationOptions {
   unique?: boolean;
@@ -158,10 +159,11 @@ export class AggregationService {
 
     for (const [fieldName, fieldSchema] of Object.entries(properties)) {
       const field = fieldSchema as Record<string, unknown>;
-      const xDerivedFrom = field["x-derived-from"] as string;
+      const xDerivedFrom = field[SchemaExtensions.DERIVED_FROM] as string;
 
       if (xDerivedFrom) {
-        const xDerivedUnique = field["x-derived-unique"] as boolean;
+        const xDerivedUnique =
+          field[SchemaExtensions.DERIVED_UNIQUE] as boolean;
 
         const aggregationResult = this.aggregate({
           documents,

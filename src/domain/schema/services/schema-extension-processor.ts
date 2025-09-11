@@ -8,6 +8,7 @@
 
 import type { Result } from "../../core/result.ts";
 import type { DomainError } from "../../core/result.ts";
+import { SchemaExtensions } from "../value-objects/schema-extensions.ts";
 
 export interface FileSystemProvider {
   readFile(path: string): Promise<Result<string, DomainError>>;
@@ -29,7 +30,7 @@ export class SchemaExtensionProcessor {
     schema: Record<string, unknown>,
     document: Record<string, unknown>,
   ): Promise<Result<Template, DomainError>> {
-    const xTemplate = schema["x-template"];
+    const xTemplate = schema[SchemaExtensions.TEMPLATE];
 
     if (!xTemplate || typeof xTemplate !== "object") {
       return {
@@ -86,7 +87,7 @@ export class SchemaExtensionProcessor {
 
     for (const [key, propSchema] of Object.entries(properties)) {
       const prop = propSchema as Record<string, unknown>;
-      const xPart = prop["x-frontmatter-part"] as string;
+      const xPart = prop[SchemaExtensions.FRONTMATTER_PART] as string;
 
       if (xPart && prop.type === "array") {
         // Transform single value to array
@@ -123,7 +124,7 @@ export class SchemaExtensionProcessor {
     processed = transformResult.data;
 
     // Apply x-template selection
-    if (schema["x-template"]) {
+    if (schema[SchemaExtensions.TEMPLATE]) {
       const templateResult = await this.selectTemplate(schema, processed);
       if (!templateResult.ok) {
         return templateResult;
