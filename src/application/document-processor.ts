@@ -39,7 +39,7 @@ export class DocumentProcessor {
     private readonly templateProcessor: UnifiedTemplateProcessor,
   ) {
     // Initialize domain services
-    this.fileOperations = new FileOperations(fileSystem);
+    this.fileOperations = new FileOperations(fileSystem, frontMatterExtractor);
     this.resourceLoaders = new ResourceLoaders();
     this.transformationPipeline = new TransformationPipeline(
       schemaValidator,
