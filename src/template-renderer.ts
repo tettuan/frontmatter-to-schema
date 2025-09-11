@@ -1,5 +1,6 @@
 import type { DomainError, ProcessingConfig, Result } from "./types.ts";
 import { getTemplatePath } from "./domain/models/schema-extensions.ts";
+import { ERROR_TEMPLATE_PREVIEW_LIMIT } from "./domain/shared/constants.ts";
 
 export interface TemplateData {
   readonly aggregatedData: Record<string, unknown>;
@@ -74,7 +75,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -93,7 +94,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -112,7 +113,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -131,7 +132,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
