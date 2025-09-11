@@ -19,15 +19,15 @@ export type {
   ValidationMetadata,
 } from "../types/domain-types.ts";
 
-// Re-export entities from their dedicated files (DDD separation)
-export { Document } from "../entities/document.entity.ts";
-export { FrontMatter } from "../entities/frontmatter.entity.ts";
-export { Schema } from "../entities/schema.entity.ts";
-export { Template } from "../entities/template.entity.ts";
+// Re-export entities from proper DDD bounded contexts
+export { Document } from "../document/entities.ts";
+export { FrontMatter } from "../frontmatter/entities.ts";
+export { Schema } from "../entities/schema.ts";
+export { Template } from "../template/entities.ts";
 export {
   AggregatedResult,
   AnalysisResult,
-} from "../entities/analysis-result.entity.ts";
+} from "../analysis/entities.ts";
 
 // Re-export identifier value objects with Smart Constructors
 export {

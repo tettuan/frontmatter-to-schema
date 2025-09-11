@@ -7,7 +7,7 @@
 
 import type { FrontMatterPipelineConfig } from "../../../domain/pipeline/generic-pipeline.ts";
 import type { LoggerProvider } from "../../../domain/core/logging-service.ts";
-import { SchemaAnalysisFactory } from "../../../domain/analysis/schema-driven.ts";
+import { ComponentFactory } from "../../../domain/core/component-factory.ts";
 import type { ClimptRegistrySchema } from "../models/climpt-schema.models.ts";
 import { ClaudeCLIService } from "./claude-cli.service.ts";
 import { DenoFileSystemProvider } from "./deno-filesystem.service.ts";
@@ -44,13 +44,18 @@ export class ClimptPipelineFactory {
       configProvider.getPrompts(),
     ]);
 
-    // Direct processor creation - simpler and more direct than factory pattern
-    const analysisProcessor = SchemaAnalysisFactory.createProcessor(
-      claudeService,
-      prompts,
-      schema,
-      template,
-    );
+    // Direct processor creation using component factory
+    const componentFactory = new ComponentFactory();
+    const components = componentFactory.createAnalysisComponents();
+    
+    // Create analysis processor with components
+    const { TotalGenericSchemaAnalyzer } = await import("../../../domain/analysis/services/schema-analyzer.service.ts");
+    const { TotalSchemaGuidedTemplateMapper } = await import("../../../domain/analysis/services/template-mapper.service.ts");
+    const { SchemaAnalysisProcessor } = await import("../../../domain/analysis/services/schema-processor.service.ts");
+    
+    const analyzer = new TotalGenericSchemaAnalyzer(claudeService, prompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(claudeService, prompts);
+    const analysisProcessor = new SchemaAnalysisProcessor(analyzer, mapper, schema, template);
 
     // Create pipeline configuration
     const config: FrontMatterPipelineConfig<

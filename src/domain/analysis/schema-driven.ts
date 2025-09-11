@@ -31,5 +31,5 @@ export {
 // Re-export schema processor components
 export { SchemaAnalysisProcessor } from "./services/schema-processor.service.ts";
 
-// Re-export factory components
-export { SchemaAnalysisFactory } from "./services/analysis-factory.service.ts";
+// Factory has been replaced with ComponentFactory from core/component-factory.ts
+// export { SchemaAnalysisFactory } from "./services/analysis-factory.service.ts";
