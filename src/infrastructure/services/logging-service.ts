@@ -4,12 +4,15 @@
  * Follows AI Complexity Control: reduces logging complexity entropy
  */
 
-import type { Logger, LoggerConfiguration } from "../shared/logger.ts";
+import type {
+  Logger,
+  LoggerConfiguration,
+} from "../../domain/shared/logger.ts";
 import {
   ConsoleLogger,
   NullLogger,
   StructuredLogger,
-} from "../shared/logger.ts";
+} from "../../domain/shared/logger.ts";
 
 /**
  * Centralized logging service for dependency injection

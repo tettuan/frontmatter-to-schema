@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { CLI } from "./cli.ts";
-import { ExitHandlerFactory } from "../domain/services/exit-handler.ts";
+import { ExitHandlerFactory } from "../infrastructure/services/exit-handler.ts";
 import { FormatDetectorFactory } from "../domain/services/file-format-detector.ts";
 
 Deno.test("CLI - Construction with default services", () => {

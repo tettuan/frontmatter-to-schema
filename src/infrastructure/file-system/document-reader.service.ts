@@ -8,7 +8,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
-import { VerboseLoggerService } from "../../domain/services/verbose-logger-service.ts";
+import { VerboseLoggerService } from "../services/verbose-logger-service.ts";
 
 /**
  * Result of reading file content with metadata

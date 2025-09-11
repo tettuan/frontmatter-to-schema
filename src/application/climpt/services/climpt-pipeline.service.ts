@@ -12,7 +12,7 @@ import {
   type FrontMatterPipelineConfig,
 } from "../../../domain/pipeline/generic-pipeline.ts";
 import type { Logger } from "../../../domain/shared/logger.ts";
-import type { LoggerProvider } from "../../../domain/core/logging-service.ts";
+import type { LoggerProvider } from "../../../infrastructure/services/logging-service.ts";
 import { VERSION_CONFIG } from "../../../config/version.ts";
 import type {
   ClimptCommand,

@@ -11,7 +11,7 @@
  * - Flexible deployment configurations
  */
 
-import type { DomainError, Result } from "../core/result.ts";
+import type { DomainError, Result } from "../../domain/core/result.ts";
 
 /**
  * Exit configuration options
