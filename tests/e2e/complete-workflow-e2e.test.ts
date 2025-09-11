@@ -135,7 +135,7 @@ Deno.test({
     await t.step(
       "should process single markdown file with schema validation",
       async () => {
-        const processor = TestProcessorFactory.create();
+        const processor = TestProcessorFactory.createUnsafe();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -184,7 +184,7 @@ Deno.test({
     await t.step(
       "should process multiple markdown files in batch",
       async () => {
-        const processor = TestProcessorFactory.create();
+        const processor = TestProcessorFactory.createUnsafe();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -232,7 +232,7 @@ Deno.test({
     );
 
     await t.step("should generate YAML output format", async () => {
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -287,7 +287,7 @@ Deno.test({
         JSON.stringify(schemaWithXTemplate, null, 2),
       );
 
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -354,7 +354,7 @@ Deno.test({
         JSON.stringify(complexSchema, null, 2),
       );
 
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -422,7 +422,7 @@ Deno.test({
         JSON.stringify(derivedSchema, null, 2),
       );
 
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -476,7 +476,7 @@ Deno.test({
         JSON.stringify(uniqueSchema, null, 2),
       );
 
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -551,7 +551,7 @@ categories:
           JSON.stringify(partSchema, null, 2),
         );
 
-        const processor = TestProcessorFactory.create();
+        const processor = TestProcessorFactory.createUnsafe();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -640,7 +640,7 @@ Content for article ${i}.
         ),
       );
 
-      const processor = TestProcessorFactory.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
