@@ -96,6 +96,12 @@ export class CLI {
       return { ok: true, data: undefined };
     }
 
+    // Handle positional arguments for backward compatibility
+    // If no --input flag is provided but there's a positional argument, use it as input
+    if (!parsed.input && parsed._ && parsed._.length > 0) {
+      parsed.input = String(parsed._[0]);
+    }
+
     // Load configuration
     const configResult = await this.loadConfiguration(parsed);
     if (!configResult.ok) {
@@ -258,6 +264,20 @@ export class CLI {
 
       config.output = {
         path: outputPath,
+        format: formatResult.data,
+      };
+    }
+
+    // Add default template configuration if not provided
+    if (!config.template) {
+      const defaultTemplate = '{"template": "default"}'; // Simple default template
+      const formatResult = TemplateFormat.create("json");
+      if (!formatResult.ok) {
+        return formatResult;
+      }
+
+      config.template = {
+        definition: defaultTemplate,
         format: formatResult.data,
       };
     }

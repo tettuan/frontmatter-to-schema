@@ -53,21 +53,31 @@ export class OutputConfigurationValidator {
       };
     }
 
-    // Use Smart Constructor for format validation
-    const formatValue = output.format || "json";
-    if (typeof formatValue !== "string") {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ConfigurationError",
-          config: formatValue,
-        }, "Output format must be a string"),
-      };
+    // Accept both string and OutputFormat object for flexibility
+    let formatResult: Result<OutputFormat, DomainError>;
+
+    if (typeof output.format === "string") {
+      // Handle string format - create OutputFormat object
+      formatResult = OutputFormat.create(output.format);
+    } else if (
+      output.format && typeof output.format === "object" &&
+      "getValue" in output.format
+    ) {
+      // Handle OutputFormat object - use directly
+      formatResult = { ok: true, data: output.format as OutputFormat };
+    } else {
+      // Default to json if no format provided
+      formatResult = OutputFormat.create("json");
     }
 
-    const formatResult = OutputFormat.create(formatValue);
     if (!formatResult.ok) {
-      return formatResult;
+      return {
+        ok: false,
+        error: createDomainError(
+          formatResult.error,
+          "Output format validation failed",
+        ),
+      };
     }
 
     return {

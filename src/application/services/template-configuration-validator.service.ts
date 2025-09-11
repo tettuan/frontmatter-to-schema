@@ -53,21 +53,31 @@ export class TemplateConfigurationValidator {
       };
     }
 
-    // Use Smart Constructor for format validation
-    const formatValue = template.format || "handlebars";
-    if (typeof formatValue !== "string") {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ConfigurationError",
-          config: formatValue,
-        }, "Template format must be a string"),
-      };
+    // Accept both string and TemplateFormat object for flexibility
+    let formatResult: Result<TemplateFormat, DomainError>;
+
+    if (typeof template.format === "string") {
+      // Handle string format - create TemplateFormat object
+      formatResult = TemplateFormat.create(template.format);
+    } else if (
+      template.format && typeof template.format === "object" &&
+      "getValue" in template.format
+    ) {
+      // Handle TemplateFormat object - use directly
+      formatResult = { ok: true, data: template.format as TemplateFormat };
+    } else {
+      // Default to handlebars if no format provided
+      formatResult = TemplateFormat.create("handlebars");
     }
 
-    const formatResult = TemplateFormat.create(formatValue);
     if (!formatResult.ok) {
-      return formatResult;
+      return {
+        ok: false,
+        error: createDomainError(
+          formatResult.error,
+          "Template format validation failed",
+        ),
+      };
     }
 
     return {
