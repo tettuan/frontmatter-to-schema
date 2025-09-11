@@ -13,6 +13,18 @@
 import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { SchemaExtensionProcessor } from "../../src/domain/schema/services/schema-extension-processor.ts";
 import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
+import { SchemaExtensionRegistryFactory } from "../../src/domain/schema/factories/schema-extension-registry-factory.ts";
+
+// Test Helper Functions
+function createTestProcessor(): SchemaExtensionProcessor {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaExtensionProcessor(registryResult.data);
+}
 
 // Integration Test Data Factory
 class IntegrationTestDataFactory {
@@ -149,7 +161,7 @@ class IntegrationTestDataFactory {
 // System Boundary Integration Tests
 Deno.test("Schema Extension Processor - System Integration", async (t) => {
   await t.step("Process develop branch pattern schema", async () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const documents = IntegrationTestDataFactory.createTestDocuments();
     const schema = IntegrationTestDataFactory.createDevelopBranchSchema();
 
@@ -166,7 +178,7 @@ Deno.test("Schema Extension Processor - System Integration", async (t) => {
   });
 
   await t.step("Process main branch pattern schema", async () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const documents = IntegrationTestDataFactory.createTestDocuments();
     const schema = IntegrationTestDataFactory.createMainBranchSchema();
 
@@ -177,7 +189,7 @@ Deno.test("Schema Extension Processor - System Integration", async (t) => {
   });
 
   await t.step("Process unified schema pattern", async () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const documents = IntegrationTestDataFactory.createTestDocuments();
     const schema = IntegrationTestDataFactory.createUnifiedSchema();
 
@@ -191,7 +203,7 @@ Deno.test("Schema Extension Processor - System Integration", async (t) => {
 // Cross-Service Integration Tests
 Deno.test("Schema Extension Processor - Service Integration", async (t) => {
   await t.step("Frontmatter part transformation integration", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const schema = IntegrationTestDataFactory.createDevelopBranchSchema();
 
     // Test frontmatter part detection
@@ -202,7 +214,7 @@ Deno.test("Schema Extension Processor - Service Integration", async (t) => {
   });
 
   await t.step("Extension validation integration", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Test valid extensions
     const validExtensions = {
@@ -217,7 +229,7 @@ Deno.test("Schema Extension Processor - Service Integration", async (t) => {
   });
 
   await t.step("Extension validation with invalid data", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Test invalid extensions
     const invalidExtensions = {
@@ -234,7 +246,7 @@ Deno.test("Schema Extension Processor - Service Integration", async (t) => {
 // Data Flow Integration Tests
 Deno.test("Schema Extension Processor - Data Flow Integration", async (t) => {
   await t.step("Complex nested value extraction", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const documents = IntegrationTestDataFactory.createTestDocuments();
 
     // Test complex JSONPath extraction
@@ -271,7 +283,7 @@ Deno.test("Schema Extension Processor - Data Flow Integration", async (t) => {
   });
 
   await t.step("Frontmatter part array transformation workflow", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Test boolean-based frontmatter part processing
     const testInput = {
@@ -304,7 +316,7 @@ Deno.test("Schema Extension Processor - Data Flow Integration", async (t) => {
 // Error Handling Integration Tests
 Deno.test("Schema Extension Processor - Error Handling Integration", async (t) => {
   await t.step("Graceful handling of missing data", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const emptyDocuments: Array<Record<string, unknown>> = [];
 
     const result = processor.processDerivedFields(emptyDocuments, {
@@ -326,7 +338,7 @@ Deno.test("Schema Extension Processor - Error Handling Integration", async (t) =
   });
 
   await t.step("Error propagation from nested processing", async () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Create malformed schema to trigger validation errors
     const malformedSchema = {
@@ -354,7 +366,7 @@ Deno.test("Schema Extension Processor - Error Handling Integration", async (t) =
 // Performance Integration Tests
 Deno.test("Schema Extension Processor - Performance Integration", async (t) => {
   await t.step("Performance with large document sets", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Create large document set
     const largeDocumentSet: Array<Record<string, unknown>> = [];
@@ -403,7 +415,7 @@ Deno.test("Schema Extension Processor - Performance Integration", async (t) => {
   });
 
   await t.step("Memory efficiency with complex schemas", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
 
     // Create complex schema with many extensions
     const complexSchema: Record<string, unknown> = {
@@ -440,7 +452,7 @@ Deno.test("Schema Extension Processor - Performance Integration", async (t) => {
 // Compatibility Matrix Integration Tests
 Deno.test("Schema Extension Processor - Cross-Branch Compatibility", async (t) => {
   await t.step("develop pattern processing produces expected results", () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const documents = IntegrationTestDataFactory.createTestDocuments();
     const developSchema = IntegrationTestDataFactory
       .createDevelopBranchSchema();
@@ -462,7 +474,7 @@ Deno.test("Schema Extension Processor - Cross-Branch Compatibility", async (t) =
   });
 
   await t.step("Schema processing maintains immutability", async () => {
-    const processor = new SchemaExtensionProcessor();
+    const processor = createTestProcessor();
     const originalDocument =
       IntegrationTestDataFactory.createTestDocuments()[0];
     const originalSchema = IntegrationTestDataFactory.createUnifiedSchema();

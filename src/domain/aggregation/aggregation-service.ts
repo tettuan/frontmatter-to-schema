@@ -3,6 +3,7 @@
  *
  * Domain service for aggregating data from multiple documents
  * and applying derivation rules.
+ * REFACTORED: Eliminates hardcoding violations by using SchemaExtensionRegistry
  */
 
 import type { Result } from "../core/result.ts";
@@ -14,6 +15,7 @@ import {
   DerivationRule,
 } from "./value-objects.ts";
 import { ExpressionEvaluator } from "./expression-evaluator.ts";
+import type { SchemaExtensionRegistry } from "../schema/entities/schema-extension-registry.ts";
 
 /**
  * Type guard for validating unknown data as Record<string, unknown>
@@ -31,6 +33,7 @@ function isValidRecordData(data: unknown): data is Record<string, unknown> {
 export class AggregationService {
   constructor(
     private readonly evaluator: ExpressionEvaluator,
+    private readonly registry: SchemaExtensionRegistry,
   ) {}
 
   /**
@@ -181,10 +184,11 @@ export class AggregationService {
         const fieldName = prefix ? `${prefix}.${key}` : key;
         const property = value;
 
-        // Check for x-derived-from
+        // Use registry to check for derived extensions
         const ruleResult = DerivationRule.fromSchemaProperty(
           fieldName,
           property,
+          this.registry,
         );
         if (!ruleResult.ok) {
           errors.push(`${fieldName}: ${ruleResult.error.message}`);
@@ -317,11 +321,14 @@ export class AggregationService {
 
 /**
  * Factory function to create an aggregation service
+ * REFACTORED: Now requires registry dependency to eliminate hardcoding
  */
 export function createAggregationService(
+  registry: SchemaExtensionRegistry,
   evaluator?: ExpressionEvaluator,
 ): AggregationService {
   return new AggregationService(
     evaluator || new ExpressionEvaluator(),
+    registry,
   );
 }

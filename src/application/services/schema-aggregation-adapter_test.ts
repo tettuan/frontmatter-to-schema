@@ -6,11 +6,23 @@ import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { SchemaAggregationAdapter } from "./schema-aggregation-adapter.ts";
 import type { ExtendedSchema } from "../../domain/models/schema-extensions.ts";
+import { SchemaExtensionRegistryFactory } from "../../domain/schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAdapter() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaAggregationAdapter(registryResult.data);
+}
 
 describe("SchemaAggregationAdapter", () => {
   describe("extractAggregationContext", () => {
     it("should extract derivation rules from schema", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
@@ -57,7 +69,7 @@ describe("SchemaAggregationAdapter", () => {
 
     it("should handle top-level properties with derivation rules", () => {
       // Note: Nested properties like "config.tools" are not yet supported due to issue #568
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
@@ -96,7 +108,7 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("isFrontmatterPartSchema", () => {
     it("should identify schema marked with x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
 
       const markedSchema: ExtendedSchema = {
         type: "object",
@@ -116,7 +128,7 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("findFrontmatterParts", () => {
     it("should find all properties marked with x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
@@ -155,7 +167,7 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle root-level x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         "x-frontmatter-part": true,
@@ -172,7 +184,7 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("processAggregation", () => {
     it("should aggregate data from multiple documents", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
@@ -215,7 +227,7 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle flatten option", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
@@ -251,7 +263,7 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("applyToTemplate", () => {
     it("should apply aggregated data to template", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const template = {
         name: "Registry",
         configs: [],
@@ -269,7 +281,7 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle nested paths in aggregated data", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const template = {
         root: {
           nested: {},

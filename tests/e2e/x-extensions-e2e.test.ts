@@ -16,6 +16,18 @@ import { SchemaAggregationAdapter } from "../../src/application/services/schema-
 import { UnifiedTemplateProcessor } from "../../src/domain/template/index.ts";
 import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
 import { ResultTestHelpers } from "../helpers/domain-test-helpers.ts";
+import { SchemaExtensionRegistryFactory } from "../../src/domain/schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAdapter() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaAggregationAdapter(registryResult.data);
+}
 
 Deno.test("E2E: x-template dynamic template selection", () => {
   // Setup: Create schema with x-template for dynamic template selection
@@ -46,7 +58,7 @@ Deno.test("E2E: x-template dynamic template selection", () => {
   );
 
   // Test basic schema extension functionality
-  const adapter = new SchemaAggregationAdapter();
+  const adapter = createTestAdapter();
   assertEquals(typeof adapter, "object");
 
   // Test template schema extension detection
@@ -77,7 +89,7 @@ Deno.test("E2E: x-derived-from aggregation with real markdown files", () => {
   const expected = ["tech", "web", "mobile"];
 
   // Create schema aggregation adapter (canonical service)
-  const adapter = new SchemaAggregationAdapter();
+  const adapter = createTestAdapter();
 
   // Process aggregation using canonical service API
   const result = adapter.processAggregation(documents, schema);
@@ -108,7 +120,7 @@ Deno.test("E2E: x-frontmatter-part array processing workflow", () => {
   };
 
   // Use canonical schema aggregation adapter
-  const adapter = new SchemaAggregationAdapter();
+  const adapter = createTestAdapter();
 
   // Test frontmatter part detection
   const parts = adapter.findFrontmatterParts(schema);
@@ -131,7 +143,7 @@ Deno.test("E2E: x-frontmatter-part array processing workflow", () => {
   ];
 
   // Use canonical schema aggregation adapter for frontmatter part processing
-  const frontmatterAdapter = new SchemaAggregationAdapter();
+  const frontmatterAdapter = createTestAdapter();
 
   // Test frontmatter part detection
   const frontmatterParts = frontmatterAdapter.findFrontmatterParts(schema);
@@ -171,7 +183,7 @@ Deno.test("E2E: x-derived-unique deduplication in practice", () => {
   // Expected unique tags
   const expected = ["a", "b", "c", "d", "e"];
 
-  const adapter = new SchemaAggregationAdapter();
+  const adapter = createTestAdapter();
   const result = adapter.processAggregation(documents, schema);
 
   const aggregated = ResultTestHelpers.assertSuccess(result);
@@ -272,7 +284,7 @@ Deno.test("E2E: Performance test with 1000+ files simulation", () => {
   };
 
   // Process aggregation using canonical service
-  const performanceAdapter = new SchemaAggregationAdapter();
+  const performanceAdapter = createTestAdapter();
   const result = performanceAdapter.processAggregation(documents, schema);
 
   ResultTestHelpers.assertSuccess(result);

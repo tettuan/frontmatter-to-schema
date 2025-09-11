@@ -20,6 +20,8 @@ import {
 } from "../../domain/aggregation/value-objects.ts";
 import { AggregationService } from "../../domain/aggregation/aggregation-service.ts";
 import { ExpressionEvaluator } from "../../domain/aggregation/expression-evaluator.ts";
+import type { SchemaExtensionRegistry } from "../../domain/schema/entities/schema-extension-registry.ts";
+import { SchemaExtensionRegistryFactory } from "../../domain/schema/factories/schema-extension-registry-factory.ts";
 
 /**
  * Adapter to integrate schema extensions with aggregation service
@@ -27,9 +29,13 @@ import { ExpressionEvaluator } from "../../domain/aggregation/expression-evaluat
 export class SchemaAggregationAdapter {
   private readonly aggregationService: AggregationService;
 
-  constructor(evaluator?: ExpressionEvaluator) {
+  constructor(
+    registry: SchemaExtensionRegistry,
+    evaluator?: ExpressionEvaluator,
+  ) {
     this.aggregationService = new AggregationService(
       evaluator || new ExpressionEvaluator(),
+      registry,
     );
   }
 
@@ -255,5 +261,11 @@ export class SchemaAggregationAdapter {
 export function createSchemaAggregationAdapter(
   evaluator?: ExpressionEvaluator,
 ): SchemaAggregationAdapter {
-  return new SchemaAggregationAdapter(evaluator);
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaAggregationAdapter(registryResult.data, evaluator);
 }

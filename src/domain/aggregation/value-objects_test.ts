@@ -5,6 +5,18 @@
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { DerivationRule } from "./value-objects.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestRegistry() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return registryResult.data;
+}
 
 describe("DerivationRule", () => {
   describe("create", () => {
@@ -170,9 +182,11 @@ describe("DerivationRule", () => {
         "x-derived-flatten": false,
       };
 
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty(
         "tools.availableConfigs",
         schemaProperty,
+        registry,
       );
 
       assertEquals(result.ok, true);
@@ -190,9 +204,11 @@ describe("DerivationRule", () => {
         items: { type: "string" },
       };
 
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty(
         "fieldName",
         schemaProperty,
+        registry,
       );
 
       assertEquals(result.ok, true);
@@ -207,9 +223,11 @@ describe("DerivationRule", () => {
         "x-derived-unique": true,
       };
 
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty(
         "config.settings.tags",
         schemaProperty,
+        registry,
       );
 
       assertEquals(result.ok, true);

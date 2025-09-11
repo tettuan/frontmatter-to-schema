@@ -3,10 +3,13 @@
  *
  * Value objects for the aggregation context that handle
  * derived fields and data aggregation from multiple documents.
+ * REFACTORED: Eliminates hardcoding violations by using SchemaExtensionRegistry
  */
 
 import type { Result } from "../core/result.ts";
 import { JSONPathExpression } from "./jsonpath-expression.ts";
+import type { SchemaExtensionRegistry } from "../schema/entities/schema-extension-registry.ts";
+import { ExtensionType } from "../schema/value-objects/extension-value.ts";
 
 /**
  * Type guard for validating unknown data as Record<string, unknown>
@@ -107,23 +110,76 @@ export class DerivationRule {
 
   /**
    * Parse a derivation rule from schema properties
+   * REFACTORED: Uses registry to access extension properties instead of hardcoded strings
    */
   static fromSchemaProperty(
     fieldName: string,
     schemaProperty: Record<string, unknown>,
+    registry: SchemaExtensionRegistry,
   ): Result<DerivationRule | null, { kind: string; message: string }> {
-    const derivedFrom = schemaProperty["x-derived-from"];
-    if (!derivedFrom || typeof derivedFrom !== "string") {
+    // Check if x-derived-from property exists and is a string (reject non-string values)
+    const derivedFromProperty = registry.getDerivedFromProperty();
+    if (!(derivedFromProperty in schemaProperty)) {
       return { ok: true, data: null };
     }
 
-    // Check for aggregation options in x-aggregation-options object or direct properties
+    const rawValue = schemaProperty[derivedFromProperty];
+    if (typeof rawValue !== "string") {
+      // Reject non-string values gracefully
+      return { ok: true, data: null };
+    }
+
+    // Use registry to extract derived-from extension
+    const derivedFromExtraction = registry.extractExtensionValue(
+      schemaProperty,
+      ExtensionType.DERIVED_FROM,
+    );
+
+    if (!derivedFromExtraction.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ExtensionExtractionFailed",
+          message: derivedFromExtraction.error.message,
+        },
+      };
+    }
+
+    if (
+      !derivedFromExtraction.data ||
+      derivedFromExtraction.data.kind !== "StringExtension"
+    ) {
+      return { ok: true, data: null };
+    }
+
+    const derivedFrom = derivedFromExtraction.data.value;
+
+    // Check for aggregation options in x-aggregation-options object
+    const aggregationOptionsProperty =
+      `${registry.getTemplateProperty()}-aggregation-options`;
     const aggregationOptions =
-      schemaProperty["x-aggregation-options"] as Record<string, unknown> || {};
-    const unique = aggregationOptions.unique === true ||
-      schemaProperty["x-derived-unique"] === true;
+      schemaProperty[aggregationOptionsProperty] as Record<string, unknown> ||
+      {};
+
+    // Use registry to extract derived-unique extension
+    const derivedUniqueExtraction = registry.extractExtensionValue(
+      schemaProperty,
+      ExtensionType.DERIVED_UNIQUE,
+    );
+
+    let unique = aggregationOptions.unique === true;
+    if (
+      derivedUniqueExtraction.ok &&
+      derivedUniqueExtraction.data?.kind === "BooleanExtension"
+    ) {
+      unique = unique || derivedUniqueExtraction.data.enabled;
+    }
+
+    // Check for flatten option (using derived-flatten pattern)
+    const derivedFlattenProperty =
+      `${registry.getDerivedFromProperty()}-flatten`;
     const flatten = aggregationOptions.flatten === true ||
-      schemaProperty["x-derived-flatten"] === true;
+      schemaProperty[derivedFlattenProperty] === true;
 
     return DerivationRule.create(fieldName, derivedFrom, { unique, flatten });
   }

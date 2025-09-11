@@ -19,6 +19,18 @@ import {
   DerivationRule,
 } from "../../../../src/domain/aggregation/value-objects.ts";
 import { createAggregationService } from "../../../../src/domain/aggregation/aggregation-service.ts";
+import { SchemaExtensionRegistryFactory } from "../../../../src/domain/schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAggregationService() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return createAggregationService(registryResult.data);
+}
 
 describe("Robust Aggregation Domain Tests", () => {
   describe("DerivationRule - Value Object Integrity", () => {
@@ -95,7 +107,7 @@ describe("Robust Aggregation Domain Tests", () => {
     it("should handle complex aggregation scenarios with predictable results", async () => {
       await TestEnvironment.withCleanup(
         () => {
-          const service = createAggregationService();
+          const service = createTestAggregationService();
 
           // Use consistent test data
           const testDocuments = [
@@ -168,7 +180,7 @@ describe("Robust Aggregation Domain Tests", () => {
     });
 
     it("should maintain data integrity under edge conditions", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       // Test null safety and error handling
       const edgeCases = [
@@ -205,7 +217,7 @@ describe("Robust Aggregation Domain Tests", () => {
 
   describe("Schema Extraction - Domain Boundary Testing", () => {
     it("should properly parse schema with domain validation", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       // Use domain factory for consistent schema structure
       const baseSchema = DomainDataFactory.createTestSchema();
@@ -216,7 +228,7 @@ describe("Robust Aggregation Domain Tests", () => {
           aggregatedTitles: {
             type: "array",
             "x-derived-from": "$.title",
-            "x-aggregation-options": {
+            "x-template-aggregation-options": {
               unique: true,
               flatten: false,
             },
@@ -250,7 +262,7 @@ describe("Robust Aggregation Domain Tests", () => {
     });
 
     it("should handle malformed schemas with proper error boundaries", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const malformedSchemas = [
         { schema: null, description: "null schema" },
@@ -285,7 +297,7 @@ describe("Robust Aggregation Domain Tests", () => {
       await TestEnvironment.withCleanup(
         () => {
           const mockLogger = MockFactory.createMockLogger();
-          const service = createAggregationService();
+          const service = createTestAggregationService();
 
           // Create realistic domain scenario
           const documents = [
@@ -319,12 +331,12 @@ describe("Robust Aggregation Domain Tests", () => {
               uniqueCategories: {
                 type: "array",
                 "x-derived-from": "$.category",
-                "x-aggregation-options": { unique: true },
+                "x-template-aggregation-options": { unique: true },
               },
               allAuthors: {
                 type: "array",
                 "x-derived-from": "$.author",
-                "x-aggregation-options": { unique: true },
+                "x-template-aggregation-options": { unique: true },
               },
             },
           });

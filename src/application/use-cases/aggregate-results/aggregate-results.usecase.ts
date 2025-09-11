@@ -11,6 +11,7 @@ import type { DomainError, Result } from "../../../domain/core/result.ts";
 import { createDomainError } from "../../../domain/core/result.ts";
 import { SchemaAggregationAdapter } from "../../services/schema-aggregation-adapter.ts";
 import type { SchemaTemplateInfo } from "../../../domain/models/schema-extensions.ts";
+import { SchemaExtensionRegistryFactory } from "../../../domain/schema/factories/schema-extension-registry-factory.ts";
 
 /**
  * Input for result aggregation
@@ -39,7 +40,13 @@ export class AggregateResultsUseCase
   private readonly aggregationAdapter: SchemaAggregationAdapter;
 
   constructor() {
-    this.aggregationAdapter = new SchemaAggregationAdapter();
+    const registryResult = SchemaExtensionRegistryFactory.createDefault();
+    if (!registryResult.ok) {
+      throw new Error(
+        `Failed to create registry: ${registryResult.error.message}`,
+      );
+    }
+    this.aggregationAdapter = new SchemaAggregationAdapter(registryResult.data);
   }
 
   async execute(

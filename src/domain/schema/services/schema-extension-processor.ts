@@ -1,18 +1,20 @@
 /**
- * Schema Extension Processor Service
+ * Schema Extension Processor Service (Refactored)
  *
  * Handles x-* schema extensions for dynamic template selection,
  * field transformations, and other schema-specific behaviors.
  * Follows DDD principles with Result types for error handling.
  *
- * Adapted for develop branch architecture while maintaining compatibility
- * with main branch patterns.
+ * REFACTORED: Eliminates hardcoding violations by using SchemaExtensionRegistry
+ * Implements configurable extension processing through registry abstraction
  */
 
 import type { Result } from "../../core/result.ts";
 import type { DomainError } from "../../core/result.ts";
 import { createDomainError } from "../../core/result.ts";
-import { SchemaExtensions } from "../value-objects/schema-extensions.ts";
+import type { SchemaExtensionRegistry } from "../entities/schema-extension-registry.ts";
+import { ExtensionType } from "../value-objects/extension-value.ts";
+import { ExtensionProcessor } from "./extension-processor.ts";
 
 export interface FileSystemProvider {
   readFile(path: string): Promise<Result<string, DomainError>>;
@@ -25,16 +27,56 @@ export interface Template {
 }
 
 export class SchemaExtensionProcessor {
-  constructor(private readonly fileSystem?: FileSystemProvider) {}
+  private readonly extensionProcessor: ExtensionProcessor;
+
+  constructor(
+    private readonly registry: SchemaExtensionRegistry,
+    private readonly fileSystem?: FileSystemProvider,
+  ) {
+    this.extensionProcessor = new ExtensionProcessor(registry);
+  }
 
   /**
    * Select template based on x-template configuration and document type
+   * REFACTORED: Uses registry to access template property instead of hardcoded string
    */
   async selectTemplate(
     schema: Record<string, unknown>,
     document: Record<string, unknown>,
   ): Promise<Result<Template, DomainError>> {
-    const xTemplate = schema[SchemaExtensions.TEMPLATE];
+    // Use registry to get template extension value
+    const templateExtraction = this.registry.extractExtensionValue(
+      schema,
+      ExtensionType.TEMPLATE,
+    );
+
+    if (!templateExtraction.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ParseError",
+          input: "template_extraction",
+          details: templateExtraction.error.message,
+        } as DomainError,
+      };
+    }
+
+    const templateValue = templateExtraction.data;
+    if (!templateValue) {
+      return {
+        ok: true,
+        data: { layout: "default", sections: ["main"] },
+      };
+    }
+
+    let xTemplate: unknown;
+    if (templateValue.kind === "ObjectExtension") {
+      xTemplate = templateValue.configuration;
+    } else if (templateValue.kind === "StringExtension") {
+      xTemplate = { default: templateValue.value };
+    } else {
+      xTemplate = null;
+    }
 
     if (!xTemplate || typeof xTemplate !== "object") {
       return {
@@ -81,6 +123,7 @@ export class SchemaExtensionProcessor {
 
   /**
    * Transform frontmatter parts based on x-frontmatter-part configuration
+   * REFACTORED: Uses registry to access frontmatter-part property instead of hardcoded string
    */
   transformFrontmatterParts(
     input: Record<string, unknown>,
@@ -91,7 +134,20 @@ export class SchemaExtensionProcessor {
 
     for (const [key, propSchema] of Object.entries(properties)) {
       const prop = propSchema as Record<string, unknown>;
-      const xPart = prop[SchemaExtensions.FRONTMATTER_PART] as boolean;
+
+      // Use registry to extract frontmatter-part extension
+      const frontmatterExtraction = this.registry.extractExtensionValue(
+        prop,
+        ExtensionType.FRONTMATTER_PART,
+      );
+
+      let xPart = false;
+      if (
+        frontmatterExtraction.ok &&
+        frontmatterExtraction.data?.kind === "BooleanExtension"
+      ) {
+        xPart = frontmatterExtraction.data.enabled;
+      }
 
       if (xPart && prop.type === "array") {
         // Transform single value to array for x-frontmatter-part fields
@@ -140,13 +196,14 @@ export class SchemaExtensionProcessor {
 
   /**
    * Validate schema extensions according to known patterns
+   * REFACTORED: Uses registry property names for validation instead of hardcoded strings
    */
   validateExtensions(
     extensions: Record<string, unknown>,
   ): Result<boolean, DomainError> {
     for (const [key, value] of Object.entries(extensions)) {
-      // Validate x-template
-      if (key === SchemaExtensions.TEMPLATE) {
+      // Validate template extension
+      if (key === this.registry.getTemplateProperty()) {
         if (typeof value !== "object" && typeof value !== "string") {
           return {
             ok: false,
@@ -159,8 +216,8 @@ export class SchemaExtensionProcessor {
         }
       }
 
-      // Validate x-derived-from
-      if (key === SchemaExtensions.DERIVED_FROM) {
+      // Validate derived-from extension
+      if (key === this.registry.getDerivedFromProperty()) {
         if (typeof value !== "string") {
           return {
             ok: false,
@@ -173,8 +230,8 @@ export class SchemaExtensionProcessor {
         }
       }
 
-      // Validate x-derived-unique
-      if (key === SchemaExtensions.DERIVED_UNIQUE) {
+      // Validate derived-unique extension
+      if (key === this.registry.getDerivedUniqueProperty()) {
         if (typeof value !== "boolean") {
           return {
             ok: false,
@@ -187,8 +244,8 @@ export class SchemaExtensionProcessor {
         }
       }
 
-      // Validate x-frontmatter-part
-      if (key === SchemaExtensions.FRONTMATTER_PART) {
+      // Validate frontmatter-part extension
+      if (key === this.registry.getFrontmatterPartProperty()) {
         if (typeof value !== "boolean") {
           return {
             ok: false,
@@ -221,8 +278,8 @@ export class SchemaExtensionProcessor {
     }
     processed = transformResult.data;
 
-    // Apply x-template selection
-    if (schema[SchemaExtensions.TEMPLATE]) {
+    // Apply template selection using registry
+    if (this.registry.hasExtension(schema, ExtensionType.TEMPLATE)) {
       const templateResult = await this.selectTemplate(schema, processed);
       if (!templateResult.ok) {
         return templateResult;
@@ -235,6 +292,7 @@ export class SchemaExtensionProcessor {
 
   /**
    * Find all fields marked with x-frontmatter-part in schema
+   * REFACTORED: Uses registry to access frontmatter-part property instead of hardcoded string
    */
   findFrontmatterParts(schema: Record<string, unknown>): string[] {
     const parts: string[] = [];
@@ -242,7 +300,18 @@ export class SchemaExtensionProcessor {
 
     for (const [fieldName, fieldSchema] of Object.entries(properties)) {
       const field = fieldSchema as Record<string, unknown>;
-      if (field[SchemaExtensions.FRONTMATTER_PART] === true) {
+
+      // Use registry to check frontmatter-part extension
+      const frontmatterExtraction = this.registry.extractExtensionValue(
+        field,
+        ExtensionType.FRONTMATTER_PART,
+      );
+
+      if (
+        frontmatterExtraction.ok &&
+        frontmatterExtraction.data?.kind === "BooleanExtension" &&
+        frontmatterExtraction.data.enabled
+      ) {
         parts.push(fieldName);
       }
     }
@@ -252,6 +321,7 @@ export class SchemaExtensionProcessor {
 
   /**
    * Apply derived field processing compatible with develop branch aggregation service
+   * REFACTORED: Uses registry to access derived extension properties instead of hardcoded strings
    */
   processDerivedFields(
     documents: Array<Record<string, unknown>>,
@@ -262,7 +332,20 @@ export class SchemaExtensionProcessor {
 
     for (const [fieldName, fieldSchema] of Object.entries(properties)) {
       const field = fieldSchema as Record<string, unknown>;
-      const derivedFrom = field[SchemaExtensions.DERIVED_FROM] as string;
+
+      // Use registry to extract derived-from extension
+      const derivedFromExtraction = this.registry.extractExtensionValue(
+        field,
+        ExtensionType.DERIVED_FROM,
+      );
+
+      let derivedFrom: string | null = null;
+      if (
+        derivedFromExtraction.ok &&
+        derivedFromExtraction.data?.kind === "StringExtension"
+      ) {
+        derivedFrom = derivedFromExtraction.data.value;
+      }
 
       if (derivedFrom) {
         const values: unknown[] = [];
@@ -278,8 +361,21 @@ export class SchemaExtensionProcessor {
           }
         }
 
-        // Apply x-derived-unique if specified
-        if (field[SchemaExtensions.DERIVED_UNIQUE] === true) {
+        // Use registry to check derived-unique extension
+        const derivedUniqueExtraction = this.registry.extractExtensionValue(
+          field,
+          ExtensionType.DERIVED_UNIQUE,
+        );
+
+        let isUnique = false;
+        if (
+          derivedUniqueExtraction.ok &&
+          derivedUniqueExtraction.data?.kind === "BooleanExtension"
+        ) {
+          isUnique = derivedUniqueExtraction.data.enabled;
+        }
+
+        if (isUnique) {
           derived[fieldName] = this.getUniqueValues(values);
         } else {
           derived[fieldName] = values;
@@ -376,9 +472,11 @@ export class SchemaExtensionProcessor {
 
 /**
  * Factory function to create schema extension processor
+ * REFACTORED: Now requires registry dependency to eliminate hardcoding
  */
 export function createSchemaExtensionProcessor(
+  registry: SchemaExtensionRegistry,
   fileSystem?: FileSystemProvider,
 ): SchemaExtensionProcessor {
-  return new SchemaExtensionProcessor(fileSystem);
+  return new SchemaExtensionProcessor(registry, fileSystem);
 }

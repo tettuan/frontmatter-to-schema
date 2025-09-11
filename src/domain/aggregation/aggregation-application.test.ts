@@ -12,11 +12,23 @@ import {
   AggregatedResult,
   AggregationMetadataBuilder,
 } from "./value-objects.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAggregationService() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return createAggregationService(registryResult.data);
+}
 
 describe("AggregationService - Data Application", () => {
   describe("applyAggregatedData()", () => {
     it("should apply aggregated data to a base object", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const baseData = {
         title: "Document Title",
@@ -54,7 +66,7 @@ describe("AggregationService - Data Application", () => {
     });
 
     it("should handle nested aggregated data structure", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const baseData = {
         document: {
@@ -97,7 +109,7 @@ describe("AggregationService - Data Application", () => {
     });
 
     it("should preserve existing nested structures", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const baseData = {
         config: {
@@ -137,7 +149,7 @@ describe("AggregationService - Data Application", () => {
     });
 
     it("should handle empty aggregated data", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const baseData = {
         title: "Document Title",
@@ -165,7 +177,7 @@ describe("AggregationService - Data Application", () => {
     });
 
     it("should handle null base data gracefully", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const aggregatedData = {
         newProperty: "new value",
