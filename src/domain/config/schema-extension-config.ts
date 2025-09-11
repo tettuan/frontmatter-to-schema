@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { SchemaExtensions } from "../schema/value-objects/schema-extensions.ts";
 
 /**
  * Configuration for schema extension property names
@@ -33,14 +34,16 @@ export class SchemaExtensionConfig {
     frontmatterPartProperty?: string;
   }): Result<SchemaExtensionConfig, DomainError & { message: string }> {
     // Use defaults if not provided
-    const templateProperty = config.templateProperty ?? "x-template";
-    const derivedFromProperty = config.derivedFromProperty ?? "x-derived-from";
+    const templateProperty = config.templateProperty ??
+      SchemaExtensions.TEMPLATE;
+    const derivedFromProperty = config.derivedFromProperty ??
+      SchemaExtensions.DERIVED_FROM;
     const derivedUniqueProperty = config.derivedUniqueProperty ??
-      "x-derived-unique";
+      SchemaExtensions.DERIVED_UNIQUE;
     const derivedFlattenProperty = config.derivedFlattenProperty ??
-      "x-derived-flatten";
+      SchemaExtensions.DERIVED_FLATTEN;
     const frontmatterPartProperty = config.frontmatterPartProperty ??
-      "x-frontmatter-part";
+      SchemaExtensions.FRONTMATTER_PART;
 
     // Validate property names
     const properties = [

@@ -55,6 +55,117 @@ export function isSchemaExtension(
 }
 
 /**
+ * Smart Constructor for Schema Extension Access following Totality principles
+ */
+export class SchemaExtensionAccessor {
+  private constructor(
+    private readonly extensions: Record<SchemaExtensionKey, unknown>,
+  ) {}
+
+  /**
+   * Create a validated accessor for schema extensions
+   */
+  static create(
+    schema: Record<string, unknown>,
+  ): Result<SchemaExtensionAccessor, { kind: string; message: string }> {
+    if (!schema || typeof schema !== "object") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidSchema",
+          message: "Schema must be a valid object",
+        },
+      };
+    }
+
+    const extensions: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(schema)) {
+      if (key.startsWith("x-")) {
+        const validationResult = SchemaExtensionValidator.validateKey(key);
+        if (validationResult.ok) {
+          extensions[validationResult.data] = value;
+        } else {
+          // Log warning but continue (backward compatibility)
+          console.warn(
+            `Warning: ${validationResult.error.message}`,
+          );
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      data: new SchemaExtensionAccessor(
+        extensions as Record<SchemaExtensionKey, unknown>,
+      ),
+    };
+  }
+
+  /**
+   * Get template path with type safety
+   */
+  getTemplatePath(): Result<string, { kind: string; message: string }> {
+    const value = this.extensions[SchemaExtensions.TEMPLATE];
+    if (typeof value === "string") {
+      return { ok: true, data: value };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidTemplateValue",
+        message: "Template value must be a string",
+      },
+    };
+  }
+
+  /**
+   * Check if this is a frontmatter part with type safety
+   */
+  isFrontmatterPart(): boolean {
+    return this.extensions[SchemaExtensions.FRONTMATTER_PART] === true;
+  }
+
+  /**
+   * Get derived-from configuration with type safety
+   */
+  getDerivedFrom(): Result<string, { kind: string; message: string }> {
+    const value = this.extensions[SchemaExtensions.DERIVED_FROM];
+    if (typeof value === "string") {
+      return { ok: true, data: value };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidDerivedFromValue",
+        message: "Derived-from value must be a string",
+      },
+    };
+  }
+
+  /**
+   * Check if derived unique is enabled
+   */
+  isDerivedUnique(): boolean {
+    return this.extensions[SchemaExtensions.DERIVED_UNIQUE] === true;
+  }
+
+  /**
+   * Check if derived flatten is enabled
+   */
+  isDerivedFlatten(): boolean {
+    return this.extensions[SchemaExtensions.DERIVED_FLATTEN] === true;
+  }
+
+  /**
+   * Get all extensions as read-only record
+   */
+  getAllExtensions(): Readonly<Record<SchemaExtensionKey, unknown>> {
+    return Object.freeze({ ...this.extensions });
+  }
+}
+
+/**
  * Smart Constructor for Schema Extension Keys following Totality principles
  */
 export class SchemaExtensionValidator {

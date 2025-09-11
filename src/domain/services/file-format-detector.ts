@@ -12,6 +12,7 @@
  */
 
 import type { Result } from "../core/result.ts";
+import { DEFAULT_FORMAT_PRIORITY } from "../shared/constants.ts";
 
 /**
  * Supported file formats
@@ -87,22 +88,22 @@ export const DEFAULT_FORMAT_MAPPINGS: readonly FormatMapping[] = [
   {
     extensions: [".json"],
     format: "json",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     extensions: [".yaml", ".yml"],
     format: "yaml",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     extensions: [".xml"],
     format: "xml",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     extensions: [".md", ".markdown"],
     format: "markdown",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
 ] as const;
 
@@ -283,7 +284,7 @@ export class FormatMappingBuilder {
   static create(
     extensions: string[],
     format: FileFormat,
-    priority: number = 100,
+    priority: number = DEFAULT_FORMAT_PRIORITY.getValue(),
   ): FormatMapping {
     return {
       extensions: extensions.map((ext) =>
@@ -299,7 +300,7 @@ export class FormatMappingBuilder {
    */
   static createFromObject(
     mappings: Record<FileFormat, string[]>,
-    priority: number = 100,
+    priority: number = DEFAULT_FORMAT_PRIORITY.getValue(),
   ): FormatMapping[] {
     return Object.entries(mappings).map(([format, extensions]) =>
       FormatMappingBuilder.create(extensions, format as FileFormat, priority)
