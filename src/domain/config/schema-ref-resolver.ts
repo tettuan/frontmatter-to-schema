@@ -16,6 +16,7 @@ import {
   type ExtendedSchema,
   SchemaTemplateInfo,
 } from "../models/schema-extensions.ts";
+import { SchemaExtensionAccessor } from "../schema/value-objects/schema-extensions.ts";
 import { isObject } from "../shared/type-guards.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
@@ -311,8 +312,9 @@ export class SchemaRefResolver {
     }
 
     const checkObject = (obj: Record<string, unknown>): boolean => {
-      // Check current level
-      if (obj["x-frontmatter-part"] === true) {
+      // Check current level using Smart Constructor pattern
+      const accessorResult = SchemaExtensionAccessor.create(obj);
+      if (accessorResult.ok && accessorResult.data.isFrontmatterPart()) {
         return true;
       }
 
