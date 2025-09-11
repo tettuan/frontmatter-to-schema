@@ -27,7 +27,7 @@ import {
 import type {
   TemplateProcessingContext,
   UnifiedTemplateProcessor,
-} from "../../domain/template/unified-template-processor.ts";
+} from "../../domain/template/services/unified-template-processor.ts";
 import type { SchemaValidator } from "../../domain/services/schema-validator.ts";
 import type { ProcessingConfiguration } from "../configuration.ts";
 

@@ -1,129 +1,63 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env
+import type { DomainError, ProcessingConfig, Result } from "./types.ts";
+import { Processor } from "./processor.ts";
 
-/**
- * CLI Entry Point for frontmatter-to-schema
- *
- * Main executable for the frontmatter-to-schema command.
- * Implements the CLI specification from schema_process_architecture.ja.md.
- */
-
-import { CLIArgumentParser } from "./presentation/cli-arguments.ts";
-import { ProcessDocumentsOrchestrator } from "./application/orchestrators/process-documents.orchestrator.ts";
-import { DenoFileSystemRepository } from "./infrastructure/adapters/deno-file-system-repository.ts";
-import { TemplateRepositoryImpl } from "./infrastructure/repositories/template-repository-impl.ts";
-import { ConsoleLogger } from "./domain/shared/logger.ts";
-import { VERSION_CONFIG } from "./config/version.ts";
-
-/**
- * Main CLI class
- */
 export class CLI {
-  /**
-   * Run the CLI with given arguments
-   */
-  async run(args: string[]): Promise<void> {
-    // Parse arguments
-    const parseResult = CLIArgumentParser.parse(args);
-    if (!parseResult.ok) {
-      console.error(`Error: ${parseResult.error.message}`);
-      console.error("\n" + CLIArgumentParser.getUsage());
-      Deno.exit(1);
-    }
+  private constructor() {}
 
-    const cliArgs = parseResult.data;
-
-    // Handle help
-    if (cliArgs.options.help) {
-      console.log(CLIArgumentParser.getHelp());
-      return;
-    }
-
-    // Handle version
-    if (cliArgs.options.version) {
-      console.log(`frontmatter-to-schema v${VERSION_CONFIG.APP_VERSION}`);
-      return;
-    }
-
-    // Set up logging based on options
-    const _logLevel = cliArgs.options.quiet
-      ? "error"
-      : cliArgs.options.verbose
-      ? "debug"
-      : "info";
-
-    if (!cliArgs.options.quiet) {
-      console.log(`Processing files with schema: ${cliArgs.schemaPath}`);
-      console.log(`Input pattern: ${cliArgs.inputPattern.toGlob()}`);
-      console.log(
-        `Output: ${cliArgs.outputPath} (${cliArgs.outputPath.getFormat()})`,
-      );
-      if (cliArgs.options.dryRun) {
-        console.log("🔍 Dry-run mode - no files will be written");
-      }
-    }
-
-    try {
-      // Create repositories and logger
-      const fileSystemRepo = new DenoFileSystemRepository();
-      const templateRepo = new TemplateRepositoryImpl();
-      const logger = new ConsoleLogger(
-        "cli",
-        cliArgs.options.quiet ? "error" : "info",
-      );
-
-      // Create and execute the orchestrator
-      const orchestrator = new ProcessDocumentsOrchestrator(
-        fileSystemRepo,
-        templateRepo,
-        logger,
-      );
-
-      const result = await orchestrator.execute({
-        schemaPath: cliArgs.schemaPath.toString(),
-        sourcePath: cliArgs.inputPattern.toGlob(),
-        outputPath: cliArgs.outputPath.toString(),
-        format: cliArgs.outputPath.getFormat() as "json" | "yaml" | "toml",
-        dryRun: cliArgs.options.dryRun,
-        verbose: cliArgs.options.verbose,
-      });
-
-      if (!result.ok) {
-        console.error(`Processing failed: ${result.error.message}`);
-        if (cliArgs.options.verbose && "details" in result.error) {
-          console.error("Details:", result.error.details);
-        }
-        Deno.exit(1);
-      }
-
-      if (!cliArgs.options.quiet) {
-        console.log(
-          `✅ Successfully processed ${result.data.filesProcessed} files`,
-        );
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      if (cliArgs.options.verbose && error instanceof Error) {
-        console.error("Stack trace:", error.stack);
-      }
-      Deno.exit(1);
-    }
+  static create(): Result<CLI, DomainError> {
+    return { ok: true, data: new CLI() };
   }
-}
 
-/**
- * Main entry point
- */
-export async function main(): Promise<void> {
-  const cli = new CLI();
-  try {
-    await cli.run(Deno.args);
-  } catch (error) {
-    console.error("Fatal error:", error);
-    Deno.exit(1);
+  async run(args: string[]): Promise<Result<void, DomainError>> {
+    // Parse command line arguments
+    const configResult = this.parseArgs(args);
+    if (!configResult.ok) return configResult;
+
+    // Create processor
+    const processorResult = Processor.create();
+    if (!processorResult.ok) return processorResult;
+
+    // Process files
+    const result = await processorResult.data.process(configResult.data);
+    if (!result.ok) return result;
+
+    // Output result
+    console.log(result.data);
+
+    return { ok: true, data: undefined };
   }
-}
 
-// Run if this is the main module
-if (import.meta.main) {
-  await main();
+  private parseArgs(args: string[]): Result<ProcessingConfig, DomainError> {
+    // Simple argument parsing - enhanced in production
+    if (args.length < 4) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          input: args.join(" "),
+          expectedFormat: "schema.json input/*.md template.json output.json",
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      data: {
+        schema: {
+          path: args[0],
+          format: args[0].endsWith(".yaml") ? "yaml" : "json",
+        },
+        input: { pattern: args[1] },
+        template: { path: args[2], format: this.detectFormat(args[2]) },
+        output: { path: args[3], format: this.detectFormat(args[3]) },
+      },
+    };
+  }
+
+  private detectFormat(path: string): "json" | "yaml" | "xml" | "custom" {
+    if (path.endsWith(".json")) return "json";
+    if (path.endsWith(".yaml") || path.endsWith(".yml")) return "yaml";
+    if (path.endsWith(".xml")) return "xml";
+    return "custom";
+  }
 }

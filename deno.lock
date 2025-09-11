@@ -14,9 +14,11 @@
     "jsr:@std/cli@1.0.9": "1.0.9",
     "jsr:@std/collections@^1.0.5": "1.1.3",
     "jsr:@std/collections@^1.1.3": "1.1.3",
+    "jsr:@std/data-structures@^1.0.9": "1.0.9",
     "jsr:@std/front-matter@1.0.5": "1.0.5",
     "jsr:@std/fs@1": "1.0.8",
     "jsr:@std/fs@1.0.8": "1.0.8",
+    "jsr:@std/fs@^1.0.19": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "jsr:@std/internal@^1.0.3": "1.0.10",
     "jsr:@std/internal@^1.0.5": "1.0.10",
@@ -25,6 +27,8 @@
     "jsr:@std/path@1.0.9": "1.0.9",
     "jsr:@std/path@1.1.2": "1.1.2",
     "jsr:@std/path@^1.0.8": "1.1.2",
+    "jsr:@std/path@^1.1.1": "1.1.2",
+    "jsr:@std/path@^1.1.2": "1.1.2",
     "jsr:@std/testing@*": "1.0.15",
     "jsr:@std/testing@1.0.7": "1.0.7",
     "jsr:@std/testing@1.0.8": "1.0.8",
@@ -72,6 +76,9 @@
     "@std/collections@1.1.3": {
       "integrity": "bf8b0818886df6a32b64c7d3b037a425111f28278d69fd0995aeb62777c986b0"
     },
+    "@std/data-structures@1.0.9": {
+      "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
+    },
     "@std/front-matter@1.0.5": {
       "integrity": "abddc64030a33eb5bc524b8c73e7c417cea09177aaeb4abf75a56b540c4b6e60",
       "dependencies": [
@@ -83,6 +90,12 @@
       "integrity": "161c721b6f9400b8100a851b6f4061431c538b204bb76c501d02c508995cffe0",
       "dependencies": [
         "jsr:@std/path@^1.0.8"
+      ]
+    },
+    "@std/fs@1.0.19": {
+      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06",
+      "dependencies": [
+        "jsr:@std/path@^1.1.1"
       ]
     },
     "@std/internal@1.0.10": {
@@ -115,7 +128,10 @@
       "integrity": "a490169f5ccb0f3ae9c94fbc69d2cd43603f2cffb41713a85f99bbb0e3087cbc",
       "dependencies": [
         "jsr:@std/assert@^1.0.13",
-        "jsr:@std/internal@^1.0.10"
+        "jsr:@std/data-structures",
+        "jsr:@std/fs@^1.0.19",
+        "jsr:@std/internal@^1.0.10",
+        "jsr:@std/path@^1.1.1"
       ]
     },
     "@std/toml@1.0.1": {
@@ -555,6 +571,7 @@
       "jsr:@std/cli@1.0.9",
       "jsr:@std/front-matter@1.0.5",
       "jsr:@std/fs@1.0.8",
+      "jsr:@std/path@^1.1.2",
       "jsr:@std/testing@^1.0.15",
       "npm:@anthropic-ai/claude-code@^1.0.89"
     ]

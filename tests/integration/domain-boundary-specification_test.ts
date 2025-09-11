@@ -253,7 +253,6 @@ Deno.test("Domain Boundary Specification Compliance - Issue #405", async (t) => 
           responsibility: "Use case orchestration",
           dependencies: ["domain", "infrastructure interfaces"],
           examples: [
-            "ProcessDocumentsUseCase",
             "TypeScriptAnalysisOrchestrator",
           ],
         },

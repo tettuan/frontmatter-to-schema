@@ -70,19 +70,6 @@ export class Schema {
     };
   }
 
-  /**
-   * Factory method for backward compatibility
-   * @deprecated Use create() with Result type instead
-   */
-  static createUnsafe(
-    id: SchemaId,
-    definition: SchemaDefinition,
-    version: SchemaVersion,
-    description: string = "",
-  ): Schema {
-    return new Schema(id, definition, version, description);
-  }
-
   getId(): SchemaId {
     return this.id;
   }

@@ -23,12 +23,12 @@ Deno.test("VariableMap - should create valid variable map from object", () => {
 
   assertEquals(result.ok, true);
   if (result.ok) {
-    assertEquals(result.data.count(), 5);
-    assertEquals(result.data.hasVariable("title"), true);
-    assertEquals(result.data.hasVariable("count"), true);
-    assertEquals(result.data.hasVariable("enabled"), true);
-    assertEquals(result.data.hasVariable("items"), true);
-    assertEquals(result.data.hasVariable("config"), true);
+    assertEquals(result.data.size(), 5);
+    assertEquals(result.data.has("title"), true);
+    assertEquals(result.data.has("count"), true);
+    assertEquals(result.data.has("enabled"), true);
+    assertEquals(result.data.has("items"), true);
+    assertEquals(result.data.has("config"), true);
   }
 });
 
@@ -43,13 +43,10 @@ Deno.test("VariableMap - should create valid variable map from Map", () => {
 
   assertEquals(result.ok, true);
   if (result.ok) {
-    assertEquals(result.data.count(), 3);
+    assertEquals(result.data.size(), 3);
 
-    const nameResult = result.data.getValue("name");
-    assertEquals(nameResult.ok, true);
-    if (nameResult.ok) {
-      assertEquals(nameResult.data, "John");
-    }
+    const nameValue = result.data.get("name");
+    assertEquals(nameValue, "John");
   }
 });
 
@@ -73,15 +70,15 @@ Deno.test("VariableMap - should create from variable info", () => {
 
   assertEquals(result.ok, true);
   if (result.ok) {
-    assertEquals(result.data.count(), 2);
+    assertEquals(result.data.size(), 2);
 
-    const titleInfo = result.data.getVariableInfo("title");
-    assertEquals(titleInfo.ok, true);
-    if (titleInfo.ok) {
-      assertEquals(titleInfo.data.value, "Test Title");
-      assertEquals(titleInfo.data.type, "string");
-      assertEquals(titleInfo.data.required, true);
-      assertEquals(titleInfo.data.description, "The page title");
+    const titleInfo = result.data.getInfo("title");
+    assertEquals(titleInfo !== undefined, true);
+    if (titleInfo) {
+      assertEquals(titleInfo.value, "Test Title");
+      assertEquals(titleInfo.type, "string");
+      assertEquals(titleInfo.required, true);
+      assertEquals(titleInfo.description, "The page title");
     }
   }
 });
@@ -150,11 +147,8 @@ Deno.test("VariableMap - should handle null values", () => {
 
   assertEquals(result.ok, true);
   if (result.ok) {
-    const nullResult = result.data.getValue("nullValue");
-    assertEquals(nullResult.ok, true);
-    if (nullResult.ok) {
-      assertEquals(nullResult.data, null);
-    }
+    const nullValue = result.data.get("nullValue");
+    assertEquals(nullValue, null);
   }
 });
 
@@ -168,7 +162,7 @@ Deno.test("VariableMap - should get variable names", () => {
   const result = VariableMap.create(variables);
 
   if (result.ok) {
-    const names = result.data.getVariableNames();
+    const names = result.data.getNames();
     assertEquals(names, ["a_first", "m_middle", "z_last"]); // Should be sorted
   }
 });
@@ -177,17 +171,11 @@ Deno.test("VariableMap - should handle missing variables", () => {
   const result = VariableMap.create({ existing: "value" });
 
   if (result.ok) {
-    const valueResult = result.data.getValue("missing");
-    assertEquals(valueResult.ok, false);
-    if (!valueResult.ok) {
-      assertEquals(valueResult.error.kind, "NotFound");
-    }
+    const missingValue = result.data.get("missing");
+    assertEquals(missingValue, undefined);
 
-    const infoResult = result.data.getVariableInfo("missing");
-    assertEquals(infoResult.ok, false);
-    if (!infoResult.ok) {
-      assertEquals(infoResult.error.kind, "NotFound");
-    }
+    const missingInfo = result.data.getInfo("missing");
+    assertEquals(missingInfo, undefined);
   }
 });
 
@@ -244,10 +232,16 @@ Deno.test("VariableMap - should filter required variables", () => {
   const result = VariableMap.createFromInfo(variables);
 
   if (result.ok) {
-    const requiredVars = result.data.getRequiredVariables();
-    assertEquals(requiredVars.length, 2);
-    assertEquals(requiredVars[0][0], "required1");
-    assertEquals(requiredVars[1][0], "required2");
+    const filterResult = result.data.filter((_name, info) =>
+      info.required === true
+    );
+    assertEquals(filterResult.ok, true);
+    if (filterResult.ok) {
+      const requiredVars = filterResult.data.entries();
+      assertEquals(requiredVars.length, 2);
+      assertEquals(requiredVars[0][0], "required1");
+      assertEquals(requiredVars[1][0], "required2");
+    }
   }
 });
 
@@ -263,10 +257,11 @@ Deno.test("VariableMap - should convert to objects", () => {
     const obj = result.data.toObject();
     assertEquals(obj, variables);
 
-    const infoObj = result.data.toInfoObject();
-    assertExists(infoObj.title);
-    assertEquals(infoObj.title.value, "Test");
-    assertEquals(infoObj.title.type, "string");
+    const entries = result.data.entries();
+    const titleInfo = entries.find(([name]) => name === "title")?.[1];
+    assertExists(titleInfo);
+    assertEquals(titleInfo.value, "Test");
+    assertEquals(titleInfo.type, "string");
   }
 });
 
@@ -281,9 +276,9 @@ Deno.test("VariableMap - should merge variable maps", () => {
     const mergeResult = result1.data.merge(result2.data);
     assertEquals(mergeResult.ok, true);
     if (mergeResult.ok) {
-      assertEquals(mergeResult.data.count(), 4);
-      assertEquals(mergeResult.data.hasVariable("a"), true);
-      assertEquals(mergeResult.data.hasVariable("c"), true);
+      assertEquals(mergeResult.data.size(), 4);
+      assertEquals(mergeResult.data.has("a"), true);
+      assertEquals(mergeResult.data.has("c"), true);
     }
   }
 });
@@ -307,10 +302,8 @@ Deno.test("VariableMap - should handle merge conflicts", () => {
     const overwriteResult = result1.data.merge(result2.data, true);
     assertEquals(overwriteResult.ok, true);
     if (overwriteResult.ok) {
-      const aValue = overwriteResult.data.getValue("a");
-      if (aValue.ok) {
-        assertEquals(aValue.data, "different");
-      }
+      const aValue = overwriteResult.data.get("a");
+      assertEquals(aValue, "different");
     }
   }
 });
@@ -329,10 +322,10 @@ Deno.test("VariableMap - should filter variables", () => {
     const filteredResult = result.data.filter((name) => name.includes("temp"));
     assertEquals(filteredResult.ok, true);
     if (filteredResult.ok) {
-      assertEquals(filteredResult.data.count(), 2);
-      assertEquals(filteredResult.data.hasVariable("temp_var"), true);
-      assertEquals(filteredResult.data.hasVariable("another_temp"), true);
-      assertEquals(filteredResult.data.hasVariable("permanent_var"), false);
+      assertEquals(filteredResult.data.size(), 2);
+      assertEquals(filteredResult.data.has("temp_var"), true);
+      assertEquals(filteredResult.data.has("another_temp"), true);
+      assertEquals(filteredResult.data.has("permanent_var"), false);
     }
   }
 });
@@ -356,15 +349,11 @@ Deno.test("VariableMap - should transform variables", () => {
 
     assertEquals(transformResult.ok, true);
     if (transformResult.ok) {
-      const titleValue = transformResult.data.getValue("title");
-      if (titleValue.ok) {
-        assertEquals(titleValue.data, "HELLO");
-      }
+      const titleValue = transformResult.data.get("title");
+      assertEquals(titleValue, "HELLO");
 
-      const countValue = transformResult.data.getValue("count");
-      if (countValue.ok) {
-        assertEquals(countValue.data, 42); // Unchanged
-      }
+      const countValue = transformResult.data.get("count");
+      assertEquals(countValue, 42); // Unchanged
     }
   }
 });
@@ -372,8 +361,8 @@ Deno.test("VariableMap - should transform variables", () => {
 Deno.test("VariableMap - should create empty map", () => {
   const empty = VariableMap.createEmpty();
   assertEquals(empty.isEmpty(), true);
-  assertEquals(empty.count(), 0);
-  assertEquals(empty.getVariableNames().length, 0);
+  assertEquals(empty.size(), 0);
+  assertEquals(empty.getNames().length, 0);
 });
 
 Deno.test("VariableMap - should have string representation", () => {

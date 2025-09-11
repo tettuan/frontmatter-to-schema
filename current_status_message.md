@@ -1,15 +1,11 @@
-# Phase 2 DDD Service Integration Complete ✅
+# P1 Issues Resolved with Technical Debt Reduction
 
 ## Current Status
-Successfully completed Phase 2 of the DDD/Totality refactoring with two new Smart Constructor services:
-
-1. **FilePatternMatcher** - Eliminates hardcoded glob pattern logic in ProcessCoordinator
-2. **FormatDetector** - Replaces hardcoded format detection in TemplateContext
-
-Both services follow totality principles with Result<T,E> types, comprehensive validation, and 84 new test steps. All 569 tests pass, CI fully green.
+Successfully resolved P1 priority issues (#641, #637) and reduced technical debt. Added comprehensive x-* properties demonstrations (x-template, x-derived-from, x-derived-unique, x-frontmatter-part) to examples/climpt-registry. Reduced @deprecated items from 26 to 17. Deleted deprecated RuleValidator class. CI fully passing with 573 tests.
 
 ## Things to be done
-- Continue with Phase 3 low priority improvements (configuration externalization, additional formats)
-- Investigate potential branch merging opportunities
-- Address any outstanding issues or PRs
-- Consider next architectural improvements for the 95% code reduction goal
+- Resolve PR #643 merge conflicts with main branch
+- Continue P2 issues: #640 DDD boundaries, #638 E2E tests, #612 x-template migration
+- Address P3 #639 magic number hardcoding
+- Complete integration tests for x-* properties workflow
+- Review and merge outstanding PRs

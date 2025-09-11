@@ -34,17 +34,6 @@ export class FrontMatter {
     return { ok: true, data: new FrontMatter(content, raw) };
   }
 
-  /**
-   * Factory method for backward compatibility
-   * @deprecated Use create() with Result type instead
-   */
-  static createUnsafe(
-    content: FrontMatterContent,
-    raw: string,
-  ): FrontMatter {
-    return new FrontMatter(content, raw);
-  }
-
   getContent(): FrontMatterContent {
     return this.content;
   }

@@ -62,21 +62,6 @@ export class Document {
     );
   }
 
-  /**
-   * @deprecated Use createWithFrontMatterInput for Totality compliance
-   * Kept for backward compatibility during migration
-   */
-  static createWithFrontMatter(
-    path: DocumentPath,
-    frontMatter: FrontMatter | null,
-    content: DocumentContent,
-  ): Document {
-    const frontMatterInput: FrontMatterInput = frontMatter
-      ? { kind: "Present", frontMatter }
-      : { kind: "NotPresent" };
-    return Document.createWithFrontMatterInput(path, frontMatterInput, content);
-  }
-
   getId(): DocumentId {
     return this.id;
   }
