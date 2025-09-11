@@ -237,8 +237,8 @@ export class AggregateResultsUseCase
       if (!this.isValidRecord(items)) return null;
 
       // Check if items have an x-level constraint
-      if (typeof items["x-level"] === "string") {
-        return items["x-level"];
+      if (typeof items[SchemaExtensions.LEVEL] === "string") {
+        return items[SchemaExtensions.LEVEL] as string;
       }
 
       // Handle $ref resolution - get the referenced schema
