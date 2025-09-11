@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 
 /**
  * Supported schema formats as discriminated union
@@ -56,7 +57,9 @@ export class SchemaDefinition {
               error: createDomainError(
                 {
                   kind: "InvalidFormat",
-                  input: trimmedDefinition.substring(0, 100),
+                  input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                    trimmedDefinition,
+                  ),
                   expectedFormat: "JSON object",
                 },
                 "Schema definition must be a JSON object",
@@ -77,7 +80,9 @@ export class SchemaDefinition {
             error: createDomainError(
               {
                 kind: "ParseError",
-                input: trimmedDefinition.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                  trimmedDefinition,
+                ),
                 details: error instanceof Error ? error.message : String(error),
               },
               "Invalid JSON schema definition",
@@ -96,7 +101,9 @@ export class SchemaDefinition {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: trimmedDefinition.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                  trimmedDefinition,
+                ),
                 expectedFormat: "YAML",
               },
               "Schema definition does not appear to be valid YAML",
@@ -199,7 +206,9 @@ export class SchemaDefinition {
           error: createDomainError(
             {
               kind: "ParseError",
-              input: this.definition.substring(0, 100),
+              input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                this.definition,
+              ),
               details: error instanceof Error ? error.message : String(error),
             },
             "Failed to parse JSON schema",

@@ -7,6 +7,7 @@
 
 import type { Result } from "../../core/result.ts";
 import { createDomainError, type DomainError } from "../../core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../../shared/constants.ts";
 import type {
   TemplateEngine,
   TemplateMetadata,
@@ -144,7 +145,7 @@ export class TemplateValidator {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: content.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
                 expectedFormat: "balanced Handlebars braces",
               },
               "Handlebars template has unbalanced braces",
@@ -164,7 +165,7 @@ export class TemplateValidator {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: content.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
                 expectedFormat: "balanced Mustache braces",
               },
               "Mustache template has unbalanced braces",
@@ -184,7 +185,7 @@ export class TemplateValidator {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: content.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
                 expectedFormat: "balanced Liquid tags",
               },
               "Liquid template has unbalanced tags",
@@ -204,7 +205,7 @@ export class TemplateValidator {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: content.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
                 expectedFormat: "balanced EJS tags",
               },
               "EJS template has unbalanced tags",

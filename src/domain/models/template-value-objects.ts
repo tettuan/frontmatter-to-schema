@@ -10,6 +10,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { DEFAULT_PROCESSING_LIMIT } from "../shared/constants.ts";
 
 /**
  * Represents a template format configuration
@@ -209,7 +210,7 @@ export class MappingRule {
  * Represents processing configuration options
  *
  * Business Rules:
- * - Max concurrency must be between 1 and 100
+ * - Max concurrency must be between 1 and DEFAULT_PROCESSING_LIMIT
  * - Default values are provided for all options
  * - Immutable after creation
  *
@@ -246,15 +247,20 @@ export class ProcessingOptions {
     const maxConcurrency = options.maxConcurrency ?? 5;
     const continueOnError = options.continueOnError ?? false;
 
-    if (maxConcurrency < 1 || maxConcurrency > 100) {
+    if (
+      maxConcurrency < 1 || DEFAULT_PROCESSING_LIMIT.isExceeded(maxConcurrency)
+    ) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "OutOfRange",
-          value: maxConcurrency,
-          min: 1,
-          max: 100,
-        }, `Max concurrency out of range (1-100): ${maxConcurrency}`),
+        error: createDomainError(
+          {
+            kind: "OutOfRange",
+            value: maxConcurrency,
+            min: 1,
+            max: DEFAULT_PROCESSING_LIMIT.getValue(),
+          },
+          `Max concurrency out of range (1-${DEFAULT_PROCESSING_LIMIT.getValue()}): ${maxConcurrency}`,
+        ),
       };
     }
 

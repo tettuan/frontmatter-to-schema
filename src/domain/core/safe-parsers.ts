@@ -5,6 +5,7 @@
 
 import { createDomainError, type DomainError, type Result } from "./result.ts";
 import { toRecord } from "./type-guards.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 
 /**
  * Safe JSON parser with validation
@@ -24,7 +25,7 @@ export function parseJSON(
       ok: false,
       error: createDomainError({
         kind: "ParseError",
-        input: input.length > 100 ? `${input.substring(0, 100)}...` : input,
+        input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(input),
         parser: "JSON",
         details: error instanceof Error ? error.message : String(error),
       }, `Failed to parse JSON${context ? ` in ${context}` : ""}`),
@@ -51,7 +52,7 @@ export function parseYAMLWithModule(
       ok: false,
       error: createDomainError({
         kind: "ParseError",
-        input: input.length > 100 ? `${input.substring(0, 100)}...` : input,
+        input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(input),
         parser: "YAML",
         details: error instanceof Error ? error.message : String(error),
       }, `Failed to parse YAML${context ? ` in ${context}` : ""}`),
@@ -78,7 +79,7 @@ export function parseTOMLWithModule(
       ok: false,
       error: createDomainError({
         kind: "ParseError",
-        input: input.length > 100 ? `${input.substring(0, 100)}...` : input,
+        input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(input),
         parser: "TOML",
         details: error instanceof Error ? error.message : String(error),
       }, `Failed to parse TOML${context ? ` in ${context}` : ""}`),

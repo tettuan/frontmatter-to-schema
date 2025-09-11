@@ -7,6 +7,7 @@
 
 import { createDomainError, type Result } from "./result.ts";
 import type { AnalysisError } from "./result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 import type { AnalysisContext } from "./types.ts";
 import { isSchemaAnalysis } from "./types.ts";
 import type {
@@ -150,7 +151,7 @@ export class FrontMatterExtractionStrategy
         error: createDomainError({
           kind: "ExtractionStrategyFailed",
           strategy: this.name,
-          input: input.slice(0, 100) + "...", // Truncate for error message
+          input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(input), // Truncate for error message
         }),
       };
     }

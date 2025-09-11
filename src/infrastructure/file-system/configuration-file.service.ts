@@ -8,6 +8,7 @@
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../../domain/shared/constants.ts";
 import type { ConfigPath } from "../../domain/models/value-objects.ts";
 
 /**
@@ -155,7 +156,7 @@ export class ConfigurationFileService {
         ok: false,
         error: createDomainError({
           kind: "ParseError",
-          input: content.substring(0, 100),
+          input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
           details: error instanceof Error ? error.message : "Invalid JSON",
         }, `Failed to parse JSON configuration: ${filePath}`),
       };

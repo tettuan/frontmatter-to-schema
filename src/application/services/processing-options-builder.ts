@@ -10,6 +10,7 @@ import {
   createDomainError,
   type DomainError,
 } from "../../domain/core/result.ts";
+import { DEFAULT_PROCESSING_LIMIT } from "../../domain/shared/constants.ts";
 
 /**
  * Processing options for document processing operations
@@ -98,7 +99,7 @@ export class ProcessingOptionsBuilder {
       allowMissingVariables: false,
       validateSchema: true,
       parallelProcessing: false,
-      maxFiles: 100, // Lower limit for strict mode
+      maxFiles: DEFAULT_PROCESSING_LIMIT.getValue(), // Lower limit for strict mode
     });
   }
 

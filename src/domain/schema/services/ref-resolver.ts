@@ -9,6 +9,10 @@ import type { Result } from "../../core/result.ts";
 import { createDomainError, type DomainError } from "../../core/result.ts";
 import type { SchemaDefinition } from "../../value-objects/schema-definition.ts";
 import { SchemaPath } from "../../value-objects/schema-path.ts";
+import {
+  DEFAULT_ERROR_CONTEXT_LIMIT,
+  MAX_REFERENCE_DEPTH,
+} from "../../shared/constants.ts";
 
 /**
  * Resolved schema with all $ref dependencies resolved
@@ -34,7 +38,7 @@ export class RefResolver {
    * @returns Result containing RefResolver or error
    */
   static create(
-    maxDepth: number = 10,
+    maxDepth: number = MAX_REFERENCE_DEPTH.getValue(),
   ): Result<RefResolver, DomainError & { message: string }> {
     if (maxDepth < 1) {
       return {
@@ -50,7 +54,7 @@ export class RefResolver {
       };
     }
 
-    if (maxDepth > 100) {
+    if (MAX_REFERENCE_DEPTH.isExceeded(maxDepth)) {
       return {
         ok: false,
         error: createDomainError(
@@ -58,9 +62,9 @@ export class RefResolver {
             kind: "OutOfRange",
             value: maxDepth,
             min: 1,
-            max: 100,
+            max: MAX_REFERENCE_DEPTH.getValue(),
           },
-          "Maximum resolution depth cannot exceed 100",
+          `Maximum resolution depth cannot exceed ${MAX_REFERENCE_DEPTH.getValue()}`,
         ),
       };
     }
@@ -119,7 +123,9 @@ export class RefResolver {
         error: createDomainError(
           {
             kind: "ParseError",
-            input: schema.getRawDefinition().substring(0, 100),
+            input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+              schema.getRawDefinition(),
+            ),
             details: contentResult.error.message,
           },
           "Failed to parse schema for $ref resolution",

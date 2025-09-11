@@ -11,6 +11,7 @@ import type {
   VariableInfo,
   VariableValue,
 } from "../value-objects/variable-map.ts";
+import { DEFAULT_NAME_LENGTH_LIMIT } from "../../shared/constants.ts";
 
 /**
  * Domain service for variable validation
@@ -82,15 +83,15 @@ export class VariableValidator {
       };
     }
 
-    // Check for reasonable length
-    if (trimmedName.length > 100) {
+    // Check for reasonable length using Smart Constructor
+    if (DEFAULT_NAME_LENGTH_LIMIT.isExceeded(trimmedName)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "TooLong",
             value: trimmedName,
-            maxLength: 100,
+            maxLength: DEFAULT_NAME_LENGTH_LIMIT.getValue(),
           },
           "Variable name is too long",
         ),
