@@ -12,6 +12,7 @@
  */
 
 import type { DomainError, Result } from "../../domain/core/result.ts";
+import { GRACEFUL_EXIT_TIMEOUT_VALUE } from "../../domain/shared/constants.ts";
 
 /**
  * Exit configuration options
@@ -144,7 +145,10 @@ export class ConfigurableExitHandler implements ExitHandler {
         break;
       case "graceful":
         // Give time for logs to flush before exit
-        setTimeout(() => Deno.exit(this.config.errorCode), 10);
+        setTimeout(
+          () => Deno.exit(this.config.errorCode),
+          GRACEFUL_EXIT_TIMEOUT_VALUE.getValue(),
+        );
         break;
       case "testing":
         // No actual exit in testing mode
@@ -175,7 +179,10 @@ export class ConfigurableExitHandler implements ExitHandler {
         break;
       case "graceful":
         // Give time for logs to flush before exit
-        setTimeout(() => Deno.exit(this.config.successCode), 10);
+        setTimeout(
+          () => Deno.exit(this.config.successCode),
+          GRACEFUL_EXIT_TIMEOUT_VALUE.getValue(),
+        );
         break;
       case "testing":
         // No actual exit in testing mode

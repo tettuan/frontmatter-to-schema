@@ -8,6 +8,7 @@
 
 import type { VoidUseCase } from "../base.usecase.ts";
 import type { DomainError, Result } from "../../../domain/core/result.ts";
+import { DRY_RUN_PREVIEW_LENGTH_VALUE } from "../../../domain/shared/constants.ts";
 import { createDomainError } from "../../../domain/core/result.ts";
 import * as path from "jsr:@std/path@1.0.9";
 import * as yaml from "jsr:@std/yaml@1.0.9";
@@ -77,8 +78,12 @@ export class WriteOutputUseCase implements VoidUseCase<WriteOutputInput> {
       // Skip actual writing in dry-run mode
       if (input.dryRun) {
         console.log(`[DRY-RUN] Would write to: ${input.outputPath}`);
-        console.log(`[DRY-RUN] Content preview (first 500 chars):`);
-        console.log(content.substring(0, 500));
+        console.log(
+          `[DRY-RUN] Content preview (first ${DRY_RUN_PREVIEW_LENGTH_VALUE.getValue()} chars):`,
+        );
+        console.log(
+          content.substring(0, DRY_RUN_PREVIEW_LENGTH_VALUE.getValue()),
+        );
         return { ok: true, data: undefined };
       }
 
