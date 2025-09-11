@@ -46,16 +46,27 @@ export class ClimptPipelineFactory {
 
     // Direct processor creation using component factory
     const componentFactory = new ComponentFactory();
-    const components = componentFactory.createAnalysisComponents();
-    
+    const _components = componentFactory.createAnalysisComponents();
+
     // Create analysis processor with components
-    const { TotalGenericSchemaAnalyzer } = await import("../../../domain/analysis/services/schema-analyzer.service.ts");
-    const { TotalSchemaGuidedTemplateMapper } = await import("../../../domain/analysis/services/template-mapper.service.ts");
-    const { SchemaAnalysisProcessor } = await import("../../../domain/analysis/services/schema-processor.service.ts");
-    
+    const { TotalGenericSchemaAnalyzer } = await import(
+      "../../../domain/analysis/services/schema-analyzer.service.ts"
+    );
+    const { TotalSchemaGuidedTemplateMapper } = await import(
+      "../../../domain/analysis/services/template-mapper.service.ts"
+    );
+    const { SchemaAnalysisProcessor } = await import(
+      "../../../domain/analysis/services/schema-processor.service.ts"
+    );
+
     const analyzer = new TotalGenericSchemaAnalyzer(claudeService, prompts);
     const mapper = new TotalSchemaGuidedTemplateMapper(claudeService, prompts);
-    const analysisProcessor = new SchemaAnalysisProcessor(analyzer, mapper, schema, template);
+    const analysisProcessor = new SchemaAnalysisProcessor(
+      analyzer,
+      mapper,
+      schema,
+      template,
+    );
 
     // Create pipeline configuration
     const config: FrontMatterPipelineConfig<

@@ -459,7 +459,10 @@ Deno.test("Component Creation", async (t) => {
     const template = { output: "{{result}}" };
 
     const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
-    const mapper = new TotalSchemaGuidedTemplateMapper(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
+      mockService,
+      mockPrompts,
+    );
     const processor = new SchemaAnalysisProcessor(
       analyzer,
       mapper,
@@ -476,7 +479,10 @@ Deno.test("Component Creation", async (t) => {
     const template = { greeting: "Hello {{name}}" };
 
     const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
-    const mapper = new TotalSchemaGuidedTemplateMapper(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
+      mockService,
+      mockPrompts,
+    );
     const processor = new SchemaAnalysisProcessor(
       analyzer,
       mapper,
@@ -547,7 +553,10 @@ Deno.test("Schema-Driven Analysis Integration", async (t) => {
     };
 
     const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
-    const mapper = new TotalSchemaGuidedTemplateMapper(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
+      mockService,
+      mockPrompts,
+    );
     const processor = new SchemaAnalysisProcessor(
       analyzer,
       mapper,
@@ -582,16 +591,20 @@ Deno.test("Schema-Driven Analysis Integration", async (t) => {
     });
 
     assertEquals(result.isValid, true);
-    assertEquals((result.data as any).title, "Test Article");
-    assertEquals((result.data as any).byline, "By John Doe on 2023-01-01");
-    assertEquals((result.data as any).summary, "3 sections, 2 tags");
+    const data = result.data as Record<string, unknown>;
+    assertEquals(data.title, "Test Article");
+    assertEquals(data.byline, "By John Doe on 2023-01-01");
+    assertEquals(data.summary, "3 sections, 2 tags");
   });
 
   await t.step("should handle edge cases and error conditions", async () => {
     const mockService = new MockExternalAnalysisService();
     const mockPrompts = createMockPrompts();
     const analyzer = new TotalGenericSchemaAnalyzer(mockService, mockPrompts);
-    const mapper = new TotalSchemaGuidedTemplateMapper(mockService, mockPrompts);
+    const mapper = new TotalSchemaGuidedTemplateMapper(
+      mockService,
+      mockPrompts,
+    );
     const processor = new SchemaAnalysisProcessor(
       analyzer,
       mapper,

@@ -5,7 +5,7 @@
  */
 
 // Main template processor
-export { UnifiedTemplateProcessor } from "./unified-template-processor.ts";
+export { UnifiedTemplateProcessor } from "./services/unified-template-processor.ts";
 
 // Format handlers - removed in DDD refactoring
 // export {

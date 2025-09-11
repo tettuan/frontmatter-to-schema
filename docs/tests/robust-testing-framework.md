@@ -1,17 +1,24 @@
 # Robust Testing Framework
 
-This document describes the enhanced robust testing framework that provides infrastructure for writing maintainable, parallel-safe, and change-resistant tests following DDD principles and Totality patterns.
+This document describes the enhanced robust testing framework that provides
+infrastructure for writing maintainable, parallel-safe, and change-resistant
+tests following DDD principles and Totality patterns.
 
 ## Framework Overview
 
-The robust testing framework introduces several key improvements over traditional testing approaches:
+The robust testing framework introduces several key improvements over
+traditional testing approaches:
 
 ### Core Principles
 
-1. **Parallel Execution Safety**: Tests run independently with complete isolation
-2. **Environment Independence**: Tests work consistently across different environments
-3. **Minimal Test Maximum Coverage**: Fewer, more comprehensive tests that resist changes
-4. **Domain-Focused Testing**: Tests validate business logic rather than implementation details
+1. **Parallel Execution Safety**: Tests run independently with complete
+   isolation
+2. **Environment Independence**: Tests work consistently across different
+   environments
+3. **Minimal Test Maximum Coverage**: Fewer, more comprehensive tests that
+   resist changes
+4. **Domain-Focused Testing**: Tests validate business logic rather than
+   implementation details
 5. **Totality Compliance**: All test utilities follow Result<T,E> patterns
 
 ### Architecture Components
@@ -24,7 +31,10 @@ Provides foundational utilities for safe, isolated testing:
 // Isolated environment management
 await withIsolatedEnvironment(async (env) => {
   // Test runs in complete isolation
-  const tempFile = await EnvironmentIsolation.createTempFile(env, "test content");
+  const tempFile = await EnvironmentIsolation.createTempFile(
+    env,
+    "test content",
+  );
   // Automatic cleanup after test completion
 });
 
@@ -39,14 +49,14 @@ await DomainTestHelpers.testSmartConstructor(
   "DocumentPath",
   DocumentPath.create,
   validInput,
-  invalidInputs
+  invalidInputs,
 );
 
 // Performance testing utilities
 await PerformanceTestUtils.measureExecutionTime(
   operation,
   maxTimeMs,
-  "operation description"
+  "operation description",
 );
 ```
 
@@ -68,20 +78,24 @@ const coreBehaviors: CoreBehaviorTest<DocumentPath, DomainError>[] = [
   },
 ];
 
-await CoreLogicTester.testBehaviorGroup(t, "DocumentPath Behaviors", coreBehaviors);
+await CoreLogicTester.testBehaviorGroup(
+  t,
+  "DocumentPath Behaviors",
+  coreBehaviors,
+);
 
 // Domain invariant testing
 await InvariantTester.testDomainInvariant(
   t,
   "DocumentPath immutability",
-  scenarios
+  scenarios,
 );
 
 // Consolidated error path testing
 await ErrorPathTester.testErrorPaths(
   t,
   "DocumentPath.create",
-  errorScenarios
+  errorScenarios,
 );
 
 // End-to-end workflow testing
@@ -108,8 +122,8 @@ await ParallelSafeTestRunner.runIsolatedTest(
   {
     maxExecutionTimeMs: 1000,
     maxMemoryDeltaMB: 50,
-    environmentVariables: { TEST_ENV: "isolated" }
-  }
+    environmentVariables: { TEST_ENV: "isolated" },
+  },
 );
 
 // Parallel test execution with conflict detection
@@ -123,13 +137,14 @@ await ParallelSafeTestRunner.runParallelTests([
 
 ### 1. Smart Constructor Testing
 
-Replace multiple individual validation tests with comprehensive behavior testing:
+Replace multiple individual validation tests with comprehensive behavior
+testing:
 
 ```typescript
 // OLD: Multiple separate tests
-Deno.test("should accept valid input", () => { /* ... */ });
-Deno.test("should reject empty input", () => { /* ... */ });
-Deno.test("should reject invalid format", () => { /* ... */ });
+Deno.test("should accept valid input", () => {/* ... */});
+Deno.test("should reject empty input", () => {/* ... */});
+Deno.test("should reject invalid format", () => {/* ... */});
 
 // NEW: Comprehensive behavior testing
 Deno.test("DocumentPath - Core Business Logic", async (t) => {
@@ -146,7 +161,11 @@ Deno.test("DocumentPath - Core Business Logic", async (t) => {
     },
   ];
 
-  await CoreLogicTester.testBehaviorGroup(t, "DocumentPath Behaviors", coreBehaviors);
+  await CoreLogicTester.testBehaviorGroup(
+    t,
+    "DocumentPath Behaviors",
+    coreBehaviors,
+  );
 });
 ```
 
@@ -173,7 +192,7 @@ await InvariantTester.testDomainInvariant(
       },
       invariantCheck: (obj) => verifyImmutability(obj),
     },
-  ]
+  ],
 );
 ```
 
@@ -199,7 +218,7 @@ await ErrorPathTester.testErrorPaths(
         assertEquals(error.expectedFormat, "path without null bytes");
       },
     },
-  ]
+  ],
 );
 ```
 
@@ -228,31 +247,35 @@ await WorkflowTester.testWorkflow(
     cleanup: async () => {
       await cleanupTempFiles();
     },
-  }
+  },
 );
 ```
 
 ## Benefits
 
 ### 1. Parallel Execution Safety
+
 - Complete test isolation prevents race conditions
 - Resource management eliminates conflicts
 - Environment variables are properly scoped
 - Automatic cleanup prevents test pollution
 
-### 2. Change Resistance  
+### 2. Change Resistance
+
 - Tests focus on business behavior, not implementation
 - Fewer tests means less maintenance overhead
 - Domain-focused assertions remain stable during refactoring
 - Invariant testing catches regression across scenarios
 
 ### 3. Enhanced Debugging
+
 - Comprehensive error context and validation
 - Performance monitoring built into test execution
 - Clear failure messages with expected vs actual values
 - Resource usage tracking for optimization
 
 ### 4. DDD Alignment
+
 - Tests validate domain rules and business logic
 - Smart Constructor testing patterns
 - Value object immutability verification
@@ -270,7 +293,7 @@ await WorkflowTester.testWorkflow(
 ### Best Practices
 
 1. **Start with core behavior testing** - focus on essential business logic
-2. **Use domain invariants** to validate business rules across scenarios  
+2. **Use domain invariants** to validate business rules across scenarios
 3. **Consolidate error paths** rather than testing each error individually
 4. **Test workflows end-to-end** instead of mocking everything
 5. **Measure performance** for critical operations
@@ -296,4 +319,7 @@ Based on initial testing:
 
 ---
 
-This robust testing framework enables writing fewer, more effective tests that provide comprehensive coverage while being resistant to changes in implementation details. The focus on business logic validation and domain invariants ensures tests remain valuable as the codebase evolves.
+This robust testing framework enables writing fewer, more effective tests that
+provide comprehensive coverage while being resistant to changes in
+implementation details. The focus on business logic validation and domain
+invariants ensures tests remain valuable as the codebase evolves.

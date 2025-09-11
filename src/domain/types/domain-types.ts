@@ -5,8 +5,7 @@
  */
 
 // Forward declarations for entities (will be defined in their respective files)
-export type FrontMatter =
-  import("../entities/frontmatter.entity.ts").FrontMatter;
+export type FrontMatter = import("../entities/frontmatter.ts").FrontMatter;
 
 // Discriminated union for document frontmatter state following totality principle
 export type DocumentFrontMatterState =

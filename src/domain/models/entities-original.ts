@@ -24,10 +24,7 @@ export { Document } from "../document/entities.ts";
 export { FrontMatter } from "../frontmatter/entities.ts";
 export { Schema } from "../entities/schema.ts";
 export { Template } from "../template/entities.ts";
-export {
-  AggregatedResult,
-  AnalysisResult,
-} from "../analysis/entities.ts";
+export { AggregatedResult, AnalysisResult } from "../analysis/entities.ts";
 
 // Re-export identifier value objects with Smart Constructors
 export {

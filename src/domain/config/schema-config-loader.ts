@@ -27,7 +27,6 @@ export class SchemaConfigLoader {
     this.refResolver = new SchemaRefResolver(fileSystem, basePath);
   }
 
-
   /**
    * Load CLI registry schema from external file
    */
