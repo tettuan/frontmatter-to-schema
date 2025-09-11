@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { MAX_FILE_PATH_LENGTH_VALUE } from "../shared/constants.ts";
 
 /**
  * SchemaPath value object with validation
@@ -71,16 +72,16 @@ export class SchemaPath {
     }
 
     // Check path length
-    if (trimmedPath.length > 1024) {
+    if (MAX_FILE_PATH_LENGTH_VALUE.isExceeded(trimmedPath.length)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "TooLong",
             value: trimmedPath,
-            maxLength: 1024,
+            maxLength: MAX_FILE_PATH_LENGTH_VALUE.getValue(),
           },
-          "Schema path exceeds maximum length of 1024 characters",
+          `Schema path exceeds maximum length of ${MAX_FILE_PATH_LENGTH_VALUE.getValue()} characters`,
         ),
       };
     }

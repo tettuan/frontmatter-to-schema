@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { MAX_FILE_PATH_LENGTH_VALUE } from "../shared/constants.ts";
 
 /**
  * Supported document extensions
@@ -97,16 +98,16 @@ export class DocumentPath {
     }
 
     // Check path length
-    if (trimmedPath.length > 1024) {
+    if (MAX_FILE_PATH_LENGTH_VALUE.isExceeded(trimmedPath.length)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "TooLong",
             value: trimmedPath,
-            maxLength: 1024,
+            maxLength: MAX_FILE_PATH_LENGTH_VALUE.getValue(),
           },
-          "Document path exceeds maximum length of 1024 characters",
+          `Document path exceeds maximum length of ${MAX_FILE_PATH_LENGTH_VALUE.getValue()} characters`,
         ),
       };
     }
