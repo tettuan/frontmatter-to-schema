@@ -11,6 +11,7 @@ import {
   SchemaFormat,
   TemplateFormat,
 } from "../../src/application/value-objects/configuration-formats.value-object.ts";
+import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
 
 // Helper functions for format creation
 const createSchemaFormat = (format: string) => {
@@ -260,7 +261,7 @@ Content`,
         const schemaWithTemplate = {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
-          "x-template": "/nonexistent/template.json",
+          [SchemaExtensions.TEMPLATE]: "/nonexistent/template.json",
           "properties": {
             "title": { "type": "string" },
           },
@@ -387,7 +388,7 @@ Deno.test({
       const invalidXTemplate = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": 123, // Should be string
+        [SchemaExtensions.TEMPLATE]: 123, // Should be string
         "properties": {
           "title": { "type": "string" },
         },
@@ -457,7 +458,7 @@ Content`,
         "properties": {
           "derived": {
             "type": "array",
-            "x-derived-from": "nonexistent.field.path",
+            [SchemaExtensions.DERIVED_FROM]: "nonexistent.field.path",
             "items": { "type": "string" },
           },
         },
@@ -528,7 +529,7 @@ Content`,
         "properties": {
           "scalar": {
             "type": "string",
-            "x-frontmatter-part": true, // Invalid on scalar type
+            [SchemaExtensions.FRONTMATTER_PART]: true, // Invalid on scalar type
           },
         },
       };

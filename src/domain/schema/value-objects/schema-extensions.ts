@@ -29,6 +29,12 @@ export const SchemaExtensions = {
   REQUIRED: "x-required",
   MIN_ITEMS: "x-min-items",
   MAX_ITEMS: "x-max-items",
+
+  // Organizational extensions
+  LEVEL: "x-level",
+
+  // Template aggregation extensions
+  TEMPLATE_AGGREGATION_OPTIONS: "x-template-aggregation-options",
 } as const;
 
 /**

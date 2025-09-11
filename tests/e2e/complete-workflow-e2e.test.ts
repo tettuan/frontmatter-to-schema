@@ -12,6 +12,7 @@ import {
   SchemaFormat,
   TemplateFormat,
 } from "../../src/application/value-objects/configuration-formats.value-object.ts";
+import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
 
 // Helper functions for format creation
 const createSchemaFormat = (format: string) => {
@@ -97,7 +98,7 @@ Another test article with different metadata.
           "tags": {
             "type": "array",
             "items": { "type": "string" },
-            "x-frontmatter-part": true,
+            [SchemaExtensions.FRONTMATTER_PART]: true,
           },
           "date": { "type": "string", "format": "date" },
           "status": {
@@ -320,7 +321,7 @@ Deno.test({
       const schemaWithXTemplate = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": join(FIXTURES_DIR, "template.json"),
+        [SchemaExtensions.TEMPLATE]: join(FIXTURES_DIR, "template.json"),
         "properties": {
           "title": { "type": "string" },
           "author": { "type": "string" },
@@ -477,7 +478,7 @@ Deno.test({
         "properties": {
           "allTags": {
             "type": "array",
-            "x-derived-from": "tags",
+            [SchemaExtensions.DERIVED_FROM]: "tags",
             "items": { "type": "string" },
           },
           "title": { "type": "string" },
@@ -547,8 +548,8 @@ Deno.test({
         "properties": {
           "uniqueAuthors": {
             "type": "array",
-            "x-derived-from": "author",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "author",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             "items": { "type": "string" },
           },
           "author": { "type": "string" },
@@ -616,7 +617,7 @@ Deno.test({
           "properties": {
             "categories": {
               "type": "array",
-              "x-frontmatter-part": true,
+              [SchemaExtensions.FRONTMATTER_PART]: true,
               "items": {
                 "type": "object",
                 "properties": {
