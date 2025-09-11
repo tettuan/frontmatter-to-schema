@@ -7,6 +7,18 @@
  */
 
 import type { Result } from "../../core/result.ts";
+import {
+  DEFAULT_FORMAT_PRIORITY,
+  DOCUMENT_FORMAT_PRIORITY,
+  OUTPUT_JSON_FORMAT_PRIORITY,
+  OUTPUT_TOML_FORMAT_PRIORITY,
+  OUTPUT_YAML_FORMAT_PRIORITY,
+  SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY,
+  SCHEMA_YML_SECONDARY_FORMAT_PRIORITY,
+  TEMPLATE_JSON_FORMAT_PRIORITY,
+  TEMPLATE_YAML_FORMAT_PRIORITY,
+  TEMPLATE_YML_FORMAT_PRIORITY,
+} from "../constants.ts";
 
 /**
  * Format registry error types following Totality principles
@@ -59,7 +71,7 @@ const DEFAULT_FORMATS: readonly FileFormat[] = [
     extension: "json",
     mediaType: "application/json",
     category: "schema",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
     validator: (content: string) => {
       try {
         JSON.parse(content);
@@ -73,14 +85,14 @@ const DEFAULT_FORMATS: readonly FileFormat[] = [
     extension: "yaml",
     mediaType: "application/x-yaml",
     category: "schema",
-    priority: 90,
+    priority: SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY.getValue(),
     aliases: ["yml"],
   },
   {
     extension: "yml",
     mediaType: "application/x-yaml",
     category: "schema",
-    priority: 85,
+    priority: SCHEMA_YML_SECONDARY_FORMAT_PRIORITY.getValue(),
   },
 
   // Template formats
@@ -88,20 +100,20 @@ const DEFAULT_FORMATS: readonly FileFormat[] = [
     extension: "json",
     mediaType: "application/json",
     category: "template",
-    priority: 80,
+    priority: TEMPLATE_JSON_FORMAT_PRIORITY.getValue(),
   },
   {
     extension: "yaml",
     mediaType: "application/x-yaml",
     category: "template",
-    priority: 75,
+    priority: TEMPLATE_YAML_FORMAT_PRIORITY.getValue(),
     aliases: ["yml"],
   },
   {
     extension: "yml",
     mediaType: "application/x-yaml",
     category: "template",
-    priority: 70,
+    priority: TEMPLATE_YML_FORMAT_PRIORITY.getValue(),
   },
 
   // Output formats (from cli-arguments.ts)
@@ -109,20 +121,20 @@ const DEFAULT_FORMATS: readonly FileFormat[] = [
     extension: "json",
     mediaType: "application/json",
     category: "output",
-    priority: 70,
+    priority: OUTPUT_JSON_FORMAT_PRIORITY.getValue(),
   },
   {
     extension: "yaml",
     mediaType: "application/x-yaml",
     category: "output",
-    priority: 65,
+    priority: OUTPUT_YAML_FORMAT_PRIORITY.getValue(),
     aliases: ["yml"],
   },
   {
     extension: "toml",
     mediaType: "application/toml",
     category: "output",
-    priority: 60,
+    priority: OUTPUT_TOML_FORMAT_PRIORITY.getValue(),
   },
 
   // Document formats (from domain architecture docs)
@@ -130,7 +142,7 @@ const DEFAULT_FORMATS: readonly FileFormat[] = [
     extension: "md",
     mediaType: "text/markdown",
     category: "document",
-    priority: 50,
+    priority: DOCUMENT_FORMAT_PRIORITY.getValue(),
     aliases: ["markdown", "mdown", "mkd"],
   },
 ] as const;

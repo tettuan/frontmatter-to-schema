@@ -7,6 +7,7 @@
  */
 
 import type { Result } from "../../core/result.ts";
+import { DEFAULT_FORMAT_PRIORITY } from "../constants.ts";
 
 /**
  * Pluralization error types following Totality principles
@@ -51,31 +52,31 @@ const ENGLISH_RULES: readonly PluralizationRule[] = [
     pattern: /children$/i,
     singularSuffix: "child",
     pluralSuffix: "children",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     pattern: /mice$/i,
     singularSuffix: "mouse",
     pluralSuffix: "mice",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     pattern: /feet$/i,
     singularSuffix: "foot",
     pluralSuffix: "feet",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     pattern: /teeth$/i,
     singularSuffix: "tooth",
     pluralSuffix: "teeth",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
   {
     pattern: /geese$/i,
     singularSuffix: "goose",
     pluralSuffix: "geese",
-    priority: 100,
+    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
   },
 
   // Words ending in -ies

@@ -10,6 +10,44 @@
 import type { Result } from "../core/result.ts";
 
 /**
+ * Business-meaningful default values for Smart Constructors
+ * Centralized constants following DDD domain rules
+ */
+
+// Standard debug and error display limits
+const STANDARD_DEBUG_OUTPUT_SIZE = 100;
+const STANDARD_ERROR_CONTEXT_SIZE = 100;
+const TEMPLATE_PREVIEW_SIZE = 100;
+
+// Processing and validation limits
+const STANDARD_NAME_LENGTH_SIZE = 100;
+const STANDARD_PROCESSING_BATCH_SIZE = 100;
+const STANDARD_FORMAT_PRIORITY_VALUE = 100;
+const DOCUMENT_FORMAT_PRIORITY_VALUE = 50;
+const VARIABLE_DESCRIPTION_MAX_LENGTH = 500;
+
+// Format priority hierarchy for different categories and extensions
+const SCHEMA_YAML_PRIMARY_PRIORITY = 90;
+const SCHEMA_YML_SECONDARY_PRIORITY = 85;
+const TEMPLATE_JSON_PRIORITY = 80;
+const TEMPLATE_YAML_PRIORITY = 75;
+const TEMPLATE_YML_PRIORITY = 70;
+const OUTPUT_JSON_PRIORITY = 70;
+const OUTPUT_YAML_PRIORITY = 65;
+const OUTPUT_TOML_PRIORITY = 60;
+
+// Schema reference resolution depth
+const STANDARD_REF_RESOLUTION_DEPTH = 100;
+
+// Application processing limits for different modes
+const STRICT_MODE_MAX_FILES = 1000;
+const PERFORMANCE_MODE_MAX_FILES = 10000;
+const ABSOLUTE_MAX_FILES_LIMIT = 50000;
+
+// File pattern matching limits
+const PATTERN_LENGTH_LIMIT_SIZE = 1000;
+
+/**
  * Common validation error types for constants
  */
 export type ConstantValidationError =
@@ -257,6 +295,54 @@ export class NameLengthLimit {
 }
 
 /**
+ * Absolute maximum limits for system constraints
+ * Higher limits than ProcessingLimit for extreme edge cases
+ */
+export class AbsoluteMaxLimit {
+  private constructor(private readonly value: number) {}
+
+  static create(
+    limit: number,
+  ): Result<AbsoluteMaxLimit, ConstantValidationError> {
+    if (limit < 1) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "OutOfRange",
+          value: limit,
+          min: 1,
+          message: "Absolute maximum limit must be at least 1",
+        }),
+      };
+    }
+    if (limit > 100000) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "OutOfRange",
+          value: limit,
+          max: 100000,
+          message: "Absolute maximum limit too large (max 100000 items)",
+        }),
+      };
+    }
+    return { ok: true, data: new AbsoluteMaxLimit(limit) };
+  }
+
+  getValue(): number {
+    return this.value;
+  }
+
+  toString(): string {
+    return this.value.toString();
+  }
+
+  isExceeded(count: number): boolean {
+    return count > this.value;
+  }
+}
+
+/**
  * Processing concurrency and batch size limits
  * Controls system resource usage during processing operations
  */
@@ -312,7 +398,9 @@ export class ProcessingLimit {
  * Default debug output limit for content truncation in error messages
  * Used in frontmatter extraction and template rendering errors
  */
-const DEFAULT_DEBUG_LIMIT_RESULT = DebugOutputLimit.create(100);
+const DEFAULT_DEBUG_LIMIT_RESULT = DebugOutputLimit.create(
+  STANDARD_DEBUG_OUTPUT_SIZE,
+);
 if (!DEFAULT_DEBUG_LIMIT_RESULT.ok) {
   throw new Error(
     `Failed to create DEFAULT_DEBUG_OUTPUT_LIMIT: ${DEFAULT_DEBUG_LIMIT_RESULT.error.message}`,
@@ -324,7 +412,9 @@ export const DEFAULT_DEBUG_OUTPUT_LIMIT = DEFAULT_DEBUG_LIMIT_RESULT.data;
  * Default format detection priority for standard file formats
  * Used when no specific priority is configured
  */
-const DEFAULT_PRIORITY_RESULT = FormatPriority.create(100);
+const DEFAULT_PRIORITY_RESULT = FormatPriority.create(
+  STANDARD_FORMAT_PRIORITY_VALUE,
+);
 if (!DEFAULT_PRIORITY_RESULT.ok) {
   throw new Error(
     `Failed to create DEFAULT_FORMAT_PRIORITY: ${DEFAULT_PRIORITY_RESULT.error.message}`,
@@ -333,10 +423,106 @@ if (!DEFAULT_PRIORITY_RESULT.ok) {
 export const DEFAULT_FORMAT_PRIORITY = DEFAULT_PRIORITY_RESULT.data;
 
 /**
+ * Document format priority for markdown and text-based formats
+ * Lower priority than schema/template formats but still valid
+ */
+const DOCUMENT_PRIORITY_RESULT = FormatPriority.create(
+  DOCUMENT_FORMAT_PRIORITY_VALUE,
+);
+if (!DOCUMENT_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create DOCUMENT_FORMAT_PRIORITY: ${DOCUMENT_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const DOCUMENT_FORMAT_PRIORITY = DOCUMENT_PRIORITY_RESULT.data;
+
+/**
+ * Schema format priorities for different extensions
+ * Higher priorities for primary schema formats
+ */
+const SCHEMA_YAML_PRIMARY_RESULT = FormatPriority.create(
+  SCHEMA_YAML_PRIMARY_PRIORITY,
+);
+if (!SCHEMA_YAML_PRIMARY_RESULT.ok) {
+  throw new Error(
+    `Failed to create SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY: ${SCHEMA_YAML_PRIMARY_RESULT.error.message}`,
+  );
+}
+export const SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY =
+  SCHEMA_YAML_PRIMARY_RESULT.data;
+
+const SCHEMA_YML_SECONDARY_RESULT = FormatPriority.create(
+  SCHEMA_YML_SECONDARY_PRIORITY,
+);
+if (!SCHEMA_YML_SECONDARY_RESULT.ok) {
+  throw new Error(
+    `Failed to create SCHEMA_YML_SECONDARY_FORMAT_PRIORITY: ${SCHEMA_YML_SECONDARY_RESULT.error.message}`,
+  );
+}
+export const SCHEMA_YML_SECONDARY_FORMAT_PRIORITY =
+  SCHEMA_YML_SECONDARY_RESULT.data;
+
+/**
+ * Template format priorities for different extensions
+ * Balanced priorities for template processing formats
+ */
+const TEMPLATE_JSON_RESULT = FormatPriority.create(TEMPLATE_JSON_PRIORITY);
+if (!TEMPLATE_JSON_RESULT.ok) {
+  throw new Error(
+    `Failed to create TEMPLATE_JSON_FORMAT_PRIORITY: ${TEMPLATE_JSON_RESULT.error.message}`,
+  );
+}
+export const TEMPLATE_JSON_FORMAT_PRIORITY = TEMPLATE_JSON_RESULT.data;
+
+const TEMPLATE_YAML_RESULT = FormatPriority.create(TEMPLATE_YAML_PRIORITY);
+if (!TEMPLATE_YAML_RESULT.ok) {
+  throw new Error(
+    `Failed to create TEMPLATE_YAML_FORMAT_PRIORITY: ${TEMPLATE_YAML_RESULT.error.message}`,
+  );
+}
+export const TEMPLATE_YAML_FORMAT_PRIORITY = TEMPLATE_YAML_RESULT.data;
+
+const TEMPLATE_YML_RESULT = FormatPriority.create(TEMPLATE_YML_PRIORITY);
+if (!TEMPLATE_YML_RESULT.ok) {
+  throw new Error(
+    `Failed to create TEMPLATE_YML_FORMAT_PRIORITY: ${TEMPLATE_YML_RESULT.error.message}`,
+  );
+}
+export const TEMPLATE_YML_FORMAT_PRIORITY = TEMPLATE_YML_RESULT.data;
+
+/**
+ * Output format priorities for different extensions
+ * Lower priorities for output-specific formats
+ */
+const OUTPUT_JSON_RESULT = FormatPriority.create(OUTPUT_JSON_PRIORITY);
+if (!OUTPUT_JSON_RESULT.ok) {
+  throw new Error(
+    `Failed to create OUTPUT_JSON_FORMAT_PRIORITY: ${OUTPUT_JSON_RESULT.error.message}`,
+  );
+}
+export const OUTPUT_JSON_FORMAT_PRIORITY = OUTPUT_JSON_RESULT.data;
+
+const OUTPUT_YAML_RESULT = FormatPriority.create(OUTPUT_YAML_PRIORITY);
+if (!OUTPUT_YAML_RESULT.ok) {
+  throw new Error(
+    `Failed to create OUTPUT_YAML_FORMAT_PRIORITY: ${OUTPUT_YAML_RESULT.error.message}`,
+  );
+}
+export const OUTPUT_YAML_FORMAT_PRIORITY = OUTPUT_YAML_RESULT.data;
+
+const OUTPUT_TOML_RESULT = FormatPriority.create(OUTPUT_TOML_PRIORITY);
+if (!OUTPUT_TOML_RESULT.ok) {
+  throw new Error(
+    `Failed to create OUTPUT_TOML_FORMAT_PRIORITY: ${OUTPUT_TOML_RESULT.error.message}`,
+  );
+}
+export const OUTPUT_TOML_FORMAT_PRIORITY = OUTPUT_TOML_RESULT.data;
+
+/**
  * Template preview length for error reporting
  * Used when template processing fails to show context
  */
-const TEMPLATE_PREVIEW_RESULT = DebugOutputLimit.create(100);
+const TEMPLATE_PREVIEW_RESULT = DebugOutputLimit.create(TEMPLATE_PREVIEW_SIZE);
 if (!TEMPLATE_PREVIEW_RESULT.ok) {
   throw new Error(
     `Failed to create ERROR_TEMPLATE_PREVIEW_LIMIT: ${TEMPLATE_PREVIEW_RESULT.error.message}`,
@@ -348,7 +534,9 @@ export const ERROR_TEMPLATE_PREVIEW_LIMIT = TEMPLATE_PREVIEW_RESULT.data;
  * Maximum depth for schema reference resolution
  * Prevents infinite recursion in $ref resolution
  */
-const MAX_REF_DEPTH_RESULT = MaxDepthLimit.create(100);
+const MAX_REF_DEPTH_RESULT = MaxDepthLimit.create(
+  STANDARD_REF_RESOLUTION_DEPTH,
+);
 if (!MAX_REF_DEPTH_RESULT.ok) {
   throw new Error(
     `Failed to create MAX_REFERENCE_DEPTH: ${MAX_REF_DEPTH_RESULT.error.message}`,
@@ -360,7 +548,9 @@ export const MAX_REFERENCE_DEPTH = MAX_REF_DEPTH_RESULT.data;
  * Default error context truncation limit for debug messages
  * Used when displaying input content in error messages
  */
-const ERROR_CONTEXT_LIMIT_RESULT = ErrorContextLimit.create(100);
+const ERROR_CONTEXT_LIMIT_RESULT = ErrorContextLimit.create(
+  STANDARD_ERROR_CONTEXT_SIZE,
+);
 if (!ERROR_CONTEXT_LIMIT_RESULT.ok) {
   throw new Error(
     `Failed to create DEFAULT_ERROR_CONTEXT_LIMIT: ${ERROR_CONTEXT_LIMIT_RESULT.error.message}`,
@@ -372,7 +562,9 @@ export const DEFAULT_ERROR_CONTEXT_LIMIT = ERROR_CONTEXT_LIMIT_RESULT.data;
  * Default name length limit for identifiers and rule names
  * Used in validation of rule names, variable names, etc.
  */
-const NAME_LENGTH_LIMIT_RESULT = NameLengthLimit.create(100);
+const NAME_LENGTH_LIMIT_RESULT = NameLengthLimit.create(
+  STANDARD_NAME_LENGTH_SIZE,
+);
 if (!NAME_LENGTH_LIMIT_RESULT.ok) {
   throw new Error(
     `Failed to create DEFAULT_NAME_LENGTH_LIMIT: ${NAME_LENGTH_LIMIT_RESULT.error.message}`,
@@ -384,13 +576,88 @@ export const DEFAULT_NAME_LENGTH_LIMIT = NAME_LENGTH_LIMIT_RESULT.data;
  * Default processing limits for batch operations and concurrency
  * Used in file processing, template concurrency, etc.
  */
-const PROCESSING_LIMIT_RESULT = ProcessingLimit.create(100);
+const PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
+  STANDARD_PROCESSING_BATCH_SIZE,
+);
 if (!PROCESSING_LIMIT_RESULT.ok) {
   throw new Error(
     `Failed to create DEFAULT_PROCESSING_LIMIT: ${PROCESSING_LIMIT_RESULT.error.message}`,
   );
 }
 export const DEFAULT_PROCESSING_LIMIT = PROCESSING_LIMIT_RESULT.data;
+
+/**
+ * Strict mode processing limit for high-reliability scenarios
+ * Used in application services with strict validation requirements
+ */
+const STRICT_PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
+  STRICT_MODE_MAX_FILES,
+);
+if (!STRICT_PROCESSING_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create STRICT_MODE_PROCESSING_LIMIT: ${STRICT_PROCESSING_LIMIT_RESULT.error.message}`,
+  );
+}
+export const STRICT_MODE_PROCESSING_LIMIT = STRICT_PROCESSING_LIMIT_RESULT.data;
+
+/**
+ * Performance mode processing limit for high-throughput scenarios
+ * Used in application services with performance optimization requirements
+ */
+const PERFORMANCE_PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
+  PERFORMANCE_MODE_MAX_FILES,
+);
+if (!PERFORMANCE_PROCESSING_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create PERFORMANCE_MODE_PROCESSING_LIMIT: ${PERFORMANCE_PROCESSING_LIMIT_RESULT.error.message}`,
+  );
+}
+export const PERFORMANCE_MODE_PROCESSING_LIMIT =
+  PERFORMANCE_PROCESSING_LIMIT_RESULT.data;
+
+/**
+ * Absolute maximum file processing limit for system constraints
+ * Hard upper limit to prevent resource exhaustion
+ */
+const ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT = AbsoluteMaxLimit.create(
+  ABSOLUTE_MAX_FILES_LIMIT,
+);
+if (!ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create ABSOLUTE_MAX_PROCESSING_LIMIT: ${ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.error.message}`,
+  );
+}
+export const ABSOLUTE_MAX_PROCESSING_LIMIT =
+  ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.data;
+
+/**
+ * Pattern length limit for file matching operations
+ * Used in domain services to prevent performance issues with overly long patterns
+ */
+const PATTERN_LENGTH_LIMIT_RESULT = ProcessingLimit.create(
+  PATTERN_LENGTH_LIMIT_SIZE,
+);
+if (!PATTERN_LENGTH_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create PATTERN_LENGTH_LIMIT: ${PATTERN_LENGTH_LIMIT_RESULT.error.message}`,
+  );
+}
+export const PATTERN_LENGTH_LIMIT = PATTERN_LENGTH_LIMIT_RESULT.data;
+
+/**
+ * Variable description length limit for template validation
+ * Used in domain services to validate template variable descriptions
+ */
+const VARIABLE_DESCRIPTION_LIMIT_RESULT = NameLengthLimit.create(
+  VARIABLE_DESCRIPTION_MAX_LENGTH,
+);
+if (!VARIABLE_DESCRIPTION_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create VARIABLE_DESCRIPTION_LENGTH_LIMIT: ${VARIABLE_DESCRIPTION_LIMIT_RESULT.error.message}`,
+  );
+}
+export const VARIABLE_DESCRIPTION_LENGTH_LIMIT =
+  VARIABLE_DESCRIPTION_LIMIT_RESULT.data;
 
 // ========================================
 // Configuration Loading

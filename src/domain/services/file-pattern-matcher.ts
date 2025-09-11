@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { PATTERN_LENGTH_LIMIT } from "../shared/constants.ts";
 
 /**
  * Configuration for pattern matching rules
@@ -124,14 +125,14 @@ export class FilePatternMatcher {
       };
     }
 
-    if (pattern.length > 1000) {
+    if (PATTERN_LENGTH_LIMIT.isExceeded(pattern.length)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "TooLong",
             value: pattern,
-            maxLength: 1000,
+            maxLength: PATTERN_LENGTH_LIMIT.getValue(),
           },
           "Pattern too long for performance reasons",
         ),

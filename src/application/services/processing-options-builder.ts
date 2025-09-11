@@ -10,7 +10,12 @@ import {
   createDomainError,
   type DomainError,
 } from "../../domain/core/result.ts";
-import { DEFAULT_PROCESSING_LIMIT } from "../../domain/shared/constants.ts";
+import {
+  ABSOLUTE_MAX_PROCESSING_LIMIT,
+  DEFAULT_PROCESSING_LIMIT,
+  PERFORMANCE_MODE_PROCESSING_LIMIT,
+  STRICT_MODE_PROCESSING_LIMIT,
+} from "../../domain/shared/constants.ts";
 
 /**
  * Processing options for document processing operations
@@ -81,7 +86,7 @@ export class ProcessingOptionsBuilder {
       allowMissingVariables: false,
       validateSchema: true,
       parallelProcessing: false, // Sequential processing for reliability
-      maxFiles: 1000,
+      maxFiles: STRICT_MODE_PROCESSING_LIMIT.getValue(),
     };
   }
 
@@ -117,7 +122,7 @@ export class ProcessingOptionsBuilder {
       allowMissingVariables: true,
       validateSchema: false,
       parallelProcessing: true,
-      maxFiles: 10000,
+      maxFiles: PERFORMANCE_MODE_PROCESSING_LIMIT.getValue(),
     });
   }
 
@@ -143,16 +148,16 @@ export class ProcessingOptionsBuilder {
       };
     }
 
-    if (options.maxFiles > 50000) {
+    if (ABSOLUTE_MAX_PROCESSING_LIMIT.isExceeded(options.maxFiles)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "OutOfRange",
             value: options.maxFiles,
-            max: 50000,
+            max: ABSOLUTE_MAX_PROCESSING_LIMIT.getValue(),
           },
-          "maxFiles must not exceed 50000 for performance reasons",
+          "maxFiles must not exceed absolute maximum for performance reasons",
         ),
       };
     }
@@ -237,7 +242,7 @@ export class ProcessingOptionsBuilder {
   isHighPerformance(): boolean {
     return this.options.parallelProcessing &&
       !this.options.strict &&
-      this.options.maxFiles > 1000;
+      this.options.maxFiles > STRICT_MODE_PROCESSING_LIMIT.getValue();
   }
 
   /**
