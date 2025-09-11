@@ -1,10 +1,10 @@
 /**
  * Test Configuration Builder
- * 
+ *
  * Smart Constructor for ApplicationConfiguration in tests
  * Eliminates configuration duplication and provides type-safe test configs
  * Follows Builder pattern with DDD value object principles
- * 
+ *
  * Part of Issue #664: Test Setup Duplication Refactoring
  */
 
@@ -38,15 +38,17 @@ export class TestConfigBuilder {
    * Create basic file input configuration with defaults
    * Safe defaults for common test scenarios
    */
-  static forFile(filePath: string): Result<ApplicationConfiguration, ConfigCreationError> {
+  static forFile(
+    filePath: string,
+  ): Result<ApplicationConfiguration, ConfigCreationError> {
     if (!filePath || filePath.trim() === "") {
       return {
         ok: false,
         error: {
           kind: "InvalidFilePath",
           path: filePath,
-          message: "File path cannot be empty"
-        }
+          message: "File path cannot be empty",
+        },
       };
     }
 
@@ -57,8 +59,8 @@ export class TestConfigBuilder {
         error: {
           kind: "InvalidSchemaFormat",
           format: "json",
-          message: "Failed to create default schema format"
-        }
+          message: "Failed to create default schema format",
+        },
       };
     }
 
@@ -67,10 +69,10 @@ export class TestConfigBuilder {
       return {
         ok: false,
         error: {
-          kind: "InvalidTemplateFormat", 
+          kind: "InvalidTemplateFormat",
           format: "handlebars",
-          message: "Failed to create default template format"
-        }
+          message: "Failed to create default template format",
+        },
       };
     }
 
@@ -80,9 +82,9 @@ export class TestConfigBuilder {
         ok: false,
         error: {
           kind: "InvalidOutputFormat",
-          format: "json", 
-          message: "Failed to create default output format"
-        }
+          format: "json",
+          message: "Failed to create default output format",
+        },
       };
     }
 
@@ -95,7 +97,7 @@ export class TestConfigBuilder {
         definition: JSON.stringify({
           "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
-          "properties": {}
+          "properties": {},
         }),
         format: schemaFormatResult.data,
       },
@@ -114,7 +116,7 @@ export class TestConfigBuilder {
 
     return {
       ok: true,
-      data: config
+      data: config,
     };
   }
 
@@ -123,8 +125,8 @@ export class TestConfigBuilder {
    * For batch processing test scenarios
    */
   static forDirectory(
-    dirPath: string, 
-    pattern: string = "\\.md$"
+    dirPath: string,
+    pattern: string = "\\.md$",
   ): Result<ApplicationConfiguration, ConfigCreationError> {
     const fileConfigResult = this.forFile(dirPath);
     if (!fileConfigResult.ok) {
@@ -140,18 +142,18 @@ export class TestConfigBuilder {
 
     return {
       ok: true,
-      data: config
+      data: config,
     };
   }
 
   /**
    * Create configuration with custom schema definition
-   * For schema validation test scenarios  
+   * For schema validation test scenarios
    */
   static withCustomSchema(
     filePath: string,
     schemaDefinition: string | object,
-    schemaFormat: "json" | "yaml" = "json"
+    schemaFormat: "json" | "yaml" = "json",
   ): Result<ApplicationConfiguration, ConfigCreationError> {
     const baseConfigResult = this.forFile(filePath);
     if (!baseConfigResult.ok) {
@@ -165,22 +167,22 @@ export class TestConfigBuilder {
         error: {
           kind: "InvalidSchemaFormat",
           format: schemaFormat,
-          message: `Failed to create schema format: ${schemaFormat}`
-        }
+          message: `Failed to create schema format: ${schemaFormat}`,
+        },
       };
     }
 
     const config = baseConfigResult.data;
     config.schema = {
-      definition: typeof schemaDefinition === "string" 
-        ? schemaDefinition 
+      definition: typeof schemaDefinition === "string"
+        ? schemaDefinition
         : JSON.stringify(schemaDefinition),
       format: schemaFormatResult.data,
     };
 
     return {
       ok: true,
-      data: config
+      data: config,
     };
   }
 
@@ -191,7 +193,7 @@ export class TestConfigBuilder {
   static withCustomTemplate(
     filePath: string,
     templateContent: string,
-    templateFormat: "handlebars" | "mustache" | "liquid" = "handlebars"
+    templateFormat: "handlebars" | "mustache" | "liquid" = "handlebars",
   ): Result<ApplicationConfiguration, ConfigCreationError> {
     const baseConfigResult = this.forFile(filePath);
     if (!baseConfigResult.ok) {
@@ -205,8 +207,8 @@ export class TestConfigBuilder {
         error: {
           kind: "InvalidTemplateFormat",
           format: templateFormat,
-          message: `Failed to create template format: ${templateFormat}`
-        }
+          message: `Failed to create template format: ${templateFormat}`,
+        },
       };
     }
 
@@ -218,7 +220,7 @@ export class TestConfigBuilder {
 
     return {
       ok: true,
-      data: config
+      data: config,
     };
   }
 
@@ -229,7 +231,7 @@ export class TestConfigBuilder {
   static withCustomOutput(
     filePath: string,
     outputPath: string,
-    outputFormat: "json" | "yaml" | "xml" = "json"
+    outputFormat: "json" | "yaml" | "xml" = "json",
   ): Result<ApplicationConfiguration, ConfigCreationError> {
     const baseConfigResult = this.forFile(filePath);
     if (!baseConfigResult.ok) {
@@ -243,8 +245,8 @@ export class TestConfigBuilder {
         error: {
           kind: "InvalidOutputFormat",
           format: outputFormat,
-          message: `Failed to create output format: ${outputFormat}`
-        }
+          message: `Failed to create output format: ${outputFormat}`,
+        },
       };
     }
 
@@ -256,7 +258,7 @@ export class TestConfigBuilder {
 
     return {
       ok: true,
-      data: config
+      data: config,
     };
   }
 
@@ -266,7 +268,7 @@ export class TestConfigBuilder {
    */
   static forErrorTesting(): {
     invalidJsonSchema(): ApplicationConfiguration;
-    invalidTemplatePath(): ApplicationConfiguration; 
+    invalidTemplatePath(): ApplicationConfiguration;
     missingFile(): ApplicationConfiguration;
     malformedTemplate(): ApplicationConfiguration;
   } {
@@ -292,7 +294,9 @@ export class TestConfigBuilder {
       },
 
       missingFile(): ApplicationConfiguration {
-        const configResult = TestConfigBuilder.forFile("/nonexistent/path/file.md");
+        const configResult = TestConfigBuilder.forFile(
+          "/nonexistent/path/file.md",
+        );
         if (!configResult.ok) {
           throw new Error("Failed to create base config for error testing");
         }
@@ -307,7 +311,7 @@ export class TestConfigBuilder {
         const config = configResult.data;
         config.template.definition = "{ malformed template content";
         return config;
-      }
+      },
     };
   }
 
@@ -326,7 +330,10 @@ export class TestConfigBuilder {
   /**
    * Utility: Create unsafe directory configuration (throws on error)
    */
-  static forDirectoryUnsafe(dirPath: string, pattern?: string): ApplicationConfiguration {
+  static forDirectoryUnsafe(
+    dirPath: string,
+    pattern?: string,
+  ): ApplicationConfiguration {
     const result = this.forDirectory(dirPath, pattern);
     if (!result.ok) {
       throw new Error(`Config creation failed: ${result.error.message}`);
