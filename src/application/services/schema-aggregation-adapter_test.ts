@@ -7,6 +7,7 @@ import { describe, it } from "@std/testing/bdd";
 import { SchemaAggregationAdapter } from "./schema-aggregation-adapter.ts";
 import type { ExtendedSchema } from "../../domain/models/schema-extensions.ts";
 import { SchemaExtensionRegistryFactory } from "../../domain/schema/factories/schema-extension-registry-factory.ts";
+import { SchemaExtensions } from "../../domain/schema/value-objects/schema-extensions.ts";
 
 // Test helper function
 function createTestAdapter() {
@@ -28,16 +29,16 @@ describe("SchemaAggregationAdapter", () => {
         properties: {
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands[].c1",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
           },
           allCommands: {
             type: "array",
-            "x-derived-from": "commands",
-            "x-derived-flatten": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands",
+            [SchemaExtensions.DERIVED_FLATTEN]: true,
             items: {
               type: "object",
             },
@@ -75,16 +76,16 @@ describe("SchemaAggregationAdapter", () => {
         properties: {
           tools: {
             type: "array",
-            "x-derived-from": "items[].name",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "items[].name",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
           },
           categories: {
             type: "array",
-            "x-derived-from": "items[].category",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "items[].category",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
@@ -112,7 +113,7 @@ describe("SchemaAggregationAdapter", () => {
 
       const markedSchema: ExtendedSchema = {
         type: "object",
-        "x-frontmatter-part": true,
+        [SchemaExtensions.FRONTMATTER_PART]: true,
         properties: {},
       };
 
@@ -134,7 +135,7 @@ describe("SchemaAggregationAdapter", () => {
         properties: {
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [SchemaExtensions.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -148,7 +149,7 @@ describe("SchemaAggregationAdapter", () => {
             properties: {
               settings: {
                 type: "array",
-                "x-frontmatter-part": true,
+                [SchemaExtensions.FRONTMATTER_PART]: true,
                 items: { type: "string" },
               },
             },
@@ -170,7 +171,7 @@ describe("SchemaAggregationAdapter", () => {
       const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
-        "x-frontmatter-part": true,
+        [SchemaExtensions.FRONTMATTER_PART]: true,
         properties: {
           field1: { type: "string" },
         },
@@ -190,8 +191,8 @@ describe("SchemaAggregationAdapter", () => {
         properties: {
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands[].c1",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: { type: "string" },
           },
         },
@@ -233,8 +234,8 @@ describe("SchemaAggregationAdapter", () => {
         properties: {
           allItems: {
             type: "array",
-            "x-derived-from": "nested",
-            "x-derived-flatten": true,
+            [SchemaExtensions.DERIVED_FROM]: "nested",
+            [SchemaExtensions.DERIVED_FLATTEN]: true,
             items: { type: "string" },
           },
         },

@@ -8,6 +8,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { SchemaExtensions } from "../schema/value-objects/schema-extensions.ts";
 
 /**
  * Constraint rule types following discriminated union pattern
@@ -280,7 +281,7 @@ function extractConstraintsRecursive(
 
       // Special handling for x-frontmatter-part arrays
       // For these, we look for "traceability" array in the frontmatter
-      if (prop["x-frontmatter-part"] === true && prop.items) {
+      if (prop[SchemaExtensions.FRONTMATTER_PART] === true && prop.items) {
         // This is a frontmatter array - use "traceability" as the base path
         const items = prop.items as Record<string, unknown>;
         extractConstraintsRecursive(items, "traceability", constraints);

@@ -1,4 +1,5 @@
 import type { DomainError, Result } from "./types.ts";
+import { DEFAULT_DEBUG_OUTPUT_LIMIT } from "./domain/shared/constants.ts";
 
 export interface ExtractedData {
   readonly path: string;
@@ -23,7 +24,7 @@ export class FrontmatterExtractor {
           ok: false,
           error: {
             kind: "FrontmatterExtractionFailed",
-            content: content.slice(0, 100),
+            content: content.slice(0, DEFAULT_DEBUG_OUTPUT_LIMIT.getValue()),
           },
         };
       }

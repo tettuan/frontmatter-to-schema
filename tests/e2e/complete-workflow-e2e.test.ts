@@ -1,17 +1,14 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { join } from "jsr:@std/path";
 import { exists } from "jsr:@std/fs";
-import { DocumentProcessor } from "../../src/application/document-processor.ts";
-import { DenoFileSystemProvider } from "../../src/application/climpt/climpt-adapter.ts";
-import { FrontMatterExtractorImpl } from "../../src/infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { SchemaValidator } from "../../src/domain/services/schema-validator.ts";
-import { UnifiedTemplateProcessor } from "../../src/domain/template/services/unified-template-processor.ts";
 import type { ApplicationConfiguration } from "../../src/application/value-objects/configuration-types.value-object.ts";
 import {
   OutputFormat,
   SchemaFormat,
   TemplateFormat,
 } from "../../src/application/value-objects/configuration-formats.value-object.ts";
+import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
+import { TestProcessorFactory } from "../helpers/test-processor-factory.ts";
 
 // Helper functions for format creation
 const createSchemaFormat = (format: string) => {
@@ -97,7 +94,7 @@ Another test article with different metadata.
           "tags": {
             "type": "array",
             "items": { "type": "string" },
-            "x-frontmatter-part": true,
+            [SchemaExtensions.FRONTMATTER_PART]: true,
           },
           "date": { "type": "string", "format": "date" },
           "status": {
@@ -138,23 +135,7 @@ Deno.test({
     await t.step(
       "should process single markdown file with schema validation",
       async () => {
-        const fileSystem = new DenoFileSystemProvider();
-        const frontMatterExtractor = new FrontMatterExtractorImpl();
-        const schemaValidator = new SchemaValidator();
-        const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-        assertExists(templateProcessorResult);
-        assertEquals("kind" in templateProcessorResult, false);
-
-        const templateProcessor =
-          templateProcessorResult as UnifiedTemplateProcessor;
-
-        const processor = new DocumentProcessor(
-          fileSystem,
-          frontMatterExtractor,
-          schemaValidator,
-          templateProcessor,
-        );
+        const processor = TestProcessorFactory.create();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -203,20 +184,7 @@ Deno.test({
     await t.step(
       "should process multiple markdown files in batch",
       async () => {
-        const fileSystem = new DenoFileSystemProvider();
-        const frontMatterExtractor = new FrontMatterExtractorImpl();
-        const schemaValidator = new SchemaValidator();
-        const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-        const templateProcessor =
-          templateProcessorResult as UnifiedTemplateProcessor;
-
-        const processor = new DocumentProcessor(
-          fileSystem,
-          frontMatterExtractor,
-          schemaValidator,
-          templateProcessor,
-        );
+        const processor = TestProcessorFactory.create();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -264,20 +232,7 @@ Deno.test({
     );
 
     await t.step("should generate YAML output format", async () => {
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -320,7 +275,7 @@ Deno.test({
       const schemaWithXTemplate = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": join(FIXTURES_DIR, "template.json"),
+        [SchemaExtensions.TEMPLATE]: join(FIXTURES_DIR, "template.json"),
         "properties": {
           "title": { "type": "string" },
           "author": { "type": "string" },
@@ -332,20 +287,7 @@ Deno.test({
         JSON.stringify(schemaWithXTemplate, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -412,20 +354,7 @@ Deno.test({
         JSON.stringify(complexSchema, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -477,7 +406,7 @@ Deno.test({
         "properties": {
           "allTags": {
             "type": "array",
-            "x-derived-from": "tags",
+            [SchemaExtensions.DERIVED_FROM]: "tags",
             "items": { "type": "string" },
           },
           "title": { "type": "string" },
@@ -493,20 +422,7 @@ Deno.test({
         JSON.stringify(derivedSchema, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -547,8 +463,8 @@ Deno.test({
         "properties": {
           "uniqueAuthors": {
             "type": "array",
-            "x-derived-from": "author",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "author",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             "items": { "type": "string" },
           },
           "author": { "type": "string" },
@@ -560,20 +476,7 @@ Deno.test({
         JSON.stringify(uniqueSchema, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -616,7 +519,7 @@ Deno.test({
           "properties": {
             "categories": {
               "type": "array",
-              "x-frontmatter-part": true,
+              [SchemaExtensions.FRONTMATTER_PART]: true,
               "items": {
                 "type": "object",
                 "properties": {
@@ -648,20 +551,7 @@ categories:
           JSON.stringify(partSchema, null, 2),
         );
 
-        const fileSystem = new DenoFileSystemProvider();
-        const frontMatterExtractor = new FrontMatterExtractorImpl();
-        const schemaValidator = new SchemaValidator();
-        const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-        const templateProcessor =
-          templateProcessorResult as UnifiedTemplateProcessor;
-
-        const processor = new DocumentProcessor(
-          fileSystem,
-          frontMatterExtractor,
-          schemaValidator,
-          templateProcessor,
-        );
+        const processor = TestProcessorFactory.create();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -750,20 +640,7 @@ Content for article ${i}.
         ),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.create();
 
       const config: ApplicationConfiguration = {
         input: {

@@ -9,6 +9,7 @@
 import type { Result } from "../../core/result.ts";
 import { SchemaExtensionRegistry } from "../entities/schema-extension-registry.ts";
 import { ExtensionConfiguration } from "../value-objects/extension-configuration.ts";
+import { SchemaExtensions } from "../value-objects/schema-extensions.ts";
 
 /**
  * Factory error types
@@ -320,10 +321,10 @@ export class SchemaExtensionRegistryFactory {
   > {
     return {
       default: {
-        frontmatterPart: "x-frontmatter-part",
-        derivedFrom: "x-derived-from",
-        derivedUnique: "x-derived-unique",
-        template: "x-template",
+        frontmatterPart: SchemaExtensions.FRONTMATTER_PART,
+        derivedFrom: SchemaExtensions.DERIVED_FROM,
+        derivedUnique: SchemaExtensions.DERIVED_UNIQUE,
+        template: SchemaExtensions.TEMPLATE,
       },
       minimal: {
         frontmatterPart: "x-part",

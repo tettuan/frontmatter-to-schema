@@ -9,6 +9,7 @@ import { assertEquals, assertExists } from "jsr:@std/assert";
 import { AggregateResultsUseCase } from "../../../../src/application/use-cases/aggregate-results/aggregate-results.usecase.ts";
 import type { AggregateResultsInput } from "../../../../src/application/use-cases/aggregate-results/aggregate-results.usecase.ts";
 import { SchemaTemplateInfo } from "../../../../src/domain/models/schema-extensions.ts";
+import { SchemaExtensions } from "../../../../src/domain/schema/value-objects/schema-extensions.ts";
 
 Deno.test("AggregateResultsUseCase", async (t) => {
   let useCase: AggregateResultsUseCase;
@@ -191,7 +192,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
       const schemaWithFrontmatterPart = {
         properties: {
           commands: {
-            "x-frontmatter-part": true,
+            [SchemaExtensions.FRONTMATTER_PART]: true,
             type: "array",
           },
         },
@@ -231,8 +232,8 @@ Deno.test("AggregateResultsUseCase", async (t) => {
 
         const schemaWithMultipleParts = {
           properties: {
-            firstPart: { "x-frontmatter-part": true },
-            secondPart: { "x-frontmatter-part": true },
+            firstPart: { [SchemaExtensions.FRONTMATTER_PART]: true },
+            secondPart: { [SchemaExtensions.FRONTMATTER_PART]: true },
           },
         };
 

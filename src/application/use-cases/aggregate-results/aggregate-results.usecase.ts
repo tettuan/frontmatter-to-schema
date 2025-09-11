@@ -12,6 +12,7 @@ import { createDomainError } from "../../../domain/core/result.ts";
 import { SchemaAggregationAdapter } from "../../services/schema-aggregation-adapter.ts";
 import type { SchemaTemplateInfo } from "../../../domain/models/schema-extensions.ts";
 import { SchemaExtensionRegistryFactory } from "../../../domain/schema/factories/schema-extension-registry-factory.ts";
+import { SchemaExtensions } from "../../../domain/schema/value-objects/schema-extensions.ts";
 
 /**
  * Input for result aggregation
@@ -228,16 +229,16 @@ export class AggregateResultsUseCase
       if (!this.isValidRecord(property)) return null;
 
       // Check if the property has an x-level constraint
-      if (typeof property["x-level"] === "string") {
-        return property["x-level"];
+      if (typeof property[SchemaExtensions.LEVEL] === "string") {
+        return property[SchemaExtensions.LEVEL] as string;
       }
 
       const items = property.items;
       if (!this.isValidRecord(items)) return null;
 
       // Check if items have an x-level constraint
-      if (typeof items["x-level"] === "string") {
-        return items["x-level"];
+      if (typeof items[SchemaExtensions.LEVEL] === "string") {
+        return items[SchemaExtensions.LEVEL] as string;
       }
 
       // Handle $ref resolution - get the referenced schema

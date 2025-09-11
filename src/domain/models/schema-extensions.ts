@@ -6,6 +6,7 @@
  */
 
 import type { Result } from "../core/result.ts";
+import { SchemaExtensionAccessor } from "../schema/value-objects/schema-extensions.ts";
 
 /**
  * Schema extension properties interface
@@ -72,10 +73,21 @@ export class SchemaTemplateInfo {
       };
     }
 
-    const templatePath = typeof schema["x-template"] === "string"
-      ? { ok: true as const, data: schema["x-template"] }
+    // Use Smart Constructor for type-safe access
+    const accessorResult = SchemaExtensionAccessor.create(schema);
+    if (!accessorResult.ok) {
+      return {
+        ok: false,
+        error: accessorResult.error,
+      };
+    }
+
+    const accessor = accessorResult.data;
+    const templatePathResult = accessor.getTemplatePath();
+    const templatePath = templatePathResult.ok
+      ? { ok: true as const, data: templatePathResult.data }
       : { ok: false as const, error: undefined };
-    const isFrontmatterPart = schema["x-frontmatter-part"] === true;
+    const isFrontmatterPart = accessor.isFrontmatterPart();
     const derivationRules = new Map<string, DerivedFieldInfo>();
 
     // Extract derivation rules from properties
@@ -141,18 +153,24 @@ function extractDerivationRules(
   for (const [key, prop] of Object.entries(properties)) {
     const fieldPath = prefix ? `${prefix}.${key}` : key;
 
-    // Check for x-derived-from
-    if (prop["x-derived-from"]) {
-      const sourceExpression = prop["x-derived-from"] as string;
-      const unique = prop["x-derived-unique"] === true;
-      const flatten = prop["x-derived-flatten"] === true;
+    // Check for x-derived-from using Smart Constructor pattern
+    const accessorResult = SchemaExtensionAccessor.create(prop);
+    if (accessorResult.ok) {
+      const accessor = accessorResult.data;
+      const derivedFromResult = accessor.getDerivedFrom();
 
-      rules.set(fieldPath, {
-        fieldPath,
-        sourceExpression,
-        unique,
-        flatten,
-      });
+      if (derivedFromResult.ok) {
+        const sourceExpression = derivedFromResult.data;
+        const unique = accessor.isDerivedUnique();
+        const flatten = accessor.isDerivedFlatten();
+
+        rules.set(fieldPath, {
+          fieldPath,
+          sourceExpression,
+          unique,
+          flatten,
+        });
+      }
     }
 
     // Recursively process nested properties
@@ -193,7 +211,8 @@ function extractDerivationRules(
  * Check if a schema property marks a frontmatter part
  */
 export function isFrontmatterPart(prop: ExtendedSchemaProperty): boolean {
-  return prop["x-frontmatter-part"] === true;
+  const accessorResult = SchemaExtensionAccessor.create(prop);
+  return accessorResult.ok ? accessorResult.data.isFrontmatterPart() : false;
 }
 
 /**
@@ -202,17 +221,22 @@ export function isFrontmatterPart(prop: ExtendedSchemaProperty): boolean {
 export function getTemplatePath(
   schemaOrProp: ExtendedSchema | ExtendedSchemaProperty,
 ): Result<string, void> {
-  const template = schemaOrProp["x-template"];
-  return typeof template === "string"
-    ? { ok: true as const, data: template }
-    : { ok: false as const, error: undefined };
+  const accessorResult = SchemaExtensionAccessor.create(schemaOrProp);
+  if (accessorResult.ok) {
+    const templateResult = accessorResult.data.getTemplatePath();
+    return templateResult.ok
+      ? { ok: true as const, data: templateResult.data }
+      : { ok: false as const, error: undefined };
+  }
+  return { ok: false as const, error: undefined };
 }
 
 /**
  * Check if a property has derivation rules
  */
 export function hasDerivationRule(prop: ExtendedSchemaProperty): boolean {
-  return typeof prop["x-derived-from"] === "string";
+  const accessorResult = SchemaExtensionAccessor.create(prop);
+  return accessorResult.ok ? accessorResult.data.getDerivedFrom().ok : false;
 }
 
 /**
