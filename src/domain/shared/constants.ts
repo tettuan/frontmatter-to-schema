@@ -47,6 +47,36 @@ const ABSOLUTE_MAX_FILES_LIMIT = 50000;
 // File pattern matching limits
 const PATTERN_LENGTH_LIMIT_SIZE = 1000;
 
+// Format detection priorities and limits
+const DEFAULT_FORMAT_DETECTOR_PRIORITY = 10;
+const SECONDARY_FORMAT_DETECTOR_PRIORITY = 9;
+const FORMAT_EXTENSION_MAX_LENGTH = 10;
+
+// Error reporting and aggregation limits
+const ERROR_REPORTING_LIMIT = 10;
+const COMMAND_PROCESSING_MAX_ERRORS = 10;
+
+// Pluralization rule priorities for linguistic pattern matching
+const IRREGULAR_PLURALIZATION_PRIORITY = 100;
+const HIGH_PRIORITY_PLURALIZATION_RULE = 90;
+const MEDIUM_PRIORITY_PLURALIZATION_RULE = 85;
+const STANDARD_PLURALIZATION_RULE_PRIORITY = 80;
+const LOW_PRIORITY_PLURALIZATION_RULE = 10;
+
+// Process Documents Options validation limits
+const DEFAULT_MAX_WORKERS = 4;
+const MIN_WORKERS_LIMIT = 1;
+const MAX_WORKERS_LIMIT = 16;
+
+// Web format detection priorities for format-detector web configurations
+const WEB_XML_FORMAT_PRIORITY = 8;
+const WEB_HTML_FORMAT_PRIORITY = 5;
+const WEB_HTM_FORMAT_PRIORITY = 4;
+const DEFAULT_RULE_PRIORITY = 5;
+
+// Exit handler graceful shutdown timeout for log flushing
+const GRACEFUL_EXIT_TIMEOUT_MS = 10;
+
 /**
  * Common validation error types for constants
  */
@@ -390,6 +420,48 @@ export class ProcessingLimit {
   }
 }
 
+/**
+ * Timeout values for asynchronous operations
+ * Controls timing for graceful shutdowns and process delays
+ */
+export class TimeoutLimit {
+  private constructor(private readonly value: number) {}
+
+  static create(timeout: number): Result<TimeoutLimit, ConstantValidationError> {
+    if (timeout < 0) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "OutOfRange",
+          value: timeout,
+          min: 0,
+          message: "Timeout must be non-negative",
+        }),
+      };
+    }
+    if (timeout > 60000) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "OutOfRange",
+          value: timeout,
+          max: 60000,
+          message: "Timeout too large (max 60000ms/1 minute)",
+        }),
+      };
+    }
+    return { ok: true, data: new TimeoutLimit(timeout) };
+  }
+
+  getValue(): number {
+    return this.value;
+  }
+
+  toString(): string {
+    return `${this.value}ms`;
+  }
+}
+
 // ========================================
 // Validated Default Constants
 // ========================================
@@ -658,6 +730,207 @@ if (!VARIABLE_DESCRIPTION_LIMIT_RESULT.ok) {
 }
 export const VARIABLE_DESCRIPTION_LENGTH_LIMIT =
   VARIABLE_DESCRIPTION_LIMIT_RESULT.data;
+
+/**
+ * Format detector priorities for different format detection scenarios
+ * Used in domain services for format detection rules
+ */
+const DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT = FormatPriority.create(
+  DEFAULT_FORMAT_DETECTOR_PRIORITY,
+);
+if (!DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create DEFAULT_FORMAT_DETECTOR_PRIORITY: ${DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE =
+  DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.data;
+
+const SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT = FormatPriority.create(
+  SECONDARY_FORMAT_DETECTOR_PRIORITY,
+);
+if (!SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create SECONDARY_FORMAT_DETECTOR_PRIORITY: ${SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE =
+  SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.data;
+
+/**
+ * Format extension maximum length for validation
+ * Used in format detection rule validation
+ */
+const FORMAT_EXTENSION_LENGTH_RESULT = NameLengthLimit.create(
+  FORMAT_EXTENSION_MAX_LENGTH,
+);
+if (!FORMAT_EXTENSION_LENGTH_RESULT.ok) {
+  throw new Error(
+    `Failed to create FORMAT_EXTENSION_LENGTH_LIMIT: ${FORMAT_EXTENSION_LENGTH_RESULT.error.message}`,
+  );
+}
+export const FORMAT_EXTENSION_LENGTH_LIMIT =
+  FORMAT_EXTENSION_LENGTH_RESULT.data;
+
+/**
+ * Error reporting limits for result aggregation and processing
+ * Used in application services for error display and processing
+ */
+const ERROR_REPORTING_LIMIT_RESULT = ProcessingLimit.create(
+  ERROR_REPORTING_LIMIT,
+);
+if (!ERROR_REPORTING_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create ERROR_REPORTING_LIMIT: ${ERROR_REPORTING_LIMIT_RESULT.error.message}`,
+  );
+}
+export const ERROR_REPORTING_PROCESSING_LIMIT =
+  ERROR_REPORTING_LIMIT_RESULT.data;
+
+const COMMAND_PROCESSING_MAX_ERRORS_RESULT = ProcessingLimit.create(
+  COMMAND_PROCESSING_MAX_ERRORS,
+);
+if (!COMMAND_PROCESSING_MAX_ERRORS_RESULT.ok) {
+  throw new Error(
+    `Failed to create COMMAND_PROCESSING_ERROR_LIMIT: ${COMMAND_PROCESSING_MAX_ERRORS_RESULT.error.message}`,
+  );
+}
+export const COMMAND_PROCESSING_ERROR_LIMIT =
+  COMMAND_PROCESSING_MAX_ERRORS_RESULT.data;
+
+/**
+ * Pluralization rule priorities for linguistic pattern matching
+ * Used in domain services for pluralization rule ordering and precedence
+ */
+const IRREGULAR_PLURALIZATION_PRIORITY_RESULT = FormatPriority.create(
+  IRREGULAR_PLURALIZATION_PRIORITY,
+);
+if (!IRREGULAR_PLURALIZATION_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create IRREGULAR_PLURALIZATION_PRIORITY_VALUE: ${IRREGULAR_PLURALIZATION_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const IRREGULAR_PLURALIZATION_PRIORITY_VALUE =
+  IRREGULAR_PLURALIZATION_PRIORITY_RESULT.data;
+
+const HIGH_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
+  HIGH_PRIORITY_PLURALIZATION_RULE,
+);
+if (!HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
+  throw new Error(
+    `Failed to create HIGH_PRIORITY_PLURALIZATION_RULE_VALUE: ${HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+  );
+}
+export const HIGH_PRIORITY_PLURALIZATION_RULE_VALUE =
+  HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.data;
+
+const MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
+  MEDIUM_PRIORITY_PLURALIZATION_RULE,
+);
+if (!MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
+  throw new Error(
+    `Failed to create MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE: ${MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+  );
+}
+export const MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE =
+  MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.data;
+
+const STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT = FormatPriority.create(
+  STANDARD_PLURALIZATION_RULE_PRIORITY,
+);
+if (!STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE: ${STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE =
+  STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.data;
+
+const LOW_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
+  LOW_PRIORITY_PLURALIZATION_RULE,
+);
+if (!LOW_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
+  throw new Error(
+    `Failed to create LOW_PRIORITY_PLURALIZATION_RULE_VALUE: ${LOW_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+  );
+}
+export const LOW_PRIORITY_PLURALIZATION_RULE_VALUE =
+  LOW_PRIORITY_PLURALIZATION_RULE_RESULT.data;
+
+/**
+ * Process Documents Options validation limits
+ * Used in application services for worker and processing validation
+ */
+const DEFAULT_MAX_WORKERS_RESULT = ProcessingLimit.create(DEFAULT_MAX_WORKERS);
+if (!DEFAULT_MAX_WORKERS_RESULT.ok) {
+  throw new Error(
+    `Failed to create DEFAULT_MAX_WORKERS_VALUE: ${DEFAULT_MAX_WORKERS_RESULT.error.message}`,
+  );
+}
+export const DEFAULT_MAX_WORKERS_VALUE = DEFAULT_MAX_WORKERS_RESULT.data;
+
+const MIN_WORKERS_LIMIT_RESULT = ProcessingLimit.create(MIN_WORKERS_LIMIT);
+if (!MIN_WORKERS_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create MIN_WORKERS_LIMIT_VALUE: ${MIN_WORKERS_LIMIT_RESULT.error.message}`,
+  );
+}
+export const MIN_WORKERS_LIMIT_VALUE = MIN_WORKERS_LIMIT_RESULT.data;
+
+const MAX_WORKERS_LIMIT_RESULT = ProcessingLimit.create(MAX_WORKERS_LIMIT);
+if (!MAX_WORKERS_LIMIT_RESULT.ok) {
+  throw new Error(
+    `Failed to create MAX_WORKERS_LIMIT_VALUE: ${MAX_WORKERS_LIMIT_RESULT.error.message}`,
+  );
+}
+export const MAX_WORKERS_LIMIT_VALUE = MAX_WORKERS_LIMIT_RESULT.data;
+
+/**
+ * Web format detection priorities for browser-compatible formats
+ * Used in FormatDetector web configuration methods
+ */
+const WEB_XML_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+  WEB_XML_FORMAT_PRIORITY,
+);
+if (!WEB_XML_FORMAT_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create WEB_XML_FORMAT_PRIORITY_VALUE: ${WEB_XML_FORMAT_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const WEB_XML_FORMAT_PRIORITY_VALUE =
+  WEB_XML_FORMAT_PRIORITY_RESULT.data;
+
+const WEB_HTML_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+  WEB_HTML_FORMAT_PRIORITY,
+);
+if (!WEB_HTML_FORMAT_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create WEB_HTML_FORMAT_PRIORITY_VALUE: ${WEB_HTML_FORMAT_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const WEB_HTML_FORMAT_PRIORITY_VALUE =
+  WEB_HTML_FORMAT_PRIORITY_RESULT.data;
+
+const WEB_HTM_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+  WEB_HTM_FORMAT_PRIORITY,
+);
+if (!WEB_HTM_FORMAT_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create WEB_HTM_FORMAT_PRIORITY_VALUE: ${WEB_HTM_FORMAT_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const WEB_HTM_FORMAT_PRIORITY_VALUE =
+  WEB_HTM_FORMAT_PRIORITY_RESULT.data;
+
+const DEFAULT_RULE_PRIORITY_RESULT = FormatPriority.create(
+  DEFAULT_RULE_PRIORITY,
+);
+if (!DEFAULT_RULE_PRIORITY_RESULT.ok) {
+  throw new Error(
+    `Failed to create DEFAULT_RULE_PRIORITY_VALUE: ${DEFAULT_RULE_PRIORITY_RESULT.error.message}`,
+  );
+}
+export const DEFAULT_RULE_PRIORITY_VALUE = DEFAULT_RULE_PRIORITY_RESULT.data;
 
 // ========================================
 // Configuration Loading

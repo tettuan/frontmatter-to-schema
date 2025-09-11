@@ -7,6 +7,15 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import {
+  DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE,
+  DEFAULT_RULE_PRIORITY_VALUE,
+  FORMAT_EXTENSION_LENGTH_LIMIT,
+  SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE,
+  WEB_HTM_FORMAT_PRIORITY_VALUE,
+  WEB_HTML_FORMAT_PRIORITY_VALUE,
+  WEB_XML_FORMAT_PRIORITY_VALUE,
+} from "../shared/constants.ts";
 
 /**
  * Template format types following totality principle
@@ -92,10 +101,26 @@ export class FormatDetector {
     DomainError & { message: string }
   > {
     const defaultRules: FormatRule[] = [
-      { extension: ".json", format: "json", priority: 10 },
-      { extension: ".yaml", format: "yaml", priority: 10 },
-      { extension: ".yml", format: "yaml", priority: 9 },
-      { extension: ".xml", format: "xml", priority: 10 },
+      {
+        extension: ".json",
+        format: "json",
+        priority: DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".yaml",
+        format: "yaml",
+        priority: DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".yml",
+        format: "yaml",
+        priority: SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".xml",
+        format: "xml",
+        priority: DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
     ];
 
     return FormatDetector.create(defaultRules, {
@@ -114,12 +139,36 @@ export class FormatDetector {
     DomainError & { message: string }
   > {
     const webRules: FormatRule[] = [
-      { extension: ".json", format: "json", priority: 10 },
-      { extension: ".yaml", format: "yaml", priority: 10 },
-      { extension: ".yml", format: "yaml", priority: 9 },
-      { extension: ".xml", format: "xml", priority: 8 },
-      { extension: ".html", format: "custom", priority: 5 },
-      { extension: ".htm", format: "custom", priority: 4 },
+      {
+        extension: ".json",
+        format: "json",
+        priority: DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".yaml",
+        format: "yaml",
+        priority: DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".yml",
+        format: "yaml",
+        priority: SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".xml",
+        format: "xml",
+        priority: WEB_XML_FORMAT_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".html",
+        format: "custom",
+        priority: WEB_HTML_FORMAT_PRIORITY_VALUE.getValue(),
+      },
+      {
+        extension: ".htm",
+        format: "custom",
+        priority: WEB_HTM_FORMAT_PRIORITY_VALUE.getValue(),
+      },
     ];
 
     return FormatDetector.create(webRules, {
@@ -179,14 +228,14 @@ export class FormatDetector {
         };
       }
 
-      if (rule.extension.length > 10) {
+      if (FORMAT_EXTENSION_LENGTH_LIMIT.isExceeded(rule.extension)) {
         return {
           ok: false,
           error: createDomainError(
             {
               kind: "TooLong",
               value: rule.extension,
-              maxLength: 10,
+              maxLength: FORMAT_EXTENSION_LENGTH_LIMIT.getValue(),
             },
             `Rule ${i} extension too long: ${rule.extension}`,
           ),
@@ -327,7 +376,7 @@ export class FormatDetector {
     ) => ({
       extension,
       format,
-      priority: 5, // Default priority for existing rules
+      priority: DEFAULT_RULE_PRIORITY_VALUE.getValue(), // Default priority for existing rules
     }));
 
     const allRules = [...existingRules, ...newRules];
@@ -345,7 +394,7 @@ export class FormatDetector {
     ) => ({
       extension,
       format,
-      priority: 5,
+      priority: DEFAULT_RULE_PRIORITY_VALUE.getValue(),
     }));
 
     const mergedConfig = { ...this.config, ...newConfig };

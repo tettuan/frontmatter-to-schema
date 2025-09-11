@@ -7,7 +7,13 @@
  */
 
 import type { Result } from "../../core/result.ts";
-import { DEFAULT_FORMAT_PRIORITY } from "../constants.ts";
+import {
+  HIGH_PRIORITY_PLURALIZATION_RULE_VALUE,
+  IRREGULAR_PLURALIZATION_PRIORITY_VALUE,
+  LOW_PRIORITY_PLURALIZATION_RULE_VALUE,
+  MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE,
+  STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE,
+} from "../constants.ts";
 
 /**
  * Pluralization error types following Totality principles
@@ -52,50 +58,70 @@ const ENGLISH_RULES: readonly PluralizationRule[] = [
     pattern: /children$/i,
     singularSuffix: "child",
     pluralSuffix: "children",
-    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
+    priority: IRREGULAR_PLURALIZATION_PRIORITY_VALUE.getValue(),
   },
   {
     pattern: /mice$/i,
     singularSuffix: "mouse",
     pluralSuffix: "mice",
-    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
+    priority: IRREGULAR_PLURALIZATION_PRIORITY_VALUE.getValue(),
   },
   {
     pattern: /feet$/i,
     singularSuffix: "foot",
     pluralSuffix: "feet",
-    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
+    priority: IRREGULAR_PLURALIZATION_PRIORITY_VALUE.getValue(),
   },
   {
     pattern: /teeth$/i,
     singularSuffix: "tooth",
     pluralSuffix: "teeth",
-    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
+    priority: IRREGULAR_PLURALIZATION_PRIORITY_VALUE.getValue(),
   },
   {
     pattern: /geese$/i,
     singularSuffix: "goose",
     pluralSuffix: "geese",
-    priority: DEFAULT_FORMAT_PRIORITY.getValue(),
+    priority: IRREGULAR_PLURALIZATION_PRIORITY_VALUE.getValue(),
   },
 
   // Words ending in -ies
-  { pattern: /ies$/i, singularSuffix: "y", pluralSuffix: "ies", priority: 90 },
+  {
+    pattern: /ies$/i,
+    singularSuffix: "y",
+    pluralSuffix: "ies",
+    priority: HIGH_PRIORITY_PLURALIZATION_RULE_VALUE.getValue(),
+  },
 
   // Words ending in -ves
-  { pattern: /ves$/i, singularSuffix: "f", pluralSuffix: "ves", priority: 85 },
-  { pattern: /ves$/i, singularSuffix: "fe", pluralSuffix: "ves", priority: 85 },
+  {
+    pattern: /ves$/i,
+    singularSuffix: "f",
+    pluralSuffix: "ves",
+    priority: MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE.getValue(),
+  },
+  {
+    pattern: /ves$/i,
+    singularSuffix: "fe",
+    pluralSuffix: "ves",
+    priority: MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE.getValue(),
+  },
 
   // Words ending in -es
   {
     pattern: /(sh|ch|x|z|s)es$/i,
     singularSuffix: "$1",
     pluralSuffix: "$1es",
-    priority: 80,
+    priority: STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE.getValue(),
   },
 
   // Words ending in -s (lowest priority - catch-all)
-  { pattern: /s$/i, singularSuffix: "", pluralSuffix: "s", priority: 10 },
+  {
+    pattern: /s$/i,
+    singularSuffix: "",
+    pluralSuffix: "s",
+    priority: LOW_PRIORITY_PLURALIZATION_RULE_VALUE.getValue(),
+  },
 ] as const;
 
 const ENGLISH_IRREGULARS = new Map<string, string>([
