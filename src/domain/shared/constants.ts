@@ -77,6 +77,15 @@ const DEFAULT_RULE_PRIORITY = 5;
 // Exit handler graceful shutdown timeout for log flushing
 const GRACEFUL_EXIT_TIMEOUT_MS = 10;
 
+// Analysis engine processing timeout for complex operations
+const ANALYSIS_ENGINE_TIMEOUT_MS = 30000;
+
+// Dry-run content preview length for output display
+const DRY_RUN_PREVIEW_LENGTH = 500;
+
+// File path maximum length for filesystem compatibility
+const MAX_FILE_PATH_LENGTH = 1024;
+
 /**
  * Common validation error types for constants
  */
@@ -427,7 +436,9 @@ export class ProcessingLimit {
 export class TimeoutLimit {
   private constructor(private readonly value: number) {}
 
-  static create(timeout: number): Result<TimeoutLimit, ConstantValidationError> {
+  static create(
+    timeout: number,
+  ): Result<TimeoutLimit, ConstantValidationError> {
     if (timeout < 0) {
       return {
         ok: false,
@@ -931,6 +942,63 @@ if (!DEFAULT_RULE_PRIORITY_RESULT.ok) {
   );
 }
 export const DEFAULT_RULE_PRIORITY_VALUE = DEFAULT_RULE_PRIORITY_RESULT.data;
+
+/**
+ * Graceful exit timeout for log flushing and cleanup operations
+ * Used in infrastructure services for clean application shutdown
+ */
+const GRACEFUL_EXIT_TIMEOUT_RESULT = TimeoutLimit.create(
+  GRACEFUL_EXIT_TIMEOUT_MS,
+);
+if (!GRACEFUL_EXIT_TIMEOUT_RESULT.ok) {
+  throw new Error(
+    `Failed to create GRACEFUL_EXIT_TIMEOUT_VALUE: ${GRACEFUL_EXIT_TIMEOUT_RESULT.error.message}`,
+  );
+}
+export const GRACEFUL_EXIT_TIMEOUT_VALUE = GRACEFUL_EXIT_TIMEOUT_RESULT.data;
+
+/**
+ * Analysis engine processing timeout for complex operations
+ * Used in domain core services for analysis operation timeouts
+ */
+const ANALYSIS_ENGINE_TIMEOUT_RESULT = TimeoutLimit.create(
+  ANALYSIS_ENGINE_TIMEOUT_MS,
+);
+if (!ANALYSIS_ENGINE_TIMEOUT_RESULT.ok) {
+  throw new Error(
+    `Failed to create ANALYSIS_ENGINE_TIMEOUT_VALUE: ${ANALYSIS_ENGINE_TIMEOUT_RESULT.error.message}`,
+  );
+}
+export const ANALYSIS_ENGINE_TIMEOUT_VALUE =
+  ANALYSIS_ENGINE_TIMEOUT_RESULT.data;
+
+/**
+ * Dry-run content preview length for output display
+ * Used in application services for content preview in dry-run mode
+ */
+const DRY_RUN_PREVIEW_LENGTH_RESULT = DebugOutputLimit.create(
+  DRY_RUN_PREVIEW_LENGTH,
+);
+if (!DRY_RUN_PREVIEW_LENGTH_RESULT.ok) {
+  throw new Error(
+    `Failed to create DRY_RUN_PREVIEW_LENGTH_VALUE: ${DRY_RUN_PREVIEW_LENGTH_RESULT.error.message}`,
+  );
+}
+export const DRY_RUN_PREVIEW_LENGTH_VALUE = DRY_RUN_PREVIEW_LENGTH_RESULT.data;
+
+/**
+ * Maximum file path length for filesystem compatibility
+ * Used in domain value objects for path validation
+ */
+const MAX_FILE_PATH_LENGTH_RESULT = AbsoluteMaxLimit.create(
+  MAX_FILE_PATH_LENGTH,
+);
+if (!MAX_FILE_PATH_LENGTH_RESULT.ok) {
+  throw new Error(
+    `Failed to create MAX_FILE_PATH_LENGTH_VALUE: ${MAX_FILE_PATH_LENGTH_RESULT.error.message}`,
+  );
+}
+export const MAX_FILE_PATH_LENGTH_VALUE = MAX_FILE_PATH_LENGTH_RESULT.data;
 
 // ========================================
 // Configuration Loading
