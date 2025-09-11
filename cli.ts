@@ -16,6 +16,12 @@
 import { type Logger, LoggerFactory } from "./src/domain/shared/logger.ts";
 import { CLI } from "./src/application/cli.ts";
 
+// Configure logger for CLI usage (not production mode)
+LoggerFactory.configure({
+  environment: "development",
+  logLevel: "info",
+});
+
 // Create global CLI logger
 const cliLogger: Logger = LoggerFactory.createLogger("CLI");
 
@@ -61,21 +67,52 @@ function _getVersionInfo() {
 }
 
 export async function main() {
-  // FIXED: Route through the new CLI implementation that uses DocumentProcessor
-  // This ensures template processing is properly executed (fixes issue #613)
   try {
+    // Check for verbose mode early to configure logging
+    const hasVerbose = Deno.args.includes("--verbose") ||
+      Deno.args.includes("-v");
+    if (hasVerbose) {
+      LoggerFactory.configure({
+        environment: "development",
+        logLevel: "debug",
+      });
+      cliLogger.debug("Verbose mode enabled");
+    }
+
+    // Show help if requested
+    if (Deno.args.includes("--help") || Deno.args.includes("-h")) {
+      printUsage();
+      Deno.exit(0);
+    }
+
+    // Log startup
+    cliLogger.info("Starting frontmatter-to-schema processing...");
+
+    // FIXED: Route through the new CLI implementation that uses DocumentProcessor
+    // This ensures template processing is properly executed (fixes issue #613)
     const cli = new CLI();
     const result = await cli.run(Deno.args);
 
     if (!result.ok) {
-      cliLogger.error(
-        `🚨 Processing failed: ${result.error.kind}`,
-        { error: result.error },
-      );
+      cliLogger.error(`🚨 Processing failed: ${result.error.kind}`);
+
+      // Provide more detailed error information
+      if ("message" in result.error && result.error.message) {
+        cliLogger.error(`   Details: ${result.error.message}`);
+      }
+      if ("input" in result.error) {
+        cliLogger.error(`   Input: ${String(result.error.input)}`);
+      }
+      if ("expectedFormat" in result.error) {
+        cliLogger.error(`   Expected: ${String(result.error.expectedFormat)}`);
+      }
+
+      cliLogger.info("\nFor help, run: frontmatter-to-schema --help");
       Deno.exit(1);
     }
 
-    // Success - exit cleanly
+    // Success - log completion
+    cliLogger.info("✅ Processing completed successfully");
     Deno.exit(0);
   } catch (error) {
     cliLogger.error(
