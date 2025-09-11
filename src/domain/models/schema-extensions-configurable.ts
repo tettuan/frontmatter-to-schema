@@ -23,17 +23,22 @@ export interface ConfigurableExtendedSchema extends Record<string, unknown> {
   $schema?: string;
   type?: string;
   properties?: Record<string, ConfigurableExtendedSchemaProperty>;
-  items?: ConfigurableExtendedSchemaProperty | ConfigurableExtendedSchemaProperty[];
+  items?:
+    | ConfigurableExtendedSchemaProperty
+    | ConfigurableExtendedSchemaProperty[];
   // Extension properties are accessed dynamically via configuration
 }
 
 /**
  * Extended schema property with configurable extensions
  */
-export interface ConfigurableExtendedSchemaProperty extends Record<string, unknown> {
+export interface ConfigurableExtendedSchemaProperty
+  extends Record<string, unknown> {
   type?: string | string[];
   properties?: Record<string, ConfigurableExtendedSchemaProperty>;
-  items?: ConfigurableExtendedSchemaProperty | ConfigurableExtendedSchemaProperty[];
+  items?:
+    | ConfigurableExtendedSchemaProperty
+    | ConfigurableExtendedSchemaProperty[];
   // Extension properties are accessed dynamically via configuration
 }
 
@@ -70,7 +75,7 @@ export class ConfigurableSchemaTemplateInfo {
     const templatePath = typeof schema[templateProperty] === "string"
       ? { ok: true as const, data: schema[templateProperty] as string }
       : { ok: false as const, error: undefined };
-      
+
     const isFrontmatterPart = schema[frontmatterPartProperty] === true;
     const derivationRules = new Map<string, DerivedFieldInfo>();
 
@@ -164,7 +169,11 @@ function extractDerivationRules(
 
     // Recursively process nested properties
     if (prop.properties) {
-      const nestedResult = extractDerivationRules(prop.properties, config, fieldPath);
+      const nestedResult = extractDerivationRules(
+        prop.properties,
+        config,
+        fieldPath,
+      );
       if (!nestedResult.ok) {
         return nestedResult;
       }
@@ -260,13 +269,13 @@ export function hasLegacyHardcodedProperties(
 ): boolean {
   const legacyProperties = [
     "x-template",
-    "x-derived-from", 
+    "x-derived-from",
     "x-derived-unique",
     "x-derived-flatten",
     "x-frontmatter-part",
   ];
-  
-  return legacyProperties.some(prop => prop in schema);
+
+  return legacyProperties.some((prop) => prop in schema);
 }
 
 /**
@@ -277,7 +286,7 @@ export function migrateLegacyProperties(
   config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
 ): Record<string, unknown> {
   const migrated = { ...schema };
-  
+
   // Map legacy properties to configured properties
   const propertyMigrationMap = {
     "x-template": config.getTemplateProperty(),
@@ -287,7 +296,9 @@ export function migrateLegacyProperties(
     "x-frontmatter-part": config.getFrontmatterPartProperty(),
   };
 
-  for (const [legacyProp, configuredProp] of Object.entries(propertyMigrationMap)) {
+  for (
+    const [legacyProp, configuredProp] of Object.entries(propertyMigrationMap)
+  ) {
     if (legacyProp in migrated) {
       migrated[configuredProp] = migrated[legacyProp];
       delete migrated[legacyProp];

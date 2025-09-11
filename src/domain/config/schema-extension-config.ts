@@ -64,7 +64,7 @@ export class SchemaExtensionConfig {
       }
 
       const trimmed = prop.value.trim();
-      
+
       // Check for valid property name format
       if (!trimmed.match(/^[a-zA-Z][a-zA-Z0-9\-_]*$/)) {
         return {
@@ -82,7 +82,7 @@ export class SchemaExtensionConfig {
     }
 
     // Check for uniqueness
-    const propertyValues = properties.map(p => p.value.trim());
+    const propertyValues = properties.map((p) => p.value.trim());
     const uniqueValues = new Set(propertyValues);
     if (uniqueValues.size !== propertyValues.length) {
       return {
@@ -117,7 +117,9 @@ export class SchemaExtensionConfig {
     const result = SchemaExtensionConfig.create({});
     if (!result.ok) {
       // This should never happen with default values
-      throw new Error(`Failed to create default config: ${result.error.message}`);
+      throw new Error(
+        `Failed to create default config: ${result.error.message}`,
+      );
     }
     return result.data;
   }
