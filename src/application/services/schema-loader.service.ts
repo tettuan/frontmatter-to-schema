@@ -9,8 +9,8 @@ import {
   createDomainError,
   type DomainError,
   type Result,
-} from "../core/result.ts";
-import { ValidSchema } from "../value-objects/valid-schema.value-object.ts";
+} from "../../domain/core/result.ts";
+import { ValidSchema } from "../../domain/value-objects/valid-schema.value-object.ts";
 
 /**
  * FileSystem interface for dependency injection

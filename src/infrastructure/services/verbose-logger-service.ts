@@ -6,8 +6,8 @@
  * Addresses issue #500: Code duplication patterns.
  */
 
-import { getGlobalEnvironmentConfig } from "../../infrastructure/services/dependency-container.ts";
-import { StructuredLogger } from "../shared/logger.ts";
+import { getGlobalEnvironmentConfig } from "./dependency-container.ts";
+import { StructuredLogger } from "../../domain/shared/logger.ts";
 
 /**
  * Verbose log levels

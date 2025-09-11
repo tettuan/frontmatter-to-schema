@@ -14,8 +14,8 @@
 export { ValidSchema } from "../value-objects/valid-schema.value-object.ts";
 
 // Re-export services following DDD separation
-export { SchemaLoader } from "../services/schema-loader.service.ts";
-export type { FileSystemAdapter } from "../services/schema-loader.service.ts";
+export { SchemaLoader } from "../../application/services/schema-loader.service.ts";
+export type { FileSystemAdapter } from "../../application/services/schema-loader.service.ts";
 // Note: SchemaSwitcher and ExecutablePipeline have been removed in DDD refactoring
 
 // Deprecated factory removed - use ComponentFactory instead

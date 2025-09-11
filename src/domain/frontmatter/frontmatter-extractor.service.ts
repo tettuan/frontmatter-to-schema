@@ -9,7 +9,7 @@
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
-import { VerboseLoggerService } from "../services/verbose-logger-service.ts";
+import { VerboseLoggerService } from "../../infrastructure/services/verbose-logger-service.ts";
 import { FrontMatter } from "../models/entities.ts";
 import { FrontMatterContent } from "../models/value-objects.ts";
 

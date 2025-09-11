@@ -17,7 +17,7 @@ import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
 import {
   type ExitHandler,
   ExitHandlerFactory,
-} from "../domain/services/exit-handler.ts";
+} from "../infrastructure/services/exit-handler.ts";
 import {
   type FileFormatDetector,
   FormatDetectorFactory,

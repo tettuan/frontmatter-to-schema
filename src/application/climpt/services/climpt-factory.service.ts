@@ -6,7 +6,7 @@
  */
 
 import type { FrontMatterPipelineConfig } from "../../../domain/pipeline/generic-pipeline.ts";
-import type { LoggerProvider } from "../../../domain/core/logging-service.ts";
+import type { LoggerProvider } from "../../../infrastructure/services/logging-service.ts";
 import { ComponentFactory } from "../../../domain/core/component-factory.ts";
 import type { ClimptRegistrySchema } from "../models/climpt-schema.models.ts";
 import { ClaudeCLIService } from "./claude-cli.service.ts";
