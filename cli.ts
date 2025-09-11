@@ -67,29 +67,29 @@ function _getVersionInfo() {
 }
 
 export async function main() {
-  // Check for verbose mode early to configure logging
-  const hasVerbose = Deno.args.includes("--verbose") ||
-    Deno.args.includes("-v");
-  if (hasVerbose) {
-    LoggerFactory.configure({
-      environment: "development",
-      logLevel: "debug",
-    });
-    cliLogger.debug("Verbose mode enabled");
-  }
-
-  // Show help if requested
-  if (Deno.args.includes("--help") || Deno.args.includes("-h")) {
-    printUsage();
-    Deno.exit(0);
-  }
-
-  // Log startup
-  cliLogger.info("Starting frontmatter-to-schema processing...");
-
-  // FIXED: Route through the new CLI implementation that uses DocumentProcessor
-  // This ensures template processing is properly executed (fixes issue #613)
   try {
+    // Check for verbose mode early to configure logging
+    const hasVerbose = Deno.args.includes("--verbose") ||
+      Deno.args.includes("-v");
+    if (hasVerbose) {
+      LoggerFactory.configure({
+        environment: "development",
+        logLevel: "debug",
+      });
+      cliLogger.debug("Verbose mode enabled");
+    }
+
+    // Show help if requested
+    if (Deno.args.includes("--help") || Deno.args.includes("-h")) {
+      printUsage();
+      Deno.exit(0);
+    }
+
+    // Log startup
+    cliLogger.info("Starting frontmatter-to-schema processing...");
+
+    // FIXED: Route through the new CLI implementation that uses DocumentProcessor
+    // This ensures template processing is properly executed (fixes issue #613)
     const cli = new CLI();
     const result = await cli.run(Deno.args);
 
