@@ -1,7 +1,11 @@
-# Deep Analysis Complete - Critical Issues Identified
+# P1 Issues Resolved with Technical Debt Reduction
 
-## Current Situation
-Completed comprehensive project analysis via climpt-debug. Identified hardcoding violations in CLI preventing requirement flexibility. Updated Issue #634 with CLI-specific problems. Root cause of silent failures (#635) traced to hardcoded error handling. CI perfect with 556 tests passing.
+## Current Status
+Successfully resolved P1 priority issues (#641, #637) and reduced technical debt. Added comprehensive x-* properties demonstrations (x-template, x-derived-from, x-derived-unique, x-frontmatter-part) to examples/climpt-registry. Reduced @deprecated items from 26 to 17. Deleted deprecated RuleValidator class. CI fully passing with 573 tests.
 
 ## Things to be done
-Address critical hardcoding violations in CLI layer blocking Schema/Template flexibility requirements. Fix Deno.exit() hardcoding and special branch logic. Restore E2E tests and implement missing integration coverage. Focus on architectural integrity preservation.
+- Resolve PR #643 merge conflicts with main branch
+- Continue P2 issues: #640 DDD boundaries, #638 E2E tests, #612 x-template migration
+- Address P3 #639 magic number hardcoding
+- Complete integration tests for x-* properties workflow
+- Review and merge outstanding PRs
