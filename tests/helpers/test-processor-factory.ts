@@ -1,213 +1,150 @@
 /**
  * Test Processor Factory
  *
- * Addresses Issue #664: Critical test setup duplication
- * Eliminates 25+ instances of repeated DocumentProcessor setup code
- * Reduces entropy from 8.2/10 to target 3.1/10 for maintainability
+ * Centralized factory for creating DocumentProcessor instances in tests
+ * Eliminates code duplication across 23+ test locations
+ * Follows DDD principles and Totality patterns for type safety
+ *
+ * Part of Issue #664: Test Setup Duplication Refactoring
  */
 
+import type { Result } from "../../src/domain/core/result.ts";
 import { DocumentProcessor } from "../../src/application/document-processor.ts";
 import { DenoFileSystemProvider } from "../../src/application/climpt/climpt-adapter.ts";
 import { FrontMatterExtractorImpl } from "../../src/infrastructure/adapters/frontmatter-extractor-impl.ts";
 import { SchemaValidator } from "../../src/domain/services/schema-validator.ts";
-import { UnifiedTemplateProcessor } from "../../src/domain/template/index.ts";
-import type { Result } from "../../src/domain/core/result.ts";
-import type { DomainError } from "../../src/types.ts";
-import type { FileSystemPort } from "../../src/infrastructure/ports/index.ts";
-import type { FrontMatterExtractor } from "../../src/domain/services/interfaces.ts";
+import { UnifiedTemplateProcessor } from "../../src/domain/template/services/unified-template-processor.ts";
 
 /**
- * Test processor factory providing consistent, validated setup
- * Eliminates duplication and ensures proper error handling
+ * Test setup error types following discriminated union pattern
+ */
+export type TestSetupError =
+  | { kind: "TemplateProcessorCreationFailed"; message: string }
+  | { kind: "DependencyInjectionFailed"; message: string; component: string };
+
+/**
+ * Smart Constructor Factory for DocumentProcessor test instances
+ * Eliminates duplication and provides type-safe test setup
  */
 export class TestProcessorFactory {
-  private constructor() {}
-
-  /**
-   * Create a DocumentProcessor with all required dependencies
-   * Replaces the 10-line setup pattern found in 25+ test locations
-   *
-   * @throws {Error} If template processor creation fails
-   * @returns {DocumentProcessor} Fully configured processor ready for testing
-   */
-  static create(): DocumentProcessor {
-    const fileSystem = new DenoFileSystemProvider();
-    const frontMatterExtractor = new FrontMatterExtractorImpl();
-    const schemaValidator = new SchemaValidator();
-    const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-    if (!templateProcessorResult) {
-      throw new Error(
-        "Failed to create UnifiedTemplateProcessor in test setup. " +
-          "This indicates a fundamental configuration issue that must be resolved.",
-      );
-    }
-
-    return new DocumentProcessor(
-      fileSystem,
-      frontMatterExtractor,
-      schemaValidator,
-      templateProcessorResult as UnifiedTemplateProcessor,
-    );
+  private constructor() {
+    // Prevent instantiation - static factory only
   }
 
   /**
-   * Create processor with custom configuration options
-   * Allows test-specific customization while maintaining consistency
-   *
-   * @param options Override options for specific test scenarios
-   * @returns {DocumentProcessor} Configured processor with custom options
+   * Create DocumentProcessor with full error handling (Totality compliant)
+   * Returns Result type for proper error handling
    */
-  static createWithOptions(options: {
-    fileSystem?: FileSystemPort;
-    frontMatterExtractor?: FrontMatterExtractor;
-    schemaValidator?: SchemaValidator;
-    templateProcessor?: UnifiedTemplateProcessor;
-  } = {}): DocumentProcessor {
-    const fileSystem = options.fileSystem ?? new DenoFileSystemProvider();
-    const frontMatterExtractor = options.frontMatterExtractor ??
-      new FrontMatterExtractorImpl();
-    const schemaValidator = options.schemaValidator ?? new SchemaValidator();
+  static create(): Result<DocumentProcessor, TestSetupError> {
+    try {
+      // Create dependencies with proper error handling
+      const fileSystem = new DenoFileSystemProvider();
+      const frontMatterExtractor = new FrontMatterExtractorImpl();
+      const schemaValidator = new SchemaValidator();
 
-    let templateProcessor = options.templateProcessor;
-    if (!templateProcessor) {
+      // Handle UnifiedTemplateProcessor creation (known fallible operation)
       const templateProcessorResult = UnifiedTemplateProcessor.create();
-      if (!templateProcessorResult) {
-        throw new Error("Failed to create UnifiedTemplateProcessor");
+      if (
+        !templateProcessorResult || typeof templateProcessorResult !== "object"
+      ) {
+        return {
+          ok: false,
+          error: {
+            kind: "TemplateProcessorCreationFailed",
+            message:
+              "UnifiedTemplateProcessor.create() returned invalid result",
+          },
+        };
       }
-      templateProcessor = templateProcessorResult as UnifiedTemplateProcessor;
+
+      // Verify templateProcessor has expected interface
+      const templateProcessor =
+        templateProcessorResult as UnifiedTemplateProcessor;
+      if (!templateProcessor) {
+        return {
+          ok: false,
+          error: {
+            kind: "TemplateProcessorCreationFailed",
+            message: "Template processor instance is null or undefined",
+          },
+        };
+      }
+
+      // Create DocumentProcessor with validated dependencies
+      const processor = new DocumentProcessor(
+        fileSystem,
+        frontMatterExtractor,
+        schemaValidator,
+        templateProcessor,
+      );
+
+      return {
+        ok: true,
+        data: processor,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "DependencyInjectionFailed",
+          message: error instanceof Error
+            ? error.message
+            : "Unknown error during setup",
+          component: "DocumentProcessor",
+        },
+      };
     }
-
-    return new DocumentProcessor(
-      fileSystem,
-      frontMatterExtractor,
-      schemaValidator,
-      templateProcessor,
-    );
   }
-}
-
-/**
- * Result assertion helpers for common test patterns
- * Provides consistent error checking and reduces test code duplication
- */
-export class ResultAssertions {
-  private constructor() {}
 
   /**
-   * Assert that a result is successful and return the data
-   * Provides type-safe success assertions with clear error messages
-   *
-   * @param result The result to check
-   * @returns The unwrapped success data
+   * Create DocumentProcessor with exception on failure (convenience method)
+   * Use when test setup failure should terminate test execution
    */
-  static assertSuccess<T, E>(result: Result<T, E>): T {
+  static createUnsafe(): DocumentProcessor {
+    const result = this.create();
     if (!result.ok) {
-      throw new Error(
-        `Expected successful result but got error: ${
-          JSON.stringify(result.error)
-        }`,
-      );
+      throw new Error(`Test setup failed: ${result.error.message}`);
     }
     return result.data;
   }
 
   /**
-   * Assert that a result contains a specific error kind
-   * Provides flexible error type checking for various test scenarios
-   *
-   * @param result The result to check
-   * @param expectedKind The expected error kind
+   * Create DocumentProcessor with custom dependencies (advanced usage)
+   * Allows dependency injection for specialized test scenarios
    */
-  static assertErrorKind<T>(
-    result: Result<T, DomainError>,
-    expectedKind: string,
-  ): void {
-    if (result.ok) {
-      throw new Error(
-        `Expected error with kind "${expectedKind}" but got successful result`,
+  static createWithDependencies(
+    fileSystem?: typeof DenoFileSystemProvider.prototype,
+    frontMatterExtractor?: typeof FrontMatterExtractorImpl.prototype,
+    schemaValidator?: typeof SchemaValidator.prototype,
+    templateProcessor?: UnifiedTemplateProcessor,
+  ): Result<DocumentProcessor, TestSetupError> {
+    try {
+      const processor = new DocumentProcessor(
+        fileSystem ?? new DenoFileSystemProvider(),
+        frontMatterExtractor ?? new FrontMatterExtractorImpl(),
+        schemaValidator ?? new SchemaValidator(),
+        templateProcessor ?? (() => {
+          const result = UnifiedTemplateProcessor.create();
+          if (!result) {
+            throw new Error("Failed to create default template processor");
+          }
+          return result as UnifiedTemplateProcessor;
+        })(),
       );
-    }
 
-    if (result.error.kind !== expectedKind) {
-      throw new Error(
-        `Expected error kind "${expectedKind}" but got "${result.error.kind}"`,
-      );
+      return {
+        ok: true,
+        data: processor,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "DependencyInjectionFailed",
+          message: error instanceof Error ? error.message : "Unknown error",
+          component: "CustomDependencies",
+        },
+      };
     }
   }
 }
-
-/**
- * Test configuration builder for complex test scenarios
- * Provides fluent API for building test configurations consistently
- */
-export class TestConfigBuilder {
-  private config: Record<string, unknown> = {};
-
-  private constructor() {}
-
-  static create(): TestConfigBuilder {
-    return new TestConfigBuilder();
-  }
-
-  /**
-   * Set schema path for test configuration
-   */
-  withSchemaPath(path: string): TestConfigBuilder {
-    this.config.schemaPath = path;
-    return this;
-  }
-
-  /**
-   * Set template path for test configuration
-   */
-  withTemplatePath(path: string): TestConfigBuilder {
-    this.config.templatePath = path;
-    return this;
-  }
-
-  /**
-   * Set input directory for test configuration
-   */
-  withInputDir(dir: string): TestConfigBuilder {
-    this.config.inputDir = dir;
-    return this;
-  }
-
-  /**
-   * Set output path for test configuration
-   */
-  withOutputPath(path: string): TestConfigBuilder {
-    this.config.outputPath = path;
-    return this;
-  }
-
-  /**
-   * Enable aggregation with optional settings
-   */
-  withAggregation(
-    enabled: boolean = true,
-    settings?: Record<string, unknown>,
-  ): TestConfigBuilder {
-    this.config.aggregation = { enabled, ...settings };
-    return this;
-  }
-
-  /**
-   * Build the final configuration object
-   */
-  build(): Record<string, unknown> {
-    return { ...this.config };
-  }
-}
-
-/**
- * Re-export commonly used testing utilities
- * Provides single import location for all test helpers
- */
-export {
-  assertEquals,
-  assertExists,
-  assertStringIncludes,
-} from "jsr:@std/assert";
-export { dirname, join } from "jsr:@std/path";

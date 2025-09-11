@@ -1,10 +1,5 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { join } from "jsr:@std/path";
-import { DocumentProcessor } from "../../src/application/document-processor.ts";
-import { DenoFileSystemProvider } from "../../src/application/climpt/climpt-adapter.ts";
-import { FrontMatterExtractorImpl } from "../../src/infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { SchemaValidator } from "../../src/domain/services/schema-validator.ts";
-import { UnifiedTemplateProcessor } from "../../src/domain/template/services/unified-template-processor.ts";
 import type { ApplicationConfiguration } from "../../src/application/value-objects/configuration-types.value-object.ts";
 import {
   OutputFormat,
@@ -12,6 +7,9 @@ import {
   TemplateFormat,
 } from "../../src/application/value-objects/configuration-formats.value-object.ts";
 import { SchemaExtensions } from "../../src/domain/schema/value-objects/schema-extensions.ts";
+import { TestProcessorFactory } from "../helpers/test-processor-factory.ts";
+import { ResultAssertions } from "../helpers/result-assertions.ts";
+import { TestConfigBuilder } from "../helpers/test-config-builder.ts";
 
 // Helper functions for format creation
 const createSchemaFormat = (format: string) => {
@@ -58,49 +56,18 @@ invalidField: "This should cause validation error"
 
   try {
     await t.step("should handle invalid JSON schema syntax", async () => {
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
+      const processor = TestProcessorFactory.createUnsafe();
 
-      assertExists(templateProcessorResult);
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
-
-      const config: ApplicationConfiguration = {
-        input: {
-          kind: "FileInput",
-          path: join(FIXTURES_DIR, "test.md"),
-        },
-        schema: {
-          definition: "{ invalid json schema",
-          format: createSchemaFormat("json"),
-        },
-        template: {
-          definition: "{}",
-          format: createTemplateFormat("json"),
-        },
-        output: {
-          path: join(OUTPUT_DIR, "output.json"),
-          format: createOutputFormat("json"),
-        },
-        processing: {
-          kind: "BasicProcessing",
-        },
+      const config = TestConfigBuilder.forErrorTesting().invalidJsonSchema();
+      // Override input path for this test
+      config.input = {
+        kind: "FileInput",
+        path: join(FIXTURES_DIR, "test.md"),
       };
+      config.output.path = join(OUTPUT_DIR, "output.json");
 
       const result = await processor.processDocuments(config);
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertEquals(result.error.kind, "ParseError");
-      }
+      ResultAssertions.assertParsingError(result);
     });
 
     await t.step("should handle schema with invalid $ref", async () => {
@@ -117,20 +84,7 @@ invalidField: "This should cause validation error"
         JSON.stringify(invalidRefSchema, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -187,20 +141,7 @@ invalidField: "This should cause validation error"
         JSON.stringify(circularSchema, null, 2),
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -272,20 +213,7 @@ Content`,
           JSON.stringify(schemaWithTemplate, null, 2),
         );
 
-        const fileSystem = new DenoFileSystemProvider();
-        const frontMatterExtractor = new FrontMatterExtractorImpl();
-        const schemaValidator = new SchemaValidator();
-        const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-        const templateProcessor =
-          templateProcessorResult as UnifiedTemplateProcessor;
-
-        const processor = new DocumentProcessor(
-          fileSystem,
-          frontMatterExtractor,
-          schemaValidator,
-          templateProcessor,
-        );
+        const processor = TestProcessorFactory.createUnsafe();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -318,20 +246,7 @@ Content`,
     );
 
     await t.step("should handle malformed template JSON", async () => {
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -407,20 +322,7 @@ title: "Test"
 Content`,
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -478,20 +380,7 @@ author: "Author"
 Content`,
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -547,20 +436,7 @@ scalar: "Not an array"
 Content`,
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -608,20 +484,7 @@ Deno.test({
 
   try {
     await t.step("should handle non-existent input file", async () => {
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -656,20 +519,7 @@ Deno.test({
     });
 
     await t.step("should handle non-existent input directory", async () => {
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -721,20 +571,7 @@ title: "Test"
 Content`,
         );
 
-        const fileSystem = new DenoFileSystemProvider();
-        const frontMatterExtractor = new FrontMatterExtractorImpl();
-        const schemaValidator = new SchemaValidator();
-        const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-        const templateProcessor =
-          templateProcessorResult as UnifiedTemplateProcessor;
-
-        const processor = new DocumentProcessor(
-          fileSystem,
-          frontMatterExtractor,
-          schemaValidator,
-          templateProcessor,
-        );
+        const processor = TestProcessorFactory.createUnsafe();
 
         const config: ApplicationConfiguration = {
           input: {
@@ -796,20 +633,7 @@ Deno.test({
 Just content here, no YAML frontmatter.`,
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -857,20 +681,7 @@ author: John Doe
 # Content`,
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
@@ -908,20 +719,7 @@ author: John Doe
         "",
       );
 
-      const fileSystem = new DenoFileSystemProvider();
-      const frontMatterExtractor = new FrontMatterExtractorImpl();
-      const schemaValidator = new SchemaValidator();
-      const templateProcessorResult = UnifiedTemplateProcessor.create();
-
-      const templateProcessor =
-        templateProcessorResult as UnifiedTemplateProcessor;
-
-      const processor = new DocumentProcessor(
-        fileSystem,
-        frontMatterExtractor,
-        schemaValidator,
-        templateProcessor,
-      );
+      const processor = TestProcessorFactory.createUnsafe();
 
       const config: ApplicationConfiguration = {
         input: {
