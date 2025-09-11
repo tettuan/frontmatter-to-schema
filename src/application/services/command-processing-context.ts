@@ -65,20 +65,6 @@ export class CommandProcessingContext {
     };
   }
 
-  /**
-   * Create context from legacy boolean flag (backwards compatibility)
-   * @deprecated Use createStrict() or createLenient() instead
-   */
-  static fromStrictMode(
-    commandSchema: Schema,
-    commandTemplate: Template,
-    strictMode: boolean = false,
-  ): Result<CommandProcessingContext, DomainError & { message: string }> {
-    return strictMode
-      ? CommandProcessingContext.createStrict(commandSchema, commandTemplate)
-      : CommandProcessingContext.createLenient(commandSchema, commandTemplate);
-  }
-
   getCommandSchema(): Schema {
     return this.commandSchema;
   }

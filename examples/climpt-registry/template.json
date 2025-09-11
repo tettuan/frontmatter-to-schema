@@ -1,41 +1,11 @@
 {
-  "version": "1.0.0",
-  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "version": "{version}",
+  "description": "{description}",
   "tools": {
-    "availableConfigs": [
-      "code",
-      "docs",
-      "git",
-      "meta",
-      "spec",
-      "test"
-    ],
-    "commands": []
-  },
-  "mappings": [
-    {
-      "source": "c1",
-      "target": "tools.commands[].c1"
-    },
-    {
-      "source": "c2",
-      "target": "tools.commands[].c2"
-    },
-    {
-      "source": "c3",
-      "target": "tools.commands[].c3"
-    },
-    {
-      "source": "description",
-      "target": "tools.commands[].description"
-    },
-    {
-      "source": "usage",
-      "target": "tools.commands[].usage"
-    },
-    {
-      "source": "options",
-      "target": "tools.commands[].options"
-    }
-  ]
+    "availableConfigs": "{tools.availableConfigs}",
+    "allC1Categories": "{tools.allC1Categories}",
+    "allC2Actions": "{tools.allC2Actions}",
+    "allC3Targets": "{tools.allC3Targets}",
+    "commands": "{tools.commands}"
+  }
 }

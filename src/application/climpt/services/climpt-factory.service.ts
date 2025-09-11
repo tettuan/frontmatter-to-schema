@@ -17,7 +17,6 @@ import { ClimptAnalysisPipeline } from "./climpt-pipeline.service.ts";
 /**
  * Enhanced Factory for creating Climpt-specific analysis pipelines
  * Uses the unified component factory architecture
- * @deprecated Use MasterComponentFactory.createDomainComponents(ComponentDomain.Pipeline) for production use
  * @internal For Climpt-specific integration only
  */
 export class ClimptPipelineFactory {
