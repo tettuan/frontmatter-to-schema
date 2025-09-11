@@ -108,7 +108,8 @@ export function isDomainError(value: unknown): value is DomainError {
 }
 
 /**
- * Process $includeArray directive
+ * Process $includeArray directive (DEPRECATED)
+ * @deprecated Use x-template in schema instead
  * Loads external template and applies it to each array item
  */
 export function processIncludeArrayDirective(
@@ -168,6 +169,10 @@ export function applyDataToTemplate(
 
     for (const [key, value] of Object.entries(template)) {
       if (key === "$includeArray" && typeof value === "string") {
+        // Emit deprecation warning
+        console.warn(
+          `DEPRECATION WARNING: $includeArray is deprecated. Use x-template in schema instead.`,
+        );
         // Handle $includeArray directive - look for array data in the current data context
         let arrayData: unknown;
 
