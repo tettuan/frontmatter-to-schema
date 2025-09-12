@@ -10,6 +10,7 @@
 import type { Result } from "../../core/result.ts";
 import type { DomainError } from "../../core/result.ts";
 import { createDomainError } from "../../core/result.ts";
+import { SchemaExtensions } from "./schema-extensions.ts";
 
 /**
  * ArrayTarget represents a schema property that should collect frontmatter data
@@ -71,14 +72,14 @@ export class ArrayTarget {
       };
     }
 
-    // Validate has x-frontmatter-part: true
-    if (schema["x-frontmatter-part"] !== true) {
+    // Validate has x-frontmatter-part: true (using SchemaExtensions constant - eliminates Issue #651)
+    if (schema[SchemaExtensions.FRONTMATTER_PART] !== true) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "InvalidFormat",
-            input: String(schema["x-frontmatter-part"]),
+            input: String(schema[SchemaExtensions.FRONTMATTER_PART]),
             expectedFormat: "true",
           },
           "ArrayTarget must have 'x-frontmatter-part': true",
@@ -117,7 +118,8 @@ export class ArrayTarget {
   private static extractTemplatePath(itemSchema: unknown): string | undefined {
     if (typeof itemSchema === "object" && itemSchema !== null) {
       const schema = itemSchema as Record<string, unknown>;
-      const templatePath = schema["x-template"];
+      // Use SchemaExtensions constant instead of hardcoded string (eliminates Issue #651)
+      const templatePath = schema[SchemaExtensions.TEMPLATE];
       return typeof templatePath === "string" ? templatePath : undefined;
     }
     return undefined;

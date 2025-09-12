@@ -135,9 +135,10 @@ Deno.test("OutputPath.create should reject unsupported formats", () => {
   assertEquals(result.ok, false);
   if (!result.ok) {
     assertEquals(result.error.kind, "UnsupportedFormat");
+    // Updated to match new FormatRegistry error message format (eliminates hardcoding)
     assertEquals(
       result.error.message,
-      "Output format must be one of: json, yml, yaml, toml",
+      "Output format 'txt' is not supported. Supported formats: json, yaml, toml",
     );
   }
 });

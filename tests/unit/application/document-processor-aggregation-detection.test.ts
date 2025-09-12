@@ -287,6 +287,14 @@ Deno.test("DocumentProcessor Aggregation Detection - Specification Tests", async
 function checkForAggregationExtensions(
   schema: Record<string, unknown>,
 ): boolean {
+  // Use the same aggregation keys as DocumentProcessor to eliminate test/implementation mismatch (Issue #666)
+  const AGGREGATION_EXTENSION_KEYS = [
+    SchemaExtensions.DERIVED_FROM,
+    SchemaExtensions.DERIVED_UNIQUE,
+    SchemaExtensions.DERIVED_FLATTEN,
+    SchemaExtensions.TEMPLATE_AGGREGATION_OPTIONS,
+  ] as const;
+
   const checkForExtensions = (obj: unknown): boolean => {
     if (typeof obj !== "object" || obj === null) {
       return false;
@@ -294,13 +302,12 @@ function checkForAggregationExtensions(
 
     const record = obj as Record<string, unknown>;
 
-    // Check for aggregation-related x-* properties
+    // Check for aggregation-related x-* properties using configurable list (matches DocumentProcessor implementation)
     for (const key in record) {
       if (
-        key === SchemaExtensions.DERIVED_FROM ||
-        key === SchemaExtensions.DERIVED_UNIQUE ||
-        key === SchemaExtensions.DERIVED_FLATTEN ||
-        key === SchemaExtensions.TEMPLATE_AGGREGATION_OPTIONS
+        AGGREGATION_EXTENSION_KEYS.includes(
+          key as typeof AGGREGATION_EXTENSION_KEYS[number],
+        )
       ) {
         return true;
       }
