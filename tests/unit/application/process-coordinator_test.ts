@@ -1,14 +1,21 @@
 /**
  * ProcessCoordinator Robust Test Suite
- * 
+ *
  * Comprehensive tests for the canonical processing entry point
  * Focuses on file discovery recursive pattern bug and aggregation mode
  * Follows Totality principles and DDD architecture
  */
 
-import { assertEquals, assertExists, assertStringIncludes } from "jsr:@std/assert@1";
+import {
+  assertEquals,
+  assertExists,
+  assertStringIncludes,
+} from "jsr:@std/assert@1";
 import { beforeEach, describe, it } from "jsr:@std/testing@1/bdd";
-import { ProcessCoordinator, type ProcessingConfiguration } from "../../../src/application/process-coordinator.ts";
+import {
+  ProcessCoordinator,
+  type ProcessingConfiguration,
+} from "../../../src/application/process-coordinator.ts";
 
 /**
  * Test Fixture Factory for ProcessCoordinator
@@ -108,10 +115,10 @@ class ProcessCoordinatorTestFactory {
         },
       },
     };
-    
+
     await Deno.writeTextFile(
-      "tests/fixtures/valid-schema.json", 
-      JSON.stringify(testSchema, null, 2)
+      "tests/fixtures/valid-schema.json",
+      JSON.stringify(testSchema, null, 2),
     );
 
     // Create test template
@@ -122,10 +129,10 @@ class ProcessCoordinatorTestFactory {
         "commands": "{tools.commands}",
       },
     };
-    
+
     await Deno.writeTextFile(
-      "tests/fixtures/template.json", 
-      JSON.stringify(testTemplate, null, 2)
+      "tests/fixtures/template.json",
+      JSON.stringify(testTemplate, null, 2),
     );
 
     // Create test markdown files with frontmatter
@@ -139,7 +146,7 @@ title: Test Command 1
 ---
 
 # Test Content 1
-`
+`,
     );
 
     await Deno.writeTextFile(
@@ -152,7 +159,7 @@ title: Test Command 2
 ---
 
 # Test Content 2
-`
+`,
     );
 
     // Create multiple files for aggregation test
@@ -167,7 +174,7 @@ title: Command ${i}
 ---
 
 # Command ${i} Content
-`
+`,
       );
     }
   }
@@ -216,7 +223,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - currently fails to find files in base directory
       // Expected: result.ok should be true and processedFiles >= 1
       // Actual: result.ok is false due to ProcessCoordinator issues
@@ -225,7 +232,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or TemplateRendering stage
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -234,10 +241,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     });
 
     it("should discover files recursively with ** pattern", async () => {
-      const config = ProcessCoordinatorTestFactory.createRecursivePatternConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createRecursivePatternConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix recursive pattern bug - currently fails to find files with ** pattern
       // Expected: result.ok should be true and processedFiles >= 1
       // Actual: result.ok is false due to ProcessCoordinator lacking recursive search
@@ -246,7 +254,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -257,7 +265,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
     it("should handle empty directory gracefully", async () => {
       await Deno.mkdir("tests/fixtures/empty", { recursive: true });
-      
+
       const config: ProcessingConfiguration = {
         schema: {
           path: "tests/fixtures/valid-schema.json",
@@ -279,7 +287,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - should succeed with 0 files for empty directory
       // Expected: result.ok should be true with processedFiles = 0
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -288,7 +296,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -318,7 +326,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertStringIncludes(result.error.message, "FileDiscovery");
@@ -328,10 +336,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Aggregation Mode - x-derived-from Processing", () => {
     it("should trigger aggregation mode with multiple files", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - aggregation depends on finding multiple files
       // Expected: result.ok should be true with processedFiles >= 3 and aggregated data
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -340,7 +349,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -351,10 +360,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     });
 
     it("should apply x-derived-from to extract unique values", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - x-derived-from depends on processing multiple files
       // Expected: result.ok should be true with aggregated fields containing unique values
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -363,7 +373,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok && result.data.aggregatedData) {
@@ -400,7 +410,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - should find single file without aggregation
       // Expected: result.ok should be true with processedFiles = 1, no aggregated data
       // Actual: result.ok is false due to ProcessCoordinator issues
@@ -409,7 +419,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or TemplateRendering stage
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -421,10 +431,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Template Processing - Variable Substitution", () => {
     it("should apply template with x-template from schema", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - template processing depends on file discovery
       // Expected: result.ok should be true with processed template content
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -433,7 +444,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -445,10 +456,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     });
 
     it("should substitute template variables with aggregated data", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - variable substitution depends on file discovery
       // Expected: result.ok should be true with substituted template variables
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -457,7 +469,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -489,7 +501,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // Should either succeed with fallback or fail gracefully
       if (!result.ok) {
         // May fail at FileDiscovery (no files found) or Template stage
@@ -503,11 +515,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       const config = ProcessCoordinatorTestFactory.createValidConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // Should always return a Result type
       assertExists(result);
       assertExists(result.ok);
-      
+
       if (result.ok) {
         assertExists(result.data);
       } else {
@@ -517,8 +529,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     });
 
     it("should handle invalid schema gracefully", async () => {
-      await Deno.writeTextFile("tests/fixtures/invalid-schema.json", "invalid json");
-      
+      await Deno.writeTextFile(
+        "tests/fixtures/invalid-schema.json",
+        "invalid json",
+      );
+
       const config: ProcessingConfiguration = {
         schema: {
           path: "tests/fixtures/invalid-schema.json",
@@ -540,7 +555,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       };
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertStringIncludes(result.error.message, "Schema");
@@ -576,10 +591,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Integration - Complete Processing Pipeline", () => {
     it("should complete full processing pipeline successfully", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - full pipeline depends on file discovery
       // Expected: result.ok should be true with complete pipeline results
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -588,7 +604,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -603,10 +619,11 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     });
 
     it("should maintain processing order: Schema → Files → Processing → Aggregation → Template → Output", async () => {
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - processing order validation depends on file discovery
       // Expected: result.ok should be true with proper processing order
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -615,7 +632,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
@@ -632,13 +649,14 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         "tests/fixtures/aggregation/invalid.md",
         `---
 invalid frontmatter
----`
+---`,
       );
 
-      const config = ProcessCoordinatorTestFactory.createAggregationConfiguration();
+      const config = ProcessCoordinatorTestFactory
+        .createAggregationConfiguration();
 
       const result = await processCoordinator.processDocuments(config);
-      
+
       // TODO: Fix file discovery bug - mixed scenario handling depends on file discovery
       // Expected: result.ok should be true processing valid files despite invalid ones
       // Actual: result.ok is false due to ProcessCoordinator file discovery bug
@@ -647,7 +665,7 @@ invalid frontmatter
         // May fail at FileDiscovery or later stages
         assertExists(result.error.message);
       }
-      
+
       // FIXME: When bug is fixed, enable this assertion:
       // assertEquals(result.ok, true);
       // if (result.ok) {
