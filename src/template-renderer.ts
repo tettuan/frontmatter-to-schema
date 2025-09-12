@@ -155,12 +155,15 @@ export class TemplateRenderer {
   ): string {
     let result = template;
 
-    // Simple variable replacement: {{variableName}}
-    for (const [key, value] of Object.entries(data)) {
-      const placeholder = `{{${key}}}`;
-      const replacement = this.valueToString(value);
-      result = result.replace(new RegExp(placeholder, "g"), replacement);
-    }
+    // Replace variables with single curly braces: {variableName} or {path.to.value}
+    // This matches the actual template format used in the project
+    const variablePattern = /\{([^}]+)\}/g;
+
+    result = result.replace(variablePattern, (match, path) => {
+      // Handle nested paths like {id.full} or {data.value}
+      const value = this.getNestedValue(data, path);
+      return value !== undefined ? this.valueToString(value) : match;
+    });
 
     return result;
   }
