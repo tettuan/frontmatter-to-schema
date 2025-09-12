@@ -24,9 +24,13 @@ import {
   FormatDetectorFactory,
 } from "../domain/services/file-format-detector.ts";
 import { FilePattern } from "../domain/value-objects/file-pattern.ts";
+import { CLILoggers } from "../domain/value-objects/logger-name.ts";
+import { CLI_DEFAULTS } from "../domain/value-objects/cli-defaults.ts";
 
 export class CLI {
-  private readonly logger = LoggerFactory.createLogger("CLI");
+  private readonly logger = LoggerFactory.createLogger(
+    CLILoggers.MAIN.getName(),
+  );
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
   private readonly processCoordinator: ProcessCoordinator;
@@ -55,7 +59,7 @@ export class CLI {
     const exitResult = exitHandler
       ? { ok: true as const, data: exitHandler }
       : ExitHandlerFactory.createProduction(
-        LoggerFactory.createLogger("cli-exit"),
+        LoggerFactory.createLogger(CLILoggers.EXIT.getName()),
       );
     if (!exitResult.ok) {
       return {
@@ -100,18 +104,11 @@ export class CLI {
   }
 
   async run(args: string[]): Promise<Result<void, DomainError>> {
+    const cliConfig = CLI_DEFAULTS.getCLIArgumentConfig();
     const parsed = parseArgs(args, {
-      string: ["config", "input", "output", "schema", "template"],
-      boolean: ["help", "verbose"],
-      alias: {
-        c: "config",
-        i: "input",
-        o: "output",
-        s: "schema",
-        t: "template",
-        h: "help",
-        v: "verbose",
-      },
+      string: [...cliConfig.stringOptions],
+      boolean: [...cliConfig.booleanOptions],
+      alias: { ...cliConfig.aliases },
     });
 
     if (parsed.help) {
@@ -122,7 +119,7 @@ export class CLI {
     // Handle positional arguments for backward compatibility
     // If no --input flag is provided but there's a positional argument, use it as input
     if (!parsed.input && parsed._ && parsed._.length > 0) {
-      parsed.input = String(parsed._[0]);
+      (parsed as Record<string, unknown>).input = String(parsed._[0]);
     }
 
     // Load configuration
@@ -134,18 +131,25 @@ export class CLI {
     const config = configResult.data;
 
     if (parsed.verbose) {
-      const verboseLogger = LoggerFactory.createLogger("cli-verbose");
+      const verboseLogger = LoggerFactory.createLogger(
+        CLILoggers.VERBOSE.getName(),
+      );
       verboseLogger.info("Configuration loaded", { config });
     }
 
     // Convert ApplicationConfiguration to ProcessingConfiguration
-    const processingConfig = this.convertToProcessingConfiguration(config);
+    const processingConfig = this.convertToProcessingConfiguration(
+      config,
+      parsed,
+    );
     if (!processingConfig.ok) {
       return processingConfig;
     }
 
     // Process documents using canonical ProcessCoordinator
-    const processLogger = LoggerFactory.createLogger("cli-process");
+    const processLogger = LoggerFactory.createLogger(
+      CLILoggers.PROCESS.getName(),
+    );
     processLogger.info("Starting document processing");
     const result = await this.processCoordinator.processDocuments(
       processingConfig.data,
@@ -158,7 +162,9 @@ export class CLI {
     const processingResult = result.data;
 
     // Print summary
-    const summaryLogger = LoggerFactory.createLogger("cli-summary");
+    const summaryLogger = LoggerFactory.createLogger(
+      CLILoggers.SUMMARY.getName(),
+    );
     summaryLogger.info("Processing summary", {
       processedFiles: processingResult.processedFiles,
       processingTime: `${processingResult.processingTime}ms`,
@@ -172,7 +178,9 @@ export class CLI {
       !r.valid
     );
     if (validationResults.length > 0) {
-      const errorSummaryLogger = LoggerFactory.createLogger("cli-errors");
+      const errorSummaryLogger = LoggerFactory.createLogger(
+        CLILoggers.ERRORS.getName(),
+      );
       const errors = validationResults.map((result) => ({
         document: result.documentPath,
         errors: result.errors,
@@ -184,7 +192,9 @@ export class CLI {
       });
     }
 
-    const outputLogger = LoggerFactory.createLogger("cli-output");
+    const outputLogger = LoggerFactory.createLogger(
+      CLILoggers.OUTPUT.getName(),
+    );
     outputLogger.info("Output written successfully", {
       outputPath: processingConfig.data.output.path,
       templateVariables: processingResult.renderedContent.variables,
@@ -248,7 +258,9 @@ export class CLI {
         if (stat.isDirectory) {
           // Use recursive pattern for directory scanning to find all markdown files
           // This fixes the issue where only files in the root directory were processed
-          const recursivePatternResult = FilePattern.createGlob("**/*.md");
+          const recursivePatternResult = FilePattern.createGlob(
+            CLI_DEFAULTS.getFilePatternDefaults().defaultRecursive,
+          );
           if (!recursivePatternResult.ok) {
             return {
               ok: false,
@@ -307,14 +319,19 @@ export class CLI {
           const xTemplatePath = schemaParsed["x-template"];
 
           // Resolve relative path relative to schema file
+          const pathDefaults = CLI_DEFAULTS.getPathDefaults();
           const schemaDir = validatedArgs.schemaPath
-            ? validatedArgs.schemaPath.toString().split("/").slice(0, -1).join(
-              "/",
-            )
-            : ".";
-          const resolvedTemplatePath = xTemplatePath.startsWith("./")
-            ? `${schemaDir}/${xTemplatePath.slice(2)}`
-            : xTemplatePath;
+            ? validatedArgs.schemaPath.toString().split(pathDefaults.separator)
+              .slice(0, -1).join(
+                pathDefaults.separator,
+              )
+            : pathDefaults.currentDirectory;
+          const resolvedTemplatePath =
+            pathDefaults.relativePrefixes.some((prefix) =>
+                xTemplatePath.startsWith(prefix)
+              )
+              ? `${schemaDir}${pathDefaults.separator}${xTemplatePath.slice(2)}`
+              : xTemplatePath;
 
           const templateFileResult = await this.fileSystem.readFile(
             resolvedTemplatePath,
@@ -382,7 +399,8 @@ export class CLI {
 
     // Add default template configuration if not provided
     if (!config.template) {
-      const defaultTemplate = '{"template": "default"}'; // Simple default template
+      const defaultTemplate =
+        CLI_DEFAULTS.getTemplateDefaults().defaultTemplate;
       const formatResult = TemplateFormat.create("json");
       if (!formatResult.ok) {
         return formatResult;
@@ -404,7 +422,9 @@ export class CLI {
     const result = this.configValidator.validate(config);
     if (!result.ok) {
       // Better error reporting for debugging
-      const validationLogger = LoggerFactory.createLogger("cli-validation");
+      const validationLogger = LoggerFactory.createLogger(
+        CLILoggers.VALIDATION.getName(),
+      );
       validationLogger.error("Configuration validation failed", {
         error: result.error,
         config: config,
@@ -422,26 +442,36 @@ export class CLI {
    */
   private convertToProcessingConfiguration(
     appConfig: ApplicationConfiguration,
+    originalArgs: Record<string, unknown>,
   ): Result<ProcessingConfiguration, DomainError & { message: string }> {
     try {
       // Convert input configuration
       const inputConfig = {
         pattern: appConfig.input.kind === "DirectoryInput"
           ? appConfig.input.pattern
-          : "**/*.md",
+          : CLI_DEFAULTS.getFilePatternDefaults().defaultRecursive,
         baseDirectory: appConfig.input.path,
       };
 
       // Convert schema configuration
+      // Use original schema path, not the loaded content
+      const schemaPath = originalArgs.schema as string | undefined;
+      if (!schemaPath) {
+        throw new Error(
+          CLI_DEFAULTS.getErrorMessageDefaults().schemaPathRequired,
+        );
+      }
       const schemaConfig = {
-        path: appConfig.schema.definition,
+        path: schemaPath,
         format: (appConfig.schema.format.toString() as "json" | "yaml"),
       };
 
       // Convert template configuration
+      // For template, we might have either an explicit path or loaded content
+      const templatePath = originalArgs.template as string | undefined;
       const templateConfig = {
         kind: "file" as const,
-        path: appConfig.template.definition,
+        path: templatePath || appConfig.template.definition, // Use original path if available, fallback to content
         format: (appConfig.template.format.toString() as
           | "json"
           | "yaml"
@@ -459,23 +489,23 @@ export class CLI {
           | "custom"),
       };
 
-      // Convert processing options with all required properties
-      const processingOptions: ProcessingOptions = {
-        strict: false,
-        allowEmptyFrontmatter: false,
-        allowMissingVariables: true,
-        validateSchema: true,
-        parallelProcessing: false,
-        maxFiles: 1000,
+      // Convert processing options using CLI defaults
+      const defaultsResult = CLI_DEFAULTS.getProcessingConfiguration();
+      const _processingOptions: ProcessingOptions = {
+        strict: defaultsResult.strict,
+        allowEmptyFrontmatter: defaultsResult.allowEmptyFrontmatter,
+        allowMissingVariables: defaultsResult.allowMissingVariables,
+        validateSchema: defaultsResult.validateSchema,
+        parallelProcessing: defaultsResult.parallelProcessing,
+        maxFiles: defaultsResult.maxFiles.getValue(),
       };
 
       const processingConfig: ProcessingConfiguration = {
-        kind: "advanced",
+        kind: "basic",
         schema: schemaConfig,
         input: inputConfig,
         template: templateConfig,
         output: outputConfig,
-        options: processingOptions,
       };
 
       return { ok: true, data: processingConfig };
@@ -492,7 +522,7 @@ export class CLI {
   }
 
   private printHelp(): void {
-    const helpLogger = LoggerFactory.createLogger("cli-help");
+    const helpLogger = LoggerFactory.createLogger(CLILoggers.HELP.getName());
     helpLogger.info("Displaying help information");
     // Help output to stdout is intentional - not logging
     console.log(`
