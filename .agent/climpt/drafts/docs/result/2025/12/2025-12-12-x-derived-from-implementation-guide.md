@@ -11,11 +11,15 @@ variables:
 
 ## 概要
 
-frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/requirements.ja.md）で定義されていた x-derived-from 機能が完全に実装され、Issue #673 が解決されました。本ガイドでは、実装された機能の仕様、使用方法、および技術的詳細を説明します。
+frontmatter-to-schema
+プロジェクトにおいて、要求仕様書（docs/requirements.ja.md）で定義されていた
+x-derived-from 機能が完全に実装され、Issue #673
+が解決されました。本ガイドでは、実装された機能の仕様、使用方法、および技術的詳細を説明します。
 
 ## 前提情報リスト
 
-- **プロジェクト目的**: Markdown FrontMatter から Schema に基づく構造化処理によるテンプレート出力
+- **プロジェクト目的**: Markdown FrontMatter から Schema
+  に基づく構造化処理によるテンプレート出力
 - **ドメイン**: DDD（Domain-Driven Design）に基づく設計
 - **使用言語**: TypeScript（Deno環境）
 - **主要アーキテクチャ**: Aggregation Context による Schema 拡張処理
@@ -35,20 +39,25 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 **場所**: `src/domain/aggregation/aggregation-service.ts`
 
 **機能**: スキーマ式の文脈解決
-- `resolveExpressionContext()` メソッドがスキーマ表現を実際のデータ構造にマッピング
+
+- `resolveExpressionContext()`
+  メソッドがスキーマ表現を実際のデータ構造にマッピング
 - `"commands[].c1"` → `"tools.commands[].c1"` への自動解決
 - ネストされたデータ構造内での配列パス検索
 
 **アルゴリズム**:
+
 1. 直接式評価の試行
 2. 失敗時のネスト構造探索
 3. マッチするパスの自動特定
 
 ### 1.2 Nested Result Merging
 
-**場所**: `src/application/use-cases/aggregate-results/aggregate-results.usecase.ts`
+**場所**:
+`src/application/use-cases/aggregate-results/aggregate-results.usecase.ts`
 
 **機能**: ドット記法キーの階層化
+
 - `mergeNestedResults()` メソッドがドット記法を適切なオブジェクト構造に変換
 - `"tools.availableConfigs"` → `tools.availableConfigs` プロパティへの正確な配置
 - 既存構造の保護と新規フィールドの適切な統合
@@ -56,6 +65,7 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 ### 1.3 統合された集約処理
 
 **機能**: x-frontmatter-part と x-derived-from の完全連携
+
 - 配列要素からの値抽出
 - ユニーク化処理
 - テンプレート変数への適切な配置
@@ -99,11 +109,13 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 **入力**: 複数のMarkdownファイル（各々 `c1`, `c2` フロントマターを含む）
 
 **処理**:
+
 1. x-frontmatter-part により commands 配列に各ファイルデータを集約
 2. x-derived-from により commands[].c1 から availableConfigs を生成
 3. x-derived-unique により重複除去
 
 **出力**:
+
 ```json
 {
   "tools": {
@@ -134,7 +146,7 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 ### 3.3 CI/CD品質
 
 - TypeScript コンパイル: ✅
-- JSR互換性: ✅  
+- JSR互換性: ✅
 - Lint検査: ✅
 - Format検査: ✅
 
@@ -148,15 +160,18 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 
 ### 4.2 付録
 
-- **用語集**: x-frontmatter-part, x-derived-from, Context Resolution, Nested Result Merging
+- **用語集**: x-frontmatter-part, x-derived-from, Context Resolution, Nested
+  Result Merging
 - **関連Issue**: #673（解決済み）, #672, #666, #663, #651
 - **検証結果**: develop ブランチでの動作確認完了
 
 ## 5. 参照資料
 
 - **要求仕様**: `docs/requirements.ja.md` - x-derived-from の仕様定義
-- **全域性原則**: `docs/development/totality.ja.md` - Result<T,E> パターン設計指針
-- **AI複雑化防止**: `docs/development/ai-complexity-control_compact.ja.md` - 科学的制御手法
+- **全域性原則**: `docs/development/totality.ja.md` - Result<T,E>
+  パターン設計指針
+- **AI複雑化防止**: `docs/development/ai-complexity-control_compact.ja.md` -
+  科学的制御手法
 - **DDD設計**: プロジェクト内ドメインモデル実装
 
 ## 6. 運用指針
@@ -177,7 +192,7 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 ## 7. Definition of Done
 
 - [x] x-frontmatter-part判定ロジックの実装
-- [x] 汎用的なSchema処理パイプラインの構築  
+- [x] 汎用的なSchema処理パイプラインの構築
 - [x] Registry処理の動作維持（622テスト成功）
 - [x] E2Eテストの完了
 - [x] 全不変条件の充足
@@ -186,4 +201,5 @@ frontmatter-to-schema プロジェクトにおいて、要求仕様書（docs/re
 ---
 
 **変更履歴**:
+
 - v1.0: 初版作成（2025-12-12）

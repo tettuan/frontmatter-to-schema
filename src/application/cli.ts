@@ -22,6 +22,7 @@ import {
   type FileFormatDetector,
   FormatDetectorFactory,
 } from "../domain/services/file-format-detector.ts";
+import { FilePattern } from "../domain/value-objects/file-pattern.ts";
 
 export class CLI {
   private readonly logger = LoggerFactory.createLogger("CLI");
@@ -266,10 +267,20 @@ export class CLI {
       try {
         const stat = await Deno.stat(inputPath);
         if (stat.isDirectory) {
+          // Use recursive pattern for directory scanning to find all markdown files
+          // This fixes the issue where only files in the root directory were processed
+          const recursivePatternResult = FilePattern.createGlob("**/*.md");
+          if (!recursivePatternResult.ok) {
+            return {
+              ok: false,
+              error: { kind: "ConfigurationError", config: config },
+            };
+          }
+
           config.input = {
             kind: "DirectoryInput",
             path: inputPath,
-            pattern: "*.md", // Default pattern for markdown files
+            pattern: recursivePatternResult.data.toString(),
           };
         } else {
           config.input = {
