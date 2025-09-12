@@ -45,15 +45,39 @@ export class FileDiscoveryService {
     );
 
     try {
-      // Check if path exists and is directory
+      // Check if path exists
       const stat = await Deno.stat(dirPath);
+      
+      // Handle single file case
+      if (stat.isFile) {
+        // If the original path was a file, return it if it's a markdown file
+        if (pathValue.endsWith(".md") || pathValue.endsWith(".markdown")) {
+          VerboseLoggerService.logInfo(
+            "file-discovery-service",
+            "Single markdown file detected",
+            { file: pathValue },
+          );
+          return { ok: true, data: [pathValue] };
+        } else {
+          return {
+            ok: false,
+            error: createDomainError({
+              kind: "InvalidFormat",
+              input: pathValue,
+              expectedFormat: ".md or .markdown",
+            }, "File is not a markdown file"),
+          };
+        }
+      }
+      
+      // Handle directory case
       if (!stat.isDirectory) {
         return {
           ok: false,
           error: createDomainError({
             kind: "ReadError",
             path: dirPath,
-            details: "Path is not a directory",
+            details: "Path is neither a file nor a directory",
           }),
         };
       }

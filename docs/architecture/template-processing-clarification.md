@@ -2,11 +2,15 @@
 
 ## Core Principle
 
-**Template defines output format EXACTLY. Only what is written in the template will be output.**
+**Template defines output format EXACTLY. Only what is written in the template
+will be output.**
 
-This is a fundamental, non-negotiable principle of the system. The template is the sole authority for output structure - no inference, no completion, no Schema-based augmentation.
+This is a fundamental, non-negotiable principle of the system. The template is
+the sole authority for output structure - no inference, no completion, no
+Schema-based augmentation.
 
 ### Correct Understanding
+
 ```json
 // Template: simple_template.json
 "{id.full}"
@@ -18,10 +22,11 @@ This is a fundamental, non-negotiable principle of the system. The template is t
 ```
 
 ### INCORRECT Assumptions
-❌ "Schema structure will be used when template is partial"
-❌ "x-frontmatter-part arrays have special processing"
-❌ "Template can be simplified and system will infer full structure"
-❌ "System will wrap values in objects based on Schema"
+
+❌ "Schema structure will be used when template is partial" ❌
+"x-frontmatter-part arrays have special processing" ❌ "Template can be
+simplified and system will infer full structure" ❌ "System will wrap values in
+objects based on Schema"
 
 ## Template Variable Resolution
 
@@ -32,11 +37,13 @@ This is a fundamental, non-negotiable principle of the system. The template is t
 ## Array Processing with x-frontmatter-part
 
 When `x-frontmatter-part: true`:
+
 - Each frontmatter item is processed
 - Template is applied to EACH item
 - Template must define complete desired structure
 
 ### Example
+
 ```json
 // Schema with x-frontmatter-part
 {
@@ -60,17 +67,23 @@ When `x-frontmatter-part: true`:
 ## Common Misunderstandings
 
 ### Misunderstanding 1: "Schema defines output structure"
-**Reality**: Schema defines validation/parsing structure. Template defines output structure.
+
+**Reality**: Schema defines validation/parsing structure. Template defines
+output structure.
 
 ### Misunderstanding 2: "Partial templates are completed by Schema"
+
 **Reality**: Templates are never "completed". They define exactly what outputs.
 
 ### Misunderstanding 3: "x-frontmatter-part has special template handling"
-**Reality**: Same template rules apply. Each array item gets the template applied.
+
+**Reality**: Same template rules apply. Each array item gets the template
+applied.
 
 ## Real-World Example: Traceability Items
 
 ### Problem Case
+
 ```json
 // traceability_item_template.json (INCORRECT - produces string array)
 "{id.full}"
@@ -89,6 +102,7 @@ When `x-frontmatter-part: true`:
 ```
 
 ### Solution
+
 ```json
 // traceability_item_template.json (CORRECT - defines full structure)
 {
