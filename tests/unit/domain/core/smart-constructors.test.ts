@@ -406,7 +406,7 @@ Deno.test("SchemaDefinition Smart Constructor", async (t) => {
 
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "InvalidFormat");
+      assertEquals(result.error.kind, "ParseError");
     }
   });
 

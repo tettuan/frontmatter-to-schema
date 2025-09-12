@@ -54,7 +54,7 @@ export class DenoFileSystemProvider implements FileSystemPort {
   ): Promise<Result<FileInfo[], DomainError>> {
     try {
       const files: FileInfo[] = [];
-      const regex = pattern ? new RegExp(pattern) : null;
+      const regex = pattern ? this.createRegexFromPattern(pattern) : null;
 
       for await (const entry of Deno.readDir(dirPath)) {
         if (!regex || regex.test(entry.name)) {
@@ -116,6 +116,41 @@ export class DenoFileSystemProvider implements FileSystemPort {
         error: { kind: "PermissionDenied", path, operation: "delete" },
       };
     }
+  }
+
+  /**
+   * Create regex from pattern - detects if it's already a regex or converts from glob
+   */
+  private createRegexFromPattern(pattern: string): RegExp {
+    // If pattern looks like a regex (contains regex-specific characters), use it directly
+    if (
+      pattern.includes("\\") || pattern.includes("^") ||
+      pattern.includes("$") ||
+      pattern.includes("(") || pattern.includes(")") || pattern.includes("[") ||
+      pattern.includes("]")
+    ) {
+      return new RegExp(pattern);
+    }
+
+    // Otherwise treat as glob pattern and convert
+    return this.globToRegex(pattern);
+  }
+
+  /**
+   * Convert glob pattern to regular expression
+   * Supports basic glob patterns like *.md, double-star patterns, etc.
+   */
+  private globToRegex(pattern: string): RegExp {
+    // Escape special regex characters except * and ?
+    let regexPattern = pattern
+      .replace(/[.+^${}()|[\]\\]/g, "\\$&") // Escape special chars
+      .replace(/\*/g, "[^/]*") // * matches any chars except /
+      .replace(/\?/g, "[^/]"); // ? matches single char except /
+
+    // Handle ** for recursive matching
+    regexPattern = regexPattern.replace(/\[\\^\/\]\*\[\\^\/\]\*/g, ".*");
+
+    return new RegExp(`^${regexPattern}$`);
   }
 
   // Legacy methods for backward compatibility

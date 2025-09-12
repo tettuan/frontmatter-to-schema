@@ -1,6 +1,6 @@
 /**
  * Robust Expression Evaluator Tests
- * 
+ *
  * Addresses Issue #666: Test specification gaps for critical methods
  * Focuses on x-derived-from context resolution (Issue #673 implementation)
  * Follows DDD, Totality, and AI complexity control principles
@@ -9,7 +9,6 @@
 import { describe, it } from "jsr:@std/testing/bdd";
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { ExpressionEvaluator } from "../../../../src/domain/aggregation/expression-evaluator.ts";
-import type { Result } from "../../../../src/domain/core/result.ts";
 
 describe("ExpressionEvaluator - Robust Domain Tests", () => {
   let evaluator: ExpressionEvaluator;
@@ -28,9 +27,9 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
     it("should return Result type for all operations", () => {
       evaluator = createEvaluator();
       const testData = { items: [{ value: "test" }] };
-      
+
       const result = evaluator.evaluate(testData, "items[].value");
-      
+
       // Totality: Result<T,E> pattern validation
       assertExists(result.ok);
       assertEquals(typeof result.ok, "boolean");
@@ -51,8 +50,8 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
       const data = {
         commands: [
           { c1: "git", c2: "commit" },
-          { c1: "debug", c2: "analyze" }
-        ]
+          { c1: "debug", c2: "analyze" },
+        ],
       };
 
       const result = evaluator.evaluate(data, "commands[*].c1");
@@ -69,9 +68,9 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
         tools: {
           commands: [
             { c1: "refactor", c2: "ddd" },
-            { c1: "build", c2: "robust" }
-          ]
-        }
+            { c1: "build", c2: "robust" },
+          ],
+        },
       };
 
       const result = evaluator.evaluate(data, "tools.commands[*].c1");
@@ -88,13 +87,16 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
         projects: [
           {
             modules: [
-              { tools: [{ name: "climpt" }, { name: "totality" }] }
-            ]
-          }
-        ]
+              { tools: [{ name: "climpt" }, { name: "totality" }] },
+            ],
+          },
+        ],
       };
 
-      const result = evaluator.evaluate(data, "projects[*].modules[*].tools[*].name");
+      const result = evaluator.evaluate(
+        data,
+        "projects[*].modules[*].tools[*].name",
+      );
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -119,7 +121,7 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
 
     it("should handle null/undefined data gracefully", () => {
       evaluator = createEvaluator();
-      
+
       const nullResult = evaluator.evaluate(null, "test[].prop");
       const undefinedResult = evaluator.evaluate(undefined, "test[].prop");
 
@@ -151,7 +153,7 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
       evaluator = createEvaluator();
       const data = [
         { items: [{ name: "test1" }, { name: "test2" }] },
-        { items: [{ name: "test1" }, { name: "test3" }] }
+        { items: [{ name: "test1" }, { name: "test3" }] },
       ];
 
       const result = evaluator.extractUnique(data, "[*].items[*].name");
@@ -169,7 +171,12 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
       evaluator = createEvaluator();
       const data = [
         { configs: [{ type: "git", active: true }] },
-        { configs: [{ type: "git", active: true }, { type: "debug", active: false }] }
+        {
+          configs: [{ type: "git", active: true }, {
+            type: "debug",
+            active: false,
+          }],
+        },
       ];
 
       const result = evaluator.extractUnique(data, "[*].configs[*]");
@@ -199,9 +206,9 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
       const data = {
         level1: {
           level2: {
-            level3: []
-          }
-        }
+            level3: [],
+          },
+        },
       };
 
       const result = evaluator.evaluate(data, "level1.level2.level3[*].prop");
@@ -219,8 +226,8 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
           { value: "string" },
           { value: 123 },
           { value: true },
-          { value: null }
-        ]
+          { value: null },
+        ],
       };
 
       const result = evaluator.evaluate(data, "mixed[*].value");
@@ -236,14 +243,14 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
   describe("Performance and Stability", () => {
     it("should handle large datasets efficiently", () => {
       evaluator = createEvaluator();
-      
+
       // Generate large test dataset
       const largeData = {
         items: Array.from({ length: 1000 }, (_, i) => ({
           id: i,
           name: `item-${i}`,
-          category: i % 10
-        }))
+          category: i % 10,
+        })),
       };
 
       const startTime = performance.now();
@@ -254,18 +261,22 @@ describe("ExpressionEvaluator - Robust Domain Tests", () => {
       if (result.ok) {
         assertEquals(result.data.length, 1000);
       }
-      
+
       // Performance assertion - should complete within reasonable time
       const executionTime = endTime - startTime;
-      assertEquals(executionTime < 100, true, `Execution took ${executionTime}ms, expected < 100ms`);
+      assertEquals(
+        executionTime < 100,
+        true,
+        `Execution took ${executionTime}ms, expected < 100ms`,
+      );
     });
 
     it("should be memory efficient with unique extraction", () => {
       evaluator = createEvaluator();
-      
+
       // Create data with many duplicates
       const data = Array.from({ length: 100 }, () => ({
-        values: [{ type: "duplicate" }, { type: "unique", id: Math.random() }]
+        values: [{ type: "duplicate" }, { type: "unique", id: Math.random() }],
       }));
 
       const result = evaluator.extractUnique(data, "[*].values[*].type");

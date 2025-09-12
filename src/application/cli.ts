@@ -261,7 +261,7 @@ export class CLI {
     // Input configuration - detect if path is file or directory
     if (validatedArgs.inputPath) {
       const inputPath = validatedArgs.inputPath.toString();
-      
+
       // Check if path is a directory or file
       try {
         const stat = await Deno.stat(inputPath);

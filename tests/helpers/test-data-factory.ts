@@ -1,13 +1,16 @@
 /**
  * Test Data Factory - Reusable Test Data Generation
- * 
+ *
  * Addresses Issue #666: Standardized test data creation
  * Supports robust testing with consistent data patterns
  * Follows DDD and Totality principles for test reliability
  */
 
 import { SchemaTemplateInfo } from "../../src/domain/models/schema-extensions.ts";
-import { DerivationRule, AggregationContext } from "../../src/domain/aggregation/value-objects.ts";
+import {
+  AggregationContext,
+  DerivationRule,
+} from "../../src/domain/aggregation/value-objects.ts";
 
 /**
  * Registry command structure for test scenarios
@@ -24,30 +27,41 @@ export interface TestCommand {
  * Registry test data factory
  */
 export class TestDataFactory {
-  
   /**
    * Create standard registry test data with commands
    */
-  static createRegistryTestData(commandCount: number = 3): Array<{ tools: { commands: TestCommand[] } }> {
+  static createRegistryTestData(
+    commandCount: number = 3,
+  ): Array<{ tools: { commands: TestCommand[] } }> {
     const commands: TestCommand[] = [];
     const configs = ["git", "debug", "refactor", "build", "spec"];
     const actions = ["merge-up", "analyze-deep", "ddd", "robust", "validate"];
-    const targets = ["base-branch", "project-issues", "architecture", "testing", "schemas"];
+    const targets = [
+      "base-branch",
+      "project-issues",
+      "architecture",
+      "testing",
+      "schemas",
+    ];
 
     for (let i = 0; i < commandCount; i++) {
       commands.push({
         c1: configs[i % configs.length],
         c2: actions[i % actions.length],
         c3: targets[i % targets.length],
-        title: `${configs[i % configs.length].charAt(0).toUpperCase()}${configs[i % configs.length].slice(1)} Command`,
-        description: `${configs[i % configs.length]} ${actions[i % actions.length]} operation`
+        title: `${configs[i % configs.length].charAt(0).toUpperCase()}${
+          configs[i % configs.length].slice(1)
+        } Command`,
+        description: `${configs[i % configs.length]} ${
+          actions[i % actions.length]
+        } operation`,
       });
     }
 
     return [{
       tools: {
-        commands: commands
-      }
+        commands: commands,
+      },
     }];
   }
 
@@ -68,7 +82,7 @@ export class TestDataFactory {
               type: "array",
               "x-derived-from": "commands[].c1",
               "x-derived-unique": true,
-              items: { type: "string" }
+              items: { type: "string" },
             },
             commands: {
               type: "array",
@@ -80,13 +94,13 @@ export class TestDataFactory {
                   c2: { type: "string" },
                   c3: { type: "string" },
                   title: { type: "string" },
-                  description: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      }
+                  description: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+      },
     };
   }
 
@@ -104,20 +118,20 @@ export class TestDataFactory {
               type: "array",
               "x-derived-from": "commands[].c1",
               "x-derived-unique": true,
-              items: { type: "string" }
+              items: { type: "string" },
             },
             actions: {
-              type: "array", 
+              type: "array",
               "x-derived-from": "commands[].c2",
               "x-derived-unique": true,
-              items: { type: "string" }
+              items: { type: "string" },
             },
             commands: {
               type: "array",
               "x-frontmatter-part": true,
-              items: { type: "object" }
-            }
-          }
+              items: { type: "object" },
+            },
+          },
         },
         meta: {
           type: "object",
@@ -125,11 +139,11 @@ export class TestDataFactory {
             totalCommands: {
               type: "number",
               "x-derived-from": "commands[]",
-              items: { type: "object" }
-            }
-          }
-        }
-      }
+              items: { type: "object" },
+            },
+          },
+        },
+      },
     };
   }
 
@@ -146,11 +160,11 @@ export class TestDataFactory {
           items: {
             type: "object",
             properties: {
-              name: { type: "string" }
-            }
-          }
-        }
-      }
+              name: { type: "string" },
+            },
+          },
+        },
+      },
     };
   }
 
@@ -163,31 +177,33 @@ export class TestDataFactory {
       description: "Generated configuration",
       tools: {
         availableConfigs: "{{tools.availableConfigs}}",
-        commands: "{{tools.commands}}"
-      }
+        commands: "{{tools.commands}}",
+      },
     };
   }
 
   /**
    * Create large dataset for performance testing
    */
-  static createLargeTestData(itemCount: number = 1000): Array<{ tools: { commands: TestCommand[] } }> {
+  static createLargeTestData(
+    itemCount: number = 1000,
+  ): Array<{ tools: { commands: TestCommand[] } }> {
     const commands: TestCommand[] = [];
-    
+
     for (let i = 0; i < itemCount; i++) {
       commands.push({
         c1: `type-${i % 10}`, // 10 unique types
         c2: `action-${i % 5}`, // 5 unique actions
         c3: `target-${i}`,
         title: `Command ${i}`,
-        description: `Description for command ${i}`
+        description: `Description for command ${i}`,
       });
     }
 
     return [{
       tools: {
-        commands: commands
-      }
+        commands: commands,
+      },
     }];
   }
 
@@ -199,15 +215,15 @@ export class TestDataFactory {
       projects: [
         {
           modules: [
-            { 
+            {
               tools: [
-                { name: "climpt", type: "cli" }, 
-                { name: "totality", type: "principle" }
-              ] 
-            }
-          ]
-        }
-      ]
+                { name: "climpt", type: "cli" },
+                { name: "totality", type: "principle" },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 
@@ -220,29 +236,36 @@ export class TestDataFactory {
         { value: "string" },
         { value: 123 },
         { value: true },
-        { value: null }
-      ]
+        { value: null },
+      ],
     };
   }
 
   /**
    * Create derivation rule for testing
    */
-  static createDerivationRule(targetField: string, sourceExpression: string, options: { unique: boolean; flatten: boolean }) {
+  static createDerivationRule(
+    targetField: string,
+    sourceExpression: string,
+    options: { unique: boolean; flatten: boolean },
+  ) {
     return DerivationRule.create(targetField, sourceExpression, options);
   }
 
   /**
    * Create aggregation context for testing
    */
-  static createAggregationContext(rules: any[], options: { skipNull: boolean; skipUndefined: boolean }) {
+  static createAggregationContext(
+    rules: DerivationRule[],
+    options: { skipNull: boolean; skipUndefined: boolean },
+  ) {
     return AggregationContext.create(rules, options);
   }
 
   /**
    * Create schema template info from schema
    */
-  static createSchemaTemplateInfo(schema: any) {
+  static createSchemaTemplateInfo(schema: Record<string, unknown>) {
     return SchemaTemplateInfo.extract(schema);
   }
 }

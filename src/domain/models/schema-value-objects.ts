@@ -84,11 +84,14 @@ export class SchemaDefinition {
     ) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: typeof parsedDefinition,
-          expectedFormat: "object",
-        }, "Schema definition must be a plain object (or valid JSON string that parses to an object)"),
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: typeof parsedDefinition,
+            expectedFormat: "object",
+          },
+          "Schema definition must be a plain object (or valid JSON string that parses to an object)",
+        ),
       };
     }
 

@@ -1,6 +1,6 @@
 /**
  * Robust Aggregation Service Tests
- * 
+ *
  * Addresses Issue #666: Critical test gaps for aggregation methods
  * Tests Issue #673 implementation: x-derived-from context resolution
  * Validates DDD principles and Totality patterns
@@ -10,16 +10,19 @@ import { describe, it } from "jsr:@std/testing/bdd";
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { createAggregationService } from "../../../../src/domain/aggregation/aggregation-service.ts";
 import { SchemaExtensionRegistryFactory } from "../../../../src/domain/schema/factories/schema-extension-registry-factory.ts";
-import { AggregationContext, DerivationRule } from "../../../../src/domain/aggregation/value-objects.ts";
-import type { Result } from "../../../../src/domain/core/result.ts";
+import {
+  AggregationContext,
+  DerivationRule,
+} from "../../../../src/domain/aggregation/value-objects.ts";
 
 describe("AggregationService - Robust Domain Tests", () => {
-  
   // Smart Constructor for test service creation
   function createTestService() {
     const registryResult = SchemaExtensionRegistryFactory.createDefault();
     if (!registryResult.ok) {
-      throw new Error(`Failed to create registry: ${registryResult.error.message}`);
+      throw new Error(
+        `Failed to create registry: ${registryResult.error.message}`,
+      );
     }
     return createAggregationService(registryResult.data);
   }
@@ -33,7 +36,7 @@ describe("AggregationService - Robust Domain Tests", () => {
     it("should maintain registry dependency", () => {
       const registryResult = SchemaExtensionRegistryFactory.createDefault();
       assertEquals(registryResult.ok, true);
-      
+
       if (registryResult.ok) {
         const service = createAggregationService(registryResult.data);
         assertExists(service);
@@ -42,30 +45,30 @@ describe("AggregationService - Robust Domain Tests", () => {
   });
 
   describe("Core Aggregation - Business Logic Validation", () => {
-    it("should aggregate simple derivation rules", async () => {
+    it("should aggregate simple derivation rules", () => {
       const service = createTestService();
-      
+
       const ruleResult = DerivationRule.create(
         "availableConfigs",
         "commands[].c1",
-        { unique: true, flatten: false }
+        { unique: true, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const testData = [
         { commands: [{ c1: "git" }, { c1: "debug" }] },
-        { commands: [{ c1: "refactor" }] }
+        { commands: [{ c1: "refactor" }] },
       ];
 
       const result = service.aggregate(testData, context);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const data = result.data.getData();
@@ -76,34 +79,37 @@ describe("AggregationService - Robust Domain Tests", () => {
       }
     });
 
-    it("should handle nested structure context resolution", async () => {
+    it("should handle nested structure context resolution", () => {
       const service = createTestService();
-      
+
       // Test the Issue #673 fix: context resolution for nested structures
       const ruleResult = DerivationRule.create(
-        "tools.availableConfigs", 
-        "commands[].c1",  // This should resolve to "tools.commands[].c1"
-        { unique: true, flatten: false }
+        "tools.availableConfigs",
+        "commands[].c1", // This should resolve to "tools.commands[].c1"
+        { unique: true, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const testData = [
         {
           tools: {
-            commands: [{ c1: "git", c2: "merge-up" }, { c1: "debug", c2: "analyze" }]
-          }
-        }
+            commands: [{ c1: "git", c2: "merge-up" }, {
+              c1: "debug",
+              c2: "analyze",
+            }],
+          },
+        },
       ];
 
       const result = service.aggregate(testData, context);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const data = result.data.getData();
@@ -115,30 +121,30 @@ describe("AggregationService - Robust Domain Tests", () => {
       }
     });
 
-    it("should apply uniqueness filtering correctly", async () => {
+    it("should apply uniqueness filtering correctly", () => {
       const service = createTestService();
-      
+
       const ruleResult = DerivationRule.create(
         "uniqueTypes",
         "items[].type",
-        { unique: true, flatten: false }
+        { unique: true, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const testData = [
         { items: [{ type: "A" }, { type: "B" }, { type: "A" }] },
-        { items: [{ type: "B" }, { type: "C" }] }
+        { items: [{ type: "B" }, { type: "C" }] },
       ];
 
       const result = service.aggregate(testData, context);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const data = result.data.getData();
@@ -154,7 +160,7 @@ describe("AggregationService - Robust Domain Tests", () => {
   describe("Schema Rule Extraction - DDD Boundary Testing", () => {
     it("should extract rules from valid schema", () => {
       const service = createTestService();
-      
+
       const schema = {
         type: "object",
         properties: {
@@ -162,13 +168,13 @@ describe("AggregationService - Robust Domain Tests", () => {
             type: "array",
             "x-derived-from": "source[].prop",
             "x-derived-unique": true,
-            items: { type: "string" }
-          }
-        }
+            items: { type: "string" },
+          },
+        },
       };
 
       const result = service.extractRulesFromSchema(schema);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data.length, 1);
@@ -181,18 +187,18 @@ describe("AggregationService - Robust Domain Tests", () => {
 
     it("should handle schema without derivation rules", () => {
       const service = createTestService();
-      
+
       const schema = {
         type: "object",
         properties: {
           normalField: {
-            type: "string"
-          }
-        }
+            type: "string",
+          },
+        },
       };
 
       const result = service.extractRulesFromSchema(schema);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data.length, 0);
@@ -201,9 +207,9 @@ describe("AggregationService - Robust Domain Tests", () => {
 
     it("should handle malformed schema gracefully", () => {
       const service = createTestService();
-      
+
       const result = service.extractRulesFromSchema({});
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data.length, 0);
@@ -212,39 +218,39 @@ describe("AggregationService - Robust Domain Tests", () => {
   });
 
   describe("Error Handling - Totality Validation", () => {
-    it("should handle invalid aggregation context", async () => {
-      const service = createTestService();
-      
+    it("should handle invalid aggregation context", () => {
+      const _service = createTestService();
+
       // Create invalid rule to test error handling
       const invalidRuleResult = DerivationRule.create(
         "", // Invalid empty field name
         "valid[].expression",
-        { unique: false, flatten: false }
+        { unique: false, flatten: false },
       );
 
       // Should fail to create invalid rule
       assertEquals(invalidRuleResult.ok, false);
     });
 
-    it("should handle empty data arrays", async () => {
+    it("should handle empty data arrays", () => {
       const service = createTestService();
-      
+
       const ruleResult = DerivationRule.create(
         "field",
         "items[].prop",
-        { unique: false, flatten: false }
+        { unique: false, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const result = service.aggregate([], context);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const data = result.data.getData();
@@ -253,30 +259,30 @@ describe("AggregationService - Robust Domain Tests", () => {
       }
     });
 
-    it("should handle data with missing properties", async () => {
+    it("should handle data with missing properties", () => {
       const service = createTestService();
-      
+
       const ruleResult = DerivationRule.create(
         "derived",
         "missing[].prop",
-        { unique: false, flatten: false }
+        { unique: false, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const testData = [
         { existing: "value" },
-        { other: "data" }
+        { other: "data" },
       ];
 
       const result = service.aggregate(testData, context);
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const data = result.data.getData();
@@ -287,82 +293,86 @@ describe("AggregationService - Robust Domain Tests", () => {
   });
 
   describe("Performance and Scalability", () => {
-    it("should handle large datasets efficiently", async () => {
+    it("should handle large datasets efficiently", () => {
       const service = createTestService();
-      
+
       const ruleResult = DerivationRule.create(
         "categories",
         "items[].category",
-        { unique: true, flatten: false }
+        { unique: true, flatten: false },
       );
-      
+
       assertEquals(ruleResult.ok, true);
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       // Generate large test dataset
       const largeData = Array.from({ length: 1000 }, (_, i) => ({
         items: [
           { category: `cat-${i % 10}` }, // 10 unique categories
-          { category: `cat-${(i + 1) % 10}` }
-        ]
+          { category: `cat-${(i + 1) % 10}` },
+        ],
       }));
 
       const startTime = performance.now();
       const result = service.aggregate(largeData, context);
       const endTime = performance.now();
-      
+
       assertEquals(result.ok, true);
       if (result.ok) {
         const categories = result.data.getData().categories as string[];
         assertEquals(categories.length, 10); // Should have 10 unique categories
       }
-      
+
       // Performance validation
       const executionTime = endTime - startTime;
-      assertEquals(executionTime < 500, true, `Execution took ${executionTime}ms, expected < 500ms`);
+      assertEquals(
+        executionTime < 500,
+        true,
+        `Execution took ${executionTime}ms, expected < 500ms`,
+      );
     });
   });
 
   describe("Applied Aggregated Data - Template Integration", () => {
     it("should apply aggregated data to base template correctly", () => {
       const service = createTestService();
-      
+
       const baseTemplate = {
         version: "1.0.0",
-        placeholder: "to-be-replaced"
+        placeholder: "to-be-replaced",
       };
 
-      const aggregatedData = {
+      const _aggregatedData = {
         tools: {
-          configs: ["git", "debug"]
-        }
+          configs: ["git", "debug"],
+        },
       };
 
       // Create valid AggregatedResult through aggregation
       const ruleResult = DerivationRule.create(
         "tools.configs",
         "[].value", // dummy expression
-        { unique: false, flatten: false }
+        { unique: false, flatten: false },
       );
-      
+
       if (!ruleResult.ok) return;
 
       const context = AggregationContext.create([ruleResult.data], {
         skipNull: true,
-        skipUndefined: true
+        skipUndefined: true,
       });
 
       const mockResult = service.aggregate([{ value: "test" }], context);
-      
+
       if (!mockResult.ok) return;
 
       const result = service.applyAggregatedData(baseTemplate, mockResult.data);
-      
+
       assertExists(result);
       assertEquals(result.version, "1.0.0");
       // Should preserve original structure while applying aggregation
