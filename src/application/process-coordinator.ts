@@ -337,16 +337,23 @@ export class ProcessCoordinator {
       const files: DocumentPath[] = [];
 
       // Recursive directory traversal function
-      const traverseDirectory = async (currentDir: string, relativePath: string = ""): Promise<void> => {
+      const traverseDirectory = async (
+        currentDir: string,
+        relativePath: string = "",
+      ): Promise<void> => {
         try {
           for await (const entry of Deno.readDir(currentDir)) {
-            const entryPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+            const entryPath = relativePath
+              ? `${relativePath}/${entry.name}`
+              : entry.name;
             const fullPath = `${currentDir}/${entry.name}`;
 
             if (entry.isFile) {
               const matchResult = this.matchesPattern(entryPath, pattern);
               if (!matchResult.ok) {
-                throw new Error(`Pattern matching failed: ${matchResult.error.message}`);
+                throw new Error(
+                  `Pattern matching failed: ${matchResult.error.message}`,
+                );
               }
 
               if (matchResult.data) {
@@ -362,7 +369,7 @@ export class ProcessCoordinator {
             } else if (entry.isDirectory) {
               // Recursively traverse subdirectories
               await traverseDirectory(fullPath, entryPath);
-              
+
               // Check if we've reached max files after recursive call
               if (files.length >= options.maxFiles) {
                 return;
@@ -386,7 +393,9 @@ export class ProcessCoordinator {
               directory: baseDir,
               pattern,
             },
-            `File discovery failed: ${error instanceof Error ? error.message : String(error)}`,
+            `File discovery failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
           ),
         };
       }
