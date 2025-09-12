@@ -246,13 +246,8 @@ describe("ProcessingOptionsBuilder", () => {
       const defaults = ProcessingOptionsBuilder.getDefaults();
 
       assertExists(defaults);
-<<<<<<< Updated upstream
       assertEquals(defaults.strict, true);
       assertEquals(defaults.allowEmptyFrontmatter, true); // Changed to allow graceful handling
-=======
-      assertEquals(defaults.strict, false);
-      assertEquals(defaults.allowEmptyFrontmatter, true);
->>>>>>> Stashed changes
       assertEquals(defaults.allowMissingVariables, true);
       assertEquals(defaults.validateSchema, true);
       assertEquals(defaults.parallelProcessing, false);
