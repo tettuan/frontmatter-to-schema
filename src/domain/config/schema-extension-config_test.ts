@@ -118,98 +118,133 @@ describe("SchemaExtensionConfig", () => {
 
   describe("createDefault factory method", () => {
     it("should create default configuration", () => {
-      const config = SchemaExtensionConfig.createDefault();
+      const result = SchemaExtensionConfig.createDefault();
 
-      assertEquals(config.getTemplateProperty(), "x-template");
-      assertEquals(config.getDerivedFromProperty(), "x-derived-from");
-      assertEquals(config.getDerivedUniqueProperty(), "x-derived-unique");
-      assertEquals(config.getDerivedFlattenProperty(), "x-derived-flatten");
-      assertEquals(config.getFrontmatterPartProperty(), "x-frontmatter-part");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
+        assertEquals(config.getTemplateProperty(), "x-template");
+        assertEquals(config.getDerivedFromProperty(), "x-derived-from");
+        assertEquals(config.getDerivedUniqueProperty(), "x-derived-unique");
+        assertEquals(config.getDerivedFlattenProperty(), "x-derived-flatten");
+        assertEquals(config.getFrontmatterPartProperty(), "x-frontmatter-part");
+      }
     });
   });
 
   describe("property access methods", () => {
     it("should return all properties as readonly array", () => {
-      const config = SchemaExtensionConfig.createDefault();
-      const properties = config.getAllProperties();
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
+        const properties = config.getAllProperties();
 
-      assertEquals(properties.length, 5);
-      assertEquals(properties.includes("x-template"), true);
-      assertEquals(properties.includes("x-derived-from"), true);
-      assertEquals(properties.includes("x-derived-unique"), true);
-      assertEquals(properties.includes("x-derived-flatten"), true);
-      assertEquals(properties.includes("x-frontmatter-part"), true);
+        assertEquals(properties.length, 5);
+        assertEquals(properties.includes("x-template"), true);
+        assertEquals(properties.includes("x-derived-from"), true);
+        assertEquals(properties.includes("x-derived-unique"), true);
+        assertEquals(properties.includes("x-derived-flatten"), true);
+        assertEquals(properties.includes("x-frontmatter-part"), true);
+      }
     });
 
     it("should identify extension properties", () => {
-      const config = SchemaExtensionConfig.createDefault();
-
-      assertEquals(config.isExtensionProperty("x-template"), true);
-      assertEquals(config.isExtensionProperty("x-derived-from"), true);
-      assertEquals(config.isExtensionProperty("not-extension"), false);
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
+        assertEquals(config.isExtensionProperty("x-template"), true);
+        assertEquals(config.isExtensionProperty("x-derived-from"), true);
+        assertEquals(config.isExtensionProperty("not-extension"), false);
+      }
     });
 
     it("should get extension type for known properties", () => {
-      const config = SchemaExtensionConfig.createDefault();
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
 
-      const templateResult = config.getExtensionType("x-template");
-      assertEquals(templateResult.ok, true);
-      if (templateResult.ok) {
-        assertEquals(templateResult.data, "template");
-      }
+        const templateResult = config.getExtensionType("x-template");
+        assertEquals(templateResult.ok, true);
+        if (templateResult.ok) {
+          assertEquals(templateResult.data, "template");
+        }
 
-      const derivedResult = config.getExtensionType("x-derived-from");
-      assertEquals(derivedResult.ok, true);
-      if (derivedResult.ok) {
-        assertEquals(derivedResult.data, "derivedFrom");
+        const derivedResult = config.getExtensionType("x-derived-from");
+        assertEquals(derivedResult.ok, true);
+        if (derivedResult.ok) {
+          assertEquals(derivedResult.data, "derivedFrom");
+        }
       }
     });
 
     it("should return error for unknown properties", () => {
-      const config = SchemaExtensionConfig.createDefault();
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
 
-      const result = config.getExtensionType("unknown-property");
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertEquals(result.error.kind, "NotFound");
+        const extensionResult = config.getExtensionType("unknown-property");
+        assertEquals(extensionResult.ok, false);
+        if (!extensionResult.ok) {
+          assertEquals(extensionResult.error.kind, "NotFound");
+        }
       }
     });
   });
 
   describe("validation map creation", () => {
     it("should create property validation map", () => {
-      const config = SchemaExtensionConfig.createDefault();
-      const validationMap = config.createPropertyValidationMap();
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
+        const validationMap = config.createPropertyValidationMap();
 
-      assertEquals(validationMap["x-template"], "template");
-      assertEquals(validationMap["x-derived-from"], "derivedFrom");
-      assertEquals(validationMap["x-derived-unique"], "derivedUnique");
-      assertEquals(validationMap["x-derived-flatten"], "derivedFlatten");
-      assertEquals(validationMap["x-frontmatter-part"], "frontmatterPart");
+        assertEquals(validationMap["x-template"], "template");
+        assertEquals(validationMap["x-derived-from"], "derivedFrom");
+        assertEquals(validationMap["x-derived-unique"], "derivedUnique");
+        assertEquals(validationMap["x-derived-flatten"], "derivedFlatten");
+        assertEquals(validationMap["x-frontmatter-part"], "frontmatterPart");
+      }
     });
   });
 
   describe("equality and string representation", () => {
     it("should check equality correctly", () => {
-      const config1 = SchemaExtensionConfig.createDefault();
-      const config2 = SchemaExtensionConfig.createDefault();
-      const config3 = SchemaExtensionConfig.create({
+      const result1 = SchemaExtensionConfig.createDefault();
+      const result2 = SchemaExtensionConfig.createDefault();
+      const result3 = SchemaExtensionConfig.create({
         templateProperty: "different-template",
       });
 
-      assertEquals(config1.equals(config2), true);
-      if (config3.ok) {
-        assertEquals(config1.equals(config3.data), false);
+      assertEquals(result1.ok, true);
+      assertEquals(result2.ok, true);
+
+      if (result1.ok && result2.ok) {
+        const config1 = result1.data;
+        const config2 = result2.data;
+        assertEquals(config1.equals(config2), true);
+
+        if (result3.ok) {
+          assertEquals(config1.equals(result3.data), false);
+        }
       }
     });
 
     it("should provide meaningful string representation", () => {
-      const config = SchemaExtensionConfig.createDefault();
-      const stringRep = config.toString();
+      const result = SchemaExtensionConfig.createDefault();
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const config = result.data;
+        const stringRep = config.toString();
 
-      assertEquals(stringRep.includes("SchemaExtensionConfig"), true);
-      assertEquals(stringRep.includes("x-template"), true);
-      assertEquals(stringRep.includes("x-derived-from"), true);
+        assertEquals(stringRep.includes("SchemaExtensionConfig"), true);
+        assertEquals(stringRep.includes("x-template"), true);
+        assertEquals(stringRep.includes("x-derived-from"), true);
+      }
     });
   });
 });

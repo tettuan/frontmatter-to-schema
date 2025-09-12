@@ -159,9 +159,9 @@ export class FormatRegistry {
 
   private constructor(
     private readonly id: string,
-    initialFormats: readonly FileFormat[],
   ) {
-    this.registerFormats(initialFormats);
+    // Constructor only initializes basic structure
+    // Format registration is handled by factory methods
   }
 
   /**
@@ -172,21 +172,17 @@ export class FormatRegistry {
       Math.random().toString(36).substr(2, 9)
     }`;
 
-    try {
-      return {
-        ok: true,
-        data: new FormatRegistry(id, DEFAULT_FORMATS),
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "RegistryCorrupted",
-          details: error instanceof Error ? error.message : String(error),
-          message: "Failed to create default format registry",
-        },
-      };
+    const registry = new FormatRegistry(id);
+    const registerResult = registry.registerFormats(DEFAULT_FORMATS);
+
+    if (!registerResult.ok) {
+      return registerResult; // Return the specific registration error
     }
+
+    return {
+      ok: true,
+      data: registry,
+    };
   }
 
   /**
@@ -207,37 +203,47 @@ export class FormatRegistry {
     }
 
     const registryId = id || `custom-registry-${Date.now()}`;
+    const registry = new FormatRegistry(registryId);
+    const registerResult = registry.registerFormats(formats);
 
-    try {
-      return {
-        ok: true,
-        data: new FormatRegistry(registryId, formats),
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "RegistryCorrupted",
-          details: error instanceof Error ? error.message : String(error),
-          message: "Failed to create custom format registry",
-        },
-      };
+    if (!registerResult.ok) {
+      return registerResult; // Return the specific registration error
     }
+
+    return {
+      ok: true,
+      data: registry,
+    };
   }
 
   /**
    * Register formats with validation
    */
-  private registerFormats(formats: readonly FileFormat[]): void {
+  private registerFormats(
+    formats: readonly FileFormat[],
+  ): Result<void, FormatRegistryError> {
     for (const format of formats) {
-      this.registerSingleFormat(format);
+      const result = this.registerSingleFormat(format);
+      if (!result.ok) {
+        return result; // Early return on first error
+      }
     }
+    return { ok: true, data: undefined };
   }
 
-  private registerSingleFormat(format: FileFormat): void {
+  private registerSingleFormat(
+    format: FileFormat,
+  ): Result<void, FormatRegistryError> {
     // Validate extension
     if (!format.extension || format.extension.trim().length === 0) {
-      throw new Error(`Invalid extension: ${format.extension}`);
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidExtension",
+          extension: format.extension || "",
+          message: `Invalid extension: ${format.extension}`,
+        },
+      };
     }
 
     const normalizedExt = this.normalizeExtension(format.extension);
@@ -280,6 +286,8 @@ export class FormatRegistry {
         this.formats.set(normalizedAlias, format);
       }
     }
+
+    return { ok: true, data: undefined };
   }
 
   /**
