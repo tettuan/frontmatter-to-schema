@@ -34,7 +34,10 @@ export class Aggregator {
 
     return {
       ok: true,
-      data: { aggregatedData },
+      data: {
+        kind: "aggregated" as const,
+        aggregatedData,
+      },
     };
   }
 

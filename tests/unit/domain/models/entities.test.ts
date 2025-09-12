@@ -258,6 +258,56 @@ Deno.test("FrontMatter - Entity Creation and Methods", async (t) => {
     assertEquals(typeof obj, "object");
     assertEquals(obj !== null, true);
   });
+
+  await t.step("should check if key exists", () => {
+    const content = createFrontMatterContent("title: Test\nauthor: John");
+    const frontMatter = FrontMatter.create(
+      content,
+      "title: Test\nauthor: John",
+    );
+
+    assertEquals(frontMatter.hasKey("title"), true);
+    assertEquals(frontMatter.hasKey("author"), true);
+    assertEquals(frontMatter.hasKey("nonexistent"), false);
+  });
+
+  await t.step("should get value for existing key", () => {
+    const content = createFrontMatterContent(
+      "title: Test Document\nauthor: Jane Doe",
+    );
+    const frontMatter = FrontMatter.create(
+      content,
+      "title: Test Document\nauthor: Jane Doe",
+    );
+
+    const titleResult = frontMatter.getValue("title");
+    const authorResult = frontMatter.getValue("author");
+
+    assertEquals(isOk(titleResult), true);
+    assertEquals(isOk(authorResult), true);
+    if (isOk(titleResult)) {
+      assertEquals(titleResult.data, "Test Document");
+    }
+    if (isOk(authorResult)) {
+      assertEquals(authorResult.data, "Jane Doe");
+    }
+  });
+
+  await t.step("should return error for non-existing key", () => {
+    const content = createFrontMatterContent("title: Test Document");
+    const frontMatter = FrontMatter.create(content, "title: Test Document");
+
+    const result = frontMatter.getValue("nonexistent");
+
+    assertEquals(isOk(result), false);
+    if (!isOk(result)) {
+      assertEquals(result.error.kind, "NotFound");
+      if (result.error.kind === "NotFound") {
+        assertEquals(result.error.resource, "frontmatter");
+        assertEquals(result.error.key, "nonexistent");
+      }
+    }
+  });
 });
 
 Deno.test("Schema - Entity Creation and Validation", async (t) => {

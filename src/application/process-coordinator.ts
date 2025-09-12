@@ -63,7 +63,7 @@ export type SchemaSource = {
 };
 
 /**
- * Input source configuration
+ * Input source configuration (Totality-compliant discriminated union)
  */
 export type InputSource = {
   readonly pattern: string;
@@ -80,15 +80,24 @@ export type OutputTarget = {
 
 /**
  * Processing configuration - single source of truth
- * Updated to follow totality principles with discriminated unions
+ * Follows totality principles with discriminated unions - NO OPTIONAL PROPERTIES
  */
-export interface ProcessingConfiguration {
-  readonly schema: SchemaSource;
-  readonly input: InputSource;
-  readonly template: TemplateSource;
-  readonly output: OutputTarget;
-  readonly options?: ProcessingOptions;
-}
+export type ProcessingConfiguration =
+  | {
+    readonly kind: "basic";
+    readonly schema: SchemaSource;
+    readonly input: InputSource;
+    readonly template: TemplateSource;
+    readonly output: OutputTarget;
+  }
+  | {
+    readonly kind: "advanced";
+    readonly schema: SchemaSource;
+    readonly input: InputSource;
+    readonly template: TemplateSource;
+    readonly output: OutputTarget;
+    readonly options: ProcessingOptions;
+  };
 
 // ProcessingOptions now imported from ProcessingOptionsBuilder
 
@@ -177,9 +186,13 @@ export class ProcessCoordinator {
   ): Promise<Result<ProcessingResult, DomainError & { message: string }>> {
     const startTime = Date.now();
 
-    // Use ProcessingOptionsBuilder for validated options
+    // Use ProcessingOptionsBuilder for validated options - handle discriminated union
+    const configOptions = configuration.kind === "advanced"
+      ? configuration.options
+      : undefined;
+
     const optionsBuilderResult = ProcessingOptionsBuilder.create(
-      configuration.options,
+      configOptions,
     );
     if (!optionsBuilderResult.ok) {
       return this.createProcessingError(

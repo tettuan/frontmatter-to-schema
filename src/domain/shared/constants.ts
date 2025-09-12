@@ -86,6 +86,10 @@ const DRY_RUN_PREVIEW_LENGTH = 500;
 // File path maximum length for filesystem compatibility
 const MAX_FILE_PATH_LENGTH = 1024;
 
+// Schema file validation configuration
+const SCHEMA_EXTENSIONS_CONFIG = [".json", ".yaml", ".yml"];
+const INVALID_PATH_CHARACTERS = ["\0", ".."];
+
 /**
  * Common validation error types for constants
  */
@@ -611,6 +615,124 @@ export class TimeoutLimit {
   }
 }
 
+/**
+ * Schema file extensions configuration
+ * Controls which file extensions are valid for schema files
+ */
+export class SchemaExtensions {
+  private constructor(private readonly extensions: readonly string[]) {}
+
+  static create(
+    extensions: string[],
+  ): Result<SchemaExtensions, ConstantValidationError> {
+    if (!extensions || extensions.length === 0) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "EmptyInput",
+          message: "Schema extensions list cannot be empty",
+        }),
+      };
+    }
+
+    // Validate each extension
+    for (const ext of extensions) {
+      if (!ext.startsWith(".") || ext.length < 2 || ext.length > 10) {
+        return {
+          ok: false,
+          error: createError({
+            kind: "InvalidValue",
+            value: ext,
+            message:
+              `Invalid extension '${ext}': must start with '.' and be 2-10 characters`,
+          }),
+        };
+      }
+    }
+
+    return { ok: true, data: new SchemaExtensions([...extensions]) };
+  }
+
+  static createOrDefault(
+    extensions?: string[],
+    defaultExtensions: string[] = SCHEMA_EXTENSIONS_CONFIG,
+  ): SchemaExtensions {
+    if (extensions) {
+      const result = this.create(extensions);
+      if (result.ok) return result.data;
+    }
+
+    const fallbackResult = this.create(defaultExtensions);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new SchemaExtensions([".json", ".yaml", ".yml"]);
+  }
+
+  getExtensions(): readonly string[] {
+    return this.extensions;
+  }
+
+  isValid(path: string): boolean {
+    const lowerPath = path.toLowerCase();
+    return this.extensions.some((ext) => lowerPath.endsWith(ext));
+  }
+
+  toString(): string {
+    return this.extensions.join(", ");
+  }
+}
+
+/**
+ * Path validation characters configuration
+ * Controls which characters are considered invalid in file paths
+ */
+export class PathValidationConfig {
+  private constructor(private readonly invalidChars: readonly string[]) {}
+
+  static create(
+    invalidChars: string[],
+  ): Result<PathValidationConfig, ConstantValidationError> {
+    if (!invalidChars || invalidChars.length === 0) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "EmptyInput",
+          message: "Invalid characters list cannot be empty",
+        }),
+      };
+    }
+
+    return { ok: true, data: new PathValidationConfig([...invalidChars]) };
+  }
+
+  static createOrDefault(
+    invalidChars?: string[],
+    defaultChars: string[] = INVALID_PATH_CHARACTERS,
+  ): PathValidationConfig {
+    if (invalidChars) {
+      const result = this.create(invalidChars);
+      if (result.ok) return result.data;
+    }
+
+    const fallbackResult = this.create(defaultChars);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new PathValidationConfig(["\0", ".."]);
+  }
+
+  getInvalidCharacters(): readonly string[] {
+    return this.invalidChars;
+  }
+
+  hasInvalidCharacters(path: string): boolean {
+    return this.invalidChars.some((char) => path.includes(char));
+  }
+
+  toString(): string {
+    return this.invalidChars.join(", ");
+  }
+}
+
 // ========================================
 // Validated Default Constants
 // ========================================
@@ -897,6 +1019,19 @@ export const DRY_RUN_PREVIEW_LENGTH_VALUE = DebugOutputLimit.createOrDefault(
 export const MAX_FILE_PATH_LENGTH_VALUE = AbsoluteMaxLimit.createOrDefault(
   MAX_FILE_PATH_LENGTH,
 );
+
+/**
+ * Default schema file extensions configuration
+ * Used in SchemaPath validation for allowed file types
+ */
+export const DEFAULT_SCHEMA_EXTENSIONS = SchemaExtensions.createOrDefault();
+
+/**
+ * Default path validation configuration
+ * Used in path value objects to identify invalid characters
+ */
+export const DEFAULT_PATH_VALIDATION_CONFIG = PathValidationConfig
+  .createOrDefault();
 
 // ========================================
 // Configuration Loading

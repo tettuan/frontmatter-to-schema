@@ -24,6 +24,7 @@ import {
 class ProcessCoordinatorTestFactory {
   static createValidConfiguration(): ProcessingConfiguration {
     return {
+      kind: "basic",
       schema: {
         path: "tests/fixtures/valid-schema.json",
         format: "json" as const,
@@ -46,6 +47,7 @@ class ProcessCoordinatorTestFactory {
 
   static createRecursivePatternConfiguration(): ProcessingConfiguration {
     return {
+      kind: "basic",
       schema: {
         path: "tests/fixtures/valid-schema.json",
         format: "json" as const,
@@ -68,6 +70,7 @@ class ProcessCoordinatorTestFactory {
 
   static createAggregationConfiguration(): ProcessingConfiguration {
     return {
+      kind: "basic",
       schema: {
         path: "tests/fixtures/valid-schema.json",
         format: "json" as const,
@@ -203,6 +206,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
   describe("File Discovery - Critical Bug Fix", () => {
     it("should discover files in base directory", async () => {
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/valid-schema.json",
           format: "json" as const,
@@ -250,6 +254,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       await Deno.mkdir("tests/fixtures/empty", { recursive: true });
 
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/valid-schema.json",
           format: "json" as const,
@@ -280,6 +285,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
     it("should return error for non-existent directory", async () => {
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/valid-schema.json",
           format: "json" as const,
@@ -337,6 +343,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
     it("should not trigger aggregation for single file", async () => {
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/valid-schema.json",
           format: "json" as const,
@@ -395,6 +402,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
     it("should handle missing template file gracefully", async () => {
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/valid-schema.json",
           format: "json" as const,
@@ -449,6 +457,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       );
 
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/invalid-schema.json",
           format: "json" as const,
@@ -478,6 +487,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
     it("should handle processing errors without throwing", async () => {
       const config: ProcessingConfiguration = {
+        kind: "basic",
         schema: {
           path: "tests/fixtures/nonexistent-schema.json",
           format: "json" as const,

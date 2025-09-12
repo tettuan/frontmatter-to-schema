@@ -56,12 +56,20 @@ export class FrontMatter {
 
   /**
    * Get value for a specific key
+   * Returns Result to handle missing keys explicitly
    */
-  getValue(key: string): unknown | undefined {
+  getValue(key: string): Result<unknown, DomainError> {
     const obj = this.content.toJSON();
     if (typeof obj === "object" && obj !== null && key in obj) {
-      return (obj as Record<string, unknown>)[key];
+      return { ok: true, data: (obj as Record<string, unknown>)[key] };
     }
-    return undefined;
+    return {
+      ok: false,
+      error: createDomainError({
+        kind: "NotFound",
+        resource: "frontmatter",
+        key: key,
+      }),
+    };
   }
 }
