@@ -92,7 +92,12 @@ export class TemplateContext {
     templateConfig: TemplateConfig,
     options: Partial<TemplateProcessingOptions> = {},
   ): Result<RenderedContent, DomainError & { message: string }> {
-    const renderOptions = { ...this.defaultOptions, ...options };
+    // For JSON templates, disable HTML escaping to preserve JSON structure
+    const formatSpecificDefaults = templateConfig.format === "json"
+      ? { ...this.defaultOptions, escapeHtml: false }
+      : this.defaultOptions;
+
+    const renderOptions = { ...formatSpecificDefaults, ...options };
 
     try {
       // 1. Load and validate template definition
@@ -305,8 +310,8 @@ export class TemplateContext {
     data: ValidatedData,
     options: TemplateProcessingOptions,
   ): Result<VariableMap, DomainError & { message: string }> {
-    // Extract variable placeholders from template
-    const placeholderPattern = /\{(\w+)\}/g;
+    // Extract variable placeholders from template including dot notation like {object.property}
+    const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
     const templateContent = template.getContent();
     const matches = templateContent.matchAll(placeholderPattern);
     const variableNames = Array.from(matches, (match) => match[1]);
@@ -374,12 +379,19 @@ export class TemplateContext {
     let content = template.getContent();
     const variableMap = variables.toObject();
 
-    // Replace all {variable} placeholders
-    const placeholderPattern = /\{(\w+)\}/g;
+    // Replace all {variable} placeholders including dot notation like {object.property}
+    const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
 
     try {
       content = content.replace(placeholderPattern, (match, varName) => {
-        const value = variableMap[varName];
+        // FIXED: Support both flat keys and dot-notation navigation
+        let value = variableMap[varName]; // Try flat key first
+
+        // If not found as flat key, try dot-notation navigation
+        if (value === undefined && varName.includes(".")) {
+          const nestedValue = this.getNestedValue(variableMap, varName);
+          value = nestedValue as VariableValue; // Cast unknown to VariableValue
+        }
 
         if (value === undefined) {
           if (options.allowMissingVariables) {
@@ -389,10 +401,10 @@ export class TemplateContext {
           }
         }
 
-        // Convert value to string
-        let stringValue = String(value);
+        // Convert value to string with format-aware serialization
+        let stringValue = this.valueToString(value);
 
-        // Apply HTML escaping if enabled
+        // Apply HTML escaping if enabled (but not for JSON format)
         if (options.escapeHtml) {
           stringValue = this.escapeHtml(stringValue);
         }
@@ -524,6 +536,49 @@ export class TemplateContext {
 
     const format = detectorResult.data.detect(templatePath.getValue());
     return { ok: true, data: format };
+  }
+
+  /**
+   * Convert value to string with format-aware serialization
+   * FIXED: Properly handle arrays in JSON templates
+   */
+  private valueToString(value: unknown): string {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      // For JSON context, serialize arrays as JSON
+      return JSON.stringify(value);
+    }
+
+    if (typeof value === "object") {
+      // For JSON context, serialize objects as JSON
+      return JSON.stringify(value);
+    }
+
+    return String(value);
+  }
+
+  /**
+   * Get nested value from object using dot notation
+   * FIXED: Support template variables like {tools.availableConfigs}
+   */
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+    return path.split(".").reduce((current: unknown, key: string) => {
+      return current && typeof current === "object" && current !== null &&
+          key in current
+        ? (current as Record<string, unknown>)[key]
+        : undefined;
+    }, obj as unknown);
   }
 
   /**

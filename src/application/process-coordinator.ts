@@ -870,8 +870,12 @@ export class ProcessCoordinator {
       };
 
       // If aggregated data is available, merge it
+      // FIXED: Convert flat dot-notation keys to nested structure for template access
       if (aggregatedData) {
-        Object.assign(combinedData, aggregatedData.aggregatedFields);
+        this.mergeAggregatedFields(
+          combinedData,
+          aggregatedData.aggregatedFields,
+        );
       }
 
       return {
@@ -895,8 +899,9 @@ export class ProcessCoordinator {
     };
 
     // If aggregated data is available, merge it (this is critical for x-derived-from functionality)
+    // FIXED: Convert flat dot-notation keys to nested structure for template access
     if (aggregatedData) {
-      Object.assign(combinedData, aggregatedData.aggregatedFields);
+      this.mergeAggregatedFields(combinedData, aggregatedData.aggregatedFields);
     }
 
     return {
@@ -987,6 +992,55 @@ export class ProcessCoordinator {
     }
 
     return false;
+  }
+
+  /**
+   * Merge aggregated fields converting dot-notation keys to nested structure
+   * CRITICAL FIX for Issue #706: Template variables need nested structure access
+   */
+  private mergeAggregatedFields(
+    target: Record<string, unknown>,
+    aggregatedFields: Record<string, unknown>,
+  ): void {
+    for (const [key, value] of Object.entries(aggregatedFields)) {
+      if (key.includes(".")) {
+        // Convert dot-notation key to nested structure
+        this.setNestedValue(target, key, value);
+      } else {
+        // Simple key assignment
+        target[key] = value;
+      }
+    }
+  }
+
+  /**
+   * Set nested value using dot-notation path
+   * Example: setNestedValue(obj, "tools.availableConfigs", [array])
+   * creates: obj.tools.availableConfigs = [array]
+   */
+  private setNestedValue(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): void {
+    const parts = path.split(".");
+    let current = obj;
+
+    // Navigate to the parent of the final property
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      if (
+        !(part in current) || typeof current[part] !== "object" ||
+        current[part] === null
+      ) {
+        current[part] = {};
+      }
+      current = current[part] as Record<string, unknown>;
+    }
+
+    // Set the final property
+    const finalPart = parts[parts.length - 1];
+    current[finalPart] = value;
   }
 
   /**

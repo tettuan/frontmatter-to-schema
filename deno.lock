@@ -37,6 +37,7 @@
     "jsr:@std/testing@^1.0.15": "1.0.15",
     "jsr:@std/toml@1.0.1": "1.0.1",
     "jsr:@std/toml@^1.0.1": "1.0.9",
+    "jsr:@std/yaml@*": "1.0.9",
     "jsr:@std/yaml@1": "1.0.9",
     "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@1.0.9": "1.0.9",
