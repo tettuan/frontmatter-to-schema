@@ -21,6 +21,7 @@ const SUPPORTED_EXTENSIONS = [
   ".html",
   ".htm",
   ".txt",
+  ".json",
 ] as const;
 export type TemplateExtension = (typeof SUPPORTED_EXTENSIONS)[number];
 
@@ -216,6 +217,8 @@ export class TemplatePath {
         return "html";
       case ".txt":
         return "text";
+      case ".json":
+        return "json";
       default: {
         // Exhaustive check
         const _exhaustiveCheck: never = this.extension;
@@ -250,6 +253,13 @@ export class TemplatePath {
    */
   isHtml(): boolean {
     return this.extension === ".html" || this.extension === ".htm";
+  }
+
+  /**
+   * Check if this is a JSON template
+   */
+  isJson(): boolean {
+    return this.extension === ".json";
   }
 
   /**

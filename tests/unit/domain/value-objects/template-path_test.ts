@@ -106,6 +106,17 @@ Deno.test("TemplatePath - should create valid path with .txt extension", () => {
   }
 });
 
+Deno.test("TemplatePath - should create valid path with .json extension", () => {
+  const result = TemplatePath.create("templates/config.json");
+
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.data.getExtension(), ".json");
+    assertEquals(result.data.isJson(), true);
+    assertEquals(result.data.getTemplateEngine(), "json");
+  }
+});
+
 Deno.test("TemplatePath - should reject empty string", () => {
   const result = TemplatePath.create("");
 
