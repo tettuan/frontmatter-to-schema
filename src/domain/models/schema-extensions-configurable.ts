@@ -68,7 +68,8 @@ export class ConfigurableSchemaTemplateInfo {
           ok: false,
           error: {
             kind: "ConfigError",
-            message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+            message:
+              `Failed to create default config: ${defaultConfigResult.error.message}`,
           },
         };
       }
@@ -98,7 +99,10 @@ export class ConfigurableSchemaTemplateInfo {
 
     // Extract derivation rules from properties
     if (schema.properties) {
-      const extractResult = extractDerivationRules(schema.properties, actualConfig);
+      const extractResult = extractDerivationRules(
+        schema.properties,
+        actualConfig,
+      );
       if (!extractResult.ok) {
         return extractResult as Result<
           ConfigurableSchemaTemplateInfo,
@@ -241,7 +245,8 @@ export function isConfigurableFrontmatterPart(
         ok: false,
         error: {
           kind: "ConfigError",
-          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          message:
+            `Failed to create default config: ${defaultConfigResult.error.message}`,
         },
       };
     }
@@ -270,7 +275,8 @@ export function getConfigurableTemplatePath(
         ok: false,
         error: {
           kind: "ConfigError",
-          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          message:
+            `Failed to create default config: ${defaultConfigResult.error.message}`,
         },
       };
     }
@@ -279,9 +285,10 @@ export function getConfigurableTemplatePath(
 
   const templateProperty = actualConfig.getTemplateProperty();
   const template = schemaOrProp[templateProperty];
-  return typeof template === "string"
-    ? { ok: true, data: template }
-    : { ok: false, error: { kind: "TemplateNotFound", message: "No template path found" } };
+  return typeof template === "string" ? { ok: true, data: template } : {
+    ok: false,
+    error: { kind: "TemplateNotFound", message: "No template path found" },
+  };
 }
 
 /**
@@ -302,7 +309,8 @@ export function hasConfigurableDerivationRule(
         ok: false,
         error: {
           kind: "ConfigError",
-          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          message:
+            `Failed to create default config: ${defaultConfigResult.error.message}`,
         },
       };
     }
@@ -331,7 +339,8 @@ export function extractConfigurableExtensions(
         ok: false,
         error: {
           kind: "ConfigError",
-          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          message:
+            `Failed to create default config: ${defaultConfigResult.error.message}`,
         },
       };
     }
@@ -385,7 +394,8 @@ export function migrateLegacyProperties(
         ok: false,
         error: {
           kind: "ConfigError",
-          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          message:
+            `Failed to create default config: ${defaultConfigResult.error.message}`,
         },
       };
     }

@@ -116,7 +116,10 @@ export class SchemaExtensionConfig {
   /**
    * Create default configuration with standard x-* property names
    */
-  static createDefault(): Result<SchemaExtensionConfig, DomainError & { message: string }> {
+  static createDefault(): Result<
+    SchemaExtensionConfig,
+    DomainError & { message: string }
+  > {
     return SchemaExtensionConfig.create({});
   }
 

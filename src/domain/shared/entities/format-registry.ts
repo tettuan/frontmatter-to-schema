@@ -174,11 +174,11 @@ export class FormatRegistry {
 
     const registry = new FormatRegistry(id);
     const registerResult = registry.registerFormats(DEFAULT_FORMATS);
-    
+
     if (!registerResult.ok) {
       return registerResult; // Return the specific registration error
     }
-    
+
     return {
       ok: true,
       data: registry,
@@ -205,11 +205,11 @@ export class FormatRegistry {
     const registryId = id || `custom-registry-${Date.now()}`;
     const registry = new FormatRegistry(registryId);
     const registerResult = registry.registerFormats(formats);
-    
+
     if (!registerResult.ok) {
       return registerResult; // Return the specific registration error
     }
-    
+
     return {
       ok: true,
       data: registry,
@@ -219,7 +219,9 @@ export class FormatRegistry {
   /**
    * Register formats with validation
    */
-  private registerFormats(formats: readonly FileFormat[]): Result<void, FormatRegistryError> {
+  private registerFormats(
+    formats: readonly FileFormat[],
+  ): Result<void, FormatRegistryError> {
     for (const format of formats) {
       const result = this.registerSingleFormat(format);
       if (!result.ok) {
@@ -229,7 +231,9 @@ export class FormatRegistry {
     return { ok: true, data: undefined };
   }
 
-  private registerSingleFormat(format: FileFormat): Result<void, FormatRegistryError> {
+  private registerSingleFormat(
+    format: FileFormat,
+  ): Result<void, FormatRegistryError> {
     // Validate extension
     if (!format.extension || format.extension.trim().length === 0) {
       return {
@@ -282,7 +286,7 @@ export class FormatRegistry {
         this.formats.set(normalizedAlias, format);
       }
     }
-    
+
     return { ok: true, data: undefined };
   }
 

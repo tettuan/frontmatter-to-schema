@@ -222,12 +222,12 @@ describe("SchemaExtensionConfig", () => {
 
       assertEquals(result1.ok, true);
       assertEquals(result2.ok, true);
-      
+
       if (result1.ok && result2.ok) {
         const config1 = result1.data;
         const config2 = result2.data;
         assertEquals(config1.equals(config2), true);
-        
+
         if (result3.ok) {
           assertEquals(config1.equals(result3.data), false);
         }
