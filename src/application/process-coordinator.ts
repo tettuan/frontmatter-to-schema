@@ -472,7 +472,7 @@ export class ProcessCoordinator {
         documentPath,
         {
           allowEmptyFrontmatter: options.allowEmptyFrontmatter,
-          strict: options.strict,
+          strict: false, // Never use strict mode for frontmatter extraction
         },
       );
 
