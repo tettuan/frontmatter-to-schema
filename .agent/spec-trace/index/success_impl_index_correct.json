@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "description": "Implementation level traceability IDs",
+  "impl": [
+    "impl:api:auth-service-3d8f2c#20250914",
+    "impl:ui:dashboard-view-9e2a7b#20250915",
+    "impl:data:repository-layer-5c4d1f#20250916"
+  ]
+}

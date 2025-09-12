@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "description": "Design level traceability IDs",
+  "design": [
+    "design:api:rest-architecture-6b4e9a#20250912",
+    "design:ui:component-library-2c7f5d#20250913",
+    "design:data:schema-design-8a1b3e#20250914"
+  ]
+}
