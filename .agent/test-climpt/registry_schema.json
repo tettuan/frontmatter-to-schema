@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "x-template": "registry_template.json",
   "type": "object",
   "properties": {
     "version": {
@@ -15,11 +16,14 @@
       "properties": {
         "availableConfigs": {
           "type": "array",
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true,
           "items": { "type": "string" },
           "description": "Tool names array - each becomes available as climpt-{name}"
         },
         "commands": {
           "type": "array",
+          "x-frontmatter-part": true,
           "description": "Command registry - defines all available C3L commands",
           "items": {
             "type": "object",
