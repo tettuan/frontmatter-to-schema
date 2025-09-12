@@ -18,6 +18,8 @@ import type {
   ExternalAnalysisService,
   PromptConfiguration,
 } from "../../../../src/domain/core/abstractions.ts";
+import type { DomainError, Result } from "../../../../src/domain/core/result.ts";
+import { createDomainError } from "../../../../src/domain/core/result.ts";
 
 // Mock implementations for testing
 class MockExternalAnalysisService implements ExternalAnalysisService {
@@ -35,24 +37,32 @@ class MockExternalAnalysisService implements ExternalAnalysisService {
   analyze(
     prompt: string,
     _options?: Record<string, unknown>,
-  ): Promise<unknown> {
+  ): Promise<Result<unknown, DomainError & { message: string }>> {
     // Return based on prompt content for predictable testing
     if (prompt.includes("error")) {
-      throw new Error("Analysis failed");
+      return Promise.resolve({
+        ok: false,
+        error: createDomainError(
+          { kind: "AIServiceError", service: "MockService", statusCode: undefined },
+          "Analysis failed"
+        ),
+      });
     }
     if (prompt.includes("Extract data:")) {
       const response = this.responses.get("extract");
-      return Promise.resolve(
-        response !== undefined ? response : { extracted: true },
-      );
+      return Promise.resolve({
+        ok: true,
+        data: response !== undefined ? response : { extracted: true },
+      });
     }
     if (prompt.includes("Map source:")) {
       const response = this.responses.get("mapping");
-      return Promise.resolve(
-        response !== undefined ? response : { mapped: true },
-      );
+      return Promise.resolve({
+        ok: true,
+        data: response !== undefined ? response : { mapped: true },
+      });
     }
-    return Promise.resolve(this.defaultResponse);
+    return Promise.resolve({ ok: true, data: this.defaultResponse });
   }
 }
 
@@ -139,7 +149,10 @@ Deno.test("GenericSchemaAnalyzer", async (t) => {
     // Test invalid results - create a mock that forces null/undefined responses
     const invalidService: ExternalAnalysisService = {
       analyze() {
-        return Promise.resolve(null);
+        return Promise.resolve({
+          ok: true,
+          data: null
+        });
       },
     };
     const invalidAnalyzer = new GenericSchemaAnalyzer(

@@ -6,6 +6,8 @@
  */
 
 import type { ExternalAnalysisService } from "../../../domain/core/abstractions.ts";
+import type { DomainError, Result } from "../../../domain/core/result.ts";
+import { createDomainError } from "../../../domain/core/result.ts";
 
 /**
  * Claude CLI service adapter
@@ -14,9 +16,26 @@ export class ClaudeCLIService implements ExternalAnalysisService {
   async analyze(
     prompt: string,
     _context?: Record<string, unknown>,
-  ): Promise<unknown> {
+  ): Promise<Result<unknown, DomainError & { message: string }>> {
     // Create temporary file for the prompt
-    const tempFile = await Deno.makeTempFile({ suffix: ".txt" });
+    let tempFile: string;
+    try {
+      tempFile = await Deno.makeTempFile({ suffix: ".txt" });
+    } catch (error) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "AIServiceError",
+            service: "ClaudeCLI",
+            statusCode: undefined,
+          },
+          `Failed to create temporary file: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      };
+    }
 
     try {
       await Deno.writeTextFile(tempFile, prompt);
@@ -32,17 +51,42 @@ export class ClaudeCLIService implements ExternalAnalysisService {
 
       if (stderr.length > 0) {
         const errorText = new TextDecoder().decode(stderr);
-        throw new Error(`Claude CLI error: ${errorText}`);
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "AIServiceError",
+              service: "ClaudeCLI",
+              statusCode: undefined,
+            },
+            `Claude CLI error: ${errorText}`,
+          ),
+        };
       }
 
       const output = new TextDecoder().decode(stdout);
 
       // Try to parse as JSON, fallback to raw text
       try {
-        return JSON.parse(output);
+        const parsed = JSON.parse(output);
+        return { ok: true, data: parsed };
       } catch {
-        return { raw: output };
+        return { ok: true, data: { raw: output } };
       }
+    } catch (error) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "AIServiceError",
+            service: "ClaudeCLI",
+            statusCode: undefined,
+          },
+          `Claude CLI execution failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      };
     } finally {
       // Clean up temporary file
       try {

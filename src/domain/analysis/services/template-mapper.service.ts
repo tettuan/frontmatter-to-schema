@@ -55,8 +55,16 @@ export class TotalSchemaGuidedTemplateMapper<TSource, TTarget>
         schema: schema ? JSON.stringify(schema) : undefined,
       });
 
+      // Handle Result<T,E> from ExternalAnalysisService
+      if (!result.ok) {
+        return {
+          ok: false,
+          error: result.error,
+        };
+      }
+
       // Validate and transform result using totality-compliant approach
-      return this.validateMappingResult(result, template, schema);
+      return this.validateMappingResult(result.data, template, schema);
     } catch (error) {
       return {
         ok: false,
@@ -140,8 +148,13 @@ export class SchemaGuidedTemplateMapper<TSource, TTarget>
       schema: schema ? JSON.stringify(schema) : undefined,
     });
 
+    // Handle Result<T,E> from ExternalAnalysisService
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
     // Validate and transform the result, but throw error for backward compatibility
-    const transformedResult = this.validateAndTransform(result, template);
+    const transformedResult = this.validateAndTransform(result.data, template);
     if (!transformedResult.ok) {
       throw new Error(transformedResult.error.message);
     }
