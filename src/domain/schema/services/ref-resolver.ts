@@ -28,7 +28,7 @@ export interface ResolvedSchema {
  */
 export class RefResolver {
   private constructor(
-    private readonly maxDepth: number = 10,
+    private readonly maxDepth: number = MAX_REFERENCE_DEPTH.getValue(),
     private readonly visited: Set<string> = new Set(),
   ) {}
 

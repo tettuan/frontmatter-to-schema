@@ -7,10 +7,11 @@ import {
   SchemaFormat,
   TemplateFormat,
 } from "./configuration.ts";
-import { DocumentProcessor } from "./document-processor.ts";
-import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { SchemaValidator } from "../domain/services/schema-validator.ts";
-import { UnifiedTemplateProcessor } from "../domain/template/services/unified-template-processor.ts";
+import {
+  ProcessCoordinator,
+  type ProcessingConfiguration,
+} from "./process-coordinator.ts";
+import type { ProcessingOptions } from "./services/processing-options-builder.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
@@ -28,23 +29,18 @@ export class CLI {
   private readonly logger = LoggerFactory.createLogger("CLI");
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
-  private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
-  private readonly schemaValidator = new SchemaValidator();
-  private readonly templateProcessor: UnifiedTemplateProcessor;
-  private readonly processor: DocumentProcessor;
+  private readonly processCoordinator: ProcessCoordinator;
   private readonly exitHandler: ExitHandler;
   private readonly formatDetector: FileFormatDetector;
 
   private constructor(
     exitHandler: ExitHandler,
     formatDetector: FileFormatDetector,
-    templateProcessor: UnifiedTemplateProcessor,
-    processor: DocumentProcessor,
+    processCoordinator: ProcessCoordinator,
   ) {
     this.exitHandler = exitHandler;
     this.formatDetector = formatDetector;
-    this.templateProcessor = templateProcessor;
-    this.processor = processor;
+    this.processCoordinator = processCoordinator;
   }
 
   /**
@@ -90,49 +86,15 @@ export class CLI {
     }
     const formatDetectorInstance = formatResult.data;
 
-    const templateProcessorResult = UnifiedTemplateProcessor.create();
-    if ("kind" in templateProcessorResult) {
-      return {
-        ok: false,
-        error: {
-          kind: "NotConfigured",
-          component: "template-processor",
-          message: `Failed to create template processor: ${
-            String(templateProcessorResult.kind)
-          }`,
-        },
-      };
-    }
-
-    const fileSystem = new DenoFileSystemProvider();
-    const frontMatterExtractor = new FrontMatterExtractorImpl();
-    const schemaValidator = new SchemaValidator();
-
-    const processorResult = DocumentProcessor.create(
-      fileSystem,
-      frontMatterExtractor,
-      schemaValidator,
-      templateProcessorResult,
-    );
-    if (!processorResult.ok) {
-      return {
-        ok: false,
-        error: {
-          kind: "NotConfigured",
-          component: "document-processor",
-          message:
-            `Failed to create document processor: ${processorResult.error.message}`,
-        },
-      };
-    }
+    // Create ProcessCoordinator - the canonical processing entry point
+    const processCoordinator = new ProcessCoordinator();
 
     return {
       ok: true,
       data: new CLI(
         exitResult.data,
         formatDetectorInstance,
-        templateProcessorResult,
-        processorResult.data,
+        processCoordinator,
       ),
     };
   }
@@ -176,40 +138,57 @@ export class CLI {
       verboseLogger.info("Configuration loaded", { config });
     }
 
-    // Process documents
+    // Convert ApplicationConfiguration to ProcessingConfiguration
+    const processingConfig = this.convertToProcessingConfiguration(config);
+    if (!processingConfig.ok) {
+      return processingConfig;
+    }
+
+    // Process documents using canonical ProcessCoordinator
     const processLogger = LoggerFactory.createLogger("cli-process");
     processLogger.info("Starting document processing");
-    const result = await this.processor.processDocuments(config);
+    const result = await this.processCoordinator.processDocuments(
+      processingConfig.data,
+    );
 
     if (!result.ok) {
       return result;
     }
 
-    const batchResult = result.data;
+    const processingResult = result.data;
 
     // Print summary
     const summaryLogger = LoggerFactory.createLogger("cli-summary");
     summaryLogger.info("Processing summary", {
-      successful: batchResult.getSuccessCount(),
-      failed: batchResult.getErrorCount(),
-      total: batchResult.getTotalCount(),
+      processedFiles: processingResult.processedFiles,
+      processingTime: `${processingResult.processingTime}ms`,
+      templateProcessed: processingResult.renderedContent.templateProcessed,
+      bypassDetected: processingResult.bypassDetected,
+      canonicalPathUsed: processingResult.canonicalPathUsed,
     });
 
-    if (batchResult.hasErrors()) {
+    // Log validation results
+    const validationResults = processingResult.validationResults.filter((r) =>
+      !r.valid
+    );
+    if (validationResults.length > 0) {
       const errorSummaryLogger = LoggerFactory.createLogger("cli-errors");
-      const errors = batchResult.getErrors().map((error) => ({
-        document: error.document.getPath().getValue(),
-        error: String(error.error.kind),
+      const errors = validationResults.map((result) => ({
+        document: result.documentPath,
+        errors: result.errors,
+        warnings: result.warnings,
       }));
       errorSummaryLogger.warn("Processing errors encountered", {
-        errorCount: batchResult.getErrorCount(),
+        errorCount: validationResults.length,
         errors,
       });
     }
 
     const outputLogger = LoggerFactory.createLogger("cli-output");
     outputLogger.info("Output written successfully", {
-      outputPath: config.output.path,
+      outputPath: processingConfig.data.output.path,
+      templateVariables: processingResult.renderedContent.variables,
+      aggregatedData: processingResult.aggregatedData ? "Available" : "None",
     });
 
     return { ok: true, data: undefined };
@@ -436,6 +415,80 @@ export class CLI {
       };
     }
     return result;
+  }
+
+  /**
+   * Convert ApplicationConfiguration to ProcessingConfiguration for ProcessCoordinator
+   */
+  private convertToProcessingConfiguration(
+    appConfig: ApplicationConfiguration,
+  ): Result<ProcessingConfiguration, DomainError & { message: string }> {
+    try {
+      // Convert input configuration
+      const inputConfig = {
+        pattern: appConfig.input.kind === "DirectoryInput"
+          ? appConfig.input.pattern
+          : "**/*.md",
+        baseDirectory: appConfig.input.path,
+      };
+
+      // Convert schema configuration
+      const schemaConfig = {
+        path: appConfig.schema.definition,
+        format: (appConfig.schema.format.toString() as "json" | "yaml"),
+      };
+
+      // Convert template configuration
+      const templateConfig = {
+        kind: "file" as const,
+        path: appConfig.template.definition,
+        format: (appConfig.template.format.toString() as
+          | "json"
+          | "yaml"
+          | "xml"
+          | "custom"),
+      };
+
+      // Convert output configuration
+      const outputConfig = {
+        path: appConfig.output.path,
+        format: (appConfig.output.format.toString() as
+          | "json"
+          | "yaml"
+          | "xml"
+          | "custom"),
+      };
+
+      // Convert processing options with all required properties
+      const processingOptions: ProcessingOptions = {
+        strict: false,
+        allowEmptyFrontmatter: false,
+        allowMissingVariables: true,
+        validateSchema: true,
+        parallelProcessing: false,
+        maxFiles: 1000,
+      };
+
+      const processingConfig: ProcessingConfiguration = {
+        kind: "advanced",
+        schema: schemaConfig,
+        input: inputConfig,
+        template: templateConfig,
+        output: outputConfig,
+        options: processingOptions,
+      };
+
+      return { ok: true, data: processingConfig };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigurationError" as const,
+          config: appConfig,
+          message: `Failed to convert configuration: ${String(error)}`,
+        },
+      };
+    }
   }
 
   private printHelp(): void {

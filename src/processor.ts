@@ -72,6 +72,7 @@ export class Processor {
 
     // Step 6: Render template with schema context
     return await this.renderer.render(config.template, {
+      kind: "schema-aware" as const,
       aggregatedData: aggregationResult.data.aggregatedData,
       schema: schemaResult.data.definition,
     });

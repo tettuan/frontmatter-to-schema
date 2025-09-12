@@ -13,6 +13,7 @@ import { createDomainError, type DomainError } from "../core/result.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import type { SchemaPath } from "../value-objects/schema-path.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
+import { MAX_REFERENCE_DEPTH } from "../shared/constants.ts";
 
 /**
  * Resolved schema with all dependencies loaded
@@ -77,7 +78,7 @@ export interface ValidationWarning {
  */
 export class SchemaContext {
   private readonly schemaCache = new Map<string, ResolvedSchema>();
-  private readonly maxRefDepth = 10;
+  private readonly maxRefDepth = MAX_REFERENCE_DEPTH.getValue();
 
   /**
    * Load and resolve a schema from the given path
