@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "description": "Requirement level traceability IDs",
+  "req": [
+    "req:api:deepresearch-3f8d2a#20250909",
+    "req:ui:dashboard-5b7c9e#20250910",
+    "req:data:validation-2a4f8d#20250911"
+  ]
+}
