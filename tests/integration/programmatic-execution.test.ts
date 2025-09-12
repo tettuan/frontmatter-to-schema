@@ -366,7 +366,16 @@ c3: test
             "$schema": "http://json-schema.org/draft-07/schema#",
             "type": "object",
             "properties": {
-              "items": { "type": "array", "x-frontmatter-part": true },
+              "items": {
+                "type": "array",
+                "x-frontmatter-part": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": { "type": "string" },
+                  },
+                },
+              },
             },
           }),
         );
