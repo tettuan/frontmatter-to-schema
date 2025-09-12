@@ -754,11 +754,38 @@ export class ProcessCoordinator {
 
   /**
    * Check if filename matches pattern using FilePatternMatcher service
+   * Handles glob patterns correctly for both root directory and subdirectory files
    */
   private matchesPattern(
     filename: string,
     pattern: string,
   ): Result<boolean, DomainError & { message: string }> {
+    // Handle double-star patterns that should match both root and subdirectory files
+    if (pattern.startsWith("**/*")) {
+      // Test both patterns: root directory pattern and subdirectory pattern
+      const rootPattern = pattern.substring(3); // Remove "**/" to get "*.ext"
+      const subdirPattern = pattern; // Keep original "**/*.ext"
+
+      // Try root directory pattern first
+      const rootMatcherResult = FilePatternMatcher.createGlob(rootPattern);
+      if (!rootMatcherResult.ok) {
+        return rootMatcherResult;
+      }
+
+      if (rootMatcherResult.data.matches(filename)) {
+        return { ok: true, data: true };
+      }
+
+      // Try subdirectory pattern
+      const subdirMatcherResult = FilePatternMatcher.createGlob(subdirPattern);
+      if (!subdirMatcherResult.ok) {
+        return subdirMatcherResult;
+      }
+
+      return { ok: true, data: subdirMatcherResult.data.matches(filename) };
+    }
+
+    // For other patterns, use standard matching
     const matcherResult = FilePatternMatcher.createGlob(pattern);
     if (!matcherResult.ok) {
       return matcherResult;

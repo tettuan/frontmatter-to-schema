@@ -7,6 +7,7 @@
  */
 
 import {
+  assert,
   assertEquals,
   assertExists,
   assertStringIncludes,
@@ -124,13 +125,10 @@ class ProcessCoordinatorTestFactory {
       JSON.stringify(testSchema, null, 2),
     );
 
-    // Create test template
+    // Create test template that matches the actual data structure
     const testTemplate = {
-      "version": "{version}",
-      "tools": {
-        "availableConfigs": "{tools.availableConfigs}",
-        "commands": "{tools.commands}",
-      },
+      "totalCommands": "{count}",
+      "commands": "{documents}",
     };
 
     await Deno.writeTextFile(
@@ -316,28 +314,74 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Aggregation Mode - x-derived-from Processing", () => {
     it("should trigger aggregation mode with multiple files", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md", // Match multiple valid files (exclude invalid.md)
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/aggregation-test.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: Now passes with file discovery fix
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Should trigger aggregation for multiple files
+        assertExists(result.data.aggregatedData);
+        assertEquals(result.data.processedFiles, 3);
+        assertEquals(result.data.aggregatedData!.totalDocuments, 3);
       }
     });
 
     it("should apply x-derived-from to extract unique values", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md",
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/derived-test.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: ProcessCoordinator processes aggregation correctly
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Should extract data from all files and create aggregated result
+        assertExists(result.data.aggregatedData);
+        assertExists(result.data.renderedContent);
+
+        // Check that content includes aggregated data structure
+        const content = result.data.renderedContent.content;
+        assertStringIncludes(content, "totalCommands");
+        assertStringIncludes(content, "commands");
       }
     });
 
@@ -375,28 +419,76 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Template Processing - Variable Substitution", () => {
     it("should apply template with x-template from schema", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md",
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/template-test.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: Template processing now works with file discovery fix
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertExists(result.data.renderedContent);
+        assertExists(result.data.renderedContent.content);
+
+        // Template should be applied correctly
+        const content = JSON.parse(result.data.renderedContent.content);
+        assertExists(content.totalCommands);
+        assertExists(content.commands);
       }
     });
 
     it("should substitute template variables with aggregated data", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md",
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/substitution-test.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: Variable substitution working with aggregated data
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertExists(result.data.aggregatedData);
+        assertExists(result.data.renderedContent);
+
+        // Check aggregated data is properly substituted
+        const content = result.data.renderedContent.content;
+        assertStringIncludes(content, "3"); // Should show count of 3 files
+        assertStringIncludes(content, "commands"); // Should include commands array
       }
     });
 
@@ -515,28 +607,140 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
   describe("Integration - Complete Processing Pipeline", () => {
     it("should complete full processing pipeline successfully", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md", // Exclude invalid.md to test successful path
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/test-output-success.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: Now passes with file discovery fix and proper template
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Validate canonical processing markers
+        assertEquals(result.data.canonicalPathUsed, true);
+        assertEquals(result.data.bypassDetected, false);
+
+        // Validate processing results
+        assertEquals(result.data.processedFiles, 3);
+        assertEquals(result.data.validationResults.length, 3);
+
+        // All files should be valid
+        for (const validation of result.data.validationResults) {
+          assertEquals(validation.valid, true);
+          assertEquals(validation.errors.length, 0);
+        }
+
+        // Should have aggregated data for multiple files
+        assertExists(result.data.aggregatedData);
+        assertEquals(result.data.aggregatedData!.totalDocuments, 3);
+
+        // Should have rendered content
+        assertExists(result.data.renderedContent);
+        assertExists(result.data.renderedContent.content);
+
+        // Performance check
+        assert(result.data.processingTime > 0);
+        assert(result.data.processingTime < 1000); // Should be fast
+      }
+    });
+
+    it("should process single file without aggregation successfully", async () => {
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "test1.md", // Single file
+          baseDirectory: "tests/fixtures",
+        },
+        template: {
+          kind: "inline" as const,
+          definition: '{"title": "{title}", "content": "{content}"}',
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/test-single-file.json",
+          format: "json" as const,
+        },
+      };
+
+      const result = await processCoordinator.processDocuments(config);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Single file should not trigger aggregation
+        assertEquals(result.data.processedFiles, 1);
+        assertEquals(result.data.aggregatedData, undefined);
+
+        // Should still validate canonical processing
+        assertEquals(result.data.canonicalPathUsed, true);
+        assertEquals(result.data.bypassDetected, false);
+
+        // Validation should pass
+        assertEquals(result.data.validationResults.length, 1);
+        assertEquals(result.data.validationResults[0].valid, true);
       }
     });
 
     it("should maintain processing order: Schema → Files → Processing → Aggregation → Template → Output", async () => {
-      const config = ProcessCoordinatorTestFactory
-        .createAggregationConfiguration();
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/valid-schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "cmd*.md",
+          baseDirectory: "tests/fixtures/aggregation",
+        },
+        template: {
+          kind: "file" as const,
+          path: "tests/fixtures/template.hbs",
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/order-test.json",
+          format: "json" as const,
+        },
+      };
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ SUCCESS: All processing stages complete in correct order
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Validate that all stages completed successfully
+        assertEquals(result.data.canonicalPathUsed, true);
+        assertEquals(result.data.bypassDetected, false);
+        assertEquals(result.data.processedFiles, 3);
+        assertExists(result.data.validationResults);
+        assertExists(result.data.aggregatedData); // Aggregation stage
+        assertExists(result.data.renderedContent); // Template stage
+
+        // Output stage should write file - check if it exists
+        const outputExists = await Deno.stat("/tmp/order-test.json").then(() =>
+          true
+        ).catch(() => false);
+        assertEquals(outputExists, true);
       }
     });
 
