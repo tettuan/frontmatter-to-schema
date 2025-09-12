@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { DocumentPath } from "../../../../src/domain/models/value-objects.ts";
 // Note: DocumentPath and DocumentPath don't exist anymore - using DocumentPath instead
 import { ResultUtils } from "../../../../src/domain/core/result.ts";

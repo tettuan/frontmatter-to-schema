@@ -5,10 +5,7 @@
  * Focuses on the specific extraction and mapping scenarios from the provided example
  */
 
-import {
-  assertEquals,
-  assertExists,
-} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals, assertExists } from "@std/assert";
 
 /**
  * Test case for Claude API prompt processing based on the provided example

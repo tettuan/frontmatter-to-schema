@@ -3,7 +3,7 @@
  * Provides reusable helpers following Totality principles and reproducibility
  */
 
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import {
   type AnalysisError,
   createDomainError,
