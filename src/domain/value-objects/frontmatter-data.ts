@@ -163,8 +163,21 @@ export class FrontmatterData {
     data: Record<string, unknown>,
     format: FrontmatterFormat = "yaml",
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Validate data is not empty
-    if (!data || Object.keys(data).length === 0) {
+    // Allow empty objects for documents without frontmatter
+    // Special case: _empty flag indicates intentionally empty frontmatter
+    if (!data) {
+      return {
+        ok: false,
+        error: createDomainError(
+          { kind: "EmptyInput" },
+          "Frontmatter data cannot be null",
+        ),
+      };
+    }
+
+    // Allow empty objects or objects with _empty flag
+    const isEmpty = Object.keys(data).length === 0 || data._empty === true;
+    if (!isEmpty && Object.keys(data).length === 0) {
       return {
         ok: false,
         error: createDomainError(
@@ -177,7 +190,10 @@ export class FrontmatterData {
     // Generate raw content based on format
     let rawContent: string;
     try {
-      if (format === "json") {
+      // Handle empty frontmatter
+      if (isEmpty) {
+        rawContent = "";
+      } else if (format === "json") {
         rawContent = JSON.stringify(data, null, 2);
       } else {
         // For YAML/TOML, store a simplified representation

@@ -379,18 +379,29 @@ export class TemplateRenderer {
     try {
       // Load the array item template
       const templateContent = await Deno.readTextFile(templatePath);
-      const templateObj = JSON.parse(templateContent);
 
       // Process each array item with the template
-      const processedItems = arrayData.map((item) => {
-        if (item && typeof item === "object") {
-          return this.processTemplateObject(templateObj, {
-            kind: "aggregated" as const,
-            aggregatedData: item as Record<string, unknown>,
-          });
-        }
-        return item;
-      });
+      const processedItems = await Promise.all(
+        arrayData.map(async (item) => {
+          if (item && typeof item === "object") {
+            // For JSON templates, parse and process
+            try {
+              const templateObj = JSON.parse(templateContent);
+              return await this.processTemplateObject(templateObj, {
+                kind: "aggregated" as const,
+                aggregatedData: item as Record<string, unknown>,
+              });
+            } catch {
+              // If not JSON, treat as simple string template
+              return this.replaceVariables(
+                templateContent,
+                item as Record<string, unknown>,
+              );
+            }
+          }
+          return item;
+        }),
+      );
 
       return { ok: true, data: processedItems };
     } catch (error) {

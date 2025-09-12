@@ -661,7 +661,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       }
     });
 
-    it("should process single file without aggregation successfully", async () => {
+    it("should process single file with aggregation when schema requires it (Issue #690)", async () => {
       const config: ProcessingConfiguration = {
         kind: "basic",
         schema: {
@@ -687,9 +687,10 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
       assertEquals(result.ok, true);
       if (result.ok) {
-        // Single file should not trigger aggregation
+        // Single file SHOULD trigger aggregation when schema requires it (Issue #690 fix)
+        // The schema has x-derived-from and x-frontmatter-part markers
         assertEquals(result.data.processedFiles, 1);
-        assertEquals(result.data.aggregatedData, undefined);
+        assertExists(result.data.aggregatedData); // Changed: aggregation now runs for single files when schema requires it
 
         // Should still validate canonical processing
         assertEquals(result.data.canonicalPathUsed, true);
@@ -758,10 +759,18 @@ invalid frontmatter
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // With graceful handling, invalid frontmatter is treated as no frontmatter
+      // The process should succeed as we have other valid files
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertExists(result.data.processingTime);
+        // Check that files were processed
+        assertExists(result.data.processedFiles);
+        // Should process 4 files (3 valid + 1 with invalid/missing frontmatter)
+        assertEquals(result.data.processedFiles, 4);
+        // Check validation results
+        assertExists(result.data.validationResults);
+        assertEquals(result.data.validationResults.length, 4);
       }
     });
   });
