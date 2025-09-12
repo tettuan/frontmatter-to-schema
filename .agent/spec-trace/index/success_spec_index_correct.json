@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "description": "Specification level traceability IDs",
+  "spec": [
+    "spec:api:auth-module-7e9c2f#20250910",
+    "spec:ui:responsive-grid-4d3a8b#20250911",
+    "spec:data:cache-layer-9f5e1c#20250912"
+  ]
+}

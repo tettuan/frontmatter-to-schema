@@ -172,6 +172,31 @@ export class FrontmatterContext {
     // 1. Detect frontmatter format and boundaries
     const formatResult = this.detectFrontmatterFormat(documentContent);
     if (!formatResult.ok) {
+      // Handle files without frontmatter when allowEmptyFrontmatter is true
+      if (
+        formatResult.error.kind === "NoFrontMatterPresent" &&
+        extractionOptions.allowEmptyFrontmatter
+      ) {
+        // Create empty frontmatter for files without frontmatter
+        const emptyFrontmatterResult = FrontmatterData.createFromParsed(
+          {},
+          "yaml",
+        );
+        if (!emptyFrontmatterResult.ok) {
+          return emptyFrontmatterResult;
+        }
+
+        return {
+          ok: true,
+          data: {
+            frontmatter: emptyFrontmatterResult.data,
+            content: documentContent, // Entire content is treated as body
+            originalDocument: documentContent,
+            extractionMethod: "yaml",
+            lineNumbers: { start: 0, end: 0 },
+          },
+        };
+      }
       return formatResult;
     }
 

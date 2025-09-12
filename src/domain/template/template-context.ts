@@ -75,7 +75,7 @@ export class TemplateContext {
   private readonly templateCache = new Map<string, TemplateDefinition>();
   private readonly defaultOptions: TemplateProcessingOptions = {
     strict: true,
-    allowMissingVariables: false,
+    allowMissingVariables: true, // Allow flexible frontmatter structures (Totality principle)
     escapeHtml: true,
     preserveWhitespace: false,
   };

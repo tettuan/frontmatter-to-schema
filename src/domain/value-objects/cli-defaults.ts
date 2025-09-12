@@ -197,7 +197,7 @@ export class CLIDefaults {
       ok: true,
       data: {
         strict: false,
-        allowEmptyFrontmatter: false,
+        allowEmptyFrontmatter: true,
         allowMissingVariables: true,
         validateSchema: true,
         parallelProcessing: false,

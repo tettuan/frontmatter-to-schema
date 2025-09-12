@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "traceability": [
+        {
+          "id": {
+            "full": "req:api:deepresearch-3f8d2a#20250909",
+            "level": "req",
+            "scope": "api",
+            "semantic": "deepresearch",
+            "hash": "3f8d2a",
+            "version": 20250909
+          },
+          "summary": "DeepResearch API連携機能の要求定義",
+          "description": "DeepResearchサービスをAPI経由で活用し、高度な情報収集・調査を実行する機能",
+          "author": "system",
+          "derived_from": [
+            "req:user:ai-settings-2c5e9b#20250906",
+            "req:stock:multitenant-7a3f1d#20250906"
+          ],
+          "trace_to": [],
+          "status": "draft",
+          "tags": [
+            "deep-research",
+            "api-integration",
+            "information-gathering",
+            "prompt-management",
+            "tenant-data"
+          ]
+        }
+      ],
+      "title": "DeepResearch API連携機能の要求定義",
+      "category": "AI連携・情報収集",
+      "priority": "SHOULD",
+      "created_at": "2025-09-06T00:00:00.000Z",
+      "evaluation": {
+        "feasibility": 8,
+        "importance": 9,
+        "urgency": 7,
+        "complexity": 7
+      },
+      "_metadata": {
+        "filePath": ".agent/spec-trace/docs/deep-research-api.md",
+        "format": "yaml"
+      }
+    }
+  ]
+}

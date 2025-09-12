@@ -82,7 +82,7 @@ export class ProcessingOptionsBuilder {
   static getDefaults(): ProcessingOptions {
     return {
       strict: true,
-      allowEmptyFrontmatter: false,
+      allowEmptyFrontmatter: true, // Allow files without frontmatter by default for graceful handling
       allowMissingVariables: false,
       validateSchema: true,
       parallelProcessing: false, // Sequential processing for reliability
@@ -163,22 +163,9 @@ export class ProcessingOptionsBuilder {
     }
 
     // Validate logical consistency: strict mode implications
-    if (options.strict) {
-      if (options.allowEmptyFrontmatter && options.validateSchema) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "InvalidState",
-              expected: "strict mode with non-empty frontmatter",
-              actual:
-                "strict mode with allowEmptyFrontmatter and validateSchema",
-            },
-            "Strict mode with schema validation cannot allow empty frontmatter",
-          ),
-        };
-      }
-    }
+    // Note: allowEmptyFrontmatter is compatible with strict mode
+    // It allows graceful handling of files without frontmatter
+    // while still strictly validating files that do have frontmatter
 
     // Validate parallel processing constraints
     if (options.parallelProcessing && options.strict) {

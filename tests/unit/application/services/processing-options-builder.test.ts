@@ -16,7 +16,7 @@ describe("ProcessingOptionsBuilder", () => {
       if (result.ok) {
         const options = result.data.getOptions();
         assertEquals(options.strict, true);
-        assertEquals(options.allowEmptyFrontmatter, false);
+        assertEquals(options.allowEmptyFrontmatter, true); // Changed to allow graceful handling
         assertEquals(options.allowMissingVariables, false);
         assertEquals(options.validateSchema, true);
         assertEquals(options.parallelProcessing, false);
@@ -60,16 +60,20 @@ describe("ProcessingOptionsBuilder", () => {
       }
     });
 
-    it("should reject invalid strict mode combinations", () => {
+    it("should allow strict mode with allowEmptyFrontmatter for graceful handling", () => {
       const result = ProcessingOptionsBuilder.create({
         strict: true,
         allowEmptyFrontmatter: true,
         validateSchema: true,
       });
 
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertEquals(result.error.kind, "InvalidState");
+      // This combination is now valid for graceful handling of missing frontmatter
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const options = result.data.getOptions();
+        assertEquals(options.strict, true);
+        assertEquals(options.allowEmptyFrontmatter, true);
+        assertEquals(options.validateSchema, true);
       }
     });
   });
@@ -237,7 +241,7 @@ describe("ProcessingOptionsBuilder", () => {
 
       assertExists(defaults);
       assertEquals(defaults.strict, true);
-      assertEquals(defaults.allowEmptyFrontmatter, false);
+      assertEquals(defaults.allowEmptyFrontmatter, true); // Changed to allow graceful handling
       assertEquals(defaults.allowMissingVariables, false);
       assertEquals(defaults.validateSchema, true);
       assertEquals(defaults.parallelProcessing, false);
