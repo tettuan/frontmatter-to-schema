@@ -469,3 +469,152 @@ Deno.test("AggregateResultsUseCase", async (t) => {
     });
   });
 });
+
+// Regression tests for Issue #717
+Deno.test("AggregateResultsUseCase - Issue #717 Regression", async (t) => {
+  await t.step(
+    "should handle plain templateInfo object without getIsFrontmatterPart method",
+    async () => {
+      const useCase = AggregateResultsUseCase.createOrDefault();
+
+      // Simulate ProcessCoordinator passing a plain object without methods
+      const plainTemplateInfo = {
+        path: "template.json",
+        format: "json" as const,
+        variables: [],
+        // Note: No getIsFrontmatterPart method - simulating plain object from ProcessCoordinator
+      } as unknown as SchemaTemplateInfo;
+
+      const testData = [
+        { category: "build", action: "compile" },
+        { category: "test", action: "run" },
+        { category: "build", action: "package" },
+      ];
+
+      const schema = {
+        type: "object",
+        properties: {
+          uniqueCategories: {
+            type: "array",
+            [SchemaExtensions.DERIVED_FROM]: "items[].category",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
+            items: { type: "string" },
+          },
+          items: {
+            type: "array",
+            [SchemaExtensions.FRONTMATTER_PART]: true,
+            items: {
+              type: "object",
+              properties: {
+                category: { type: "string" },
+                action: { type: "string" },
+              },
+            },
+          },
+        },
+      };
+
+      const input: AggregateResultsInput = {
+        data: testData,
+        templateInfo: plainTemplateInfo,
+        schema: schema,
+      };
+
+      // Should not throw error despite missing method
+      const result = await useCase.execute(input);
+      assertEquals(
+        result.ok,
+        true,
+        "Should handle plain templateInfo without throwing",
+      );
+
+      if (result.ok) {
+        assertEquals(result.data.itemCount, 3);
+
+        // Should still process aggregation correctly
+        const aggregated = result.data.aggregated as Record<string, unknown>;
+        // With frontmatter-part, the data is wrapped under the property name
+        assertExists(aggregated.uniqueCategories);
+        assertEquals(aggregated.uniqueCategories, ["build", "test"]);
+
+        // Verify derived fields
+        if (result.data.derivedFields) {
+          assertExists(result.data.derivedFields.uniqueCategories);
+          const uniqueCategories = result.data.derivedFields
+            .uniqueCategories as string[];
+          assertEquals(new Set(uniqueCategories), new Set(["build", "test"]));
+        }
+      }
+    },
+  );
+
+  await t.step(
+    "should process x-derived-from aggregation with frontmatter-part correctly",
+    async () => {
+      const useCase = AggregateResultsUseCase.createOrDefault();
+
+      const testData = [
+        { field1: "alpha", field2: "one" },
+        { field1: "beta", field2: "two" },
+        { field1: "alpha", field2: "three" },
+      ];
+
+      const schema = {
+        type: "object",
+        properties: {
+          uniqueValues: {
+            type: "array",
+            [SchemaExtensions.DERIVED_FROM]: "docs[].field1",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
+            items: { type: "string" },
+          },
+          docs: {
+            type: "array",
+            [SchemaExtensions.FRONTMATTER_PART]: true,
+            items: {
+              type: "object",
+              properties: {
+                field1: { type: "string" },
+                field2: { type: "string" },
+              },
+            },
+          },
+        },
+      };
+
+      const templateInfoResult = SchemaTemplateInfo.extract(schema);
+      const templateInfo = templateInfoResult.ok ? templateInfoResult.data : ({
+        path: "template.json",
+        format: "json" as const,
+        variables: [],
+        getIsFrontmatterPart: () => false,
+      } as unknown as SchemaTemplateInfo);
+
+      const input: AggregateResultsInput = {
+        data: testData,
+        templateInfo: templateInfo,
+        schema: schema,
+      };
+
+      const result = await useCase.execute(input);
+      assertEquals(result.ok, true);
+
+      if (result.ok) {
+        assertEquals(result.data.itemCount, 3);
+
+        // Verify aggregation worked
+        const aggregated = result.data.aggregated as Record<string, unknown>;
+        assertExists(aggregated.docs, "Should have docs in aggregated result");
+        assertEquals(aggregated.docs, testData);
+
+        // Verify derived fields
+        if (result.data.derivedFields) {
+          assertExists(result.data.derivedFields.uniqueValues);
+          const uniqueValues = result.data.derivedFields
+            .uniqueValues as string[];
+          assertEquals(new Set(uniqueValues), new Set(["alpha", "beta"]));
+        }
+      }
+    },
+  );
+});
