@@ -168,6 +168,21 @@ export class TemplateRenderer {
     return result;
   }
 
+  /**
+   * Resolve value from data using path notation
+   * Supports: simple.path, array[0], nested.array[1].property
+   */
+  private resolvePathValue(
+    data: Record<string, unknown>,
+    path: string,
+  ): unknown {
+    // Handle array notation: convert path[0].prop to path.0.prop for processing
+    const normalizedPath = path.replace(/\[(\d+)\]/g, ".$1");
+
+    // Use existing getNestedValue method for dot notation
+    return this.getNestedValue(data, normalizedPath);
+  }
+
   private valueToString(value: unknown): string {
     if (typeof value === "string") return value;
     if (typeof value === "number" || typeof value === "boolean") {

@@ -114,7 +114,11 @@ describe("ProcessingOptionsBuilder", () => {
 
   describe("immutable updates", () => {
     it("should create new builder with withStrict", () => {
-      const originalResult = ProcessingOptionsBuilder.create({ strict: false });
+      const originalResult = ProcessingOptionsBuilder.create({
+        strict: false,
+        allowEmptyFrontmatter: false,
+        validateSchema: true,
+      });
       assertEquals(originalResult.ok, true);
 
       if (originalResult.ok) {
@@ -200,6 +204,8 @@ describe("ProcessingOptionsBuilder", () => {
         parallelProcessing: false,
         strict: true,
         maxFiles: 100,
+        allowEmptyFrontmatter: false,
+        validateSchema: true,
       });
 
       assertEquals(result.ok, true);
@@ -240,8 +246,13 @@ describe("ProcessingOptionsBuilder", () => {
       const defaults = ProcessingOptionsBuilder.getDefaults();
 
       assertExists(defaults);
+<<<<<<< Updated upstream
       assertEquals(defaults.strict, true);
       assertEquals(defaults.allowEmptyFrontmatter, true); // Changed to allow graceful handling
+=======
+      assertEquals(defaults.strict, false);
+      assertEquals(defaults.allowEmptyFrontmatter, true);
+>>>>>>> Stashed changes
       assertEquals(defaults.allowMissingVariables, true);
       assertEquals(defaults.validateSchema, true);
       assertEquals(defaults.parallelProcessing, false);

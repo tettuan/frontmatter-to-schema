@@ -1,4 +1,5 @@
 import { parseArgs } from "jsr:@std/cli/parse-args";
+import * as path from "jsr:@std/path";
 import type { DomainError, Result } from "../domain/core/result.ts";
 import {
   type ApplicationConfiguration,
@@ -483,11 +484,39 @@ export class CLI {
       };
 
       // Convert template configuration
-      // For template, we might have either an explicit path or loaded content
-      const templatePath = originalArgs.template as string | undefined;
+      // Check if schema has x-template
+      let finalTemplatePath: string | undefined = originalArgs.template as
+        | string
+        | undefined;
+
+      if (!finalTemplatePath) {
+        // Try to extract x-template from schema
+        try {
+          const schemaContent = JSON.parse(appConfig.schema.definition);
+          if (
+            schemaContent && typeof schemaContent === "object" &&
+            "x-template" in schemaContent
+          ) {
+            const xTemplate = schemaContent["x-template"];
+            if (typeof xTemplate === "string") {
+              // Resolve template path relative to schema directory
+              const schemaDir = path.dirname(schemaPath);
+              finalTemplatePath = path.resolve(schemaDir, xTemplate);
+            }
+          }
+        } catch {
+          // Schema might be YAML or invalid, skip x-template extraction
+        }
+      }
+
+      // If still no template path, use default
+      if (!finalTemplatePath) {
+        finalTemplatePath = appConfig.template.definition;
+      }
+
       const templateConfig = {
         kind: "file" as const,
-        path: templatePath || appConfig.template.definition, // Use original path if available, fallback to content
+        path: finalTemplatePath,
         format: (appConfig.template.format.toString() as
           | "json"
           | "yaml"

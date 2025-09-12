@@ -5,13 +5,55 @@
 本ドキュメントは、Markdownファイルのフロントマター解析からテンプレート出力までのSchema処理プロセスを定義する。
 全域性原則とハードコーディング禁止規定に従い、型安全かつ柔軟な設計を実現する。
 
+**核心機能**:
+$refで参照された各Schemaが独自のx-templateを持ち、再帰的にテンプレート処理される点が本システムの最重要特徴である。
+
+## テンプレート処理の基本原則
+
+### 絶対的原則
+**テンプレートは出力フォーマットを完全に定義する。テンプレートに記載されたもののみが出力される。**
+
+#### 正しい理解
+```json
+// テンプレート: simple_template.json
+"{id.full}"
+
+// 出力（id.full = "req:api:test"の場合）
+"req:api:test"
+```
+
+#### 誤った理解 ❌
+- 「Schemaの構造が出力構造を決める」
+- 「テンプレートが部分的な場合、Schemaで補完される」
+- 「x-frontmatter-part配列は特殊な処理を持つ」
+
+### テンプレート変数の解決
+1. **テンプレートが権威** - 出力フォーマットを完全に定義
+2. **変数は置換される** - {variable.path} → 実際の値
+3. **追加は一切ない** - Schema構造による推論や補完は行われない
+
+### 配列処理（x-frontmatter-part: true）
+```json
+// 各フロントマター項目にテンプレートが適用される
+// テンプレートは完全な構造を定義する必要がある
+{
+  "id": "{id}",
+  "name": "{name}",
+  "status": "{status}"
+}
+
+// 以下は誤り（idのみ出力される）
+"{id}"
+```
+
 ## アーキテクチャ原則
 
 ### 1. 抽象化の原則
 
 - SchemaはCLI引数から注入される（ハードコーディング禁止）
 - 処理ロジックは特定のSchemaに依存しない汎用設計
-- $ref解決は再帰的かつ動的に処理
+- **$ref解決は再帰的かつ動的に処理し、各階層のx-templateも保持**
+- **再帰的に参照されたSchemaが持つテンプレートを階層的に適用**
 
 ### 2. 型安全性の原則（全域性）
 
@@ -459,22 +501,72 @@ type AggregationProcessState =
 
 ## 処理詳細
 
-### 1. Schema読込と$ref解決（Schemaドメイン）
+### 1. Schema読込と$ref解決、再帰的テンプレート処理（Schemaドメイン）
+
+#### 1.1 再帰的$refとテンプレート処理の概要
+
+本システムの核心機能は、**$refで参照された各Schemaが独自のx-templateを持ち、再帰的にテンプレート処理される**点にある。
+
+```mermaid
+graph TB
+    subgraph "親Schema (registry_schema.json)"
+        PS[Parent Schema]
+        PT[x-template: registry_template.json]
+    end
+    
+    subgraph "子Schema (registry_command_schema.json)"
+        CS[Child Schema via $ref]
+        CT[x-template: registry_command_template.json]
+    end
+    
+    PS -->|$ref| CS
+    PT -->|適用| PS
+    CT -->|適用| CS
+    
+    style PS fill:#f9f,stroke:#333,stroke-width:2px
+    style CS fill:#bbf,stroke:#333,stroke-width:2px
+```
+
+#### 1.2 処理フローの詳細
+
+1. **親Schemaの読み込み**
+   - `registry_schema.json`を読み込み
+   - `x-template: "registry_template.json"`を検出
+
+2. **$ref解決時のテンプレート保持**
+   - `"items": { "$ref": "registry_command_schema.json" }`を検出
+   - 子Schemaの`x-template: "registry_command_template.json"`も保持
+
+3. **再帰的テンプレート適用**
+   - 各階層で適切なテンプレートを適用
+   - 子要素の処理結果を親テンプレートに統合
+
+#### 1.3 実装例
 
 ```typescript
-// SchemaReferenceResolver - ドメインサービス
+// SchemaReferenceResolver - ドメインサービス（拡張版）
 class SchemaReferenceResolver {
+  // テンプレート情報を保持する構造
+  interface ResolvedSchemaWithTemplate {
+    schema: ResolvedSchema;
+    templatePath?: string;
+    nestedTemplates: Map<string, TemplateInfo>;
+  }
+
   async resolve(
     schema: RawSchema,
     basePath: string,
-  ): Promise<Result<ResolvedSchema, SchemaError>> {
+  ): Promise<Result<ResolvedSchemaWithTemplate, SchemaError>> {
     // 循環参照検出
     const visited = new Set<string>();
+    // テンプレート情報を階層的に保持
+    const templateMap = new Map<string, TemplateInfo>();
 
     const resolveRecursive = async (
       obj: any,
       currentPath: string,
       depth: number = 0,
+      schemaPath: string = "",
     ): Promise<Result<any, SchemaError>> => {
       // 深さ制限
       if (depth > 100) {
@@ -493,9 +585,20 @@ class SchemaReferenceResolver {
         return { ok: true, data: obj };
       }
 
+      // x-templateの抽出と保持（$ref解決前に実行）
+      if ("x-template" in obj) {
+        const templateInfo: TemplateInfo = {
+          path: obj["x-template"],
+          schemaPath: schemaPath,
+          depth: depth,
+        };
+        templateMap.set(schemaPath, templateInfo);
+      }
+
       // $ref処理
       if ("$ref" in obj) {
         const refPath = obj["$ref"] as string;
+        const newSchemaPath = `${schemaPath}/${refPath}`;
 
         // 循環参照チェック
         if (visited.has(refPath)) {
@@ -515,11 +618,21 @@ class SchemaReferenceResolver {
         const loadResult = await this.loadReference(refPath, currentPath);
         if (!loadResult.ok) return loadResult;
 
+        // 参照先Schemaのx-templateも抽出
+        if (loadResult.data["x-template"]) {
+          templateMap.set(newSchemaPath, {
+            path: loadResult.data["x-template"],
+            schemaPath: newSchemaPath,
+            depth: depth + 1,
+          });
+        }
+
         // 再帰的に解決
         const resolvedResult = await resolveRecursive(
           loadResult.data,
           this.getReferencePath(refPath, currentPath),
           depth + 1,
+          newSchemaPath,
         );
 
         visited.delete(refPath);
@@ -530,8 +643,13 @@ class SchemaReferenceResolver {
       // 配列の処理
       if (Array.isArray(obj)) {
         const results: any[] = [];
-        for (const item of obj) {
-          const result = await resolveRecursive(item, currentPath, depth);
+        for (let i = 0; i < obj.length; i++) {
+          const result = await resolveRecursive(
+            obj[i],
+            currentPath,
+            depth,
+            `${schemaPath}[${i}]`,
+          );
           if (!result.ok) return result;
           results.push(result.data);
         }
@@ -541,7 +659,12 @@ class SchemaReferenceResolver {
       // オブジェクトの処理
       const resolved: any = {};
       for (const [key, value] of Object.entries(obj)) {
-        const result = await resolveRecursive(value, currentPath, depth);
+        const result = await resolveRecursive(
+          value,
+          currentPath,
+          depth,
+          `${schemaPath}.${key}`,
+        );
         if (!result.ok) return result;
         resolved[key] = result.data;
       }
@@ -549,20 +672,42 @@ class SchemaReferenceResolver {
       return { ok: true, data: resolved };
     };
 
-    return resolveRecursive(schema, basePath, 0);
-  }
-
-  // Schemaからテンプレート情報を抽出
-  extractTemplateInfo(schema: ResolvedSchema): TemplateInfo {
-    // x-template, x-frontmatter-part などの拡張プロパティを探索
-    const templatePath = schema["x-template"];
-    const frontmatterPart = schema["x-frontmatter-part"];
-    const derivationRules = this.extractDerivationRules(schema);
+    const resolvedSchema = await resolveRecursive(schema, basePath, 0);
+    if (!resolvedSchema.ok) return resolvedSchema;
 
     return {
-      templatePath,
-      frontmatterPart,
-      derivationRules,
+      ok: true,
+      data: {
+        schema: resolvedSchema.data,
+        templatePath: schema["x-template"],
+        nestedTemplates: templateMap,
+      },
+    };
+  }
+
+  // 再帰的テンプレート適用のための情報抽出
+  extractRecursiveTemplateInfo(
+    schema: ResolvedSchemaWithTemplate,
+  ): RecursiveTemplateInfo {
+    const templates: TemplateHierarchy[] = [];
+
+    // テンプレート階層を構築
+    for (const [path, info] of schema.nestedTemplates) {
+      templates.push({
+        schemaPath: path,
+        templatePath: info.path,
+        depth: info.depth,
+        parent: this.findParentTemplate(path, schema.nestedTemplates),
+      });
+    }
+
+    // 深さでソート（深い階層から処理）
+    templates.sort((a, b) => b.depth - a.depth);
+
+    return {
+      rootTemplate: schema.templatePath,
+      hierarchy: templates,
+      processingOrder: this.determineProcessingOrder(templates),
     };
   }
 
@@ -579,6 +724,87 @@ class SchemaReferenceResolver {
       return refPath;
     }
     return `${basePath}/${refPath}`.replace(/\/+/g, "/");
+  }
+}
+```
+
+#### 1.4 再帰的テンプレート処理の具体例
+
+以下は、実際の処理フローを示す具体例である：
+
+**入力Schema構造:**
+
+```json
+// registry_schema.json
+{
+  "x-template": "registry_template.json",
+  "properties": {
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "registry_command_schema.json" }
+    }
+  }
+}
+
+// registry_command_schema.json  
+{
+  "x-template": "registry_command_template.json",
+  "properties": {
+    "c1": { "type": "string" },
+    "c2": { "type": "string" },
+    "options": {
+      "type": "object",
+      "$ref": "command_options_schema.json"
+    }
+  }
+}
+
+// command_options_schema.json
+{
+  "x-template": "command_options_template.json",
+  "properties": {
+    "input": { "type": "array" }
+  }
+}
+```
+
+**処理順序:**
+
+1. 最深部のテンプレート適用: `command_options_template.json` → options部分を生成
+2. 中間層のテンプレート適用: `registry_command_template.json` →
+   各コマンドを生成（optionsを統合）
+3. ルートテンプレート適用: `registry_template.json` →
+   全体構造を生成（commandsを統合）
+
+**結果の統合:**
+
+```typescript
+class RecursiveTemplateProcessor {
+  async processWithTemplates(
+    data: ValidatedData,
+    schemaWithTemplate: ResolvedSchemaWithTemplate,
+  ): Promise<Result<string, ProcessError>> {
+    const templateInfo = this.extractRecursiveTemplateInfo(schemaWithTemplate);
+
+    // 深い階層から順に処理
+    const processedParts = new Map<string, string>();
+
+    for (const template of templateInfo.hierarchy) {
+      const partData = this.extractDataForPath(data, template.schemaPath);
+      const rendered = await this.renderTemplate(
+        template.templatePath,
+        partData,
+        processedParts, // 既に処理済みの子要素を渡す
+      );
+      processedParts.set(template.schemaPath, rendered);
+    }
+
+    // ルートテンプレートで最終統合
+    return this.renderRootTemplate(
+      templateInfo.rootTemplate,
+      data,
+      processedParts,
+    );
   }
 }
 ```
