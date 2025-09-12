@@ -89,7 +89,6 @@ Deno.test("VariableMap - should reject invalid variable names", () => {
     "   ",
     "123invalid",
     "invalid-name",
-    "invalid.name",
     "invalid name",
     "a".repeat(101), // too long
   ];
@@ -112,6 +111,9 @@ Deno.test("VariableMap - should accept valid variable names", () => {
     "camelCase",
     "snake_case",
     "PascalCase",
+    "valid.name", // FIXED: Dot notation now supported for Issue #706
+    "object.property",
+    "tools.availableConfigs",
   ];
 
   for (const name of validNames) {

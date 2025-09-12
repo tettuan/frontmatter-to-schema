@@ -39,17 +39,18 @@ export class VariableValidator {
 
     const trimmedName = name.trim();
 
-    // Check for valid variable name pattern
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedName)) {
+    // Check for valid variable name pattern including dot notation like {object.property}
+    if (!/^[a-zA-Z_][a-zA-Z0-9_$.]*$/.test(trimmedName)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "InvalidFormat",
             input: trimmedName,
-            expectedFormat: "valid variable name (alphanumeric and underscore)",
+            expectedFormat:
+              "valid variable name (alphanumeric, underscore, and dot)",
           },
-          "Variable name must start with letter or underscore and contain only alphanumeric characters and underscores",
+          "Variable name must start with letter or underscore and contain only alphanumeric characters, underscores, and dots",
         ),
       };
     }

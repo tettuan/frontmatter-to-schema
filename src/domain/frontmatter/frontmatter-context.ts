@@ -12,6 +12,7 @@ import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
 import type { DocumentPath } from "../value-objects/document-path.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
+import { parse as parseYaml } from "jsr:@std/yaml";
 
 /**
  * Extracted frontmatter with metadata
@@ -574,9 +575,37 @@ export class FrontmatterContext {
   }
 
   /**
-   * Simple YAML parser (basic implementation)
+   * YAML parser using Deno's standard library
+   * FIXED: Proper YAML parsing to handle arrays and nested structures
    */
   private parseSimpleYaml(yamlText: string): Record<string, unknown> {
+    try {
+      // Use imported YAML parsing from Deno's standard library
+      // This handles arrays, nested objects, and all proper YAML syntax
+      const parsed = parseYaml(yamlText);
+
+      // Ensure we return a Record<string, unknown>
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      } else {
+        // If root is not an object, wrap it
+        return { _root: parsed };
+      }
+    } catch (error) {
+      // Fallback to basic parsing if YAML library fails
+      console.warn(
+        "YAML library parse failed, falling back to basic parsing:",
+        error,
+      );
+      return this.parseBasicYaml(yamlText);
+    }
+  }
+
+  /**
+   * Basic YAML parser fallback (for simple key-value pairs only)
+   * NOTE: This does not handle arrays or nested structures properly
+   */
+  private parseBasicYaml(yamlText: string): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     const lines = yamlText.split("\n");
 
