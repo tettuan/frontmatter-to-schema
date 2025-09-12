@@ -20,7 +20,7 @@ import { createDomainError, DomainError } from "../../domain/core/result.ts";
 import { SchemaDefinition } from "../../domain/value-objects/schema-definition.ts";
 import { SchemaPath } from "../../domain/value-objects/schema-path.ts";
 import { FileSystemRepository } from "../../infrastructure/adapters/deno-file-system-repository.ts";
-import { parseSchema } from "../../domain/models/schema.ts";
+import { parseSchema } from "../../domain/entities/schema.ts";
 import { SchemaExtensions } from "../../domain/models/schema-extensions.ts";
 import { SchemaValidator } from "../../domain/services/schema-validator.ts";
 import { RefResolver } from "../../domain/schema/services/ref-resolver.ts";

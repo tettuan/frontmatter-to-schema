@@ -23,7 +23,7 @@ import { ProcessingConfiguration, TemplateFormat } from "../process-coordinator.
 
 export interface InputConfiguration {
   pattern: string;
-  baseDirectory: string;
+  baseDirectory?: string;
 }
 
 export interface SchemaConfiguration {
@@ -93,31 +93,20 @@ export class ConfigurationManager {
         ok: false,
         error: createDomainError(
           "validation",
-          "Input pattern is required",
-          { input }
+          "Input pattern is required"
         ),
       };
     }
 
-    if (!input.baseDirectory || input.baseDirectory.trim() === "") {
-      return {
-        ok: false,
-        error: createDomainError(
-          "validation",
-          "Base directory is required",
-          { input }
-        ),
-      };
-    }
-
-    const pathResult = DocumentPath.create(input.baseDirectory);
+    const baseDir = input.baseDirectory || ".";
+    
+    const pathResult = DocumentPath.create(baseDir);
     if (!pathResult.ok) {
       return {
         ok: false,
         error: createDomainError(
           "validation",
-          `Invalid base directory: ${pathResult.error.message}`,
-          { input }
+          `Invalid base directory: ${pathResult.error.message}`
         ),
       };
     }
@@ -136,8 +125,7 @@ export class ConfigurationManager {
         ok: false,
         error: createDomainError(
           "validation",
-          "Schema path is required",
-          { schema }
+          "Schema path is required"
         ),
       };
     }
@@ -148,8 +136,7 @@ export class ConfigurationManager {
         ok: false,
         error: createDomainError(
           "validation",
-          `Invalid schema path: ${pathResult.error.message}`,
-          { schema }
+          `Invalid schema path: ${pathResult.error.message}`
         ),
       };
     }
@@ -163,8 +150,7 @@ export class ConfigurationManager {
           ok: false,
           error: createDomainError(
             "validation",
-            `Cannot detect schema format: ${formatResult.error.message}`,
-            { schema }
+            `Cannot detect schema format: ${formatResult.error.message}`
           ),
         };
       }
@@ -175,8 +161,7 @@ export class ConfigurationManager {
           ok: false,
           error: createDomainError(
             "validation",
-            `Invalid schema format: ${format}. Must be json or yaml`,
-            { schema }
+            `Invalid schema format: ${format}. Must be json or yaml`
           ),
         };
       }
