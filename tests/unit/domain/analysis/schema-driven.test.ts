@@ -18,7 +18,10 @@ import type {
   ExternalAnalysisService,
   PromptConfiguration,
 } from "../../../../src/domain/core/abstractions.ts";
-import type { DomainError, Result } from "../../../../src/domain/core/result.ts";
+import type {
+  DomainError,
+  Result,
+} from "../../../../src/domain/core/result.ts";
 import { createDomainError } from "../../../../src/domain/core/result.ts";
 
 // Mock implementations for testing
@@ -43,8 +46,12 @@ class MockExternalAnalysisService implements ExternalAnalysisService {
       return Promise.resolve({
         ok: false,
         error: createDomainError(
-          { kind: "AIServiceError", service: "MockService", statusCode: undefined },
-          "Analysis failed"
+          {
+            kind: "AIServiceError",
+            service: "MockService",
+            statusCode: undefined,
+          },
+          "Analysis failed",
         ),
       });
     }
@@ -151,7 +158,7 @@ Deno.test("GenericSchemaAnalyzer", async (t) => {
       analyze() {
         return Promise.resolve({
           ok: true,
-          data: null
+          data: null,
         });
       },
     };
