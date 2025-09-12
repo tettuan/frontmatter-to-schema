@@ -16,9 +16,9 @@ import {
   DEFAULT_NAME_LENGTH_LIMIT,
   VARIABLE_DESCRIPTION_LENGTH_LIMIT,
 } from "../../shared/constants.ts";
-import { 
-  ValidationConfig, 
-  type ValidationContext 
+import {
+  ValidationConfig,
+  type ValidationContext,
 } from "../value-objects/validation-config.ts";
 
 /**
@@ -27,7 +27,8 @@ import {
  * FIXED: Uses configurable validation to eliminate hardcoding violations
  */
 export class VariableValidator {
-  private static defaultConfig: ValidationConfig = ValidationConfig.createDefault();
+  private static defaultConfig: ValidationConfig = ValidationConfig
+    .createDefault();
 
   /**
    * Set global validation configuration
@@ -73,7 +74,7 @@ export class VariableValidator {
         ok: false,
         error: createDomainError(
           {
-            kind: "InvalidFormat", 
+            kind: "InvalidFormat",
             input: trimmedName,
             expectedFormat,
           },
@@ -151,7 +152,10 @@ export class VariableValidator {
         // Validate object properties
         for (const [key, val] of Object.entries(value)) {
           // FIXED: Use configurable validation for object keys
-          const keyValidation = VariableValidator.validateVariableName(key, 'mixed');
+          const keyValidation = VariableValidator.validateVariableName(
+            key,
+            "mixed",
+          );
           if (!keyValidation.ok) {
             return {
               ok: false,
