@@ -35,6 +35,29 @@ export class JSONPathExpression {
 
     const trimmed = expression.trim();
 
+    // Handle special function expressions (count, average)
+    if (trimmed.startsWith("count(") && trimmed.endsWith(")")) {
+      // For count expressions, create a synthetic JSONPath expression
+      return {
+        ok: true,
+        data: new JSONPathExpression(trimmed, [
+          { type: "root", value: "$" },
+          { type: "function", value: "count" },
+        ]),
+      };
+    }
+
+    if (trimmed.startsWith("average(") && trimmed.endsWith(")")) {
+      // For average expressions, create a synthetic JSONPath expression
+      return {
+        ok: true,
+        data: new JSONPathExpression(trimmed, [
+          { type: "root", value: "$" },
+          { type: "function", value: "average" },
+        ]),
+      };
+    }
+
     // Validate syntax
     const syntaxResult = JSONPathExpression.validateSyntax(trimmed);
     if (!syntaxResult.ok) {
@@ -256,6 +279,6 @@ export class JSONPathExpression {
  * Represents a part of an expression
  */
 export interface ExpressionPart {
-  type: "property" | "array" | "index" | "root";
+  type: "property" | "array" | "index" | "root" | "function";
   value: string;
 }

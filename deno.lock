@@ -43,7 +43,8 @@
     "jsr:@std/yaml@1.0.9": "1.0.9",
     "jsr:@std/yaml@^1.0.5": "1.0.9",
     "npm:@anthropic-ai/claude-code@*": "1.0.89",
-    "npm:@anthropic-ai/claude-code@^1.0.89": "1.0.89"
+    "npm:@anthropic-ai/claude-code@^1.0.89": "1.0.89",
+    "npm:jsonpath-plus@7.2.0": "7.2.0"
   },
   "jsr": {
     "@std/assert@1.0.5": {
@@ -244,6 +245,9 @@
       "integrity": "sha512-MpY/o8/8kj+EcnxwvrP4aTJSWw/aZ7JIGR4aBeZkZw5B7/Jn+tY9/VNwtcoGmdT7GfggGIU4kygOMSbYnOrAbg==",
       "os": ["win32"],
       "cpu": ["x64"]
+    },
+    "jsonpath-plus@7.2.0": {
+      "integrity": "sha512-zBfiUPM5nD0YZSBT/o/fbCUlCcepMIdP0CJZxM1+KgA4f2T206f6VAg9e7mX35+KlMaIc5qXW34f3BnwJ3w+RA=="
     }
   },
   "redirects": {

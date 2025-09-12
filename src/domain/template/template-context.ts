@@ -370,6 +370,7 @@ export class TemplateContext {
 
   /**
    * Perform variable substitution in template
+   * FIXED: JSON-aware substitution to resolve Issue #710 silent failures
    */
   private performSubstitution(
     template: TemplateDefinition,
@@ -379,38 +380,29 @@ export class TemplateContext {
     let content = template.getContent();
     const variableMap = variables.toObject();
 
-    // Replace all {variable} placeholders including dot notation like {object.property}
-    const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
+    // Detect if we're working with a JSON template
+    const isJsonTemplate = this.isJsonTemplate(content);
 
     try {
-      content = content.replace(placeholderPattern, (match, varName) => {
-        // FIXED: Support both flat keys and dot-notation navigation
-        let value = variableMap[varName]; // Try flat key first
-
-        // If not found as flat key, try dot-notation navigation
-        if (value === undefined && varName.includes(".")) {
-          const nestedValue = this.getNestedValue(variableMap, varName);
-          value = nestedValue as VariableValue; // Cast unknown to VariableValue
+      if (isJsonTemplate) {
+        // Special handling for JSON templates to avoid JSON-in-JSON issues
+        const jsonSubstitutionResult = this.substituteVariablesInJson(
+          content,
+          variableMap,
+          options,
+        );
+        if (!jsonSubstitutionResult.ok) {
+          return jsonSubstitutionResult;
         }
-
-        if (value === undefined) {
-          if (options.allowMissingVariables) {
-            return match; // Keep placeholder if missing variables allowed
-          } else {
-            throw new Error(`Missing variable: ${varName}`); // Will be caught and converted to Result
-          }
-        }
-
-        // Convert value to string with format-aware serialization
-        let stringValue = this.valueToString(value);
-
-        // Apply HTML escaping if enabled (but not for JSON format)
-        if (options.escapeHtml) {
-          stringValue = this.escapeHtml(stringValue);
-        }
-
-        return stringValue;
-      });
+        content = jsonSubstitutionResult.data;
+      } else {
+        // Regular string-based substitution for non-JSON templates
+        content = this.substituteVariablesInString(
+          content,
+          variableMap,
+          options,
+        );
+      }
 
       return { ok: true, data: content };
     } catch (error) {
@@ -594,6 +586,150 @@ export class TemplateContext {
     };
 
     return text.replace(/[&<>"']/g, (char) => escapeMap[char] || char);
+  }
+
+  /**
+   * Check if template content appears to be JSON
+   */
+  private isJsonTemplate(content: string): boolean {
+    const trimmed = content.trim();
+    return (
+      (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))
+    );
+  }
+
+  /**
+   * JSON-aware variable substitution that preserves JSON structure
+   * FIXES Issue #710: Template variables not substituted in JSON context
+   */
+  private substituteVariablesInJson(
+    jsonContent: string,
+    variableMap: Record<string, VariableValue>,
+    options: TemplateProcessingOptions,
+  ): Result<string, DomainError & { message: string }> {
+    try {
+      // Parse the JSON template to get its structure
+      const templateObj = JSON.parse(jsonContent);
+
+      // Recursively substitute variables in the parsed object
+      const substituted = this.substituteInJsonObject(
+        templateObj,
+        variableMap,
+        options,
+      );
+
+      // Re-serialize to JSON with proper formatting
+      return { ok: true, data: JSON.stringify(substituted, null, 2) };
+    } catch (_parseError) {
+      // If JSON parsing fails, fall back to string substitution
+      const stringResult = this.substituteVariablesInString(
+        jsonContent,
+        variableMap,
+        options,
+      );
+      return { ok: true, data: stringResult };
+    }
+  }
+
+  /**
+   * Recursively substitute variables in a JSON object structure
+   */
+  private substituteInJsonObject(
+    obj: unknown,
+    variableMap: Record<string, VariableValue>,
+    options: TemplateProcessingOptions,
+  ): unknown {
+    if (typeof obj === "string") {
+      // Check if the entire string is a variable placeholder
+      const fullVariableMatch = obj.match(/^\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}$/);
+      if (fullVariableMatch) {
+        const varName = fullVariableMatch[1];
+        const value = this.getVariableValue(variableMap, varName);
+
+        if (value !== undefined) {
+          // Return the actual value (array, object, etc.) for JSON context
+          return value;
+        } else if (options.allowMissingVariables) {
+          return obj; // Keep placeholder
+        } else {
+          throw new Error(`Missing variable: ${varName}`);
+        }
+      }
+
+      // Handle partial string interpolation
+      return this.substituteVariablesInString(obj, variableMap, options);
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) =>
+        this.substituteInJsonObject(item, variableMap, options)
+      );
+    }
+
+    if (obj && typeof obj === "object") {
+      const result: Record<string, unknown> = {};
+      for (
+        const [key, value] of Object.entries(obj as Record<string, unknown>)
+      ) {
+        result[key] = this.substituteInJsonObject(value, variableMap, options);
+      }
+      return result;
+    }
+
+    return obj;
+  }
+
+  /**
+   * String-based variable substitution for non-JSON templates
+   */
+  private substituteVariablesInString(
+    content: string,
+    variableMap: Record<string, VariableValue>,
+    options: TemplateProcessingOptions,
+  ): string {
+    const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
+
+    return content.replace(placeholderPattern, (match, varName) => {
+      const value = this.getVariableValue(variableMap, varName);
+
+      if (value === undefined) {
+        if (options.allowMissingVariables) {
+          return match; // Keep placeholder if missing variables allowed
+        } else {
+          throw new Error(`Missing variable: ${varName}`);
+        }
+      }
+
+      // Convert value to string with format-aware serialization
+      let stringValue = this.valueToString(value);
+
+      // Apply HTML escaping if enabled
+      if (options.escapeHtml) {
+        stringValue = this.escapeHtml(stringValue);
+      }
+
+      return stringValue;
+    });
+  }
+
+  /**
+   * Get variable value with support for dot notation
+   */
+  private getVariableValue(
+    variableMap: Record<string, VariableValue>,
+    varName: string,
+  ): VariableValue | undefined {
+    // Try flat key first
+    let value = variableMap[varName];
+
+    // If not found as flat key, try dot-notation navigation
+    if (value === undefined && varName.includes(".")) {
+      const nestedValue = this.getNestedValue(variableMap, varName);
+      value = nestedValue as VariableValue;
+    }
+
+    return value;
   }
 
   /**

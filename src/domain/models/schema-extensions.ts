@@ -16,6 +16,8 @@ export interface SchemaExtensions {
   "x-derived-from"?: string;
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
+  "x-derived-count"?: string;
+  "x-derived-average"?: string;
   "x-template"?: string;
   [key: string]: unknown; // Allow other x-* properties
 }
@@ -32,6 +34,8 @@ export interface ExtendedSchema extends Record<string, unknown> {
   "x-derived-from"?: string;
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
+  "x-derived-count"?: string;
+  "x-derived-average"?: string;
   "x-template"?: string;
 }
 
@@ -46,6 +50,8 @@ export interface ExtendedSchemaProperty extends Record<string, unknown> {
   "x-derived-from"?: string;
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
+  "x-derived-count"?: string;
+  "x-derived-average"?: string;
   "x-template"?: string;
 }
 
@@ -139,6 +145,8 @@ export interface DerivedFieldInfo {
   sourceExpression: string;
   unique: boolean;
   flatten: boolean;
+  operation?: "from" | "count" | "average"; // Add operation type
+  operationSource?: string; // Source for count/average operations
 }
 
 /**
@@ -153,12 +161,13 @@ function extractDerivationRules(
   for (const [key, prop] of Object.entries(properties)) {
     const fieldPath = prefix ? `${prefix}.${key}` : key;
 
-    // Check for x-derived-from using Smart Constructor pattern
+    // Check for x-derived-* extensions using Smart Constructor pattern
     const accessorResult = SchemaExtensionAccessor.create(prop);
     if (accessorResult.ok) {
       const accessor = accessorResult.data;
-      const derivedFromResult = accessor.getDerivedFrom();
 
+      // Check for x-derived-from
+      const derivedFromResult = accessor.getDerivedFrom();
       if (derivedFromResult.ok) {
         const sourceExpression = derivedFromResult.data;
         const unique = accessor.isDerivedUnique();
@@ -169,6 +178,37 @@ function extractDerivationRules(
           sourceExpression,
           unique,
           flatten,
+          operation: "from",
+        });
+      }
+
+      // Check for x-derived-count
+      const derivedCountResult = accessor.getDerivedCount();
+      if (derivedCountResult.ok) {
+        const operationSource = derivedCountResult.data;
+
+        rules.set(fieldPath, {
+          fieldPath,
+          sourceExpression: `count(${operationSource})`, // Generate expression for count operation
+          unique: false,
+          flatten: false,
+          operation: "count",
+          operationSource,
+        });
+      }
+
+      // Check for x-derived-average
+      const derivedAverageResult = accessor.getDerivedAverage();
+      if (derivedAverageResult.ok) {
+        const operationSource = derivedAverageResult.data;
+
+        rules.set(fieldPath, {
+          fieldPath,
+          sourceExpression: `average(${operationSource})`, // Generate expression for average operation
+          unique: false,
+          flatten: false,
+          operation: "average",
+          operationSource,
         });
       }
     }

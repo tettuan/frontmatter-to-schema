@@ -106,9 +106,53 @@ export class AggregateResultsUseCase
         };
       }
 
+      // Handle x-frontmatter-part if present (either global or nested)
+      const frontmatterParts = this.aggregationAdapter
+        .findFrontmatterParts(input.schema as Record<string, unknown>);
+
+      // Prepare data for aggregation
+      // Check if the data already has the expected structure (ArrayBased processing)
+      let dataForAggregation: unknown[] = input.data;
+
+      if (frontmatterParts.length > 0) {
+        // Check if this is ArrayBased processing result
+        // ArrayBased results come as a single structured object that already matches the schema
+        const isArrayBasedResult = input.data.length === 1 &&
+          typeof input.data[0] === "object" &&
+          input.data[0] !== null &&
+          this.hasNestedStructure(
+            input.data[0] as Record<string, unknown>,
+            frontmatterParts,
+          );
+
+        if (!isArrayBasedResult) {
+          // For Individual processing, wrap data in object with the frontmatter-part property name
+          // This ensures JSONPath expressions like "items[].field" work correctly
+          const wrappedData: Record<string, unknown> = {};
+          for (const part of frontmatterParts) {
+            // Use the actual property path to set the data
+            const parts = part.split(".");
+            if (parts.length === 1) {
+              wrappedData[part] = input.data;
+            } else {
+              // Handle nested paths like "tools.commands"
+              let current = wrappedData;
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (!(parts[i] in current)) {
+                  current[parts[i]] = {};
+                }
+                current = current[parts[i]] as Record<string, unknown>;
+              }
+              current[parts[parts.length - 1]] = input.data;
+            }
+          }
+          dataForAggregation = [wrappedData];
+        }
+      }
+
       // Use aggregation adapter for the main aggregation
       const aggregationResult = this.aggregationAdapter.processAggregation(
-        input.data,
+        dataForAggregation,
         input.schema as Record<string, unknown>,
       );
 
@@ -125,12 +169,14 @@ export class AggregateResultsUseCase
         items: input.data,
       };
 
-      // Handle x-frontmatter-part if present (either global or nested)
-      const frontmatterParts = this.aggregationAdapter
-        .findFrontmatterParts(input.schema as Record<string, unknown>);
+      // Safe check for templateInfo methods (Totality principle)
+      const isFrontmatterPart =
+        typeof input.templateInfo.getIsFrontmatterPart === "function"
+          ? input.templateInfo.getIsFrontmatterPart()
+          : false;
 
       if (
-        input.templateInfo.getIsFrontmatterPart() || frontmatterParts.length > 0
+        isFrontmatterPart || frontmatterParts.length > 0
       ) {
         if (frontmatterParts.length > 0) {
           // Check if this is ArrayBased processing result

@@ -395,10 +395,11 @@ export class ProcessCoordinator {
       }
 
       // Recursive directory traversal function (only for directories)
+      // Returns Result<void, DomainError> following Totality principles
       const traverseDirectory = async (
         currentDir: string,
         relativePath: string = "",
-      ): Promise<void> => {
+      ): Promise<Result<void, DomainError & { message: string }>> => {
         try {
           for await (const entry of Deno.readDir(currentDir)) {
             const entryPath = relativePath
@@ -422,43 +423,52 @@ export class ProcessCoordinator {
                   files.push(documentPathResult.data);
 
                   if (files.length >= options.maxFiles) {
-                    return; // Stop traversal when max files reached
+                    return { ok: true, data: undefined }; // Stop traversal when max files reached
                   }
                 }
               }
             } else if (entry.isDirectory) {
               // Recursively traverse subdirectories
-              await traverseDirectory(fullPath, entryPath);
+              const traverseResult = await traverseDirectory(
+                fullPath,
+                entryPath,
+              );
+              if (!traverseResult.ok) {
+                return traverseResult; // Propagate error up
+              }
 
               // Check if we've reached max files after recursive call
               if (files.length >= options.maxFiles) {
-                return;
+                return { ok: true, data: undefined };
               }
             }
           }
+          return { ok: true, data: undefined };
         } catch (error) {
-          // Re-throw with context for error handling
-          throw error;
+          // Convert exception to Result<T,E> pattern following Totality principles
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "FileDiscoveryFailed",
+                directory: currentDir,
+                pattern,
+              },
+              `Directory traversal failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
         }
       };
 
       // It's a directory, traverse it (baseStat check already done above)
-      try {
-        await traverseDirectory(baseDir);
-      } catch (error) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "FileDiscoveryFailed",
-              directory: baseDir,
-              pattern,
-            },
-            `File discovery failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          ),
-        };
+      const traverseResult = await traverseDirectory(baseDir);
+      if (!traverseResult.ok) {
+        return traverseResult as Result<
+          DocumentPath[],
+          DomainError & { message: string }
+        >;
       }
 
       if (files.length === 0) {

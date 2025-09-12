@@ -57,7 +57,45 @@ export class AggregationService {
       const targetField = rule.getTargetField();
       const sourceExpression = rule.getSourceExpression();
 
-      // Collect values from all items
+      // Check if this is a count or average operation
+      if (
+        sourceExpression.startsWith("count(") && sourceExpression.endsWith(")")
+      ) {
+        // Extract the actual expression from count(expression)
+        const innerExpression = sourceExpression.slice(6, -1); // Remove "count(" and ")"
+        const countResult = this.evaluator.count(items, innerExpression);
+
+        if (countResult.ok) {
+          aggregated[targetField] = countResult.data;
+        } else {
+          warnings.push(
+            `Failed to evaluate count operation "${sourceExpression}" for field "${targetField}": ${countResult.error.message}`,
+          );
+          aggregated[targetField] = 0; // Default count value
+        }
+        continue; // Skip normal processing for count operations
+      }
+
+      if (
+        sourceExpression.startsWith("average(") &&
+        sourceExpression.endsWith(")")
+      ) {
+        // Extract the actual expression from average(expression)
+        const innerExpression = sourceExpression.slice(8, -1); // Remove "average(" and ")"
+        const averageResult = this.evaluator.average(items, innerExpression);
+
+        if (averageResult.ok) {
+          aggregated[targetField] = averageResult.data;
+        } else {
+          warnings.push(
+            `Failed to evaluate average operation "${sourceExpression}" for field "${targetField}": ${averageResult.error.message}`,
+          );
+          aggregated[targetField] = null; // Default average value when no numeric values
+        }
+        continue; // Skip normal processing for average operations
+      }
+
+      // Normal processing for x-derived-from operations
       const allValues: unknown[] = [];
 
       for (const item of items) {

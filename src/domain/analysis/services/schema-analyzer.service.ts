@@ -50,8 +50,16 @@ export class TotalGenericSchemaAnalyzer<TSchema, TResult>
         ...context.options,
       });
 
+      // Handle Result<T,E> from ExternalAnalysisService
+      if (!result.ok) {
+        return {
+          ok: false,
+          error: result.error,
+        };
+      }
+
       // Transform and validate result using totality-compliant approach
-      return this.transformResult(result, schema);
+      return this.transformResult(result.data, schema);
     } catch (error) {
       return {
         ok: false,
@@ -145,16 +153,21 @@ export class GenericSchemaAnalyzer<TSchema, TResult>
         ...context.options,
       });
 
+      // Handle Result<T,E> from ExternalAnalysisService
+      if (!result.ok) {
+        throw new Error(result.error.message);
+      }
+
       // Totality-compliant validation with necessary type assertion for generics
-      if (result === null || result === undefined) {
+      if (result.data === null || result.data === undefined) {
         throw new Error(
           `Analysis result cannot be null or undefined: ${
-            JSON.stringify(result)
+            JSON.stringify(result.data)
           }`,
         );
       }
       // Generic type assertion necessary for TResult compatibility
-      return result as TResult;
+      return result.data as TResult;
     } catch (error) {
       // For backward compatibility, throw the error instead of returning Result
       // Preserve original error message for test compatibility

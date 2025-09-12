@@ -9,6 +9,7 @@
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
 import { SchemaExtensions } from "../schema/value-objects/schema-extensions.ts";
+import { SafeFrontmatterData, SafeRecord } from "./safe-record.ts";
 
 /**
  * Constraint rule types following discriminated union pattern
@@ -65,53 +66,23 @@ class JSONPath {
       return undefined;
     }
 
-    let current: unknown = data;
-
     // Special handling for frontmatter data with traceability array
     if (this.segments[0] === "traceability" && !Array.isArray(data)) {
-      const frontmatterData = data as Record<string, unknown>;
-      if (
-        frontmatterData.traceability &&
-        Array.isArray(frontmatterData.traceability)
-      ) {
-        // Extract from first element of traceability array
-        const traceability = frontmatterData.traceability;
-        if (traceability.length === 0) {
-          return undefined;
-        }
-        current = traceability[0];
-        // Continue with rest of path from index 1
-        for (let i = 1; i < this.segments.length; i++) {
-          const segment = this.segments[i];
-          if (!current || typeof current !== "object") {
-            return undefined;
-          }
-          current = (current as Record<string, unknown>)[segment];
-        }
-        return current;
+      const frontmatterResult = SafeFrontmatterData.fromFrontmatter(data);
+      if (frontmatterResult.ok) {
+        const frontmatterData = frontmatterResult.data;
+        return frontmatterData.getPathWithTraceability(this.segments);
       }
     }
 
-    // Regular path extraction
-    for (const segment of this.segments) {
-      if (!current || typeof current !== "object") {
-        return undefined;
-      }
-
-      // Handle arrays: check first element
-      if (Array.isArray(current)) {
-        if (current.length === 0) {
-          return undefined;
-        }
-        current = current[0];
-        if (!current || typeof current !== "object") {
-          return undefined;
-        }
-      }
-
-      current = (current as Record<string, unknown>)[segment];
+    // Regular path extraction using SafeRecord
+    const recordResult = SafeRecord.from(data);
+    if (recordResult.ok) {
+      return recordResult.data.getPath(this.segments);
     }
-    return current;
+
+    // Fallback for non-object data
+    return undefined;
   }
 }
 
@@ -142,12 +113,16 @@ export class SchemaConstraints {
       };
     }
 
-    const schemaObj = schema as Record<string, unknown>;
+    const schemaResult = SafeRecord.from(schema);
+    if (!schemaResult.ok) {
+      return { ok: false, error: schemaResult.error };
+    }
+    const schemaObj = schemaResult.data;
     const constraints: ConstraintRule[] = [];
 
     try {
       // Extract constraints recursively from schema properties
-      extractConstraintsRecursive(schemaObj, "", constraints);
+      extractConstraintsRecursive(schemaObj.toObject(), "", constraints);
       return { ok: true, data: new SchemaConstraints(constraints) };
     } catch (error) {
       return {
@@ -270,38 +245,67 @@ function extractConstraintsRecursive(
   // Handle current level constraints
   extractConstraintsFromLevel(schema, basePath, constraints);
 
-  // Handle properties object
-  if (schema.properties && typeof schema.properties === "object") {
-    const properties = schema.properties as Record<string, unknown>;
+  // Handle properties object using SafeRecord
+  const schemaRecord = SafeRecord.from(schema);
+  if (!schemaRecord.ok) return;
 
-    for (const [key, propSchema] of Object.entries(properties)) {
+  const properties = schemaRecord.data.get("properties");
+  if (
+    properties && typeof properties === "object" && !Array.isArray(properties)
+  ) {
+    const propertiesRecord = SafeRecord.from(properties);
+    if (!propertiesRecord.ok) return;
+
+    for (
+      const [key, propSchema] of Object.entries(
+        propertiesRecord.data.toObject(),
+      )
+    ) {
       if (!propSchema || typeof propSchema !== "object") continue;
 
-      const prop = propSchema as Record<string, unknown>;
+      const propResult = SafeRecord.from(propSchema);
+      if (!propResult.ok) continue;
+      const prop = propResult.data;
 
       // Special handling for x-frontmatter-part arrays
       // For these, we look for "traceability" array in the frontmatter
-      if (prop[SchemaExtensions.FRONTMATTER_PART] === true && prop.items) {
+      if (prop.getBoolean(SchemaExtensions.FRONTMATTER_PART) === true) {
         // This is a frontmatter array - use "traceability" as the base path
-        const items = prop.items as Record<string, unknown>;
-        extractConstraintsRecursive(items, "traceability", constraints);
+        const items = prop.get("items");
+        if (items && typeof items === "object" && !Array.isArray(items)) {
+          const itemsResult = SafeRecord.from(items);
+          if (itemsResult.ok) {
+            extractConstraintsRecursive(
+              itemsResult.data.toObject(),
+              "traceability",
+              constraints,
+            );
+          }
+        }
       } else {
         // Regular property handling
         const currentPath = basePath ? `${basePath}.${key}` : key;
 
         // Extract constraints at this level
-        extractConstraintsFromLevel(prop, currentPath, constraints);
+        extractConstraintsFromLevel(prop.toObject(), currentPath, constraints);
 
         // Handle array items (for non-frontmatter arrays)
-        if (prop.items && typeof prop.items === "object") {
-          const items = prop.items as Record<string, unknown>;
-          extractConstraintsRecursive(items, currentPath, constraints);
+        const items = prop.get("items");
+        if (items && typeof items === "object" && !Array.isArray(items)) {
+          const itemsResult = SafeRecord.from(items);
+          if (itemsResult.ok) {
+            extractConstraintsRecursive(
+              itemsResult.data.toObject(),
+              currentPath,
+              constraints,
+            );
+          }
         }
 
         // Recurse into nested properties
-        if (prop.properties) {
+        if (prop.has("properties")) {
           extractConstraintsRecursive(
-            prop as Record<string, unknown>,
+            prop.toObject(),
             currentPath,
             constraints,
           );
@@ -353,12 +357,17 @@ function extractConstraintsFromLevel(
   // Handle allOf schemas (Issue #592 fix)
   if (schema.allOf && Array.isArray(schema.allOf)) {
     for (const subSchema of schema.allOf) {
-      if (subSchema && typeof subSchema === "object") {
-        extractConstraintsRecursive(
-          subSchema as Record<string, unknown>,
-          path,
-          constraints,
-        );
+      if (
+        subSchema && typeof subSchema === "object" && !Array.isArray(subSchema)
+      ) {
+        const subSchemaResult = SafeRecord.from(subSchema);
+        if (subSchemaResult.ok) {
+          extractConstraintsRecursive(
+            subSchemaResult.data.toObject(),
+            path,
+            constraints,
+          );
+        }
       }
     }
   }

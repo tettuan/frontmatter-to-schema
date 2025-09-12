@@ -82,8 +82,14 @@ export class ExpressionEvaluator {
 
         switch (part.type) {
           case "root": {
-            // Root selector just passes through the current item
-            next.push(item);
+            // Root selector should handle arrays specially
+            if (Array.isArray(item)) {
+              // For root selector on arrays, expand the array items
+              next.push(...item);
+            } else {
+              // For non-array items, pass through
+              next.push(item);
+            }
             break;
           }
 
@@ -114,6 +120,13 @@ export class ExpressionEvaluator {
                 }
               }
             }
+            break;
+          }
+
+          case "function": {
+            // Function parts are synthetic and should not be processed in normal evaluation
+            // They are handled separately in count() and average() methods
+            next.push(item);
             break;
           }
         }
@@ -149,6 +162,77 @@ export class ExpressionEvaluator {
     }
 
     return { ok: true, data: result };
+  }
+
+  /**
+   * Count items that match the expression across all data items
+   */
+  count(
+    data: unknown[],
+    expression: string,
+  ): Result<number, { kind: string; message: string }> {
+    let totalCount = 0;
+
+    // Evaluate expression against each data item separately
+    for (const item of data) {
+      const evalResult = this.evaluate([item], expression);
+      if (evalResult.ok) {
+        // Count non-null/undefined values from this item
+        const itemCount = evalResult.data.flat().filter((value) =>
+          value !== null && value !== undefined
+        ).length;
+        totalCount += itemCount;
+      }
+    }
+
+    return { ok: true, data: totalCount };
+  }
+
+  /**
+   * Calculate average of numeric values that match the expression across all data items
+   */
+  average(
+    data: unknown[],
+    expression: string,
+  ): Result<number, { kind: string; message: string }> {
+    const allNumericValues: number[] = [];
+
+    // Evaluate expression against each data item separately
+    for (const item of data) {
+      const evalResult = this.evaluate([item], expression);
+      if (evalResult.ok) {
+        // Filter and convert to numbers from this item
+        const itemNumericValues = evalResult.data.flat()
+          .map((value) => {
+            if (typeof value === "number" && !isNaN(value)) {
+              return value;
+            }
+            if (typeof value === "string") {
+              const parsed = parseFloat(value);
+              return !isNaN(parsed) ? parsed : null;
+            }
+            return null;
+          })
+          .filter((value): value is number => value !== null);
+
+        allNumericValues.push(...itemNumericValues);
+      }
+    }
+
+    if (allNumericValues.length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "NoNumericValues",
+          message: "No valid numeric values found for average calculation",
+        },
+      };
+    }
+
+    const sum = allNumericValues.reduce((acc, val) => acc + val, 0);
+    const average = sum / allNumericValues.length;
+
+    return { ok: true, data: average };
   }
 
   /**
