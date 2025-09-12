@@ -6,6 +6,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { SchemaExtensions } from "../schema/value-objects/schema-extensions.ts";
 
 /**
  * Type guard for Record<string, unknown>
@@ -121,7 +122,10 @@ export class ValidatedSchema {
       if (!isRecord(propSchema)) continue;
 
       // Check if this is a frontmatter part array
-      if (propSchema["x-frontmatter-part"] === true && propSchema.items) {
+      if (
+        propSchema[SchemaExtensions.FRONTMATTER_PART] === true &&
+        propSchema.items
+      ) {
         const items = propSchema.items;
         if (!isRecord(items)) continue;
 

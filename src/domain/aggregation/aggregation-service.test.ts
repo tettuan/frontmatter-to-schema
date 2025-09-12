@@ -18,11 +18,23 @@ import {
   DerivationRule,
 } from "./value-objects.ts";
 import { ExpressionEvaluator } from "./expression-evaluator.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAggregationService() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return createAggregationService(registryResult.data);
+}
 
 describe("AggregationService", () => {
   describe("aggregate()", () => {
     it("should aggregate simple fields from multiple items", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "Item 1", value: 10 },
@@ -48,7 +60,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle nested field extraction", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { config: { tools: { name: "tool1" } } },
@@ -72,7 +84,7 @@ describe("AggregationService", () => {
     });
 
     it("should apply unique option correctly", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { tag: "alpha" },
@@ -101,7 +113,7 @@ describe("AggregationService", () => {
     });
 
     it("should flatten nested arrays when flatten option is true", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { groups: [["a", "b"], ["c"]] },
@@ -124,7 +136,7 @@ describe("AggregationService", () => {
     });
 
     it("should filter null and undefined values based on options", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { value: "valid" },
@@ -148,7 +160,7 @@ describe("AggregationService", () => {
     });
 
     it("should include nulls when skipNull is false", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { value: "valid" },
@@ -174,7 +186,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle array field extraction", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { items: [{ id: 1 }, { id: 2 }] },
@@ -195,7 +207,7 @@ describe("AggregationService", () => {
     });
 
     it("should collect statistics correctly", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { value: "a" },
@@ -224,7 +236,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle multiple rules simultaneously", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "A", value: 1, tag: "x" },
@@ -259,7 +271,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle missing properties gracefully", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { valid: { field: "value" } },
@@ -288,7 +300,7 @@ describe("AggregationService", () => {
 
   describe("extractRulesFromSchema()", () => {
     it("should extract rules from simple schema properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -310,7 +322,7 @@ describe("AggregationService", () => {
     });
 
     it("should extract rules from nested schema properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -338,7 +350,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle array item properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -367,7 +379,7 @@ describe("AggregationService", () => {
     });
 
     it("should skip properties without x-derived-from", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -392,7 +404,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle invalid schema gracefully", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -418,7 +430,7 @@ describe("AggregationService", () => {
 
   describe("applyAggregatedData()", () => {
     it("should apply aggregated data to a base object", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const base = {
         existingField: "value",
@@ -445,7 +457,7 @@ describe("AggregationService", () => {
     });
 
     it("should create nested structure for dotted field names", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const base = {};
 
@@ -473,7 +485,7 @@ describe("AggregationService", () => {
     });
 
     it("should merge with existing nested structure", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const base = {
         config: {
@@ -510,14 +522,18 @@ describe("AggregationService", () => {
 
   describe("createAggregationService()", () => {
     it("should create service with default evaluator", () => {
-      const service = createAggregationService();
+      const registry = SchemaExtensionRegistryFactory.createDefault();
+      if (!registry.ok) throw new Error("Failed to create registry");
+      const service = createAggregationService(registry.data);
       assertExists(service);
       assertEquals(service instanceof AggregationService, true);
     });
 
     it("should create service with custom evaluator", () => {
+      const registry = SchemaExtensionRegistryFactory.createDefault();
+      if (!registry.ok) throw new Error("Failed to create registry");
       const customEvaluator = new ExpressionEvaluator();
-      const service = createAggregationService(customEvaluator);
+      const service = createAggregationService(registry.data, customEvaluator);
       assertExists(service);
       assertEquals(service instanceof AggregationService, true);
     });
@@ -525,7 +541,7 @@ describe("AggregationService", () => {
 
   describe("edge cases", () => {
     it("should handle empty items array", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const ruleResult = DerivationRule.create("field", "$.value");
       if (!ruleResult.ok) throw new Error("Failed to create rule");
@@ -544,7 +560,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle empty rules", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [{ value: 1 }, { value: 2 }];
       const context = AggregationContext.create([]);
@@ -558,7 +574,7 @@ describe("AggregationService", () => {
     });
 
     it("should handle deeply nested unique values", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { data: { nested: { value: { id: 1, name: "a" } } } },

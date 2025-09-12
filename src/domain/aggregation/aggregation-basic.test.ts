@@ -9,11 +9,23 @@ import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { createAggregationService } from "./aggregation-service.ts";
 import { AggregationContext, DerivationRule } from "./value-objects.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAggregationService() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return createAggregationService(registryResult.data);
+}
 
 describe("AggregationService - Basic Functionality", () => {
   describe("aggregate()", () => {
     it("should aggregate simple fields from multiple items", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "Item 1", value: 10 },
@@ -39,7 +51,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should handle nested field extraction", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { user: { name: "Alice", age: 25 } },
@@ -61,7 +73,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should apply unique option correctly", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { category: "A" },
@@ -88,7 +100,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should flatten nested arrays when flatten option is true", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { tags: ["tag1", "tag2"] },
@@ -114,7 +126,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should filter null and undefined values based on options", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { value: "A" },
@@ -139,7 +151,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should handle array field extraction", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { items: [{ id: 1 }, { id: 2 }] },
@@ -160,7 +172,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should collect statistics correctly", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "Item 1" },
@@ -184,7 +196,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should handle multiple rules simultaneously", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "Item 1", value: 10, category: "A" },
@@ -224,7 +236,7 @@ describe("AggregationService - Basic Functionality", () => {
     });
 
     it("should handle missing properties gracefully", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const items = [
         { name: "Item 1", value: 10 },

@@ -7,6 +7,11 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import {
+  DEFAULT_PATH_VALIDATION_CONFIG,
+  DEFAULT_SCHEMA_EXTENSIONS,
+  MAX_FILE_PATH_LENGTH_VALUE,
+} from "../shared/constants.ts";
 
 /**
  * SchemaPath value object with validation
@@ -36,51 +41,46 @@ export class SchemaPath {
     const trimmedPath = path.trim();
 
     // Check for valid path format (basic validation)
-    if (trimmedPath.includes("\0") || trimmedPath.includes("..")) {
+    if (DEFAULT_PATH_VALIDATION_CONFIG.hasInvalidCharacters(trimmedPath)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "InvalidFormat",
             input: trimmedPath,
-            expectedFormat: "valid file path",
+            expectedFormat: "valid file path without invalid characters",
           },
-          "Schema path contains invalid characters",
+          `Schema path contains invalid characters: ${DEFAULT_PATH_VALIDATION_CONFIG.toString()}`,
         ),
       };
     }
 
     // Check for schema file extension
-    const validExtensions = [".json", ".yaml", ".yml"];
-    const hasValidExtension = validExtensions.some((ext) =>
-      trimmedPath.toLowerCase().endsWith(ext)
-    );
-
-    if (!hasValidExtension) {
+    if (!DEFAULT_SCHEMA_EXTENSIONS.isValid(trimmedPath)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "InvalidFormat",
             input: trimmedPath,
-            expectedFormat: "*.json, *.yaml, or *.yml",
+            expectedFormat: DEFAULT_SCHEMA_EXTENSIONS.toString(),
           },
-          `Schema path must end with one of: ${validExtensions.join(", ")}`,
+          `Schema path must end with one of: ${DEFAULT_SCHEMA_EXTENSIONS.toString()}`,
         ),
       };
     }
 
     // Check path length
-    if (trimmedPath.length > 1024) {
+    if (MAX_FILE_PATH_LENGTH_VALUE.isExceeded(trimmedPath.length)) {
       return {
         ok: false,
         error: createDomainError(
           {
             kind: "TooLong",
             value: trimmedPath,
-            maxLength: 1024,
+            maxLength: MAX_FILE_PATH_LENGTH_VALUE.getValue(),
           },
-          "Schema path exceeds maximum length of 1024 characters",
+          `Schema path exceeds maximum length of ${MAX_FILE_PATH_LENGTH_VALUE.getValue()} characters`,
         ),
       };
     }

@@ -13,6 +13,10 @@ import type {
 } from "../../domain/models/schema-extensions.ts";
 import { SchemaTemplateInfo } from "../../domain/models/schema-extensions.ts";
 import {
+  SchemaExtensionAccessor,
+  SchemaExtensions,
+} from "../../domain/schema/value-objects/schema-extensions.ts";
+import {
   AggregatedResult,
   AggregationContext,
   AggregationMetadataBuilder,
@@ -20,6 +24,8 @@ import {
 } from "../../domain/aggregation/value-objects.ts";
 import { AggregationService } from "../../domain/aggregation/aggregation-service.ts";
 import { ExpressionEvaluator } from "../../domain/aggregation/expression-evaluator.ts";
+import type { SchemaExtensionRegistry } from "../../domain/schema/entities/schema-extension-registry.ts";
+import { SchemaExtensionRegistryFactory } from "../../domain/schema/factories/schema-extension-registry-factory.ts";
 
 /**
  * Adapter to integrate schema extensions with aggregation service
@@ -27,9 +33,13 @@ import { ExpressionEvaluator } from "../../domain/aggregation/expression-evaluat
 export class SchemaAggregationAdapter {
   private readonly aggregationService: AggregationService;
 
-  constructor(evaluator?: ExpressionEvaluator) {
+  constructor(
+    registry: SchemaExtensionRegistry,
+    evaluator?: ExpressionEvaluator,
+  ) {
     this.aggregationService = new AggregationService(
       evaluator || new ExpressionEvaluator(),
+      registry,
     );
   }
 
@@ -139,7 +149,11 @@ export class SchemaAggregationAdapter {
    * Check if schema has x-frontmatter-part marking
    */
   isFrontmatterPartSchema(schema: ExtendedSchema): boolean {
-    return schema["x-frontmatter-part"] === true;
+    const accessorResult = SchemaExtensionAccessor.create(schema);
+    if (!accessorResult.ok) {
+      return false;
+    }
+    return accessorResult.data.isFrontmatterPart();
   }
 
   /**
@@ -159,7 +173,7 @@ export class SchemaAggregationAdapter {
       for (const [key, prop] of Object.entries(properties)) {
         const path = prefix ? `${prefix}.${key}` : key;
 
-        if (prop["x-frontmatter-part"] === true) {
+        if (prop[SchemaExtensions.FRONTMATTER_PART] === true) {
           parts.push(path);
         }
 
@@ -176,7 +190,8 @@ export class SchemaAggregationAdapter {
     };
 
     // Check root level
-    if (schema["x-frontmatter-part"] === true) {
+    const rootAccessorResult = SchemaExtensionAccessor.create(schema);
+    if (rootAccessorResult.ok && rootAccessorResult.data.isFrontmatterPart()) {
       parts.push("$");
     }
 
@@ -255,5 +270,11 @@ export class SchemaAggregationAdapter {
 export function createSchemaAggregationAdapter(
   evaluator?: ExpressionEvaluator,
 ): SchemaAggregationAdapter {
-  return new SchemaAggregationAdapter(evaluator);
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaAggregationAdapter(registryResult.data, evaluator);
 }

@@ -7,10 +7,11 @@ import {
   SchemaFormat,
   TemplateFormat,
 } from "./configuration.ts";
-import { DocumentProcessor } from "./document-processor.ts";
-import { FrontMatterExtractorImpl } from "../infrastructure/adapters/frontmatter-extractor-impl.ts";
-import { SchemaValidator } from "../domain/services/schema-validator.ts";
-import { UnifiedTemplateProcessor } from "../domain/template/services/unified-template-processor.ts";
+import {
+  ProcessCoordinator,
+  type ProcessingConfiguration,
+} from "./process-coordinator.ts";
+import type { ProcessingOptions } from "./services/processing-options-builder.ts";
 import { DenoFileSystemProvider } from "./climpt/climpt-adapter.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 import { CliArgumentsValidator } from "./value-objects/cli-arguments.ts";
@@ -22,77 +23,103 @@ import {
   type FileFormatDetector,
   FormatDetectorFactory,
 } from "../domain/services/file-format-detector.ts";
+import { FilePattern } from "../domain/value-objects/file-pattern.ts";
+import { CLILoggers } from "../domain/value-objects/logger-name.ts";
+import { CLI_DEFAULTS } from "../domain/value-objects/cli-defaults.ts";
 
 export class CLI {
+  private readonly logger = LoggerFactory.createLogger(
+    CLILoggers.MAIN.getName(),
+  );
   private readonly configValidator = new ConfigurationValidator();
   private readonly fileSystem = new DenoFileSystemProvider();
-  private readonly frontMatterExtractor = new FrontMatterExtractorImpl();
-  private readonly schemaValidator = new SchemaValidator();
-  private readonly templateProcessor: UnifiedTemplateProcessor;
-  private readonly processor: DocumentProcessor;
+  private readonly processCoordinator: ProcessCoordinator;
   private readonly exitHandler: ExitHandler;
   private readonly formatDetector: FileFormatDetector;
 
-  constructor(
+  private constructor(
+    exitHandler: ExitHandler,
+    formatDetector: FileFormatDetector,
+    processCoordinator: ProcessCoordinator,
+  ) {
+    this.exitHandler = exitHandler;
+    this.formatDetector = formatDetector;
+    this.processCoordinator = processCoordinator;
+  }
+
+  /**
+   * Smart Constructor following Totality principles
+   * Eliminates throw new Error violations and returns Result<T,E>
+   */
+  static create(
     exitHandler?: ExitHandler,
     formatDetector?: FileFormatDetector,
-  ) {
+  ): Result<CLI, DomainError & { message: string }> {
     // Initialize exit handler (default to production mode)
     const exitResult = exitHandler
       ? { ok: true as const, data: exitHandler }
       : ExitHandlerFactory.createProduction(
-        LoggerFactory.createLogger("cli-exit"),
+        LoggerFactory.createLogger(CLILoggers.EXIT.getName()),
       );
     if (!exitResult.ok) {
-      throw new Error("Failed to create exit handler");
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "exit-handler",
+          message: "Failed to create exit handler",
+        },
+      };
     }
-    this.exitHandler = exitResult.data;
 
     // Initialize format detector (default configuration)
     const formatResult = formatDetector
       ? { ok: true as const, data: formatDetector }
       : FormatDetectorFactory.createDefault();
+
+    // Since FormatDetectorFactory.createDefault() never fails, this check is for TypeScript
     if (!formatResult.ok) {
-      throw new Error("Failed to create format detector");
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "format-detector",
+          message: "Unexpected failure in format detector creation",
+        },
+      };
     }
-    this.formatDetector = formatResult.data;
+    const formatDetectorInstance = formatResult.data;
 
-    const templateProcessorResult = UnifiedTemplateProcessor.create();
-    if ("kind" in templateProcessorResult) {
-      throw new Error(
-        `Failed to create template processor: ${
-          String(templateProcessorResult.kind)
-        }`,
-      );
-    }
-    this.templateProcessor = templateProcessorResult;
+    // Create ProcessCoordinator - the canonical processing entry point
+    const processCoordinator = new ProcessCoordinator();
 
-    this.processor = new DocumentProcessor(
-      this.fileSystem,
-      this.frontMatterExtractor,
-      this.schemaValidator,
-      this.templateProcessor,
-    );
+    return {
+      ok: true,
+      data: new CLI(
+        exitResult.data,
+        formatDetectorInstance,
+        processCoordinator,
+      ),
+    };
   }
 
   async run(args: string[]): Promise<Result<void, DomainError>> {
+    const cliConfig = CLI_DEFAULTS.getCLIArgumentConfig();
     const parsed = parseArgs(args, {
-      string: ["config", "input", "output", "schema", "template"],
-      boolean: ["help", "verbose"],
-      alias: {
-        c: "config",
-        i: "input",
-        o: "output",
-        s: "schema",
-        t: "template",
-        h: "help",
-        v: "verbose",
-      },
+      string: [...cliConfig.stringOptions],
+      boolean: [...cliConfig.booleanOptions],
+      alias: { ...cliConfig.aliases },
     });
 
     if (parsed.help) {
       this.printHelp();
       return { ok: true, data: undefined };
+    }
+
+    // Handle positional arguments for backward compatibility
+    // If no --input flag is provided but there's a positional argument, use it as input
+    if (!parsed.input && parsed._ && parsed._.length > 0) {
+      (parsed as Record<string, unknown>).input = String(parsed._[0]);
     }
 
     // Load configuration
@@ -104,44 +131,74 @@ export class CLI {
     const config = configResult.data;
 
     if (parsed.verbose) {
-      const verboseLogger = LoggerFactory.createLogger("cli-verbose");
+      const verboseLogger = LoggerFactory.createLogger(
+        CLILoggers.VERBOSE.getName(),
+      );
       verboseLogger.info("Configuration loaded", { config });
     }
 
-    // Process documents
-    const processLogger = LoggerFactory.createLogger("cli-process");
+    // Convert ApplicationConfiguration to ProcessingConfiguration
+    const processingConfig = this.convertToProcessingConfiguration(
+      config,
+      parsed,
+    );
+    if (!processingConfig.ok) {
+      return processingConfig;
+    }
+
+    // Process documents using canonical ProcessCoordinator
+    const processLogger = LoggerFactory.createLogger(
+      CLILoggers.PROCESS.getName(),
+    );
     processLogger.info("Starting document processing");
-    const result = await this.processor.processDocuments(config);
+    const result = await this.processCoordinator.processDocuments(
+      processingConfig.data,
+    );
 
     if (!result.ok) {
       return result;
     }
 
-    const batchResult = result.data;
+    const processingResult = result.data;
 
     // Print summary
-    const summaryLogger = LoggerFactory.createLogger("cli-summary");
+    const summaryLogger = LoggerFactory.createLogger(
+      CLILoggers.SUMMARY.getName(),
+    );
     summaryLogger.info("Processing summary", {
-      successful: batchResult.getSuccessCount(),
-      failed: batchResult.getErrorCount(),
-      total: batchResult.getTotalCount(),
+      processedFiles: processingResult.processedFiles,
+      processingTime: `${processingResult.processingTime}ms`,
+      templateProcessed: processingResult.renderedContent.templateProcessed,
+      bypassDetected: processingResult.bypassDetected,
+      canonicalPathUsed: processingResult.canonicalPathUsed,
     });
 
-    if (batchResult.hasErrors()) {
-      const errorSummaryLogger = LoggerFactory.createLogger("cli-errors");
-      const errors = batchResult.getErrors().map((error) => ({
-        document: error.document.getPath().getValue(),
-        error: String(error.error.kind),
+    // Log validation results
+    const validationResults = processingResult.validationResults.filter((r) =>
+      !r.valid
+    );
+    if (validationResults.length > 0) {
+      const errorSummaryLogger = LoggerFactory.createLogger(
+        CLILoggers.ERRORS.getName(),
+      );
+      const errors = validationResults.map((result) => ({
+        document: result.documentPath,
+        errors: result.errors,
+        warnings: result.warnings,
       }));
       errorSummaryLogger.warn("Processing errors encountered", {
-        errorCount: batchResult.getErrorCount(),
+        errorCount: validationResults.length,
         errors,
       });
     }
 
-    const outputLogger = LoggerFactory.createLogger("cli-output");
+    const outputLogger = LoggerFactory.createLogger(
+      CLILoggers.OUTPUT.getName(),
+    );
     outputLogger.info("Output written successfully", {
-      outputPath: config.output.path,
+      outputPath: processingConfig.data.output.path,
+      templateVariables: processingResult.renderedContent.variables,
+      aggregatedData: processingResult.aggregatedData ? "Available" : "None",
     });
 
     return { ok: true, data: undefined };
@@ -191,12 +248,44 @@ export class CLI {
     // Build configuration from command line arguments
     const config: Partial<ApplicationConfiguration> = {};
 
-    // Input configuration
+    // Input configuration - detect if path is file or directory
     if (validatedArgs.inputPath) {
-      config.input = {
-        kind: "FileInput",
-        path: validatedArgs.inputPath.toString(),
-      };
+      const inputPath = validatedArgs.inputPath.toString();
+
+      // Check if path is a directory or file
+      try {
+        const stat = await Deno.stat(inputPath);
+        if (stat.isDirectory) {
+          // Use recursive pattern for directory scanning to find all markdown files
+          // This fixes the issue where only files in the root directory were processed
+          const recursivePatternResult = FilePattern.createGlob(
+            CLI_DEFAULTS.getFilePatternDefaults().defaultRecursive,
+          );
+          if (!recursivePatternResult.ok) {
+            return {
+              ok: false,
+              error: { kind: "ConfigurationError", config: config },
+            };
+          }
+
+          config.input = {
+            kind: "DirectoryInput",
+            path: inputPath,
+            pattern: recursivePatternResult.data.toString(),
+          };
+        } else {
+          config.input = {
+            kind: "FileInput",
+            path: inputPath,
+          };
+        }
+      } catch {
+        // If stat fails, assume it's a file (let the file processor handle the error)
+        config.input = {
+          kind: "FileInput",
+          path: inputPath,
+        };
+      }
     }
 
     // Schema configuration
@@ -220,6 +309,53 @@ export class CLI {
         definition: fileResult.data, // Keep as string
         format: formatResult.data,
       };
+    }
+
+    // Extract x-template from schema if schema is loaded and no template is provided
+    if (config.schema && !validatedArgs.templatePath) {
+      try {
+        const schemaParsed = JSON.parse(config.schema.definition);
+        if (schemaParsed["x-template"]) {
+          const xTemplatePath = schemaParsed["x-template"];
+
+          // Resolve relative path relative to schema file
+          const pathDefaults = CLI_DEFAULTS.getPathDefaults();
+          const schemaDir = validatedArgs.schemaPath
+            ? validatedArgs.schemaPath.toString().split(pathDefaults.separator)
+              .slice(0, -1).join(
+                pathDefaults.separator,
+              )
+            : pathDefaults.currentDirectory;
+          const resolvedTemplatePath =
+            pathDefaults.relativePrefixes.some((prefix) =>
+                xTemplatePath.startsWith(prefix)
+              )
+              ? `${schemaDir}${pathDefaults.separator}${xTemplatePath.slice(2)}`
+              : xTemplatePath;
+
+          const templateFileResult = await this.fileSystem.readFile(
+            resolvedTemplatePath,
+          );
+          if (templateFileResult.ok) {
+            const detectedFormat = this.formatDetector.detectFormat(
+              resolvedTemplatePath,
+            );
+            const formatString = detectedFormat.ok
+              ? detectedFormat.data
+              : "json";
+            const formatResult = TemplateFormat.create(formatString);
+
+            if (formatResult.ok) {
+              config.template = {
+                definition: templateFileResult.data,
+                format: formatResult.data,
+              };
+            }
+          }
+        }
+      } catch {
+        // If schema parsing fails, continue without x-template extraction
+      }
     }
 
     // Template configuration
@@ -261,6 +397,21 @@ export class CLI {
       };
     }
 
+    // Add default template configuration if not provided
+    if (!config.template) {
+      const defaultTemplate =
+        CLI_DEFAULTS.getTemplateDefaults().defaultTemplate;
+      const formatResult = TemplateFormat.create("json");
+      if (!formatResult.ok) {
+        return formatResult;
+      }
+
+      config.template = {
+        definition: defaultTemplate,
+        format: formatResult.data,
+      };
+    }
+
     // Add default processing configuration if not provided
     if (!config.processing) {
       config.processing = {
@@ -270,6 +421,14 @@ export class CLI {
 
     const result = this.configValidator.validate(config);
     if (!result.ok) {
+      // Better error reporting for debugging
+      const validationLogger = LoggerFactory.createLogger(
+        CLILoggers.VALIDATION.getName(),
+      );
+      validationLogger.error("Configuration validation failed", {
+        error: result.error,
+        config: config,
+      });
       return {
         ok: false,
         error: { kind: "ConfigurationError", config: config },
@@ -278,8 +437,92 @@ export class CLI {
     return result;
   }
 
+  /**
+   * Convert ApplicationConfiguration to ProcessingConfiguration for ProcessCoordinator
+   */
+  private convertToProcessingConfiguration(
+    appConfig: ApplicationConfiguration,
+    originalArgs: Record<string, unknown>,
+  ): Result<ProcessingConfiguration, DomainError & { message: string }> {
+    try {
+      // Convert input configuration
+      const inputConfig = {
+        pattern: appConfig.input.kind === "DirectoryInput"
+          ? appConfig.input.pattern
+          : CLI_DEFAULTS.getFilePatternDefaults().defaultRecursive,
+        baseDirectory: appConfig.input.path,
+      };
+
+      // Convert schema configuration
+      // Use original schema path, not the loaded content
+      const schemaPath = originalArgs.schema as string | undefined;
+      if (!schemaPath) {
+        throw new Error(
+          CLI_DEFAULTS.getErrorMessageDefaults().schemaPathRequired,
+        );
+      }
+      const schemaConfig = {
+        path: schemaPath,
+        format: (appConfig.schema.format.toString() as "json" | "yaml"),
+      };
+
+      // Convert template configuration
+      // For template, we might have either an explicit path or loaded content
+      const templatePath = originalArgs.template as string | undefined;
+      const templateConfig = {
+        kind: "file" as const,
+        path: templatePath || appConfig.template.definition, // Use original path if available, fallback to content
+        format: (appConfig.template.format.toString() as
+          | "json"
+          | "yaml"
+          | "xml"
+          | "custom"),
+      };
+
+      // Convert output configuration
+      const outputConfig = {
+        path: appConfig.output.path,
+        format: (appConfig.output.format.toString() as
+          | "json"
+          | "yaml"
+          | "xml"
+          | "custom"),
+      };
+
+      // Convert processing options using CLI defaults
+      const defaultsResult = CLI_DEFAULTS.getProcessingConfiguration();
+      const _processingOptions: ProcessingOptions = {
+        strict: defaultsResult.strict,
+        allowEmptyFrontmatter: defaultsResult.allowEmptyFrontmatter,
+        allowMissingVariables: defaultsResult.allowMissingVariables,
+        validateSchema: defaultsResult.validateSchema,
+        parallelProcessing: defaultsResult.parallelProcessing,
+        maxFiles: defaultsResult.maxFiles.getValue(),
+      };
+
+      const processingConfig: ProcessingConfiguration = {
+        kind: "basic",
+        schema: schemaConfig,
+        input: inputConfig,
+        template: templateConfig,
+        output: outputConfig,
+      };
+
+      return { ok: true, data: processingConfig };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigurationError" as const,
+          config: appConfig,
+          message: `Failed to convert configuration: ${String(error)}`,
+        },
+      };
+    }
+  }
+
   private printHelp(): void {
-    const helpLogger = LoggerFactory.createLogger("cli-help");
+    const helpLogger = LoggerFactory.createLogger(CLILoggers.HELP.getName());
     helpLogger.info("Displaying help information");
     // Help output to stdout is intentional - not logging
     console.log(`

@@ -9,6 +9,7 @@
 import { extract } from "jsr:@std/front-matter@1.0.5/any";
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 import { VerboseLoggerService } from "../../infrastructure/services/verbose-logger-service.ts";
 import { FrontMatter } from "../models/entities.ts";
 import { FrontMatterContent } from "../models/value-objects.ts";
@@ -139,7 +140,7 @@ export class FrontmatterExtractorService {
         ok: false,
         error: createDomainError({
           kind: "ParseError",
-          input: content.substring(0, 100) + "...",
+          input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(content),
           details: error instanceof Error ? error.message : "Unknown error",
         }),
       };

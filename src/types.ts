@@ -39,7 +39,7 @@ export interface TemplatePath {
   readonly value: string;
 }
 
-// Processing configuration (simplified discriminated union)
+// Processing configuration (Totality-compliant discriminated union)
 export interface ProcessingConfig {
   readonly schema: { readonly path: string; readonly format: "json" | "yaml" };
   readonly input: { readonly pattern: string; readonly baseDirectory?: string };

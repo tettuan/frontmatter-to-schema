@@ -11,6 +11,8 @@ import type { DomainError, Result } from "../../../domain/core/result.ts";
 import { createDomainError } from "../../../domain/core/result.ts";
 import { SchemaAggregationAdapter } from "../../services/schema-aggregation-adapter.ts";
 import type { SchemaTemplateInfo } from "../../../domain/models/schema-extensions.ts";
+import { SchemaExtensionRegistryFactory } from "../../../domain/schema/factories/schema-extension-registry-factory.ts";
+import { SchemaExtensions } from "../../../domain/schema/value-objects/schema-extensions.ts";
 
 /**
  * Input for result aggregation
@@ -39,7 +41,13 @@ export class AggregateResultsUseCase
   private readonly aggregationAdapter: SchemaAggregationAdapter;
 
   constructor() {
-    this.aggregationAdapter = new SchemaAggregationAdapter();
+    const registryResult = SchemaExtensionRegistryFactory.createDefault();
+    if (!registryResult.ok) {
+      throw new Error(
+        `Failed to create registry: ${registryResult.error.message}`,
+      );
+    }
+    this.aggregationAdapter = new SchemaAggregationAdapter(registryResult.data);
   }
 
   async execute(
@@ -85,28 +93,54 @@ export class AggregateResultsUseCase
         items: input.data,
       };
 
-      // Handle x-frontmatter-part if present
-      if (input.templateInfo.getIsFrontmatterPart()) {
-        const frontmatterParts = this.aggregationAdapter
-          .findFrontmatterParts(input.schema as Record<string, unknown>);
+      // Handle x-frontmatter-part if present (either global or nested)
+      const frontmatterParts = this.aggregationAdapter
+        .findFrontmatterParts(input.schema as Record<string, unknown>);
 
+      if (
+        input.templateInfo.getIsFrontmatterPart() || frontmatterParts.length > 0
+      ) {
         if (frontmatterParts.length > 0) {
-          // Use the first frontmatter part property
-          const key = frontmatterParts[0];
+          // Check if this is ArrayBased processing result
+          // ArrayBased results come as a single structured object that already matches the schema
+          const isArrayBasedResult = input.data.length === 1 &&
+            typeof input.data[0] === "object" &&
+            input.data[0] !== null &&
+            this.hasNestedStructure(
+              input.data[0] as Record<string, unknown>,
+              frontmatterParts,
+            );
 
-          // Apply level-based filtering before assigning data
-          const filteredData = this.applyLevelFiltering(
-            input.data,
-            input.schema as Record<string, unknown>,
-            key,
-          );
+          if (isArrayBasedResult) {
+            // For ArrayBased processing, use the structured result directly
+            // CRITICAL FIX: Preserve aggregationResult.data (contains x-derived-from results)
+            result = {
+              ...(input.data[0] as Record<string, unknown>),
+            };
 
-          result = {
-            ...aggregationResult.data,
-            [key]: filteredData,
-          };
-          // Don't include items when we have frontmatter-part
-          delete result.items;
+            // Merge aggregated data with proper nesting
+            result = this.mergeNestedResults(result, aggregationResult.data);
+
+            // Don't include items when we have structured result
+            delete result.items;
+          } else {
+            // Legacy Individual processing: use the first frontmatter part property
+            const key = frontmatterParts[0];
+
+            // Apply level-based filtering before assigning data
+            const filteredData = this.applyLevelFiltering(
+              input.data,
+              input.schema as Record<string, unknown>,
+              key,
+            );
+
+            result = {
+              ...aggregationResult.data,
+              [key]: filteredData,
+            };
+            // Don't include items when we have frontmatter-part
+            delete result.items;
+          }
         }
       }
 
@@ -221,16 +255,16 @@ export class AggregateResultsUseCase
       if (!this.isValidRecord(property)) return null;
 
       // Check if the property has an x-level constraint
-      if (typeof property["x-level"] === "string") {
-        return property["x-level"];
+      if (typeof property[SchemaExtensions.LEVEL] === "string") {
+        return property[SchemaExtensions.LEVEL] as string;
       }
 
       const items = property.items;
       if (!this.isValidRecord(items)) return null;
 
       // Check if items have an x-level constraint
-      if (typeof items["x-level"] === "string") {
-        return items["x-level"];
+      if (typeof items[SchemaExtensions.LEVEL] === "string") {
+        return items[SchemaExtensions.LEVEL] as string;
       }
 
       // Handle $ref resolution - get the referenced schema
@@ -268,5 +302,79 @@ export class AggregateResultsUseCase
    */
   private isValidRecord(data: unknown): data is Record<string, unknown> {
     return typeof data === "object" && data !== null && !Array.isArray(data);
+  }
+
+  /**
+   * Helper method to detect if a result object has the nested structure expected from ArrayBased processing
+   */
+  private hasNestedStructure(
+    result: Record<string, unknown>,
+    frontmatterParts: string[],
+  ): boolean {
+    // Check if the result contains any of the frontmatter part paths
+    for (const part of frontmatterParts) {
+      if (this.hasNestedProperty(result, part)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Merge nested results properly handling dot-notation keys
+   * CRITICAL FIX: Converts "tools.availableConfigs" to nested structure
+   */
+  private mergeNestedResults(
+    baseResult: Record<string, unknown>,
+    aggregatedData: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const result = { ...baseResult };
+
+    for (const [key, value] of Object.entries(aggregatedData)) {
+      const parts = key.split(".");
+
+      if (parts.length === 1) {
+        // Simple key - just assign
+        result[key] = value;
+      } else {
+        // Nested key - navigate and assign
+        let current = result;
+
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          if (!(part in current) || !this.isValidRecord(current[part])) {
+            current[part] = {};
+          }
+          current = current[part] as Record<string, unknown>;
+        }
+
+        const lastPart = parts[parts.length - 1];
+        current[lastPart] = value;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Helper method to check if an object has a nested property path
+   */
+  private hasNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+  ): boolean {
+    const parts = path.split(".");
+    let current = obj;
+
+    for (const part of parts) {
+      if (
+        typeof current !== "object" || current === null || !(part in current)
+      ) {
+        return false;
+      }
+      current = current[part] as Record<string, unknown>;
+    }
+
+    return true;
   }
 }

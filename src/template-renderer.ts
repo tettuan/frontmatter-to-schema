@@ -1,10 +1,21 @@
 import type { DomainError, ProcessingConfig, Result } from "./types.ts";
 import { getTemplatePath } from "./domain/models/schema-extensions.ts";
+import { ERROR_TEMPLATE_PREVIEW_LIMIT } from "./domain/shared/constants.ts";
 
-export interface TemplateData {
-  readonly aggregatedData: Record<string, unknown>;
-  readonly schema?: Record<string, unknown>;
-}
+/**
+ * Template data with discriminated union for Totality compliance
+ * Eliminates optional properties and makes template processing explicit
+ */
+export type TemplateData =
+  | {
+    readonly kind: "aggregated";
+    readonly aggregatedData: Record<string, unknown>;
+  }
+  | {
+    readonly kind: "schema-aware";
+    readonly aggregatedData: Record<string, unknown>;
+    readonly schema: Record<string, unknown>;
+  };
 
 export class TemplateRenderer {
   private constructor() {}
@@ -74,7 +85,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -93,7 +104,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -112,7 +123,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -131,7 +142,7 @@ export class TemplateRenderer {
         ok: false,
         error: {
           kind: "TemplateRenderFailed",
-          template: template.slice(0, 100),
+          template: template.slice(0, ERROR_TEMPLATE_PREVIEW_LIMIT.getValue()),
           data: data.aggregatedData,
         },
       };
@@ -220,7 +231,7 @@ export class TemplateRenderer {
 
         // Check if this property corresponds to an array in data with x-template
         const arrayData = this.getArrayDataForProperty(key, data);
-        if (arrayData && data.schema) {
+        if (arrayData && data.kind === "schema-aware") {
           const templateResult = await this.resolveArrayTemplate(
             key,
             arrayData,
@@ -371,6 +382,7 @@ export class TemplateRenderer {
       const processedItems = arrayData.map((item) => {
         if (item && typeof item === "object") {
           return this.processTemplateObject(templateObj, {
+            kind: "aggregated" as const,
             aggregatedData: item as Record<string, unknown>,
           });
         }

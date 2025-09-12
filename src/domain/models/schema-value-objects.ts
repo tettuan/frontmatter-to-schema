@@ -57,26 +57,50 @@ export class SchemaDefinition {
       };
     }
 
+    let parsedDefinition: unknown;
+
+    // Handle string input (JSON schema as string) - parse it
+    if (typeof definition === "string") {
+      try {
+        parsedDefinition = JSON.parse(definition);
+      } catch (parseError) {
+        return {
+          ok: false,
+          error: createDomainError({
+            kind: "ParseError",
+            input: String(parseError),
+            details: "Failed to parse schema definition as JSON",
+          }, "Schema definition string must be valid JSON"),
+        };
+      }
+    } else {
+      parsedDefinition = definition;
+    }
+
+    // Validate that the parsed result is an object
     if (
-      typeof definition !== "object" || definition === null ||
-      Array.isArray(definition)
+      typeof parsedDefinition !== "object" || parsedDefinition === null ||
+      Array.isArray(parsedDefinition)
     ) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: typeof definition,
-          expectedFormat: "object",
-        }, "Schema definition must be a plain object"),
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: typeof parsedDefinition,
+            expectedFormat: "object",
+          },
+          "Schema definition must be a plain object (or valid JSON string that parses to an object)",
+        ),
       };
     }
 
     // Store both raw and processed versions
     // The raw definition preserves the original JSON schema structure
-    const rawCopy = JSON.parse(JSON.stringify(definition));
+    const rawCopy = JSON.parse(JSON.stringify(parsedDefinition));
     return {
       ok: true,
-      data: new SchemaDefinition(definition, rawCopy, version),
+      data: new SchemaDefinition(parsedDefinition, rawCopy, version),
     };
   }
 

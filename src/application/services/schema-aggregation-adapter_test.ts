@@ -6,26 +6,39 @@ import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { SchemaAggregationAdapter } from "./schema-aggregation-adapter.ts";
 import type { ExtendedSchema } from "../../domain/models/schema-extensions.ts";
+import { SchemaExtensionRegistryFactory } from "../../domain/schema/factories/schema-extension-registry-factory.ts";
+import { SchemaExtensions } from "../../domain/schema/value-objects/schema-extensions.ts";
+
+// Test helper function
+function createTestAdapter() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return new SchemaAggregationAdapter(registryResult.data);
+}
 
 describe("SchemaAggregationAdapter", () => {
   describe("extractAggregationContext", () => {
     it("should extract derivation rules from schema", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands[].c1",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
           },
           allCommands: {
             type: "array",
-            "x-derived-from": "commands",
-            "x-derived-flatten": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands",
+            [SchemaExtensions.DERIVED_FLATTEN]: true,
             items: {
               type: "object",
             },
@@ -57,22 +70,22 @@ describe("SchemaAggregationAdapter", () => {
 
     it("should handle top-level properties with derivation rules", () => {
       // Note: Nested properties like "config.tools" are not yet supported due to issue #568
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
           tools: {
             type: "array",
-            "x-derived-from": "items[].name",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "items[].name",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
           },
           categories: {
             type: "array",
-            "x-derived-from": "items[].category",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "items[].category",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: {
               type: "string",
             },
@@ -96,11 +109,11 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("isFrontmatterPartSchema", () => {
     it("should identify schema marked with x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
 
       const markedSchema: ExtendedSchema = {
         type: "object",
-        "x-frontmatter-part": true,
+        [SchemaExtensions.FRONTMATTER_PART]: true,
         properties: {},
       };
 
@@ -116,13 +129,13 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("findFrontmatterParts", () => {
     it("should find all properties marked with x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [SchemaExtensions.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -136,7 +149,7 @@ describe("SchemaAggregationAdapter", () => {
             properties: {
               settings: {
                 type: "array",
-                "x-frontmatter-part": true,
+                [SchemaExtensions.FRONTMATTER_PART]: true,
                 items: { type: "string" },
               },
             },
@@ -155,10 +168,10 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle root-level x-frontmatter-part", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
-        "x-frontmatter-part": true,
+        [SchemaExtensions.FRONTMATTER_PART]: true,
         properties: {
           field1: { type: "string" },
         },
@@ -172,14 +185,14 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("processAggregation", () => {
     it("should aggregate data from multiple documents", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
-            "x-derived-unique": true,
+            [SchemaExtensions.DERIVED_FROM]: "commands[].c1",
+            [SchemaExtensions.DERIVED_UNIQUE]: true,
             items: { type: "string" },
           },
         },
@@ -215,14 +228,14 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle flatten option", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const schema: ExtendedSchema = {
         type: "object",
         properties: {
           allItems: {
             type: "array",
-            "x-derived-from": "nested",
-            "x-derived-flatten": true,
+            [SchemaExtensions.DERIVED_FROM]: "nested",
+            [SchemaExtensions.DERIVED_FLATTEN]: true,
             items: { type: "string" },
           },
         },
@@ -251,7 +264,7 @@ describe("SchemaAggregationAdapter", () => {
 
   describe("applyToTemplate", () => {
     it("should apply aggregated data to template", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const template = {
         name: "Registry",
         configs: [],
@@ -269,7 +282,7 @@ describe("SchemaAggregationAdapter", () => {
     });
 
     it("should handle nested paths in aggregated data", () => {
-      const adapter = new SchemaAggregationAdapter();
+      const adapter = createTestAdapter();
       const template = {
         root: {
           nested: {},

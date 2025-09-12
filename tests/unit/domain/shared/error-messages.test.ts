@@ -208,7 +208,7 @@ describe("ErrorMessages", () => {
 
     it("should handle short invalid responses", () => {
       const result = ErrorMessages.INVALID_RESPONSE("error");
-      assertEquals(result, "Invalid AI response: error...");
+      assertEquals(result, "Invalid AI response: error");
     });
   });
 

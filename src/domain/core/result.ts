@@ -298,6 +298,9 @@ export const combineResults = <T, E>(
 };
 
 // Get data or throw error (for migration from partial functions)
+// @deprecated VIOLATES TOTALITY PRINCIPLES - Use Result<T,E> patterns instead
+// This function intentionally throws and should only be used during migration
+// from legacy partial functions to total functions following Totality principles
 export const unwrapResult = <T, E>(result: Result<T, E>): T => {
   if (result.ok) {
     return result.data;

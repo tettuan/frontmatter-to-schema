@@ -1,5 +1,7 @@
 // Centralized error messages following DDD principles
 
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "./constants.ts";
+
 export const ErrorMessages = {
   // Validation errors
   EMPTY_INPUT: "Input cannot be empty",
@@ -56,7 +58,9 @@ export const ErrorMessages = {
       ? `Rate limited, retry after ${retryAfter} seconds`
       : "Rate limited, please try again later",
   INVALID_RESPONSE: (response: string) =>
-    `Invalid AI response: ${response.slice(0, 100)}...`,
+    `Invalid AI response: ${
+      DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(response)
+    }`,
 
   // Domain-specific errors
   SCHEMA_FILE_NOT_FOUND: (path: string) => `Schema file not found: ${path}`,

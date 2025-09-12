@@ -5,6 +5,7 @@
 
 import type { DomainError, Result } from "../core/result.ts";
 import { createDomainError } from "../core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 import type { FileSystemRepository } from "../repositories/file-system-repository.ts";
 
 // Using base DomainError with message - no custom type needed
@@ -44,7 +45,7 @@ export class ValidToolsConfig {
           ok: false,
           error: createDomainError({
             kind: "InvalidFormat" as const,
-            input: result.data.substring(0, 100),
+            input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(result.data),
             expectedFormat: "JSON object",
           }, "Configuration must be a valid JSON object"),
         };
@@ -96,7 +97,7 @@ export class ValidToolsConfig {
         ok: false,
         error: createDomainError({
           kind: "ParseError" as const,
-          input: result.data.substring(0, 100),
+          input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(result.data),
           details: error instanceof Error ? error.message : String(error),
         }, "Failed to parse configuration JSON"),
       };

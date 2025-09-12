@@ -361,8 +361,11 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockFileReader,
     );
 
-    const isValid = pipeline.validateConfig();
-    assertEquals(isValid, true);
+    const result = pipeline.validateConfig();
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, true);
+    }
   });
 
   await t.step("should reject configuration with empty input patterns", () => {
@@ -380,11 +383,14 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockFileReader,
     );
 
-    assertThrows(
-      () => pipeline.validateConfig(),
-      Error,
-      "Input patterns are required",
-    );
+    const result = pipeline.validateConfig();
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      const errorWithMessage = result.error as typeof result.error & {
+        message: string;
+      };
+      assertEquals(errorWithMessage.message, "Input patterns are required");
+    }
   });
 
   await t.step(
@@ -404,11 +410,17 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
         mockFileReader,
       );
 
-      assertThrows(
-        () => pipeline.validateConfig(),
-        Error,
-        "Processing strategies are required",
-      );
+      const result = pipeline.validateConfig();
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        const errorWithMessage = result.error as typeof result.error & {
+          message: string;
+        };
+        assertEquals(
+          errorWithMessage.message,
+          "Processing strategies are required",
+        );
+      }
     },
   );
 
@@ -427,11 +439,14 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockFileReader,
     );
 
-    assertThrows(
-      () => pipeline.validateConfig(),
-      Error,
-      "Output format is required",
-    );
+    const result = pipeline.validateConfig();
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      const errorWithMessage = result.error as typeof result.error & {
+        message: string;
+      };
+      assertEquals(errorWithMessage.message, "Output format is required");
+    }
   });
 
   await t.step("should reject configuration with unregistered strategy", () => {
@@ -449,11 +464,17 @@ Deno.test("AnalysisPipeline - Configuration Validation", async (t) => {
       mockFileReader,
     );
 
-    assertThrows(
-      () => pipeline.validateConfig(),
-      Error,
-      "Strategy 'non-existent-strategy' not registered",
-    );
+    const result = pipeline.validateConfig();
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      const errorWithMessage = result.error as typeof result.error & {
+        message: string;
+      };
+      assertEquals(
+        errorWithMessage.message,
+        "Strategy 'non-existent-strategy' not registered",
+      );
+    }
   });
 });
 

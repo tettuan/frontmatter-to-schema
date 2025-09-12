@@ -8,11 +8,23 @@
 import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { createAggregationService } from "./aggregation-service.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestAggregationService() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return createAggregationService(registryResult.data);
+}
 
 describe("AggregationService - Schema Extraction", () => {
   describe("extractRulesFromSchema()", () => {
     it("should extract rules from simple schema properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -41,7 +53,7 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should extract rules from nested schema properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -75,7 +87,7 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should handle array item properties", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -87,7 +99,7 @@ describe("AggregationService - Schema Extraction", () => {
                 processedNames: {
                   type: "array",
                   "x-derived-from": "$.name",
-                  "x-aggregation-options": {
+                  "x-template-aggregation-options": {
                     unique: true,
                     skipNull: true,
                   },
@@ -112,7 +124,7 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should skip properties without x-derived-from", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -142,7 +154,7 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should handle invalid schema gracefully", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       // Test various invalid schema formats - use type assertions for intentionally invalid inputs
       const invalidSchemas = [
@@ -164,7 +176,7 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should handle complex nested structures", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
@@ -204,14 +216,14 @@ describe("AggregationService - Schema Extraction", () => {
     });
 
     it("should preserve aggregation options from schema", () => {
-      const service = createAggregationService();
+      const service = createTestAggregationService();
 
       const schema = {
         properties: {
           processedData: {
             type: "array",
             "x-derived-from": "$.data",
-            "x-aggregation-options": {
+            "x-template-aggregation-options": {
               unique: true,
               flatten: true,
               skipNull: true,

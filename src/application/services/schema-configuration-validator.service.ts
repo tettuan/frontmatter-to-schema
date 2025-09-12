@@ -63,21 +63,31 @@ export class SchemaConfigurationValidator {
       };
     }
 
-    // Use Smart Constructor for format validation
-    const formatValue = schema.format || "json";
-    if (typeof formatValue !== "string") {
-      return {
-        ok: false,
-        error: createDomainError({
-          kind: "ConfigurationError",
-          config: formatValue,
-        }, "Schema format must be a string"),
-      };
+    // Accept both string and SchemaFormat object for flexibility
+    let formatResult: Result<SchemaFormat, DomainError>;
+
+    if (typeof schema.format === "string") {
+      // Handle string format - create SchemaFormat object
+      formatResult = SchemaFormat.create(schema.format);
+    } else if (
+      schema.format && typeof schema.format === "object" &&
+      "getValue" in schema.format
+    ) {
+      // Handle SchemaFormat object - use directly
+      formatResult = { ok: true, data: schema.format as SchemaFormat };
+    } else {
+      // Default to json if no format provided
+      formatResult = SchemaFormat.create("json");
     }
 
-    const formatResult = SchemaFormat.create(formatValue);
     if (!formatResult.ok) {
-      return formatResult;
+      return {
+        ok: false,
+        error: createDomainError(
+          formatResult.error,
+          "Schema format validation failed",
+        ),
+      };
     }
 
     return {

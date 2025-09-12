@@ -7,6 +7,7 @@
 
 import { createDomainError, type Result } from "./result.ts";
 import type { AnalysisError } from "./result.ts";
+import { ANALYSIS_ENGINE_TIMEOUT_VALUE } from "../shared/constants.ts";
 import type {
   FrontMatterContent,
   SchemaDefinition,
@@ -30,7 +31,7 @@ import type {
  */
 export class GenericAnalysisEngine implements AnalysisEngine {
   constructor(
-    private readonly timeout: number = 30000, // 30 seconds default
+    private readonly timeout: number = ANALYSIS_ENGINE_TIMEOUT_VALUE.getValue(), // 30 seconds default
   ) {}
 
   async analyze<TInput, TOutput>(

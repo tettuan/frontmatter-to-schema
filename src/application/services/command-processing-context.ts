@@ -9,6 +9,7 @@ import type { DomainError, Result } from "../../domain/core/result.ts";
 import { createDomainError } from "../../domain/core/result.ts";
 import type { Schema, Template } from "../../domain/models/entities.ts";
 import type { ProcessingMode } from "../../domain/command/index.ts";
+import { COMMAND_PROCESSING_ERROR_LIMIT } from "../../domain/shared/constants.ts";
 
 /**
  * Command processing context using Smart Constructor pattern
@@ -41,7 +42,7 @@ export class CommandProcessingContext {
   static createLenient(
     commandSchema: Schema,
     commandTemplate: Template,
-    maxErrors: number = 10,
+    maxErrors: number = COMMAND_PROCESSING_ERROR_LIMIT.getValue(),
   ): Result<CommandProcessingContext, DomainError & { message: string }> {
     if (maxErrors < 1) {
       return {

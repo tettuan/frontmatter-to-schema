@@ -7,6 +7,7 @@
 
 import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
+import { DEFAULT_ERROR_CONTEXT_LIMIT } from "../shared/constants.ts";
 
 /**
  * Frontmatter format types as discriminated union
@@ -57,7 +58,9 @@ export class FrontmatterData {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: trimmedContent.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                  trimmedContent,
+                ),
                 expectedFormat: "YAML",
               },
               "Content does not appear to be valid YAML frontmatter",
@@ -79,7 +82,9 @@ export class FrontmatterData {
               error: createDomainError(
                 {
                   kind: "InvalidFormat",
-                  input: trimmedContent.substring(0, 100),
+                  input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                    trimmedContent,
+                  ),
                   expectedFormat: "JSON object",
                 },
                 "Frontmatter must be a JSON object",
@@ -93,7 +98,9 @@ export class FrontmatterData {
             error: createDomainError(
               {
                 kind: "ParseError",
-                input: trimmedContent.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                  trimmedContent,
+                ),
                 details: error instanceof Error ? error.message : String(error),
               },
               "Invalid JSON frontmatter",
@@ -111,7 +118,9 @@ export class FrontmatterData {
             error: createDomainError(
               {
                 kind: "InvalidFormat",
-                input: trimmedContent.substring(0, 100),
+                input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
+                  trimmedContent,
+                ),
                 expectedFormat: "TOML",
               },
               "Content does not appear to be valid TOML frontmatter",

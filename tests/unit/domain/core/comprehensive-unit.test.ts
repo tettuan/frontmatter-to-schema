@@ -121,7 +121,7 @@ Deno.test("DDD Core - SchemaDefinition Value Object", async (t) => {
     const invalidCases = [
       { input: null, expectedError: "EmptyInput" },
       { input: undefined, expectedError: "EmptyInput" },
-      { input: "string", expectedError: "InvalidFormat" },
+      { input: "string", expectedError: "ParseError" },
       { input: 123, expectedError: "InvalidFormat" },
     ];
 

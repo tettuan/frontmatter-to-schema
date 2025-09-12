@@ -385,7 +385,7 @@ export class TemplateContext {
           if (options.allowMissingVariables) {
             return match; // Keep placeholder if missing variables allowed
           } else {
-            throw new Error(`Missing variable: ${varName}`);
+            throw new Error(`Missing variable: ${varName}`); // Will be caught and converted to Result
           }
         }
 

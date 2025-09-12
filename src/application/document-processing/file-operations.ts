@@ -16,6 +16,7 @@ import {
   DocumentPath,
 } from "../../domain/models/value-objects.ts";
 import type { FileSystemPort } from "../../infrastructure/ports/index.ts";
+import type { FrontMatterExtractor } from "../../domain/services/interfaces.ts";
 import type { InputConfiguration, OutputFormat } from "../configuration.ts";
 
 /**
@@ -30,7 +31,10 @@ function isValidFileContent(content: unknown): content is string {
  * Handles file discovery, reading, and output generation
  */
 export class FileOperations {
-  constructor(private readonly fileSystem: FileSystemPort) {}
+  constructor(
+    private readonly fileSystem: FileSystemPort,
+    private readonly frontMatterExtractor?: FrontMatterExtractor,
+  ) {}
 
   /**
    * Discover documents based on input configuration
@@ -39,35 +43,76 @@ export class FileOperations {
     input: InputConfiguration,
   ): Promise<Result<Document[], DomainError>> {
     try {
-      // Determine search pattern
-      const pattern = this.getSearchPattern(input);
-
-      // Find matching files using listFiles
-      const filesResult = await this.fileSystem.listFiles(".", pattern);
-      if (!filesResult.ok) {
-        return {
-          ok: false,
-          error: createDomainError({
-            kind: "FileDiscoveryFailed",
-            directory: ".",
-            pattern,
-          }, `Failed to discover files with pattern: ${pattern}`),
-        };
-      }
-
-      const filePaths = filesResult.data.map((f) => f.path);
-
-      // Filter and validate files
-      const documents: Document[] = [];
-      for (const filePath of filePaths) {
-        const documentResult = await this.loadDocument(filePath);
-        if (documentResult.ok) {
-          documents.push(documentResult.data);
+      switch (input.kind) {
+        case "FileInput": {
+          // Handle single file input
+          const documentResult = await this.loadDocument(input.path);
+          if (documentResult.ok) {
+            return { ok: true, data: [documentResult.data] };
+          } else {
+            return {
+              ok: false,
+              error: createDomainError({
+                kind: "FileNotFound",
+                path: input.path,
+              }, `Failed to load single file: ${input.path}`),
+            };
+          }
         }
-        // Continue processing other files even if one fails (resilient approach)
-      }
+        case "DirectoryInput": {
+          // Handle directory input with pattern
+          const pattern = input.pattern || FILE_PATTERNS.MARKDOWN;
 
-      return { ok: true, data: documents };
+          // Find matching files using listFiles
+          const filesResult = await this.fileSystem.listFiles(
+            input.path,
+            pattern,
+          );
+          if (!filesResult.ok) {
+            return {
+              ok: false,
+              error: createDomainError({
+                kind: "FileDiscoveryFailed",
+                directory: input.path,
+                pattern,
+              }, `Failed to discover files with pattern: ${pattern}`),
+            };
+          }
+
+          const filePaths = filesResult.data.map((f) => f.path);
+
+          // Filter and validate files
+          const documents: Document[] = [];
+          for (const filePath of filePaths) {
+            const documentResult = await this.loadDocument(filePath);
+            if (documentResult.ok) {
+              documents.push(documentResult.data);
+            }
+            // Continue processing other files even if one fails (resilient approach)
+          }
+
+          return { ok: true, data: documents };
+        }
+        default: {
+          // Exhaustive check
+          const _exhaustive: never = input;
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "ProcessingStageError",
+                stage: "document-discovery",
+                error: createDomainError({
+                  kind: "InvalidFormat",
+                  input: JSON.stringify(_exhaustive),
+                  expectedFormat: "FileInput or DirectoryInput",
+                }),
+              },
+              `Unknown input configuration: ${JSON.stringify(_exhaustive)}`,
+            ),
+          };
+        }
+      }
     } catch (error) {
       return {
         ok: false,
@@ -133,13 +178,37 @@ export class FileOperations {
       return contentObj;
     }
 
-    // Create document entity
-    const frontMatterState: { kind: "NoFrontMatter" } = {
-      kind: "NoFrontMatter",
-    };
+    // Create a basic document first
+    const basicDoc = Document.createWithFrontMatter(
+      documentPath,
+      null,
+      contentObj.data,
+    );
+
+    // Extract frontmatter if extractor is available
+    if (this.frontMatterExtractor) {
+      const extractionResult = this.frontMatterExtractor.extract(basicDoc);
+      if (extractionResult.ok) {
+        // Create updated document with extracted frontmatter if found
+        const document = extractionResult.data.kind === "Extracted"
+          ? Document.createWithFrontMatter(
+            documentPath,
+            extractionResult.data.frontMatter,
+            contentObj.data,
+          )
+          : basicDoc;
+
+        return {
+          ok: true,
+          data: document,
+        };
+      }
+    }
+
+    // Return basic document if no extractor or extraction failed
     return {
       ok: true,
-      data: Document.create(documentPath, frontMatterState, contentObj.data),
+      data: basicDoc,
     };
   }
 
@@ -238,25 +307,6 @@ export class FileOperations {
           }`,
         ),
       };
-    }
-  }
-
-  /**
-   * Get search pattern from input configuration
-   */
-  private getSearchPattern(input: InputConfiguration): string {
-    switch (input.kind) {
-      case "FileInput":
-        return input.path;
-      case "DirectoryInput":
-        return `${input.path}/${input.pattern || FILE_PATTERNS.MARKDOWN}`;
-      default: {
-        // Exhaustive check
-        const _exhaustive: never = input;
-        throw new Error(
-          `Unknown input configuration: ${JSON.stringify(_exhaustive)}`,
-        );
-      }
     }
   }
 

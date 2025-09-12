@@ -8,6 +8,18 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { DerivationRule } from "./value-objects.ts";
+import { SchemaExtensionRegistryFactory } from "../schema/factories/schema-extension-registry-factory.ts";
+
+// Test helper function
+function createTestRegistry() {
+  const registryResult = SchemaExtensionRegistryFactory.createDefault();
+  if (!registryResult.ok) {
+    throw new Error(
+      `Failed to create registry: ${registryResult.error.message}`,
+    );
+  }
+  return registryResult.data;
+}
 
 describe("DerivationRule", () => {
   describe("create()", () => {
@@ -189,10 +201,11 @@ describe("DerivationRule", () => {
 
   describe("fromSchemaProperty()", () => {
     it("should return null when x-derived-from is not present", () => {
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty("field", {
         type: "string",
         description: "A regular field",
-      });
+      }, registry);
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data, null);
@@ -200,6 +213,7 @@ describe("DerivationRule", () => {
     });
 
     it("should create rule from schema property with x-derived-from", () => {
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty(
         "tools.availableConfigs",
         {
@@ -208,6 +222,7 @@ describe("DerivationRule", () => {
           "x-derived-unique": true,
           "x-derived-flatten": false,
         },
+        registry,
       );
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -222,11 +237,12 @@ describe("DerivationRule", () => {
     });
 
     it("should handle boolean options correctly", () => {
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty("field", {
         "x-derived-from": "$.source",
         "x-derived-unique": false,
-        "x-derived-flatten": true,
-      });
+        "x-derived-from-flatten": true,
+      }, registry);
       assertEquals(result.ok, true);
       if (result.ok && result.data) {
         assertEquals(result.data.isUnique(), false);
@@ -235,9 +251,10 @@ describe("DerivationRule", () => {
     });
 
     it("should default to false for missing options", () => {
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty("field", {
         "x-derived-from": "$.source",
-      });
+      }, registry);
       assertEquals(result.ok, true);
       if (result.ok && result.data) {
         assertEquals(result.data.isUnique(), false);
@@ -246,9 +263,10 @@ describe("DerivationRule", () => {
     });
 
     it("should handle non-string x-derived-from values", () => {
+      const registry = createTestRegistry();
       const result = DerivationRule.fromSchemaProperty("field", {
         "x-derived-from": 123, // invalid type
-      });
+      }, registry);
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data, null);

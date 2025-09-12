@@ -9,6 +9,11 @@ import {
   type DomainError,
   type Result,
 } from "../../domain/core/result.ts";
+import {
+  DEFAULT_MAX_WORKERS_VALUE,
+  MAX_WORKERS_LIMIT_VALUE,
+  MIN_WORKERS_LIMIT_VALUE,
+} from "../../domain/shared/constants.ts";
 
 /**
  * Process Documents Options Value Object with validation
@@ -18,7 +23,7 @@ export class ProcessDocumentsOptions {
     private readonly verbose: boolean = false,
     private readonly dryRun: boolean = false,
     private readonly parallel: boolean = false,
-    private readonly maxWorkers: number = 4,
+    private readonly maxWorkers: number = DEFAULT_MAX_WORKERS_VALUE.getValue(),
   ) {}
 
   static create(options: {
@@ -66,15 +71,24 @@ export class ProcessDocumentsOptions {
     }
 
     // Validate maxWorkers
-    const maxWorkers = options.maxWorkers ?? 4;
-    if (typeof maxWorkers !== "number" || maxWorkers < 1 || maxWorkers > 16) {
+    const maxWorkers = options.maxWorkers ??
+      DEFAULT_MAX_WORKERS_VALUE.getValue();
+    if (
+      typeof maxWorkers !== "number" ||
+      maxWorkers < MIN_WORKERS_LIMIT_VALUE.getValue() ||
+      maxWorkers > MAX_WORKERS_LIMIT_VALUE.getValue()
+    ) {
       return {
         ok: false,
-        error: createDomainError({
-          kind: "InvalidFormat",
-          input: String(options.maxWorkers),
-          expectedFormat: "number between 1 and 16",
-        }, "Max workers must be a number between 1 and 16"),
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: String(options.maxWorkers),
+            expectedFormat:
+              `number between ${MIN_WORKERS_LIMIT_VALUE.getValue()} and ${MAX_WORKERS_LIMIT_VALUE.getValue()}`,
+          },
+          `Max workers must be a number between ${MIN_WORKERS_LIMIT_VALUE.getValue()} and ${MAX_WORKERS_LIMIT_VALUE.getValue()}`,
+        ),
       };
     }
 

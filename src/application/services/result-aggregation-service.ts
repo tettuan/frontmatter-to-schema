@@ -13,6 +13,7 @@ import {
   type Result,
 } from "../../domain/core/result.ts";
 import type { AnalysisResult } from "../../domain/models/entities.ts";
+import { ERROR_REPORTING_PROCESSING_LIMIT } from "../../domain/shared/constants.ts";
 import type {
   ProcessingConfiguration,
   ResultAggregator,
@@ -156,11 +157,18 @@ export class ResultAggregationService {
 
     if (errors.length > 0) {
       report += `\nErrors:\n`;
-      for (const error of errors.slice(0, 10)) { // Limit to first 10 errors
+      for (
+        const error of errors.slice(
+          0,
+          ERROR_REPORTING_PROCESSING_LIMIT.getValue(),
+        )
+      ) {
         report += `- ${error.document}: ${error.error}\n`;
       }
-      if (errors.length > 10) {
-        report += `... and ${errors.length - 10} more errors\n`;
+      if (errors.length > ERROR_REPORTING_PROCESSING_LIMIT.getValue()) {
+        report += `... and ${
+          errors.length - ERROR_REPORTING_PROCESSING_LIMIT.getValue()
+        } more errors\n`;
       }
     }
 
