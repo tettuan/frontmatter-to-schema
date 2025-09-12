@@ -19,6 +19,8 @@ export const SchemaExtensions = {
   DERIVED_FROM: "x-derived-from",
   DERIVED_UNIQUE: "x-derived-unique",
   DERIVED_FLATTEN: "x-derived-flatten",
+  DERIVED_COUNT: "x-derived-count",
+  DERIVED_AVERAGE: "x-derived-average",
 
   // Transform extensions
   FRONTMATTER_PART: "x-frontmatter-part",
@@ -155,6 +157,40 @@ export class SchemaExtensionAccessor {
    */
   isDerivedFlatten(): boolean {
     return this.extensions[SchemaExtensions.DERIVED_FLATTEN] === true;
+  }
+
+  /**
+   * Get derived-count configuration with type safety
+   */
+  getDerivedCount(): Result<string, { kind: string; message: string }> {
+    const value = this.extensions[SchemaExtensions.DERIVED_COUNT];
+    if (typeof value === "string") {
+      return { ok: true, data: value };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidDerivedCountValue",
+        message: "Derived-count value must be a string",
+      },
+    };
+  }
+
+  /**
+   * Get derived-average configuration with type safety
+   */
+  getDerivedAverage(): Result<string, { kind: string; message: string }> {
+    const value = this.extensions[SchemaExtensions.DERIVED_AVERAGE];
+    if (typeof value === "string") {
+      return { ok: true, data: value };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidDerivedAverageValue",
+        message: "Derived-average value must be a string",
+      },
+    };
   }
 
   /**
