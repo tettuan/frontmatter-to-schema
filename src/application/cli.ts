@@ -91,7 +91,18 @@ export class CLI {
     const formatDetectorInstance = formatResult.data;
 
     // Create ProcessCoordinator - the canonical processing entry point
-    const processCoordinator = new ProcessCoordinator();
+    const processCoordinatorResult = ProcessCoordinator.create();
+    if (!processCoordinatorResult.ok) {
+      return {
+        ok: false,
+        error: {
+          ...processCoordinatorResult.error,
+          message:
+            `Failed to create ProcessCoordinator: ${processCoordinatorResult.error.message}`,
+        },
+      };
+    }
+    const processCoordinator = processCoordinatorResult.data;
 
     return {
       ok: true,
@@ -457,9 +468,14 @@ export class CLI {
       // Use original schema path, not the loaded content
       const schemaPath = originalArgs.schema as string | undefined;
       if (!schemaPath) {
-        throw new Error(
-          CLI_DEFAULTS.getErrorMessageDefaults().schemaPathRequired,
-        );
+        return {
+          ok: false,
+          error: {
+            kind: "ConfigurationError",
+            config: appConfig,
+            message: CLI_DEFAULTS.getErrorMessageDefaults().schemaPathRequired,
+          },
+        };
       }
       const schemaConfig = {
         path: schemaPath,

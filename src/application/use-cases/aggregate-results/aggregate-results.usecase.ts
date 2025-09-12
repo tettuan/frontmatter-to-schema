@@ -40,14 +40,46 @@ export class AggregateResultsUseCase
   implements UseCase<AggregateResultsInput, AggregateResultsOutput> {
   private readonly aggregationAdapter: SchemaAggregationAdapter;
 
-  constructor() {
+  private constructor(aggregationAdapter: SchemaAggregationAdapter) {
+    this.aggregationAdapter = aggregationAdapter;
+  }
+
+  /**
+   * Smart Constructor following Totality principles
+   */
+  static create(): Result<AggregateResultsUseCase, DomainError> {
     const registryResult = SchemaExtensionRegistryFactory.createDefault();
     if (!registryResult.ok) {
-      throw new Error(
-        `Failed to create registry: ${registryResult.error.message}`,
-      );
+      // Map FactoryError to DomainError
+      const error: DomainError = {
+        kind: "ConfigurationError",
+        config: registryResult.error,
+      };
+      return { ok: false, error };
     }
-    this.aggregationAdapter = new SchemaAggregationAdapter(registryResult.data);
+    const adapter = new SchemaAggregationAdapter(registryResult.data);
+    return { ok: true, data: new AggregateResultsUseCase(adapter) };
+  }
+
+  /**
+   * Factory method for backwards compatibility in tests
+   * @deprecated Use create() instead
+   */
+  static createOrDefault(): AggregateResultsUseCase {
+    const result = AggregateResultsUseCase.create();
+    if (!result.ok) {
+      // Create with minimal defaults for tests
+      const registryResult = SchemaExtensionRegistryFactory.createDefault();
+      const registry = registryResult.ok ? registryResult.data : null;
+      if (!registry) {
+        // This should never happen in practice
+        const adapter = new SchemaAggregationAdapter(null as never);
+        return new AggregateResultsUseCase(adapter);
+      }
+      const adapter = new SchemaAggregationAdapter(registry);
+      return new AggregateResultsUseCase(adapter);
+    }
+    return result.data;
   }
 
   async execute(

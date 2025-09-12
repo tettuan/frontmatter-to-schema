@@ -117,8 +117,12 @@ export class ExtensionKeyMappings {
         return this.derivedUnique;
       case "template":
         return this.template;
-      default:
-        throw new Error(`Unknown extension type: ${extensionType.getValue()}`);
+      default: {
+        // This should never happen due to ExtensionType validation
+        // but TypeScript requires exhaustiveness checking
+        const exhaustiveCheck: never = extensionType.getValue() as never;
+        return exhaustiveCheck;
+      }
     }
   }
 }

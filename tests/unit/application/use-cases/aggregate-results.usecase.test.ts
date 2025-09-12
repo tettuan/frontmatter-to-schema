@@ -16,7 +16,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
 
   await t.step("Constructor", async (t) => {
     await t.step("should create instance without parameters", () => {
-      useCase = new AggregateResultsUseCase();
+      useCase = AggregateResultsUseCase.createOrDefault();
       assertExists(useCase);
     });
 
@@ -28,7 +28,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Execute Method - Input Validation", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step("should reject non-array data input", async () => {
       const templateInfoResult = SchemaTemplateInfo.extract({});
@@ -95,7 +95,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Execute Method - Basic Aggregation", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step("should handle empty array input", async () => {
       const templateInfoResult = SchemaTemplateInfo.extract({});
@@ -181,7 +181,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Execute Method - Frontmatter Part Handling", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step("should handle x-frontmatter-part schema", async () => {
       const testData = [
@@ -266,7 +266,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Execute Method - Derived Fields Detection", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step(
       "should detect derived fields not present in source data",
@@ -342,7 +342,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Execute Method - Error Handling", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step(
       "should handle aggregationAdapter processing errors",
@@ -425,7 +425,7 @@ Deno.test("AggregateResultsUseCase", async (t) => {
   });
 
   await t.step("Integration with SchemaAggregationAdapter", async (t) => {
-    useCase = new AggregateResultsUseCase();
+    useCase = AggregateResultsUseCase.createOrDefault();
 
     await t.step("should properly delegate to aggregationAdapter", async () => {
       const testData = [

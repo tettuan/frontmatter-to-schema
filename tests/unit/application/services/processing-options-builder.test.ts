@@ -17,7 +17,7 @@ describe("ProcessingOptionsBuilder", () => {
         const options = result.data.getOptions();
         assertEquals(options.strict, true);
         assertEquals(options.allowEmptyFrontmatter, true); // Changed to allow graceful handling
-        assertEquals(options.allowMissingVariables, false);
+        assertEquals(options.allowMissingVariables, true);
         assertEquals(options.validateSchema, true);
         assertEquals(options.parallelProcessing, false);
         assertEquals(options.maxFiles, 1000);
@@ -242,7 +242,7 @@ describe("ProcessingOptionsBuilder", () => {
       assertExists(defaults);
       assertEquals(defaults.strict, true);
       assertEquals(defaults.allowEmptyFrontmatter, true); // Changed to allow graceful handling
-      assertEquals(defaults.allowMissingVariables, false);
+      assertEquals(defaults.allowMissingVariables, true);
       assertEquals(defaults.validateSchema, true);
       assertEquals(defaults.parallelProcessing, false);
       assertEquals(defaults.maxFiles, 1000);

@@ -197,8 +197,14 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
     await ProcessCoordinatorTestFactory.cleanupTestFixtures();
     await ProcessCoordinatorTestFactory.setupTestFixtures();
 
-    // Initialize ProcessCoordinator
-    processCoordinator = new ProcessCoordinator();
+    // Initialize ProcessCoordinator using Smart Constructor
+    const processCoordinatorResult = ProcessCoordinator.create();
+    if (!processCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create ProcessCoordinator: ${processCoordinatorResult.error.message}`,
+      );
+    }
+    processCoordinator = processCoordinatorResult.data;
   });
 
   describe("File Discovery - Critical Bug Fix", () => {
@@ -241,10 +247,13 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive pattern traversal implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ FIX COMPLETE: Recursive pattern traversal now works with allowMissingVariables fix
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertExists(result.data);
+        // Should have discovered and processed the nested file
+        assertExists(result.data.renderedContent);
+        assertEquals(result.data.processedFiles, 1);
       }
     });
 

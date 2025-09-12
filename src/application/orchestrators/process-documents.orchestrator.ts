@@ -67,24 +67,74 @@ export class ProcessDocumentsOrchestrator {
     private readonly fileSystem: FileSystemRepository,
     private readonly templateRepository: ITemplateRepository,
     private readonly logger: Logger,
+    arrayBasedProcessor?: ArrayBasedProcessor,
+    aggregateResults?: AggregateResultsUseCase,
   ) {
     this.loadSchema = new LoadSchemaUseCase(fileSystem);
     this.discoverFiles = new DiscoverFilesUseCase(fileSystem);
     this.extractFrontmatter = new ExtractFrontmatterUseCase();
     this.validateFrontmatter = new ValidateFrontmatterUseCase();
     this.processTemplate = new ProcessTemplateUseCase();
-    this.aggregateResults = new AggregateResultsUseCase();
+
+    // For backwards compatibility, create defaults if not provided
+    if (aggregateResults) {
+      this.aggregateResults = aggregateResults;
+    } else {
+      // Use the createOrDefault for tests
+      this.aggregateResults = AggregateResultsUseCase.createOrDefault();
+    }
+
     this.writeOutput = new WriteOutputUseCase();
     this.schemaStructureAnalyzer = new SchemaStructureAnalyzer();
 
-    // Initialize ArrayBasedProcessor using Smart Constructor pattern
+    if (arrayBasedProcessor) {
+      this.arrayBasedProcessor = arrayBasedProcessor;
+    } else {
+      // Create default for backwards compatibility
+      const processorResult = ArrayBasedProcessor.create();
+      if (!processorResult.ok) {
+        // For tests, use a minimal default
+        throw new Error(
+          `Failed to create ArrayBasedProcessor: ${processorResult.error.message}`,
+        );
+      }
+      this.arrayBasedProcessor = processorResult.data;
+    }
+  }
+
+  /**
+   * Smart Constructor following Totality principles
+   */
+  static create(
+    fileSystem: FileSystemRepository,
+    templateRepository: ITemplateRepository,
+    logger: Logger,
+  ): Result<ProcessDocumentsOrchestrator, DomainError> {
     const processorResult = ArrayBasedProcessor.create();
     if (!processorResult.ok) {
-      throw new Error(
-        `Failed to create ArrayBasedProcessor: ${processorResult.error.message}`,
-      );
+      // Map error to DomainError
+      const error: DomainError = {
+        kind: "ConfigurationError",
+        config: processorResult.error,
+      };
+      return { ok: false, error };
     }
-    this.arrayBasedProcessor = processorResult.data;
+
+    const aggregateResultsResult = AggregateResultsUseCase.create();
+    if (!aggregateResultsResult.ok) {
+      return { ok: false, error: aggregateResultsResult.error };
+    }
+
+    return {
+      ok: true,
+      data: new ProcessDocumentsOrchestrator(
+        fileSystem,
+        templateRepository,
+        logger,
+        processorResult.data,
+        aggregateResultsResult.data,
+      ),
+    };
   }
 
   async execute(

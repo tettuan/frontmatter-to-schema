@@ -40,6 +40,8 @@ import {
 import { FilePatternMatcher } from "../domain/services/file-pattern-matcher.ts";
 import { AggregateResultsUseCase } from "./use-cases/aggregate-results/aggregate-results.usecase.ts";
 import { SchemaTemplateInfo } from "../domain/models/schema-extensions.ts";
+import { LoggerFactory } from "../domain/shared/logger.ts";
+import { SchemaExtensionConfig } from "../domain/config/schema-extension-config.ts";
 
 /**
  * Template format types following totality principle
@@ -167,11 +169,34 @@ export class ProcessCoordinator {
   private readonly schemaContext: SchemaContext;
   private readonly frontmatterContext: FrontmatterContext;
   private readonly templateContext: TemplateContext;
+  private readonly extensionConfig: SchemaExtensionConfig;
+  private readonly logger: ReturnType<typeof LoggerFactory.createLogger>;
 
-  constructor() {
+  private constructor(extensionConfig: SchemaExtensionConfig) {
     this.schemaContext = new SchemaContext();
     this.frontmatterContext = new FrontmatterContext();
     this.templateContext = new TemplateContext();
+    this.extensionConfig = extensionConfig;
+    this.logger = LoggerFactory.createLogger("ProcessCoordinator");
+  }
+
+  /**
+   * Smart Constructor for ProcessCoordinator following Totality principles
+   */
+  static create(
+    extensionConfig?: SchemaExtensionConfig,
+  ): Result<ProcessCoordinator, DomainError & { message: string }> {
+    if (extensionConfig) {
+      return { ok: true, data: new ProcessCoordinator(extensionConfig) };
+    }
+
+    // Use default configuration if none provided
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return defaultConfigResult;
+    }
+
+    return { ok: true, data: new ProcessCoordinator(defaultConfigResult.data) };
   }
 
   /**
@@ -384,9 +409,11 @@ export class ProcessCoordinator {
             if (entry.isFile) {
               const matchResult = this.matchesPattern(entryPath, pattern);
               if (!matchResult.ok) {
-                throw new Error(
-                  `Pattern matching failed: ${matchResult.error.message}`,
+                // Skip files that can't be matched - continue processing other files
+                this.logger.warn(
+                  `Pattern matching failed for ${entryPath}: ${matchResult.error.message}`,
                 );
+                continue;
               }
 
               if (matchResult.data) {
@@ -648,7 +675,18 @@ export class ProcessCoordinator {
     const startTime = Date.now();
 
     // Use the proper AggregateResultsUseCase for x-derived-from functionality
-    const aggregateUseCase = new AggregateResultsUseCase();
+    const aggregateUseCaseResult = AggregateResultsUseCase.create();
+    if (!aggregateUseCaseResult.ok) {
+      return {
+        ok: false,
+        error: {
+          ...aggregateUseCaseResult.error,
+          message:
+            `Failed to create AggregateResultsUseCase: ${aggregateUseCaseResult.error.kind}`,
+        },
+      };
+    }
+    const aggregateUseCase = aggregateUseCaseResult.data;
 
     // Extract data from validated documents
     const dataToAggregate = validatedDocuments.map((doc) => doc.data);
@@ -896,14 +934,16 @@ export class ProcessCoordinator {
       return false;
     }
 
-    // Check for x-frontmatter-part at root level
+    // Check for x-frontmatter-part at root level using configurable property name
+    const frontmatterPartProp = this.extensionConfig
+      .getFrontmatterPartProperty();
     if (
-      "x-frontmatter-part" in schema && schema["x-frontmatter-part"] === true
+      frontmatterPartProp in schema && schema[frontmatterPartProp] === true
     ) {
       return true;
     }
 
-    // Check properties for x-derived-from or x-frontmatter-part
+    // Check properties for x-derived-from or x-frontmatter-part using configurable names
     if (
       "properties" in schema && schema.properties &&
       typeof schema.properties === "object"
@@ -911,11 +951,12 @@ export class ProcessCoordinator {
       for (const prop of Object.values(schema.properties)) {
         if (typeof prop === "object" && prop !== null) {
           const propObj = prop as Record<string, unknown>;
-          // Check for aggregation markers
+          // Check for aggregation markers using configurable property names
+          const derivedFromProp = this.extensionConfig.getDerivedFromProperty();
           if (
-            "x-derived-from" in propObj ||
-            ("x-frontmatter-part" in propObj &&
-              propObj["x-frontmatter-part"] === true)
+            derivedFromProp in propObj ||
+            (frontmatterPartProp in propObj &&
+              propObj[frontmatterPartProp] === true)
           ) {
             return true;
           }
@@ -932,9 +973,9 @@ export class ProcessCoordinator {
               if (typeof nestedProp === "object" && nestedProp !== null) {
                 const nestedPropObj = nestedProp as Record<string, unknown>;
                 if (
-                  "x-derived-from" in nestedPropObj ||
-                  ("x-frontmatter-part" in nestedPropObj &&
-                    nestedPropObj["x-frontmatter-part"] === true)
+                  derivedFromProp in nestedPropObj ||
+                  (frontmatterPartProp in nestedPropObj &&
+                    nestedPropObj[frontmatterPartProp] === true)
                 ) {
                   return true;
                 }

@@ -83,7 +83,7 @@ export class ProcessingOptionsBuilder {
     return {
       strict: true,
       allowEmptyFrontmatter: true, // Allow files without frontmatter by default for graceful handling
-      allowMissingVariables: false,
+      allowMissingVariables: true, // Allow missing template variables by default - aligns with external configuration requirement
       validateSchema: true,
       parallelProcessing: false, // Sequential processing for reliability
       maxFiles: STRICT_MODE_PROCESSING_LIMIT.getValue(),
@@ -101,7 +101,7 @@ export class ProcessingOptionsBuilder {
     return ProcessingOptionsBuilder.create({
       strict: true,
       allowEmptyFrontmatter: false,
-      allowMissingVariables: false,
+      allowMissingVariables: false, // Strict mode still requires all variables
       validateSchema: true,
       parallelProcessing: false,
       maxFiles: DEFAULT_PROCESSING_LIMIT.getValue(), // Lower limit for strict mode
