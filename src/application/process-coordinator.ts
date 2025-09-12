@@ -246,9 +246,14 @@ export class ProcessCoordinator {
         );
       }
 
-      // Step 4: Aggregate data (if multiple documents) - MUST BE BEFORE TEMPLATE RENDERING
+      // Step 4: Aggregate data (if schema requires it) - MUST BE BEFORE TEMPLATE RENDERING
+      // FIXED: Check schema requirements, not file count (Issue #690)
       let aggregatedData: AggregatedData | undefined;
-      if (processingResult.data.validatedDocuments.length > 1) {
+      const requiresAggregation = this.schemaRequiresAggregation(
+        schemaResult.data,
+      );
+
+      if (requiresAggregation) {
         const aggregationResult = await this.aggregateData(
           processingResult.data.validatedDocuments,
           schemaResult.data,
@@ -395,22 +400,36 @@ export class ProcessCoordinator {
         }
       };
 
-      try {
-        await traverseDirectory(baseDir);
-      } catch (error) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "FileDiscoveryFailed",
-              directory: baseDir,
-              pattern,
-            },
-            `File discovery failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          ),
-        };
+      // Check if the base path is a file or directory (Issue #694 fix)
+      const baseStat = await Deno.stat(baseDir);
+
+      // If it's a single file, process it directly
+      if (baseStat.isFile) {
+        if (baseDir.endsWith(".md") || baseDir.endsWith(".markdown")) {
+          const documentPathResult = DocumentPath.create(baseDir);
+          if (documentPathResult.ok) {
+            files.push(documentPathResult.data);
+          }
+        }
+      } else {
+        // It's a directory, traverse it
+        try {
+          await traverseDirectory(baseDir);
+        } catch (error) {
+          return {
+            ok: false,
+            error: createDomainError(
+              {
+                kind: "FileDiscoveryFailed",
+                directory: baseDir,
+                pattern,
+              },
+              `File discovery failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            ),
+          };
+        }
       }
 
       if (files.length === 0) {
@@ -849,6 +868,82 @@ export class ProcessCoordinator {
         warnings: [],
       },
     };
+  }
+
+  /**
+   * Check if schema requires aggregation based on x-extensions
+   * Fixes Issue #690: Single file aggregation bypass
+   */
+  private schemaRequiresAggregation(resolvedSchema: ResolvedSchema): boolean {
+    // Check if schema has any properties that require aggregation
+    const schemaDefinition = resolvedSchema.definition;
+
+    if (!schemaDefinition) {
+      return false;
+    }
+
+    // Get the actual schema object from the definition
+    const parsedSchemaResult = schemaDefinition.getParsedSchema();
+    if (!parsedSchemaResult.ok) {
+      return false;
+    }
+
+    const schema = parsedSchemaResult.data;
+
+    if (!schema || typeof schema !== "object") {
+      return false;
+    }
+
+    // Check for x-frontmatter-part at root level
+    if (
+      "x-frontmatter-part" in schema && schema["x-frontmatter-part"] === true
+    ) {
+      return true;
+    }
+
+    // Check properties for x-derived-from or x-frontmatter-part
+    if (
+      "properties" in schema && schema.properties &&
+      typeof schema.properties === "object"
+    ) {
+      for (const prop of Object.values(schema.properties)) {
+        if (typeof prop === "object" && prop !== null) {
+          const propObj = prop as Record<string, unknown>;
+          // Check for aggregation markers
+          if (
+            "x-derived-from" in propObj ||
+            ("x-frontmatter-part" in propObj &&
+              propObj["x-frontmatter-part"] === true)
+          ) {
+            return true;
+          }
+          // Check nested properties
+          if (
+            "properties" in propObj && propObj["properties"] &&
+            typeof propObj["properties"] === "object"
+          ) {
+            for (
+              const nestedProp of Object.values(
+                propObj["properties"] as Record<string, unknown>,
+              )
+            ) {
+              if (typeof nestedProp === "object" && nestedProp !== null) {
+                const nestedPropObj = nestedProp as Record<string, unknown>;
+                if (
+                  "x-derived-from" in nestedPropObj ||
+                  ("x-frontmatter-part" in nestedPropObj &&
+                    nestedPropObj["x-frontmatter-part"] === true)
+                ) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
