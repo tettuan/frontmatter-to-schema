@@ -349,7 +349,22 @@ export class ProcessCoordinator {
       // Use Deno's file system APIs for recursive file discovery
       const files: DocumentPath[] = [];
 
-      // Recursive directory traversal function
+      // Check if the base path is a file or directory
+      const baseStat = await Deno.stat(baseDir);
+      
+      // If it's a single file, process it directly
+      if (baseStat.isFile) {
+        // Check if the file matches the pattern or is a markdown file
+        if (baseDir.endsWith(".md") || baseDir.endsWith(".markdown")) {
+          const documentPathResult = DocumentPath.create(baseDir);
+          if (documentPathResult.ok) {
+            files.push(documentPathResult.data);
+          }
+        }
+        return { ok: true, data: files };
+      }
+
+      // Recursive directory traversal function (only for directories)
       const traverseDirectory = async (
         currentDir: string,
         relativePath: string = "",

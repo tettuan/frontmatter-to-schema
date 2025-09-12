@@ -1,19 +1,21 @@
 # Array Template Processing Specification
 
 ## Overview
+
 配列処理において、テンプレートがどのように繰り返し適用されるかの仕様を定義する。
 
 ## Processing Rules
 
 ### 1. Schema Structure with x-frontmatter-part
+
 ```json
 {
   "properties": {
     "commands": {
       "type": "array",
-      "x-frontmatter-part": true,  // 各Markdownファイルが1要素
-      "items": { 
-        "$ref": "command_schema.json"  // x-template指定を持つ
+      "x-frontmatter-part": true, // 各Markdownファイルが1要素
+      "items": {
+        "$ref": "command_schema.json" // x-template指定を持つ
       }
     }
   }
@@ -70,6 +72,7 @@ graph TB
 ### 3. Concrete Example
 
 #### Input Files
+
 ```yaml
 # prompts/git-create.md
 ---
@@ -89,6 +92,7 @@ title: Analyze Spec Metrics
 ```
 
 #### Parent Template (registry_template.json)
+
 ```json
 {
   "version": "{version}",
@@ -99,6 +103,7 @@ title: Analyze Spec Metrics
 ```
 
 #### Child Template (command_template.json)
+
 ```json
 {
   "c1": "{c1}",
@@ -119,6 +124,7 @@ title: Analyze Spec Metrics
 5. **Apply parent template** variables
 
 #### Final Output
+
 ```json
 {
   "version": "1.0.0",
@@ -142,6 +148,7 @@ title: Analyze Spec Metrics
 ## Important Notes
 
 ### Array Placeholder Syntax
+
 親テンプレートでの配列プレースホルダーは以下のいずれかの形式：
 
 ```json
@@ -158,12 +165,15 @@ title: Analyze Spec Metrics
 ```
 
 ### No Schema Structure Inference
+
 - テンプレートに書かれていないフィールドは**出力されない**
 - Schemaにフィールドがあってもテンプレートになければ**無視される**
 - 配列の各要素は子テンプレートの**完全な**定義に従う
 
 ### x-frontmatter-part Behavior
+
 `x-frontmatter-part: true`の意味：
+
 - 各Markdownファイルのフロントマターが配列の1要素になる
 - 子テンプレートが各要素に適用される
 - 結果が親テンプレートの配列位置に集約される
@@ -175,30 +185,30 @@ function processArrayWithTemplates(
   markdownFiles: File[],
   parentTemplate: Template,
   childTemplate: Template,
-  schema: Schema
+  schema: Schema,
 ): Result {
   // 1. Process each markdown file
   const arrayResults = [];
-  
+
   for (const file of markdownFiles) {
     // Extract frontmatter
     const frontmatter = extractFrontmatter(file);
-    
+
     // Validate against schema
     const validated = validateWithSchema(frontmatter, schema);
-    
+
     // Apply child template
     const rendered = applyTemplate(childTemplate, validated);
-    
+
     arrayResults.push(rendered);
   }
-  
+
   // 2. Insert array into parent template
   const parentData = {
     ...otherFields,
-    [arrayFieldName]: arrayResults
+    [arrayFieldName]: arrayResults,
   };
-  
+
   // 3. Apply parent template
   return applyTemplate(parentTemplate, parentData);
 }
@@ -207,12 +217,14 @@ function processArrayWithTemplates(
 ## Common Misunderstandings
 
 ### ❌ Incorrect: "Array automatically expands"
+
 ```json
 // Wrong assumption: This would output full objects
 "commands": "{commands}"
 ```
 
 ### ✅ Correct: "Explicit child template needed"
+
 ```json
 // Child template must define complete structure
 {
@@ -223,12 +235,14 @@ function processArrayWithTemplates(
 ```
 
 ### ❌ Incorrect: "Partial template gets completed"
+
 ```json
 // This would only output c1 values, not complete objects
 "{c1}"
 ```
 
 ### ✅ Correct: "Template defines exact output"
+
 ```json
 // Full structure must be in template
 {
