@@ -3,6 +3,8 @@
  *
  * Implements the FileSystemPort interface for Deno filesystem operations.
  * Extracted from climpt-adapter.ts for better organization.
+ *
+ * Updated to use FilePattern Smart Constructor to eliminate hardcoding violations.
  */
 
 import type {
@@ -10,6 +12,7 @@ import type {
   FileSystemPort,
 } from "../../../infrastructure/ports/index.ts";
 import type { DomainError, Result } from "../../../domain/core/result.ts";
+import { FilePattern } from "../../../domain/value-objects/file-pattern.ts";
 
 /**
  * Deno file system provider
@@ -56,17 +59,25 @@ export class DenoFileSystemProvider implements FileSystemPort {
       const files: FileInfo[] = [];
       const regex = pattern ? this.createRegexFromPattern(pattern) : null;
 
-      for await (const entry of Deno.readDir(dirPath)) {
-        if (!regex || regex.test(entry.name)) {
-          const fullPath = `${dirPath}/${entry.name}`;
-          const stat = await Deno.stat(fullPath);
-          files.push({
-            name: entry.name,
-            path: fullPath,
-            isDirectory: entry.isDirectory,
-            size: stat.size,
-            modifiedAt: stat.mtime || new Date(),
-          });
+      // If pattern contains ** (recursive), walk directory tree recursively
+      const isRecursive = pattern?.includes("**") ?? false;
+
+      if (isRecursive) {
+        await this.walkDirectoryRecursive(dirPath, files, regex, dirPath);
+      } else {
+        // Original non-recursive logic for simple patterns
+        for await (const entry of Deno.readDir(dirPath)) {
+          if (entry.isFile && (!regex || regex.test(entry.name))) {
+            const fullPath = `${dirPath}/${entry.name}`;
+            const stat = await Deno.stat(fullPath);
+            files.push({
+              name: entry.name,
+              path: fullPath,
+              isDirectory: false,
+              size: stat.size,
+              modifiedAt: stat.mtime || new Date(),
+            });
+          }
         }
       }
 
@@ -76,6 +87,42 @@ export class DenoFileSystemProvider implements FileSystemPort {
         ok: false,
         error: { kind: "DirectoryNotFound", path: dirPath },
       };
+    }
+  }
+
+  /**
+   * Recursively walk directory tree to find files matching pattern
+   */
+  private async walkDirectoryRecursive(
+    currentPath: string,
+    files: FileInfo[],
+    regex: RegExp | null,
+    basePath: string,
+  ): Promise<void> {
+    try {
+      for await (const entry of Deno.readDir(currentPath)) {
+        const fullPath = `${currentPath}/${entry.name}`;
+
+        if (entry.isFile) {
+          // For recursive patterns, test against relative path from base
+          const relativePath = fullPath.replace(basePath + "/", "");
+          if (!regex || regex.test(relativePath)) {
+            const stat = await Deno.stat(fullPath);
+            files.push({
+              name: entry.name,
+              path: fullPath,
+              isDirectory: false,
+              size: stat.size,
+              modifiedAt: stat.mtime || new Date(),
+            });
+          }
+        } else if (entry.isDirectory) {
+          // Recursively walk subdirectories
+          await this.walkDirectoryRecursive(fullPath, files, regex, basePath);
+        }
+      }
+    } catch (_error) {
+      // Skip directories we can't read (permissions, etc.)
     }
   }
 
@@ -119,7 +166,8 @@ export class DenoFileSystemProvider implements FileSystemPort {
   }
 
   /**
-   * Create regex from pattern - detects if it's already a regex or converts from glob
+   * Create regex from pattern using FilePattern Smart Constructor
+   * Eliminates flawed glob-to-regex conversion by delegating to domain logic
    */
   private createRegexFromPattern(pattern: string): RegExp {
     // If pattern looks like a regex (contains regex-specific characters), use it directly
@@ -129,10 +177,22 @@ export class DenoFileSystemProvider implements FileSystemPort {
       pattern.includes("(") || pattern.includes(")") || pattern.includes("[") ||
       pattern.includes("]")
     ) {
+      // Use FilePattern for regex validation and creation
+      const regexResult = FilePattern.createRegex(pattern);
+      if (regexResult.ok) {
+        return regexResult.data.toRegex();
+      }
+      // Fallback to direct RegExp if FilePattern validation fails
       return new RegExp(pattern);
     }
 
-    // Otherwise treat as glob pattern and convert
+    // Otherwise treat as glob pattern using FilePattern Smart Constructor
+    const globResult = FilePattern.createGlob(pattern);
+    if (globResult.ok) {
+      return globResult.data.toRegex();
+    }
+
+    // Fallback to legacy conversion if FilePattern creation fails
     return this.globToRegex(pattern);
   }
 
