@@ -6,6 +6,7 @@
  */
 
 import type { Result } from "../domain/core/result.ts";
+import { createDomainError } from "../domain/core/result.ts";
 import {
   CLI_OPTIONS,
   getOptionProperty,
@@ -273,8 +274,18 @@ export class CLIArgumentParser {
       const dummyPattern = InputPattern.create("dummy");
 
       if (!dummySchema.ok || !dummyOutput.ok || !dummyPattern.ok) {
-        // This should never happen with valid dummy values
-        throw new Error("Failed to create dummy values for help");
+        // This should never happen with valid dummy values - return error instead of throwing
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: "dummy values",
+              expectedFormat: "valid dummy CLI arguments",
+            },
+            "Failed to create dummy values for help",
+          ),
+        };
       }
 
       return {
@@ -302,8 +313,18 @@ export class CLIArgumentParser {
       const dummyPattern = InputPattern.create("dummy");
 
       if (!dummySchema.ok || !dummyOutput.ok || !dummyPattern.ok) {
-        // This should never happen with valid dummy values
-        throw new Error("Failed to create dummy values for version");
+        // This should never happen with valid dummy values - return error instead of throwing
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "InvalidFormat",
+              input: "dummy values",
+              expectedFormat: "valid dummy CLI arguments",
+            },
+            "Failed to create dummy values for version",
+          ),
+        };
       }
 
       return {

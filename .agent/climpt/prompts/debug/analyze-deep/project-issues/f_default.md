@@ -41,6 +41,11 @@ options:
 4. **テスト方針**: `docs/tests/README.md`, `docs/tests/testing_guidelines.md`
 5. **ハードコーディング禁止規定**: `docs/development/prohibit-hardcoding.ja.md`
 
+### check list
+
+過去のIssueから作成したCheckListであり、この問題が対処済みであることも重要。
+チェックリスト: `docs/tests/checklist-based-on-gh-issue.md`
+
 ## プロジェクトの深掘り調査
 
 要求が期待するフローを構築:
