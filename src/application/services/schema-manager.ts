@@ -15,11 +15,10 @@
  * - schema-processor.service.ts
  */
 
-import { Result } from "../../domain/shared/result.ts";
-import { createDomainError, DomainError } from "../../domain/shared/errors.ts";
+import { Result } from "../../domain/core/result.ts";
+import { createDomainError, DomainError } from "../../domain/core/result.ts";
 import { SchemaDefinition } from "../../domain/value-objects/schema-definition.ts";
 import { SchemaPath } from "../../domain/value-objects/schema-path.ts";
-import { SchemaFormat } from "../../domain/models/schema-format.ts";
 import { FileSystemRepository } from "../../infrastructure/adapters/deno-file-system-repository.ts";
 import { parseSchema } from "../../domain/models/schema.ts";
 import { SchemaExtensions } from "../../domain/models/schema-extensions.ts";
@@ -62,8 +61,8 @@ export class SchemaManager {
    */
   async loadSchema(
     path: string,
-    format?: SchemaFormat
-  ): Result<SchemaWithExtensions, DomainError> {
+    format?: "json" | "yaml"
+  ): Promise<Result<SchemaWithExtensions, DomainError>> {
     // Check cache first
     if (this.schemaCache.has(path)) {
       return { ok: true, data: this.schemaCache.get(path)! };

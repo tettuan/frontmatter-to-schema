@@ -13,16 +13,13 @@
  * - template-configuration-validator.service.ts
  */
 
-import { Result } from "../../domain/shared/result.ts";
-import { createDomainError, DomainError } from "../../domain/shared/errors.ts";
-import { DocumentPath } from "../../domain/models/value-objects.ts";
+import { Result } from "../../domain/core/result.ts";
+import { createDomainError, DomainError } from "../../domain/core/result.ts";
+import { DocumentPath } from "../../domain/value-objects/document-path.ts";
 import { SchemaPath } from "../../domain/value-objects/schema-path.ts";
 import { TemplatePath } from "../../domain/value-objects/template-path.ts";
-import { OutputFormat } from "../../domain/models/output-format.ts";
-import { SchemaFormat } from "../../domain/models/schema-format.ts";
-import { TemplateFormat } from "../../domain/models/template-format.ts";
 import { FileFormatDetector } from "../../domain/services/file-format-detector.ts";
-import { ProcessingConfiguration } from "../process-coordinator.ts";
+import { ProcessingConfiguration, TemplateFormat } from "../process-coordinator.ts";
 
 export interface InputConfiguration {
   pattern: string;
@@ -31,30 +28,26 @@ export interface InputConfiguration {
 
 export interface SchemaConfiguration {
   path: string;
-  format: SchemaFormat;
+  format: "json" | "yaml";
 }
 
 export interface TemplateConfiguration {
   kind: "inline" | "file";
-  definition: string;
+  definition?: string;
   format: TemplateFormat;
   path?: string;
 }
 
 export interface OutputConfiguration {
   path: string;
-  format: OutputFormat;
+  format: TemplateFormat;
 }
 
 /**
  * ConfigurationManager - Consolidated configuration management
  */
 export class ConfigurationManager {
-  private readonly formatDetector: FileFormatDetector;
-
-  constructor() {
-    this.formatDetector = new FileFormatDetector();
-  }
+  constructor() {}
 
   /**
    * Validates complete processing configuration
@@ -163,7 +156,8 @@ export class ConfigurationManager {
 
     // Detect format if not provided
     if (!schema.format) {
-      const formatResult = this.formatDetector.detectSchemaFormat(schema.path);
+      const detector = new FileFormatDetector();
+      const formatResult = detector.detectFormat(schema.path);
       if (!formatResult.ok) {
         return {
           ok: false,
@@ -174,7 +168,19 @@ export class ConfigurationManager {
           ),
         };
       }
-      schema.format = formatResult.data;
+      // Map file format to schema format
+      const format = formatResult.data.toLowerCase();
+      if (format !== "json" && format !== "yaml") {
+        return {
+          ok: false,
+          error: createDomainError(
+            "validation",
+            `Invalid schema format: ${format}. Must be json or yaml`,
+            { schema }
+          ),
+        };
+      }
+      schema.format = format as "json" | "yaml";
     }
 
     return { ok: true, data: schema };
@@ -212,7 +218,8 @@ export class ConfigurationManager {
 
       // Detect format if not provided
       if (!template.format) {
-        const formatResult = this.formatDetector.detectTemplateFormat(template.path);
+        const detector = new FileFormatDetector();
+        const formatResult = detector.detectFormat(template.path);
         if (!formatResult.ok) {
           return {
             ok: false,
@@ -223,7 +230,7 @@ export class ConfigurationManager {
             ),
           };
         }
-        template.format = formatResult.data;
+        template.format = formatResult.data.toLowerCase() as TemplateFormat;
       }
     } else if (template.kind === "inline") {
       if (!template.definition || template.definition.trim() === "") {
@@ -280,7 +287,8 @@ export class ConfigurationManager {
 
     // Detect format if not provided
     if (!output.format) {
-      const formatResult = this.formatDetector.detectOutputFormat(output.path);
+      const detector = new FileFormatDetector();
+      const formatResult = detector.detectFormat(output.path);
       if (!formatResult.ok) {
         return {
           ok: false,
@@ -291,7 +299,7 @@ export class ConfigurationManager {
           ),
         };
       }
-      output.format = formatResult.data;
+      output.format = formatResult.data.toLowerCase() as TemplateFormat;
     }
 
     return { ok: true, data: output };
@@ -309,16 +317,16 @@ export class ConfigurationManager {
       },
       schema: {
         path: "./schema.json",
-        format: "json" as SchemaFormat,
+        format: "json",
       },
       template: {
         kind: "inline",
         definition: "{}",
-        format: "json" as TemplateFormat,
+        format: "json",
       },
       output: {
         path: "./output.json",
-        format: "json" as OutputFormat,
+        format: "json",
       },
     };
   }
