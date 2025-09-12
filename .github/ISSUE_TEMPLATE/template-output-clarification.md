@@ -4,7 +4,6 @@ about: Clarification on template processing behavior and output format
 title: "[CLARIFICATION] Template defines exact output - no Schema inference"
 labels: documentation, architecture, critical
 assignees: ''
-
 ---
 
 ## Summary
@@ -14,6 +13,7 @@ assignees: ''
 ## Current Situation
 
 現在、`.agent/spec-trace/traceability_item_template.json`には以下のみが記載されています：
+
 ```json
 "{id.full}"
 ```
@@ -23,20 +23,24 @@ assignees: ''
 ## Expected Behavior
 
 ### Case 1: 現在のテンプレート（`"{id.full}"`のみ）
+
 ```json
 {
   "version": "1.0.0",
-  "description": "Requirement level traceability IDs", 
+  "description": "Requirement level traceability IDs",
   "req": [
     "req:api:deepresearch-3f8d2a#20250909",
     "req:ui:dashboard-5b7c9e#20250910"
   ]
 }
 ```
+
 配列要素は単純な文字列になります。
 
 ### Case 2: 完全なオブジェクトが必要な場合
+
 テンプレートを以下のように定義する必要があります：
+
 ```json
 {
   "id": {
@@ -54,6 +58,7 @@ assignees: ''
 ```
 
 出力：
+
 ```json
 {
   "version": "1.0.0",
@@ -79,12 +84,14 @@ assignees: ''
 ## Critical Principle
 
 ### ✅ 正しい理解
+
 - テンプレートは出力フォーマットを**完全に定義**する
 - テンプレートに書かれたもの**のみ**が出力される
 - 変数`{variable.path}`は値に置換される
 - Schemaによる構造の補完は**一切行われない**
 
 ### ❌ 誤った理解
+
 - Schemaの構造が出力構造を決める
 - テンプレートが部分的な場合、Schemaで補完される
 - x-frontmatter-part配列は特殊な処理を持つ
@@ -112,6 +119,7 @@ assignees: ''
 ## Impact
 
 この原則を正しく理解し実装しないと：
+
 - 意図しない出力構造が生成される
 - テンプレートの変更が期待通りに反映されない
 - デバッグが困難になる
@@ -120,7 +128,8 @@ assignees: ''
 ## References
 
 - `docs/requirements.ja.md` - Lines 33-47 (テンプレート処理の基本原則)
-- `docs/architecture/schema_process_architecture.ja.md` - Lines 11-47 (テンプレート処理の基本原則)
+- `docs/architecture/schema_process_architecture.ja.md` - Lines 11-47
+  (テンプレート処理の基本原則)
 - `docs/architecture/array-template-processing.md` - 配列処理の詳細仕様
 
 ## Priority

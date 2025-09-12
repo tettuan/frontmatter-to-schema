@@ -47,7 +47,7 @@ export class FileDiscoveryService {
     try {
       // Check if path exists
       const stat = await Deno.stat(dirPath);
-      
+
       // Handle single file case
       if (stat.isFile) {
         // If the original path was a file, return it if it's a markdown file
@@ -69,7 +69,7 @@ export class FileDiscoveryService {
           };
         }
       }
-      
+
       // Handle directory case
       if (!stat.isDirectory) {
         return {

@@ -2,26 +2,33 @@
 
 ## Executive Summary
 
-This document outlines the plan to resolve the critical service proliferation issue identified in Issue #691. The current codebase has 38+ micro-services violating the Single Path Principle, creating maintenance overhead and architectural complexity.
+This document outlines the plan to resolve the critical service proliferation
+issue identified in Issue #691. The current codebase has 38+ micro-services
+violating the Single Path Principle, creating maintenance overhead and
+architectural complexity.
 
 ## Current State Analysis
 
 ### Service Count: 38+ Services
 
 The codebase currently contains:
+
 - **14 Application Layer Services**
 - **14 Domain Layer Services**
 - **7 Infrastructure Layer Services**
 - **3+ Climpt Services**
 
-This violates the architectural principle from `docs/architecture/design-principles.md`:
+This violates the architectural principle from
+`docs/architecture/design-principles.md`:
+
 > "For each domain concern, maintain exactly one canonical implementation path"
 
 ## Consolidation Strategy
 
 ### Phase 1: Create Consolidated Services (COMPLETED)
 
-1. **ConfigurationManager** (`src/application/services/configuration-manager.ts`)
+1. **ConfigurationManager**
+   (`src/application/services/configuration-manager.ts`)
    - Consolidates 6 validation services
    - Single source of truth for configuration validation
    - Follows Totality principle with Result types
@@ -34,6 +41,7 @@ This violates the architectural principle from `docs/architecture/design-princip
 ### Phase 2: Enhanced ProcessCoordinator (IN PROGRESS)
 
 The ProcessCoordinator already serves as the canonical entry point. We need to:
+
 - Integrate ConfigurationManager
 - Integrate SchemaManager
 - Remove dependencies on fragmented services
@@ -42,6 +50,7 @@ The ProcessCoordinator already serves as the canonical entry point. We need to:
 ### Phase 3: Service Removal (PLANNED)
 
 Services to be deprecated and removed:
+
 ```
 application/services/
   ├── configuration-orchestrator.service.ts → ConfigurationManager
@@ -89,7 +98,8 @@ domain/
 
 ## Implementation Timeline
 
-- [x] Phase 1: Create consolidated services (ConfigurationManager, SchemaManager)
+- [x] Phase 1: Create consolidated services (ConfigurationManager,
+      SchemaManager)
 - [ ] Phase 2: Update ProcessCoordinator integration
 - [ ] Phase 3: Remove deprecated services
 - [ ] Phase 4: Update all imports
@@ -113,7 +123,8 @@ domain/
 
 ## Architectural Principles Restored
 
-1. **Single Path Principle**: One canonical processing path via ProcessCoordinator
+1. **Single Path Principle**: One canonical processing path via
+   ProcessCoordinator
 2. **Totality Principle**: Complete type safety with Result types
 3. **DDD Boundaries**: Clear domain boundaries without service explosion
 4. **AI Complexity Control**: Reduced entropy through consolidation
