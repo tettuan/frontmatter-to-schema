@@ -116,15 +116,8 @@ export class SchemaExtensionConfig {
   /**
    * Create default configuration with standard x-* property names
    */
-  static createDefault(): SchemaExtensionConfig {
-    const result = SchemaExtensionConfig.create({});
-    if (!result.ok) {
-      // This should never happen with default values
-      throw new Error(
-        `Failed to create default config: ${result.error.message}`,
-      );
-    }
-    return result.data;
+  static createDefault(): Result<SchemaExtensionConfig, DomainError & { message: string }> {
+    return SchemaExtensionConfig.create({});
   }
 
   /**

@@ -55,8 +55,25 @@ export class ConfigurableSchemaTemplateInfo {
 
   static extract(
     schema: ConfigurableExtendedSchema,
-    config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
+    config?: SchemaExtensionConfig,
   ): Result<ConfigurableSchemaTemplateInfo, { kind: string; message: string }> {
+    // Handle default config creation
+    let actualConfig: SchemaExtensionConfig;
+    if (config) {
+      actualConfig = config;
+    } else {
+      const defaultConfigResult = SchemaExtensionConfig.createDefault();
+      if (!defaultConfigResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "ConfigError",
+            message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+          },
+        };
+      }
+      actualConfig = defaultConfigResult.data;
+    }
     // Validate schema is an object
     if (!schema || typeof schema !== "object") {
       return {
@@ -69,8 +86,8 @@ export class ConfigurableSchemaTemplateInfo {
     }
 
     // Use configuration to get property names
-    const templateProperty = config.getTemplateProperty();
-    const frontmatterPartProperty = config.getFrontmatterPartProperty();
+    const templateProperty = actualConfig.getTemplateProperty();
+    const frontmatterPartProperty = actualConfig.getFrontmatterPartProperty();
 
     const templatePath = typeof schema[templateProperty] === "string"
       ? { ok: true as const, data: schema[templateProperty] as string }
@@ -81,7 +98,7 @@ export class ConfigurableSchemaTemplateInfo {
 
     // Extract derivation rules from properties
     if (schema.properties) {
-      const extractResult = extractDerivationRules(schema.properties, config);
+      const extractResult = extractDerivationRules(schema.properties, actualConfig);
       if (!extractResult.ok) {
         return extractResult as Result<
           ConfigurableSchemaTemplateInfo,
@@ -96,7 +113,7 @@ export class ConfigurableSchemaTemplateInfo {
     return {
       ok: true,
       data: new ConfigurableSchemaTemplateInfo(
-        config,
+        actualConfig,
         templatePath,
         isFrontmatterPart,
         derivationRules,
@@ -211,10 +228,28 @@ function extractDerivationRules(
  */
 export function isConfigurableFrontmatterPart(
   prop: ConfigurableExtendedSchemaProperty,
-  config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
-): boolean {
-  const frontmatterPartProperty = config.getFrontmatterPartProperty();
-  return prop[frontmatterPartProperty] === true;
+  config?: SchemaExtensionConfig,
+): Result<boolean, { kind: string; message: string }> {
+  // Handle default config creation
+  let actualConfig: SchemaExtensionConfig;
+  if (config) {
+    actualConfig = config;
+  } else {
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigError",
+          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+        },
+      };
+    }
+    actualConfig = defaultConfigResult.data;
+  }
+
+  const frontmatterPartProperty = actualConfig.getFrontmatterPartProperty();
+  return { ok: true, data: prop[frontmatterPartProperty] === true };
 }
 
 /**
@@ -222,13 +257,31 @@ export function isConfigurableFrontmatterPart(
  */
 export function getConfigurableTemplatePath(
   schemaOrProp: ConfigurableExtendedSchema | ConfigurableExtendedSchemaProperty,
-  config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
-): Result<string, void> {
-  const templateProperty = config.getTemplateProperty();
+  config?: SchemaExtensionConfig,
+): Result<string, { kind: string; message: string }> {
+  // Handle default config creation
+  let actualConfig: SchemaExtensionConfig;
+  if (config) {
+    actualConfig = config;
+  } else {
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigError",
+          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+        },
+      };
+    }
+    actualConfig = defaultConfigResult.data;
+  }
+
+  const templateProperty = actualConfig.getTemplateProperty();
   const template = schemaOrProp[templateProperty];
   return typeof template === "string"
-    ? { ok: true as const, data: template }
-    : { ok: false as const, error: undefined };
+    ? { ok: true, data: template }
+    : { ok: false, error: { kind: "TemplateNotFound", message: "No template path found" } };
 }
 
 /**
@@ -236,10 +289,28 @@ export function getConfigurableTemplatePath(
  */
 export function hasConfigurableDerivationRule(
   prop: ConfigurableExtendedSchemaProperty,
-  config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
-): boolean {
-  const derivedFromProperty = config.getDerivedFromProperty();
-  return typeof prop[derivedFromProperty] === "string";
+  config?: SchemaExtensionConfig,
+): Result<boolean, { kind: string; message: string }> {
+  // Handle default config creation
+  let actualConfig: SchemaExtensionConfig;
+  if (config) {
+    actualConfig = config;
+  } else {
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigError",
+          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+        },
+      };
+    }
+    actualConfig = defaultConfigResult.data;
+  }
+
+  const derivedFromProperty = actualConfig.getDerivedFromProperty();
+  return { ok: true, data: typeof prop[derivedFromProperty] === "string" };
 }
 
 /**
@@ -247,10 +318,28 @@ export function hasConfigurableDerivationRule(
  */
 export function extractConfigurableExtensions(
   schema: Record<string, unknown>,
-  config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
-): ConfigurableSchemaExtensions {
+  config?: SchemaExtensionConfig,
+): Result<ConfigurableSchemaExtensions, { kind: string; message: string }> {
+  // Handle default config creation
+  let actualConfig: SchemaExtensionConfig;
+  if (config) {
+    actualConfig = config;
+  } else {
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigError",
+          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+        },
+      };
+    }
+    actualConfig = defaultConfigResult.data;
+  }
+
   const extensions: ConfigurableSchemaExtensions = {};
-  const configuredProperties = config.getAllProperties();
+  const configuredProperties = actualConfig.getAllProperties();
 
   for (const [key, value] of Object.entries(schema)) {
     if (configuredProperties.includes(key)) {
@@ -258,7 +347,7 @@ export function extractConfigurableExtensions(
     }
   }
 
-  return extensions;
+  return { ok: true, data: extensions };
 }
 
 /**
@@ -283,17 +372,35 @@ export function hasLegacyHardcodedProperties(
  */
 export function migrateLegacyProperties(
   schema: Record<string, unknown>,
-  config: SchemaExtensionConfig = SchemaExtensionConfig.createDefault(),
-): Record<string, unknown> {
+  config?: SchemaExtensionConfig,
+): Result<Record<string, unknown>, { kind: string; message: string }> {
+  // Handle default config creation
+  let actualConfig: SchemaExtensionConfig;
+  if (config) {
+    actualConfig = config;
+  } else {
+    const defaultConfigResult = SchemaExtensionConfig.createDefault();
+    if (!defaultConfigResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigError",
+          message: `Failed to create default config: ${defaultConfigResult.error.message}`,
+        },
+      };
+    }
+    actualConfig = defaultConfigResult.data;
+  }
+
   const migrated = { ...schema };
 
   // Map legacy properties to configured properties
   const propertyMigrationMap = {
-    "x-template": config.getTemplateProperty(),
-    "x-derived-from": config.getDerivedFromProperty(),
-    "x-derived-unique": config.getDerivedUniqueProperty(),
-    "x-derived-flatten": config.getDerivedFlattenProperty(),
-    "x-frontmatter-part": config.getFrontmatterPartProperty(),
+    "x-template": actualConfig.getTemplateProperty(),
+    "x-derived-from": actualConfig.getDerivedFromProperty(),
+    "x-derived-unique": actualConfig.getDerivedUniqueProperty(),
+    "x-derived-flatten": actualConfig.getDerivedFlattenProperty(),
+    "x-frontmatter-part": actualConfig.getFrontmatterPartProperty(),
   };
 
   for (
@@ -305,5 +412,5 @@ export function migrateLegacyProperties(
     }
   }
 
-  return migrated;
+  return { ok: true, data: migrated };
 }
