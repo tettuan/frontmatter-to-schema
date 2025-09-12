@@ -3,6 +3,7 @@
  *
  * Validates variable names, values, and metadata according to business rules
  * Follows Totality principles with Result<T, E> return types
+ * FIXED: Eliminates hardcoding violations with configurable validation patterns
  */
 
 import type { Result } from "../../core/result.ts";
@@ -15,17 +16,42 @@ import {
   DEFAULT_NAME_LENGTH_LIMIT,
   VARIABLE_DESCRIPTION_LENGTH_LIMIT,
 } from "../../shared/constants.ts";
+import { 
+  ValidationConfig, 
+  type ValidationContext 
+} from "../value-objects/validation-config.ts";
 
 /**
  * Domain service for variable validation
  * Encapsulates all validation logic for variable names, values, and metadata
+ * FIXED: Uses configurable validation to eliminate hardcoding violations
  */
 export class VariableValidator {
+  private static defaultConfig: ValidationConfig = ValidationConfig.createDefault();
+
   /**
-   * Validate variable name according to business rules
+   * Set global validation configuration
+   * Allows external configuration to override default patterns
+   */
+  static setConfiguration(config: ValidationConfig): void {
+    VariableValidator.defaultConfig = config;
+  }
+
+  /**
+   * Get current validation configuration
+   */
+  static getConfiguration(): ValidationConfig {
+    return VariableValidator.defaultConfig;
+  }
+
+  /**
+   * Validate variable name according to configurable business rules
+   * FIXED: Eliminates hardcoded regex pattern, supports multiple validation contexts
    */
   static validateVariableName(
     name: string,
+    context?: ValidationContext,
+    config?: ValidationConfig,
   ): Result<void, DomainError & { message: string }> {
     if (!name || name.trim() === "") {
       return {
@@ -38,54 +64,25 @@ export class VariableValidator {
     }
 
     const trimmedName = name.trim();
+    const validationConfig = config ?? VariableValidator.defaultConfig;
 
-    // Check for valid variable name pattern including dot notation like {object.property}
-    if (!/^[a-zA-Z_][a-zA-Z0-9_$.]*$/.test(trimmedName)) {
+    // FIXED: Use configurable validation pattern instead of hardcoded regex
+    if (!validationConfig.validateName(trimmedName, context)) {
+      const expectedFormat = validationConfig.getValidationDescription(context);
       return {
         ok: false,
         error: createDomainError(
           {
-            kind: "InvalidFormat",
+            kind: "InvalidFormat", 
             input: trimmedName,
-            expectedFormat:
-              "valid variable name (alphanumeric, underscore, and dot)",
+            expectedFormat,
           },
-          "Variable name must start with letter or underscore and contain only alphanumeric characters, underscores, and dots",
+          `Variable name must conform to ${expectedFormat} rules`,
         ),
       };
     }
 
-    // Check for reserved keywords
-    const reservedKeywords = [
-      "null",
-      "undefined",
-      "true",
-      "false",
-      "class",
-      "function",
-      "var",
-      "let",
-      "const",
-      "if",
-      "else",
-      "for",
-      "while",
-      "return",
-    ];
-
-    if (reservedKeywords.includes(trimmedName.toLowerCase())) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "InvalidFormat",
-            input: trimmedName,
-            expectedFormat: "non-reserved variable name",
-          },
-          `Variable name '${trimmedName}' is a reserved keyword`,
-        ),
-      };
-    }
+    // FIXED: Reserved keyword validation is now handled by ValidationConfig
 
     // Check for reasonable length using Smart Constructor
     if (DEFAULT_NAME_LENGTH_LIMIT.isExceeded(trimmedName)) {
@@ -153,7 +150,8 @@ export class VariableValidator {
       } else {
         // Validate object properties
         for (const [key, val] of Object.entries(value)) {
-          const keyValidation = VariableValidator.validateVariableName(key);
+          // FIXED: Use configurable validation for object keys
+          const keyValidation = VariableValidator.validateVariableName(key, 'mixed');
           if (!keyValidation.ok) {
             return {
               ok: false,
