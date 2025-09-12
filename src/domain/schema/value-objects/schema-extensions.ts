@@ -239,3 +239,20 @@ export function extractExtensions(
 
   return extensions;
 }
+
+/**
+ * Extract all x-* extensions from a schema object
+ */
+export function extractSchemaExtensions(
+  schema: Record<string, unknown>,
+): Record<SchemaExtensionKey, unknown> {
+  const extensions: Partial<Record<SchemaExtensionKey, unknown>> = {};
+
+  for (const [key, value] of Object.entries(schema)) {
+    if (isSchemaExtension(key)) {
+      extensions[key] = value;
+    }
+  }
+
+  return extensions as Record<SchemaExtensionKey, unknown>;
+}
