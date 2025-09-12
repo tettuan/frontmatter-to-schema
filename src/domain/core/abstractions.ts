@@ -5,6 +5,8 @@
  * the system's architecture and enable schema-driven, template-based analysis.
  */
 
+import type { DomainError, Result } from "./result.ts";
+
 /**
  * Generic pipeline interface for processing data through stages
  */
@@ -41,9 +43,13 @@ export interface ConfigurationProvider<TConfig> {
 
 /**
  * External analysis service abstraction (e.g., Claude, GPT, etc.)
+ * Updated to follow totality principles with Result<T,E> pattern
  */
 export interface ExternalAnalysisService {
-  analyze(prompt: string, context?: Record<string, unknown>): Promise<unknown>;
+  analyze(
+    prompt: string,
+    context?: Record<string, unknown>,
+  ): Promise<Result<unknown, DomainError & { message: string }>>;
 }
 
 /**
