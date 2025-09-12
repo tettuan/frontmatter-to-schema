@@ -61,7 +61,12 @@ export class AggregationService {
       const allValues: unknown[] = [];
 
       for (const item of items) {
-        const evalResult = this.evaluator.evaluate(item, sourceExpression);
+        // CRITICAL FIX: Resolve expression context for nested structures
+        const resolvedExpression = this.resolveExpressionContext(
+          item,
+          sourceExpression,
+        );
+        const evalResult = this.evaluator.evaluate(item, resolvedExpression);
 
         if (evalResult.ok) {
           const values = evalResult.data;
@@ -282,6 +287,73 @@ export class AggregationService {
       if (options.skipUndefined && value === undefined) return false;
       return true;
     });
+  }
+
+  /**
+   * Resolve expression context for nested data structures
+   * Maps relative schema expressions to actual data paths
+   * CRITICAL FIX for Issue #673: x-derived-from functionality
+   */
+  private resolveExpressionContext(data: unknown, expression: string): string {
+    if (!isValidRecordData(data)) {
+      return expression;
+    }
+
+    // If the expression already works, return as-is
+    const directResult = this.evaluator.evaluate(data, expression);
+    if (directResult.ok && directResult.data.length > 0) {
+      return expression;
+    }
+
+    // Try to find the expression in nested structures
+    const parts = expression.split("[]");
+    if (parts.length === 2) {
+      const [arrayPath, propertyAccess] = parts;
+      const fullPropertyAccess = propertyAccess; // includes the dot if any
+
+      // Search for the array path in the nested structure
+      const foundPaths = this.findArrayPathsInData(data, arrayPath);
+
+      for (const foundPath of foundPaths) {
+        const testExpression = `${foundPath}[]${fullPropertyAccess}`;
+        const testResult = this.evaluator.evaluate(data, testExpression);
+        if (testResult.ok && testResult.data.length > 0) {
+          return testExpression;
+        }
+      }
+    }
+
+    // If no resolution found, return original expression
+    return expression;
+  }
+
+  /**
+   * Find all possible paths to arrays matching the target array name
+   */
+  private findArrayPathsInData(
+    data: unknown,
+    targetArrayName: string,
+  ): string[] {
+    const paths: string[] = [];
+
+    const traverse = (obj: unknown, currentPath: string = ""): void => {
+      if (!isValidRecordData(obj)) return;
+
+      for (const [key, value] of Object.entries(obj)) {
+        const newPath = currentPath ? `${currentPath}.${key}` : key;
+
+        if (key === targetArrayName && Array.isArray(value)) {
+          paths.push(newPath);
+        }
+
+        if (isValidRecordData(value)) {
+          traverse(value, newPath);
+        }
+      }
+    };
+
+    traverse(data);
+    return paths;
   }
 
   /**

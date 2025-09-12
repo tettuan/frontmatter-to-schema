@@ -113,10 +113,14 @@ export class AggregateResultsUseCase
 
           if (isArrayBasedResult) {
             // For ArrayBased processing, use the structured result directly
+            // CRITICAL FIX: Preserve aggregationResult.data (contains x-derived-from results)
             result = {
-              ...aggregationResult.data,
               ...(input.data[0] as Record<string, unknown>),
             };
+
+            // Merge aggregated data with proper nesting
+            result = this.mergeNestedResults(result, aggregationResult.data);
+
             // Don't include items when we have structured result
             delete result.items;
           } else {
@@ -314,6 +318,42 @@ export class AggregateResultsUseCase
       }
     }
     return false;
+  }
+
+  /**
+   * Merge nested results properly handling dot-notation keys
+   * CRITICAL FIX: Converts "tools.availableConfigs" to nested structure
+   */
+  private mergeNestedResults(
+    baseResult: Record<string, unknown>,
+    aggregatedData: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const result = { ...baseResult };
+
+    for (const [key, value] of Object.entries(aggregatedData)) {
+      const parts = key.split(".");
+
+      if (parts.length === 1) {
+        // Simple key - just assign
+        result[key] = value;
+      } else {
+        // Nested key - navigate and assign
+        let current = result;
+
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+          if (!(part in current) || !this.isValidRecord(current[part])) {
+            current[part] = {};
+          }
+          current = current[part] as Record<string, unknown>;
+        }
+
+        const lastPart = parts[parts.length - 1];
+        current[lastPart] = value;
+      }
+    }
+
+    return result;
   }
 
   /**
