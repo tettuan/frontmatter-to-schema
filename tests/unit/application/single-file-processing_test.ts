@@ -1,6 +1,6 @@
 /**
  * Tests for single file processing (Issue #694)
- * 
+ *
  * Validates that the CLI correctly processes single markdown files
  * instead of treating them as directories
  */
@@ -15,7 +15,7 @@ Deno.test("ProcessCoordinator - Single File Processing", async (t) => {
   // Create test fixtures
   async function setupFixtures() {
     await Deno.mkdir("tests/fixtures/single-file", { recursive: true });
-    
+
     // Create a single test file
     await Deno.writeTextFile(
       "tests/fixtures/single-file/test.md",
@@ -26,29 +26,37 @@ author: Test Author
 
 # Test Content
 
-This is a test document for single file processing.`
+This is a test document for single file processing.`,
     );
 
     // Create test schema
     await Deno.writeTextFile(
       "tests/fixtures/single-file/schema.json",
-      JSON.stringify({
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "title": { "type": "string" },
-          "author": { "type": "string" }
-        }
-      }, null, 2)
+      JSON.stringify(
+        {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "title": { "type": "string" },
+            "author": { "type": "string" },
+          },
+        },
+        null,
+        2,
+      ),
     );
 
     // Create test template
     await Deno.writeTextFile(
       "tests/fixtures/single-file/template.json",
-      JSON.stringify({
-        "title": "{title}",
-        "author": "{author}"
-      }, null, 2)
+      JSON.stringify(
+        {
+          "title": "{title}",
+          "author": "{author}",
+        },
+        null,
+        2,
+      ),
     );
   }
 
@@ -62,88 +70,94 @@ This is a test document for single file processing.`
 
   await setupFixtures();
 
-  await t.step("should process single markdown file without treating it as directory", async () => {
-    const config: ProcessingConfiguration = {
-      kind: "basic",
-      schema: {
-        path: "tests/fixtures/single-file/schema.json",
-        format: "json" as const,
-      },
-      input: {
-        pattern: "*.md",
-        baseDirectory: "tests/fixtures/single-file/test.md", // Single file as base
-      },
-      template: {
-        kind: "inline" as const,
-        definition: '{"title": "{title}", "author": "{author}"}',
-        format: "json" as const,
-      },
-      output: {
-        path: "/tmp/single-file-test.json",
-        format: "json" as const,
-      },
-    };
+  await t.step(
+    "should process single markdown file without treating it as directory",
+    async () => {
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/single-file/schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "*.md",
+          baseDirectory: "tests/fixtures/single-file/test.md", // Single file as base
+        },
+        template: {
+          kind: "inline" as const,
+          definition: '{"title": "{title}", "author": "{author}"}',
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/single-file-test.json",
+          format: "json" as const,
+        },
+      };
 
-    const result = await processCoordinator.processDocuments(config);
+      const result = await processCoordinator.processDocuments(config);
 
-    // Should successfully process the single file
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.processedFiles, 1);
-      assertExists(result.data.renderedContent);
-      
-      // Check that the content was properly rendered
-      const content = JSON.parse(result.data.renderedContent.content);
-      assertEquals(content.title, "Test Document");
-      assertEquals(content.author, "Test Author");
-    }
-  });
+      // Should successfully process the single file
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.processedFiles, 1);
+        assertExists(result.data.renderedContent);
 
-  await t.step("should handle single file with .markdown extension", async () => {
-    // Create a .markdown file
-    await Deno.writeTextFile(
-      "tests/fixtures/single-file/test.markdown",
-      `---
+        // Check that the content was properly rendered
+        const content = JSON.parse(result.data.renderedContent.content);
+        assertEquals(content.title, "Test Document");
+        assertEquals(content.author, "Test Author");
+      }
+    },
+  );
+
+  await t.step(
+    "should handle single file with .markdown extension",
+    async () => {
+      // Create a .markdown file
+      await Deno.writeTextFile(
+        "tests/fixtures/single-file/test.markdown",
+        `---
 title: Markdown Test
 ---
 
-# Content`
-    );
+# Content`,
+      );
 
-    const config: ProcessingConfiguration = {
-      kind: "basic",
-      schema: {
-        path: "tests/fixtures/single-file/schema.json",
-        format: "json" as const,
-      },
-      input: {
-        pattern: "*.markdown",
-        baseDirectory: "tests/fixtures/single-file/test.markdown",
-      },
-      template: {
-        kind: "inline" as const,
-        definition: '{"title": "{title}"}',
-        format: "json" as const,
-      },
-      output: {
-        path: "/tmp/single-file-markdown.json",
-        format: "json" as const,
-      },
-    };
+      const config: ProcessingConfiguration = {
+        kind: "basic",
+        schema: {
+          path: "tests/fixtures/single-file/schema.json",
+          format: "json" as const,
+        },
+        input: {
+          pattern: "*.markdown",
+          baseDirectory: "tests/fixtures/single-file/test.markdown",
+        },
+        template: {
+          kind: "inline" as const,
+          definition: '{"title": "{title}"}',
+          format: "json" as const,
+        },
+        output: {
+          path: "/tmp/single-file-markdown.json",
+          format: "json" as const,
+        },
+      };
 
-    const result = await processCoordinator.processDocuments(config);
+      const result = await processCoordinator.processDocuments(config);
 
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data.processedFiles, 1);
-    }
-  });
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.processedFiles, 1);
+      }
+    },
+  );
 
   await t.step("should return error for non-markdown single file", async () => {
     // Create a non-markdown file
     await Deno.writeTextFile(
       "tests/fixtures/single-file/test.txt",
-      "This is not a markdown file"
+      "This is not a markdown file",
     );
 
     const config: ProcessingConfiguration = {
@@ -158,7 +172,7 @@ title: Markdown Test
       },
       template: {
         kind: "inline" as const,
-        definition: '{}',
+        definition: "{}",
         format: "json" as const,
       },
       output: {
@@ -182,7 +196,7 @@ title: Markdown Test
       `---
 title: Doc 1
 ---
-Content 1`
+Content 1`,
     );
 
     await Deno.writeTextFile(
@@ -190,7 +204,7 @@ Content 1`
       `---
 title: Doc 2
 ---
-Content 2`
+Content 2`,
     );
 
     const config: ProcessingConfiguration = {
@@ -228,33 +242,45 @@ Content 2`
 });
 
 Deno.test("FileDiscoveryService - Single File Handling", async (t) => {
-  const { FileDiscoveryService } = await import("../../../src/infrastructure/file-system/file-discovery.service.ts");
-  const { DocumentPath } = await import("../../../src/domain/models/value-objects.ts");
-  
+  const { FileDiscoveryService } = await import(
+    "../../../src/infrastructure/file-system/file-discovery.service.ts"
+  );
+  const { DocumentPath } = await import(
+    "../../../src/domain/models/value-objects.ts"
+  );
+
   const service = new FileDiscoveryService();
 
-  await t.step("should handle single markdown file in findMarkdownFiles", async () => {
-    // Create a test file
-    await Deno.mkdir("tests/fixtures/file-discovery", { recursive: true });
-    await Deno.writeTextFile(
-      "tests/fixtures/file-discovery/single.md",
-      "# Test"
-    );
+  await t.step(
+    "should handle single markdown file in findMarkdownFiles",
+    async () => {
+      // Create a test file
+      await Deno.mkdir("tests/fixtures/file-discovery", { recursive: true });
+      await Deno.writeTextFile(
+        "tests/fixtures/file-discovery/single.md",
+        "# Test",
+      );
 
-    const pathResult = DocumentPath.create("tests/fixtures/file-discovery/single.md");
-    assertEquals(pathResult.ok, true);
-    
-    if (pathResult.ok) {
-      const result = await service.findMarkdownFiles(pathResult.data);
-      
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        assertEquals(result.data.length, 1);
-        assertEquals(result.data[0], "tests/fixtures/file-discovery/single.md");
+      const pathResult = DocumentPath.create(
+        "tests/fixtures/file-discovery/single.md",
+      );
+      assertEquals(pathResult.ok, true);
+
+      if (pathResult.ok) {
+        const result = await service.findMarkdownFiles(pathResult.data);
+
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          assertEquals(result.data.length, 1);
+          assertEquals(
+            result.data[0],
+            "tests/fixtures/file-discovery/single.md",
+          );
+        }
       }
-    }
 
-    // Cleanup
-    await Deno.remove("tests/fixtures/file-discovery", { recursive: true });
-  });
+      // Cleanup
+      await Deno.remove("tests/fixtures/file-discovery", { recursive: true });
+    },
+  );
 });

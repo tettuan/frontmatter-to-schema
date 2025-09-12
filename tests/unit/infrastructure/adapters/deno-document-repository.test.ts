@@ -459,16 +459,21 @@ Content here.`,
 
   await t.step("should handle file path as target for findAll", async () => {
     // Test passing a file path instead of directory to findAll
+    // After Issue #694 fix, single files are now supported
     const pathResult = DocumentPath.create(join(testDir, "test1.md"));
     if (isOk(pathResult)) {
       const result = await repository.findAll(pathResult.data);
-      assertEquals(isError(result), true);
 
-      if (isError(result)) {
-        assertEquals(result.error.kind, "ReadError");
-        if (result.error.kind === "ReadError") {
-          assertEquals(result.error.details, "Path is not a directory");
-        }
+      // Single file paths should now be handled successfully
+      assertEquals(isOk(result), true);
+
+      if (isOk(result)) {
+        // Should return array with single document
+        assertEquals(result.data.length, 1);
+        assertEquals(
+          result.data[0].getPath().getValue(),
+          join(testDir, "test1.md"),
+        );
       }
     }
   });

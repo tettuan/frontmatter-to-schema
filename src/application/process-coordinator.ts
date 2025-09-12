@@ -356,7 +356,7 @@ export class ProcessCoordinator {
 
       // Check if the base path is a file or directory
       const baseStat = await Deno.stat(baseDir);
-      
+
       // If it's a single file, process it directly
       if (baseStat.isFile) {
         // Check if the file matches the pattern or is a markdown file
