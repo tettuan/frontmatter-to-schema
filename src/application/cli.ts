@@ -258,12 +258,32 @@ export class CLI {
     // Build configuration from command line arguments
     const config: Partial<ApplicationConfiguration> = {};
 
-    // Input configuration
+    // Input configuration - detect if path is file or directory
     if (validatedArgs.inputPath) {
-      config.input = {
-        kind: "FileInput",
-        path: validatedArgs.inputPath.toString(),
-      };
+      const inputPath = validatedArgs.inputPath.toString();
+
+      // Check if path is a directory or file
+      try {
+        const stat = await Deno.stat(inputPath);
+        if (stat.isDirectory) {
+          config.input = {
+            kind: "DirectoryInput",
+            path: inputPath,
+            pattern: "*.md", // Default pattern for markdown files
+          };
+        } else {
+          config.input = {
+            kind: "FileInput",
+            path: inputPath,
+          };
+        }
+      } catch {
+        // If stat fails, assume it's a file (let the file processor handle the error)
+        config.input = {
+          kind: "FileInput",
+          path: inputPath,
+        };
+      }
     }
 
     // Schema configuration
@@ -351,6 +371,12 @@ export class CLI {
 
     const result = this.configValidator.validate(config);
     if (!result.ok) {
+      // Better error reporting for debugging
+      const validationLogger = LoggerFactory.createLogger("cli-validation");
+      validationLogger.error("Configuration validation failed", {
+        error: result.error,
+        config: config,
+      });
       return {
         ok: false,
         error: { kind: "ConfigurationError", config: config },
