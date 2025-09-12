@@ -415,36 +415,23 @@ export class ProcessCoordinator {
         }
       };
 
-      // Check if the base path is a file or directory (Issue #694 fix)
-      const baseStat = await Deno.stat(baseDir);
-
-      // If it's a single file, process it directly
-      if (baseStat.isFile) {
-        if (baseDir.endsWith(".md") || baseDir.endsWith(".markdown")) {
-          const documentPathResult = DocumentPath.create(baseDir);
-          if (documentPathResult.ok) {
-            files.push(documentPathResult.data);
-          }
-        }
-      } else {
-        // It's a directory, traverse it
-        try {
-          await traverseDirectory(baseDir);
-        } catch (error) {
-          return {
-            ok: false,
-            error: createDomainError(
-              {
-                kind: "FileDiscoveryFailed",
-                directory: baseDir,
-                pattern,
-              },
-              `File discovery failed: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            ),
-          };
-        }
+      // It's a directory, traverse it (baseStat check already done above)
+      try {
+        await traverseDirectory(baseDir);
+      } catch (error) {
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "FileDiscoveryFailed",
+              directory: baseDir,
+              pattern,
+            },
+            `File discovery failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+        };
       }
 
       if (files.length === 0) {
