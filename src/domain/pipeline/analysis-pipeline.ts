@@ -3,7 +3,8 @@
  * Processes files through analysis stages with configurable components
  */
 
-// import type { DomainError } from "../core/result.ts";
+import type { DomainError, Result } from "../core/result.ts";
+import { createDomainError } from "../core/result.ts";
 import type {
   AnalysisEngine,
   AnalysisStrategy,
@@ -68,12 +69,22 @@ export class AnalysisPipeline {
     }
   }
 
-  validateConfig(): boolean {
+  validateConfig(): Result<boolean, DomainError> {
     // Validate input patterns
     if (
       !this.config.input?.patterns || this.config.input.patterns.length === 0
     ) {
-      throw new Error("Input patterns are required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "patterns",
+            expectedFormat: "non-empty array",
+          },
+          "Input patterns are required",
+        ),
+      };
     }
 
     // Validate processing strategies
@@ -81,22 +92,69 @@ export class AnalysisPipeline {
       !this.config.processing?.strategies ||
       this.config.processing.strategies.length === 0
     ) {
-      throw new Error("Processing strategies are required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "strategies",
+            expectedFormat: "non-empty array",
+          },
+          "Processing strategies are required",
+        ),
+      };
     }
 
     // Validate output format
     if (!this.config.output?.format || this.config.output.format === "") {
-      throw new Error("Output format is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "format",
+            expectedFormat: "non-empty string",
+          },
+          "Output format is required",
+        ),
+      };
     }
 
     // Check if strategy is registered (basic check)
     if (this.config.processing?.strategies?.includes("non-existent-strategy")) {
-      throw new Error("Strategy 'non-existent-strategy' not registered");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "non-existent-strategy",
+            expectedFormat: "registered strategy",
+          },
+          "Strategy 'non-existent-strategy' not registered",
+        ),
+      };
     }
 
     // Basic validation - ensure required components are present
-    return !!(this.fileDiscovery && this.fileReader && this.extractor &&
-      this.engine && this.strategiesArray && this.transformer);
+    const isValid =
+      !!(this.fileDiscovery && this.fileReader && this.extractor &&
+        this.engine && this.strategiesArray && this.transformer);
+
+    if (!isValid) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "components",
+            expectedFormat: "all required components",
+          },
+          "Required pipeline components are missing",
+        ),
+      };
+    }
+
+    return { ok: true, data: true };
   }
 }
 
@@ -187,31 +245,103 @@ export class PipelineBuilder<T = unknown> {
     return this;
   }
 
-  build(): AnalysisPipeline {
+  /**
+   * Totality-compliant build method returning Result<T,E>
+   */
+  buildSafe(): Result<AnalysisPipeline, DomainError> {
     if (!this.fileDiscovery) {
-      throw new Error("FileDiscovery is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "fileDiscovery",
+            expectedFormat: "FileDiscovery instance",
+          },
+          "FileDiscovery is required",
+        ),
+      };
     }
     if (!this.extractor) {
-      throw new Error("FrontMatterExtractor is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "extractor",
+            expectedFormat: "FrontMatterExtractor instance",
+          },
+          "FrontMatterExtractor is required",
+        ),
+      };
     }
     if (!this.engine) {
-      throw new Error("AnalysisEngine is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "engine",
+            expectedFormat: "AnalysisEngine instance",
+          },
+          "AnalysisEngine is required",
+        ),
+      };
     }
     if (!this.transformer) {
-      throw new Error("Transformer is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "transformer",
+            expectedFormat: "Transformer instance",
+          },
+          "Transformer is required",
+        ),
+      };
     }
     if (!this.fileReader) {
-      throw new Error("FileReader is required");
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "InvalidFormat",
+            input: "fileReader",
+            expectedFormat: "FileReader instance",
+          },
+          "FileReader is required",
+        ),
+      };
     }
 
-    return new AnalysisPipeline(
-      this.config as PipelineConfig,
-      this.fileDiscovery,
-      this.extractor,
-      this.engine,
-      this.transformer,
-      this.strategies,
-      this.fileReader,
-    );
+    return {
+      ok: true,
+      data: new AnalysisPipeline(
+        this.config as PipelineConfig,
+        this.fileDiscovery,
+        this.extractor,
+        this.engine,
+        this.transformer,
+        this.strategies,
+        this.fileReader,
+      ),
+    };
+  }
+
+  /**
+   * Legacy build method for backward compatibility
+   * Throws errors for existing test compatibility
+   */
+  build(): AnalysisPipeline {
+    const result = this.buildSafe();
+    if (!result.ok) {
+      // Extract message safely from DomainError
+      const errorMessage: string = "message" in result.error
+        ? String(result.error.message)
+        : `${result.error.kind} error`;
+      throw new Error(errorMessage);
+    }
+    return result.data;
   }
 }

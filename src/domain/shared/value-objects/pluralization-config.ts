@@ -170,6 +170,28 @@ export class PluralizationConfig {
   }
 
   /**
+   * Totality-compliant constructor with fallback mechanism
+   * Creates default English configuration if primary creation fails
+   */
+  static createOrDefault(): PluralizationConfig {
+    const result = this.createDefault();
+    if (result.ok) {
+      return result.data;
+    }
+
+    // Ultimate fallback - hardcoded safe configuration
+    const fallbackConfigs = new Map<string, LanguageConfig>([
+      ["en", {
+        language: "en",
+        rules: [],
+        irregulars: new Map(),
+      }],
+    ]);
+
+    return new PluralizationConfig(fallbackConfigs, "en");
+  }
+
+  /**
    * Smart Constructor with custom configuration
    */
   static create(

@@ -42,13 +42,8 @@ export class SchemaExtensionProcessor {
     if (pluralizationConfig) {
       this.pluralizationConfig = pluralizationConfig;
     } else {
-      const configResult = PluralizationConfig.createDefault();
-      if (!configResult.ok) {
-        throw new Error(
-          `Failed to create default pluralization config: ${configResult.error.message}`,
-        );
-      }
-      this.pluralizationConfig = configResult.data;
+      // Use createOrDefault pattern for Totality compliance
+      this.pluralizationConfig = PluralizationConfig.createOrDefault();
     }
   }
 

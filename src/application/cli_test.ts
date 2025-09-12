@@ -4,8 +4,10 @@ import { ExitHandlerFactory } from "../infrastructure/services/exit-handler.ts";
 import { FormatDetectorFactory } from "../domain/services/file-format-detector.ts";
 
 Deno.test("CLI - Construction with default services", () => {
-  const cli = new CLI();
-  assertExists(cli);
+  const cliResult = CLI.create();
+  assertEquals(cliResult.ok, true);
+  if (!cliResult.ok) return;
+  assertExists(cliResult.data);
 });
 
 Deno.test("CLI - Construction with injected services", () => {
@@ -17,8 +19,13 @@ Deno.test("CLI - Construction with injected services", () => {
   assertEquals(formatDetectorResult.ok, true);
   if (!formatDetectorResult.ok) return;
 
-  const cli = new CLI(exitHandlerResult.data, formatDetectorResult.data);
-  assertExists(cli);
+  const cliResult = CLI.create(
+    exitHandlerResult.data,
+    formatDetectorResult.data,
+  );
+  assertEquals(cliResult.ok, true);
+  if (!cliResult.ok) return;
+  assertExists(cliResult.data);
 });
 
 Deno.test("CLI - Help flag returns success", async () => {
@@ -30,9 +37,14 @@ Deno.test("CLI - Help flag returns success", async () => {
   assertEquals(formatDetectorResult.ok, true);
   if (!formatDetectorResult.ok) return;
 
-  const cli = new CLI(exitHandlerResult.data, formatDetectorResult.data);
+  const cliResult = CLI.create(
+    exitHandlerResult.data,
+    formatDetectorResult.data,
+  );
+  assertEquals(cliResult.ok, true);
+  if (!cliResult.ok) return;
 
-  const result = await cli.run(["--help"]);
+  const result = await cliResult.data.run(["--help"]);
   assertEquals(result.ok, true);
 });
 
@@ -45,9 +57,14 @@ Deno.test("CLI - Invalid arguments return error", async () => {
   assertEquals(formatDetectorResult.ok, true);
   if (!formatDetectorResult.ok) return;
 
-  const cli = new CLI(exitHandlerResult.data, formatDetectorResult.data);
+  const cliResult = CLI.create(
+    exitHandlerResult.data,
+    formatDetectorResult.data,
+  );
+  assertEquals(cliResult.ok, true);
+  if (!cliResult.ok) return;
 
   // Should fail with invalid arguments
-  const result = await cli.run([]);
+  const result = await cliResult.data.run([]);
   assertEquals(result.ok, false);
 });

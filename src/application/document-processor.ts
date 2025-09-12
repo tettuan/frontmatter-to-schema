@@ -40,11 +40,12 @@ export class DocumentProcessor {
   private readonly outputGenerator: OutputGenerator;
   private readonly aggregationAdapter: SchemaAggregationAdapter;
 
-  constructor(
+  private constructor(
     private readonly fileSystem: FileSystemPort,
     private readonly frontMatterExtractor: FrontMatterExtractor,
     private readonly schemaValidator: SchemaValidator,
     private readonly templateProcessor: UnifiedTemplateProcessor,
+    aggregationAdapter: SchemaAggregationAdapter,
   ) {
     // Initialize domain services
     this.fileOperations = new FileOperations(fileSystem, frontMatterExtractor);
@@ -57,15 +58,47 @@ export class DocumentProcessor {
       fileSystem,
       this.transformationPipeline,
     );
+    this.aggregationAdapter = aggregationAdapter;
+  }
 
+  /**
+   * Smart Constructor following Totality principles
+   * Eliminates throw new Error violations and returns Result<T,E>
+   */
+  static create(
+    fileSystem: FileSystemPort,
+    frontMatterExtractor: FrontMatterExtractor,
+    schemaValidator: SchemaValidator,
+    templateProcessor: UnifiedTemplateProcessor,
+  ): Result<DocumentProcessor, DomainError & { message: string }> {
     // Initialize aggregation adapter with registry
     const registryResult = SchemaExtensionRegistryFactory.createDefault();
     if (!registryResult.ok) {
-      throw new Error(
-        `Failed to create schema extension registry: ${registryResult.error.message}`,
-      );
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "schema-extension-registry",
+          message:
+            `Failed to create schema extension registry: ${registryResult.error.message}`,
+        },
+      };
     }
-    this.aggregationAdapter = new SchemaAggregationAdapter(registryResult.data);
+
+    const aggregationAdapter = new SchemaAggregationAdapter(
+      registryResult.data,
+    );
+
+    return {
+      ok: true,
+      data: new DocumentProcessor(
+        fileSystem,
+        frontMatterExtractor,
+        schemaValidator,
+        templateProcessor,
+        aggregationAdapter,
+      ),
+    };
   }
 
   /**

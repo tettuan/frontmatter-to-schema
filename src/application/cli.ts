@@ -34,10 +34,26 @@ export class CLI {
   private readonly exitHandler: ExitHandler;
   private readonly formatDetector: FileFormatDetector;
 
-  constructor(
+  private constructor(
+    exitHandler: ExitHandler,
+    formatDetector: FileFormatDetector,
+    templateProcessor: UnifiedTemplateProcessor,
+    processor: DocumentProcessor,
+  ) {
+    this.exitHandler = exitHandler;
+    this.formatDetector = formatDetector;
+    this.templateProcessor = templateProcessor;
+    this.processor = processor;
+  }
+
+  /**
+   * Smart Constructor following Totality principles
+   * Eliminates throw new Error violations and returns Result<T,E>
+   */
+  static create(
     exitHandler?: ExitHandler,
     formatDetector?: FileFormatDetector,
-  ) {
+  ): Result<CLI, DomainError & { message: string }> {
     // Initialize exit handler (default to production mode)
     const exitResult = exitHandler
       ? { ok: true as const, data: exitHandler }
@@ -45,35 +61,79 @@ export class CLI {
         LoggerFactory.createLogger("cli-exit"),
       );
     if (!exitResult.ok) {
-      throw new Error("Failed to create exit handler");
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "exit-handler",
+          message: "Failed to create exit handler",
+        },
+      };
     }
-    this.exitHandler = exitResult.data;
 
     // Initialize format detector (default configuration)
     const formatResult = formatDetector
       ? { ok: true as const, data: formatDetector }
       : FormatDetectorFactory.createDefault();
+
+    // Since FormatDetectorFactory.createDefault() never fails, this check is for TypeScript
     if (!formatResult.ok) {
-      throw new Error("Failed to create format detector");
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "format-detector",
+          message: "Unexpected failure in format detector creation",
+        },
+      };
     }
-    this.formatDetector = formatResult.data;
+    const formatDetectorInstance = formatResult.data;
 
     const templateProcessorResult = UnifiedTemplateProcessor.create();
     if ("kind" in templateProcessorResult) {
-      throw new Error(
-        `Failed to create template processor: ${
-          String(templateProcessorResult.kind)
-        }`,
-      );
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "template-processor",
+          message: `Failed to create template processor: ${
+            String(templateProcessorResult.kind)
+          }`,
+        },
+      };
     }
-    this.templateProcessor = templateProcessorResult;
 
-    this.processor = new DocumentProcessor(
-      this.fileSystem,
-      this.frontMatterExtractor,
-      this.schemaValidator,
-      this.templateProcessor,
+    const fileSystem = new DenoFileSystemProvider();
+    const frontMatterExtractor = new FrontMatterExtractorImpl();
+    const schemaValidator = new SchemaValidator();
+
+    const processorResult = DocumentProcessor.create(
+      fileSystem,
+      frontMatterExtractor,
+      schemaValidator,
+      templateProcessorResult,
     );
+    if (!processorResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "NotConfigured",
+          component: "document-processor",
+          message:
+            `Failed to create document processor: ${processorResult.error.message}`,
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      data: new CLI(
+        exitResult.data,
+        formatDetectorInstance,
+        templateProcessorResult,
+        processorResult.data,
+      ),
+    };
   }
 
   async run(args: string[]): Promise<Result<void, DomainError>> {

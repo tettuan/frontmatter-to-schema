@@ -90,7 +90,14 @@ export async function main() {
 
     // FIXED: Route through the new CLI implementation that uses DocumentProcessor
     // This ensures template processing is properly executed (fixes issue #613)
-    const cli = new CLI();
+    const cliResult = CLI.create();
+    if (!cliResult.ok) {
+      cliLogger.error(
+        `🚨 Failed to initialize CLI: ${cliResult.error.message}`,
+      );
+      Deno.exit(1);
+    }
+    const cli = cliResult.data;
     const result = await cli.run(Deno.args);
 
     if (!result.ok) {

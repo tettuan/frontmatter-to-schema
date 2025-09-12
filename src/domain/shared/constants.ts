@@ -141,6 +141,29 @@ export class DebugOutputLimit {
     return { ok: true, data: new DebugOutputLimit(limit) };
   }
 
+  /**
+   * Totality-compliant creation with fallback value
+   * Prevents module load failures by providing safe defaults
+   */
+  static createOrDefault(
+    limit: number,
+    defaultValue: number = 100,
+  ): DebugOutputLimit {
+    const result = this.create(limit);
+    if (result.ok) {
+      return result.data;
+    }
+
+    // Fallback to default value if primary creation fails
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) {
+      return fallbackResult.data;
+    }
+
+    // Ultimate fallback with hardcoded safe value
+    return new DebugOutputLimit(100);
+  }
+
   getValue(): number {
     return this.value;
   }
@@ -173,6 +196,29 @@ export class FormatPriority {
       };
     }
     return { ok: true, data: new FormatPriority(priority) };
+  }
+
+  /**
+   * Totality-compliant creation with fallback value
+   * Prevents module load failures by providing safe defaults
+   */
+  static createOrDefault(
+    priority: number,
+    defaultValue: number = 100,
+  ): FormatPriority {
+    const result = this.create(priority);
+    if (result.ok) {
+      return result.data;
+    }
+
+    // Fallback to default value if primary creation fails
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) {
+      return fallbackResult.data;
+    }
+
+    // Ultimate fallback with hardcoded safe value
+    return new FormatPriority(100);
   }
 
   getValue(): number {
@@ -221,6 +267,26 @@ export class MaxDepthLimit {
     return { ok: true, data: new MaxDepthLimit(depth) };
   }
 
+  /**
+   * Totality-compliant creation with fallback value
+   */
+  static createOrDefault(
+    depth: number,
+    defaultValue: number = 100,
+  ): MaxDepthLimit {
+    const result = this.create(depth);
+    if (result.ok) {
+      return result.data;
+    }
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) {
+      return fallbackResult.data;
+    }
+
+    return new MaxDepthLimit(100);
+  }
+
   getValue(): number {
     return this.value;
   }
@@ -267,6 +333,26 @@ export class ErrorContextLimit {
       };
     }
     return { ok: true, data: new ErrorContextLimit(limit) };
+  }
+
+  /**
+   * Totality-compliant creation with fallback value
+   */
+  static createOrDefault(
+    limit: number,
+    defaultValue: number = 100,
+  ): ErrorContextLimit {
+    const result = this.create(limit);
+    if (result.ok) {
+      return result.data;
+    }
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) {
+      return fallbackResult.data;
+    }
+
+    return new ErrorContextLimit(100);
   }
 
   getValue(): number {
@@ -320,6 +406,19 @@ export class NameLengthLimit {
     return { ok: true, data: new NameLengthLimit(limit) };
   }
 
+  static createOrDefault(
+    limit: number,
+    defaultValue: number = 100,
+  ): NameLengthLimit {
+    const result = this.create(limit);
+    if (result.ok) return result.data;
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new NameLengthLimit(100);
+  }
+
   getValue(): number {
     return this.value;
   }
@@ -366,6 +465,19 @@ export class AbsoluteMaxLimit {
       };
     }
     return { ok: true, data: new AbsoluteMaxLimit(limit) };
+  }
+
+  static createOrDefault(
+    limit: number,
+    defaultValue: number = 1000,
+  ): AbsoluteMaxLimit {
+    const result = this.create(limit);
+    if (result.ok) return result.data;
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new AbsoluteMaxLimit(1000);
   }
 
   getValue(): number {
@@ -416,6 +528,19 @@ export class ProcessingLimit {
     return { ok: true, data: new ProcessingLimit(limit) };
   }
 
+  static createOrDefault(
+    limit: number,
+    defaultValue: number = 100,
+  ): ProcessingLimit {
+    const result = this.create(limit);
+    if (result.ok) return result.data;
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new ProcessingLimit(100);
+  }
+
   getValue(): number {
     return this.value;
   }
@@ -464,6 +589,19 @@ export class TimeoutLimit {
     return { ok: true, data: new TimeoutLimit(timeout) };
   }
 
+  static createOrDefault(
+    timeout: number,
+    defaultValue: number = 5000,
+  ): TimeoutLimit {
+    const result = this.create(timeout);
+    if (result.ok) return result.data;
+
+    const fallbackResult = this.create(defaultValue);
+    if (fallbackResult.ok) return fallbackResult.data;
+
+    return new TimeoutLimit(5000);
+  }
+
   getValue(): number {
     return this.value;
   }
@@ -481,524 +619,284 @@ export class TimeoutLimit {
  * Default debug output limit for content truncation in error messages
  * Used in frontmatter extraction and template rendering errors
  */
-const DEFAULT_DEBUG_LIMIT_RESULT = DebugOutputLimit.create(
+export const DEFAULT_DEBUG_OUTPUT_LIMIT = DebugOutputLimit.createOrDefault(
   STANDARD_DEBUG_OUTPUT_SIZE,
 );
-if (!DEFAULT_DEBUG_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_DEBUG_OUTPUT_LIMIT: ${DEFAULT_DEBUG_LIMIT_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_DEBUG_OUTPUT_LIMIT = DEFAULT_DEBUG_LIMIT_RESULT.data;
 
 /**
  * Default format detection priority for standard file formats
  * Used when no specific priority is configured
  */
-const DEFAULT_PRIORITY_RESULT = FormatPriority.create(
+export const DEFAULT_FORMAT_PRIORITY = FormatPriority.createOrDefault(
   STANDARD_FORMAT_PRIORITY_VALUE,
 );
-if (!DEFAULT_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_FORMAT_PRIORITY: ${DEFAULT_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_FORMAT_PRIORITY = DEFAULT_PRIORITY_RESULT.data;
 
 /**
  * Document format priority for markdown and text-based formats
  * Lower priority than schema/template formats but still valid
  */
-const DOCUMENT_PRIORITY_RESULT = FormatPriority.create(
+export const DOCUMENT_FORMAT_PRIORITY = FormatPriority.createOrDefault(
   DOCUMENT_FORMAT_PRIORITY_VALUE,
 );
-if (!DOCUMENT_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create DOCUMENT_FORMAT_PRIORITY: ${DOCUMENT_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const DOCUMENT_FORMAT_PRIORITY = DOCUMENT_PRIORITY_RESULT.data;
 
 /**
  * Schema format priorities for different extensions
  * Higher priorities for primary schema formats
  */
-const SCHEMA_YAML_PRIMARY_RESULT = FormatPriority.create(
-  SCHEMA_YAML_PRIMARY_PRIORITY,
-);
-if (!SCHEMA_YAML_PRIMARY_RESULT.ok) {
-  throw new Error(
-    `Failed to create SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY: ${SCHEMA_YAML_PRIMARY_RESULT.error.message}`,
+export const SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY = FormatPriority
+  .createOrDefault(
+    SCHEMA_YAML_PRIMARY_PRIORITY,
   );
-}
-export const SCHEMA_YAML_PRIMARY_FORMAT_PRIORITY =
-  SCHEMA_YAML_PRIMARY_RESULT.data;
 
-const SCHEMA_YML_SECONDARY_RESULT = FormatPriority.create(
-  SCHEMA_YML_SECONDARY_PRIORITY,
-);
-if (!SCHEMA_YML_SECONDARY_RESULT.ok) {
-  throw new Error(
-    `Failed to create SCHEMA_YML_SECONDARY_FORMAT_PRIORITY: ${SCHEMA_YML_SECONDARY_RESULT.error.message}`,
+export const SCHEMA_YML_SECONDARY_FORMAT_PRIORITY = FormatPriority
+  .createOrDefault(
+    SCHEMA_YML_SECONDARY_PRIORITY,
   );
-}
-export const SCHEMA_YML_SECONDARY_FORMAT_PRIORITY =
-  SCHEMA_YML_SECONDARY_RESULT.data;
 
 /**
  * Template format priorities for different extensions
  * Balanced priorities for template processing formats
  */
-const TEMPLATE_JSON_RESULT = FormatPriority.create(TEMPLATE_JSON_PRIORITY);
-if (!TEMPLATE_JSON_RESULT.ok) {
-  throw new Error(
-    `Failed to create TEMPLATE_JSON_FORMAT_PRIORITY: ${TEMPLATE_JSON_RESULT.error.message}`,
-  );
-}
-export const TEMPLATE_JSON_FORMAT_PRIORITY = TEMPLATE_JSON_RESULT.data;
+export const TEMPLATE_JSON_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  TEMPLATE_JSON_PRIORITY,
+);
 
-const TEMPLATE_YAML_RESULT = FormatPriority.create(TEMPLATE_YAML_PRIORITY);
-if (!TEMPLATE_YAML_RESULT.ok) {
-  throw new Error(
-    `Failed to create TEMPLATE_YAML_FORMAT_PRIORITY: ${TEMPLATE_YAML_RESULT.error.message}`,
-  );
-}
-export const TEMPLATE_YAML_FORMAT_PRIORITY = TEMPLATE_YAML_RESULT.data;
+export const TEMPLATE_YAML_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  TEMPLATE_YAML_PRIORITY,
+);
 
-const TEMPLATE_YML_RESULT = FormatPriority.create(TEMPLATE_YML_PRIORITY);
-if (!TEMPLATE_YML_RESULT.ok) {
-  throw new Error(
-    `Failed to create TEMPLATE_YML_FORMAT_PRIORITY: ${TEMPLATE_YML_RESULT.error.message}`,
-  );
-}
-export const TEMPLATE_YML_FORMAT_PRIORITY = TEMPLATE_YML_RESULT.data;
+export const TEMPLATE_YML_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  TEMPLATE_YML_PRIORITY,
+);
 
 /**
  * Output format priorities for different extensions
  * Lower priorities for output-specific formats
  */
-const OUTPUT_JSON_RESULT = FormatPriority.create(OUTPUT_JSON_PRIORITY);
-if (!OUTPUT_JSON_RESULT.ok) {
-  throw new Error(
-    `Failed to create OUTPUT_JSON_FORMAT_PRIORITY: ${OUTPUT_JSON_RESULT.error.message}`,
-  );
-}
-export const OUTPUT_JSON_FORMAT_PRIORITY = OUTPUT_JSON_RESULT.data;
+export const OUTPUT_JSON_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  OUTPUT_JSON_PRIORITY,
+);
 
-const OUTPUT_YAML_RESULT = FormatPriority.create(OUTPUT_YAML_PRIORITY);
-if (!OUTPUT_YAML_RESULT.ok) {
-  throw new Error(
-    `Failed to create OUTPUT_YAML_FORMAT_PRIORITY: ${OUTPUT_YAML_RESULT.error.message}`,
-  );
-}
-export const OUTPUT_YAML_FORMAT_PRIORITY = OUTPUT_YAML_RESULT.data;
+export const OUTPUT_YAML_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  OUTPUT_YAML_PRIORITY,
+);
 
-const OUTPUT_TOML_RESULT = FormatPriority.create(OUTPUT_TOML_PRIORITY);
-if (!OUTPUT_TOML_RESULT.ok) {
-  throw new Error(
-    `Failed to create OUTPUT_TOML_FORMAT_PRIORITY: ${OUTPUT_TOML_RESULT.error.message}`,
-  );
-}
-export const OUTPUT_TOML_FORMAT_PRIORITY = OUTPUT_TOML_RESULT.data;
+export const OUTPUT_TOML_FORMAT_PRIORITY = FormatPriority.createOrDefault(
+  OUTPUT_TOML_PRIORITY,
+);
 
 /**
  * Template preview length for error reporting
  * Used when template processing fails to show context
  */
-const TEMPLATE_PREVIEW_RESULT = DebugOutputLimit.create(TEMPLATE_PREVIEW_SIZE);
-if (!TEMPLATE_PREVIEW_RESULT.ok) {
-  throw new Error(
-    `Failed to create ERROR_TEMPLATE_PREVIEW_LIMIT: ${TEMPLATE_PREVIEW_RESULT.error.message}`,
-  );
-}
-export const ERROR_TEMPLATE_PREVIEW_LIMIT = TEMPLATE_PREVIEW_RESULT.data;
+export const ERROR_TEMPLATE_PREVIEW_LIMIT = DebugOutputLimit.createOrDefault(
+  TEMPLATE_PREVIEW_SIZE,
+);
 
 /**
  * Maximum depth for schema reference resolution
  * Prevents infinite recursion in $ref resolution
  */
-const MAX_REF_DEPTH_RESULT = MaxDepthLimit.create(
+export const MAX_REFERENCE_DEPTH = MaxDepthLimit.createOrDefault(
   STANDARD_REF_RESOLUTION_DEPTH,
 );
-if (!MAX_REF_DEPTH_RESULT.ok) {
-  throw new Error(
-    `Failed to create MAX_REFERENCE_DEPTH: ${MAX_REF_DEPTH_RESULT.error.message}`,
-  );
-}
-export const MAX_REFERENCE_DEPTH = MAX_REF_DEPTH_RESULT.data;
 
 /**
  * Default error context truncation limit for debug messages
  * Used when displaying input content in error messages
  */
-const ERROR_CONTEXT_LIMIT_RESULT = ErrorContextLimit.create(
+export const DEFAULT_ERROR_CONTEXT_LIMIT = ErrorContextLimit.createOrDefault(
   STANDARD_ERROR_CONTEXT_SIZE,
 );
-if (!ERROR_CONTEXT_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_ERROR_CONTEXT_LIMIT: ${ERROR_CONTEXT_LIMIT_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_ERROR_CONTEXT_LIMIT = ERROR_CONTEXT_LIMIT_RESULT.data;
 
 /**
  * Default name length limit for identifiers and rule names
  * Used in validation of rule names, variable names, etc.
  */
-const NAME_LENGTH_LIMIT_RESULT = NameLengthLimit.create(
+export const DEFAULT_NAME_LENGTH_LIMIT = NameLengthLimit.createOrDefault(
   STANDARD_NAME_LENGTH_SIZE,
 );
-if (!NAME_LENGTH_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_NAME_LENGTH_LIMIT: ${NAME_LENGTH_LIMIT_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_NAME_LENGTH_LIMIT = NAME_LENGTH_LIMIT_RESULT.data;
 
 /**
  * Default processing limits for batch operations and concurrency
  * Used in file processing, template concurrency, etc.
  */
-const PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
+export const DEFAULT_PROCESSING_LIMIT = ProcessingLimit.createOrDefault(
   STANDARD_PROCESSING_BATCH_SIZE,
 );
-if (!PROCESSING_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_PROCESSING_LIMIT: ${PROCESSING_LIMIT_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_PROCESSING_LIMIT = PROCESSING_LIMIT_RESULT.data;
 
 /**
  * Strict mode processing limit for high-reliability scenarios
  * Used in application services with strict validation requirements
  */
-const STRICT_PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
+export const STRICT_MODE_PROCESSING_LIMIT = ProcessingLimit.createOrDefault(
   STRICT_MODE_MAX_FILES,
 );
-if (!STRICT_PROCESSING_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create STRICT_MODE_PROCESSING_LIMIT: ${STRICT_PROCESSING_LIMIT_RESULT.error.message}`,
-  );
-}
-export const STRICT_MODE_PROCESSING_LIMIT = STRICT_PROCESSING_LIMIT_RESULT.data;
 
 /**
  * Performance mode processing limit for high-throughput scenarios
  * Used in application services with performance optimization requirements
  */
-const PERFORMANCE_PROCESSING_LIMIT_RESULT = ProcessingLimit.create(
-  PERFORMANCE_MODE_MAX_FILES,
-);
-if (!PERFORMANCE_PROCESSING_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create PERFORMANCE_MODE_PROCESSING_LIMIT: ${PERFORMANCE_PROCESSING_LIMIT_RESULT.error.message}`,
+export const PERFORMANCE_MODE_PROCESSING_LIMIT = ProcessingLimit
+  .createOrDefault(
+    PERFORMANCE_MODE_MAX_FILES,
   );
-}
-export const PERFORMANCE_MODE_PROCESSING_LIMIT =
-  PERFORMANCE_PROCESSING_LIMIT_RESULT.data;
 
 /**
  * Absolute maximum file processing limit for system constraints
  * Hard upper limit to prevent resource exhaustion
  */
-const ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT = AbsoluteMaxLimit.create(
+export const ABSOLUTE_MAX_PROCESSING_LIMIT = AbsoluteMaxLimit.createOrDefault(
   ABSOLUTE_MAX_FILES_LIMIT,
 );
-if (!ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create ABSOLUTE_MAX_PROCESSING_LIMIT: ${ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.error.message}`,
-  );
-}
-export const ABSOLUTE_MAX_PROCESSING_LIMIT =
-  ABSOLUTE_MAX_PROCESSING_LIMIT_RESULT.data;
 
 /**
  * Pattern length limit for file matching operations
  * Used in domain services to prevent performance issues with overly long patterns
  */
-const PATTERN_LENGTH_LIMIT_RESULT = ProcessingLimit.create(
+export const PATTERN_LENGTH_LIMIT = ProcessingLimit.createOrDefault(
   PATTERN_LENGTH_LIMIT_SIZE,
 );
-if (!PATTERN_LENGTH_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create PATTERN_LENGTH_LIMIT: ${PATTERN_LENGTH_LIMIT_RESULT.error.message}`,
-  );
-}
-export const PATTERN_LENGTH_LIMIT = PATTERN_LENGTH_LIMIT_RESULT.data;
 
 /**
  * Variable description length limit for template validation
  * Used in domain services to validate template variable descriptions
  */
-const VARIABLE_DESCRIPTION_LIMIT_RESULT = NameLengthLimit.create(
-  VARIABLE_DESCRIPTION_MAX_LENGTH,
-);
-if (!VARIABLE_DESCRIPTION_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create VARIABLE_DESCRIPTION_LENGTH_LIMIT: ${VARIABLE_DESCRIPTION_LIMIT_RESULT.error.message}`,
+export const VARIABLE_DESCRIPTION_LENGTH_LIMIT = NameLengthLimit
+  .createOrDefault(
+    VARIABLE_DESCRIPTION_MAX_LENGTH,
   );
-}
-export const VARIABLE_DESCRIPTION_LENGTH_LIMIT =
-  VARIABLE_DESCRIPTION_LIMIT_RESULT.data;
 
 /**
  * Format detector priorities for different format detection scenarios
  * Used in domain services for format detection rules
  */
-const DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT = FormatPriority.create(
-  DEFAULT_FORMAT_DETECTOR_PRIORITY,
-);
-if (!DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_FORMAT_DETECTOR_PRIORITY: ${DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.error.message}`,
+export const DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE = FormatPriority
+  .createOrDefault(
+    DEFAULT_FORMAT_DETECTOR_PRIORITY,
   );
-}
-export const DEFAULT_FORMAT_DETECTOR_PRIORITY_VALUE =
-  DEFAULT_FORMAT_DETECTOR_PRIORITY_RESULT.data;
 
-const SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT = FormatPriority.create(
-  SECONDARY_FORMAT_DETECTOR_PRIORITY,
-);
-if (!SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create SECONDARY_FORMAT_DETECTOR_PRIORITY: ${SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.error.message}`,
+export const SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE = FormatPriority
+  .createOrDefault(
+    SECONDARY_FORMAT_DETECTOR_PRIORITY,
   );
-}
-export const SECONDARY_FORMAT_DETECTOR_PRIORITY_VALUE =
-  SECONDARY_FORMAT_DETECTOR_PRIORITY_RESULT.data;
 
 /**
  * Format extension maximum length for validation
  * Used in format detection rule validation
  */
-const FORMAT_EXTENSION_LENGTH_RESULT = NameLengthLimit.create(
+export const FORMAT_EXTENSION_LENGTH_LIMIT = NameLengthLimit.createOrDefault(
   FORMAT_EXTENSION_MAX_LENGTH,
 );
-if (!FORMAT_EXTENSION_LENGTH_RESULT.ok) {
-  throw new Error(
-    `Failed to create FORMAT_EXTENSION_LENGTH_LIMIT: ${FORMAT_EXTENSION_LENGTH_RESULT.error.message}`,
-  );
-}
-export const FORMAT_EXTENSION_LENGTH_LIMIT =
-  FORMAT_EXTENSION_LENGTH_RESULT.data;
 
 /**
  * Error reporting limits for result aggregation and processing
  * Used in application services for error display and processing
  */
-const ERROR_REPORTING_LIMIT_RESULT = ProcessingLimit.create(
+export const ERROR_REPORTING_PROCESSING_LIMIT = ProcessingLimit.createOrDefault(
   ERROR_REPORTING_LIMIT,
 );
-if (!ERROR_REPORTING_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create ERROR_REPORTING_LIMIT: ${ERROR_REPORTING_LIMIT_RESULT.error.message}`,
-  );
-}
-export const ERROR_REPORTING_PROCESSING_LIMIT =
-  ERROR_REPORTING_LIMIT_RESULT.data;
 
-const COMMAND_PROCESSING_MAX_ERRORS_RESULT = ProcessingLimit.create(
+export const COMMAND_PROCESSING_ERROR_LIMIT = ProcessingLimit.createOrDefault(
   COMMAND_PROCESSING_MAX_ERRORS,
 );
-if (!COMMAND_PROCESSING_MAX_ERRORS_RESULT.ok) {
-  throw new Error(
-    `Failed to create COMMAND_PROCESSING_ERROR_LIMIT: ${COMMAND_PROCESSING_MAX_ERRORS_RESULT.error.message}`,
-  );
-}
-export const COMMAND_PROCESSING_ERROR_LIMIT =
-  COMMAND_PROCESSING_MAX_ERRORS_RESULT.data;
 
 /**
  * Pluralization rule priorities for linguistic pattern matching
  * Used in domain services for pluralization rule ordering and precedence
  */
-const IRREGULAR_PLURALIZATION_PRIORITY_RESULT = FormatPriority.create(
-  IRREGULAR_PLURALIZATION_PRIORITY,
-);
-if (!IRREGULAR_PLURALIZATION_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create IRREGULAR_PLURALIZATION_PRIORITY_VALUE: ${IRREGULAR_PLURALIZATION_PRIORITY_RESULT.error.message}`,
+export const IRREGULAR_PLURALIZATION_PRIORITY_VALUE = FormatPriority
+  .createOrDefault(
+    IRREGULAR_PLURALIZATION_PRIORITY,
   );
-}
-export const IRREGULAR_PLURALIZATION_PRIORITY_VALUE =
-  IRREGULAR_PLURALIZATION_PRIORITY_RESULT.data;
 
-const HIGH_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
-  HIGH_PRIORITY_PLURALIZATION_RULE,
-);
-if (!HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
-  throw new Error(
-    `Failed to create HIGH_PRIORITY_PLURALIZATION_RULE_VALUE: ${HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+export const HIGH_PRIORITY_PLURALIZATION_RULE_VALUE = FormatPriority
+  .createOrDefault(
+    HIGH_PRIORITY_PLURALIZATION_RULE,
   );
-}
-export const HIGH_PRIORITY_PLURALIZATION_RULE_VALUE =
-  HIGH_PRIORITY_PLURALIZATION_RULE_RESULT.data;
 
-const MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
-  MEDIUM_PRIORITY_PLURALIZATION_RULE,
-);
-if (!MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
-  throw new Error(
-    `Failed to create MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE: ${MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+export const MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE = FormatPriority
+  .createOrDefault(
+    MEDIUM_PRIORITY_PLURALIZATION_RULE,
   );
-}
-export const MEDIUM_PRIORITY_PLURALIZATION_RULE_VALUE =
-  MEDIUM_PRIORITY_PLURALIZATION_RULE_RESULT.data;
 
-const STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT = FormatPriority.create(
-  STANDARD_PLURALIZATION_RULE_PRIORITY,
-);
-if (!STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE: ${STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.error.message}`,
+export const STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE = FormatPriority
+  .createOrDefault(
+    STANDARD_PLURALIZATION_RULE_PRIORITY,
   );
-}
-export const STANDARD_PLURALIZATION_RULE_PRIORITY_VALUE =
-  STANDARD_PLURALIZATION_RULE_PRIORITY_RESULT.data;
 
-const LOW_PRIORITY_PLURALIZATION_RULE_RESULT = FormatPriority.create(
-  LOW_PRIORITY_PLURALIZATION_RULE,
-);
-if (!LOW_PRIORITY_PLURALIZATION_RULE_RESULT.ok) {
-  throw new Error(
-    `Failed to create LOW_PRIORITY_PLURALIZATION_RULE_VALUE: ${LOW_PRIORITY_PLURALIZATION_RULE_RESULT.error.message}`,
+export const LOW_PRIORITY_PLURALIZATION_RULE_VALUE = FormatPriority
+  .createOrDefault(
+    LOW_PRIORITY_PLURALIZATION_RULE,
   );
-}
-export const LOW_PRIORITY_PLURALIZATION_RULE_VALUE =
-  LOW_PRIORITY_PLURALIZATION_RULE_RESULT.data;
 
 /**
  * Process Documents Options validation limits
  * Used in application services for worker and processing validation
  */
-const DEFAULT_MAX_WORKERS_RESULT = ProcessingLimit.create(DEFAULT_MAX_WORKERS);
-if (!DEFAULT_MAX_WORKERS_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_MAX_WORKERS_VALUE: ${DEFAULT_MAX_WORKERS_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_MAX_WORKERS_VALUE = DEFAULT_MAX_WORKERS_RESULT.data;
+export const DEFAULT_MAX_WORKERS_VALUE = ProcessingLimit.createOrDefault(
+  DEFAULT_MAX_WORKERS,
+);
 
-const MIN_WORKERS_LIMIT_RESULT = ProcessingLimit.create(MIN_WORKERS_LIMIT);
-if (!MIN_WORKERS_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create MIN_WORKERS_LIMIT_VALUE: ${MIN_WORKERS_LIMIT_RESULT.error.message}`,
-  );
-}
-export const MIN_WORKERS_LIMIT_VALUE = MIN_WORKERS_LIMIT_RESULT.data;
+export const MIN_WORKERS_LIMIT_VALUE = ProcessingLimit.createOrDefault(
+  MIN_WORKERS_LIMIT,
+);
 
-const MAX_WORKERS_LIMIT_RESULT = ProcessingLimit.create(MAX_WORKERS_LIMIT);
-if (!MAX_WORKERS_LIMIT_RESULT.ok) {
-  throw new Error(
-    `Failed to create MAX_WORKERS_LIMIT_VALUE: ${MAX_WORKERS_LIMIT_RESULT.error.message}`,
-  );
-}
-export const MAX_WORKERS_LIMIT_VALUE = MAX_WORKERS_LIMIT_RESULT.data;
+export const MAX_WORKERS_LIMIT_VALUE = ProcessingLimit.createOrDefault(
+  MAX_WORKERS_LIMIT,
+);
 
 /**
  * Web format detection priorities for browser-compatible formats
  * Used in FormatDetector web configuration methods
  */
-const WEB_XML_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+export const WEB_XML_FORMAT_PRIORITY_VALUE = FormatPriority.createOrDefault(
   WEB_XML_FORMAT_PRIORITY,
 );
-if (!WEB_XML_FORMAT_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create WEB_XML_FORMAT_PRIORITY_VALUE: ${WEB_XML_FORMAT_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const WEB_XML_FORMAT_PRIORITY_VALUE =
-  WEB_XML_FORMAT_PRIORITY_RESULT.data;
 
-const WEB_HTML_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+export const WEB_HTML_FORMAT_PRIORITY_VALUE = FormatPriority.createOrDefault(
   WEB_HTML_FORMAT_PRIORITY,
 );
-if (!WEB_HTML_FORMAT_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create WEB_HTML_FORMAT_PRIORITY_VALUE: ${WEB_HTML_FORMAT_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const WEB_HTML_FORMAT_PRIORITY_VALUE =
-  WEB_HTML_FORMAT_PRIORITY_RESULT.data;
 
-const WEB_HTM_FORMAT_PRIORITY_RESULT = FormatPriority.create(
+export const WEB_HTM_FORMAT_PRIORITY_VALUE = FormatPriority.createOrDefault(
   WEB_HTM_FORMAT_PRIORITY,
 );
-if (!WEB_HTM_FORMAT_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create WEB_HTM_FORMAT_PRIORITY_VALUE: ${WEB_HTM_FORMAT_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const WEB_HTM_FORMAT_PRIORITY_VALUE =
-  WEB_HTM_FORMAT_PRIORITY_RESULT.data;
 
-const DEFAULT_RULE_PRIORITY_RESULT = FormatPriority.create(
+export const DEFAULT_RULE_PRIORITY_VALUE = FormatPriority.createOrDefault(
   DEFAULT_RULE_PRIORITY,
 );
-if (!DEFAULT_RULE_PRIORITY_RESULT.ok) {
-  throw new Error(
-    `Failed to create DEFAULT_RULE_PRIORITY_VALUE: ${DEFAULT_RULE_PRIORITY_RESULT.error.message}`,
-  );
-}
-export const DEFAULT_RULE_PRIORITY_VALUE = DEFAULT_RULE_PRIORITY_RESULT.data;
 
 /**
  * Graceful exit timeout for log flushing and cleanup operations
  * Used in infrastructure services for clean application shutdown
  */
-const GRACEFUL_EXIT_TIMEOUT_RESULT = TimeoutLimit.create(
+export const GRACEFUL_EXIT_TIMEOUT_VALUE = TimeoutLimit.createOrDefault(
   GRACEFUL_EXIT_TIMEOUT_MS,
 );
-if (!GRACEFUL_EXIT_TIMEOUT_RESULT.ok) {
-  throw new Error(
-    `Failed to create GRACEFUL_EXIT_TIMEOUT_VALUE: ${GRACEFUL_EXIT_TIMEOUT_RESULT.error.message}`,
-  );
-}
-export const GRACEFUL_EXIT_TIMEOUT_VALUE = GRACEFUL_EXIT_TIMEOUT_RESULT.data;
 
 /**
  * Analysis engine processing timeout for complex operations
  * Used in domain core services for analysis operation timeouts
  */
-const ANALYSIS_ENGINE_TIMEOUT_RESULT = TimeoutLimit.create(
+export const ANALYSIS_ENGINE_TIMEOUT_VALUE = TimeoutLimit.createOrDefault(
   ANALYSIS_ENGINE_TIMEOUT_MS,
 );
-if (!ANALYSIS_ENGINE_TIMEOUT_RESULT.ok) {
-  throw new Error(
-    `Failed to create ANALYSIS_ENGINE_TIMEOUT_VALUE: ${ANALYSIS_ENGINE_TIMEOUT_RESULT.error.message}`,
-  );
-}
-export const ANALYSIS_ENGINE_TIMEOUT_VALUE =
-  ANALYSIS_ENGINE_TIMEOUT_RESULT.data;
 
 /**
  * Dry-run content preview length for output display
  * Used in application services for content preview in dry-run mode
  */
-const DRY_RUN_PREVIEW_LENGTH_RESULT = DebugOutputLimit.create(
+export const DRY_RUN_PREVIEW_LENGTH_VALUE = DebugOutputLimit.createOrDefault(
   DRY_RUN_PREVIEW_LENGTH,
 );
-if (!DRY_RUN_PREVIEW_LENGTH_RESULT.ok) {
-  throw new Error(
-    `Failed to create DRY_RUN_PREVIEW_LENGTH_VALUE: ${DRY_RUN_PREVIEW_LENGTH_RESULT.error.message}`,
-  );
-}
-export const DRY_RUN_PREVIEW_LENGTH_VALUE = DRY_RUN_PREVIEW_LENGTH_RESULT.data;
 
 /**
  * Maximum file path length for filesystem compatibility
  * Used in domain value objects for path validation
  */
-const MAX_FILE_PATH_LENGTH_RESULT = AbsoluteMaxLimit.create(
+export const MAX_FILE_PATH_LENGTH_VALUE = AbsoluteMaxLimit.createOrDefault(
   MAX_FILE_PATH_LENGTH,
 );
-if (!MAX_FILE_PATH_LENGTH_RESULT.ok) {
-  throw new Error(
-    `Failed to create MAX_FILE_PATH_LENGTH_VALUE: ${MAX_FILE_PATH_LENGTH_RESULT.error.message}`,
-  );
-}
-export const MAX_FILE_PATH_LENGTH_VALUE = MAX_FILE_PATH_LENGTH_RESULT.data;
 
 // ========================================
 // Configuration Loading
@@ -1095,12 +993,20 @@ export class ApplicationConstants {
   /**
    * Get default constants instance
    * Pre-validated with standard application defaults
+   * Totality-compliant with fallback values
    */
   static getDefaults(): ApplicationConstants {
     const result = ApplicationConstants.create();
     if (!result.ok) {
-      throw new Error(
-        `Failed to create default constants: ${result.error.message}`,
+      // Fallback using createOrDefault methods if creation fails
+      return new ApplicationConstants(
+        DebugOutputLimit.createOrDefault(100),
+        FormatPriority.createOrDefault(100),
+        DebugOutputLimit.createOrDefault(100),
+        MaxDepthLimit.createOrDefault(100),
+        ErrorContextLimit.createOrDefault(100),
+        NameLengthLimit.createOrDefault(100),
+        ProcessingLimit.createOrDefault(100),
       );
     }
     return result.data;

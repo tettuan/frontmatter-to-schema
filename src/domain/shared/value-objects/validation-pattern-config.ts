@@ -144,7 +144,11 @@ export class ValidationPatternConfig {
     private readonly id: string,
     initialPatterns: readonly ValidationPattern[],
   ) {
-    this.registerPatterns(initialPatterns);
+    const result = this.registerPatterns(initialPatterns);
+    if (!result.ok) {
+      // Constructor needs to throw for Smart Constructor to catch
+      throw new Error(`Pattern registration failed: ${result.error.message}`);
+    }
   }
 
   /**
@@ -216,21 +220,42 @@ export class ValidationPatternConfig {
   /**
    * Register patterns with validation
    */
-  private registerPatterns(patterns: readonly ValidationPattern[]): void {
+  private registerPatterns(
+    patterns: readonly ValidationPattern[],
+  ): Result<void, ValidationPatternError> {
     for (const pattern of patterns) {
-      this.registerSinglePattern(pattern);
+      const result = this.registerSinglePattern(pattern);
+      if (!result.ok) {
+        return result;
+      }
     }
+    return { ok: true, data: undefined };
   }
 
-  private registerSinglePattern(pattern: ValidationPattern): void {
+  private registerSinglePattern(
+    pattern: ValidationPattern,
+  ): Result<void, ValidationPatternError> {
     // Validate pattern name
     if (!pattern.name || pattern.name.trim().length === 0) {
-      throw new Error(`Pattern name cannot be empty`);
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+          message: "Pattern name cannot be empty",
+        },
+      };
     }
 
     // Check for duplicates
     if (this.patterns.has(pattern.name)) {
-      throw new Error(`Duplicate pattern name: ${pattern.name}`);
+      return {
+        ok: false,
+        error: {
+          kind: "DuplicatePattern",
+          name: pattern.name,
+          message: `Duplicate pattern name: ${pattern.name}`,
+        },
+      };
     }
 
     // Validate regex pattern
@@ -238,10 +263,19 @@ export class ValidationPatternConfig {
       // Test the pattern to ensure it's valid
       pattern.pattern.test("test");
     } catch (error) {
-      throw new Error(`Invalid regex pattern for ${pattern.name}: ${error}`);
+      return {
+        ok: false,
+        error: {
+          kind: "CompilationFailed",
+          pattern: pattern.name,
+          error: error instanceof Error ? error.message : String(error),
+          message: `Invalid regex pattern for ${pattern.name}: ${error}`,
+        },
+      };
     }
 
     this.patterns.set(pattern.name, pattern);
+    return { ok: true, data: undefined };
   }
 
   /**
@@ -359,19 +393,7 @@ export class ValidationPatternConfig {
   registerPattern(
     pattern: ValidationPattern,
   ): Result<void, ValidationPatternError> {
-    try {
-      this.registerSinglePattern(pattern);
-      return { ok: true, data: undefined };
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          kind: "DuplicatePattern",
-          name: pattern.name,
-          message: error instanceof Error ? error.message : String(error),
-        },
-      };
-    }
+    return this.registerSinglePattern(pattern);
   }
 
   /**

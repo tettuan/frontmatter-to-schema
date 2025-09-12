@@ -70,17 +70,29 @@ export class TestProcessorFactory {
         };
       }
 
-      // Create DocumentProcessor with validated dependencies
-      const processor = new DocumentProcessor(
+      // Create DocumentProcessor with validated dependencies using Smart Constructor
+      const processorResult = DocumentProcessor.create(
         fileSystem,
         frontMatterExtractor,
         schemaValidator,
         templateProcessor,
       );
 
+      if (!processorResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "DependencyInjectionFailed",
+            message:
+              `DocumentProcessor creation failed: ${processorResult.error.message}`,
+            component: "DocumentProcessor",
+          },
+        };
+      }
+
       return {
         ok: true,
-        data: processor,
+        data: processorResult.data,
       };
     } catch (error) {
       return {
@@ -119,22 +131,36 @@ export class TestProcessorFactory {
     templateProcessor?: UnifiedTemplateProcessor,
   ): Result<DocumentProcessor, TestSetupError> {
     try {
-      const processor = new DocumentProcessor(
+      const defaultTemplateProcessor = templateProcessor ?? (() => {
+        const result = UnifiedTemplateProcessor.create();
+        if (!result) {
+          throw new Error("Failed to create default template processor");
+        }
+        return result as UnifiedTemplateProcessor;
+      })();
+
+      const processorResult = DocumentProcessor.create(
         fileSystem ?? new DenoFileSystemProvider(),
         frontMatterExtractor ?? new FrontMatterExtractorImpl(),
         schemaValidator ?? new SchemaValidator(),
-        templateProcessor ?? (() => {
-          const result = UnifiedTemplateProcessor.create();
-          if (!result) {
-            throw new Error("Failed to create default template processor");
-          }
-          return result as UnifiedTemplateProcessor;
-        })(),
+        defaultTemplateProcessor,
       );
+
+      if (!processorResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "DependencyInjectionFailed",
+            message:
+              `DocumentProcessor creation failed: ${processorResult.error.message}`,
+            component: "CustomDependencies",
+          },
+        };
+      }
 
       return {
         ok: true,
-        data: processor,
+        data: processorResult.data,
       };
     } catch (error) {
       return {
