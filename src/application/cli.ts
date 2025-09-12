@@ -320,6 +320,48 @@ export class CLI {
       };
     }
 
+    // Extract x-template from schema if schema is loaded and no template is provided
+    if (config.schema && !validatedArgs.templatePath) {
+      try {
+        const schemaParsed = JSON.parse(config.schema.definition);
+        if (schemaParsed["x-template"]) {
+          const xTemplatePath = schemaParsed["x-template"];
+
+          // Resolve relative path relative to schema file
+          const schemaDir = validatedArgs.schemaPath
+            ? validatedArgs.schemaPath.toString().split("/").slice(0, -1).join(
+              "/",
+            )
+            : ".";
+          const resolvedTemplatePath = xTemplatePath.startsWith("./")
+            ? `${schemaDir}/${xTemplatePath.slice(2)}`
+            : xTemplatePath;
+
+          const templateFileResult = await this.fileSystem.readFile(
+            resolvedTemplatePath,
+          );
+          if (templateFileResult.ok) {
+            const detectedFormat = this.formatDetector.detectFormat(
+              resolvedTemplatePath,
+            );
+            const formatString = detectedFormat.ok
+              ? detectedFormat.data
+              : "json";
+            const formatResult = TemplateFormat.create(formatString);
+
+            if (formatResult.ok) {
+              config.template = {
+                definition: templateFileResult.data,
+                format: formatResult.data,
+              };
+            }
+          }
+        }
+      } catch {
+        // If schema parsing fails, continue without x-template extraction
+      }
+    }
+
     // Template configuration
     if (validatedArgs.templatePath) {
       const templatePath = validatedArgs.templatePath.toString();

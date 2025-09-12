@@ -38,6 +38,8 @@ import {
   ProcessingOptionsBuilder,
 } from "./services/processing-options-builder.ts";
 import { FilePatternMatcher } from "../domain/services/file-pattern-matcher.ts";
+import { AggregateResultsUseCase } from "./use-cases/aggregate-results/aggregate-results.usecase.ts";
+import { SchemaTemplateInfo } from "../domain/models/schema-extensions.ts";
 
 /**
  * Template format types following totality principle
@@ -207,9 +209,21 @@ export class ProcessCoordinator {
       }
 
       // Step 3: Process all documents (SEQUENTIAL - NO BYPASS)
+      // Extract schema path for validation
+      const schemaPathForValidation = SchemaPath.create(
+        configuration.schema.path,
+      );
+      if (!schemaPathForValidation.ok) {
+        return this.createProcessingError(
+          "SchemaPath",
+          schemaPathForValidation.error,
+        );
+      }
+
       const processingResult = await this.processAllDocuments(
         filesResult.data,
         schemaResult.data,
+        schemaPathForValidation.data,
         options,
       );
       if (!processingResult.ok) {
@@ -219,24 +233,12 @@ export class ProcessCoordinator {
         );
       }
 
-      // Step 4: Render template (MANDATORY - NO BYPASS ALLOWED)
-      const renderingResult = await this.renderTemplate(
-        processingResult.data.validatedDocuments,
-        configuration.template,
-        options,
-      );
-      if (!renderingResult.ok) {
-        return this.createProcessingError(
-          "TemplateRendering",
-          renderingResult.error,
-        );
-      }
-
-      // Step 5: Aggregate data (if multiple documents)
+      // Step 4: Aggregate data (if multiple documents) - MUST BE BEFORE TEMPLATE RENDERING
       let aggregatedData: AggregatedData | undefined;
       if (processingResult.data.validatedDocuments.length > 1) {
-        const aggregationResult = this.aggregateData(
+        const aggregationResult = await this.aggregateData(
           processingResult.data.validatedDocuments,
+          schemaResult.data,
           options,
         );
         if (!aggregationResult.ok) {
@@ -246,6 +248,21 @@ export class ProcessCoordinator {
           );
         }
         aggregatedData = aggregationResult.data;
+      }
+
+      // Step 5: Render template (MANDATORY - NO BYPASS ALLOWED) - USES AGGREGATED DATA
+      const renderingResult = await this.renderTemplate(
+        processingResult.data.validatedDocuments,
+        processingResult.data.documentContents,
+        configuration.template,
+        options,
+        aggregatedData, // Pass aggregated data to template rendering
+      );
+      if (!renderingResult.ok) {
+        return this.createProcessingError(
+          "TemplateRendering",
+          renderingResult.error,
+        );
       }
 
       // Step 6: Write output (FINAL STEP)
@@ -316,39 +333,71 @@ export class ProcessCoordinator {
       const baseDir = inputConfig.baseDirectory || ".";
       const pattern = inputConfig.pattern;
 
-      // Use Deno's file system APIs for file discovery
+      // Use Deno's file system APIs for recursive file discovery
       const files: DocumentPath[] = [];
 
-      for await (const entry of Deno.readDir(baseDir)) {
-        if (entry.isFile) {
-          const matchResult = this.matchesPattern(entry.name, pattern);
-          if (!matchResult.ok) {
-            return {
-              ok: false,
-              error: createDomainError(
-                {
-                  kind: "FileDiscoveryFailed",
-                  directory: baseDir,
-                  pattern,
-                },
-                `Pattern matching failed: ${matchResult.error.message}`,
-              ),
-            };
-          }
+      // Recursive directory traversal function
+      const traverseDirectory = async (
+        currentDir: string,
+        relativePath: string = "",
+      ): Promise<void> => {
+        try {
+          for await (const entry of Deno.readDir(currentDir)) {
+            const entryPath = relativePath
+              ? `${relativePath}/${entry.name}`
+              : entry.name;
+            const fullPath = `${currentDir}/${entry.name}`;
 
-          if (matchResult.data) {
-            const fullPath = `${baseDir}/${entry.name}`;
-            const documentPathResult = DocumentPath.create(fullPath);
+            if (entry.isFile) {
+              const matchResult = this.matchesPattern(entryPath, pattern);
+              if (!matchResult.ok) {
+                throw new Error(
+                  `Pattern matching failed: ${matchResult.error.message}`,
+                );
+              }
 
-            if (documentPathResult.ok) {
-              files.push(documentPathResult.data);
+              if (matchResult.data) {
+                const documentPathResult = DocumentPath.create(fullPath);
+                if (documentPathResult.ok) {
+                  files.push(documentPathResult.data);
 
+                  if (files.length >= options.maxFiles) {
+                    return; // Stop traversal when max files reached
+                  }
+                }
+              }
+            } else if (entry.isDirectory) {
+              // Recursively traverse subdirectories
+              await traverseDirectory(fullPath, entryPath);
+
+              // Check if we've reached max files after recursive call
               if (files.length >= options.maxFiles) {
-                break;
+                return;
               }
             }
           }
+        } catch (error) {
+          // Re-throw with context for error handling
+          throw error;
         }
+      };
+
+      try {
+        await traverseDirectory(baseDir);
+      } catch (error) {
+        return {
+          ok: false,
+          error: createDomainError(
+            {
+              kind: "FileDiscoveryFailed",
+              directory: baseDir,
+              pattern,
+            },
+            `File discovery failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+        };
       }
 
       if (files.length === 0) {
@@ -387,17 +436,20 @@ export class ProcessCoordinator {
   private async processAllDocuments(
     documentPaths: DocumentPath[],
     schema: ResolvedSchema,
+    schemaPath: SchemaPath,
     options: ProcessingOptions,
   ): Promise<
     Result<
       {
         validatedDocuments: ValidatedData[];
+        documentContents: string[];
         validationSummaries: ValidationSummary[];
       },
       DomainError & { message: string }
     >
   > {
     const validatedDocuments: ValidatedData[] = [];
+    const documentContents: string[] = [];
     const validationSummaries: ValidationSummary[] = [];
 
     // Process documents sequentially for reliability
@@ -435,17 +487,11 @@ export class ProcessCoordinator {
         continue;
       }
 
-      // Create a temporary schema path for validation
-      const tempSchemaPathResult = SchemaPath.create("temp");
-      if (!tempSchemaPathResult.ok) {
-        continue; // Skip this document if schema path creation fails
-      }
-
-      // Validate against schema
+      // Validate against schema using the provided schema path
       const validationResult = this.schemaContext.validateData(
         frontmatterResult.data.frontmatter.getData(),
         schema,
-        tempSchemaPathResult.data,
+        schemaPath,
       );
 
       if (!validationResult.ok) {
@@ -466,8 +512,9 @@ export class ProcessCoordinator {
         continue;
       }
 
-      // Add to validated documents
+      // Add to validated documents and store content
       validatedDocuments.push(validationResult.data);
+      documentContents.push(frontmatterResult.data.content);
       validationSummaries.push({
         documentPath: documentPath.getValue(),
         valid: true,
@@ -497,21 +544,28 @@ export class ProcessCoordinator {
       ok: true,
       data: {
         validatedDocuments,
+        documentContents,
         validationSummaries,
       },
     };
   }
 
   /**
-   * Step 4: Render template (MANDATORY - NO BYPASS)
+   * Step 5: Render template (MANDATORY - NO BYPASS) - USES AGGREGATED DATA
    */
   private async renderTemplate(
     validatedDocuments: ValidatedData[],
+    documentContents: string[],
     templateConfig: TemplateSource,
     options: ProcessingOptions,
+    aggregatedData?: AggregatedData,
   ): Promise<Result<RenderedContent, DomainError & { message: string }>> {
-    // Combine all validated data for template rendering
-    const combinedData = this.combineValidatedData(validatedDocuments);
+    // Combine all validated data for template rendering, including aggregated fields
+    const combinedData = this.combineValidatedData(
+      validatedDocuments,
+      documentContents,
+      aggregatedData,
+    );
 
     // Handle discriminated union - follows totality principle with exhaustive switch
     switch (templateConfig.kind) {
@@ -550,28 +604,71 @@ export class ProcessCoordinator {
   }
 
   /**
-   * Step 5: Aggregate data from multiple documents
+   * Step 4: Aggregate data from multiple documents using proper domain service
    */
-  private aggregateData(
+  private async aggregateData(
     validatedDocuments: ValidatedData[],
+    resolvedSchema: ResolvedSchema,
     _options: ProcessingOptions,
-  ): Result<AggregatedData, DomainError & { message: string }> {
+  ): Promise<Result<AggregatedData, DomainError & { message: string }>> {
     const startTime = Date.now();
 
-    // Simple aggregation - combine all data
-    const aggregatedFields: Record<string, unknown> = {};
+    // Use the proper AggregateResultsUseCase for x-derived-from functionality
+    const aggregateUseCase = new AggregateResultsUseCase();
 
-    for (const doc of validatedDocuments) {
-      Object.assign(aggregatedFields, doc.data);
+    // Extract data from validated documents
+    const dataToAggregate = validatedDocuments.map((doc) => doc.data);
+
+    // Extract schema template info from resolved schema
+    const schemaDefinitionResult = resolvedSchema.definition.getParsedSchema();
+    if (!schemaDefinitionResult.ok) {
+      return schemaDefinitionResult as Result<
+        never,
+        DomainError & { message: string }
+      >;
     }
 
+    const templateInfoResult = SchemaTemplateInfo.extract(
+      schemaDefinitionResult.data,
+    );
+    if (!templateInfoResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "ProcessingStageError",
+            stage: "Template",
+            error: {
+              kind: "ExtractionError",
+              reason: templateInfoResult.error.message,
+            },
+          },
+          `Failed to extract template info: ${templateInfoResult.error.message}`,
+        ),
+      };
+    }
+
+    const aggregationResult = await aggregateUseCase.execute({
+      data: dataToAggregate,
+      templateInfo: templateInfoResult.data,
+      schema: schemaDefinitionResult.data,
+    });
+
+    if (!aggregationResult.ok) {
+      return aggregationResult as Result<
+        never,
+        DomainError & { message: string }
+      >;
+    }
+
+    // Transform AggregateResultsOutput to AggregatedData format
     const aggregatedData: AggregatedData = {
       totalDocuments: validatedDocuments.length,
-      aggregatedFields,
+      aggregatedFields: aggregationResult.data.aggregated,
       metadata: {
-        aggregationRules: [], // No specific rules applied in basic aggregation
+        aggregationRules: [], // Rules applied by AggregateResultsUseCase internally
         processingTime: Date.now() - startTime,
-        dataSize: JSON.stringify(aggregatedFields).length,
+        dataSize: JSON.stringify(aggregationResult.data.aggregated).length,
       },
     };
 
@@ -658,14 +755,60 @@ export class ProcessCoordinator {
   }
 
   /**
-   * Combine validated data for template rendering
+   * Combine validated data for template rendering including aggregated fields
    */
   private combineValidatedData(
     validatedDocuments: ValidatedData[],
+    documentContents: string[],
+    aggregatedData?: AggregatedData,
   ): ValidatedData {
-    // For template rendering, use the first document as base
-    // In production, this might combine all data more intelligently
-    return validatedDocuments[0];
+    // For single document, combine frontmatter with content
+    if (validatedDocuments.length === 1) {
+      const baseDoc = validatedDocuments[0];
+      const combinedData = {
+        ...baseDoc.data,
+        content: documentContents[0],
+      };
+
+      // If aggregated data is available, merge it
+      if (aggregatedData) {
+        Object.assign(combinedData, aggregatedData.aggregatedFields);
+      }
+
+      return {
+        data: combinedData,
+        schemaPath: baseDoc.schemaPath,
+        validationResult: baseDoc.validationResult,
+      };
+    }
+
+    // For multiple documents, create structure with documents array and content
+    const documents = validatedDocuments.map((doc, index) => ({
+      ...doc.data,
+      content: documentContents[index],
+    }));
+
+    // Use the first document's schema path and validation result as base
+    const baseDoc = validatedDocuments[0];
+    const combinedData: Record<string, unknown> = {
+      documents,
+      count: documents.length,
+    };
+
+    // If aggregated data is available, merge it (this is critical for x-derived-from functionality)
+    if (aggregatedData) {
+      Object.assign(combinedData, aggregatedData.aggregatedFields);
+    }
+
+    return {
+      data: combinedData,
+      schemaPath: baseDoc.schemaPath,
+      validationResult: {
+        valid: true,
+        errors: [],
+        warnings: [],
+      },
+    };
   }
 
   /**

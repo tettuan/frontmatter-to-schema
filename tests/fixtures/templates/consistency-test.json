@@ -1,8 +1,0 @@
-{
-  "title": "{{title}}",
-  "content": "{{content}}",
-  "metadata": {
-    "author": "{{author}}",
-    "date": "{{date}}"
-  }
-}
