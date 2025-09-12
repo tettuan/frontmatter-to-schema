@@ -249,8 +249,10 @@ export class ProcessCoordinator {
       // Step 4: Aggregate data (if schema requires it) - MUST BE BEFORE TEMPLATE RENDERING
       // FIXED: Check schema requirements, not file count (Issue #690)
       let aggregatedData: AggregatedData | undefined;
-      const requiresAggregation = this.schemaRequiresAggregation(schemaResult.data);
-      
+      const requiresAggregation = this.schemaRequiresAggregation(
+        schemaResult.data,
+      );
+
       if (requiresAggregation) {
         const aggregationResult = await this.aggregateData(
           processingResult.data.validatedDocuments,
@@ -400,7 +402,7 @@ export class ProcessCoordinator {
 
       // Check if the base path is a file or directory (Issue #694 fix)
       const baseStat = await Deno.stat(baseDir);
-      
+
       // If it's a single file, process it directly
       if (baseStat.isFile) {
         if (baseDir.endsWith(".md") || baseDir.endsWith(".markdown")) {
@@ -875,43 +877,63 @@ export class ProcessCoordinator {
   private schemaRequiresAggregation(resolvedSchema: ResolvedSchema): boolean {
     // Check if schema has any properties that require aggregation
     const schemaDefinition = resolvedSchema.definition;
-    
+
     if (!schemaDefinition) {
       return false;
     }
-    
+
     // Get the actual schema object from the definition
     const parsedSchemaResult = schemaDefinition.getParsedSchema();
     if (!parsedSchemaResult.ok) {
       return false;
     }
-    
+
     const schema = parsedSchemaResult.data;
-    
-    if (!schema || typeof schema !== 'object') {
+
+    if (!schema || typeof schema !== "object") {
       return false;
     }
-    
+
     // Check for x-frontmatter-part at root level
-    if ('x-frontmatter-part' in schema && schema['x-frontmatter-part'] === true) {
+    if (
+      "x-frontmatter-part" in schema && schema["x-frontmatter-part"] === true
+    ) {
       return true;
     }
-    
+
     // Check properties for x-derived-from or x-frontmatter-part
-    if ('properties' in schema && schema.properties && typeof schema.properties === 'object') {
+    if (
+      "properties" in schema && schema.properties &&
+      typeof schema.properties === "object"
+    ) {
       for (const prop of Object.values(schema.properties)) {
-        if (typeof prop === 'object' && prop !== null) {
+        if (typeof prop === "object" && prop !== null) {
           const propObj = prop as Record<string, unknown>;
           // Check for aggregation markers
-          if ('x-derived-from' in propObj || ('x-frontmatter-part' in propObj && propObj['x-frontmatter-part'] === true)) {
+          if (
+            "x-derived-from" in propObj ||
+            ("x-frontmatter-part" in propObj &&
+              propObj["x-frontmatter-part"] === true)
+          ) {
             return true;
           }
           // Check nested properties
-          if ('properties' in propObj && propObj['properties'] && typeof propObj['properties'] === 'object') {
-            for (const nestedProp of Object.values(propObj['properties'] as Record<string, unknown>)) {
-              if (typeof nestedProp === 'object' && nestedProp !== null) {
+          if (
+            "properties" in propObj && propObj["properties"] &&
+            typeof propObj["properties"] === "object"
+          ) {
+            for (
+              const nestedProp of Object.values(
+                propObj["properties"] as Record<string, unknown>,
+              )
+            ) {
+              if (typeof nestedProp === "object" && nestedProp !== null) {
                 const nestedPropObj = nestedProp as Record<string, unknown>;
-                if ('x-derived-from' in nestedPropObj || ('x-frontmatter-part' in nestedPropObj && nestedPropObj['x-frontmatter-part'] === true)) {
+                if (
+                  "x-derived-from" in nestedPropObj ||
+                  ("x-frontmatter-part" in nestedPropObj &&
+                    nestedPropObj["x-frontmatter-part"] === true)
+                ) {
                   return true;
                 }
               }
@@ -920,7 +942,7 @@ export class ProcessCoordinator {
         }
       }
     }
-    
+
     return false;
   }
 
