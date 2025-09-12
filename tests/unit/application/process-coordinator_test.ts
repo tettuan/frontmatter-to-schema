@@ -758,10 +758,18 @@ invalid frontmatter
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // With graceful handling, invalid frontmatter is treated as no frontmatter
+      // The process should succeed as we have other valid files
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertExists(result.data.processingTime);
+        // Check that files were processed
+        assertExists(result.data.processedFiles);
+        // Should process 4 files (3 valid + 1 with invalid/missing frontmatter)
+        assertEquals(result.data.processedFiles, 4);
+        // Check validation results
+        assertExists(result.data.validationResults);
+        assertEquals(result.data.validationResults.length, 4);
       }
     });
   });

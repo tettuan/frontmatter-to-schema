@@ -130,12 +130,14 @@ Deno.test("FrontmatterData - should create from parsed data", () => {
   }
 });
 
-Deno.test("FrontmatterData - should reject empty parsed data", () => {
+Deno.test("FrontmatterData - should allow empty parsed data for graceful handling", () => {
   const result = FrontmatterData.createFromParsed({});
 
-  assertEquals(result.ok, false);
-  if (!result.ok) {
-    assertEquals(result.error.kind, "EmptyInput");
+  // Empty data is now allowed for documents without frontmatter
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.data.getData(), {});
+    assertEquals(result.data.isEmpty(), true);
   }
 });
 
