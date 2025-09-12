@@ -13,6 +13,7 @@ import type { Result } from "../../core/result.ts";
 import type { DomainError } from "../../core/result.ts";
 import { createDomainError } from "../../core/result.ts";
 import { ArrayTarget } from "./array-target.ts";
+import { SchemaExtensions } from "./schema-extensions.ts";
 
 /**
  * Represents a derivation rule for x-derived-from processing
@@ -110,7 +111,8 @@ export class SchemaStructure {
   private static extractTemplatePath(
     schema: Record<string, unknown>,
   ): string | undefined {
-    const templatePath = schema["x-template"];
+    // Use SchemaExtensions constant instead of hardcoded string (eliminates Issue #651)
+    const templatePath = schema[SchemaExtensions.TEMPLATE];
     return typeof templatePath === "string" ? templatePath : undefined;
   }
 
@@ -166,7 +168,9 @@ export class SchemaStructure {
     }
 
     const schema = propSchema as Record<string, unknown>;
-    return schema.type === "array" && schema["x-frontmatter-part"] === true;
+    // Use SchemaExtensions constant instead of hardcoded string (eliminates Issue #651)
+    return schema.type === "array" &&
+      schema[SchemaExtensions.FRONTMATTER_PART] === true;
   }
 
   /**

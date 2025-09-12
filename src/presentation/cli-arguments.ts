@@ -17,6 +17,7 @@ import {
   isMarkdownFile,
   SCHEMA_EXTENSIONS,
 } from "../domain/core/file-extensions.constants.ts";
+import { FormatRegistry } from "../domain/shared/entities/format-registry.ts";
 
 /**
  * Named constants to avoid magic numbers (Totality principle)
@@ -124,16 +125,45 @@ export class OutputPath {
     }
 
     const ext = path.split(".").pop()?.toLowerCase();
-    const validExtensions = ["json", "yml", "yaml", "toml"];
 
-    if (!ext || !validExtensions.includes(ext)) {
+    // Use FormatRegistry to validate extensions (eliminates hardcoding - Issue #663)
+    const registryResult = FormatRegistry.createDefault();
+    if (!registryResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "SystemError",
+          message: "Failed to initialize format registry",
+        },
+      };
+    }
+
+    if (!ext) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidExtension",
+          message: "Output path must have a file extension",
+        },
+      };
+    }
+
+    const formatResult = registryResult.data.getFormat(ext);
+    if (!formatResult.ok) {
+      // Get supported output formats for error message
+      const outputFormats = registryResult.data.getSupportedExtensions(
+        "output",
+      );
+      const supportedList = outputFormats.length > 0
+        ? outputFormats.join(", ")
+        : "json, yaml, yml, toml";
+
       return {
         ok: false,
         error: {
           kind: "UnsupportedFormat",
-          message: `Output format must be one of: ${
-            validExtensions.join(", ")
-          }`,
+          message:
+            `Output format '${ext}' is not supported. Supported formats: ${supportedList}`,
         },
       };
     }
