@@ -5,7 +5,14 @@ import { discoverPromptFiles } from "../../src/file-discovery.ts";
 console.log("Testing file discovery...");
 
 try {
-  const promptFiles = await discoverPromptFiles(".agent/climpt/prompts");
+  const result = await discoverPromptFiles(".agent/climpt/prompts");
+
+  if (!result.ok) {
+    console.error(`❌ Failed to discover files: ${result.error.kind}`);
+    Deno.exit(1);
+  }
+
+  const promptFiles = result.data;
   console.log(`✅ Found ${promptFiles.length} prompt files`);
 
   for (const file of promptFiles.slice(0, 3)) {

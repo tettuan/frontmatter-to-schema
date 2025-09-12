@@ -6,6 +6,7 @@
  */
 
 import type { Result } from "../../domain/core/result.ts";
+import type { DomainError } from "../../domain/core/result.ts";
 import type {
   DerivedFieldInfo,
   ExtendedSchema,
@@ -269,12 +270,18 @@ export class SchemaAggregationAdapter {
  */
 export function createSchemaAggregationAdapter(
   evaluator?: ExpressionEvaluator,
-): SchemaAggregationAdapter {
+): Result<SchemaAggregationAdapter, DomainError> {
   const registryResult = SchemaExtensionRegistryFactory.createDefault();
   if (!registryResult.ok) {
-    throw new Error(
-      `Failed to create registry: ${registryResult.error.message}`,
-    );
+    // Map FactoryError to DomainError
+    const error: DomainError = {
+      kind: "ConfigurationError",
+      config: registryResult.error,
+    };
+    return { ok: false, error };
   }
-  return new SchemaAggregationAdapter(registryResult.data, evaluator);
+  return {
+    ok: true,
+    data: new SchemaAggregationAdapter(registryResult.data, evaluator),
+  };
 }

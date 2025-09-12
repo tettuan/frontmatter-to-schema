@@ -16,7 +16,7 @@ import { SchemaTemplateInfo } from "../../../../src/domain/models/schema-extensi
 describe("AggregateResultsUseCase - Robust Application Tests", () => {
   // Smart Constructor pattern for use case creation
   function createUseCase(): AggregateResultsUseCase {
-    return new AggregateResultsUseCase();
+    return AggregateResultsUseCase.createOrDefault();
   }
 
   // Test data factory for consistent test scenarios

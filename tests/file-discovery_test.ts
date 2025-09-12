@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert@1";
+import { assertEquals } from "jsr:@std/assert@1";
 import {
   discoverPromptFiles,
   extractFrontmatter,
@@ -13,11 +13,14 @@ Deno.test("parseCommandStructure should parse valid command structure", () => {
 
   const result = parseCommandStructure(filePath, promptsDir);
 
-  assertEquals(result.c1, "domain");
-  assertEquals(result.c2, "action");
-  assertEquals(result.c3, "layer");
-  assertEquals(result.input, "input");
-  assertEquals(result.adaptation, "adaptation");
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.data.c1, "domain");
+    assertEquals(result.data.c2, "action");
+    assertEquals(result.data.c3, "layer");
+    assertEquals(result.data.input, "input");
+    assertEquals(result.data.adaptation, "adaptation");
+  }
 });
 
 Deno.test("parseCommandStructure should handle paths without adaptation", () => {
@@ -26,11 +29,15 @@ Deno.test("parseCommandStructure should handle paths without adaptation", () => 
 
   const result = parseCommandStructure(filePath, promptsDir);
 
-  assertEquals(result.c1, "domain");
-  assertEquals(result.c2, "action");
-  assertEquals(result.c3, "layer");
-  assertEquals(result.input, "input");
-  assertEquals(result.adaptation, undefined);
+  assertEquals(result.ok, true);
+  if (!result.ok) return;
+  const data = result.data;
+
+  assertEquals(data.c1, "domain");
+  assertEquals(data.c2, "action");
+  assertEquals(data.c3, "layer");
+  assertEquals(data.input, "input");
+  assertEquals(data.adaptation, undefined);
 });
 
 Deno.test("parseCommandStructure should handle multi-part adaptation", () => {
@@ -39,44 +46,51 @@ Deno.test("parseCommandStructure should handle multi-part adaptation", () => {
 
   const result = parseCommandStructure(filePath, promptsDir);
 
-  assertEquals(result.c1, "domain");
-  assertEquals(result.c2, "action");
-  assertEquals(result.c3, "layer");
-  assertEquals(result.input, "input");
-  assertEquals(result.adaptation, "part1_part2");
+  assertEquals(result.ok, true);
+  if (!result.ok) return;
+  const data = result.data;
+
+  assertEquals(data.c1, "domain");
+  assertEquals(data.c2, "action");
+  assertEquals(data.c3, "layer");
+  assertEquals(data.input, "input");
+  assertEquals(data.adaptation, "part1_part2");
 });
 
 Deno.test("parseCommandStructure should throw for invalid path structure", () => {
   const filePath = "/prompts/invalid/f_input.md";
   const promptsDir = "/prompts";
 
-  assertThrows(
-    () => parseCommandStructure(filePath, promptsDir),
-    Error,
-    "Invalid file path structure",
-  );
+  const result = parseCommandStructure(filePath, promptsDir);
+
+  assertEquals(result.ok, false);
+  if (!result.ok) {
+    assertEquals(result.error.kind, "InvalidFormat");
+  }
 });
 
-Deno.test("parseCommandStructure should throw for invalid filename format", () => {
+Deno.test("parseCommandStructure should return error for invalid filename format", () => {
   const filePath = "/prompts/domain/action/layer/invalid_file.md";
   const promptsDir = "/prompts";
 
-  assertThrows(
-    () => parseCommandStructure(filePath, promptsDir),
-    Error,
-    "Invalid filename format",
-  );
+  const result = parseCommandStructure(filePath, promptsDir);
+
+  assertEquals(result.ok, false);
+  if (!result.ok) {
+    assertEquals(result.error.kind, "InvalidFormat");
+  }
 });
 
-Deno.test("parseCommandStructure should throw for filename without f_ prefix", () => {
+Deno.test("parseCommandStructure should return error for filename without f_ prefix", () => {
   const filePath = "/prompts/domain/action/layer/g_input.md";
   const promptsDir = "/prompts";
 
-  assertThrows(
-    () => parseCommandStructure(filePath, promptsDir),
-    Error,
-    "Invalid filename format",
-  );
+  const result = parseCommandStructure(filePath, promptsDir);
+
+  assertEquals(result.ok, false);
+  if (!result.ok) {
+    assertEquals(result.error.kind, "InvalidFormat");
+  }
 });
 
 Deno.test("extractFrontmatter should extract valid frontmatter", () => {
@@ -245,13 +259,17 @@ title: Test
 
     const result = await discoverPromptFiles(promptsDir);
 
-    assertEquals(result.length, 1);
-    assertEquals(result[0].content, content);
-    assertEquals(result[0].commandStructure.c1, "domain");
-    assertEquals(result[0].commandStructure.c2, "action");
-    assertEquals(result[0].commandStructure.c3, "layer");
-    assertEquals(result[0].commandStructure.input, "test");
-    assertEquals(result[0].commandStructure.adaptation, undefined);
+    assertEquals(result.ok, true);
+    if (!result.ok) return;
+    const files = result.data;
+
+    assertEquals(files.length, 1);
+    assertEquals(files[0].content, content);
+    assertEquals(files[0].commandStructure.c1, "domain");
+    assertEquals(files[0].commandStructure.c2, "action");
+    assertEquals(files[0].commandStructure.c3, "layer");
+    assertEquals(files[0].commandStructure.input, "test");
+    assertEquals(files[0].commandStructure.adaptation, undefined);
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
@@ -262,7 +280,10 @@ Deno.test("discoverPromptFiles should handle empty directory", async () => {
 
   try {
     const result = await discoverPromptFiles(tempDir);
-    assertEquals(result, []);
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, []);
+    }
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
@@ -291,9 +312,13 @@ Deno.test("discoverPromptFiles should discover files with adaptation", async () 
 
     const result = await discoverPromptFiles(promptsDir);
 
-    assertEquals(result.length, 1);
-    assertEquals(result[0].commandStructure.input, "test");
-    assertEquals(result[0].commandStructure.adaptation, "adapted");
+    assertEquals(result.ok, true);
+    if (!result.ok) return;
+    const files = result.data;
+
+    assertEquals(files.length, 1);
+    assertEquals(files[0].commandStructure.input, "test");
+    assertEquals(files[0].commandStructure.adaptation, "adapted");
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
@@ -333,10 +358,14 @@ Deno.test("discoverPromptFiles should handle nested directories", async () => {
 
     const result = await discoverPromptFiles(promptsDir);
 
-    assertEquals(result.length, 2);
+    assertEquals(result.ok, true);
+    if (!result.ok) return;
+    const files = result.data;
 
-    const test1 = result.find((f) => f.commandStructure.input === "test1");
-    const test2 = result.find((f) => f.commandStructure.input === "test2");
+    assertEquals(files.length, 2);
+
+    const test1 = files.find((f) => f.commandStructure.input === "test1");
+    const test2 = files.find((f) => f.commandStructure.input === "test2");
 
     assertEquals(test1?.commandStructure.c1, "domain1");
     assertEquals(test2?.commandStructure.c1, "domain2");

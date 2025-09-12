@@ -2,34 +2,55 @@ import { walk } from "jsr:@std/fs@1/walk";
 import { basename, relative } from "jsr:@std/path@1";
 import type { CommandStructure, PromptFile } from "./domain/core/types.ts";
 import { FILE_NAMING } from "./config/version.ts";
+import type { DomainError, Result } from "./domain/core/result.ts";
 
 /**
  * Discovers all f_*.md files in the prompts directory
  */
 export async function discoverPromptFiles(
   promptsDir: string,
-): Promise<PromptFile[]> {
+): Promise<Result<PromptFile[], DomainError>> {
   const promptFiles: PromptFile[] = [];
 
-  for await (
-    const entry of walk(promptsDir, {
-      includeFiles: true,
-      includeDirs: false,
-      exts: [".md"],
-      match: [/\/f_.*\.md$/],
-    })
-  ) {
-    const content = await Deno.readTextFile(entry.path);
-    const commandStructure = parseCommandStructure(entry.path, promptsDir);
+  try {
+    for await (
+      const entry of walk(promptsDir, {
+        includeFiles: true,
+        includeDirs: false,
+        exts: [".md"],
+        match: [/\/f_.*\.md$/],
+      })
+    ) {
+      const content = await Deno.readTextFile(entry.path);
+      const commandStructureResult = parseCommandStructure(
+        entry.path,
+        promptsDir,
+      );
 
-    promptFiles.push({
-      path: entry.path,
-      content,
-      commandStructure,
-    });
+      if (!commandStructureResult.ok) {
+        return { ok: false, error: commandStructureResult.error };
+      }
+
+      promptFiles.push({
+        path: entry.path,
+        content,
+        commandStructure: commandStructureResult.data,
+      });
+    }
+
+    return { ok: true, data: promptFiles };
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        kind: "ReadError",
+        path: promptsDir,
+        details: `Failed to discover prompt files: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      },
+    };
   }
-
-  return promptFiles;
 }
 
 /**
@@ -39,12 +60,19 @@ export async function discoverPromptFiles(
 export function parseCommandStructure(
   filePath: string,
   promptsDir: string,
-): CommandStructure {
+): Result<CommandStructure, DomainError> {
   const relativePath = relative(promptsDir, filePath);
   const pathParts = relativePath.split("/");
 
   if (pathParts.length < 4) {
-    throw new Error(`Invalid file path structure: ${filePath}`);
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidFormat",
+        input: filePath,
+        expectedFormat: "path with at least 4 segments",
+      },
+    };
   }
 
   const c1 = pathParts[0]; // domain/category
@@ -58,7 +86,15 @@ export function parseCommandStructure(
     filenameParts.length < 2 ||
     filenameParts[0] !== FILE_NAMING.FRONTMATTER_PREFIX
   ) {
-    throw new Error(`Invalid filename format: ${filename}`);
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidFormat",
+        input: filename,
+        expectedFormat:
+          `f_*_*.md (starting with ${FILE_NAMING.FRONTMATTER_PREFIX})`,
+      },
+    };
   }
 
   const input = filenameParts[1];
@@ -67,11 +103,14 @@ export function parseCommandStructure(
     : undefined;
 
   return {
-    c1,
-    c2,
-    c3,
-    input,
-    adaptation,
+    ok: true,
+    data: {
+      c1,
+      c2,
+      c3,
+      input,
+      adaptation,
+    },
   };
 }
 

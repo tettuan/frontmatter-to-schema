@@ -10,7 +10,13 @@ import { ProcessCoordinator } from "../../../src/application/process-coordinator
 import type { ProcessingConfiguration } from "../../../src/application/process-coordinator.ts";
 
 Deno.test("ProcessCoordinator - Single File Processing", async (t) => {
-  const processCoordinator = new ProcessCoordinator();
+  const processCoordinatorResult = ProcessCoordinator.create();
+  if (!processCoordinatorResult.ok) {
+    throw new Error(
+      `Failed to create ProcessCoordinator: ${processCoordinatorResult.error.message}`,
+    );
+  }
+  const processCoordinator = processCoordinatorResult.data;
 
   // Create test fixtures
   async function setupFixtures() {
