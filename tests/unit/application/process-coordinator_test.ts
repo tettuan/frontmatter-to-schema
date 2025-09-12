@@ -661,7 +661,7 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
       }
     });
 
-    it("should process single file without aggregation successfully", async () => {
+    it("should process single file with aggregation when schema requires it (Issue #690)", async () => {
       const config: ProcessingConfiguration = {
         kind: "basic",
         schema: {
@@ -687,9 +687,10 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
       assertEquals(result.ok, true);
       if (result.ok) {
-        // Single file should not trigger aggregation
+        // Single file SHOULD trigger aggregation when schema requires it (Issue #690 fix)
+        // The schema has x-derived-from and x-frontmatter-part markers
         assertEquals(result.data.processedFiles, 1);
-        assertEquals(result.data.aggregatedData, undefined);
+        assertExists(result.data.aggregatedData); // Changed: aggregation now runs for single files when schema requires it
 
         // Should still validate canonical processing
         assertEquals(result.data.canonicalPathUsed, true);
