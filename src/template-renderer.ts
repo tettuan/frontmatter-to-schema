@@ -1,5 +1,6 @@
 import type { DomainError, ProcessingConfig, Result } from "./types.ts";
-import { getTemplatePath } from "./domain/models/schema-extensions.ts";
+import { SchemaExtensionConfig } from "./domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "./domain/schema/services/schema-property-accessor.ts";
 import { ERROR_TEMPLATE_PREVIEW_LIMIT } from "./domain/shared/constants.ts";
 
 /**
@@ -18,10 +19,27 @@ export type TemplateData =
   };
 
 export class TemplateRenderer {
-  private constructor() {}
+  private readonly accessor: SchemaPropertyAccessor;
+
+  private constructor(accessor: SchemaPropertyAccessor) {
+    this.accessor = accessor;
+  }
 
   static create(): Result<TemplateRenderer, DomainError> {
-    return { ok: true, data: new TemplateRenderer() };
+    const configResult = SchemaExtensionConfig.createDefault();
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidFormat",
+          input: "SchemaExtensionConfig",
+          expectedFormat: configResult.error.message,
+        },
+      };
+    }
+
+    const accessor = new SchemaPropertyAccessor(configResult.data);
+    return { ok: true, data: new TemplateRenderer(accessor) };
   }
 
   async render(
@@ -69,7 +87,7 @@ export class TemplateRenderer {
     data: TemplateData,
   ): Promise<Result<string, DomainError>> {
     try {
-      // Enhanced template processing with x-template array resolution
+      // Enhanced template processing with schema-driven array resolution
       const processedResult = await this.processTemplateWithSchema(
         template,
         data,
@@ -196,7 +214,7 @@ export class TemplateRenderer {
   }
 
   /**
-   * Process template with schema-driven x-template array resolution
+   * Process template with schema-driven array resolution
    * Eliminates need for $includeArray by automatically resolving array templates
    */
   private async processTemplateWithSchema(
@@ -220,7 +238,7 @@ export class TemplateRenderer {
   }
 
   /**
-   * Recursively process template object, resolving x-template arrays
+   * Recursively process template object, resolving schema-driven arrays
    */
   private async processTemplateObject(
     obj: unknown,
@@ -240,14 +258,14 @@ export class TemplateRenderer {
         // Check for deprecated $includeArray usage
         if (key === "$includeArray") {
           console.warn(
-            `DEPRECATION WARNING: $includeArray is deprecated. Use x-template in schema instead.`,
+            `DEPRECATION WARNING: $includeArray is deprecated. Use schema configuration instead.`,
           );
-          // Process the array with x-template if available
+          // Process the array with schema configuration if available
           result[key] = await this.processTemplateObject(value, data);
           continue;
         }
 
-        // Check if this property corresponds to an array in data with x-template
+        // Check if this property corresponds to an array in data with schema configuration
         const arrayData = this.getArrayDataForProperty(key, data);
         if (arrayData && data.kind === "schema-aware") {
           const templateResult = await this.resolveArrayTemplate(
@@ -316,7 +334,7 @@ export class TemplateRenderer {
   }
 
   /**
-   * Resolve array template using x-template from schema
+   * Resolve array template using schema configuration
    */
   private async resolveArrayTemplate(
     propertyName: string,
@@ -333,7 +351,7 @@ export class TemplateRenderer {
         };
       }
 
-      // Get x-template from array items schema
+      // Get template path from array items schema using SchemaPropertyAccessor
       const itemsSchema = arraySchema.items;
       if (!itemsSchema || typeof itemsSchema !== "object") {
         return {
@@ -350,16 +368,16 @@ export class TemplateRenderer {
         };
       }
 
-      const templatePathResult = getTemplatePath(itemsSchema);
-      if (!templatePathResult.ok) {
-        // No x-template found, return original data
+      const templatePath = this.accessor.getTemplate(itemsSchema);
+      if (!templatePath) {
+        // No template configuration found, return original data
         return { ok: true, data: arrayData };
       }
 
       // Load and process the array item template for each element
       return await this.processArrayWithTemplate(
         arrayData,
-        templatePathResult.data,
+        templatePath,
       );
     } catch (error) {
       return {

@@ -9,6 +9,8 @@ import { globToRegExp } from "jsr:@std/path@1.0.8/glob-to-regexp";
 import { join } from "jsr:@std/path@1.0.8";
 import { parse as parseYaml } from "jsr:@std/yaml@1.0.7";
 import { TemplateEngine } from "./core/template-engine.ts";
+import { SchemaExtensionConfig } from "./domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "./domain/schema/services/schema-property-accessor.ts";
 
 interface CLIArgs {
   schemaPath: string;
@@ -92,9 +94,16 @@ async function processFiles(args: CLIArgs): Promise<void> {
   if (verbose) console.log(`Loading schema from: ${schemaPath}`);
   const schema = await loadJsonFile(schemaPath) as Record<string, unknown>;
 
-  // Load template (specified in schema x-template)
+  // Load template using SchemaPropertyAccessor to eliminate hardcoding
   let templateContent: string;
-  const templatePath = schema["x-template"] as string;
+  const configResult = SchemaExtensionConfig.createDefault();
+  if (!configResult.ok) {
+    console.error("Configuration error:", configResult.error.message);
+    Deno.exit(1);
+  }
+
+  const accessor = new SchemaPropertyAccessor(configResult.data);
+  const templatePath = accessor.getTemplate(schema);
   if (templatePath) {
     // Template path is relative to schema file
     const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));

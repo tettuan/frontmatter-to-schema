@@ -10,6 +10,8 @@ import type { Result } from "../core/result.ts";
 import { JSONPathExpression } from "./jsonpath-expression.ts";
 import type { SchemaExtensionRegistry } from "../schema/entities/schema-extension-registry.ts";
 import { ExtensionType } from "../schema/value-objects/extension-value.ts";
+import { SchemaPropertyAccessor } from "../schema/services/schema-property-accessor.ts";
+import { SchemaExtensionConfig } from "../config/schema-extension-config.ts";
 
 /**
  * Type guard for validating unknown data as Record<string, unknown>
@@ -110,16 +112,29 @@ export class DerivationRule {
 
   /**
    * Parse a derivation rule from schema properties
-   * REFACTORED: Uses registry to access extension properties instead of hardcoded strings
+   * REFACTORED: Uses SchemaPropertyAccessor to eliminate hardcoding violations
    */
   static fromSchemaProperty(
     fieldName: string,
     schemaProperty: Record<string, unknown>,
     registry: SchemaExtensionRegistry,
   ): Result<DerivationRule | null, { kind: string; message: string }> {
+    // Create accessor for safe property access
+    const configResult = SchemaExtensionConfig.createDefault();
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigurationError",
+          message: `Failed to create configuration: ${configResult.error.message}`,
+        },
+      };
+    }
+    const accessor = new SchemaPropertyAccessor(configResult.data);
+
     // Check for x-derived-count extension first
-    if ("x-derived-count" in schemaProperty) {
-      const countValue = schemaProperty["x-derived-count"];
+    if (accessor.hasDerivedCount(schemaProperty)) {
+      const countValue = accessor.getDerivedCount(schemaProperty);
       if (typeof countValue === "string") {
         return DerivationRule.create(
           fieldName,
@@ -133,8 +148,8 @@ export class DerivationRule {
     }
 
     // Check for x-derived-average extension
-    if ("x-derived-average" in schemaProperty) {
-      const averageValue = schemaProperty["x-derived-average"];
+    if (accessor.hasDerivedAverage(schemaProperty)) {
+      const averageValue = accessor.getDerivedAverage(schemaProperty);
       if (typeof averageValue === "string") {
         return DerivationRule.create(
           fieldName,
@@ -148,21 +163,12 @@ export class DerivationRule {
     }
 
     // Check for x-derived-count-where extension
-    if ("x-derived-count-where" in schemaProperty) {
-      const countWhereValue = schemaProperty["x-derived-count-where"];
-      if (
-        typeof countWhereValue === "object" &&
-        countWhereValue !== null &&
-        "from" in countWhereValue &&
-        "where" in countWhereValue
-      ) {
-        const countWhereObj = countWhereValue as {
-          from: string;
-          where: string;
-        };
+    if (accessor.hasDerivedCountWhere(schemaProperty)) {
+      const countWhereValue = accessor.getDerivedCountWhere(schemaProperty);
+      if (countWhereValue) {
         return DerivationRule.create(
           fieldName,
-          `count_where(${countWhereObj.from}, ${countWhereObj.where})`,
+          `count_where(${countWhereValue.from}, ${countWhereValue.where})`,
           {
             unique: false,
             flatten: false,
