@@ -117,6 +117,60 @@ export class DerivationRule {
     schemaProperty: Record<string, unknown>,
     registry: SchemaExtensionRegistry,
   ): Result<DerivationRule | null, { kind: string; message: string }> {
+    // Check for x-derived-count extension first
+    if ("x-derived-count" in schemaProperty) {
+      const countValue = schemaProperty["x-derived-count"];
+      if (typeof countValue === "string") {
+        return DerivationRule.create(
+          fieldName,
+          `count(${countValue})`,
+          {
+            unique: false,
+            flatten: false,
+          },
+        );
+      }
+    }
+
+    // Check for x-derived-average extension
+    if ("x-derived-average" in schemaProperty) {
+      const averageValue = schemaProperty["x-derived-average"];
+      if (typeof averageValue === "string") {
+        return DerivationRule.create(
+          fieldName,
+          `average(${averageValue})`,
+          {
+            unique: false,
+            flatten: false,
+          },
+        );
+      }
+    }
+
+    // Check for x-derived-count-where extension
+    if ("x-derived-count-where" in schemaProperty) {
+      const countWhereValue = schemaProperty["x-derived-count-where"];
+      if (
+        typeof countWhereValue === "object" &&
+        countWhereValue !== null &&
+        "from" in countWhereValue &&
+        "where" in countWhereValue
+      ) {
+        const countWhereObj = countWhereValue as {
+          from: string;
+          where: string;
+        };
+        return DerivationRule.create(
+          fieldName,
+          `count_where(${countWhereObj.from}, ${countWhereObj.where})`,
+          {
+            unique: false,
+            flatten: false,
+          },
+        );
+      }
+    }
+
     // Check if x-derived-from property exists and is a string (reject non-string values)
     const derivedFromProperty = registry.getDerivedFromProperty();
     if (!(derivedFromProperty in schemaProperty)) {

@@ -20,6 +20,7 @@ export type ProcessingError =
   | { kind: "FrontmatterExtractionFailed"; content: string }
   | { kind: "SchemaNotFound"; path: string }
   | { kind: "ArrayItemsSchemaNotFound"; path: string }
+  | { kind: "InvalidArrayItemsSchema"; path: string }
   | { kind: "ArrayTemplateResolutionFailed"; path: string; details: string }
   | { kind: "TemplateLoadFailed"; path: string; details: string };
 

@@ -175,7 +175,7 @@ export class ExpressionEvaluator {
 
     // Evaluate expression against each data item separately
     for (const item of data) {
-      const evalResult = this.evaluate([item], expression);
+      const evalResult = this.evaluate(item, expression);
       if (evalResult.ok) {
         // Count non-null/undefined values from this item
         const itemCount = evalResult.data.flat().filter((value) =>
@@ -199,7 +199,7 @@ export class ExpressionEvaluator {
 
     // Evaluate expression against each data item separately
     for (const item of data) {
-      const evalResult = this.evaluate([item], expression);
+      const evalResult = this.evaluate(item, expression);
       if (evalResult.ok) {
         // Filter and convert to numbers from this item
         const itemNumericValues = evalResult.data.flat()
@@ -233,6 +233,97 @@ export class ExpressionEvaluator {
     const average = sum / allNumericValues.length;
 
     return { ok: true, data: average };
+  }
+
+  /**
+   * Count items that match both the expression and a condition
+   */
+  countWhere(
+    data: unknown[],
+    expression: string,
+    condition: string,
+  ): Result<number, { kind: string; message: string }> {
+    let totalCount = 0;
+
+    // Evaluate expression against each data item separately
+    for (const item of data) {
+      const evalResult = this.evaluate(item, expression);
+      if (evalResult.ok) {
+        // Count items that match the condition
+        const matchingItems = evalResult.data.flat().filter((value) => {
+          if (value === null || value === undefined) {
+            return false;
+          }
+
+          // Parse condition (simplified implementation)
+          // Support basic conditions like "property === value" or "property !== value"
+          const conditionMatch = condition.match(
+            /^(\w+)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/,
+          );
+          if (!conditionMatch) {
+            return false;
+          }
+
+          const [, propName, operator, expectedValue] = conditionMatch;
+
+          // Get the property value from the item
+          let actualValue: unknown;
+          if (isValidRecordData(value) && propName in value) {
+            actualValue = value[propName];
+          } else {
+            return false;
+          }
+
+          // Parse expected value
+          let parsedExpected: unknown;
+          if (expectedValue === "true") {
+            parsedExpected = true;
+          } else if (expectedValue === "false") {
+            parsedExpected = false;
+          } else if (expectedValue === "null") {
+            parsedExpected = null;
+          } else if (/^["'].*["']$/.test(expectedValue)) {
+            parsedExpected = expectedValue.slice(1, -1); // Remove quotes (both single and double)
+          } else if (/^\d+(\.\d+)?$/.test(expectedValue)) {
+            parsedExpected = parseFloat(expectedValue);
+          } else {
+            parsedExpected = expectedValue;
+          }
+
+          // Apply condition
+          switch (operator) {
+            case "===":
+            case "==":
+              return actualValue === parsedExpected;
+            case "!==":
+            case "!=":
+              return actualValue !== parsedExpected;
+            case ">":
+              return typeof actualValue === "number" &&
+                typeof parsedExpected === "number" &&
+                actualValue > parsedExpected;
+            case "<":
+              return typeof actualValue === "number" &&
+                typeof parsedExpected === "number" &&
+                actualValue < parsedExpected;
+            case ">=":
+              return typeof actualValue === "number" &&
+                typeof parsedExpected === "number" &&
+                actualValue >= parsedExpected;
+            case "<=":
+              return typeof actualValue === "number" &&
+                typeof parsedExpected === "number" &&
+                actualValue <= parsedExpected;
+            default:
+              return false;
+          }
+        });
+
+        totalCount += matchingItems.length;
+      }
+    }
+
+    return { ok: true, data: totalCount };
   }
 
   /**

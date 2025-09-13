@@ -35,7 +35,7 @@ export class JSONPathExpression {
 
     const trimmed = expression.trim();
 
-    // Handle special function expressions (count, average)
+    // Handle special function expressions (count, average, count_where)
     if (trimmed.startsWith("count(") && trimmed.endsWith(")")) {
       // For count expressions, create a synthetic JSONPath expression
       return {
@@ -54,6 +54,17 @@ export class JSONPathExpression {
         data: new JSONPathExpression(trimmed, [
           { type: "root", value: "$" },
           { type: "function", value: "average" },
+        ]),
+      };
+    }
+
+    if (trimmed.startsWith("count_where(") && trimmed.endsWith(")")) {
+      // For count_where expressions, create a synthetic JSONPath expression
+      return {
+        ok: true,
+        data: new JSONPathExpression(trimmed, [
+          { type: "root", value: "$" },
+          { type: "function", value: "count_where" },
         ]),
       };
     }

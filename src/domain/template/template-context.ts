@@ -397,11 +397,15 @@ export class TemplateContext {
         content = jsonSubstitutionResult.data;
       } else {
         // Regular string-based substitution for non-JSON templates
-        content = this.substituteVariablesInString(
+        const stringSubstitutionResult = this.substituteVariablesInString(
           content,
           variableMap,
           options,
         );
+        if (!stringSubstitutionResult.ok) {
+          return stringSubstitutionResult;
+        }
+        content = stringSubstitutionResult.data;
       }
 
       return { ok: true, data: content };
@@ -613,33 +617,40 @@ export class TemplateContext {
       const templateObj = JSON.parse(jsonContent);
 
       // Recursively substitute variables in the parsed object
-      const substituted = this.substituteInJsonObject(
+      const substitutionResult = this.substituteInJsonObject(
         templateObj,
         variableMap,
         options,
       );
 
+      if (!substitutionResult.ok) {
+        return substitutionResult;
+      }
+
       // Re-serialize to JSON with proper formatting
-      return { ok: true, data: JSON.stringify(substituted, null, 2) };
+      return {
+        ok: true,
+        data: JSON.stringify(substitutionResult.data, null, 2),
+      };
     } catch (_parseError) {
       // If JSON parsing fails, fall back to string substitution
-      const stringResult = this.substituteVariablesInString(
+      return this.substituteVariablesInString(
         jsonContent,
         variableMap,
         options,
       );
-      return { ok: true, data: stringResult };
     }
   }
 
   /**
    * Recursively substitute variables in a JSON object structure
+   * Returns Result<T,E> pattern following Totality principle
    */
   private substituteInJsonObject(
     obj: unknown,
     variableMap: Record<string, VariableValue>,
     options: TemplateProcessingOptions,
-  ): unknown {
+  ): Result<unknown, DomainError & { message: string }> {
     if (typeof obj === "string") {
       // Check if the entire string is a variable placeholder
       const fullVariableMatch = obj.match(/^\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}$/);
@@ -649,22 +660,38 @@ export class TemplateContext {
 
         if (value !== undefined) {
           // Return the actual value (array, object, etc.) for JSON context
-          return value;
+          return { ok: true, data: value };
         } else if (options.allowMissingVariables) {
-          return obj; // Keep placeholder
+          return { ok: true, data: obj }; // Keep placeholder
         } else {
-          throw new Error(`Missing variable: ${varName}`);
+          return {
+            ok: false,
+            error: createDomainError(
+              { kind: "MissingVariable", variable: varName },
+              `Missing variable: ${varName}`,
+            ),
+          };
         }
       }
 
       // Handle partial string interpolation
-      return this.substituteVariablesInString(obj, variableMap, options);
+      const stringResult = this.substituteVariablesInString(
+        obj,
+        variableMap,
+        options,
+      );
+      if (!stringResult.ok) return stringResult;
+      return { ok: true, data: stringResult.data };
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) =>
-        this.substituteInJsonObject(item, variableMap, options)
-      );
+      const results: unknown[] = [];
+      for (const item of obj) {
+        const result = this.substituteInJsonObject(item, variableMap, options);
+        if (!result.ok) return result;
+        results.push(result.data);
+      }
+      return { ok: true, data: results };
     }
 
     if (obj && typeof obj === "object") {
@@ -672,45 +699,71 @@ export class TemplateContext {
       for (
         const [key, value] of Object.entries(obj as Record<string, unknown>)
       ) {
-        result[key] = this.substituteInJsonObject(value, variableMap, options);
+        const substitutionResult = this.substituteInJsonObject(
+          value,
+          variableMap,
+          options,
+        );
+        if (!substitutionResult.ok) return substitutionResult;
+        result[key] = substitutionResult.data;
       }
-      return result;
+      return { ok: true, data: result };
     }
 
-    return obj;
+    return { ok: true, data: obj };
   }
 
   /**
    * String-based variable substitution for non-JSON templates
+   * Returns Result<T,E> pattern following Totality principle
    */
   private substituteVariablesInString(
     content: string,
     variableMap: Record<string, VariableValue>,
     options: TemplateProcessingOptions,
-  ): string {
+  ): Result<string, DomainError & { message: string }> {
     const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
 
-    return content.replace(placeholderPattern, (match, varName) => {
-      const value = this.getVariableValue(variableMap, varName);
+    try {
+      const result = content.replace(placeholderPattern, (match, varName) => {
+        const value = this.getVariableValue(variableMap, varName);
 
-      if (value === undefined) {
-        if (options.allowMissingVariables) {
-          return match; // Keep placeholder if missing variables allowed
-        } else {
-          throw new Error(`Missing variable: ${varName}`);
+        if (value === undefined) {
+          if (options.allowMissingVariables) {
+            return match; // Keep placeholder if missing variables allowed
+          } else {
+            // Store the error for later - can't throw in replace callback
+            throw new Error(`Missing variable: ${varName}`);
+          }
         }
-      }
 
-      // Convert value to string with format-aware serialization
-      let stringValue = this.valueToString(value);
+        // Convert value to string with format-aware serialization
+        let stringValue = this.valueToString(value);
 
-      // Apply HTML escaping if enabled
-      if (options.escapeHtml) {
-        stringValue = this.escapeHtml(stringValue);
-      }
+        // Apply HTML escaping if enabled
+        if (options.escapeHtml) {
+          stringValue = this.escapeHtml(stringValue);
+        }
 
-      return stringValue;
-    });
+        return stringValue;
+      });
+
+      return { ok: true, data: result };
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      const variableName = errorMessage.match(/Missing variable: (.+)/)?.[1] ||
+        "unknown";
+
+      return {
+        ok: false,
+        error: createDomainError(
+          { kind: "MissingVariable", variable: variableName },
+          errorMessage,
+        ),
+      };
+    }
   }
 
   /**
