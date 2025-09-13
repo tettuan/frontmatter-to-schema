@@ -42,7 +42,11 @@ export type ValidationError =
   | { kind: "RenderError"; template: string; details: string }
   | { kind: "ComputationError"; expression: string; details: string }
   | { kind: "MissingVariable"; variable: string }
-  | { kind: "InvalidArrayItemsSchema"; path: string };
+  | { kind: "InvalidArrayItemsSchema"; path: string }
+  | { kind: "ProcessorCreationFailed"; reason: string }
+  | { kind: "InvalidProcessorType"; received: string }
+  | { kind: "InvalidProcessorState"; state: string }
+  | { kind: "ExhaustiveCheckFailed"; unhandledValue: unknown };
 
 // Analysis domain specific errors
 export type AnalysisError =

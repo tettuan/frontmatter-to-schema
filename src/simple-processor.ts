@@ -101,7 +101,6 @@ async function processFiles(args: CLIArgs): Promise<void> {
     console.error("Configuration error:", configResult.error.message);
     Deno.exit(1);
   }
-
   const accessor = new SchemaPropertyAccessor(configResult.data);
   const templatePath = accessor.getTemplate(schema);
   if (templatePath) {

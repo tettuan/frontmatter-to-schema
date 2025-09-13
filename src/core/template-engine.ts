@@ -8,6 +8,9 @@
  * 4. x-frontmatter-part arrays are populated from documents
  */
 
+import { SchemaExtensionConfig } from "../domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "../domain/schema/services/schema-property-accessor.ts";
+
 export interface ProcessingContext {
   schemaData: Record<string, unknown>;
   documentData: Record<string, unknown>[];
@@ -15,6 +18,24 @@ export interface ProcessingContext {
 }
 
 export class TemplateEngine {
+  private readonly accessor: SchemaPropertyAccessor;
+
+  constructor(config?: SchemaExtensionConfig) {
+    // Use default config if not provided
+    const extensionConfig = config || this.getDefaultConfig();
+    this.accessor = new SchemaPropertyAccessor(extensionConfig);
+  }
+
+  private getDefaultConfig(): SchemaExtensionConfig {
+    const result = SchemaExtensionConfig.createDefault();
+    if (!result.ok) {
+      // Fallback to hardcoded defaults if config creation fails
+      // This should never happen in practice
+      throw new Error("Failed to create default config");
+    }
+    return result.data;
+  }
+
   /**
    * Process template according to requirements
    */
@@ -63,9 +84,11 @@ export class TemplateEngine {
           rootSchema || schema,
           varPath,
         );
-        if (propertySchema && propertySchema["x-derived-from"]) {
-          const derivedFrom = propertySchema["x-derived-from"] as string;
-          const isUnique = propertySchema["x-derived-unique"] === true;
+        const derivedFrom = propertySchema
+          ? this.accessor.getDerivedFrom(propertySchema)
+          : undefined;
+        if (derivedFrom && propertySchema) {
+          const isUnique = this.accessor.isDerivedUnique(propertySchema);
 
           // Extract from the processed result instead of raw documents
           const values = this.extractFromProcessedResult(
@@ -197,8 +220,8 @@ export class TemplateEngine {
         // Check if this key is x-frontmatter-part in schema
         const keySchema = this.getSchemaForKey(schema, key);
 
-        if (keySchema && keySchema["x-frontmatter-part"] === true) {
-          // This is x-frontmatter-part - populate from documents
+        if (keySchema && this.accessor.hasFrontmatterPart(keySchema)) {
+          // This is frontmatter-part - populate from documents
           result[key] = this.processXFrontmatterPartArray(documents, keySchema);
         } else {
           // Regular processing
@@ -300,7 +323,7 @@ export class TemplateEngine {
   }
 
   private isArrayFrontmatterPart(schema: Record<string, unknown>): boolean {
-    return schema["x-frontmatter-part"] === true;
+    return this.accessor.hasFrontmatterPart(schema);
   }
 
   private collectFrontmatterValues(
