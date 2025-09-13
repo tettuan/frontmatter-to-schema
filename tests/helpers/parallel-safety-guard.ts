@@ -4,8 +4,8 @@
  * Ensures tests run safely in parallel with complete isolation and environment independence.
  */
 
-import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
-import { join } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { crypto } from "jsr:@std/crypto";
+import { join } from "@std/path";
 
 export interface TestContext {
   readonly id: string;

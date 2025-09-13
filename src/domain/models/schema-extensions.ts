@@ -17,6 +17,7 @@ export interface SchemaExtensions {
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
   "x-derived-count"?: string;
+  "x-derived-count-where"?: { from: string; where: string };
   "x-derived-average"?: string;
   "x-template"?: string;
   [key: string]: unknown; // Allow other x-* properties
@@ -35,6 +36,7 @@ export interface ExtendedSchema extends Record<string, unknown> {
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
   "x-derived-count"?: string;
+  "x-derived-count-where"?: { from: string; where: string };
   "x-derived-average"?: string;
   "x-template"?: string;
 }
@@ -51,6 +53,7 @@ export interface ExtendedSchemaProperty extends Record<string, unknown> {
   "x-derived-unique"?: boolean;
   "x-derived-flatten"?: boolean;
   "x-derived-count"?: string;
+  "x-derived-count-where"?: { from: string; where: string };
   "x-derived-average"?: string;
   "x-template"?: string;
 }
@@ -145,8 +148,9 @@ export interface DerivedFieldInfo {
   sourceExpression: string;
   unique: boolean;
   flatten: boolean;
-  operation?: "from" | "count" | "average"; // Add operation type
+  operation?: "from" | "count" | "average" | "count_where"; // Add operation type
   operationSource?: string; // Source for count/average operations
+  whereCondition?: string; // Condition for count_where operations
 }
 
 /**
@@ -209,6 +213,22 @@ function extractDerivationRules(
           flatten: false,
           operation: "average",
           operationSource,
+        });
+      }
+
+      // Check for x-derived-count-where
+      const derivedCountWhereResult = accessor.getDerivedCountWhere();
+      if (derivedCountWhereResult.ok) {
+        const { from, where } = derivedCountWhereResult.data;
+
+        rules.set(fieldPath, {
+          fieldPath,
+          sourceExpression: `count_where(${from}, ${where})`, // Generate expression for conditional count operation
+          unique: false,
+          flatten: false,
+          operation: "count_where",
+          operationSource: from,
+          whereCondition: where, // Additional property for the condition
         });
       }
     }

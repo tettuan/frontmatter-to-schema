@@ -52,47 +52,21 @@ export class AggregationService {
       arrayLengths: {},
     };
 
-    // Process each derivation rule
+    // First pass: Process non-count/average rules to build aggregated data
+    const countRules: { targetField: string; sourceExpression: string }[] = [];
+
     for (const rule of context.getRules()) {
       const targetField = rule.getTargetField();
       const sourceExpression = rule.getSourceExpression();
 
-      // Check if this is a count or average operation
+      // Check if this is a count, average, or count_where operation - defer these to second pass
       if (
-        sourceExpression.startsWith("count(") && sourceExpression.endsWith(")")
+        sourceExpression.startsWith("count(") ||
+        sourceExpression.startsWith("average(") ||
+        sourceExpression.startsWith("count_where(")
       ) {
-        // Extract the actual expression from count(expression)
-        const innerExpression = sourceExpression.slice(6, -1); // Remove "count(" and ")"
-        const countResult = this.evaluator.count(items, innerExpression);
-
-        if (countResult.ok) {
-          aggregated[targetField] = countResult.data;
-        } else {
-          warnings.push(
-            `Failed to evaluate count operation "${sourceExpression}" for field "${targetField}": ${countResult.error.message}`,
-          );
-          aggregated[targetField] = 0; // Default count value
-        }
-        continue; // Skip normal processing for count operations
-      }
-
-      if (
-        sourceExpression.startsWith("average(") &&
-        sourceExpression.endsWith(")")
-      ) {
-        // Extract the actual expression from average(expression)
-        const innerExpression = sourceExpression.slice(8, -1); // Remove "average(" and ")"
-        const averageResult = this.evaluator.average(items, innerExpression);
-
-        if (averageResult.ok) {
-          aggregated[targetField] = averageResult.data;
-        } else {
-          warnings.push(
-            `Failed to evaluate average operation "${sourceExpression}" for field "${targetField}": ${averageResult.error.message}`,
-          );
-          aggregated[targetField] = null; // Default average value when no numeric values
-        }
-        continue; // Skip normal processing for average operations
+        countRules.push({ targetField, sourceExpression });
+        continue; // Skip to second pass
       }
 
       // Normal processing for x-derived-from operations
@@ -153,6 +127,123 @@ export class AggregationService {
       }
 
       aggregated[targetField] = finalValues;
+    }
+
+    // Second pass: Process count, average, and count_where operations
+    for (const { targetField, sourceExpression } of countRules) {
+      if (
+        sourceExpression.startsWith("count(") && sourceExpression.endsWith(")")
+      ) {
+        // Extract the actual expression from count(expression)
+        const innerExpression = sourceExpression.slice(6, -1); // Remove "count(" and ")"
+
+        // For count operations, distinguish between JSONPath expressions and simple field names
+        if (innerExpression.includes("$") || innerExpression.includes("[]")) {
+          // This is a JSONPath expression - use the original evaluator logic
+          const countResult = this.evaluator.count(items, innerExpression);
+          if (countResult.ok) {
+            aggregated[targetField] = countResult.data;
+          } else {
+            warnings.push(
+              `Failed to evaluate count operation "${sourceExpression}" for field "${targetField}": ${countResult.error.message}`,
+            );
+            aggregated[targetField] = 0;
+          }
+        } else if (
+          items.length === 1 && isValidRecordData(items[0]) &&
+          innerExpression in items[0]
+        ) {
+          // This is a simple field name in wrapped data structure (frontmatter-part case)
+          const wrappedData = items[0] as Record<string, unknown>;
+          const targetArray = wrappedData[innerExpression];
+          if (Array.isArray(targetArray)) {
+            aggregated[targetField] = targetArray.length;
+          } else {
+            aggregated[targetField] = 0;
+          }
+        } else {
+          // Fallback to counting input items
+          aggregated[targetField] = items.length;
+        }
+      } else if (
+        sourceExpression.startsWith("average(") &&
+        sourceExpression.endsWith(")")
+      ) {
+        // Extract the actual expression from average(expression)
+        const innerExpression = sourceExpression.slice(8, -1); // Remove "average(" and ")"
+        const averageResult = this.evaluator.average(items, innerExpression);
+
+        if (averageResult.ok) {
+          aggregated[targetField] = averageResult.data;
+        } else {
+          warnings.push(
+            `Failed to evaluate average operation "${sourceExpression}" for field "${targetField}": ${averageResult.error.message}`,
+          );
+          aggregated[targetField] = null; // Default average value when no numeric values
+        }
+      } else if (
+        sourceExpression.startsWith("count_where(") &&
+        sourceExpression.endsWith(")")
+      ) {
+        // Extract parameters from count_where(array, condition)
+        const params = sourceExpression.slice(12, -1); // Remove "count_where(" and ")"
+        const parts = params.split(", ");
+
+        if (parts.length >= 2) {
+          const arrayExpression = parts[0];
+          const condition = parts.slice(1).join(", "); // Rejoin in case condition contains commas
+
+          // For count_where operations, handle wrapped data structure
+          if (
+            items.length === 1 && isValidRecordData(items[0]) &&
+            arrayExpression in items[0]
+          ) {
+            // Access the wrapped data structure
+            const wrappedData = items[0] as Record<string, unknown>;
+            const targetArray = wrappedData[arrayExpression];
+            if (Array.isArray(targetArray)) {
+              const countWhereResult = this.evaluator.countWhere(
+                targetArray,
+                "$",
+                condition,
+              );
+              if (countWhereResult.ok) {
+                aggregated[targetField] = countWhereResult.data;
+              } else {
+                warnings.push(
+                  `Failed to evaluate count_where operation "${sourceExpression}" for field "${targetField}": ${countWhereResult.error.message}`,
+                );
+                aggregated[targetField] = 0;
+              }
+            } else {
+              warnings.push(
+                `Array "${arrayExpression}" not found or not an array in wrapped data for count_where operation "${sourceExpression}"`,
+              );
+              aggregated[targetField] = 0;
+            }
+          } else {
+            // Fallback to operating on input items directly
+            const countWhereResult = this.evaluator.countWhere(
+              items,
+              "$",
+              condition,
+            );
+            if (countWhereResult.ok) {
+              aggregated[targetField] = countWhereResult.data;
+            } else {
+              warnings.push(
+                `Failed to evaluate count_where operation "${sourceExpression}" for field "${targetField}": ${countWhereResult.error.message}`,
+              );
+              aggregated[targetField] = 0;
+            }
+          }
+        } else {
+          warnings.push(
+            `Invalid count_where syntax "${sourceExpression}" for field "${targetField}": expected count_where(array, condition)`,
+          );
+          aggregated[targetField] = 0;
+        }
+      }
     }
 
     // Create metadata using Totality principles

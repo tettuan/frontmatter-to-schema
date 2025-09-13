@@ -200,7 +200,28 @@ export class OutputPath {
 }
 
 /**
- * Validated CLI arguments with all required paths
+ * CLI execution modes following Totality principle
+ * Eliminates optional properties with discriminated unions
+ */
+export type CliExecutionMode =
+  | { kind: "Help" }
+  | {
+    kind: "Configuration";
+    configPath: ConfigPath;
+    verbose: boolean;
+  }
+  | {
+    kind: "Direct";
+    inputPath: InputPath;
+    schemaPath: SchemaPath;
+    templatePath: TemplatePath;
+    outputPath?: OutputPath;
+    verbose: boolean;
+  };
+
+/**
+ * @deprecated Use CliExecutionMode instead
+ * Maintained temporarily for backward compatibility
  */
 export interface ValidatedCliArguments {
   configPath?: ConfigPath;
@@ -213,7 +234,77 @@ export interface ValidatedCliArguments {
 }
 
 /**
- * CLI Arguments validator - converts raw parseArgs output to validated value objects
+ * CLI Mode validator - converts raw parseArgs output to discriminated union following Totality principle
+ */
+export class CliModeValidator {
+  static validate(
+    args: Record<string, unknown>,
+  ): Result<CliExecutionMode, DomainError> {
+    const verbose = Boolean(args.verbose);
+
+    // Help mode takes precedence
+    if (args.help) {
+      return { ok: true, data: { kind: "Help" } };
+    }
+
+    // Configuration mode
+    if (args.config !== undefined) {
+      const configResult = ConfigPath.create(args.config);
+      if (!configResult.ok) {
+        return configResult;
+      }
+      return {
+        ok: true,
+        data: {
+          kind: "Configuration",
+          configPath: configResult.data,
+          verbose,
+        },
+      };
+    }
+
+    // Direct mode - validate required paths
+    const inputResult = InputPath.create(args.input);
+    if (!inputResult.ok) {
+      return inputResult;
+    }
+
+    const schemaResult = SchemaPath.create(args.schema);
+    if (!schemaResult.ok) {
+      return schemaResult;
+    }
+
+    const templateResult = TemplatePath.create(args.template);
+    if (!templateResult.ok) {
+      return templateResult;
+    }
+
+    let outputPath: OutputPath | undefined;
+    if (args.output !== undefined) {
+      const outputResult = OutputPath.create(args.output);
+      if (!outputResult.ok) {
+        return outputResult;
+      }
+      outputPath = outputResult.data;
+    }
+
+    return {
+      ok: true,
+      data: {
+        kind: "Direct",
+        inputPath: inputResult.data,
+        schemaPath: schemaResult.data,
+        templatePath: templateResult.data,
+        outputPath,
+        verbose,
+      },
+    };
+  }
+}
+
+/**
+ * @deprecated Use CliModeValidator instead
+ * Maintained temporarily for backward compatibility
  */
 export class CliArgumentsValidator {
   static validate(

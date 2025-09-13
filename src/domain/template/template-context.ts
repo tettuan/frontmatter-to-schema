@@ -397,11 +397,15 @@ export class TemplateContext {
         content = jsonSubstitutionResult.data;
       } else {
         // Regular string-based substitution for non-JSON templates
-        content = this.substituteVariablesInString(
+        const stringSubstitutionResult = this.substituteVariablesInString(
           content,
           variableMap,
           options,
         );
+        if (!stringSubstitutionResult.ok) {
+          return stringSubstitutionResult;
+        }
+        content = stringSubstitutionResult.data;
       }
 
       return { ok: true, data: content };
@@ -532,7 +536,7 @@ export class TemplateContext {
 
   /**
    * Convert value to string with format-aware serialization
-   * FIXED: Properly handle arrays in JSON templates
+   * FIXED: Properly handle arrays in JSON templates and Date objects
    */
   private valueToString(value: unknown): string {
     if (value === null || value === undefined) {
@@ -545,6 +549,15 @@ export class TemplateContext {
 
     if (typeof value === "number" || typeof value === "boolean") {
       return String(value);
+    }
+
+    // Handle Date objects specifically for ISO8601 output
+    if (value instanceof Date) {
+      // Check if the Date is valid
+      if (isNaN(value.getTime())) {
+        return ""; // Return empty string for invalid dates
+      }
+      return value.toISOString();
     }
 
     if (Array.isArray(value)) {
@@ -613,33 +626,40 @@ export class TemplateContext {
       const templateObj = JSON.parse(jsonContent);
 
       // Recursively substitute variables in the parsed object
-      const substituted = this.substituteInJsonObject(
+      const substitutionResult = this.substituteInJsonObject(
         templateObj,
         variableMap,
         options,
       );
 
+      if (!substitutionResult.ok) {
+        return substitutionResult;
+      }
+
       // Re-serialize to JSON with proper formatting
-      return { ok: true, data: JSON.stringify(substituted, null, 2) };
+      return {
+        ok: true,
+        data: JSON.stringify(substitutionResult.data, null, 2),
+      };
     } catch (_parseError) {
       // If JSON parsing fails, fall back to string substitution
-      const stringResult = this.substituteVariablesInString(
+      return this.substituteVariablesInString(
         jsonContent,
         variableMap,
         options,
       );
-      return { ok: true, data: stringResult };
     }
   }
 
   /**
    * Recursively substitute variables in a JSON object structure
+   * Returns Result<T,E> pattern following Totality principle
    */
   private substituteInJsonObject(
     obj: unknown,
     variableMap: Record<string, VariableValue>,
     options: TemplateProcessingOptions,
-  ): unknown {
+  ): Result<unknown, DomainError & { message: string }> {
     if (typeof obj === "string") {
       // Check if the entire string is a variable placeholder
       const fullVariableMatch = obj.match(/^\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}$/);
@@ -648,23 +668,51 @@ export class TemplateContext {
         const value = this.getVariableValue(variableMap, varName);
 
         if (value !== undefined) {
-          // Return the actual value (array, object, etc.) for JSON context
-          return value;
+          // For Date objects, convert to ISO8601 string even in JSON context
+          if (value instanceof Date) {
+            const stringValue = this.valueToString(value);
+            return { ok: true, data: stringValue };
+          }
+          // For arrays with Date objects, convert each Date to string but keep as array
+          if (Array.isArray(value)) {
+            const processedArray = value.map((item) =>
+              item instanceof Date ? this.valueToString(item) : item
+            );
+            return { ok: true, data: processedArray };
+          }
+          // Return the actual value (object, etc.) for JSON context
+          return { ok: true, data: value };
         } else if (options.allowMissingVariables) {
-          return obj; // Keep placeholder
+          return { ok: true, data: obj }; // Keep placeholder
         } else {
-          throw new Error(`Missing variable: ${varName}`);
+          return {
+            ok: false,
+            error: createDomainError(
+              { kind: "MissingVariable", variable: varName },
+              `Missing variable: ${varName}`,
+            ),
+          };
         }
       }
 
       // Handle partial string interpolation
-      return this.substituteVariablesInString(obj, variableMap, options);
+      const stringResult = this.substituteVariablesInString(
+        obj,
+        variableMap,
+        options,
+      );
+      if (!stringResult.ok) return stringResult;
+      return { ok: true, data: stringResult.data };
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) =>
-        this.substituteInJsonObject(item, variableMap, options)
-      );
+      const results: unknown[] = [];
+      for (const item of obj) {
+        const result = this.substituteInJsonObject(item, variableMap, options);
+        if (!result.ok) return result;
+        results.push(result.data);
+      }
+      return { ok: true, data: results };
     }
 
     if (obj && typeof obj === "object") {
@@ -672,33 +720,56 @@ export class TemplateContext {
       for (
         const [key, value] of Object.entries(obj as Record<string, unknown>)
       ) {
-        result[key] = this.substituteInJsonObject(value, variableMap, options);
+        const substitutionResult = this.substituteInJsonObject(
+          value,
+          variableMap,
+          options,
+        );
+        if (!substitutionResult.ok) return substitutionResult;
+        result[key] = substitutionResult.data;
       }
-      return result;
+      return { ok: true, data: result };
     }
 
-    return obj;
+    return { ok: true, data: obj };
   }
 
   /**
    * String-based variable substitution for non-JSON templates
+   * Returns Result<T,E> pattern following Totality principle
+   * Refactored to eliminate throw/catch violation - collects errors properly
    */
   private substituteVariablesInString(
     content: string,
     variableMap: Record<string, VariableValue>,
     options: TemplateProcessingOptions,
-  ): string {
+  ): Result<string, DomainError & { message: string }> {
     const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
 
-    return content.replace(placeholderPattern, (match, varName) => {
+    // First pass: validate all variables before substitution
+    const matches = Array.from(content.matchAll(placeholderPattern));
+    for (const match of matches) {
+      const varName = match[1];
+      const value = this.getVariableValue(variableMap, varName);
+
+      if (value === undefined && !options.allowMissingVariables) {
+        return {
+          ok: false,
+          error: createDomainError(
+            { kind: "MissingVariable", variable: varName },
+            `Missing variable: ${varName}`,
+          ),
+        };
+      }
+    }
+
+    // Second pass: perform substitution (guaranteed to succeed)
+    const result = content.replace(placeholderPattern, (match, varName) => {
       const value = this.getVariableValue(variableMap, varName);
 
       if (value === undefined) {
-        if (options.allowMissingVariables) {
-          return match; // Keep placeholder if missing variables allowed
-        } else {
-          throw new Error(`Missing variable: ${varName}`);
-        }
+        // This can only happen if allowMissingVariables is true
+        return match; // Keep placeholder if missing variables allowed
       }
 
       // Convert value to string with format-aware serialization
@@ -711,6 +782,8 @@ export class TemplateContext {
 
       return stringValue;
     });
+
+    return { ok: true, data: result };
   }
 
   /**
@@ -751,6 +824,7 @@ export class TemplateContext {
 
   /**
    * Convert unknown value to VariableValue
+   * FIXED: Handle Date objects for ISO8601 serialization
    */
   private convertToVariableValue(value: unknown): VariableValue {
     if (value === null || value === undefined) {
@@ -760,6 +834,10 @@ export class TemplateContext {
       typeof value === "string" || typeof value === "number" ||
       typeof value === "boolean"
     ) {
+      return value;
+    }
+    // Handle Date objects - preserve as Date for later ISO8601 conversion
+    if (value instanceof Date) {
       return value;
     }
     if (Array.isArray(value)) {

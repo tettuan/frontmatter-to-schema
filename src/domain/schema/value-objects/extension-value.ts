@@ -13,6 +13,9 @@ export type ExtensionTypeValue =
   | "frontmatter-part"
   | "derived-from"
   | "derived-unique"
+  | "derived-count"
+  | "derived-average"
+  | "derived-count-where"
   | "template";
 
 /**
@@ -96,6 +99,15 @@ export class ExtensionType {
   static readonly DERIVED_UNIQUE: ExtensionType = new ExtensionType(
     "derived-unique",
   );
+  static readonly DERIVED_COUNT: ExtensionType = new ExtensionType(
+    "derived-count",
+  );
+  static readonly DERIVED_AVERAGE: ExtensionType = new ExtensionType(
+    "derived-average",
+  );
+  static readonly DERIVED_COUNT_WHERE: ExtensionType = new ExtensionType(
+    "derived-count-where",
+  );
   static readonly TEMPLATE: ExtensionType = new ExtensionType("template");
 
   /**
@@ -123,7 +135,15 @@ export class ExtensionType {
   private static isValidExtensionType(
     value: string,
   ): value is ExtensionTypeValue {
-    return ["frontmatter-part", "derived-from", "derived-unique", "template"]
+    return [
+      "frontmatter-part",
+      "derived-from",
+      "derived-unique",
+      "derived-count",
+      "derived-average",
+      "derived-count-where",
+      "template",
+    ]
       .includes(value);
   }
 
@@ -162,7 +182,7 @@ export const createValidationError = (
 function getDefaultValidationErrorMessage(error: ValidationError): string {
   switch (error.kind) {
     case "InvalidExtensionType":
-      return `Invalid extension type: ${error.value}. Valid types are: frontmatter-part, derived-from, derived-unique, template`;
+      return `Invalid extension type: ${error.value}. Valid types are: frontmatter-part, derived-from, derived-unique, derived-count, derived-average, derived-count-where, template`;
     case "MissingRequiredProperty":
       return `Missing required property: ${error.property}`;
     case "InvalidValueFormat":

@@ -12,7 +12,7 @@ import type { Result } from "../core/result.ts";
 import { createDomainError, type DomainError } from "../core/result.ts";
 import type { DocumentPath } from "../value-objects/document-path.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
-import { parse as parseYaml } from "jsr:@std/yaml";
+import { parse as parseYaml } from "jsr:@std/yaml@1.0.9";
 
 /**
  * Extracted frontmatter with metadata

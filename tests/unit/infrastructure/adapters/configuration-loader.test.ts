@@ -1090,12 +1090,14 @@ content: "Fallback to {{yaml}}"
     const formatResult = TemplateFormat.create("json", "{}");
     assert(templateIdResult.ok && formatResult.ok);
 
-    const template = Template.createLegacy(
+    const templateResult = Template.create(
       templateIdResult.data,
       formatResult.data,
       [],
       "test template",
     );
+    assert(templateResult.ok);
+    const template = templateResult.data;
 
     // Note: ConfigurationLoader doesn't have a direct template validation method
     // For this test, we'll create a mock schema to validate the template concept

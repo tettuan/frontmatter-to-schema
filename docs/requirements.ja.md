@@ -44,6 +44,7 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 
 - テンプレートファイルに書かれた内容がそのまま出力フォーマットとなる
 - {variable.path}形式の変数のみが実際の値に置換される
+- {@items}形式は配列展開記法で、$ref参照先のテンプレートを各アイテムに適用する
 - Schemaによる構造の補完や追加は一切行われない
 - x-frontmatter-part配列も同じルールに従う（特殊処理なし）
 
@@ -318,7 +319,7 @@ registry_command_template.json
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
     "commands": [
-      // Schemaに基づき、ここにregistry_command_template.jsonの繰り返しが入る。
+      "{@items}"
     ]
   }
 }

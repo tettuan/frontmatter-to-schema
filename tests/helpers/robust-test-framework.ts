@@ -5,7 +5,7 @@
  * following DDD principles and Totality patterns.
  */
 
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import {
   type DomainError,
   isFailure,

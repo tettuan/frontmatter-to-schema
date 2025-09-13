@@ -40,7 +40,9 @@ export type ValidationError =
   | { kind: "ExtractionError"; property?: string; reason: string }
   | { kind: "SecurityViolation"; path: string; reason: string }
   | { kind: "RenderError"; template: string; details: string }
-  | { kind: "ComputationError"; expression: string; details: string };
+  | { kind: "ComputationError"; expression: string; details: string }
+  | { kind: "MissingVariable"; variable: string }
+  | { kind: "InvalidArrayItemsSchema"; path: string };
 
 // Analysis domain specific errors
 export type AnalysisError =
@@ -153,6 +155,10 @@ export const getDefaultErrorMessage = (error: DomainError): string => {
       return `Invalid state: expected ${error.expected}, got ${error.actual}`;
     case "NoFrontMatterPresent":
       return "Document does not contain frontmatter";
+    case "MissingVariable":
+      return `Missing variable: ${error.variable}`;
+    case "InvalidArrayItemsSchema":
+      return `Invalid array items schema at path: ${error.path}`;
 
     // Analysis errors
     case "SchemaValidationFailed":

@@ -34,7 +34,8 @@ $refで参照された各Schemaが独自のx-templateを持ち、再帰的にテ
 
 1. **テンプレートが権威** - 出力フォーマットを完全に定義
 2. **変数は置換される** - {variable.path} → 実際の値
-3. **追加は一切ない** - Schema構造による推論や補完は行われない
+3. **配列展開記法** - {@items} → $ref参照先テンプレートを各アイテムに適用
+4. **追加は一切ない** - Schema構造による推論や補完は行われない
 
 ### 配列処理（x-frontmatter-part: true）
 
@@ -177,22 +178,30 @@ flowchart TB
     ValidateArgs -->|成功| LoadSchema[Schema読込]
     
     LoadSchema --> ResolveRefs[$ref解決]
-    ResolveRefs --> ExtractTemplate[テンプレート情報抽出]
+    ResolveRefs --> BuildTemplate[テンプレート構築]
+    BuildTemplate --> BuildValues[値構築]
     
-    ExtractTemplate --> ScanFiles[入力パターンでファイル探索]
+    BuildValues --> ScanFiles[入力パターンでファイル探索]
     ScanFiles --> ProcessLoop{全ファイル処理済?}
     
     ProcessLoop -->|No| ExtractFrontmatter[フロントマター抽出]
     ExtractFrontmatter --> ValidateFrontmatter[Schema検証]
     ValidateFrontmatter --> TransformData[データ変換]
-    TransformData --> ApplyTemplate[テンプレート適用]
-    ApplyTemplate --> StoreResult[結果格納]
+    TransformData --> StoreResult[結果格納]
     StoreResult --> ProcessLoop
     
     ProcessLoop -->|Yes| AggregateResults[結果集約]
     AggregateResults --> DeriveFields[派生フィールド生成]
-    DeriveFields --> FinalTemplate[最終テンプレート適用]
-    FinalTemplate --> WriteOutput[指定ファイルへ出力]
+    DeriveFields --> OutputBoundary[出力境界線]
+    
+    subgraph "出力境界線の処理"
+        OutputTemplate[1. テンプレートを出力する]
+        ReplaceValues[2. テンプレート出力時に値を置換する]
+        OutputTemplate --> ReplaceValues
+    end
+    
+    OutputBoundary --> OutputTemplate
+    ReplaceValues --> WriteOutput[指定ファイルへ出力]
     WriteOutput --> End
 ```
 
@@ -507,6 +516,28 @@ type AggregationProcessState =
 ## 処理詳細
 
 ### 1. Schema読込と$ref解決、再帰的テンプレート処理（Schemaドメイン）
+
+#### Schema解析から構築のドメイン境界における責務分離
+
+Schemaドメインでは以下の2つの責務を明確に分離し、別々の保持データとして管理する：
+
+1. **Schemaはテンプレートを構築する**
+   - x-templateプロパティからテンプレート構造を抽出
+   - $ref解決により階層的なテンプレート構造を構築
+   - テンプレート自体が最終的な出力フォーマットを完全に定義
+
+2. **Schemaは値を構築する**
+   - フロントマターから抽出されたデータの構造化
+   - 型変換、検証、派生フィールドの生成
+   - テンプレート変数に対応する値の準備
+
+#### 重要な原則
+
+- **テンプレートがなければエラーになる**: x-templateが存在しない場合は処理を停止
+- **値がなければ、テンプレートの変数が置換されずに出力される**:
+  未定義変数は{variable}のまま残る
+- **テンプレート自体が出力結果であり、テンプレート以外の出力がされることはない**:
+  Schema構造による推論や補完は一切行わない
 
 #### 1.1 再帰的$refとテンプレート処理の概要
 
@@ -1332,6 +1363,30 @@ class ParallelProcessor {
 1. **エンドツーエンド処理**: 入力から出力まで
 2. **エラー回復**: 部分的失敗からの継続
 3. **大量ファイル処理**: パフォーマンス検証
+
+## 出力境界線における処理原則
+
+出力境界線では以下の2つの処理を順序立てて実行する：
+
+### 1. テンプレートを出力する
+
+- 構築されたテンプレート構造をそのまま出力フォーマットとして使用
+- テンプレート内の変数は{variable}形式で保持される
+- この段階では値の置換は行わない
+
+### 2. テンプレート出力時に値を置換する
+
+- 出力されたテンプレート内の{variable}パターンを検索
+- 構築された値データから対応する値を取得
+- 変数パターンを実際の値で置換
+
+### 処理の独立性
+
+この2段階の処理により以下が保証される：
+
+- **テンプレートの完全性**: テンプレートが出力の全構造を定義
+- **値の分離**: 値の有無に関わらずテンプレート構造は保持
+- **エラーの明確化**: テンプレート不在と値不在を明確に区別
 
 ## まとめ
 

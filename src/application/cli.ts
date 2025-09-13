@@ -1,5 +1,5 @@
-import { parseArgs } from "jsr:@std/cli/parse-args";
-import * as path from "jsr:@std/path";
+import { parseArgs } from "jsr:@std/cli@1.0.21/parse-args";
+import * as path from "jsr:@std/path@1.0.9";
 import type { DomainError, Result } from "../domain/core/result.ts";
 import {
   type ApplicationConfiguration,
@@ -617,5 +617,22 @@ Configuration File Format:
     }
   }
 `);
+  }
+}
+
+// Main entry point
+if (import.meta.main) {
+  const cliResult = CLI.create();
+  if (!cliResult.ok) {
+    console.error("Failed to create CLI:", cliResult.error);
+    Deno.exit(1);
+  }
+
+  const cli = cliResult.data;
+  const result = await cli.run(Deno.args);
+
+  if (!result.ok) {
+    console.error("CLI execution failed:", result.error);
+    Deno.exit(1);
   }
 }

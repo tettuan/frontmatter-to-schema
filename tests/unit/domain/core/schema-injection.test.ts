@@ -4,7 +4,7 @@
  * Issue #401: Critical test coverage improvements
  */
 
-import { assertEquals, assertExists, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
   type ActiveSchema,
   isFailedSchema,
@@ -585,24 +585,32 @@ Deno.test("SchemaInjectionContainer", async (t) => {
     }
   });
 
-  await t.step("should throw error for empty binding key", () => {
+  await t.step("should return error for empty binding key", () => {
     const container = new SchemaInjectionContainer();
 
-    assertThrows(
-      () => container.bind("", "value"),
-      Error,
-      "Binding key cannot be empty",
-    );
+    const result = container.bind("", "value");
+
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
+      if (result.error.kind === "EmptyInput") {
+        assertEquals(result.error.field, "key");
+      }
+    }
   });
 
-  await t.step("should throw error for whitespace-only binding key", () => {
+  await t.step("should return error for whitespace-only binding key", () => {
     const container = new SchemaInjectionContainer();
 
-    assertThrows(
-      () => container.bind("   ", "value"),
-      Error,
-      "Binding key cannot be empty",
-    );
+    const result = container.bind("   ", "value");
+
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
+      if (result.error.kind === "EmptyInput") {
+        assertEquals(result.error.field, "key");
+      }
+    }
   });
 
   await t.step("should fail to resolve non-existent binding", () => {

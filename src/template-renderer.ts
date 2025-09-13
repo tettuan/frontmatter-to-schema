@@ -293,14 +293,26 @@ export class TemplateRenderer {
 
   /**
    * Get nested value from object using dot notation
+   * Safe type guard implementation following Totality principle
    */
   private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     return path.split(".").reduce((current: unknown, key: string) => {
-      return current && typeof current === "object" && current !== null &&
-          key in current
-        ? (current as Record<string, unknown>)[key]
-        : undefined;
-    }, obj as unknown);
+      // Safe type guard instead of type assertion
+      if (this.isRecord(current) && key in current) {
+        return current[key];
+      }
+      return undefined;
+    }, obj);
+  }
+
+  /**
+   * Type guard to safely check if value is Record<string, unknown>
+   */
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      value !== undefined;
   }
 
   /**
@@ -330,9 +342,15 @@ export class TemplateRenderer {
         };
       }
 
-      const templatePathResult = getTemplatePath(
-        itemsSchema as Record<string, unknown>,
-      );
+      // Safe type check before using schema
+      if (!this.isRecord(itemsSchema)) {
+        return {
+          ok: false,
+          error: { kind: "InvalidArrayItemsSchema", path: propertyName },
+        };
+      }
+
+      const templatePathResult = getTemplatePath(itemsSchema);
       if (!templatePathResult.ok) {
         // No x-template found, return original data
         return { ok: true, data: arrayData };
@@ -362,26 +380,23 @@ export class TemplateRenderer {
     propertyName: string,
     schema: Record<string, unknown>,
   ): Record<string, unknown> | null {
-    const properties = schema.properties as Record<string, unknown> | undefined;
-    if (!properties) return null;
+    // Safe property access using type guard
+    if (!this.isRecord(schema.properties)) {
+      return null;
+    }
 
     // Handle nested property paths (e.g., "tools.commands")
     const pathParts = propertyName.split(".");
-    let currentSchema: Record<string, unknown> | undefined = properties;
+    let currentSchema: unknown = schema.properties;
 
     for (const part of pathParts) {
-      if (
-        !currentSchema || typeof currentSchema !== "object" ||
-        !(part in currentSchema)
-      ) {
+      if (!this.isRecord(currentSchema) || !(part in currentSchema)) {
         return null;
       }
-      currentSchema = currentSchema[part] as Record<string, unknown>;
+      currentSchema = currentSchema[part];
     }
 
-    return currentSchema && typeof currentSchema === "object"
-      ? currentSchema
-      : null;
+    return this.isRecord(currentSchema) ? currentSchema : null;
   }
 
   /**
@@ -398,20 +413,18 @@ export class TemplateRenderer {
       // Process each array item with the template
       const processedItems = await Promise.all(
         arrayData.map(async (item) => {
-          if (item && typeof item === "object") {
+          // Use safe type guard instead of assertion
+          if (this.isRecord(item)) {
             // For JSON templates, parse and process
             try {
               const templateObj = JSON.parse(templateContent);
               return await this.processTemplateObject(templateObj, {
                 kind: "aggregated" as const,
-                aggregatedData: item as Record<string, unknown>,
+                aggregatedData: item,
               });
             } catch {
               // If not JSON, treat as simple string template
-              return this.replaceVariables(
-                templateContent,
-                item as Record<string, unknown>,
-              );
+              return this.replaceVariables(templateContent, item);
             }
           }
           return item;

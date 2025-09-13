@@ -1,6 +1,6 @@
 #!/usr/bin/env deno run --allow-read --allow-write
 
-import { extract } from "https://deno.land/std@0.208.0/front_matter/yaml.ts";
+import { extract } from "jsr:@std/front-matter/yaml";
 
 interface CommandOption {
   directive: string;
@@ -53,7 +53,12 @@ async function parsePromptFile(filepath: string): Promise<
   let frontmatter: Record<string, unknown> = {};
   try {
     const parsed = extract(content);
-    frontmatter = parsed.attrs;
+    if (
+      typeof parsed.attrs === "object" && parsed.attrs !== null &&
+      !Array.isArray(parsed.attrs)
+    ) {
+      frontmatter = parsed.attrs as Record<string, unknown>;
+    }
   } catch {
     // No frontmatter
   }

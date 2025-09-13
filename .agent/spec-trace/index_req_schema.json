@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Requirement Level Index Schema",
+  "x-template": "level_index_template.json",
+  "description": "Schema for requirement level traceability index",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Index description",
+      "default": "Requirement level traceability IDs"
+    },
+    "level": {
+      "type": "string",
+      "description": "Level name for template",
+      "default": "req"
+    },
+    "req": {
+      "type": "array",
+      "description": "Requirement level traceability IDs",
+      "x-frontmatter-part": true,
+      "items": {
+        "$ref": "traceability_item_schema.json"
+      }
+    }
+  },
+  "required": ["version", "description", "req"]
+}

@@ -20,6 +20,7 @@ export const SchemaExtensions = {
   DERIVED_UNIQUE: "x-derived-unique",
   DERIVED_FLATTEN: "x-derived-flatten",
   DERIVED_COUNT: "x-derived-count",
+  DERIVED_COUNT_WHERE: "x-derived-count-where",
   DERIVED_AVERAGE: "x-derived-average",
 
   // Transform extensions
@@ -189,6 +190,30 @@ export class SchemaExtensionAccessor {
       error: {
         kind: "InvalidDerivedAverageValue",
         message: "Derived-average value must be a string",
+      },
+    };
+  }
+
+  /**
+   * Get derived-count-where configuration with type safety
+   */
+  getDerivedCountWhere(): Result<
+    { from: string; where: string },
+    { kind: string; message: string }
+  > {
+    const value = this.extensions[SchemaExtensions.DERIVED_COUNT_WHERE];
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.from === "string" && typeof obj.where === "string") {
+        return { ok: true, data: { from: obj.from, where: obj.where } };
+      }
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "InvalidDerivedCountWhereValue",
+        message:
+          "Derived-count-where value must be an object with 'from' and 'where' string properties",
       },
     };
   }

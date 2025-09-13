@@ -353,11 +353,21 @@ export class SchemaInjectionContainer {
   /**
    * Bind a schema or component at runtime
    */
-  bind(key: string, value: unknown): void {
+  bind(
+    key: string,
+    value: unknown,
+  ): Result<void, DomainError & { message: string }> {
     if (!key || key.trim() === "") {
-      throw new Error("Binding key cannot be empty");
+      return {
+        ok: false,
+        error: createDomainError({
+          kind: "EmptyInput",
+          field: "key",
+        }),
+      };
     }
     this.bindings.set(key.trim(), value);
+    return { ok: true, data: undefined };
   }
 
   /**
@@ -375,6 +385,9 @@ export class SchemaInjectionContainer {
         }),
       };
     }
+
+    // Note: This cast is necessary due to TypeScript's limitation with generic resolution
+    // The caller is responsible for ensuring T matches the bound value type
     return { ok: true, data: value as T };
   }
 
