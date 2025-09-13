@@ -26,7 +26,11 @@ export class Processor {
     if (!resolverResult.ok) return resolverResult;
 
     // Use TemplateEngine instead of TemplateRenderer
-    const templateEngine = new TemplateEngine();
+    const templateEngineResult = TemplateEngine.create();
+    if (!templateEngineResult.ok) {
+      return templateEngineResult;
+    }
+    const templateEngine = templateEngineResult.data;
 
     const aggregatorResult = Aggregator.create();
     if (!aggregatorResult.ok) return aggregatorResult;

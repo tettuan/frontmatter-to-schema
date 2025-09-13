@@ -9,7 +9,13 @@ import { assertEquals, assertExists } from "jsr:@std/assert@1.0.9";
 import { TemplateEngine } from "../../../src/core/template-engine.ts";
 
 Deno.test("TemplateEngine - Basic Tests", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should create instance", () => {
     assertExists(engine);
@@ -65,7 +71,13 @@ Deno.test("TemplateEngine - Basic Tests", async (t) => {
 });
 
 Deno.test("TemplateEngine - x-frontmatter-part Processing", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should extract x-frontmatter-part fields into arrays", () => {
     const result = engine.process({
@@ -129,7 +141,13 @@ Deno.test("TemplateEngine - x-frontmatter-part Processing", async (t) => {
 });
 
 Deno.test("TemplateEngine - x-derived-from Processing", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should handle basic x-derived-from fields", () => {
     // x-derived-from with direct field path
@@ -153,8 +171,10 @@ Deno.test("TemplateEngine - x-derived-from Processing", async (t) => {
     });
 
     const parsed = JSON.parse(result);
-    // Currently returns empty array - x-derived-from may not be fully implemented
     assertEquals(Array.isArray(parsed.allValues), true);
+    assertEquals(parsed.allValues.length, 2);
+    assertEquals(parsed.allValues[0], 100);
+    assertEquals(parsed.allValues[1], 200);
   });
 
   await t.step("should handle x-derived-unique fields", () => {
@@ -180,13 +200,21 @@ Deno.test("TemplateEngine - x-derived-from Processing", async (t) => {
     });
 
     const parsed = JSON.parse(result);
-    // Currently returns empty array - x-derived-from may not be fully implemented
     assertEquals(Array.isArray(parsed.uniqueCategories), true);
+    assertEquals(parsed.uniqueCategories.length, 2);
+    assertEquals(parsed.uniqueCategories.includes("A"), true);
+    assertEquals(parsed.uniqueCategories.includes("B"), true);
   });
 });
 
 Deno.test("TemplateEngine - Variable Replacement", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should replace nested path variables", () => {
     const result = engine.process({
@@ -227,7 +255,13 @@ Deno.test("TemplateEngine - Variable Replacement", async (t) => {
 });
 
 Deno.test("TemplateEngine - Edge Cases", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should handle empty document array", () => {
     const result = engine.process({
@@ -285,7 +319,13 @@ Deno.test("TemplateEngine - Edge Cases", async (t) => {
 });
 
 Deno.test("TemplateEngine - Array Processing", async (t) => {
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    throw new Error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+  }
+  const engine = engineResult.data;
 
   await t.step("should process arrays with variable replacement", () => {
     const result = engine.process({

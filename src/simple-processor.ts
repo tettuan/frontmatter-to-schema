@@ -131,7 +131,15 @@ async function processFiles(args: CLIArgs): Promise<void> {
   }
 
   // Process with template engine
-  const engine = new TemplateEngine();
+  const engineResult = TemplateEngine.create();
+  if (!engineResult.ok) {
+    console.error(
+      `Failed to create TemplateEngine: ${engineResult.error.kind}`,
+    );
+    Deno.exit(1);
+  }
+  const engine = engineResult.data;
+
   const output = engine.process({
     schemaData: schema,
     documentData: documents,
