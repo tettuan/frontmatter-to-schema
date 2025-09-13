@@ -4,7 +4,7 @@
  * Issue #401: Critical test coverage improvements
  */
 
-import { assertEquals, assertExists, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import {
   type ActiveSchema,
   isFailedSchema,
@@ -541,7 +541,8 @@ Deno.test("SchemaInjectionContainer", async (t) => {
     const container = new SchemaInjectionContainer();
     const testValue = { name: "test", value: 42 };
 
-    container.bind("test-binding", testValue);
+    const bindResult = container.bind("test-binding", testValue);
+    assertEquals(bindResult.ok, true);
     const result = container.resolve<typeof testValue>("test-binding");
 
     assertEquals(result.ok, true);
@@ -553,11 +554,11 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should bind different types of values", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("string-key", "string value");
-    container.bind("number-key", 123);
-    container.bind("boolean-key", true);
-    container.bind("object-key", { prop: "value" });
-    container.bind("array-key", [1, 2, 3]);
+    assertEquals(container.bind("string-key", "string value").ok, true);
+    assertEquals(container.bind("number-key", 123).ok, true);
+    assertEquals(container.bind("boolean-key", true).ok, true);
+    assertEquals(container.bind("object-key", { prop: "value" }).ok, true);
+    assertEquals(container.bind("array-key", [1, 2, 3]).ok, true);
 
     const stringResult = container.resolve<string>("string-key");
     const numberResult = container.resolve<number>("number-key");
@@ -576,7 +577,8 @@ Deno.test("SchemaInjectionContainer", async (t) => {
     const container = new SchemaInjectionContainer();
     const testValue = "trimmed";
 
-    container.bind("  spaced-key  ", testValue);
+    const bindResult = container.bind("  spaced-key  ", testValue);
+    assertEquals(bindResult.ok, true);
     const result = container.resolve<string>("spaced-key");
 
     assertEquals(result.ok, true);
@@ -585,24 +587,30 @@ Deno.test("SchemaInjectionContainer", async (t) => {
     }
   });
 
-  await t.step("should throw error for empty binding key", () => {
+  await t.step("should return error for empty binding key", () => {
     const container = new SchemaInjectionContainer();
 
-    assertThrows(
-      () => container.bind("", "value"),
-      Error,
-      "Binding key cannot be empty",
-    );
+    const result = container.bind("", "value");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
+      if (result.error.kind === "EmptyInput") {
+        assertEquals(result.error.field, "key");
+      }
+    }
   });
 
-  await t.step("should throw error for whitespace-only binding key", () => {
+  await t.step("should return error for whitespace-only binding key", () => {
     const container = new SchemaInjectionContainer();
 
-    assertThrows(
-      () => container.bind("   ", "value"),
-      Error,
-      "Binding key cannot be empty",
-    );
+    const result = container.bind("   ", "value");
+    assertEquals(result.ok, false);
+    if (!result.ok) {
+      assertEquals(result.error.kind, "EmptyInput");
+      if (result.error.kind === "EmptyInput") {
+        assertEquals(result.error.field, "key");
+      }
+    }
   });
 
   await t.step("should fail to resolve non-existent binding", () => {
@@ -623,7 +631,8 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should check if key is bound", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("existing", "value");
+    const bindResult = container.bind("existing", "value");
+    assertEquals(bindResult.ok, true);
 
     assertEquals(container.has("existing"), true);
     assertEquals(container.has("non-existing"), false);
@@ -632,8 +641,8 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should unbind specific keys", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("key1", "value1");
-    container.bind("key2", "value2");
+    assertEquals(container.bind("key1", "value1").ok, true);
+    assertEquals(container.bind("key2", "value2").ok, true);
 
     assertEquals(container.has("key1"), true);
     assertEquals(container.has("key2"), true);
@@ -647,9 +656,9 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should clear all bindings", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("key1", "value1");
-    container.bind("key2", "value2");
-    container.bind("key3", "value3");
+    assertEquals(container.bind("key1", "value1").ok, true);
+    assertEquals(container.bind("key2", "value2").ok, true);
+    assertEquals(container.bind("key3", "value3").ok, true);
 
     assertEquals(container.keys().length, 3);
 
@@ -662,9 +671,9 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should return all binding keys", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("alpha", 1);
-    container.bind("beta", 2);
-    container.bind("gamma", 3);
+    assertEquals(container.bind("alpha", 1).ok, true);
+    assertEquals(container.bind("beta", 2).ok, true);
+    assertEquals(container.bind("gamma", 3).ok, true);
 
     const keys = container.keys();
 
@@ -677,10 +686,10 @@ Deno.test("SchemaInjectionContainer", async (t) => {
   await t.step("should handle binding overwrites", () => {
     const container = new SchemaInjectionContainer();
 
-    container.bind("overwrite", "original");
+    assertEquals(container.bind("overwrite", "original").ok, true);
     assertEquals(container.resolve<string>("overwrite").ok, true);
 
-    container.bind("overwrite", "updated");
+    assertEquals(container.bind("overwrite", "updated").ok, true);
     const result = container.resolve<string>("overwrite");
 
     assertEquals(result.ok, true);
@@ -795,7 +804,7 @@ Deno.test("Schema Injection Integration", async (t) => {
     );
 
     // Bind to container
-    container.bind("userInjector", injector);
+    assertEquals(container.bind("userInjector", injector).ok, true);
 
     // Test activation switching
     const userResult = injector.activate("user");

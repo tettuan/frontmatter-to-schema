@@ -228,125 +228,108 @@ export class ProcessCoordinator {
 
     const options = optionsBuilderResult.data.getOptions();
 
-    try {
-      // CANONICAL PROCESSING PATH - STEP BY STEP, NO SHORTCUTS
+    // CANONICAL PROCESSING PATH - STEP BY STEP, NO SHORTCUTS
 
-      // Step 1: Load and validate schema (REQUIRED)
-      const schemaResult = await this.loadSchema(configuration.schema);
-      if (!schemaResult.ok) {
-        return this.createProcessingError("SchemaLoading", schemaResult.error);
-      }
-
-      // Step 2: Discover files to process (REQUIRED)
-      const filesResult = await this.discoverFiles(
-        configuration.input,
-        options,
-      );
-      if (!filesResult.ok) {
-        return this.createProcessingError("FileDiscovery", filesResult.error);
-      }
-
-      // Step 3: Process all documents (SEQUENTIAL - NO BYPASS)
-      // Extract schema path for validation
-      const schemaPathForValidation = SchemaPath.create(
-        configuration.schema.path,
-      );
-      if (!schemaPathForValidation.ok) {
-        return this.createProcessingError(
-          "SchemaPath",
-          schemaPathForValidation.error,
-        );
-      }
-
-      const processingResult = await this.processAllDocuments(
-        filesResult.data,
-        schemaResult.data,
-        schemaPathForValidation.data,
-        options,
-      );
-      if (!processingResult.ok) {
-        return this.createProcessingError(
-          "DocumentProcessing",
-          processingResult.error,
-        );
-      }
-
-      // Step 4: Aggregate data (if schema requires it) - MUST BE BEFORE TEMPLATE RENDERING
-      // FIXED: Check schema requirements, not file count (Issue #690)
-      let aggregatedData: AggregatedData | undefined;
-      const requiresAggregation = this.schemaRequiresAggregation(
-        schemaResult.data,
-      );
-
-      if (requiresAggregation) {
-        const aggregationResult = await this.aggregateData(
-          processingResult.data.validatedDocuments,
-          schemaResult.data,
-          options,
-        );
-        if (!aggregationResult.ok) {
-          return this.createProcessingError(
-            "DataAggregation",
-            aggregationResult.error,
-          );
-        }
-        aggregatedData = aggregationResult.data;
-      }
-
-      // Step 5: Render template (MANDATORY - NO BYPASS ALLOWED) - USES AGGREGATED DATA
-      const renderingResult = await this.renderTemplate(
-        processingResult.data.validatedDocuments,
-        processingResult.data.documentContents,
-        configuration.template,
-        options,
-        aggregatedData, // Pass aggregated data to template rendering
-      );
-      if (!renderingResult.ok) {
-        return this.createProcessingError(
-          "TemplateRendering",
-          renderingResult.error,
-        );
-      }
-
-      // Step 6: Write output (FINAL STEP)
-      const outputResult = await this.writeOutput(
-        renderingResult.data,
-        configuration.output,
-        aggregatedData,
-      );
-      if (!outputResult.ok) {
-        return this.createProcessingError("OutputWriting", outputResult.error);
-      }
-
-      // Create final processing result
-      const processingTime = Date.now() - startTime;
-      const result: ProcessingResult = {
-        processedFiles: processingResult.data.validatedDocuments.length,
-        validationResults: processingResult.data.validationSummaries,
-        renderedContent: renderingResult.data,
-        aggregatedData,
-        processingTime,
-        bypassDetected: false, // CRITICAL: Always false
-        canonicalPathUsed: true, // CRITICAL: Always true
-      };
-
-      return { ok: true, data: result };
-    } catch (error) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "ProcessingStageError",
-            stage: "ProcessCoordinator",
-            error: {
-              kind: "ExtractionError",
-              reason: String(error),
-            },
-          },
-          `Processing coordination failed: ${error}`,
-        ),
-      };
+    // Step 1: Load and validate schema (REQUIRED)
+    const schemaResult = await this.loadSchema(configuration.schema);
+    if (!schemaResult.ok) {
+      return this.createProcessingError("SchemaLoading", schemaResult.error);
     }
+
+    // Step 2: Discover files to process (REQUIRED)
+    const filesResult = await this.discoverFiles(
+      configuration.input,
+      options,
+    );
+    if (!filesResult.ok) {
+      return this.createProcessingError("FileDiscovery", filesResult.error);
+    }
+
+    // Step 3: Process all documents (SEQUENTIAL - NO BYPASS)
+    // Extract schema path for validation
+    const schemaPathForValidation = SchemaPath.create(
+      configuration.schema.path,
+    );
+    if (!schemaPathForValidation.ok) {
+      return this.createProcessingError(
+        "SchemaPath",
+        schemaPathForValidation.error,
+      );
+    }
+
+    const processingResult = await this.processAllDocuments(
+      filesResult.data,
+      schemaResult.data,
+      schemaPathForValidation.data,
+      options,
+    );
+    if (!processingResult.ok) {
+      return this.createProcessingError(
+        "DocumentProcessing",
+        processingResult.error,
+      );
+    }
+
+    // Step 4: Aggregate data (if schema requires it) - MUST BE BEFORE TEMPLATE RENDERING
+    // FIXED: Check schema requirements, not file count (Issue #690)
+    let aggregatedData: AggregatedData | undefined;
+    const requiresAggregation = this.schemaRequiresAggregation(
+      schemaResult.data,
+    );
+
+    if (requiresAggregation) {
+      const aggregationResult = await this.aggregateData(
+        processingResult.data.validatedDocuments,
+        schemaResult.data,
+        options,
+      );
+      if (!aggregationResult.ok) {
+        return this.createProcessingError(
+          "DataAggregation",
+          aggregationResult.error,
+        );
+      }
+      aggregatedData = aggregationResult.data;
+    }
+
+    // Step 5: Render template (MANDATORY - NO BYPASS ALLOWED) - USES AGGREGATED DATA
+    const renderingResult = await this.renderTemplate(
+      processingResult.data.validatedDocuments,
+      processingResult.data.documentContents,
+      configuration.template,
+      options,
+      aggregatedData, // Pass aggregated data to template rendering
+    );
+    if (!renderingResult.ok) {
+      return this.createProcessingError(
+        "TemplateRendering",
+        renderingResult.error,
+      );
+    }
+
+    // Step 6: Write output (FINAL STEP)
+    const outputResult = await this.writeOutput(
+      renderingResult.data,
+      configuration.output,
+      aggregatedData,
+    );
+    if (!outputResult.ok) {
+      return this.createProcessingError("OutputWriting", outputResult.error);
+    }
+
+    // Create final processing result
+    const processingTime = Date.now() - startTime;
+    const result: ProcessingResult = {
+      processedFiles: processingResult.data.validatedDocuments.length,
+      validationResults: processingResult.data.validationSummaries,
+      renderedContent: renderingResult.data,
+      aggregatedData,
+      processingTime,
+      bypassDetected: false, // CRITICAL: Always false
+      canonicalPathUsed: true, // CRITICAL: Always true
+    };
+
+    return { ok: true, data: result };
   }
 
   // Private canonical processing steps - INTERNAL ONLY, NO EXTERNAL ACCESS
@@ -465,10 +448,10 @@ export class ProcessCoordinator {
       // It's a directory, traverse it (baseStat check already done above)
       const traverseResult = await traverseDirectory(baseDir);
       if (!traverseResult.ok) {
-        return traverseResult as Result<
-          DocumentPath[],
-          DomainError & { message: string }
-        >;
+        return {
+          ok: false,
+          error: traverseResult.error,
+        };
       }
 
       if (files.length === 0) {
@@ -704,10 +687,10 @@ export class ProcessCoordinator {
     // Extract schema template info from resolved schema
     const schemaDefinitionResult = resolvedSchema.definition.getParsedSchema();
     if (!schemaDefinitionResult.ok) {
-      return schemaDefinitionResult as Result<
-        never,
-        DomainError & { message: string }
-      >;
+      return {
+        ok: false,
+        error: schemaDefinitionResult.error,
+      };
     }
 
     const templateInfoResult = SchemaTemplateInfo.extract(
@@ -737,10 +720,10 @@ export class ProcessCoordinator {
     });
 
     if (!aggregationResult.ok) {
-      return aggregationResult as Result<
-        never,
-        DomainError & { message: string }
-      >;
+      return {
+        ok: false,
+        error: aggregationResult.error,
+      };
     }
 
     // Transform AggregateResultsOutput to AggregatedData format
@@ -965,7 +948,9 @@ export class ProcessCoordinator {
     ) {
       for (const prop of Object.values(schema.properties)) {
         if (typeof prop === "object" && prop !== null) {
-          const propObj = prop as Record<string, unknown>;
+          // Type guard for object property
+          if (!this.isRecordObject(prop)) continue;
+          const propObj = prop;
           // Check for aggregation markers using configurable property names
           const derivedFromProp = this.extensionConfig.getDerivedFromProperty();
           if (
@@ -982,11 +967,13 @@ export class ProcessCoordinator {
           ) {
             for (
               const nestedProp of Object.values(
-                propObj["properties"] as Record<string, unknown>,
+                this.getObjectProperties(propObj["properties"]),
               )
             ) {
               if (typeof nestedProp === "object" && nestedProp !== null) {
-                const nestedPropObj = nestedProp as Record<string, unknown>;
+                // Type guard for nested property
+                if (!this.isRecordObject(nestedProp)) continue;
+                const nestedPropObj = nestedProp;
                 if (
                   derivedFromProp in nestedPropObj ||
                   (frontmatterPartProp in nestedPropObj &&
@@ -1045,6 +1032,10 @@ export class ProcessCoordinator {
       ) {
         current[part] = {};
       }
+      // Type guard for nested object access
+      if (!this.isRecordObject(current[part])) {
+        current[part] = {};
+      }
       current = current[part] as Record<string, unknown>;
     }
 
@@ -1071,5 +1062,22 @@ export class ProcessCoordinator {
         `Processing failed in stage "${stage}": ${underlyingError.message}`,
       ),
     };
+  }
+
+  /**
+   * Type guard for Record<string, unknown> objects
+   */
+  private isRecordObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  /**
+   * Safe getter for object properties with type validation
+   */
+  private getObjectProperties(properties: unknown): unknown[] {
+    if (!this.isRecordObject(properties)) {
+      return [];
+    }
+    return Object.values(properties);
   }
 }
