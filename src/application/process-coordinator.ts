@@ -341,7 +341,11 @@ export class ProcessCoordinator {
 
     // Use Template Domain Facades for template processing
     // Create template source with schema path and aggregated values
-    const templatePath = new TemplateFilePath(templateSource.data.toString());
+    // Extract the actual path from the TemplateSource object
+    const templatePathString = templateSource.data.kind === "file"
+      ? templateSource.data.path
+      : "inline-template";
+    const templatePath = new TemplateFilePath(templatePathString);
 
     // Prepare template values from document data
     const templateValues: Record<string, unknown> = {};

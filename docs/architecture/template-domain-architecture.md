@@ -4,9 +4,18 @@
 
 This document defines the authoritative architecture for Template Building and Template Output domains, establishing complete decoupling from all other system components. **All output operations MUST route through these domains without exception.**
 
-## Core Principle
+## Core Principles
 
 **TEMPLATE GATEWAY RULE**: All data transformations and outputs MUST pass through the Template Building and Template Output domains. Direct output bypassing these domains is strictly prohibited and constitutes an architectural violation.
+
+**TEMPLATE VALUE RESTRICTION RULE**: Values passed to templates are used EXCLUSIVELY for variable substitution within the template file. Templates MUST NOT use values for any other purpose including:
+- Conditional logic based on values
+- Dynamic template selection
+- Output path determination
+- Format selection
+- Any processing beyond simple text replacement
+
+The template's sole responsibility is to output the template file content with variables replaced by provided values.
 
 ## Domain Boundaries
 
@@ -143,10 +152,14 @@ interface CompiledTemplate {
 ### Domain Services
 
 #### `TemplateCompiler`
-- Responsibility: Compile template file with value set
+- Responsibility: Load template file and perform ONLY variable substitution with value set
 - Input: TemplateFilePath + TemplateValueSet
-- Output: CompiledTemplate
-- Invariants: Template must exist, values must match template requirements
+- Output: CompiledTemplate (template content with variables replaced)
+- Invariants:
+  - Template file must exist and be readable
+  - Values are used ONLY for variable substitution
+  - No conditional logic or dynamic behavior based on values
+  - Template structure remains unchanged except for variable replacement
 
 #### `TemplateLoader`
 - Responsibility: Load template file from path

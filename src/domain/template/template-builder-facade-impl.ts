@@ -76,7 +76,10 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
   ): Promise<Result<CompiledTemplate, BuildError>> {
     try {
       // Load template content from file
-      const templatePath = source.templatePath.resolve();
+      // templatePath is already a string path, not an object with resolve()
+      const templatePath = typeof source.templatePath === 'string'
+        ? source.templatePath
+        : (source.templatePath as any).path || String(source.templatePath);
       let templateContent: string;
 
       try {
