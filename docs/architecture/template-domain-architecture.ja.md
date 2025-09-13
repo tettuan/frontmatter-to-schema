@@ -6,9 +6,12 @@
 
 ## 中核原則
 
-**テンプレートゲートウェイルール**: すべてのデータ変換と出力は、テンプレート構築ドメインとテンプレート出力ドメインを通過しなければなりません。これらのドメインをバイパスする直接出力は厳格に禁止され、アーキテクチャ違反となります。
+**テンプレートゲートウェイルール**:
+すべてのデータ変換と出力は、テンプレート構築ドメインとテンプレート出力ドメインを通過しなければなりません。これらのドメインをバイパスする直接出力は厳格に禁止され、アーキテクチャ違反となります。
 
-**テンプレート値制限ルール**: テンプレートに渡された値は、テンプレートファイル内の変数置換にのみ使用されます。テンプレートは以下を含む他の目的で値を使用してはなりません：
+**テンプレート値制限ルール**:
+テンプレートに渡された値は、テンプレートファイル内の変数置換にのみ使用されます。テンプレートは以下を含む他の目的で値を使用してはなりません：
+
 - 値に基づく条件ロジック
 - 動的なテンプレート選択
 - 出力パスの決定
@@ -24,6 +27,7 @@
 **責務**: ソースデータとスキーマからのテンプレートの構築と合成
 
 **境界定義**:
+
 - 入力: テンプレートファイルパス（Schemaから）と値セット
 - 出力: 出力準備が整ったコンパイル済みテンプレートインスタンス
 - 依存関係: なし（純粋なドメインロジック）
@@ -34,6 +38,7 @@
 **責務**: コンパイル済みテンプレートの最終宛先へのレンダリングと配信
 
 **境界定義**:
+
 - 入力: テンプレート構築ドメインからのコンパイル済みテンプレートインスタンス
 - 出力: 最終フォーマット済み出力（ファイル、ストリーム、レスポンス）
 - 依存関係: テンプレート構築ドメインの出力契約
@@ -85,20 +90,23 @@
 
 テンプレート構築ドメインは正確に2つの情報を必要とします：
 
-1. **テンプレートファイルパス**: Schemaから取得されたテンプレートファイルへのパス
+1. **テンプレートファイルパス**:
+   Schemaから取得されたテンプレートファイルへのパス
 2. **値セット**: テンプレートに適用される値のコレクション
 
 ### コアエンティティ
 
 #### `TemplateSource`
+
 ```typescript
 interface TemplateSource {
-  templatePath: TemplateFilePath;  // Schemaからのパス
-  valueSet: TemplateValueSet;       // 適用する値
+  templatePath: TemplateFilePath; // Schemaからのパス
+  valueSet: TemplateValueSet; // 適用する値
 }
 ```
 
 #### `TemplateFilePath`
+
 ```typescript
 // Schemaからのテンプレートファイルパスを表す値オブジェクト
 class TemplateFilePath {
@@ -107,8 +115,8 @@ class TemplateFilePath {
   }
 
   private validate(): void {
-    if (!this.path || this.path.trim() === '') {
-      throw new Error('テンプレートパスは空にできません');
+    if (!this.path || this.path.trim() === "") {
+      throw new Error("テンプレートパスは空にできません");
     }
   }
 
@@ -124,6 +132,7 @@ class TemplateFilePath {
 ```
 
 #### `TemplateValueSet`
+
 ```typescript
 // テンプレート用の値セットを表す値オブジェクト
 interface TemplateValueSet {
@@ -137,6 +146,7 @@ interface TemplateValueSet {
 ```
 
 #### `CompiledTemplate`
+
 ```typescript
 interface CompiledTemplate {
   templatePath: TemplateFilePath;
@@ -153,22 +163,29 @@ interface CompiledTemplate {
 
 ### 必須要件
 
-1. **直接出力禁止**: すべての出力操作はテンプレート出力ドメインを経由しなければならない
-2. **バイパス禁止**: 直接ファイル/API書き込みを試みるサービスはコードレビューで拒否される
-3. **テンプレートコンパイル必須**: 生データは出力前にテンプレート構築ドメインでコンパイルされなければならない
-4. **単一エントリポイント**: 各ドメインは外部との相互作用のために正確に1つのファサードインターフェースを公開する
+1. **直接出力禁止**:
+   すべての出力操作はテンプレート出力ドメインを経由しなければならない
+2. **バイパス禁止**:
+   直接ファイル/API書き込みを試みるサービスはコードレビューで拒否される
+3. **テンプレートコンパイル必須**:
+   生データは出力前にテンプレート構築ドメインでコンパイルされなければならない
+4. **単一エントリポイント**:
+   各ドメインは外部との相互作用のために正確に1つのファサードインターフェースを公開する
 5. **不変契約**: ドメインインターフェースは一度定義されたら不変
-6. **Schema駆動テンプレート**: テンプレートパスはSchema定義から取得されなければならない
+6. **Schema駆動テンプレート**:
+   テンプレートパスはSchema定義から取得されなければならない
 
 ### 禁止パターン
 
 ❌ **直接ファイル書き込み**
+
 ```typescript
 // 禁止 - テンプレートドメインをバイパス
-fs.writeFileSync('output.json', JSON.stringify(data));
+fs.writeFileSync("output.json", JSON.stringify(data));
 ```
 
 ❌ **サービスからインフラストラクチャへの結合**
+
 ```typescript
 // 禁止 - サービスが直接インフラストラクチャを使用
 class SomeService {
@@ -180,20 +197,23 @@ class SomeService {
 ```
 
 ❌ **生データ出力**
+
 ```typescript
 // 禁止 - 未処理データを出力
 outputService.write(frontmatterData);
 ```
 
 ❌ **ハードコードされたテンプレートパス**
+
 ```typescript
 // 禁止 - テンプレートパスはSchemaから取得しなければならない
-const template = loadTemplate('./hardcoded/path.tmpl');
+const template = loadTemplate("./hardcoded/path.tmpl");
 ```
 
 ### 必須パターン
 
 ✅ **Schema駆動テンプレート処理**
+
 ```typescript
 // 必須 - SchemaからテンプレートパスPATH、処理からの値
 const templatePath = schema.getTemplatePath();
@@ -204,21 +224,22 @@ const result = templateOutput.write(rendered);
 ```
 
 ✅ **ドメインファサード使用**
+
 ```typescript
 // 必須 - ドメインファサードを通じてのみ相互作用
 class ApplicationService {
   constructor(
     private templateFacade: TemplateBuilderFacade,
-    private outputFacade: TemplateOutputFacade
+    private outputFacade: TemplateOutputFacade,
   ) {}
 
   async processDocument(
     schemaTemplatePath: string,
-    values: Record<string, unknown>
+    values: Record<string, unknown>,
   ): Promise<Result<void, Error>> {
     const templateSource = {
       templatePath: new TemplateFilePath(schemaTemplatePath),
-      valueSet: { values }
+      valueSet: { values },
     };
     const template = await this.templateFacade.buildTemplate(templateSource);
     return this.outputFacade.outputTemplate(template);
@@ -233,21 +254,21 @@ class ApplicationService {
 ```typescript
 interface TemplateBuilderFacade {
   buildTemplate(
-    source: TemplateSource
+    source: TemplateSource,
   ): Promise<Result<CompiledTemplate, BuildError>>;
 
   composeTemplates(
-    templates: CompiledTemplate[]
+    templates: CompiledTemplate[],
   ): Promise<Result<CompiledTemplate, CompositionError>>;
 
   validateTemplate(
-    template: CompiledTemplate
+    template: CompiledTemplate,
   ): Result<void, ValidationError>;
 }
 
 interface TemplateSource {
-  templatePath: TemplateFilePath;  // Schemaから
-  valueSet: TemplateValueSet;       // データ処理から
+  templatePath: TemplateFilePath; // Schemaから
+  valueSet: TemplateValueSet; // データ処理から
 }
 ```
 
@@ -279,9 +300,12 @@ interface TemplateSource {
 
 ### クリティカルパス要件
 
-- **テンプレート処理の整合性**: すべてのドキュメント処理は正規の`DocumentProcessor`パスを経由しなければならない
-- **非推奨パスの隔離**: すべての非正規処理パスは無効化され、削除対象としてマークされなければならない
-- **エンドツーエンド検証**: 統合テストは完全な処理ワークフローを検証しなければならない
+- **テンプレート処理の整合性**:
+  すべてのドキュメント処理は正規の`DocumentProcessor`パスを経由しなければならない
+- **非推奨パスの隔離**:
+  すべての非正規処理パスは無効化され、削除対象としてマークされなければならない
+- **エンドツーエンド検証**:
+  統合テストは完全な処理ワークフローを検証しなければならない
 
 ### 統合標準
 
@@ -291,15 +315,19 @@ interface TemplateSource {
 
 ### ガバナンス統合
 
-- **コードレビュー標準**: 新しいサービス作成は明示的なアーキテクチャ承認プロセスに従わなければならない
-- **重複防止**: 自動アーキテクチャテストは競合する実装パターンを防がなければならない
-- **文書メンテナンス**: サービス作成承認プロセスは文書化され、強制されなければならない
+- **コードレビュー標準**:
+  新しいサービス作成は明示的なアーキテクチャ承認プロセスに従わなければならない
+- **重複防止**:
+  自動アーキテクチャテストは競合する実装パターンを防がなければならない
+- **文書メンテナンス**:
+  サービス作成承認プロセスは文書化され、強制されなければならない
 
 ## コンプライアンス監視
 
 ### 自動チェック
 
-1. **アーキテクチャテスト**: サービスからの直接インフラストラクチャアクセスを防ぐ
+1. **アーキテクチャテスト**:
+   サービスからの直接インフラストラクチャアクセスを防ぐ
 2. **依存関係分析**: 適切なレイヤー境界を確保
 3. **出力パス検証**: すべての出力がテンプレートドメインを経由することを確認
 4. **コードカバレッジ**: ドメインロジックの100%カバレッジを維持
@@ -313,7 +341,8 @@ interface TemplateSource {
 
 ## 権限声明
 
-**この文書は、すべてのテンプレート関連操作の必須アーキテクチャを確立します。** いかなる逸脱も以下を必要とします：
+**この文書は、すべてのテンプレート関連操作の必須アーキテクチャを確立します。**
+いかなる逸脱も以下を必要とします：
 
 1. 書面によるアーキテクチャ正当化
 2. 影響分析文書
@@ -322,13 +351,12 @@ interface TemplateSource {
 5. この文書の更新
 
 **このアーキテクチャの違反は以下の結果をもたらします：**
+
 - 即座のコードレビュー拒否
 - マージ前の必須リファクタリング
 - アーキテクチャコンプライアンストレーニング要件
 
 ---
 
-**作成日**: 2025年12月
-**権限**: 正規アーキテクチャドキュメント
-**強制**: 必須 - 例外は許可されません
-**レビュースケジュール**: 四半期ごと
+**作成日**: 2025年12月 **権限**: 正規アーキテクチャドキュメント **強制**: 必須 -
+例外は許可されません **レビュースケジュール**: 四半期ごと

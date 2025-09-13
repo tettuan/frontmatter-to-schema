@@ -12,9 +12,9 @@ to prevent future architectural duplication.
 implementation path. All other implementations are considered deprecated and
 scheduled for removal.
 
-**TEMPLATE GATEWAY RULE**: ALL output operations MUST route through Template Building
-and Template Output domains. Direct output bypassing these domains is an architectural
-violation requiring immediate correction.
+**TEMPLATE GATEWAY RULE**: ALL output operations MUST route through Template
+Building and Template Output domains. Direct output bypassing these domains is
+an architectural violation requiring immediate correction.
 
 ## Processing Domains
 
@@ -91,7 +91,8 @@ Data + Schema → TemplateBuilderFacade
 
 **Primary Implementation**: `src/domain/template-building/*`
 
-**MANDATORY**: All data must be compiled through this domain before any output operation.
+**MANDATORY**: All data must be compiled through this domain before any output
+operation.
 
 ### 5. Template Output Domain
 
@@ -107,7 +108,8 @@ CompiledTemplate → TemplateOutputFacade
 
 **Primary Implementation**: `src/domain/template-output/*`
 
-**CRITICAL**: This is the ONLY permitted path for ALL output operations. Direct file/API writes are strictly prohibited.
+**CRITICAL**: This is the ONLY permitted path for ALL output operations. Direct
+file/API writes are strictly prohibited.
 
 ### 6. Frontmatter Extraction
 
@@ -231,12 +233,14 @@ Any deviation requires explicit architectural approval and documentation update.
 
 ## Template Domain Enforcement
 
-**MANDATORY COMPLIANCE**: All output operations MUST comply with the Template Domain
-Architecture as specified in [template-domain-architecture.md](./template-domain-architecture.md).
+**MANDATORY COMPLIANCE**: All output operations MUST comply with the Template
+Domain Architecture as specified in
+[template-domain-architecture.md](./template-domain-architecture.md).
 
 ### Violation Detection
 
-The following patterns indicate architectural violations requiring immediate correction:
+The following patterns indicate architectural violations requiring immediate
+correction:
 
 1. Direct file system writes from services
 2. API calls bypassing Template Output Domain
