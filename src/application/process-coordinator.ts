@@ -190,7 +190,9 @@ export class ProcessCoordinator {
       new DenoFileSystem(),
     );
     if (!templateServiceResult.ok) {
-      throw new Error(`Failed to create TemplateOutputService: ${templateServiceResult.error.message}`);
+      throw new Error(
+        `Failed to create TemplateOutputService: ${templateServiceResult.error.message}`,
+      );
     }
     this.templateOutputService = templateServiceResult.data;
   }

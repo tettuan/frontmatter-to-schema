@@ -126,7 +126,8 @@ export class DerivationRule {
         ok: false,
         error: {
           kind: "ConfigurationError",
-          message: `Failed to create configuration: ${configResult.error.message}`,
+          message:
+            `Failed to create configuration: ${configResult.error.message}`,
         },
       };
     }

@@ -167,7 +167,10 @@ export class TemplateOutputService {
     for (const [_key, value] of Object.entries(obj)) {
       if (typeof value === "object" && value !== null) {
         const def = value as Record<string, unknown>;
-        if (this.accessor.hasFrontmatterPart(def) || this.accessor.getDerivedFrom(def)) {
+        if (
+          this.accessor.hasFrontmatterPart(def) ||
+          this.accessor.getDerivedFrom(def)
+        ) {
           return true;
         }
         if (def.properties && typeof def.properties === "object") {

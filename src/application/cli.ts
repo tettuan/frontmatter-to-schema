@@ -335,41 +335,44 @@ export class CLI {
           const accessor = new SchemaPropertyAccessor(configResult.data);
           const xTemplatePath = accessor.getTemplate(schemaParsed);
           if (xTemplatePath) {
-
-          // Resolve relative path relative to schema file
-          const pathDefaults = CLI_DEFAULTS.getPathDefaults();
-          const schemaDir = validatedArgs.schemaPath
-            ? validatedArgs.schemaPath.toString().split(pathDefaults.separator)
-              .slice(0, -1).join(
+            // Resolve relative path relative to schema file
+            const pathDefaults = CLI_DEFAULTS.getPathDefaults();
+            const schemaDir = validatedArgs.schemaPath
+              ? validatedArgs.schemaPath.toString().split(
                 pathDefaults.separator,
               )
-            : pathDefaults.currentDirectory;
-          const resolvedTemplatePath =
-            pathDefaults.relativePrefixes.some((prefix) =>
-                xTemplatePath.startsWith(prefix)
-              )
-              ? `${schemaDir}${pathDefaults.separator}${xTemplatePath.slice(2)}`
-              : xTemplatePath;
+                .slice(0, -1).join(
+                  pathDefaults.separator,
+                )
+              : pathDefaults.currentDirectory;
+            const resolvedTemplatePath =
+              pathDefaults.relativePrefixes.some((prefix) =>
+                  xTemplatePath.startsWith(prefix)
+                )
+                ? `${schemaDir}${pathDefaults.separator}${
+                  xTemplatePath.slice(2)
+                }`
+                : xTemplatePath;
 
-          const templateFileResult = await this.fileSystem.readFile(
-            resolvedTemplatePath,
-          );
-          if (templateFileResult.ok) {
-            const detectedFormat = this.formatDetector.detectFormat(
+            const templateFileResult = await this.fileSystem.readFile(
               resolvedTemplatePath,
             );
-            const formatString = detectedFormat.ok
-              ? detectedFormat.data
-              : "json";
-            const formatResult = TemplateFormat.create(formatString);
+            if (templateFileResult.ok) {
+              const detectedFormat = this.formatDetector.detectFormat(
+                resolvedTemplatePath,
+              );
+              const formatString = detectedFormat.ok
+                ? detectedFormat.data
+                : "json";
+              const formatResult = TemplateFormat.create(formatString);
 
-            if (formatResult.ok) {
-              config.template = {
-                definition: templateFileResult.data,
-                format: formatResult.data,
-              };
+              if (formatResult.ok) {
+                config.template = {
+                  definition: templateFileResult.data,
+                  format: formatResult.data,
+                };
+              }
             }
-          }
           }
         }
       } catch {
@@ -508,7 +511,9 @@ export class CLI {
             const configResult = SchemaExtensionConfig.createDefault();
             if (configResult.ok) {
               const accessor = new SchemaPropertyAccessor(configResult.data);
-              const xTemplate = accessor.getTemplate(schemaContent as Record<string, unknown>);
+              const xTemplate = accessor.getTemplate(
+                schemaContent as Record<string, unknown>,
+              );
               if (typeof xTemplate === "string") {
                 // Resolve template path relative to schema directory
                 const schemaDir = path.dirname(schemaPath);

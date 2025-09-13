@@ -118,7 +118,9 @@ export class SchemaPropertyAccessor {
    * Get derived-count-where configuration from schema
    * Replaces: schema["x-derived-count-where"]
    */
-  getDerivedCountWhere(schema: Record<string, unknown>): { from: string; where: string } | undefined {
+  getDerivedCountWhere(
+    schema: Record<string, unknown>,
+  ): { from: string; where: string } | undefined {
     const value = schema["x-derived-count-where"];
     if (
       typeof value === "object" &&
