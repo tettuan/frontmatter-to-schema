@@ -1,2 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --allow-env
-import "./src/cli.ts";
+
+import { CLI } from "./mod.ts";
+
+const cli = new CLI();
+const exitCode = cli.run(Deno.args);
+Deno.exit(exitCode);
