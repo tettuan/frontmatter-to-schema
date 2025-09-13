@@ -211,23 +211,21 @@ export class TemplateOutputService {
 
   private extractArrayValues(
     documents: Record<string, unknown>[],
-    templatePattern: string,
+    _templatePattern: string,
   ): unknown[] {
+    // For x-frontmatter-part, return the actual array data from documents
+    // This gets the array values directly from the frontmatter
     const values: unknown[] = [];
 
-    // Parse template to find variable pattern
-    const match = templatePattern.match(/\{([^}]+)\}/);
-    if (!match) {
-      return values;
-    }
-
-    const varPath = match[1];
-
-    // Extract value from each document
     for (const doc of documents) {
-      const value = this.getValueByPath(doc, varPath);
-      if (value !== undefined) {
-        values.push(value);
+      // For x-frontmatter-part arrays, we want the actual array content
+      // not extracted from template pattern, but from the document data itself
+      if (doc && typeof doc === "object") {
+        for (const value of Object.values(doc)) {
+          if (Array.isArray(value)) {
+            values.push(...value);
+          }
+        }
       }
     }
 
@@ -325,13 +323,15 @@ export class TemplateOutputService {
 
         // Handle frontmatter-part arrays using accessor
         if (this.accessor.hasFrontmatterPart(def)) {
+          // For x-frontmatter-part, extract the actual array from documents
+          const arrayData = this.extractFrontmatterPartData(
+            documentData,
+            currentPath,
+          );
           this.setNestedProperty(
             outputData,
             currentPath,
-            this.extractArrayValues(
-              documentData,
-              templateContent,
-            ),
+            arrayData,
           );
         } else {
           const derivedFrom = this.accessor.getDerivedFrom(def);
@@ -426,5 +426,34 @@ export class TemplateOutputService {
     }
 
     return current;
+  }
+
+  private extractFrontmatterPartData(
+    documents: Record<string, unknown>[],
+    path: string,
+  ): unknown[] {
+    const values: unknown[] = [];
+
+    // Get the final segment of the path (e.g., "commands" from "tools.commands")
+    // For x-frontmatter-part, this represents the field name in the document data
+    const pathParts = path.split(".");
+    const finalSegment = pathParts[pathParts.length - 1];
+
+    for (const doc of documents) {
+      // For x-frontmatter-part, look for the field directly in the document
+      // The schema path represents output structure, not input navigation path
+      if (typeof doc === "object" && doc !== null) {
+        const fieldValue = (doc as Record<string, unknown>)[finalSegment];
+
+        // If we found an array at this field, add its contents
+        if (Array.isArray(fieldValue)) {
+          values.push(...fieldValue);
+        } else if (fieldValue !== undefined) {
+          values.push(fieldValue);
+        }
+      }
+    }
+
+    return values;
   }
 }
