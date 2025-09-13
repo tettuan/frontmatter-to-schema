@@ -68,11 +68,11 @@ export class ExpressionEvaluator {
         ),
       ),
     ).map((item) => {
-      try {
-        return JSON.parse(item as string);
-      } catch {
-        return item;
+      if (typeof item === "string") {
+        const parseResult = this.safeJsonParse(item);
+        return parseResult.ok ? parseResult.data : item;
       }
+      return item;
     });
 
     return ok(unique);
@@ -108,5 +108,15 @@ export class ExpressionEvaluator {
     }
 
     return ok(current);
+  }
+
+  private safeJsonParse(content: string): Result<unknown, { message: string }> {
+    try {
+      return ok(JSON.parse(content));
+    } catch (error) {
+      return err({
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 }
