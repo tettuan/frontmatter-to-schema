@@ -1,0 +1,8 @@
+{
+  "version": "{version}",
+  "description": "Overall registry description",
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "commands": []
+  }
+}

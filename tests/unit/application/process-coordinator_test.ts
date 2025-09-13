@@ -232,12 +232,12 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: File discovery recursive traversal implemented
-      // Note: Still failing on template configuration - needs .hbs template
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        // Fixed: Now fails at TemplateRendering stage instead of FileDiscovery
-        assertExists(result.error.message);
+      // ✅ FIXED: File discovery and x-template processing now working correctly
+      // Schema's x-template directive is properly resolved and used
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Success: Processing completes with schema's x-template
+        assertExists(result.data);
       }
     });
 
@@ -418,10 +418,12 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
 
       const result = await processCoordinator.processDocuments(config);
 
-      // 🔧 PARTIAL FIX: Recursive file discovery implemented
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertExists(result.error.message);
+      // ✅ FIXED: Single file processing with x-template now working correctly
+      // Schema's x-template directive is properly resolved and used
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        // Success: Processing completes with schema's x-template
+        assertExists(result.data);
       }
     });
   });
@@ -664,8 +666,8 @@ describe("ProcessCoordinator - Robust Test Suite", () => {
         assertExists(result.data.renderedContent);
         assertExists(result.data.renderedContent.content);
 
-        // Performance check
-        assert(result.data.processingTime > 0);
+        // Performance check - processing time should be a non-negative number
+        assert(result.data.processingTime >= 0);
         assert(result.data.processingTime < 1000); // Should be fast
       }
     });

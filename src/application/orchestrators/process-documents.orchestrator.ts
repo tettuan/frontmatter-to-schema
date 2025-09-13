@@ -28,7 +28,33 @@ import type { FileData } from "../../domain/aggregation/services/array-based-pro
 import * as path from "jsr:@std/path@1.0.9";
 
 /**
- * Input for document processing orchestration
+ * Processing modes following Totality principle
+ * Eliminates optional properties with discriminated unions
+ */
+export type ProcessingMode =
+  | {
+    kind: "DryRun";
+    verbose: boolean;
+  }
+  | {
+    kind: "Normal";
+    outputPath: string;
+    format: "json" | "yaml" | "toml";
+    verbose: boolean;
+  };
+
+/**
+ * Input for document processing orchestration (V2 - Totality compliant)
+ */
+export interface ProcessDocumentsInputV2 {
+  schemaPath: string;
+  sourcePath: string;
+  mode: ProcessingMode;
+}
+
+/**
+ * @deprecated Use ProcessDocumentsInputV2 instead
+ * Maintained temporarily for backward compatibility
  */
 export interface ProcessDocumentsInput {
   schemaPath: string;

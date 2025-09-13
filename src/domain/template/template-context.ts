@@ -737,6 +737,7 @@ export class TemplateContext {
   /**
    * String-based variable substitution for non-JSON templates
    * Returns Result<T,E> pattern following Totality principle
+   * Refactored to eliminate throw/catch violation - collects errors properly
    */
   private substituteVariablesInString(
     content: string,
@@ -745,46 +746,44 @@ export class TemplateContext {
   ): Result<string, DomainError & { message: string }> {
     const placeholderPattern = /\{([a-zA-Z_$][a-zA-Z0-9_$.]*)\}/g;
 
-    try {
-      const result = content.replace(placeholderPattern, (match, varName) => {
-        const value = this.getVariableValue(variableMap, varName);
+    // First pass: validate all variables before substitution
+    const matches = Array.from(content.matchAll(placeholderPattern));
+    for (const match of matches) {
+      const varName = match[1];
+      const value = this.getVariableValue(variableMap, varName);
 
-        if (value === undefined) {
-          if (options.allowMissingVariables) {
-            return match; // Keep placeholder if missing variables allowed
-          } else {
-            // Store the error for later - can't throw in replace callback
-            throw new Error(`Missing variable: ${varName}`);
-          }
-        }
-
-        // Convert value to string with format-aware serialization
-        let stringValue = this.valueToString(value);
-
-        // Apply HTML escaping if enabled
-        if (options.escapeHtml) {
-          stringValue = this.escapeHtml(stringValue);
-        }
-
-        return stringValue;
-      });
-
-      return { ok: true, data: result };
-    } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
-      const variableName = errorMessage.match(/Missing variable: (.+)/)?.[1] ||
-        "unknown";
-
-      return {
-        ok: false,
-        error: createDomainError(
-          { kind: "MissingVariable", variable: variableName },
-          errorMessage,
-        ),
-      };
+      if (value === undefined && !options.allowMissingVariables) {
+        return {
+          ok: false,
+          error: createDomainError(
+            { kind: "MissingVariable", variable: varName },
+            `Missing variable: ${varName}`,
+          ),
+        };
+      }
     }
+
+    // Second pass: perform substitution (guaranteed to succeed)
+    const result = content.replace(placeholderPattern, (match, varName) => {
+      const value = this.getVariableValue(variableMap, varName);
+
+      if (value === undefined) {
+        // This can only happen if allowMissingVariables is true
+        return match; // Keep placeholder if missing variables allowed
+      }
+
+      // Convert value to string with format-aware serialization
+      let stringValue = this.valueToString(value);
+
+      // Apply HTML escaping if enabled
+      if (options.escapeHtml) {
+        stringValue = this.escapeHtml(stringValue);
+      }
+
+      return stringValue;
+    });
+
+    return { ok: true, data: result };
   }
 
   /**

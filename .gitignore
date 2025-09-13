@@ -24,6 +24,7 @@ coverage
 coverage*/
 coverage*/
 *coverage*/
+cov/
 
 # nyc test coverage
 .nyc_output

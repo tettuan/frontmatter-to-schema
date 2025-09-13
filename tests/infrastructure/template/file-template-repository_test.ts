@@ -283,12 +283,15 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.createLegacy(
+        const templateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [], // Empty mapping rules
           "Test template for save",
         );
+        assertEquals(templateResult.ok, true);
+        if (!templateResult.ok) return;
+        const template = templateResult.data;
 
         const result = await repo.save(template);
 
@@ -317,12 +320,15 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.createLegacy(
+        const templateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [],
           "YAML template for save",
         );
+        assertEquals(templateResult.ok, true);
+        if (!templateResult.ok) return;
+        const template = templateResult.data;
 
         const result = await repo.save(template);
 
@@ -351,12 +357,15 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.createLegacy(
+        const templateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [],
           "Handlebars template for save",
         );
+        assertEquals(templateResult.ok, true);
+        if (!templateResult.ok) return;
+        const template = templateResult.data;
 
         const result = await repo.save(template);
 
@@ -397,12 +406,15 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.createLegacy(
+        const templateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [],
           "Read-only test template",
         );
+        assertEquals(templateResult.ok, true);
+        if (!templateResult.ok) return;
+        const template = templateResult.data;
 
         const result = await readOnlyRepo.save(template);
 
@@ -431,12 +443,15 @@ Deno.test("FileTemplateRepository - Save Template", async (t) => {
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const template = Template.createLegacy(
+        const templateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [],
           "Cache update test template",
         );
+        assertEquals(templateResult.ok, true);
+        if (!templateResult.ok) return;
+        const template = templateResult.data;
 
         // Save should update cache
         const saveResult = await repo.save(template);
@@ -665,12 +680,15 @@ commands:
       assertEquals(formatResult.ok, true);
 
       if (formatResult.ok) {
-        const registryOutputTemplate = Template.createLegacy(
+        const registryTemplateResult = Template.create(
           templateIdResult.data,
           formatResult.data,
           [],
           "Registry output template",
         );
+        assertEquals(registryTemplateResult.ok, true);
+        if (!registryTemplateResult.ok) return;
+        const registryOutputTemplate = registryTemplateResult.data;
 
         const saveResult = await repo.save(registryOutputTemplate);
         assertEquals(saveResult.ok, true);

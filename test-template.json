@@ -1,0 +1,10 @@
+{
+  "documents": [
+    {% for doc in documents %}
+    {
+      "title": "{{ doc.title }}",
+      "date": "{{ doc.date }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}

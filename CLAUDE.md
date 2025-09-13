@@ -80,6 +80,7 @@ Totality principles:
 
 ### Coverage Standards
 
+- **Save coverage into `tmp/` dir. not project root.**
 - **Minimum Coverage**: 80% line coverage maintained
 - **Target Coverage**: 80.1% achieved (281 tests passing)
 - **Focus Areas**: Domain models, use cases, and critical business logic

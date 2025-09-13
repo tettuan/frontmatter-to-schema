@@ -167,7 +167,8 @@ title: Analyze Spec Metrics
 "commands": []
 ```
 
-**推奨:** `{@items}` 記法を使用することで、子テンプレート適用の意図が明確になります。
+**推奨:** `{@items}`
+記法を使用することで、子テンプレート適用の意図が明確になります。
 
 ### No Schema Structure Inference
 

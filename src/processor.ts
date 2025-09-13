@@ -1,18 +1,19 @@
 import type { DomainError, ProcessingConfig, Result } from "./types.ts";
 import { FrontmatterExtractor } from "./frontmatter-extractor.ts";
 import { SchemaResolver } from "./schema-resolver.ts";
-import { TemplateRenderer } from "./template-renderer.ts";
+import { TemplateEngine } from "./core/template-engine.ts";
 import { Aggregator } from "./aggregator.ts";
 
 /**
  * Simplified canonical processor following Issue #591 requirements
  * Integrates Phase 2 totality-compliant services
+ * FIXED: Now uses TemplateEngine instead of TemplateRenderer
  */
 export class Processor {
   private constructor(
     private readonly extractor: FrontmatterExtractor,
     private readonly resolver: SchemaResolver,
-    private readonly renderer: TemplateRenderer,
+    private readonly templateEngine: TemplateEngine,
     private readonly aggregator: Aggregator,
   ) {}
 
@@ -24,8 +25,8 @@ export class Processor {
     const resolverResult = SchemaResolver.create();
     if (!resolverResult.ok) return resolverResult;
 
-    const rendererResult = TemplateRenderer.create();
-    if (!rendererResult.ok) return rendererResult;
+    // Use TemplateEngine instead of TemplateRenderer
+    const templateEngine = new TemplateEngine();
 
     const aggregatorResult = Aggregator.create();
     if (!aggregatorResult.ok) return aggregatorResult;
@@ -35,7 +36,7 @@ export class Processor {
       data: new Processor(
         extractorResult.data,
         resolverResult.data,
-        rendererResult.data,
+        templateEngine,
         aggregatorResult.data,
       ),
     };
@@ -43,6 +44,7 @@ export class Processor {
 
   /**
    * Single canonical processing method - NO ALTERNATIVES
+   * FIXED: Now uses TemplateEngine.process() instead of TemplateRenderer.render()
    */
   async process(
     config: ProcessingConfig,
@@ -70,12 +72,33 @@ export class Processor {
     const aggregationResult = this.aggregator.aggregate(validationResults);
     if (!aggregationResult.ok) return aggregationResult;
 
-    // Step 6: Render template with schema context
-    return await this.renderer.render(config.template, {
-      kind: "schema-aware" as const,
-      aggregatedData: aggregationResult.data.aggregatedData,
-      schema: schemaResult.data.definition,
+    // Step 6: Load template content
+    let templateContent: string;
+    try {
+      templateContent = await Deno.readTextFile(config.template.path);
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "ReadError",
+          path: config.template.path,
+          details: String(error),
+        },
+      };
+    }
+
+    // Step 7: Use TemplateEngine.process() instead of TemplateRenderer.render()
+    // Extract individual document data from aggregated result for template processing
+    const documentData = this.extractDocumentData(
+      aggregationResult.data.aggregatedData,
+    );
+    const output = this.templateEngine.process({
+      schemaData: schemaResult.data.definition as Record<string, unknown>,
+      documentData,
+      templateContent,
     });
+
+    return { ok: true, data: output };
   }
 
   private async discoverFiles(
@@ -120,5 +143,23 @@ export class Processor {
       });
     }
     return filename === pattern;
+  }
+
+  private extractDocumentData(
+    aggregatedData: Record<string, unknown>,
+  ): Record<string, unknown>[] {
+    // Extract individual file data from the aggregated result
+    // The aggregator stores files in the 'files' property as an array
+    const files = aggregatedData.files;
+    if (Array.isArray(files)) {
+      return files.map((file) => {
+        if (typeof file === "object" && file !== null && "data" in file) {
+          return (file as { data: Record<string, unknown> }).data;
+        }
+        return file as Record<string, unknown>;
+      });
+    }
+    // Fallback: return single document wrapped in array
+    return [aggregatedData];
   }
 }
