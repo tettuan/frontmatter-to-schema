@@ -5,11 +5,15 @@
   "properties": {
     "version": {
       "type": "string",
-      "description": "Registry version (e.g., '1.0.0')"
+      "description": "Registry version (e.g., '1.0.0')",
+      "x-base-property": true,
+      "x-default-value": "1.0.0"
     },
     "description": {
       "type": "string",
-      "description": "Overall registry description"
+      "description": "Overall registry description",
+      "x-base-property": true,
+      "x-default-value": "Climpt comprehensive configuration for MCP server and command registry"
     },
     "tools": {
       "type": "object",
