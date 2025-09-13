@@ -98,6 +98,35 @@ export class Schema {
     return findInProperties(this.definition);
   }
 
+  findFrontmatterPartPath(): string | undefined {
+    const findPath = (
+      def: SchemaDefinition,
+      currentPath: string = "",
+    ): string | undefined => {
+      if (def.hasFrontmatterPart()) {
+        return currentPath;
+      }
+
+      const properties = def.getProperties();
+      if (properties) {
+        for (const [propName, prop] of Object.entries(properties)) {
+          const propDef = SchemaDefinition.create(prop);
+          if (propDef.ok) {
+            const newPath = currentPath
+              ? `${currentPath}.${propName}`
+              : propName;
+            const found = findPath(propDef.data, newPath);
+            if (found) return found;
+          }
+        }
+      }
+
+      return undefined;
+    };
+
+    return findPath(this.definition);
+  }
+
   getDerivedRules(): Array<{
     sourcePath: string;
     targetField: string;
