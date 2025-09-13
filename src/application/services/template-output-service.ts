@@ -52,6 +52,18 @@ export class TemplateOutputService {
           templateContent,
         );
 
+        // IMPORTANT: Also include all frontmatter fields from the first document
+        // so that basic {variable} replacements work
+        if (documentData.length > 0) {
+          const firstDoc = documentData[0];
+          for (const [key, value] of Object.entries(firstDoc)) {
+            // Only add if not already set by processSchemaProperties
+            if (outputData[key] === undefined) {
+              outputData[key] = value;
+            }
+          }
+        }
+
         // Also add traditional template variables for backward compatibility
         outputData.count = documentData.length;
         outputData.documents = documentData;
