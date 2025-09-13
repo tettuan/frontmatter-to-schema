@@ -1,5 +1,5 @@
-import { ok, Result } from "../../shared/types/result.ts";
-import { SchemaError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, SchemaError } from "../../shared/types/errors.ts";
 import { SchemaPath } from "../value-objects/schema-path.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
@@ -43,8 +43,11 @@ export class Schema {
     return this.resolved !== undefined;
   }
 
-  getResolved(): ResolvedSchema | undefined {
-    return this.resolved;
+  getResolved(): Result<ResolvedSchema, SchemaError & { message: string }> {
+    if (this.resolved) {
+      return ok(this.resolved);
+    }
+    return err(createError({ kind: "SchemaNotResolved" }));
   }
 
   withResolved(resolved: ResolvedSchema): Schema {
@@ -65,7 +68,7 @@ export class Schema {
     );
   }
 
-  getTemplatePath(): string | undefined {
+  getTemplatePath(): Result<string, SchemaError & { message: string }> {
     return this.definition.getTemplatePath();
   }
 
@@ -73,7 +76,10 @@ export class Schema {
     return this.definition.hasFrontmatterPart();
   }
 
-  findFrontmatterPartSchema(): SchemaDefinition | undefined {
+  findFrontmatterPartSchema(): Result<
+    SchemaDefinition,
+    SchemaError & { message: string }
+  > {
     const findInProperties = (
       def: SchemaDefinition,
     ): SchemaDefinition | undefined => {
@@ -81,9 +87,9 @@ export class Schema {
         return def;
       }
 
-      const properties = def.getProperties();
-      if (properties) {
-        for (const prop of Object.values(properties)) {
+      const propertiesResult = def.getProperties();
+      if (propertiesResult.ok) {
+        for (const prop of Object.values(propertiesResult.data)) {
           const propDef = SchemaDefinition.create(prop);
           if (propDef.ok) {
             const found = findInProperties(propDef.data);
@@ -95,7 +101,44 @@ export class Schema {
       return undefined;
     };
 
-    return findInProperties(this.definition);
+    const found = findInProperties(this.definition);
+    if (found) {
+      return ok(found);
+    }
+    return err(createError({ kind: "FrontmatterPartNotFound" }));
+  }
+
+  findFrontmatterPartPath(): Result<string, SchemaError & { message: string }> {
+    const findPath = (
+      def: SchemaDefinition,
+      currentPath: string = "",
+    ): string | undefined => {
+      if (def.hasFrontmatterPart()) {
+        return currentPath;
+      }
+
+      const propertiesResult = def.getProperties();
+      if (propertiesResult.ok) {
+        for (const [propName, prop] of Object.entries(propertiesResult.data)) {
+          const propDef = SchemaDefinition.create(prop);
+          if (propDef.ok) {
+            const newPath = currentPath
+              ? `${currentPath}.${propName}`
+              : propName;
+            const found = findPath(propDef.data, newPath);
+            if (found) return found;
+          }
+        }
+      }
+
+      return undefined;
+    };
+
+    const path = findPath(this.definition);
+    if (path !== undefined) {
+      return ok(path);
+    }
+    return err(createError({ kind: "FrontmatterPartNotFound" }));
   }
 
   getDerivedRules(): Array<{
@@ -110,18 +153,18 @@ export class Schema {
     }> = [];
 
     const extractRules = (def: SchemaDefinition, path: string = "") => {
-      const derivedFrom = def.getDerivedFrom();
-      if (derivedFrom) {
+      const derivedFromResult = def.getDerivedFrom();
+      if (derivedFromResult.ok) {
         rules.push({
-          sourcePath: derivedFrom,
+          sourcePath: derivedFromResult.data,
           targetField: path,
           unique: def.isDerivedUnique(),
         });
       }
 
-      const properties = def.getProperties();
-      if (properties) {
-        for (const [key, prop] of Object.entries(properties)) {
+      const propertiesResult = def.getProperties();
+      if (propertiesResult.ok) {
+        for (const [key, prop] of Object.entries(propertiesResult.data)) {
           const propPath = path ? `${path}.${key}` : key;
           const propDef = SchemaDefinition.create(prop);
           if (propDef.ok) {

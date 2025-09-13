@@ -28,7 +28,9 @@ export type ValidationError =
     readonly kind: "InvalidFormat";
     readonly format: string;
     readonly value: string;
-  };
+  }
+  | { readonly kind: "FieldNotFound"; readonly path: string }
+  | { readonly kind: "ValidationRuleNotFound"; readonly path: string };
 
 export type SchemaError =
   | { readonly kind: "SchemaNotFound"; readonly path: string }
@@ -39,7 +41,16 @@ export type SchemaError =
     readonly message: string;
   }
   | { readonly kind: "CircularReference"; readonly refs: string[] }
-  | { readonly kind: "InvalidTemplate"; readonly template: string };
+  | { readonly kind: "InvalidTemplate"; readonly template: string }
+  | { readonly kind: "TemplateNotDefined" }
+  | { readonly kind: "FrontmatterPartNotFound" }
+  | { readonly kind: "SchemaNotResolved" }
+  | { readonly kind: "TypeNotDefined" }
+  | { readonly kind: "PropertiesNotDefined" }
+  | { readonly kind: "RefNotDefined" }
+  | { readonly kind: "DerivedFromNotDefined" }
+  | { readonly kind: "ItemsNotDefined" }
+  | { readonly kind: "PropertyNotFound"; readonly path: string };
 
 export type FrontmatterError =
   | { readonly kind: "ExtractionFailed"; readonly message: string }
@@ -118,6 +129,10 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Invalid ${error.format} format: ${
         "value" in error ? error.value : ""
       }`;
+    case "FieldNotFound":
+      return `Field not found: ${error.path}`;
+    case "ValidationRuleNotFound":
+      return `Validation rule not found for path: ${error.path}`;
     case "SchemaNotFound":
       return `Schema not found: ${error.path}`;
     case "InvalidSchema":
@@ -130,6 +145,24 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Invalid template: ${
         "template" in error ? error.template : error.message
       }`;
+    case "TemplateNotDefined":
+      return "Schema does not define a template path";
+    case "FrontmatterPartNotFound":
+      return "No frontmatter-part directive found in schema";
+    case "SchemaNotResolved":
+      return "Schema references have not been resolved";
+    case "TypeNotDefined":
+      return "Schema does not define a type";
+    case "PropertiesNotDefined":
+      return "Schema does not define properties";
+    case "RefNotDefined":
+      return "Schema does not define a $ref";
+    case "DerivedFromNotDefined":
+      return "Schema does not define x-derived-from";
+    case "ItemsNotDefined":
+      return "Schema does not define items";
+    case "PropertyNotFound":
+      return `Property not found at path: ${error.path}`;
     case "ExtractionFailed":
       return `Frontmatter extraction failed: ${error.message}`;
     case "InvalidYaml":

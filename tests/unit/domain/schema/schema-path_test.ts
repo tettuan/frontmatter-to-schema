@@ -16,8 +16,44 @@ Deno.test("SchemaPath - rejects empty path", () => {
   assertEquals(isErr(result), true);
 });
 
-Deno.test("SchemaPath - rejects non-json extension", () => {
+Deno.test("SchemaPath - accepts json extension", () => {
+  const result = SchemaPath.create("test.json");
+  assertEquals(isOk(result), true);
+
+  if (isOk(result)) {
+    assertEquals(result.data.getFormat(), "json");
+  }
+});
+
+Deno.test("SchemaPath - accepts yaml extension", () => {
+  const result = SchemaPath.create("test.yaml");
+  assertEquals(isOk(result), true);
+
+  if (isOk(result)) {
+    assertEquals(result.data.getFormat(), "yaml");
+  }
+});
+
+Deno.test("SchemaPath - accepts yml extension", () => {
+  const result = SchemaPath.create("test.yml");
+  assertEquals(isOk(result), true);
+
+  if (isOk(result)) {
+    assertEquals(result.data.getFormat(), "yaml");
+  }
+});
+
+Deno.test("SchemaPath - rejects unsupported extension", () => {
   const result = SchemaPath.create("test.txt");
+  assertEquals(isErr(result), true);
+
+  if (isErr(result)) {
+    assertEquals(result.error.message.includes(".json, .yaml, or .yml"), true);
+  }
+});
+
+Deno.test("SchemaPath - rejects unsupported extension xml", () => {
+  const result = SchemaPath.create("test.xml");
   assertEquals(isErr(result), true);
 });
 

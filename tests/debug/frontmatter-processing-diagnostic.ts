@@ -33,7 +33,13 @@ Deno.test({
       frontmatterParser,
     );
 
-    const templateRenderer = new TemplateRenderer();
+    const templateRendererResult = TemplateRenderer.create();
+    if (!templateRendererResult.ok) {
+      throw new Error(
+        `Failed to create TemplateRenderer: ${templateRendererResult.error.message}`,
+      );
+    }
+    const templateRenderer = templateRendererResult.data;
     const aggregator = new Aggregator();
 
     // Create test directory
@@ -104,16 +110,16 @@ description: Test command description
         console.log("Schema loaded successfully");
 
         // Check frontmatter-part schema
-        const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+        const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
         console.log(
           "Frontmatter part schema:",
-          frontmatterPartSchema ? "FOUND" : "NOT FOUND",
+          frontmatterPartSchemaResult.ok ? "FOUND" : "NOT FOUND",
         );
 
-        if (frontmatterPartSchema) {
+        if (frontmatterPartSchemaResult.ok) {
           console.log(
             "Frontmatter part details:",
-            JSON.stringify(frontmatterPartSchema, null, 2),
+            JSON.stringify(frontmatterPartSchemaResult.data, null, 2),
           );
         }
 

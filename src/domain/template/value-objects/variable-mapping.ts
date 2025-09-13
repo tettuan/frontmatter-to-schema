@@ -1,11 +1,22 @@
-import { ok, Result } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, ValidationError } from "../../shared/types/errors.ts";
 
-export interface Variable {
-  readonly name: string;
-  readonly path: string;
-  readonly isArray?: boolean;
-  readonly isDynamic?: boolean;
-}
+export type Variable =
+  | {
+    readonly kind: "simple";
+    readonly name: string;
+    readonly path: string;
+  }
+  | {
+    readonly kind: "array";
+    readonly name: string;
+    readonly path: string;
+  }
+  | {
+    readonly kind: "dynamic";
+    readonly name: string;
+    readonly path: string;
+  };
 
 export class VariableMapping {
   private constructor(private readonly variables: Map<string, Variable>) {}
@@ -24,8 +35,17 @@ export class VariableMapping {
     return Array.from(this.variables.values());
   }
 
-  getVariable(name: string): Variable | undefined {
-    return this.variables.get(name);
+  getVariable(
+    name: string,
+  ): Result<Variable, ValidationError & { message: string }> {
+    const variable = this.variables.get(name);
+    if (!variable) {
+      return err(createError({
+        kind: "MissingRequired",
+        field: name,
+      }, `Variable not found: ${name}`));
+    }
+    return ok(variable);
   }
 
   hasVariable(name: string): boolean {
@@ -37,11 +57,15 @@ export class VariableMapping {
   }
 
   getArrayVariables(): Variable[] {
-    return this.getVariables().filter((v) => v.isArray);
+    return this.getVariables().filter((v) => v.kind === "array");
   }
 
   getDynamicVariables(): Variable[] {
-    return this.getVariables().filter((v) => v.isDynamic);
+    return this.getVariables().filter((v) => v.kind === "dynamic");
+  }
+
+  getSimpleVariables(): Variable[] {
+    return this.getVariables().filter((v) => v.kind === "simple");
   }
 
   merge(other: VariableMapping): VariableMapping {
@@ -65,12 +89,13 @@ function extractVariables(
       const varName = match[1];
       if (varName.startsWith("@")) {
         variables.set(varName, {
+          kind: "array",
           name: varName,
           path,
-          isArray: true,
         });
       } else {
         variables.set(varName, {
+          kind: "simple",
           name: varName,
           path,
         });
@@ -86,9 +111,9 @@ function extractVariables(
       const keyMatch = keyPattern.exec(key);
       if (keyMatch) {
         variables.set(keyMatch[1], {
+          kind: "dynamic",
           name: keyMatch[1],
           path: path ? `${path}.${key}` : key,
-          isDynamic: true,
         });
       }
 

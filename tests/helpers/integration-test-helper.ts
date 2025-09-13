@@ -46,7 +46,13 @@ export class IntegrationTestEnvironment {
       frontmatterParser,
     );
 
-    const templateRenderer = new TemplateRenderer();
+    const templateRendererResult = TemplateRenderer.create();
+    if (!templateRendererResult.ok) {
+      throw new Error(
+        `Failed to create TemplateRenderer: ${templateRendererResult.error.message}`,
+      );
+    }
+    const templateRenderer = templateRendererResult.data;
     const aggregator = new Aggregator();
 
     this.coordinator = new ProcessCoordinator(

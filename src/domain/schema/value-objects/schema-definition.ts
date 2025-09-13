@@ -61,65 +61,96 @@ export class SchemaDefinition {
     return ok(new SchemaDefinition(schema, templatePath));
   }
 
-  getType(): string | undefined {
-    return this.schema.type;
+  getType(): Result<string, SchemaError & { message: string }> {
+    if (this.schema.type) {
+      return ok(this.schema.type);
+    }
+    return err(createError({ kind: "TypeNotDefined" }));
   }
 
-  getProperties(): SchemaProperties | undefined {
-    return this.schema.properties;
+  getProperties(): Result<SchemaProperties, SchemaError & { message: string }> {
+    if (this.schema.properties) {
+      return ok(this.schema.properties);
+    }
+    return err(createError({ kind: "PropertiesNotDefined" }));
   }
 
   getRequired(): readonly string[] {
     return this.schema.required || [];
   }
 
-  getTemplatePath(): string | undefined {
-    return this.templatePath;
+  getTemplatePath(): Result<string, SchemaError & { message: string }> {
+    if (this.templatePath) {
+      return ok(this.templatePath);
+    }
+    return err(createError({ kind: "TemplateNotDefined" }));
   }
 
   hasRef(): boolean {
     return this.schema.$ref !== undefined;
   }
 
-  getRef(): string | undefined {
-    return this.schema.$ref;
+  getRef(): Result<string, SchemaError & { message: string }> {
+    if (this.schema.$ref) {
+      return ok(this.schema.$ref);
+    }
+    return err(createError({ kind: "RefNotDefined" }));
   }
 
   hasFrontmatterPart(): boolean {
     return this.schema["x-frontmatter-part"] === true;
   }
 
-  getDerivedFrom(): string | undefined {
-    return this.schema["x-derived-from"];
+  getDerivedFrom(): Result<string, SchemaError & { message: string }> {
+    if (this.schema["x-derived-from"]) {
+      return ok(this.schema["x-derived-from"]);
+    }
+    return err(createError({ kind: "DerivedFromNotDefined" }));
   }
 
   isDerivedUnique(): boolean {
     return this.schema["x-derived-unique"] === true;
   }
 
-  getItems(): SchemaProperty | { readonly $ref: string } | undefined {
-    return this.schema.items;
+  getItems(): Result<
+    SchemaProperty | { readonly $ref: string },
+    SchemaError & { message: string }
+  > {
+    if (this.schema.items) {
+      return ok(this.schema.items);
+    }
+    return err(createError({ kind: "ItemsNotDefined" }));
   }
 
   getRawSchema(): SchemaProperty {
     return this.schema;
   }
 
-  findProperty(path: string): SchemaProperty | undefined {
+  findProperty(
+    path: string,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
     const parts = path.split(".");
     let current: SchemaProperty = this.schema;
 
     for (const part of parts) {
       if (part === "[]") {
         current = current.items as SchemaProperty;
-        if (!current) return undefined;
+        if (!current) {
+          return err(createError({
+            kind: "PropertyNotFound",
+            path: path,
+          }));
+        }
       } else if (current.properties && current.properties[part]) {
         current = current.properties[part];
       } else {
-        return undefined;
+        return err(createError({
+          kind: "PropertyNotFound",
+          path: path,
+        }));
       }
     }
 
-    return current;
+    return ok(current);
   }
 }

@@ -41,7 +41,13 @@ function createTestFrontmatterData(
 
 Deno.test("TemplateRenderer - should render simple string template", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const template = createTestTemplate("Hello {name}!");
   const data = createTestFrontmatterData({ name: "World" });
 
@@ -58,7 +64,13 @@ Deno.test("TemplateRenderer - should render simple string template", () => {
 
 Deno.test("TemplateRenderer - should render object template", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     title: "{title}",
     version: "{version}",
@@ -86,7 +98,13 @@ Deno.test("TemplateRenderer - should render object template", () => {
 
 Deno.test("TemplateRenderer - should render array template", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = [
     "{item1}",
     "{item2}",
@@ -114,7 +132,13 @@ Deno.test("TemplateRenderer - should render array template", () => {
 
 Deno.test("TemplateRenderer - should render nested object template", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     project: {
       name: "{name}",
@@ -151,7 +175,13 @@ Deno.test("TemplateRenderer - should render nested object template", () => {
 
 Deno.test("TemplateRenderer - should handle missing variables with placeholders", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const template = createTestTemplate("Hello {name}, version {version}!");
   const data = createTestFrontmatterData({ name: "World" }); // Missing version
 
@@ -168,7 +198,13 @@ Deno.test("TemplateRenderer - should handle missing variables with placeholders"
 
 Deno.test("TemplateRenderer - should render with array data", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const template = createTestTemplate("{title}: {count} items");
   const dataArray = [
     createTestFrontmatterData({ title: "First", count: 1 }),
@@ -193,7 +229,13 @@ Deno.test("TemplateRenderer - should render with array data", () => {
 
 Deno.test("TemplateRenderer - should handle empty array", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const template = createTestTemplate("Count: {count}");
   const emptyArray: FrontmatterData[] = [];
 
@@ -211,7 +253,13 @@ Deno.test("TemplateRenderer - should handle empty array", () => {
 
 Deno.test("TemplateRenderer - should handle frontmatter_value objects", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     title: "{title}",
     specialField: { frontmatter_value: "special_data" },
@@ -236,7 +284,13 @@ Deno.test("TemplateRenderer - should handle frontmatter_value objects", () => {
 
 Deno.test("TemplateRenderer - should handle frontmatter_value with missing data", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     title: "{title}",
     specialField: { frontmatter_value: "missing_data" },
@@ -258,7 +312,13 @@ Deno.test("TemplateRenderer - should handle frontmatter_value with missing data"
 
 Deno.test("TemplateRenderer - should render template keys with variables", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     "{keyName}": "value",
     "static-key": "{value}",
@@ -283,7 +343,13 @@ Deno.test("TemplateRenderer - should render template keys with variables", () =>
 
 Deno.test("TemplateRenderer - should handle complex nested arrays", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     items: [
       { name: "{item1}", type: "first" },
@@ -317,7 +383,13 @@ Deno.test("TemplateRenderer - should handle complex nested arrays", () => {
 
 Deno.test("TemplateRenderer - should handle boolean and number values", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     enabled: "{enabled}",
     count: "{count}",
@@ -347,7 +419,13 @@ Deno.test("TemplateRenderer - should handle boolean and number values", () => {
 
 Deno.test("TemplateRenderer - should handle null and undefined values", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     nullValue: "{nullValue}",
     undefinedValue: "{undefinedValue}",
@@ -375,7 +453,13 @@ Deno.test("TemplateRenderer - should handle null and undefined values", () => {
 
 Deno.test("TemplateRenderer - should handle YAML format", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     title: "{title}",
     version: "{version}",
@@ -401,7 +485,13 @@ Deno.test("TemplateRenderer - should handle YAML format", () => {
 
 Deno.test("TemplateRenderer - should preserve data types in rendering", () => {
   // Arrange
-  const renderer = new TemplateRenderer();
+  const rendererResult = TemplateRenderer.create();
+  if (!rendererResult.ok) {
+    throw new Error(
+      `Failed to create renderer: ${rendererResult.error.message}`,
+    );
+  }
+  const renderer = rendererResult.data;
   const templateContent = {
     stringVal: "{stringVal}",
     boolVal: "{boolVal}",

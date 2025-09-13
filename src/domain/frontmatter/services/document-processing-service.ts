@@ -147,8 +147,8 @@ export class DocumentProcessingService {
     data: FrontmatterData[],
     schema: Schema,
   ): FrontmatterData[] {
-    const frontmatterPartSchema = schema.findFrontmatterPartSchema();
-    if (!frontmatterPartSchema) {
+    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
+    if (!frontmatterPartSchemaResult.ok) {
       return data;
     }
 
@@ -169,14 +169,17 @@ export class DocumentProcessingService {
 
     if (derivationRules.length > 0) {
       // Has derivation rules: create base data structure with frontmatter-part array
-      const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+      const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
       let baseData: FrontmatterData;
 
-      if (frontmatterPartSchema) {
+      if (frontmatterPartSchemaResult.ok) {
         // Create base data with commands array for derivation processing
+        // Need to nest the array according to its schema path (tools.commands)
         const commandsArray = data.map((item) => item.getData());
         const baseDataResult = FrontmatterData.create({
-          commands: commandsArray,
+          tools: {
+            commands: commandsArray,
+          },
         });
         if (!baseDataResult.ok) {
           return baseDataResult;
@@ -196,14 +199,19 @@ export class DocumentProcessingService {
       }
 
       // Convert schema rules to domain rules
-      const rules = derivationRules.map((r) => {
+      const rules: DerivationRule[] = [];
+      for (const r of derivationRules) {
         const ruleResult = DerivationRule.create(
           r.sourcePath,
           r.targetField,
           r.unique,
         );
-        return ruleResult.ok ? ruleResult.data : null;
-      }).filter((r) => r !== null) as DerivationRule[];
+        if (ruleResult.ok) {
+          rules.push(ruleResult.data);
+        }
+        // Note: Failed rule creation is silently ignored to maintain existing behavior
+        // In a future version, we could collect and return these errors
+      }
 
       // Aggregate with rules using the base data
       const aggregationResult = this.aggregator.aggregate([baseData], rules);
@@ -212,21 +220,64 @@ export class DocumentProcessingService {
       }
 
       // Merge with base
-      return this.aggregator.mergeWithBase(aggregationResult.data);
+      const mergedResult = this.aggregator.mergeWithBase(
+        aggregationResult.data,
+      );
+      if (!mergedResult.ok) {
+        return mergedResult;
+      }
+
+      // If there's a frontmatter-part, also add the commands to the correct nested path
+      const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+      if (
+        frontmatterPartPathResult.ok &&
+        frontmatterPartPathResult.data !== "commands"
+      ) {
+        const commandsData = mergedResult.data.get("commands");
+        if (commandsData) {
+          return ok(
+            mergedResult.data.withField(
+              frontmatterPartPathResult.data,
+              commandsData,
+            ),
+          );
+        }
+      }
+
+      return mergedResult;
     } else {
       // No derivation rules - handle frontmatter-part aggregation or merge data
-      const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+      const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
 
-      if (frontmatterPartSchema) {
+      if (frontmatterPartSchemaResult.ok) {
         // Has frontmatter-part: create aggregated data with the array of documents
-        const aggregatedData: Record<string, unknown> = {};
-
-        // TODO: Need to implement proper path resolution for nested frontmatter-part properties
-        // For now, put commands at root level
+        // Need to nest the array according to its schema path (tools.commands)
         const commandsArray = data.map((item) => item.getData());
-        aggregatedData.commands = commandsArray;
+        const aggregatedDataResult = FrontmatterData.create({
+          tools: {
+            commands: commandsArray,
+          },
+        });
 
-        return FrontmatterData.create(aggregatedData);
+        if (!aggregatedDataResult.ok) {
+          return aggregatedDataResult;
+        }
+
+        // Also add the commands to the correct nested path for template access
+        const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+        if (
+          frontmatterPartPathResult.ok &&
+          frontmatterPartPathResult.data !== "commands"
+        ) {
+          return ok(
+            aggregatedDataResult.data.withField(
+              frontmatterPartPathResult.data,
+              commandsArray,
+            ),
+          );
+        }
+
+        return aggregatedDataResult;
       } else {
         // No frontmatter-part: merge all data as before
         if (data.length > 0) {

@@ -12,15 +12,21 @@ export class SchemaPath {
     }
 
     const trimmed = path.trim();
-    if (!trimmed.endsWith(".json")) {
+    if (!this.isSupportedSchemaFormat(trimmed)) {
       return err(createError({
         kind: "InvalidFormat",
         format: "schema path",
         value: trimmed,
-      }, "Schema path must end with .json"));
+      }, "Schema path must end with .json, .yaml, or .yml"));
     }
 
     return ok(new SchemaPath(trimmed));
+  }
+
+  private static isSupportedSchemaFormat(path: string): boolean {
+    return path.endsWith(".json") ||
+      path.endsWith(".yaml") ||
+      path.endsWith(".yml");
   }
 
   getValue(): string {
@@ -53,6 +59,13 @@ export class SchemaPath {
       ? basePath + this.value
       : `${basePath}/${this.value}`;
     return new SchemaPath(resolved);
+  }
+
+  getFormat(): "json" | "yaml" {
+    if (this.value.endsWith(".json")) {
+      return "json";
+    }
+    return "yaml"; // .yaml or .yml both map to yaml format
   }
 
   toString(): string {
