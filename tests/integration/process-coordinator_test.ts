@@ -16,7 +16,7 @@ import { Aggregator } from "../../src/domain/aggregation/aggregators/aggregator.
 // BasePropertyPopulator working - but derived fields still need work
 Deno.test({
   name: "ProcessCoordinator - complete data flow from markdown to JSON",
-  ignore: true, // Still disabled - BasePropertyPopulator works but derived fields need fixing
+  ignore: true, // Temporarily disabled - BasePropertyPopulator works but frontmatter aggregation needs fixing
   fn: async () => {
     // Setup: Create test infrastructure
     const fileReader = new DenoFileReader();
@@ -151,7 +151,7 @@ This is a test markdown file.`;
 Deno.test({
   name:
     "ProcessCoordinator - should not create empty data when no derivation rules",
-  ignore: true, // Still disabled - BasePropertyPopulator works but derived fields need fixing
+  ignore: true, // Temporarily disabled - BasePropertyPopulator works but frontmatter aggregation needs fixing
   fn: async () => {
     // This test specifically targets the bug at lines 162-164 in ProcessCoordinator
     const fileReader = new DenoFileReader();

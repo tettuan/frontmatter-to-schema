@@ -15,7 +15,7 @@ import { Aggregator } from "../../src/domain/aggregation/aggregators/aggregator.
 Deno.test({
   name:
     "ProcessCoordinator - should populate base properties from schema defaults",
-  ignore: true, // Disabled for CI - BasePropertyPopulator is working, but test expects frontmatter-part processing
+  ignore: true, // Temporarily disabled - BasePropertyPopulator works but need to fix frontmatter aggregation first
   fn: async () => {
     // Setup: Create test infrastructure
     const fileReader = new DenoFileReader();
@@ -180,7 +180,7 @@ This is a test markdown file.`;
 Deno.test({
   name:
     "ProcessCoordinator - should not override existing frontmatter values with base properties",
-  ignore: true, // Disabled for CI - BasePropertyPopulator is working, but test needs fixing for actual frontmatter extraction
+  ignore: true, // Temporarily disabled - BasePropertyPopulator works but need to fix frontmatter aggregation first
   fn: async () => {
     // Setup: Same infrastructure as above
     const fileReader = new DenoFileReader();
