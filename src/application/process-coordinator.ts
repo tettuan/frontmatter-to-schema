@@ -43,12 +43,22 @@ import { SchemaTemplateInfo } from "../domain/models/schema-extensions.ts";
 import { LoggerFactory } from "../domain/shared/logger.ts";
 import { SchemaExtensionConfig } from "../domain/config/schema-extension-config.ts";
 
-// NEW: Import TemplateOutputService and FileSystem
+// Import Template Domain Facades
 import {
-  type OutputContext,
-  TemplateOutputService,
-} from "./services/template-output-service.ts";
-import { DenoFileSystem } from "../infrastructure/adapters/deno-file-system.ts";
+  TemplateBuilderFacadeImpl,
+} from "../domain/template/template-builder-facade-impl.ts";
+import {
+  TemplateOutputFacadeImpl,
+} from "../domain/template/template-output-facade-impl.ts";
+import {
+  TemplateFilePath,
+  type TemplateBuilderFacade,
+  type TemplateSource as DomainTemplateSource,
+} from "../domain/template/template-builder-facade.ts";
+import {
+  type OutputSpecification,
+  type TemplateOutputFacade,
+} from "../domain/template/template-output-facade.ts";
 
 /**
  * Template format types following totality principle
@@ -178,7 +188,8 @@ export class ProcessCoordinator {
   private readonly templateContext: TemplateContext;
   private readonly extensionConfig: SchemaExtensionConfig;
   private readonly logger: ReturnType<typeof LoggerFactory.createLogger>;
-  private readonly templateOutputService: TemplateOutputService;
+  private readonly templateBuilderFacade: TemplateBuilderFacade;
+  private readonly templateOutputFacade: TemplateOutputFacade;
 
   private constructor(extensionConfig: SchemaExtensionConfig) {
     this.schemaContext = new SchemaContext();
@@ -186,15 +197,8 @@ export class ProcessCoordinator {
     this.templateContext = new TemplateContext();
     this.extensionConfig = extensionConfig;
     this.logger = LoggerFactory.createLogger("ProcessCoordinator");
-    const templateServiceResult = TemplateOutputService.create(
-      new DenoFileSystem(),
-    );
-    if (!templateServiceResult.ok) {
-      throw new Error(
-        `Failed to create TemplateOutputService: ${templateServiceResult.error.message}`,
-      );
-    }
-    this.templateOutputService = templateServiceResult.data;
+    this.templateBuilderFacade = new TemplateBuilderFacadeImpl();
+    this.templateOutputFacade = new TemplateOutputFacadeImpl();
   }
 
   /**
@@ -312,7 +316,7 @@ export class ProcessCoordinator {
       );
     }
 
-    // NEW Step 5: Use TemplateOutputService for complete x-frontmatter-part and x-derived processing
+    // Step 5: Use Template Domain Facades for complete x-frontmatter-part and x-derived processing
     const templateContent = await this.loadTemplateContent(templateSource.data);
     if (!templateContent.ok) {
       return this.createProcessingError(
@@ -335,45 +339,94 @@ export class ProcessCoordinator {
       doc.data
     );
 
-    // Use TemplateOutputService for complete x-frontmatter-part and x-derived processing
-    const outputContext: OutputContext = {
-      schemaData: schemaData.data,
-      templateContent: templateContent.data,
-      documentData,
-      outputPath: configuration.output.path,
+    // Use Template Domain Facades for template processing
+    // Create template source with schema path and aggregated values
+    const templatePath = new TemplateFilePath(templateSource.data.toString());
+
+    // Prepare template values from document data
+    const templateValues: Record<string, unknown> = {};
+
+    // Add document data and metadata
+    templateValues.count = documentData.length;
+    templateValues.documents = documentData;
+
+    // Include first document fields for simple variable replacement
+    if (documentData.length > 0) {
+      const firstDoc = documentData[0];
+      for (const [key, value] of Object.entries(firstDoc)) {
+        if (templateValues[key] === undefined) {
+          templateValues[key] = value;
+        }
+      }
+    }
+
+    const source: DomainTemplateSource = {
+      templatePath,
+      valueSet: {
+        values: templateValues,
+        metadata: {
+          source: "ProcessCoordinator",
+          timestamp: new Date(),
+        },
+      },
     };
 
-    this.logger.info("Generating output with TemplateOutputService", {
+    this.logger.info("Building template with domain facade", {
       outputPath: configuration.output.path,
       documentCount: documentData.length,
-      hasSchemaData: !!schemaData.data,
-      hasTemplateContent: !!templateContent.data,
     });
 
-    const outputResult = await this.templateOutputService.generateOutput(
-      outputContext,
-    );
-    if (!outputResult.ok) {
-      this.logger.error("TemplateOutputService failed", {
-        error: outputResult.error,
+    // Build template using facade
+    const buildResult = await this.templateBuilderFacade.buildTemplate(source);
+    if (!buildResult.ok) {
+      this.logger.error("Template building failed", {
+        error: buildResult.error,
       });
-      // Convert TemplateOutputService error to DomainError format
       const domainError = createDomainError(
         {
           kind: "RenderError",
-          template: "TemplateOutputService",
-          details: outputResult.error.kind,
+          template: templateSource.data.toString(),
+          details: buildResult.error.message,
+        },
+        buildResult.error.message,
+      );
+      return this.createProcessingError(
+        "TemplateBuilding",
+        domainError,
+      );
+    }
+
+    // Output template using facade
+    const outputSpec: OutputSpecification = {
+      destination: configuration.output.path,
+      format: "json",
+      prettify: true,
+    };
+
+    const outputResult = await this.templateOutputFacade.outputTemplate(
+      buildResult.data,
+      outputSpec,
+    );
+    if (!outputResult.ok) {
+      this.logger.error("Template output failed", {
+        error: outputResult.error,
+      });
+      const domainError = createDomainError(
+        {
+          kind: "WriteError",
+          path: configuration.output.path,
+          details: outputResult.error.message,
         },
         outputResult.error.message,
       );
       return this.createProcessingError(
-        "TemplateOutputGeneration",
+        "TemplateOutput",
         domainError,
       );
     }
 
     // Extract aggregated data for backward compatibility with tests
-    // TemplateOutputService handles this internally, but we need to provide it for the API
+    // Template facades handle this internally, but we need to provide it for the API
     let aggregatedData: AggregatedData | undefined;
     if (this.schemaRequiresAggregation(schemaResult.data)) {
       const aggregationResult = await this.aggregateData(
@@ -394,7 +447,7 @@ export class ProcessCoordinator {
     }
 
     // Read the output file content to include in the result
-    let outputContent = "Generated via TemplateOutputService";
+    let outputContent = "Generated via Template Domain Facades";
     try {
       outputContent = await Deno.readTextFile(configuration.output.path);
     } catch {
@@ -411,13 +464,13 @@ export class ProcessCoordinator {
       processedFiles: processingResult.data.validatedDocuments.length,
       validationResults: processingResult.data.validationSummaries,
       renderedContent: {
-        content: outputContent, // TemplateOutputService writes directly to file, read it back
+        content: outputContent, // Template facades write directly to file, read it back
         templateProcessed: true,
         variables: [],
         renderTime: new Date(),
         bypassDetected: false,
       },
-      aggregatedData, // TemplateOutputService handles aggregation internally, but provided for backward compatibility
+      aggregatedData, // Template facades handle aggregation internally, but provided for backward compatibility
       processingTime,
       bypassDetected: false, // CRITICAL: Always false
       canonicalPathUsed: true, // CRITICAL: Always true

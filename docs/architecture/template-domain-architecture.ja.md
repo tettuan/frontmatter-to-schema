@@ -15,7 +15,7 @@
 **責務**: ソースデータとスキーマからのテンプレートの構築と合成
 
 **境界定義**:
-- 入力: 生データ、スキーマ、テンプレート定義
+- 入力: テンプレートファイルパス（Schemaから）と値セット
 - 出力: 出力準備が整ったコンパイル済みテンプレートインスタンス
 - 依存関係: なし（純粋なドメインロジック）
 - 利用者: テンプレート出力ドメインのみ
@@ -63,10 +63,81 @@
 │    └──────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
                             ▲
+                            │ テンプレートパス + 値セット
                             │
 ┌─────────────────────────────────────────────────────────┐
 │         アプリケーションユースケース＆サービス              │
 └─────────────────────────────────────────────────────────┘
+```
+
+## テンプレート構築ドメインコンポーネント
+
+### 入力要件
+
+テンプレート構築ドメインは正確に2つの情報を必要とします：
+
+1. **テンプレートファイルパス**: Schemaから取得されたテンプレートファイルへのパス
+2. **値セット**: テンプレートに適用される値のコレクション
+
+### コアエンティティ
+
+#### `TemplateSource`
+```typescript
+interface TemplateSource {
+  templatePath: TemplateFilePath;  // Schemaからのパス
+  valueSet: TemplateValueSet;       // 適用する値
+}
+```
+
+#### `TemplateFilePath`
+```typescript
+// Schemaからのテンプレートファイルパスを表す値オブジェクト
+class TemplateFilePath {
+  constructor(private readonly path: string) {
+    this.validate();
+  }
+
+  private validate(): void {
+    if (!this.path || this.path.trim() === '') {
+      throw new Error('テンプレートパスは空にできません');
+    }
+  }
+
+  toString(): string {
+    return this.path;
+  }
+
+  resolve(): string {
+    // 必要に応じて相対パスを絶対パスに解決
+    return this.path;
+  }
+}
+```
+
+#### `TemplateValueSet`
+```typescript
+// テンプレート用の値セットを表す値オブジェクト
+interface TemplateValueSet {
+  values: Record<string, unknown>;
+  metadata?: {
+    source: string;
+    timestamp: Date;
+    schemaVersion?: string;
+  };
+}
+```
+
+#### `CompiledTemplate`
+```typescript
+interface CompiledTemplate {
+  templatePath: TemplateFilePath;
+  appliedValues: TemplateValueSet;
+  compiledContent: string | Buffer;
+  compiledAt: Date;
+  checksum: string;
+  format: OutputFormat;
+  validate(): Result<void, ValidationError>;
+}
 ```
 
 ## 疎結合強制ルール
@@ -78,6 +149,7 @@
 3. **テンプレートコンパイル必須**: 生データは出力前にテンプレート構築ドメインでコンパイルされなければならない
 4. **単一エントリポイント**: 各ドメインは外部との相互作用のために正確に1つのファサードインターフェースを公開する
 5. **不変契約**: ドメインインターフェースは一度定義されたら不変
+6. **Schema駆動テンプレート**: テンプレートパスはSchema定義から取得されなければならない
 
 ### 禁止パターン
 
@@ -104,12 +176,20 @@ class SomeService {
 outputService.write(frontmatterData);
 ```
 
+❌ **ハードコードされたテンプレートパス**
+```typescript
+// 禁止 - テンプレートパスはSchemaから取得しなければならない
+const template = loadTemplate('./hardcoded/path.tmpl');
+```
+
 ### 必須パターン
 
-✅ **テンプレート媒介出力**
+✅ **Schema駆動テンプレート処理**
 ```typescript
-// 必須 - すべての出力はテンプレートドメインを通じて
-const template = templateBuilder.build(definition, data);
+// 必須 - SchemaからテンプレートパスPATH、処理からの値
+const templatePath = schema.getTemplatePath();
+const valueSet = extractedData.toValueSet();
+const template = templateBuilder.build(templatePath, valueSet);
 const rendered = templateOutput.render(template, specification);
 const result = templateOutput.write(rendered);
 ```
@@ -123,11 +203,67 @@ class ApplicationService {
     private outputFacade: TemplateOutputFacade
   ) {}
 
-  async processDocument(data: any): Promise<Result<void, Error>> {
-    const template = await this.templateFacade.buildTemplate(data);
+  async processDocument(
+    schemaTemplatePath: string,
+    values: Record<string, unknown>
+  ): Promise<Result<void, Error>> {
+    const templateSource = {
+      templatePath: new TemplateFilePath(schemaTemplatePath),
+      valueSet: { values }
+    };
+    const template = await this.templateFacade.buildTemplate(templateSource);
     return this.outputFacade.outputTemplate(template);
   }
 }
+```
+
+## ドメインインターフェース
+
+### テンプレートビルダーファサード
+
+```typescript
+interface TemplateBuilderFacade {
+  buildTemplate(
+    source: TemplateSource
+  ): Promise<Result<CompiledTemplate, BuildError>>;
+
+  composeTemplates(
+    templates: CompiledTemplate[]
+  ): Promise<Result<CompiledTemplate, CompositionError>>;
+
+  validateTemplate(
+    template: CompiledTemplate
+  ): Result<void, ValidationError>;
+}
+
+interface TemplateSource {
+  templatePath: TemplateFilePath;  // Schemaから
+  valueSet: TemplateValueSet;       // データ処理から
+}
+```
+
+## データフロー仕様
+
+### 完全な処理フロー
+
+```
+1. Schemaロード
+   └─→ テンプレートファイルパスの抽出
+
+2. データ処理
+   └─→ frontmatter/データから値セットの生成
+
+3. テンプレート構築 [必須]
+   ├─→ Schemaパスからテンプレートをロード
+   ├─→ テンプレートに値セットを適用
+   └─→ CompiledTemplateを生成
+
+4. テンプレート出力 [必須]
+   ├─→ CompiledTemplateをレンダリング
+   ├─→ 出力を検証
+   └─→ 宛先に書き込み
+
+❌ いかなる直接出力パスも禁止
 ```
 
 ## 実装プロトコル
