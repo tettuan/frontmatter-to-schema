@@ -149,20 +149,25 @@ title: Analyze Spec Metrics
 
 ### Array Placeholder Syntax
 
-親テンプレートでの配列プレースホルダーは以下のいずれかの形式：
+親テンプレートでの配列プレースホルダーは以下の形式：
 
 ```json
+// Standard form: {@items} expansion syntax
+"commands": [
+  "{@items}"
+]
+
+// Alternative forms (deprecated):
 // Form 1: Empty array with comment
 "commands": [
   // Children will be inserted here
 ]
 
-// Form 2: Special placeholder
-"commands": "{$array:commands}"
-
-// Form 3: Empty array
+// Form 2: Empty array
 "commands": []
 ```
+
+**推奨:** `{@items}` 記法を使用することで、子テンプレート適用の意図が明確になります。
 
 ### No Schema Structure Inference
 
