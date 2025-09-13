@@ -212,21 +212,52 @@ export class DocumentProcessingService {
       }
 
       // Merge with base
-      return this.aggregator.mergeWithBase(aggregationResult.data);
+      const mergedResult = this.aggregator.mergeWithBase(
+        aggregationResult.data,
+      );
+      if (!mergedResult.ok) {
+        return mergedResult;
+      }
+
+      // If there's a frontmatter-part, also add the commands to the correct nested path
+      const frontmatterPartPath = schema.findFrontmatterPartPath();
+      if (frontmatterPartPath && frontmatterPartPath !== "commands") {
+        const commandsData = mergedResult.data.get("commands");
+        if (commandsData) {
+          return ok(
+            mergedResult.data.withField(frontmatterPartPath, commandsData),
+          );
+        }
+      }
+
+      return mergedResult;
     } else {
       // No derivation rules - handle frontmatter-part aggregation or merge data
       const frontmatterPartSchema = schema.findFrontmatterPartSchema();
 
       if (frontmatterPartSchema) {
         // Has frontmatter-part: create aggregated data with the array of documents
-        const aggregatedData: Record<string, unknown> = {};
-
-        // TODO: Need to implement proper path resolution for nested frontmatter-part properties
-        // For now, put commands at root level
         const commandsArray = data.map((item) => item.getData());
-        aggregatedData.commands = commandsArray;
+        const aggregatedDataResult = FrontmatterData.create({
+          commands: commandsArray,
+        });
 
-        return FrontmatterData.create(aggregatedData);
+        if (!aggregatedDataResult.ok) {
+          return aggregatedDataResult;
+        }
+
+        // Also add the commands to the correct nested path for template access
+        const frontmatterPartPath = schema.findFrontmatterPartPath();
+        if (frontmatterPartPath && frontmatterPartPath !== "commands") {
+          return ok(
+            aggregatedDataResult.data.withField(
+              frontmatterPartPath,
+              commandsArray,
+            ),
+          );
+        }
+
+        return aggregatedDataResult;
       } else {
         // No frontmatter-part: merge all data as before
         if (data.length > 0) {

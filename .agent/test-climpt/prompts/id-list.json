@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "generated_at": "2025-09-13T20:26:25.466Z",
-  "source_directory": ".agent/test-climpt/prompts",
+  "generated_at": "2025-09-13T22:35:01.180Z",
+  "source_directory": "/Users/tettuan/github/frontmatter-to-schema/.agent/test-climpt/prompts",
   "total_files": 31,
   "id_list": [
     "build:robust:code",
