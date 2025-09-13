@@ -1,5 +1,9 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, FrontmatterError } from "../../shared/types/errors.ts";
+import {
+  createError,
+  FrontmatterError,
+  ValidationError,
+} from "../../shared/types/errors.ts";
 
 export type FrontmatterContent = Record<string, unknown>;
 
@@ -31,31 +35,60 @@ export class FrontmatterData {
     return { ...this.data };
   }
 
-  get(path: string): unknown {
+  get(
+    path: string,
+  ): Result<unknown, ValidationError & { message: string }> {
+    if (!path || path.trim() === "") {
+      return err(createError({
+        kind: "EmptyInput",
+      }, "Path cannot be empty"));
+    }
+
     const parts = path.split(".");
     let current: unknown = this.data;
 
     for (const part of parts) {
       if (current === null || current === undefined) {
-        return undefined;
+        return err(createError({
+          kind: "FieldNotFound",
+          path,
+        }, `Field not found: ${path}`));
       }
 
       if (typeof current !== "object") {
-        return undefined;
+        return err(createError({
+          kind: "InvalidType",
+          expected: "object",
+          actual: typeof current,
+        }, `Expected object at path: ${path}`));
       }
 
       if (part === "[]" && Array.isArray(current)) {
-        return current;
+        return ok(current);
       }
 
       current = (current as Record<string, unknown>)[part];
     }
 
-    return current;
+    if (current === undefined) {
+      return err(createError({
+        kind: "FieldNotFound",
+        path,
+      }, `Value not found at path: ${path}`));
+    }
+
+    return ok(current);
+  }
+
+  // Legacy method for backward compatibility - prefer get() with Result type
+  getLegacy(path: string): unknown {
+    const result = this.get(path);
+    return result.ok ? result.data : undefined;
   }
 
   has(path: string): boolean {
-    return this.get(path) !== undefined;
+    const result = this.get(path);
+    return result.ok;
   }
 
   isEmpty(): boolean {

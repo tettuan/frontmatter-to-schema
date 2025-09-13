@@ -41,12 +41,12 @@ export class VariableReplacer {
           return match;
         }
 
-        const value = data.get(varName);
-        if (value === undefined) {
+        const valueResult = data.get(varName);
+        if (!valueResult.ok) {
           return match; // Keep placeholder if value not found
         }
 
-        return this.formatValue(value);
+        return this.formatValue(valueResult.data);
       });
 
       return ok(result);
@@ -131,7 +131,8 @@ export class VariableReplacer {
         typeof val === "object" && val !== null && "frontmatter_value" in val
       ) {
         const fmValue = val as { frontmatter_value: string };
-        result[renderedKey] = data.get(fmValue.frontmatter_value);
+        const fmValueResult = data.get(fmValue.frontmatter_value);
+        result[renderedKey] = fmValueResult.ok ? fmValueResult.data : undefined;
         continue;
       }
 
@@ -165,18 +166,31 @@ export class VariableReplacer {
       frontmatter_value?: string;
     };
 
-    const iterateData = data.get(iterateValue.iterate);
+    const iterateDataResult = data.get(iterateValue.iterate);
+    if (!iterateDataResult.ok) {
+      return ok(undefined);
+    }
+
+    const iterateData = iterateDataResult.data;
     if (!Array.isArray(iterateData) || !iterateValue.frontmatter_value) {
       return ok(iterateData);
     }
 
-    const results = iterateData.map((item) => {
+    const results: unknown[] = [];
+    for (const item of iterateData) {
       const itemDataResult = FrontmatterData.create(item);
       if (itemDataResult.ok) {
-        return itemDataResult.data.get(iterateValue.frontmatter_value!);
+        const valueResult = itemDataResult.data.get(
+          iterateValue.frontmatter_value!,
+        );
+        if (valueResult.ok) {
+          results.push(valueResult.data);
+        }
+        // Note: Failed value extraction is silently ignored to maintain existing behavior
+        // In a future version, we could collect and return these errors
       }
-      return null;
-    }).filter((item) => item !== null);
+      // Note: Failed item creation is silently ignored to maintain existing behavior
+    }
 
     return ok(results);
   }

@@ -54,8 +54,9 @@ export class SchemaProcessingService {
     // Stage 4: Extract validation rules
     const validationRules = schema.getValidationRules();
 
-    // Stage 5: Extract template path (convert undefined to null for consistency)
-    const templatePath = schema.getTemplatePath() ?? null;
+    // Stage 5: Extract template path (convert Result to null for consistency)
+    const templatePathResult = schema.getTemplatePath();
+    const templatePath = templatePathResult.ok ? templatePathResult.data : null;
 
     return ok({
       schema,
@@ -66,25 +67,27 @@ export class SchemaProcessingService {
 
   /**
    * Extract template path and resolve relative paths.
-   * Returns null if no template specified.
+   * Returns Result with resolved path or error if no template specified.
    */
   resolveTemplatePath(
     schema: Schema,
     schemaPath: string,
-  ): string | null {
-    const templatePath = schema.getTemplatePath();
-    if (!templatePath) {
-      return null;
+  ): Result<string, DomainError & { message: string }> {
+    const templatePathResult = schema.getTemplatePath();
+    if (!templatePathResult.ok) {
+      return templatePathResult;
     }
+    const templatePath = templatePathResult.data;
 
     // Resolve relative template paths
     if (templatePath.startsWith("./")) {
       const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));
-      return schemaDir
+      const resolvedPath = schemaDir
         ? `${schemaDir}/${templatePath.substring(2)}`
         : templatePath.substring(2);
+      return ok(resolvedPath);
     }
 
-    return templatePath;
+    return ok(templatePath);
   }
 }

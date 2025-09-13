@@ -28,7 +28,17 @@ export class ExpressionEvaluator {
     const results: unknown[] = [];
 
     for (const item of data) {
-      const baseValue = basePath ? item.get(basePath) : item.getData();
+      let baseValue: unknown;
+
+      if (basePath) {
+        const baseResult = item.get(basePath);
+        if (!baseResult.ok) {
+          continue; // Skip if path not found
+        }
+        baseValue = baseResult.data;
+      } else {
+        baseValue = item.getData();
+      }
 
       if (!Array.isArray(baseValue)) {
         continue;
@@ -38,9 +48,9 @@ export class ExpressionEvaluator {
         if (propertyPath) {
           const itemData = FrontmatterData.create(arrayItem);
           if (itemData.ok) {
-            const value = itemData.data.get(propertyPath);
-            if (value !== undefined) {
-              results.push(value);
+            const valueResult = itemData.data.get(propertyPath);
+            if (valueResult.ok && valueResult.data !== undefined) {
+              results.push(valueResult.data);
             }
           }
         } else {

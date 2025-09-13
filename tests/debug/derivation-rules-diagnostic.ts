@@ -36,19 +36,19 @@ Deno.test({
       }
 
       // Check frontmatter part schema
-      const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+      const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
       console.log(
         "\\nFrontmatter part schema:",
-        frontmatterPartSchema ? "FOUND" : "NOT FOUND",
+        frontmatterPartSchemaResult.ok ? "FOUND" : "NOT FOUND",
       );
 
-      if (frontmatterPartSchema) {
+      if (frontmatterPartSchemaResult.ok) {
         console.log("Frontmatter part schema details:");
-        const rawSchema = frontmatterPartSchema.getRawSchema();
+        const rawSchema = frontmatterPartSchemaResult.data.getRawSchema();
         console.log("  Raw schema:", JSON.stringify(rawSchema, null, 2));
         console.log(
           "  Has frontmatter part:",
-          frontmatterPartSchema.hasFrontmatterPart(),
+          frontmatterPartSchemaResult.data.hasFrontmatterPart(),
         );
       }
 

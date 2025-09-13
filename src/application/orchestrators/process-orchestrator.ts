@@ -44,17 +44,15 @@ export class ProcessOrchestrator {
     }
 
     // Resolve template path relative to schema directory
-    const resolvedTemplatePath = this.schemaProcessingService
+    const resolvedTemplatePathResult = this.schemaProcessingService
       .resolveTemplatePath(
         schema,
         schemaPath,
       );
-    if (!resolvedTemplatePath) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        template: "Failed to resolve template path",
-      }));
+    if (!resolvedTemplatePathResult.ok) {
+      return resolvedTemplatePathResult;
     }
+    const resolvedTemplatePath = resolvedTemplatePathResult.data;
 
     // Stage 2: Process Documents
     const documentsResult = this.documentProcessingService.processDocuments(

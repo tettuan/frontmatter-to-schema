@@ -1,5 +1,5 @@
-import { ok, Result } from "../../shared/types/result.ts";
-import { ValidationError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, ValidationError } from "../../shared/types/errors.ts";
 import type { SchemaProperty } from "./schema-definition.ts";
 
 export interface ValidationRule {
@@ -35,8 +35,17 @@ export class ValidationRules {
     return this.rules;
   }
 
-  getRuleForPath(path: string): ValidationRule | undefined {
-    return this.rules.find((rule) => rule.path === path);
+  getRuleForPath(
+    path: string,
+  ): Result<ValidationRule, ValidationError & { message: string }> {
+    const rule = this.rules.find((rule) => rule.path === path);
+    if (rule) {
+      return ok(rule);
+    }
+    return err(createError({
+      kind: "ValidationRuleNotFound",
+      path: path,
+    }));
   }
 
   validate(
