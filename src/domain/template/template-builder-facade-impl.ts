@@ -20,8 +20,10 @@ import type {
  */
 class CompiledTemplateImpl implements CompiledTemplate {
   constructor(
-    public readonly templatePath: import("./template-builder-facade.ts").TemplateFilePath,
-    public readonly appliedValues: import("./template-builder-facade.ts").TemplateValueSet,
+    public readonly templatePath:
+      import("./template-builder-facade.ts").TemplateFilePath,
+    public readonly appliedValues:
+      import("./template-builder-facade.ts").TemplateValueSet,
     public readonly compiledContent: string,
     public readonly compiledAt: Date,
     public readonly checksum: string,
@@ -75,24 +77,33 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
     source: TemplateSource,
   ): Promise<Result<CompiledTemplate, BuildError>> {
     try {
-      // Load template content from file
-      // templatePath is already a string path, not an object with resolve()
-      const templatePath = typeof source.templatePath === 'string'
+      // Check if template is inline or file-based
+      const templatePath = typeof source.templatePath === "string"
         ? source.templatePath
-        : (source.templatePath as any).path || String(source.templatePath);
+        : source.templatePath.toString();
+
       let templateContent: string;
 
-      try {
-        templateContent = await Deno.readTextFile(templatePath);
-      } catch (e) {
-        return {
-          ok: false,
-          error: {
-            kind: "BuildError",
-            message: `Failed to read template file: ${templatePath}`,
-            details: e,
-          },
-        };
+      // If templatePath is "inline-template", use the template directly from valueSet
+      if (
+        templatePath === "inline-template" &&
+        source.valueSet.values._templateContent
+      ) {
+        templateContent = String(source.valueSet.values._templateContent);
+      } else {
+        // Load template content from file
+        try {
+          templateContent = await Deno.readTextFile(templatePath);
+        } catch (e) {
+          return {
+            ok: false,
+            error: {
+              kind: "BuildError",
+              message: `Failed to read template file: ${templatePath}`,
+              details: e,
+            },
+          };
+        }
       }
 
       // Process template with values using TemplateOnlyProcessor
@@ -117,7 +128,8 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
       const data = encoder.encode(result.data);
       const hashBuffer = await crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const checksum = hashArray.map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
       // Detect format
       const format = this.detectFormat(result.data);
@@ -139,7 +151,8 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
           ok: false,
           error: {
             kind: "BuildError",
-            message: `Template validation failed: ${validationResult.error.message}`,
+            message:
+              `Template validation failed: ${validationResult.error.message}`,
             details: validationResult.error,
           },
         };
@@ -196,7 +209,8 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
       const data = encoder.encode(composedContent);
       const hashBuffer = await crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const checksum = hashArray.map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
       // Create composed template
       const composed = new CompiledTemplateImpl(
@@ -251,7 +265,9 @@ export class TemplateBuilderFacadeImpl implements TemplateBuilderFacade {
     }
 
     // Check for YAML
-    if (trimmed.includes(":") && (trimmed.includes("\n") || trimmed.includes("-"))) {
+    if (
+      trimmed.includes(":") && (trimmed.includes("\n") || trimmed.includes("-"))
+    ) {
       return "yaml";
     }
 

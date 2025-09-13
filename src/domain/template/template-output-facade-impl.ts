@@ -7,8 +7,8 @@ import type { Result } from "../core/result.ts";
 import type {
   OutputError,
   OutputSpecification,
-  RenderError,
   RenderedTemplate,
+  RenderError,
   TemplateOutputFacade,
 } from "./template-output-facade.ts";
 import type { CompiledTemplate } from "./template-builder-facade.ts";
@@ -37,13 +37,14 @@ export class TemplateOutputFacadeImpl implements TemplateOutputFacade {
   ): Promise<Result<RenderedTemplate, RenderError>> {
     try {
       // Validate template first
-      const validationResult = template.validate();
+      const validationResult = await Promise.resolve(template.validate());
       if (!validationResult.ok) {
         return {
           ok: false,
           error: {
             kind: "RenderError",
-            message: `Template validation failed: ${validationResult.error.message}`,
+            message:
+              `Template validation failed: ${validationResult.error.message}`,
             template: template.templatePath.toString(),
             details: validationResult.error,
           },
