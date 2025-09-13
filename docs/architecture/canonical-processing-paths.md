@@ -82,7 +82,8 @@ Schema Request → SchemaParser.parseSchema()
 
 **Primary Implementation**: `src/domain/schema-processing/*`
 
-**CRITICAL**: Schema Domain ENDS after returning template path and rules. It has NO involvement in template processing.
+**CRITICAL**: Schema Domain ENDS after returning template path and rules. It has
+NO involvement in template processing.
 
 **DEPRECATED PATHS**: None currently identified
 

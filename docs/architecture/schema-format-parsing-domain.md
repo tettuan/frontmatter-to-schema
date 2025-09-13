@@ -2,21 +2,28 @@
 
 ## Executive Summary
 
-This document clarifies where and how values are parsed according to Schema format specifications. The **Schema Validation Domain** is responsible for parsing raw frontmatter values into Schema-defined formats during the validation process.
+This document clarifies where and how values are parsed according to Schema
+format specifications. The **Schema Validation Domain** is responsible for
+parsing raw frontmatter values into Schema-defined formats during the validation
+process.
 
 ## Schema Format Parsing Responsibility
 
 ### Where: Schema Validation Domain
 
 The **Schema Validation Domain** has dual responsibility:
+
 1. **Validate** extracted frontmatter data against schema rules
 2. **Parse and format** values according to Schema format definitions
 
 ### Why Not Other Domains?
 
-- **Frontmatter Extraction Domain**: Only extracts raw syntax - doesn't know Schema format
-- **Schema Processing Domain**: Only extracts Schema information - doesn't process data
-- **Template Domains**: Only process templates - receive already-formatted values
+- **Frontmatter Extraction Domain**: Only extracts raw syntax - doesn't know
+  Schema format
+- **Schema Processing Domain**: Only extracts Schema information - doesn't
+  process data
+- **Template Domains**: Only process templates - receive already-formatted
+  values
 
 ## Processing Flow Detail
 
@@ -69,14 +76,14 @@ Schema can define format specifications for values:
 interface SchemaValidationService {
   validateAndFormat(
     frontmatterData: FrontmatterData,
-    schemaResult: SchemaResult
+    schemaResult: SchemaResult,
   ): Promise<Result<FormattedValidationResult, ValidationError>>;
 }
 
 interface FormattedValidationResult {
   isValid: boolean;
   errors: ValidationError[];
-  rawValues: Record<string, unknown>;           // Original frontmatter values
+  rawValues: Record<string, unknown>; // Original frontmatter values
   schemaFormattedValues: Record<string, unknown>; // Values parsed per Schema format
   validationRules: ValidationRule[];
 }
@@ -169,9 +176,8 @@ private parseBoolean(value: string, format: string): boolean | ValidationError {
 class SchemaValidationService {
   async validateAndFormat(
     frontmatterData: FrontmatterData,
-    schemaResult: SchemaResult
+    schemaResult: SchemaResult,
   ): Promise<Result<FormattedValidationResult, ValidationError>> {
-
     const formattedValues: Record<string, unknown> = {};
     const errors: ValidationError[] = [];
 
@@ -205,23 +211,34 @@ class SchemaValidationService {
       errors,
       rawValues: frontmatterData.values,
       schemaFormattedValues: formattedValues,
-      validationRules: schemaResult.validationRules
+      validationRules: schemaResult.validationRules,
     });
   }
 
-  private parseValueBySchema(value: unknown, fieldSchema: FieldSchema): unknown | ValidationError {
+  private parseValueBySchema(
+    value: unknown,
+    fieldSchema: FieldSchema,
+  ): unknown | ValidationError {
     const stringValue = String(value);
 
     switch (fieldSchema.type) {
-      case 'date':
+      case "date":
         return this.parseDate(stringValue, fieldSchema.format);
-      case 'number':
-        return this.parseNumber(stringValue, fieldSchema.format, fieldSchema.precision);
-      case 'boolean':
+      case "number":
+        return this.parseNumber(
+          stringValue,
+          fieldSchema.format,
+          fieldSchema.precision,
+        );
+      case "boolean":
         return this.parseBoolean(stringValue, fieldSchema.format);
-      case 'array':
-        return this.parseArray(stringValue, fieldSchema.format, fieldSchema.itemType);
-      case 'string':
+      case "array":
+        return this.parseArray(
+          stringValue,
+          fieldSchema.format,
+          fieldSchema.itemType,
+        );
+      case "string":
       default:
         return this.parseString(stringValue, fieldSchema.format);
     }
@@ -237,7 +254,7 @@ After Schema format parsing, the formatted values flow to Template Domain:
 // Application Coordination
 const validationResult = await schemaValidationService.validateAndFormat(
   frontmatterData,
-  schemaResult
+  schemaResult,
 );
 
 if (validationResult.ok && validationResult.data.isValid) {
@@ -246,10 +263,10 @@ if (validationResult.ok && validationResult.data.isValid) {
     templatePath: new TemplateFilePath(schemaResult.templatePath),
     valueSet: {
       values: {
-        ...schemaResult.extractedValues,              // Schema defaults
-        ...validationResult.data.schemaFormattedValues // Formatted frontmatter
-      }
-    }
+        ...schemaResult.extractedValues, // Schema defaults
+        ...validationResult.data.schemaFormattedValues, // Formatted frontmatter
+      },
+    },
   };
 
   // Pass formatted values to Template Domain
@@ -260,18 +277,21 @@ if (validationResult.ok && validationResult.data.isValid) {
 ## Domain Boundary Rules
 
 ### Schema Validation Domain MUST:
+
 - Parse raw frontmatter values according to Schema format specifications
 - Validate parsed values against Schema rules
 - Return both raw and formatted values
 - Handle format parsing errors gracefully
 
 ### Schema Validation Domain MUST NOT:
+
 - Process templates
 - Load template files
 - Make template-related decisions
 - Modify Schema definitions
 
 ### Other Domains MUST NOT:
+
 - **Frontmatter Domain**: Parse according to Schema format (only extract raw)
 - **Schema Domain**: Process frontmatter data (only extract Schema info)
 - **Template Domain**: Parse or validate data (receive pre-formatted values)
@@ -290,6 +310,7 @@ interface FormatParsingError extends ValidationError {
 ```
 
 Example error:
+
 ```json
 {
   "field": "publishDate",
@@ -304,39 +325,44 @@ Example error:
 ### Format Parsing Tests
 
 ```typescript
-Deno.test('SchemaValidation - should parse date formats correctly', async () => {
-  const rawData = { publishDate: '2023-12-01' };
+Deno.test("SchemaValidation - should parse date formats correctly", async () => {
+  const rawData = { publishDate: "2023-12-01" };
   const schema = {
     fields: {
-      publishDate: { type: 'date', format: 'ISO8601' }
-    }
+      publishDate: { type: "date", format: "ISO8601" },
+    },
   };
 
   const result = await validator.validateAndFormat(rawData, schema);
 
-  assertEquals(result.data.schemaFormattedValues.publishDate instanceof Date, true);
+  assertEquals(
+    result.data.schemaFormattedValues.publishDate instanceof Date,
+    true,
+  );
 });
 
-Deno.test('SchemaValidation - should handle format parsing errors', async () => {
-  const rawData = { publishDate: 'invalid-date' };
+Deno.test("SchemaValidation - should handle format parsing errors", async () => {
+  const rawData = { publishDate: "invalid-date" };
   const schema = {
     fields: {
-      publishDate: { type: 'date', format: 'ISO8601' }
-    }
+      publishDate: { type: "date", format: "ISO8601" },
+    },
   };
 
   const result = await validator.validateAndFormat(rawData, schema);
 
   assertEquals(result.data.isValid, false);
-  assertEquals(result.data.errors[0].field, 'publishDate');
+  assertEquals(result.data.errors[0].field, "publishDate");
 });
 ```
 
 ## Authority Statement
 
-**Schema format parsing is the exclusive responsibility of the Schema Validation Domain.**
+**Schema format parsing is the exclusive responsibility of the Schema Validation
+Domain.**
 
 This ensures:
+
 - Centralized format handling
 - Consistent parsing logic
 - Clear domain boundaries
@@ -346,6 +372,5 @@ This ensures:
 
 ---
 
-**Created**: December 2025
-**Authority**: Canonical Architecture Documentation
+**Created**: December 2025 **Authority**: Canonical Architecture Documentation
 **Enforcement**: MANDATORY

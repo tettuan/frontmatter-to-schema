@@ -2,16 +2,20 @@
 
 ## Executive Summary
 
-This document defines the complete processing flow from frontmatter extraction through schema validation to template output, establishing clear domain boundaries and responsibilities at each stage.
+This document defines the complete processing flow from frontmatter extraction
+through schema validation to template output, establishing clear domain
+boundaries and responsibilities at each stage.
 
 ## Domain Separation Overview
 
 The processing involves FOUR completely independent domains:
 
 1. **Frontmatter Extraction Domain** - Extracts raw data from documents
-2. **Schema Processing Domain** - Parses schemas, returns template path and values
+2. **Schema Processing Domain** - Parses schemas, returns template path and
+   values
 3. **Schema Validation Domain** - Validates extracted data against schema rules
-4. **Template Building/Output Domains** - Processes templates with validated data
+4. **Template Building/Output Domains** - Processes templates with validated
+   data
 
 ## Complete Processing Flow
 
@@ -125,24 +129,25 @@ The processing involves FOUR completely independent domains:
 
 **Single Responsibility**: Extract raw key-value data from document frontmatter
 
-**Input**: Document content (string)
-**Output**: `FrontmatterData`
+**Input**: Document content (string) **Output**: `FrontmatterData`
 
 ```typescript
 interface FrontmatterData {
   values: Record<string, unknown>;
-  format: 'yaml' | 'toml' | 'json';
+  format: "yaml" | "toml" | "json";
   rawContent: string;
 }
 ```
 
 **MUST NOT**:
+
 - Validate against schema rules
 - Know about schema structure
 - Process templates
 - Make validation decisions
 
 **MUST ONLY**:
+
 - Parse frontmatter syntax
 - Extract key-value pairs
 - Detect format type
@@ -152,25 +157,26 @@ interface FrontmatterData {
 
 **Single Responsibility**: Parse schema definitions and extract information
 
-**Input**: Schema file path or content
-**Output**: `SchemaResult`
+**Input**: Schema file path or content **Output**: `SchemaResult`
 
 ```typescript
 interface SchemaResult {
-  templatePath: string;                     // Path to template file
+  templatePath: string; // Path to template file
   extractedValues: Record<string, unknown>; // Default values from schema
-  validationRules: ValidationRule[];       // Rules for data validation
+  validationRules: ValidationRule[]; // Rules for data validation
   metadata: SchemaMetadata;
 }
 ```
 
 **MUST NOT**:
+
 - Load template files
 - Validate frontmatter data
 - Apply values to templates
 - Generate output
 
 **MUST ONLY**:
+
 - Parse schema syntax
 - Extract template path
 - Extract validation rules
@@ -178,7 +184,8 @@ interface SchemaResult {
 
 ### 3. Schema Validation Domain
 
-**Single Responsibility**: Validate extracted data against schema rules AND parse values according to Schema format
+**Single Responsibility**: Validate extracted data against schema rules AND
+parse values according to Schema format
 
 **Input**: `FrontmatterData` + `ValidationRule[]` + `SchemaDefinition`
 **Output**: `ValidationResult`
@@ -187,18 +194,20 @@ interface SchemaResult {
 interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
-  validatedData: Record<string, unknown>;  // Values parsed according to Schema format
+  validatedData: Record<string, unknown>; // Values parsed according to Schema format
   schemaFormattedValues: Record<string, unknown>; // Values in Schema-defined format
 }
 ```
 
 **MUST NOT**:
+
 - Process templates
 - Load files
 - Make output decisions
 - Modify template paths
 
 **MUST ONLY**:
+
 - Apply validation rules to data
 - Check required fields
 - Validate data types
@@ -210,6 +219,7 @@ interface ValidationResult {
 **Single Responsibility**: Coordinate between domains and combine results
 
 **Processing**:
+
 1. Receive results from all domains
 2. Combine schema values with frontmatter values
 3. Handle value precedence (frontmatter overrides schema defaults)
@@ -218,13 +228,13 @@ interface ValidationResult {
 ```typescript
 // Value combination logic
 const combinedValues = {
-  ...schemaResult.extractedValues,  // Schema defaults
-  ...validatedFrontmatter.values    // Frontmatter overrides
+  ...schemaResult.extractedValues, // Schema defaults
+  ...validatedFrontmatter.values, // Frontmatter overrides
 };
 
 const templateSource: TemplateSource = {
   templatePath: new TemplateFilePath(schemaResult.templatePath),
-  valueSet: { values: combinedValues }
+  valueSet: { values: combinedValues },
 };
 ```
 
@@ -285,7 +295,7 @@ class SchemaProcessingService {
 class SchemaValidationService {
   validate(
     data: FrontmatterData,
-    rules: ValidationRule[]
+    rules: ValidationRule[],
   ): Result<ValidationResult, ValidationError> {
     // Validate data against rules ONLY
     // NO template processing
@@ -300,9 +310,8 @@ class SchemaValidationService {
 class DocumentProcessingCoordinator {
   async process(
     documentContent: string,
-    schemaPath: string
+    schemaPath: string,
   ): Promise<Result<void, ProcessingError>> {
-
     // Step 1: Extract frontmatter
     const frontmatterResult = frontmatterService.extract(documentContent);
 
@@ -312,13 +321,13 @@ class DocumentProcessingCoordinator {
     // Step 3: Validate data
     const validationResult = validationService.validate(
       frontmatterResult.data,
-      schemaResult.data.validationRules
+      schemaResult.data.validationRules,
     );
 
     // Step 4: Coordinate for template processing
     const templateSource = this.createTemplateSource(
       schemaResult.data,
-      validationResult.data
+      validationResult.data,
     );
 
     // Step 5: Process template (separate domains)
@@ -335,17 +344,17 @@ Each domain must be testable in complete isolation:
 
 ```typescript
 // Frontmatter Domain - no schema knowledge
-Deno.test('Frontmatter extraction without schema', () => {
-  const content = '---\ntitle: Test\n---\nContent';
+Deno.test("Frontmatter extraction without schema", () => {
+  const content = "---\ntitle: Test\n---\nContent";
   const result = frontmatterExtractor.extract(content);
 
-  assertEquals(result.values.title, 'Test');
+  assertEquals(result.values.title, "Test");
   // Should not validate against any schema
 });
 
 // Schema Domain - no frontmatter knowledge
-Deno.test('Schema processing without frontmatter', () => {
-  const result = schemaProcessor.parse('schema.json');
+Deno.test("Schema processing without frontmatter", () => {
+  const result = schemaProcessor.parse("schema.json");
 
   assertExists(result.templatePath);
   assertExists(result.validationRules);
@@ -353,9 +362,9 @@ Deno.test('Schema processing without frontmatter', () => {
 });
 
 // Validation Domain - pure rule application
-Deno.test('Validation without templates', () => {
-  const data = { title: 'Test' };
-  const rules = [{ field: 'title', required: true }];
+Deno.test("Validation without templates", () => {
+  const data = { title: "Test" };
+  const rules = [{ field: "title", required: true }];
   const result = validator.validate(data, rules);
 
   assertEquals(result.isValid, true);
@@ -368,7 +377,7 @@ Deno.test('Validation without templates', () => {
 Test coordination between domains:
 
 ```typescript
-Deno.test('Complete frontmatter to template flow', async () => {
+Deno.test("Complete frontmatter to template flow", async () => {
   // Test that all domains work together correctly
   // Verify data flows through each domain
   // Ensure no domain boundaries are violated
@@ -377,9 +386,11 @@ Deno.test('Complete frontmatter to template flow', async () => {
 
 ## Authority Statement
 
-**This document establishes the MANDATORY processing flow for frontmatter and schema operations.**
+**This document establishes the MANDATORY processing flow for frontmatter and
+schema operations.**
 
 Each domain:
+
 - MUST maintain complete independence
 - MUST handle only its designated responsibility
 - MUST NOT cross domain boundaries
@@ -389,7 +400,5 @@ Each domain:
 
 ---
 
-**Created**: December 2025
-**Authority**: Canonical Architecture Documentation
-**Enforcement**: MANDATORY
-**Review Schedule**: Quarterly
+**Created**: December 2025 **Authority**: Canonical Architecture Documentation
+**Enforcement**: MANDATORY **Review Schedule**: Quarterly
