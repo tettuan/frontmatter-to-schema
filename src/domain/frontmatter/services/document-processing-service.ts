@@ -141,6 +141,7 @@ export class DocumentProcessingService {
 
   /**
    * Process frontmatter parts if schema defines x-frontmatter-part.
+   * When x-frontmatter-part is true, each markdown file becomes one array item.
    */
   private processFrontmatterParts(
     data: FrontmatterData[],
@@ -151,12 +152,10 @@ export class DocumentProcessingService {
       return data;
     }
 
-    const partResults: FrontmatterData[] = [];
-    for (const item of data) {
-      const parts = this.frontmatterProcessor.extractFromPart(item, "");
-      partResults.push(...parts);
-    }
-    return partResults;
+    // For frontmatter-part processing, each frontmatter document
+    // represents one item in the resulting array
+    // No need to extract sub-parts - the data array is already the parts
+    return data;
   }
 
   /**
@@ -169,6 +168,33 @@ export class DocumentProcessingService {
     const derivationRules = schema.getDerivedRules();
 
     if (derivationRules.length > 0) {
+      // Has derivation rules: create base data structure with frontmatter-part array
+      const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+      let baseData: FrontmatterData;
+
+      if (frontmatterPartSchema) {
+        // Create base data with commands array for derivation processing
+        const commandsArray = data.map((item) => item.getData());
+        const baseDataResult = FrontmatterData.create({
+          commands: commandsArray,
+        });
+        if (!baseDataResult.ok) {
+          return baseDataResult;
+        }
+        baseData = baseDataResult.data;
+      } else {
+        // No frontmatter-part: merge all data as base
+        if (data.length > 0) {
+          let merged = data[0];
+          for (let i = 1; i < data.length; i++) {
+            merged = merged.merge(data[i]);
+          }
+          baseData = merged;
+        } else {
+          baseData = FrontmatterData.empty();
+        }
+      }
+
       // Convert schema rules to domain rules
       const rules = derivationRules.map((r) => {
         const ruleResult = DerivationRule.create(
@@ -179,8 +205,8 @@ export class DocumentProcessingService {
         return ruleResult.ok ? ruleResult.data : null;
       }).filter((r) => r !== null) as DerivationRule[];
 
-      // Aggregate with rules
-      const aggregationResult = this.aggregator.aggregate(data, rules);
+      // Aggregate with rules using the base data
+      const aggregationResult = this.aggregator.aggregate([baseData], rules);
       if (!aggregationResult.ok) {
         return aggregationResult;
       }
@@ -188,16 +214,55 @@ export class DocumentProcessingService {
       // Merge with base
       return this.aggregator.mergeWithBase(aggregationResult.data);
     } else {
-      // No derivation rules - merge all data
-      if (data.length > 0) {
-        let merged = data[0];
-        for (let i = 1; i < data.length; i++) {
-          merged = merged.merge(data[i]);
-        }
-        return ok(merged);
+      // No derivation rules - handle frontmatter-part aggregation or merge data
+      const frontmatterPartSchema = schema.findFrontmatterPartSchema();
+
+      if (frontmatterPartSchema) {
+        // Has frontmatter-part: create aggregated data with the array of documents
+        const aggregatedData: Record<string, unknown> = {};
+
+        // TODO: Need to implement proper path resolution for nested frontmatter-part properties
+        // For now, put commands at root level
+        const commandsArray = data.map((item) => item.getData());
+        aggregatedData.commands = commandsArray;
+
+        return FrontmatterData.create(aggregatedData);
       } else {
-        return ok(FrontmatterData.empty());
+        // No frontmatter-part: merge all data as before
+        if (data.length > 0) {
+          let merged = data[0];
+          for (let i = 1; i < data.length; i++) {
+            merged = merged.merge(data[i]);
+          }
+          return ok(merged);
+        } else {
+          return ok(FrontmatterData.empty());
+        }
       }
     }
+  }
+
+  /**
+   * Helper method to set nested properties in an object.
+   */
+  private setNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): void {
+    const parts = path.split(".");
+    let current = obj;
+
+    // Navigate to the parent of the target property
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      if (!current[part] || typeof current[part] !== "object") {
+        current[part] = {};
+      }
+      current = current[part] as Record<string, unknown>;
+    }
+
+    // Set the final property
+    current[parts[parts.length - 1]] = value;
   }
 }

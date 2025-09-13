@@ -27,17 +27,15 @@ export class FileSystemSchemaRepository implements SchemaRepository {
       }));
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(contentResult.data);
-    } catch (error) {
+    const parseResult = this.safeJsonParse(contentResult.data);
+    if (!parseResult.ok) {
       return err(createError({
         kind: "InvalidSchema",
-        message: `Failed to parse JSON: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        message: `Failed to parse JSON: ${parseResult.error.message}`,
       }));
     }
+
+    const parsed = parseResult.data;
 
     const definitionResult = SchemaDefinition.create(parsed);
     if (!definitionResult.ok) {
@@ -51,6 +49,16 @@ export class FileSystemSchemaRepository implements SchemaRepository {
 
     this.schemaCache.set(pathStr, schemaResult.data);
     return schemaResult;
+  }
+
+  private safeJsonParse(content: string): Result<unknown, { message: string }> {
+    try {
+      return ok(JSON.parse(content));
+    } catch (error) {
+      return err({
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 
   resolve(schema: Schema): Result<Schema, SchemaError & { message: string }> {

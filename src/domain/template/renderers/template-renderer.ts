@@ -109,28 +109,29 @@ export class TemplateRenderer {
     data: unknown,
     format: "json" | "yaml" | "markdown",
   ): Result<string, TemplateError & { message: string }> {
-    try {
-      switch (format) {
-        case "json":
-          return ok(JSON.stringify(data, null, 2));
-
-        case "yaml":
-          return ok(this.toYaml(data));
-
-        case "markdown":
-          return ok(this.toMarkdown(data));
-
-        default:
+    switch (format) {
+      case "json": {
+        const jsonResult = this.safeJsonStringify(data);
+        if (!jsonResult.ok) {
           return err(createError({
-            kind: "InvalidFormat",
-            format,
+            kind: "RenderFailed",
+            message: jsonResult.error.message,
           }));
+        }
+        return ok(jsonResult.data);
       }
-    } catch (error) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      }));
+
+      case "yaml":
+        return ok(this.toYaml(data));
+
+      case "markdown":
+        return ok(this.toMarkdown(data));
+
+      default:
+        return err(createError({
+          kind: "InvalidFormat",
+          format,
+        }));
     }
   }
 
@@ -193,8 +194,22 @@ export class TemplateRenderer {
   }
 
   private toMarkdown(data: unknown): string {
-    return `# Generated Output\n\n\`\`\`json\n${
-      JSON.stringify(data, null, 2)
-    }\n\`\`\`\n`;
+    const jsonResult = this.safeJsonStringify(data);
+    const jsonString = jsonResult.ok
+      ? jsonResult.data
+      : "[Serialization Error]";
+    return `# Generated Output\n\n\`\`\`json\n${jsonString}\n\`\`\`\n`;
+  }
+
+  private safeJsonStringify(
+    data: unknown,
+  ): Result<string, { message: string }> {
+    try {
+      return ok(JSON.stringify(data, null, 2));
+    } catch (error) {
+      return err({
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { err, Result } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { Template } from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
@@ -76,20 +76,28 @@ export class OutputRenderingService {
     }
 
     // Parse template JSON
-    let templateContent: unknown;
-    try {
-      templateContent = JSON.parse(templateContentResult.data);
-    } catch (error) {
+    const parseResult = this.safeJsonParse(templateContentResult.data);
+    if (!parseResult.ok) {
       return err(createError({
         kind: "InvalidTemplate",
         template: templatePath,
-        message: `Failed to parse template JSON: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        message: `Failed to parse template JSON: ${parseResult.error.message}`,
       }));
     }
 
+    const templateContent = parseResult.data;
+
     // Create Template entity
     return Template.create(templatePathResult.data, templateContent);
+  }
+
+  private safeJsonParse(content: string): Result<unknown, { message: string }> {
+    try {
+      return ok(JSON.parse(content));
+    } catch (error) {
+      return err({
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 }
