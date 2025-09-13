@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Specification Level Index Schema",
+  "x-template": "index_level_template.json",
+  "description": "Schema for specification level traceability index",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Index description",
+      "default": "Specification level traceability IDs"
+    },
+    "level": {
+      "type": "string",
+      "description": "Level name for template",
+      "default": "spec"
+    },
+    "spec": {
+      "type": "array",
+      "description": "Specification level traceability IDs",
+      "x-frontmatter-part": true,
+      "items": {
+        "$ref": "traceability_item_schema.json"
+      }
+    }
+  },
+  "required": ["version", "description", "spec"]
+}
