@@ -71,6 +71,21 @@ export class VariableReplacer {
     data: FrontmatterData,
   ): Result<unknown, TemplateError & { message: string }> {
     try {
+      // Handle Result types first - unwrap successful Results, return empty for errors
+      if (this.isResultType(value)) {
+        const resultValue = value as {
+          ok: boolean;
+          data?: unknown;
+          error?: unknown;
+        };
+        if (resultValue.ok && resultValue.data !== undefined) {
+          // Recursively process the unwrapped data
+          return this.processValue(resultValue.data, data);
+        }
+        // For error Results, return empty string
+        return ok("");
+      }
+
       if (typeof value === "string") {
         return this.replaceVariables(value, data);
       }
@@ -110,7 +125,45 @@ export class VariableReplacer {
       return String(value);
     }
 
+    // Handle Result types - prevent serialization of Result objects
+    if (this.isResultType(value)) {
+      const resultValue = value as {
+        ok: boolean;
+        data?: unknown;
+        error?: unknown;
+      };
+      if (resultValue.ok && resultValue.data !== undefined) {
+        // Recursively format the data inside successful Result
+        return this.formatValue(resultValue.data);
+      }
+      // For error Results, return empty string (fail gracefully)
+      return "";
+    }
+
+    // Handle arrays
+    if (Array.isArray(value)) {
+      return JSON.stringify(value);
+    }
+
+    // Handle null/undefined
+    if (value === null) {
+      return "null";
+    }
+    if (value === undefined) {
+      return "";
+    }
+
+    // For complex objects, stringify but be cautious
     return JSON.stringify(value);
+  }
+
+  private isResultType(value: unknown): boolean {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "ok" in value &&
+      typeof (value as { ok: unknown }).ok === "boolean"
+    );
   }
 
   private processObject(
@@ -122,9 +175,19 @@ export class VariableReplacer {
     for (const [key, val] of Object.entries(obj)) {
       const renderedKeyResult = this.replaceVariables(key, data);
       if (!renderedKeyResult.ok) {
-        return renderedKeyResult;
+        return err(renderedKeyResult.error);
       }
       const renderedKey = renderedKeyResult.data;
+
+      // Handle iterate objects first (they can have frontmatter_value as sub-property)
+      if (typeof val === "object" && val !== null && "iterate" in val) {
+        const iterateResult = this.processIterateObject(val, data);
+        if (!iterateResult.ok) {
+          return err(iterateResult.error);
+        }
+        result[renderedKey] = iterateResult.data;
+        continue;
+      }
 
       // Handle special frontmatter_value objects
       if (
@@ -136,20 +199,10 @@ export class VariableReplacer {
         continue;
       }
 
-      // Handle iterate objects
-      if (typeof val === "object" && val !== null && "iterate" in val) {
-        const iterateResult = this.processIterateObject(val, data);
-        if (!iterateResult.ok) {
-          return iterateResult;
-        }
-        result[renderedKey] = iterateResult.data;
-        continue;
-      }
-
       // Process regular values
       const processedResult = this.processValue(val, data);
       if (!processedResult.ok) {
-        return processedResult;
+        return err(processedResult.error);
       }
       result[renderedKey] = processedResult.data;
     }
