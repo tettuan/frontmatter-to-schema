@@ -1,91 +1,46 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "x-template": "registry_template.json",
   "type": "object",
+  "title": "Registry Schema",
+  "x-template": "registry_template.json",
+  "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
       "type": "string",
-      "description": "Registry version (e.g., '1.0.0')"
+      "description": "Registry version",
+      "default": "1.0.0"
     },
     "description": {
       "type": "string",
-      "description": "Overall registry description"
+      "description": "Overall registry description",
+      "default": "Command Registry"
     },
     "tools": {
       "type": "object",
+      "description": "Tool configuration and command registry",
       "properties": {
         "availableConfigs": {
           "type": "array",
+          "description": "Tool names array - derived from commands[].c1",
           "x-derived-from": "commands[].c1",
           "x-derived-unique": true,
-          "items": { "type": "string" },
-          "description": "Tool names array - each becomes available as climpt-{name}"
+          "items": {
+            "type": "string"
+          }
         },
         "commands": {
           "type": "array",
-          "x-frontmatter-part": true,
-          "description": "Command registry - defines all available C3L commands",
+          "description": "Command registry",
           "items": {
-            "type": "object",
-            "properties": {
-              "c1": {
-                "type": "string",
-                "description": "Domain/category (git, spec, test, code, docs, meta)"
-              },
-              "c2": {
-                "type": "string",
-                "description": "Action/directive (create, analyze, execute, etc.)"
-              },
-              "c3": {
-                "type": "string",
-                "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
-              },
-              "description": {
-                "type": "string",
-                "description": "Command description"
-              },
-              "usage": {
-                "type": "string",
-                "description": "Usage instructions and examples"
-              },
-              "options": {
-                "type": "object",
-                "description": "Available options for this command",
-                "properties": {
-                  "input": {
-                    "type": "array",
-                    "items": { "type": "string" },
-                    "description": "Supported input formats"
-                  },
-                  "adaptation": {
-                    "type": "array",
-                    "items": { "type": "string" },
-                    "description": "Processing modes"
-                  },
-                  "input_file": {
-                    "type": "array",
-                    "items": { "type": "boolean" },
-                    "description": "File input support"
-                  },
-                  "stdin": {
-                    "type": "array",
-                    "items": { "type": "boolean" },
-                    "description": "Standard input support"
-                  },
-                  "destination": {
-                    "type": "array",
-                    "items": { "type": "boolean" },
-                    "description": "Output destination support"
-                  }
-                }
-              }
-            },
-            "required": ["c1", "c2", "c3", "description"]
+            "x-frontmatter-part": true,
+            "$ref": "registry_command_schema.json"
           }
         }
       },
-      "required": ["availableConfigs", "commands"]
+      "required": ["commands"],
+      "additionalProperties": false
     }
   },
-  "required": ["version", "description", "tools"]
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
 }

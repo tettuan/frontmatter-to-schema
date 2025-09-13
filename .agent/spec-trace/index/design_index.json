@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "description": "Design level traceability IDs",
+  "design": [
+    "design:ui:dashboard-layout-1a2b3c#20250909"
+  ]
+}
