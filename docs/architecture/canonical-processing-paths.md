@@ -6,11 +6,15 @@ This document defines the single authoritative processing path for each major
 concern in the frontmatter-to-schema system. It serves as the definitive guide
 to prevent future architectural duplication.
 
-## Core Principle
+## Core Principles
 
 **ONE PATH RULE**: For each domain concern, there shall be exactly one canonical
 implementation path. All other implementations are considered deprecated and
 scheduled for removal.
+
+**TEMPLATE GATEWAY RULE**: ALL output operations MUST route through Template Building
+and Template Output domains. Direct output bypassing these domains is an architectural
+violation requiring immediate correction.
 
 ## Processing Domains
 
@@ -21,11 +25,12 @@ scheduled for removal.
 ```
 CLI Input → DocumentProcessor.process()
   ├── LoadSchemaUseCase.execute()
-  ├── DiscoverFilesUseCase.execute()  
+  ├── DiscoverFilesUseCase.execute()
   ├── ExtractFrontmatterUseCase.execute()
   ├── ValidateFrontmatterUseCase.execute()
-  ├── AggregateResultsUseCase.execute()
-  └── WriteOutputUseCase.execute()
+  ├── TemplateBuilderFacade.buildTemplate() [MANDATORY]
+  ├── TemplateOutputFacade.renderTemplate() [MANDATORY]
+  └── TemplateOutputFacade.outputTemplate() [MANDATORY]
 ```
 
 **Primary Implementation**: `src/application/document-processor.ts`
@@ -72,24 +77,39 @@ Schema Request → SchemaValidator.validate()
 
 **DEPRECATED PATHS**: None currently identified
 
-### 4. Template Processing
+### 4. Template Building Domain
 
-**CANONICAL PATH**: Template Adapter → Template Engine
+**CANONICAL PATH**: Template Builder Facade → Domain Services
 
 ```
-Template Application → UnifiedTemplateMapperAdapter.applyTemplateMapping()
-  ├── TemplateEngine.compile()
-  ├── TemplateEngine.render()
-  └── Template validation and transformation
+Data + Schema → TemplateBuilderFacade
+  ├── TemplateCompiler.compile()
+  ├── TemplateValidator.validate()
+  ├── TemplateComposer.compose()
+  └── CompiledTemplate [Output]
 ```
 
-**Primary Implementation**:
-`src/infrastructure/adapters/template-mapper-adapter.ts`
+**Primary Implementation**: `src/domain/template-building/*`
 
-**CRITICAL**: This path was being bypassed. All raw frontmatter pushing is
-forbidden.
+**MANDATORY**: All data must be compiled through this domain before any output operation.
 
-### 5. Frontmatter Extraction
+### 5. Template Output Domain
+
+**CANONICAL PATH**: Template Output Facade → Domain Services → Infrastructure
+
+```
+CompiledTemplate → TemplateOutputFacade
+  ├── OutputRenderer.render()
+  ├── OutputValidator.validate()
+  ├── OutputWriter.write()
+  └── Infrastructure Adapters [Final Output]
+```
+
+**Primary Implementation**: `src/domain/template-output/*`
+
+**CRITICAL**: This is the ONLY permitted path for ALL output operations. Direct file/API writes are strictly prohibited.
+
+### 6. Frontmatter Extraction
 
 **CANONICAL PATH**: Extractor Factory → Format-Specific Extractors
 
@@ -139,6 +159,7 @@ All operations return `Result<T, E>` types following Totality principles:
 ### DO
 
 ✅ Use the canonical path for your domain concern\
+✅ Route ALL outputs through Template Building → Template Output domains\
 ✅ Extend existing use cases rather than create new ones\
 ✅ Follow the established dependency directions\
 ✅ Maintain comprehensive error handling with Result types\
@@ -147,10 +168,12 @@ All operations return `Result<T, E>` types following Totality principles:
 ### DON'T
 
 ❌ Create competing implementations\
-❌ Bypass template processing\
+❌ Bypass template processing domains\
+❌ Write directly to files or APIs\
 ❌ Push raw frontmatter data\
 ❌ Create micro-services for simple operations\
-❌ Leave deprecated code after refactoring
+❌ Leave deprecated code after refactoring\
+❌ Access infrastructure from domain or application layers
 
 ## Implementation Protocol
 
@@ -205,3 +228,25 @@ All operations return `Result<T, E>` types following Totality principles:
 
 **CRITICAL**: This document is the single source of truth for processing paths.
 Any deviation requires explicit architectural approval and documentation update.
+
+## Template Domain Enforcement
+
+**MANDATORY COMPLIANCE**: All output operations MUST comply with the Template Domain
+Architecture as specified in [template-domain-architecture.md](./template-domain-architecture.md).
+
+### Violation Detection
+
+The following patterns indicate architectural violations requiring immediate correction:
+
+1. Direct file system writes from services
+2. API calls bypassing Template Output Domain
+3. Raw data output without template compilation
+4. Services importing infrastructure modules directly
+5. Use cases containing output logic
+
+### Enforcement Mechanisms
+
+1. **Pre-commit hooks**: Detect and block direct output patterns
+2. **CI/CD gates**: Fail builds containing bypass patterns
+3. **Architecture tests**: Automated validation of domain boundaries
+4. **Code review checklist**: Mandatory template domain verification
