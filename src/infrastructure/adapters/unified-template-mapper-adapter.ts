@@ -68,22 +68,44 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
 
   /**
    * Initialize the processor if not already initialized
+   * Following Totality principle: returns Result instead of throwing
    */
-  private ensureProcessor(): UnifiedTemplateProcessor {
+  private ensureProcessor(): Result<
+    UnifiedTemplateProcessor,
+    DomainError & { message: string }
+  > {
     if (!this.processor) {
       const result = TemplateProcessorFactory.createSchemaProcessor();
       if (this.isDomainError(result)) {
-        throw new Error(`Failed to create processor: ${result.message}`);
+        return {
+          ok: false,
+          error: createDomainError(
+            { kind: "ProcessorCreationFailed", reason: result.kind },
+            `Failed to create processor: ${result.message}`,
+          ),
+        };
       }
       if (!isUnifiedTemplateProcessor(result)) {
-        throw new Error("Factory returned invalid processor type");
+        return {
+          ok: false,
+          error: createDomainError(
+            { kind: "InvalidProcessorType", received: typeof result },
+            "Factory returned invalid processor type",
+          ),
+        };
       }
       this.processor = result;
     }
     if (!isUnifiedTemplateProcessor(this.processor)) {
-      throw new Error("Processor is not a valid UnifiedTemplateProcessor");
+      return {
+        ok: false,
+        error: createDomainError(
+          { kind: "InvalidProcessorState", state: "corrupted" },
+          "Processor is not a valid UnifiedTemplateProcessor",
+        ),
+      };
     }
-    return this.processor;
+    return { ok: true, data: this.processor };
   }
 
   /**
@@ -95,7 +117,11 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
     schemaMode: SchemaValidationMode,
   ): Result<MappedData, DomainError & { message: string }> {
     try {
-      const processor = this.ensureProcessor();
+      const processorResult = this.ensureProcessor();
+      if (!processorResult.ok) {
+        return processorResult;
+      }
+      const processor = processorResult.data;
 
       // Convert ExtractedData to plain object for processing
       const dataObject = this.extractedDataToObject(data);
@@ -104,7 +130,14 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
       const templateContent = this.templateToString(template);
 
       // Create processing context based on schema mode
-      const context = this.createProcessingContext(dataObject, schemaMode);
+      const contextResult = this.createProcessingContext(
+        dataObject,
+        schemaMode,
+      );
+      if (!contextResult.ok) {
+        return contextResult;
+      }
+      const context = contextResult.data;
 
       // Process the template
       const result = processor.process(templateContent, context);
@@ -176,32 +209,45 @@ export class UnifiedTemplateMapperAdapter implements TemplateMapper {
 
   /**
    * Create processing context based on schema validation mode
+   * Following Totality principle: returns Result for exhaustiveness check
    */
   private createProcessingContext(
     data: Record<string, unknown>,
     schemaMode: SchemaValidationMode,
-  ): TemplateProcessingContext {
+  ): Result<TemplateProcessingContext, DomainError & { message: string }> {
     switch (schemaMode.kind) {
       case "WithSchema":
         return {
-          kind: "SchemaGuided",
-          data,
-          schema: schemaMode.schema as {
-            properties: Record<string, unknown>;
-            required?: string[];
+          ok: true,
+          data: {
+            kind: "SchemaGuided",
+            data,
+            schema: schemaMode.schema as {
+              properties: Record<string, unknown>;
+              required?: string[];
+            },
+            strictMode: true,
           },
-          strictMode: true,
         };
       case "NoSchema":
         return {
-          kind: "SimpleReplacement",
-          data,
-          placeholderPattern: "mustache",
+          ok: true,
+          data: {
+            kind: "SimpleReplacement",
+            data,
+            placeholderPattern: "mustache",
+          },
         };
       default: {
-        // Exhaustive check
+        // Exhaustive check - Following Totality principle
         const _exhaustive: never = schemaMode;
-        throw new Error(`Unhandled schema mode: ${_exhaustive}`);
+        return {
+          ok: false,
+          error: createDomainError(
+            { kind: "ExhaustiveCheckFailed", unhandledValue: _exhaustive },
+            `Unhandled schema mode: ${String(_exhaustive)}`,
+          ),
+        };
       }
     }
   }

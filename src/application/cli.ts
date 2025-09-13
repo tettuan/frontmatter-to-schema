@@ -1,6 +1,8 @@
 import { parseArgs } from "jsr:@std/cli@1.0.21/parse-args";
 import * as path from "jsr:@std/path@1.0.9";
 import type { DomainError, Result } from "../domain/core/result.ts";
+import { SchemaExtensionConfig } from "../domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "../domain/schema/services/schema-property-accessor.ts";
 import {
   type ApplicationConfiguration,
   ConfigurationValidator,
@@ -327,41 +329,49 @@ export class CLI {
     if (config.schema && !validatedArgs.templatePath) {
       try {
         const schemaParsed = JSON.parse(config.schema.definition);
-        if (schemaParsed["x-template"]) {
-          const xTemplatePath = schemaParsed["x-template"];
-
-          // Resolve relative path relative to schema file
-          const pathDefaults = CLI_DEFAULTS.getPathDefaults();
-          const schemaDir = validatedArgs.schemaPath
-            ? validatedArgs.schemaPath.toString().split(pathDefaults.separator)
-              .slice(0, -1).join(
+        // Use SchemaPropertyAccessor to eliminate hardcoding
+        const configResult = SchemaExtensionConfig.createDefault();
+        if (configResult.ok) {
+          const accessor = new SchemaPropertyAccessor(configResult.data);
+          const xTemplatePath = accessor.getTemplate(schemaParsed);
+          if (xTemplatePath) {
+            // Resolve relative path relative to schema file
+            const pathDefaults = CLI_DEFAULTS.getPathDefaults();
+            const schemaDir = validatedArgs.schemaPath
+              ? validatedArgs.schemaPath.toString().split(
                 pathDefaults.separator,
               )
-            : pathDefaults.currentDirectory;
-          const resolvedTemplatePath =
-            pathDefaults.relativePrefixes.some((prefix) =>
-                xTemplatePath.startsWith(prefix)
-              )
-              ? `${schemaDir}${pathDefaults.separator}${xTemplatePath.slice(2)}`
-              : xTemplatePath;
+                .slice(0, -1).join(
+                  pathDefaults.separator,
+                )
+              : pathDefaults.currentDirectory;
+            const resolvedTemplatePath =
+              pathDefaults.relativePrefixes.some((prefix) =>
+                  xTemplatePath.startsWith(prefix)
+                )
+                ? `${schemaDir}${pathDefaults.separator}${
+                  xTemplatePath.slice(2)
+                }`
+                : xTemplatePath;
 
-          const templateFileResult = await this.fileSystem.readFile(
-            resolvedTemplatePath,
-          );
-          if (templateFileResult.ok) {
-            const detectedFormat = this.formatDetector.detectFormat(
+            const templateFileResult = await this.fileSystem.readFile(
               resolvedTemplatePath,
             );
-            const formatString = detectedFormat.ok
-              ? detectedFormat.data
-              : "json";
-            const formatResult = TemplateFormat.create(formatString);
+            if (templateFileResult.ok) {
+              const detectedFormat = this.formatDetector.detectFormat(
+                resolvedTemplatePath,
+              );
+              const formatString = detectedFormat.ok
+                ? detectedFormat.data
+                : "json";
+              const formatResult = TemplateFormat.create(formatString);
 
-            if (formatResult.ok) {
-              config.template = {
-                definition: templateFileResult.data,
-                format: formatResult.data,
-              };
+              if (formatResult.ok) {
+                config.template = {
+                  definition: templateFileResult.data,
+                  format: formatResult.data,
+                };
+              }
             }
           }
         }
@@ -497,11 +507,18 @@ export class CLI {
             schemaContent && typeof schemaContent === "object" &&
             "x-template" in schemaContent
           ) {
-            const xTemplate = schemaContent["x-template"];
-            if (typeof xTemplate === "string") {
-              // Resolve template path relative to schema directory
-              const schemaDir = path.dirname(schemaPath);
-              finalTemplatePath = path.resolve(schemaDir, xTemplate);
+            // Use SchemaPropertyAccessor to eliminate hardcoding
+            const configResult = SchemaExtensionConfig.createDefault();
+            if (configResult.ok) {
+              const accessor = new SchemaPropertyAccessor(configResult.data);
+              const xTemplate = accessor.getTemplate(
+                schemaContent as Record<string, unknown>,
+              );
+              if (typeof xTemplate === "string") {
+                // Resolve template path relative to schema directory
+                const schemaDir = path.dirname(schemaPath);
+                finalTemplatePath = path.resolve(schemaDir, xTemplate);
+              }
             }
           }
         } catch {

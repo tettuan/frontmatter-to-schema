@@ -8,13 +8,62 @@
  * 4. x-frontmatter-part arrays are populated from documents
  */
 
+import { SchemaExtensionConfig } from "../domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "../domain/schema/services/schema-property-accessor.ts";
+
 export interface ProcessingContext {
   schemaData: Record<string, unknown>;
   documentData: Record<string, unknown>[];
   templateContent: string;
 }
 
+import type { ProcessingError, Result } from "../types.ts";
+
 export class TemplateEngine {
+  private readonly accessor: SchemaPropertyAccessor;
+
+  private constructor(accessor: SchemaPropertyAccessor) {
+    this.accessor = accessor;
+  }
+
+  static create(
+    config?: SchemaExtensionConfig,
+  ): Result<TemplateEngine, ProcessingError> {
+    try {
+      const extensionConfig = config || TemplateEngine.createDefaultConfig();
+      if (!extensionConfig) {
+        return {
+          ok: false,
+          error: {
+            kind: "TemplateRenderFailed",
+            template: "default-config",
+            data: "Failed to create default schema extension configuration",
+          },
+        };
+      }
+
+      const accessor = new SchemaPropertyAccessor(extensionConfig);
+      return { ok: true, data: new TemplateEngine(accessor) };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "TemplateRenderFailed",
+          template: "engine-creation",
+          data: `TemplateEngine creation failed: ${error}`,
+        },
+      };
+    }
+  }
+
+  private static createDefaultConfig(): SchemaExtensionConfig | null {
+    const result = SchemaExtensionConfig.createDefault();
+    if (!result.ok) {
+      return null;
+    }
+    return result.data;
+  }
+
   /**
    * Process template according to requirements
    */
@@ -35,6 +84,7 @@ export class TemplateEngine {
       templateObj,
       schemaData,
       documentData,
+      schemaData, // Pass root schema for property resolution
     );
 
     // Second pass: process x-derived-from expressions that depend on processed data
@@ -63,9 +113,11 @@ export class TemplateEngine {
           rootSchema || schema,
           varPath,
         );
-        if (propertySchema && propertySchema["x-derived-from"]) {
-          const derivedFrom = propertySchema["x-derived-from"] as string;
-          const isUnique = propertySchema["x-derived-unique"] === true;
+        const derivedFrom = propertySchema
+          ? this.accessor.getDerivedFrom(propertySchema)
+          : undefined;
+        if (derivedFrom && propertySchema) {
+          const isUnique = this.accessor.isDerivedUnique(propertySchema);
 
           // Extract from the processed result instead of raw documents
           const values = this.extractFromProcessedResult(
@@ -172,10 +224,11 @@ export class TemplateEngine {
     template: unknown,
     schema: Record<string, unknown>,
     documents: Record<string, unknown>[],
+    rootSchema?: Record<string, unknown>,
   ): unknown {
     if (typeof template === "string") {
       // Check for variable pattern
-      return this.substituteVariable(template, schema, documents);
+      return this.substituteVariable(template, schema, documents, rootSchema);
     }
 
     if (Array.isArray(template)) {
@@ -186,7 +239,7 @@ export class TemplateEngine {
       }
       // Regular array - process each element
       return template.map((item) =>
-        this.processJsonTemplate(item, schema, documents)
+        this.processJsonTemplate(item, schema, documents, rootSchema)
       );
     }
 
@@ -197,8 +250,8 @@ export class TemplateEngine {
         // Check if this key is x-frontmatter-part in schema
         const keySchema = this.getSchemaForKey(schema, key);
 
-        if (keySchema && keySchema["x-frontmatter-part"] === true) {
-          // This is x-frontmatter-part - populate from documents
+        if (keySchema && this.accessor.hasFrontmatterPart(keySchema)) {
+          // This is frontmatter-part - populate from documents
           result[key] = this.processXFrontmatterPartArray(documents, keySchema);
         } else {
           // Regular processing
@@ -206,6 +259,7 @@ export class TemplateEngine {
             value,
             keySchema || {},
             documents,
+            rootSchema,
           );
         }
       }
@@ -220,6 +274,7 @@ export class TemplateEngine {
     template: string,
     schema: Record<string, unknown>,
     documents: Record<string, unknown>[],
+    rootSchema?: Record<string, unknown>,
   ): unknown {
     // Check for {variable} pattern
     const match = template.match(/^\{([^}]+)\}$/);
@@ -230,7 +285,12 @@ export class TemplateEngine {
     const varPath = match[1];
 
     // Check if this variable has x-derived-from in the schema
-    const derivedValue = this.getDerivedValue(schema, varPath, documents);
+    // Use root schema for property resolution if available
+    const derivedValue = this.getDerivedValue(
+      rootSchema || schema,
+      varPath,
+      documents,
+    );
     if (derivedValue !== undefined) {
       return derivedValue;
     }
@@ -300,7 +360,7 @@ export class TemplateEngine {
   }
 
   private isArrayFrontmatterPart(schema: Record<string, unknown>): boolean {
-    return schema["x-frontmatter-part"] === true;
+    return this.accessor.hasFrontmatterPart(schema);
   }
 
   private collectFrontmatterValues(
@@ -396,9 +456,8 @@ export class TemplateEngine {
       return undefined;
     }
 
-    const derivedFrom = propertySchema["x-derived-from"] as string | undefined;
-    const isUnique = propertySchema["x-derived-unique"] === true;
-
+    // Use SchemaPropertyAccessor instead of direct property access
+    const derivedFrom = this.accessor.getDerivedFrom(propertySchema);
     if (!derivedFrom) {
       return undefined;
     }
@@ -406,7 +465,8 @@ export class TemplateEngine {
     // Parse the derived-from expression (e.g., "commands[].c1")
     const values = this.extractDerivedValues(documents, derivedFrom);
 
-    if (isUnique) {
+    // Check if unique deduplication is required
+    if (this.accessor.isDerivedUnique(propertySchema)) {
       // Remove duplicates and return unique values
       return [...new Set(values)];
     }

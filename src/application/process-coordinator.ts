@@ -186,9 +186,15 @@ export class ProcessCoordinator {
     this.templateContext = new TemplateContext();
     this.extensionConfig = extensionConfig;
     this.logger = LoggerFactory.createLogger("ProcessCoordinator");
-    this.templateOutputService = new TemplateOutputService(
+    const templateServiceResult = TemplateOutputService.create(
       new DenoFileSystem(),
     );
+    if (!templateServiceResult.ok) {
+      throw new Error(
+        `Failed to create TemplateOutputService: ${templateServiceResult.error.message}`,
+      );
+    }
+    this.templateOutputService = templateServiceResult.data;
   }
 
   /**

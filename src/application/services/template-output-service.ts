@@ -6,6 +6,8 @@
 import type { Result } from "../../domain/core/result.ts";
 import { TemplateProcessor } from "../../domain/template/template-processor.ts";
 import type { FileSystemPort } from "../../infrastructure/ports/index.ts";
+import { SchemaExtensionConfig } from "../../domain/config/schema-extension-config.ts";
+import { SchemaPropertyAccessor } from "../../domain/schema/services/schema-property-accessor.ts";
 
 export interface OutputContext {
   schemaData: Record<string, unknown>;
@@ -16,9 +18,35 @@ export interface OutputContext {
 
 export class TemplateOutputService {
   private templateProcessor: TemplateProcessor;
+  private accessor: SchemaPropertyAccessor;
 
-  constructor(private fileSystem: FileSystemPort) {
+  private constructor(
+    private fileSystem: FileSystemPort,
+    accessor: SchemaPropertyAccessor,
+  ) {
     this.templateProcessor = new TemplateProcessor();
+    this.accessor = accessor;
+  }
+
+  static create(
+    fileSystem: FileSystemPort,
+  ): Result<TemplateOutputService, { kind: string; message: string }> {
+    const configResult = SchemaExtensionConfig.createDefault();
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "ConfigurationError",
+          message: `Configuration error: ${configResult.error.message}`,
+        },
+      };
+    }
+
+    const accessor = new SchemaPropertyAccessor(configResult.data);
+    return {
+      ok: true,
+      data: new TemplateOutputService(fileSystem, accessor),
+    };
   }
 
   /**
@@ -139,7 +167,10 @@ export class TemplateOutputService {
     for (const [_key, value] of Object.entries(obj)) {
       if (typeof value === "object" && value !== null) {
         const def = value as Record<string, unknown>;
-        if (def["x-frontmatter-part"] === true || def["x-derived-from"]) {
+        if (
+          this.accessor.hasFrontmatterPart(def) ||
+          this.accessor.getDerivedFrom(def)
+        ) {
           return true;
         }
         if (def.properties && typeof def.properties === "object") {
@@ -168,7 +199,7 @@ export class TemplateOutputService {
       for (const [key, value] of Object.entries(props)) {
         if (typeof value === "object" && value !== null) {
           const def = value as Record<string, unknown>;
-          if (def["x-frontmatter-part"] === true) {
+          if (this.accessor.hasFrontmatterPart(def)) {
             parts.push({ key, definition: def });
           }
         }
@@ -180,23 +211,21 @@ export class TemplateOutputService {
 
   private extractArrayValues(
     documents: Record<string, unknown>[],
-    templatePattern: string,
+    _templatePattern: string,
   ): unknown[] {
+    // For x-frontmatter-part, return the actual array data from documents
+    // This gets the array values directly from the frontmatter
     const values: unknown[] = [];
 
-    // Parse template to find variable pattern
-    const match = templatePattern.match(/\{([^}]+)\}/);
-    if (!match) {
-      return values;
-    }
-
-    const varPath = match[1];
-
-    // Extract value from each document
     for (const doc of documents) {
-      const value = this.getValueByPath(doc, varPath);
-      if (value !== undefined) {
-        values.push(value);
+      // For x-frontmatter-part arrays, we want the actual array content
+      // not extracted from template pattern, but from the document data itself
+      if (doc && typeof doc === "object") {
+        for (const value of Object.values(doc)) {
+          if (Array.isArray(value)) {
+            values.push(...value);
+          }
+        }
       }
     }
 
@@ -240,11 +269,11 @@ export class TemplateOutputService {
       if (typeof definition === "object" && definition !== null) {
         const def = definition as Record<string, unknown>;
 
-        if (def["x-derived-from"]) {
-          const sourcePath = def["x-derived-from"] as string;
-          const values = this.collectValues(documents, sourcePath);
+        const derivedFrom = this.accessor.getDerivedFrom(def);
+        if (derivedFrom) {
+          const values = this.collectValues(documents, derivedFrom);
 
-          if (def["x-derived-unique"] === true) {
+          if (this.accessor.isDerivedUnique(def)) {
             result[key] = [...new Set(values)];
           } else {
             result[key] = values;
@@ -292,36 +321,40 @@ export class TemplateOutputService {
         const def = propDef as Record<string, unknown>;
         const currentPath = pathPrefix ? `${pathPrefix}.${key}` : key;
 
-        // Handle x-frontmatter-part arrays
-        if (def["x-frontmatter-part"] === true) {
+        // Handle frontmatter-part arrays using accessor
+        if (this.accessor.hasFrontmatterPart(def)) {
+          // For x-frontmatter-part, extract the actual array from documents
+          const arrayData = this.extractFrontmatterPartData(
+            documentData,
+            currentPath,
+          );
           this.setNestedProperty(
             outputData,
             currentPath,
-            this.extractArrayValues(
+            arrayData,
+          );
+        } else {
+          const derivedFrom = this.accessor.getDerivedFrom(def);
+          if (derivedFrom) {
+            // Process derivation
+            const values = this.collectValues(documentData, derivedFrom);
+            const result = this.accessor.isDerivedUnique(def)
+              ? [...new Set(values)]
+              : values;
+            this.setNestedProperty(outputData, currentPath, result);
+          } else if (def.default !== undefined) {
+            // Use default value
+            this.setNestedProperty(outputData, currentPath, def.default);
+          } else if (def.properties) {
+            // Recursively process nested object properties
+            this.processSchemaProperties(
+              def,
+              outputData,
               documentData,
               templateContent,
-            ),
-          );
-        } else if (def["x-derived-from"]) {
-          // Process derivation
-          const sourcePath = def["x-derived-from"] as string;
-          const values = this.collectValues(documentData, sourcePath);
-          const result = def["x-derived-unique"] === true
-            ? [...new Set(values)]
-            : values;
-          this.setNestedProperty(outputData, currentPath, result);
-        } else if (def.default !== undefined) {
-          // Use default value
-          this.setNestedProperty(outputData, currentPath, def.default);
-        } else if (def.properties) {
-          // Recursively process nested object properties
-          this.processSchemaProperties(
-            def,
-            outputData,
-            documentData,
-            templateContent,
-            currentPath,
-          );
+              currentPath,
+            );
+          }
         }
       }
     }
@@ -393,5 +426,34 @@ export class TemplateOutputService {
     }
 
     return current;
+  }
+
+  private extractFrontmatterPartData(
+    documents: Record<string, unknown>[],
+    path: string,
+  ): unknown[] {
+    const values: unknown[] = [];
+
+    // Get the final segment of the path (e.g., "commands" from "tools.commands")
+    // For x-frontmatter-part, this represents the field name in the document data
+    const pathParts = path.split(".");
+    const finalSegment = pathParts[pathParts.length - 1];
+
+    for (const doc of documents) {
+      // For x-frontmatter-part, look for the field directly in the document
+      // The schema path represents output structure, not input navigation path
+      if (typeof doc === "object" && doc !== null) {
+        const fieldValue = (doc as Record<string, unknown>)[finalSegment];
+
+        // If we found an array at this field, add its contents
+        if (Array.isArray(fieldValue)) {
+          values.push(...fieldValue);
+        } else if (fieldValue !== undefined) {
+          values.push(fieldValue);
+        }
+      }
+    }
+
+    return values;
   }
 }

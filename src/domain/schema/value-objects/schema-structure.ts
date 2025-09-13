@@ -14,6 +14,8 @@ import type { DomainError } from "../../core/result.ts";
 import { createDomainError } from "../../core/result.ts";
 import { ArrayTarget } from "./array-target.ts";
 import { SchemaExtensions } from "./schema-extensions.ts";
+import { SchemaPropertyAccessor } from "../services/schema-property-accessor.ts";
+import { SchemaExtensionConfig } from "../../config/schema-extension-config.ts";
 
 /**
  * Represents a derivation rule for x-derived-from processing
@@ -193,6 +195,22 @@ export class SchemaStructure {
   ): Result<readonly DerivationRule[], DomainError & { message: string }> {
     const rules: DerivationRule[] = [];
 
+    // Create accessor for safe property access
+    const configResult = SchemaExtensionConfig.createDefault();
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: createDomainError(
+          {
+            kind: "NotConfigured",
+            component: "schema_extension_config",
+          },
+          `Failed to create configuration: ${configResult.error.message}`,
+        ),
+      };
+    }
+    const accessor = new SchemaPropertyAccessor(configResult.data);
+
     // Check properties for x-derived-from
     const properties = schema.properties;
     if (typeof properties === "object" && properties !== null) {
@@ -201,7 +219,7 @@ export class SchemaStructure {
       for (const [propName, propSchema] of Object.entries(propsObj)) {
         if (typeof propSchema === "object" && propSchema !== null) {
           const schemaObj = propSchema as Record<string, unknown>;
-          const derivedFrom = schemaObj["x-derived-from"];
+          const derivedFrom = accessor.getDerivedFrom(schemaObj);
 
           if (typeof derivedFrom === "string") {
             rules.push({
