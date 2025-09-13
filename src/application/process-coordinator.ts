@@ -51,13 +51,13 @@ import {
   TemplateOutputFacadeImpl,
 } from "../domain/template/template-output-facade-impl.ts";
 import {
-  TemplateFilePath,
   type TemplateBuilderFacade,
+  TemplateFilePath,
   type TemplateSource as DomainTemplateSource,
 } from "../domain/template/template-builder-facade.ts";
-import {
-  type OutputSpecification,
-  type TemplateOutputFacade,
+import type {
+  OutputSpecification,
+  TemplateOutputFacade,
 } from "../domain/template/template-output-facade.ts";
 
 /**
@@ -362,6 +362,35 @@ export class ProcessCoordinator {
           templateValues[key] = value;
         }
       }
+    }
+
+    // Check if schema requires aggregation and include aggregated data
+    if (this.schemaRequiresAggregation(schemaResult.data)) {
+      const aggregationResult = await this.aggregateData(
+        processingResult.data.validatedDocuments,
+        schemaResult.data,
+        {
+          strict: false,
+          allowEmptyFrontmatter: true,
+          maxFiles: 1000,
+          allowMissingVariables: true,
+          validateSchema: true,
+          parallelProcessing: false,
+        },
+      );
+      if (aggregationResult.ok) {
+        // Include aggregated fields in template values
+        // Use mergeAggregatedFields to properly handle nested structure (e.g., tools.availableConfigs)
+        this.mergeAggregatedFields(
+          templateValues,
+          aggregationResult.data.aggregatedFields,
+        );
+      }
+    }
+
+    // If template is inline, add the template content to the valueSet
+    if (templateSource.data.kind === "inline") {
+      templateValues._templateContent = templateSource.data.definition;
     }
 
     const source: DomainTemplateSource = {
