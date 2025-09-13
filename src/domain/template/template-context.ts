@@ -536,7 +536,7 @@ export class TemplateContext {
 
   /**
    * Convert value to string with format-aware serialization
-   * FIXED: Properly handle arrays in JSON templates
+   * FIXED: Properly handle arrays in JSON templates and Date objects
    */
   private valueToString(value: unknown): string {
     if (value === null || value === undefined) {
@@ -549,6 +549,15 @@ export class TemplateContext {
 
     if (typeof value === "number" || typeof value === "boolean") {
       return String(value);
+    }
+
+    // Handle Date objects specifically for ISO8601 output
+    if (value instanceof Date) {
+      // Check if the Date is valid
+      if (isNaN(value.getTime())) {
+        return ""; // Return empty string for invalid dates
+      }
+      return value.toISOString();
     }
 
     if (Array.isArray(value)) {
@@ -659,7 +668,19 @@ export class TemplateContext {
         const value = this.getVariableValue(variableMap, varName);
 
         if (value !== undefined) {
-          // Return the actual value (array, object, etc.) for JSON context
+          // For Date objects, convert to ISO8601 string even in JSON context
+          if (value instanceof Date) {
+            const stringValue = this.valueToString(value);
+            return { ok: true, data: stringValue };
+          }
+          // For arrays with Date objects, convert each Date to string but keep as array
+          if (Array.isArray(value)) {
+            const processedArray = value.map((item) =>
+              item instanceof Date ? this.valueToString(item) : item
+            );
+            return { ok: true, data: processedArray };
+          }
+          // Return the actual value (object, etc.) for JSON context
           return { ok: true, data: value };
         } else if (options.allowMissingVariables) {
           return { ok: true, data: obj }; // Keep placeholder
@@ -804,6 +825,7 @@ export class TemplateContext {
 
   /**
    * Convert unknown value to VariableValue
+   * FIXED: Handle Date objects for ISO8601 serialization
    */
   private convertToVariableValue(value: unknown): VariableValue {
     if (value === null || value === undefined) {
@@ -813,6 +835,10 @@ export class TemplateContext {
       typeof value === "string" || typeof value === "number" ||
       typeof value === "boolean"
     ) {
+      return value;
+    }
+    // Handle Date objects - preserve as Date for later ISO8601 conversion
+    if (value instanceof Date) {
       return value;
     }
     if (Array.isArray(value)) {

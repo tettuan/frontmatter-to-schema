@@ -12,11 +12,13 @@ import { VariableResolver } from "../services/variable-resolver.ts";
 
 /**
  * Variable value types as discriminated union
+ * FIXED: Added Date type for proper ISO8601 serialization
  */
 export type VariableValue =
   | string
   | number
   | boolean
+  | Date
   | null
   | VariableValue[]
   | { [key: string]: VariableValue };
