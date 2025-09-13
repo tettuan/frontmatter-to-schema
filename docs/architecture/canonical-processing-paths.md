@@ -24,13 +24,15 @@ an architectural violation requiring immediate correction.
 
 ```
 CLI Input → DocumentProcessor.process()
-  ├── LoadSchemaUseCase.execute()
+  ├── SchemaParser.parseSchema() [Returns template path & rules only]
   ├── DiscoverFilesUseCase.execute()
   ├── ExtractFrontmatterUseCase.execute()
-  ├── ValidateFrontmatterUseCase.execute()
-  ├── TemplateBuilderFacade.buildTemplate() [MANDATORY]
+  ├── ValidateFrontmatterUseCase.execute() [Uses schema rules]
+  ├── TemplateBuilderFacade.buildTemplate() [Uses schema template path]
   ├── TemplateOutputFacade.renderTemplate() [MANDATORY]
   └── TemplateOutputFacade.outputTemplate() [MANDATORY]
+
+Note: Schema Domain completes after parseSchema() - no further involvement
 ```
 
 **Primary Implementation**: `src/application/document-processor.ts`
@@ -62,18 +64,25 @@ Configuration Request → ConfigurationOrchestrator
 - ❌ `src/infrastructure/repositories/schema-repository-impl.ts`
 - ❌ Original `configuration-loader.ts` (if still exists)
 
-### 3. Schema Processing
+### 3. Schema Processing Domain
 
-**CANONICAL PATH**: Domain Services → Value Objects
+**CANONICAL PATH**: Schema Parser → Schema Result
 
 ```
-Schema Request → SchemaValidator.validate()
-  ├── SchemaRefResolver.resolveAndExtractTemplateInfo()
-  ├── Schema.create() [Value Object]
-  └── Template.create() [Value Object]
+Schema Request → SchemaParser.parseSchema()
+  ├── Load and parse schema file
+  ├── Extract template path (as string only)
+  ├── Extract validation rules
+  └── Return SchemaResult {
+      templatePath: string,
+      validationRules: ValidationRule[],
+      metadata: SchemaMetadata
+    }
 ```
 
-**Primary Implementation**: `src/domain/services/schema-validator.ts`
+**Primary Implementation**: `src/domain/schema-processing/*`
+
+**CRITICAL**: Schema Domain ENDS after returning template path and rules. It has NO involvement in template processing.
 
 **DEPRECATED PATHS**: None currently identified
 

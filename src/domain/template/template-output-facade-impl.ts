@@ -92,9 +92,16 @@ export class TemplateOutputFacadeImpl implements TemplateOutputFacade {
     rendered: RenderedTemplate,
   ): Promise<Result<void, OutputError>> {
     try {
+      // Ensure parent directories exist
+      const destinationPath = rendered.specification.destination;
+      const parentDir = destinationPath.split("/").slice(0, -1).join("/");
+      if (parentDir) {
+        await Deno.mkdir(parentDir, { recursive: true });
+      }
+
       // Write to destination
       await Deno.writeTextFile(
-        rendered.specification.destination,
+        destinationPath,
         rendered.content,
       );
 
