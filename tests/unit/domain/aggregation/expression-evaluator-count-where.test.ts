@@ -22,10 +22,10 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
     it("should create evaluator and return proper Result type", () => {
       evaluator = createEvaluator();
       assertExists(evaluator);
-      
+
       const testData = [
         { status: "active", priority: 1 },
-        { status: "inactive", priority: 2 }
+        { status: "inactive", priority: 2 },
       ];
 
       const result = evaluator.countWhere(testData, "$", "status === 'active'");
@@ -49,7 +49,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { status: "active", name: "task1" },
         { status: "inactive", name: "task2" },
         { status: "active", name: "task3" },
-        { status: "completed", name: "task4" }
+        { status: "completed", name: "task4" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "status === 'active'");
@@ -66,7 +66,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { type: "bug", severity: "high" },
         { type: "feature", severity: "medium" },
         { type: "bug", severity: "low" },
-        { type: "task", severity: "high" }
+        { type: "task", severity: "high" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "type !== 'bug'");
@@ -85,7 +85,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { priority: 1, title: "Low priority" },
         { priority: 3, title: "Medium priority" },
         { priority: 5, title: "High priority" },
-        { priority: 2, title: "Low-medium priority" }
+        { priority: 2, title: "Low-medium priority" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "priority > 2");
@@ -102,7 +102,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { score: 85, grade: "B" },
         { score: 92, grade: "A" },
         { score: 78, grade: "C" },
-        { score: 88, grade: "B" }
+        { score: 88, grade: "B" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "score <= 85");
@@ -119,7 +119,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { temperature: 20.5, location: "room1" },
         { temperature: 18.2, location: "room2" },
         { temperature: 22.1, location: "room3" },
-        { temperature: 19.8, location: "room4" }
+        { temperature: 19.8, location: "room4" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "temperature >= 20");
@@ -136,7 +136,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { age: 25, department: "engineering" },
         { age: 30, department: "design" },
         { age: 22, department: "marketing" },
-        { age: 35, department: "sales" }
+        { age: 35, department: "sales" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "age < 30");
@@ -155,7 +155,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { isActive: true, name: "service1" },
         { isActive: false, name: "service2" },
         { isActive: true, name: "service3" },
-        { isActive: false, name: "service4" }
+        { isActive: false, name: "service4" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "isActive === true");
@@ -172,10 +172,14 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { isCompleted: true, task: "design" },
         { isCompleted: false, task: "implement" },
         { isCompleted: false, task: "test" },
-        { isCompleted: true, task: "deploy" }
+        { isCompleted: true, task: "deploy" },
       ];
 
-      const result = evaluator.countWhere(testData, "$", "isCompleted === false");
+      const result = evaluator.countWhere(
+        testData,
+        "$",
+        "isCompleted === false",
+      );
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -204,7 +208,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         null,
         { status: null, name: "task2" },
         undefined,
-        { status: "active", name: "task3" }
+        { status: "active", name: "task3" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "status === 'active'");
@@ -221,7 +225,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { status: "active", name: "task1" },
         { name: "task2" }, // Missing status property
         { status: "active", name: "task3" },
-        { description: "task4" } // Different properties
+        { description: "task4" }, // Different properties
       ];
 
       const result = evaluator.countWhere(testData, "$", "status === 'active'");
@@ -235,7 +239,7 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
     it("should handle invalid condition syntax", () => {
       evaluator = createEvaluator();
       const testData = [
-        { status: "active", name: "task1" }
+        { status: "active", name: "task1" },
       ];
 
       const result = evaluator.countWhere(testData, "$", "invalid condition");
@@ -251,10 +255,14 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
       const testData = [
         { category: "frontend", type: "component" },
         { category: "backend", type: "service" },
-        { category: "frontend", type: "hook" }
+        { category: "frontend", type: "hook" },
       ];
 
-      const result = evaluator.countWhere(testData, "$", "category === 'frontend'");
+      const result = evaluator.countWhere(
+        testData,
+        "$",
+        "category === 'frontend'",
+      );
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -267,10 +275,14 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
       const testData = [
         { environment: "production", status: "running" },
         { environment: "development", status: "stopped" },
-        { environment: "production", status: "pending" }
+        { environment: "production", status: "pending" },
       ];
 
-      const result = evaluator.countWhere(testData, "$", 'environment === "production"');
+      const result = evaluator.countWhere(
+        testData,
+        "$",
+        'environment === "production"',
+      );
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -286,16 +298,24 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
         { c1: "climpt", c2: "debug", c3: "analyze", priority: 1 },
         { c1: "climpt", c2: "build", c3: "test", priority: 2 },
         { c1: "deno", c2: "test", c3: "coverage", priority: 1 },
-        { c1: "climpt", c2: "meta", c3: "resolve", priority: 3 }
+        { c1: "climpt", c2: "meta", c3: "resolve", priority: 3 },
       ];
 
-      const climptResult = evaluator.countWhere(testData, "$", "c1 === 'climpt'");
+      const climptResult = evaluator.countWhere(
+        testData,
+        "$",
+        "c1 === 'climpt'",
+      );
       assertEquals(climptResult.ok, true);
       if (climptResult.ok) {
         assertEquals(climptResult.data, 3);
       }
 
-      const highPriorityResult = evaluator.countWhere(testData, "$", "priority === 1");
+      const highPriorityResult = evaluator.countWhere(
+        testData,
+        "$",
+        "priority === 1",
+      );
       assertEquals(highPriorityResult.ok, true);
       if (highPriorityResult.ok) {
         assertEquals(highPriorityResult.data, 2);
@@ -306,18 +326,36 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
       evaluator = createEvaluator();
       const testData = [
         { id: "Issue-723", status: "open", priority: "high", type: "test" },
-        { id: "Issue-726", status: "open", priority: "medium", type: "feature" },
+        {
+          id: "Issue-726",
+          status: "open",
+          priority: "medium",
+          type: "feature",
+        },
         { id: "Issue-720", status: "closed", priority: "low", type: "bug" },
-        { id: "Issue-725", status: "closed", priority: "high", type: "feature" }
+        {
+          id: "Issue-725",
+          status: "closed",
+          priority: "high",
+          type: "feature",
+        },
       ];
 
-      const openIssuesResult = evaluator.countWhere(testData, "$", "status === 'open'");
+      const openIssuesResult = evaluator.countWhere(
+        testData,
+        "$",
+        "status === 'open'",
+      );
       assertEquals(openIssuesResult.ok, true);
       if (openIssuesResult.ok) {
         assertEquals(openIssuesResult.data, 2);
       }
 
-      const highPriorityResult = evaluator.countWhere(testData, "$", "priority === 'high'");
+      const highPriorityResult = evaluator.countWhere(
+        testData,
+        "$",
+        "priority === 'high'",
+      );
       assertEquals(highPriorityResult.ok, true);
       if (highPriorityResult.ok) {
         assertEquals(highPriorityResult.data, 2);
@@ -327,14 +365,27 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
     it("should handle nested data structures with array access", () => {
       evaluator = createEvaluator();
       const testData = [
-        { project: "frontmatter-to-schema", metrics: { coverage: 80.1, tests: 646 } },
-        { project: "ddd-architecture", metrics: { coverage: 75.5, tests: 423 } },
-        { project: "totality-framework", metrics: { coverage: 85.2, tests: 789 } }
+        {
+          project: "frontmatter-to-schema",
+          metrics: { coverage: 80.1, tests: 646 },
+        },
+        {
+          project: "ddd-architecture",
+          metrics: { coverage: 75.5, tests: 423 },
+        },
+        {
+          project: "totality-framework",
+          metrics: { coverage: 85.2, tests: 789 },
+        },
       ];
 
-      // Note: This tests the ability to handle complex data even though 
+      // Note: This tests the ability to handle complex data even though
       // the condition operates on top-level properties
-      const result = evaluator.countWhere(testData, "$", "project !== 'unknown'");
+      const result = evaluator.countWhere(
+        testData,
+        "$",
+        "project !== 'unknown'",
+      );
       assertEquals(result.ok, true);
       if (result.ok) {
         assertEquals(result.data, 3);
@@ -345,25 +396,32 @@ describe("ExpressionEvaluator - CountWhere Functionality", () => {
   describe("Integration with Aggregation Service Context", () => {
     it("should work with typical aggregation scenarios", () => {
       evaluator = createEvaluator();
-      
+
       // Simulate data structure from aggregation service
       const wrappedData = [{
         commands: [
           { c1: "climpt", c2: "debug", status: "active" },
           { c1: "climpt", c2: "build", status: "inactive" },
           { c1: "deno", c2: "test", status: "active" },
-          { c1: "climpt", c2: "meta", status: "active" }
-        ]
+          { c1: "climpt", c2: "meta", status: "active" },
+        ],
       }];
 
       // Test direct array access pattern used in aggregation service
-      if (wrappedData.length === 1 && 
-          typeof wrappedData[0] === 'object' && 
-          wrappedData[0] !== null &&
-          'commands' in wrappedData[0]) {
-        const targetArray = (wrappedData[0] as { commands: unknown[] }).commands;
-        
-        const result = evaluator.countWhere(targetArray, "$", "status === 'active'");
+      if (
+        wrappedData.length === 1 &&
+        typeof wrappedData[0] === "object" &&
+        wrappedData[0] !== null &&
+        "commands" in wrappedData[0]
+      ) {
+        const targetArray =
+          (wrappedData[0] as { commands: unknown[] }).commands;
+
+        const result = evaluator.countWhere(
+          targetArray,
+          "$",
+          "status === 'active'",
+        );
         assertEquals(result.ok, true);
         if (result.ok) {
           assertEquals(result.data, 3);
