@@ -6,11 +6,18 @@ import { SchemaRepository } from "../repositories/schema-repository.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
 import { BasePropertyPopulator } from "./base-property-populator.ts";
 
-export interface ProcessedSchema {
-  readonly schema: Schema;
-  readonly validationRules: ValidationRules;
-  readonly templatePath: string | null;
-}
+export type ProcessedSchema =
+  | {
+    readonly kind: "WithTemplate";
+    readonly schema: Schema;
+    readonly validationRules: ValidationRules;
+    readonly templatePath: string;
+  }
+  | {
+    readonly kind: "WithoutTemplate";
+    readonly schema: Schema;
+    readonly validationRules: ValidationRules;
+  };
 
 /**
  * Domain service responsible for Schema processing stage of the 3-stage pipeline.
@@ -54,15 +61,23 @@ export class SchemaProcessingService {
     // Stage 4: Extract validation rules
     const validationRules = schema.getValidationRules();
 
-    // Stage 5: Extract template path (convert Result to null for consistency)
+    // Stage 5: Extract template path and create appropriate discriminated union
     const templatePathResult = schema.getTemplatePath();
-    const templatePath = templatePathResult.ok ? templatePathResult.data : null;
 
-    return ok({
-      schema,
-      validationRules,
-      templatePath,
-    });
+    if (templatePathResult.ok) {
+      return ok({
+        kind: "WithTemplate",
+        schema,
+        validationRules,
+        templatePath: templatePathResult.data,
+      });
+    } else {
+      return ok({
+        kind: "WithoutTemplate",
+        schema,
+        validationRules,
+      });
+    }
   }
 
   /**
