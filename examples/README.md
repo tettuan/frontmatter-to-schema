@@ -1,130 +1,109 @@
-# Frontmatter to Schema CLI Examples
+# Examples - 実用的なFrontmatter処理の実例集
 
-This directory contains examples demonstrating how to use the
-frontmatter-to-schema CLI tool.
+このディレクトリには、frontmatter-to-schemaツールの実用的な使用例が含まれています。
 
-## 🚀 Quick Start
+## 目的
 
-The CLI tool processes markdown files with frontmatter and transforms them
-according to schemas and templates:
+`examples/` 配下には、実際のプロジェクトで使用される実用的なMarkdownファイルが配置されています。これらのMarkdownを管理するためのインデックスや索引作成を行い、その作成プロセスが現実のユースケースに通用するかを検証することが目的です。
 
-```bash
-# Basic usage
-frontmatter-to-schema <directory> --schema=<file> --template=<file> --destination=<dir>
+各ディレクトリはMarkdownの組織も用途も異なり、Schemaや出力するテンプレート形式もバラバラです。しかし、**複数のMarkdownのフロントマターから一覧を作成する**という抽象度では同じ処理を行っています。
 
-# Example
-frontmatter-to-schema examples/sample-docs \
-  --schema=examples/articles-index/schema.json \
-  --template=examples/articles-index/template.yaml \
-  --destination=examples/output
+この多様性のある要求を、単一のCLIツールで実現できることを実証するために、`examples/` ディレクトリが存在します。
+
+## ディレクトリ構成
+
+```
+examples/
+├── 1.articles/     # ブログ記事・技術文書の管理
+├── 2.climpt/       # CLIコマンドレジストリの管理
+└── 3.docs/         # 仕様書・設計文書のトレーサビリティ管理
 ```
 
-## 📚 CLI Examples
+## 各例の特徴
 
-### 01-cli-basic.sh
+### 1.articles/ - 記事管理システム
 
-Basic CLI usage examples demonstrating common use cases.
+**用途**: ブログや技術文書のインデックス生成
 
-**Features:**
+- **Markdownの種類**: 技術記事、チュートリアル、ガイド文書
+- **フロントマター構造**: タイトル、著者、日付、カテゴリ、タグ
+- **出力形式**: YAML形式の記事インデックス
+- **Schema特徴**: シンプルな記事メタデータ構造
 
-- Process with configuration file
-- Process articles with YAML template
-- Display help information
+**主要ファイル**:
+- `articles_schema.json` - 記事コレクション用スキーマ
+- `articles_template.yml` - YAML形式の出力テンプレート
+- `docs/` - 実際の記事Markdownファイル群
 
-**Usage:**
+### 2.climpt/ - コマンドレジストリ
 
-```bash
-chmod +x examples/01-cli-basic.sh
-./examples/01-cli-basic.sh
-```
+**用途**: CLIツールのコマンド体系管理
 
----
+- **Markdownの種類**: コマンド定義、プロンプト文書
+- **フロントマター構造**: c1(カテゴリ)、c2(アクション)、c3(ターゲット)の階層構造
+- **出力形式**: JSON形式のコマンドレジストリ
+- **Schema特徴**: 階層的なコマンド分類と派生フィールド生成
 
-### 02-cli-advanced.sh
+**主要ファイル**:
+- `registry_schema.json` - コマンドレジストリ用スキーマ
+- `registry_template.json` - JSON形式の出力テンプレート
+- `prompts/` - コマンド定義Markdownファイル群
+- `frontmatter-to-json/` - 変換サンプル
 
-Advanced CLI usage patterns including batch processing and error handling.
+### 3.docs/ - トレーサビリティ管理
 
-**Features:**
+**用途**: 要求・仕様・実装・テストの追跡管理
 
-- Process multiple directories
-- Custom output formats
-- Error handling strategies
-- Batch processing with validation
+- **Markdownの種類**: 要求仕様書、設計文書、テスト仕様書
+- **フロントマター構造**: レベル別（req/spec/impl/test）の文書管理
+- **出力形式**: レベル別のJSON形式インデックス
+- **Schema特徴**: トレーサビリティのための相互参照構造
 
-**Usage:**
+**主要ファイル**:
+- `index_*_schema.json` - レベル別スキーマファイル群
+- `index_*_template.json` - レベル別テンプレートファイル群
+- `docs/` - 仕様文書Markdownファイル群
 
-```bash
-chmod +x examples/02-cli-advanced.sh
-./examples/02-cli-advanced.sh
-```
+## 共通の抽象化
 
-## 📁 Sample Data
+これらの例は表面的には全く異なる用途とフォーマットを持ちますが、以下の点で共通しています：
 
-### Input Directories
+1. **複数Markdownファイルからのメタデータ抽出**
+2. **フロントマターの構造化データへの変換**
+3. **スキーマによる検証と正規化**
+4. **テンプレートベースの出力生成**
+5. **インデックス・一覧の自動生成**
 
-- `sample-docs/` - Sample markdown documents
-- `alternative-structure/` - Alternative command structure
-- `.agent/climpt/prompts/` - Climpt prompt files
+## 実行方法
 
-### Configuration Files
-
-- `climpt-registry/` - Climpt registry configuration
-  - `schema.json` - JSON schema for validation
-  - `template.json` - Output template
-  - `config.json` - Processing configuration
-- `articles-index/` - Articles indexing configuration
-  - `schema.json` - Article schema
-  - `template.yaml` - YAML output template
-
-### Output Directory
-
-- `output/` - Generated files from examples
-  - `*.json` - JSON output files
-  - `*.yaml` - YAML output files
-  - `*.md` - Markdown reports
-
-## 🔧 Requirements
-
-- Deno runtime
-- CLI executable: `./frontmatter-to-schema`
-- Read/Write permissions for file operations
-
-## 💡 Tips
-
-1. **Make CLI executable**:
-   ```bash
-   chmod +x frontmatter-to-schema
-   ```
-
-2. **View help**:
-   ```bash
-   ./frontmatter-to-schema --help
-   ```
-
-3. **Debug mode**:
-   ```bash
-   FRONTMATTER_DEBUG=1 ./frontmatter-to-schema <args>
-   ```
-
-4. **Watch mode** (for development):
-   ```bash
-   deno run --watch --allow-all cli.ts <args>
-   ```
-
-## 📖 Documentation
-
-- [CLI Usage Guide](../docs/cli-usage.md)
-- [Domain Design](../docs/domain/domain-design.md)
-- [Production Roadmap](../docs/production-roadmap.md)
-
-## 🧪 Testing
-
-Run all examples:
+各ディレクトリで以下のコマンドパターンで実行可能：
 
 ```bash
-./examples/run-all.sh
+# 記事インデックス生成
+./frontmatter-to-schema examples/1.articles/docs/**/*.md \
+  --schema=examples/1.articles/articles_schema.json \
+  --template=examples/1.articles/articles_template.yml
+
+# コマンドレジストリ生成
+./frontmatter-to-schema examples/2.climpt/prompts/**/*.md \
+  --schema=examples/2.climpt/registry_schema.json \
+  --template=examples/2.climpt/registry_template.json
+
+# トレーサビリティインデックス生成
+./frontmatter-to-schema examples/3.docs/docs/**/*.md \
+  --schema=examples/3.docs/index_req_schema.json \
+  --template=examples/3.docs/index_req_template.json
 ```
 
-## 📝 License
+## 検証ポイント
 
-See the main project LICENSE file.
+これらの例を通じて、以下の点を検証しています：
+
+- **汎用性**: 異なるドメインへの適用可能性
+- **柔軟性**: 多様なスキーマ・テンプレート形式への対応
+- **拡張性**: x-frontmatter-part、x-derived-fromなどの拡張機能
+- **実用性**: 実際のプロジェクトでの使用に耐える品質
+
+## まとめ
+
+`examples/` ディレクトリは、frontmatter-to-schemaツールが単一のCLIでありながら、多様な文書管理ニーズに対応できることを実証する、生きたドキュメントとして機能しています。
