@@ -2,8 +2,8 @@
   "version": "1.0.0",
   "description": "Test level traceability IDs",
   "test": [
-    "test:api:integration-tests-7f3b8e#20250916",
-    "test:ui:e2e-scenarios-4a9c2d#20250917",
-    "test:data:unit-tests-1e6f5b#20250918"
+    { "id": "test:api:integration-tests-7f3b8e#20250916" },
+    { "id": "test:ui:e2e-scenarios-4a9c2d#20250917" },
+    { "id": "test:data:unit-tests-1e6f5b#20250918" }
   ]
 }
