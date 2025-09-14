@@ -1,5 +1,27 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "spec": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
+  "spec": [
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    }
+  ]
 }

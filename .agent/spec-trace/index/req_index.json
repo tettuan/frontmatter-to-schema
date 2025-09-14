@@ -1,5 +1,9 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "{level}": "[{\"id\":\"{id.full}\"}]"
+  "{level}": [
+    {
+      "id": "{id.full}"
+    }
+  ]
 }

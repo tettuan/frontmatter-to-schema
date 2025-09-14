@@ -1,5 +1,27 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "test": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
+  "test": [
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    },
+    {
+      "id": "{id.full}"
+    }
+  ]
 }
