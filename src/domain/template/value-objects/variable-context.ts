@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError, SchemaError } from "../../shared/types/errors.ts";
+import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 
@@ -28,7 +28,9 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     // Find the hierarchy root for {@items} resolution
     const hierarchyRootResult = this.findFrontmatterPartRoot(schema);
-    const hierarchyRoot = hierarchyRootResult.ok ? hierarchyRootResult.data : null;
+    const hierarchyRoot = hierarchyRootResult.ok
+      ? hierarchyRootResult.data
+      : null;
 
     return ok(new VariableContext(schema, data, hierarchyRoot));
   }
@@ -41,12 +43,14 @@ export class VariableContext {
     data: FrontmatterData,
   ): Result<VariableContext, TemplateError & { message: string }> {
     // Create a minimal schema for legacy support
-    const contextData = data.getData();
-    return ok(new VariableContext(
-      null as any, // Legacy mode - no schema
-      data,
-      null, // No hierarchy root in legacy mode
-    ));
+    const _contextData = data.getData();
+    return ok(
+      new VariableContext(
+        null as any, // Legacy mode - no schema
+        data,
+        null, // No hierarchy root in legacy mode
+      ),
+    );
   }
 
   /**
@@ -64,12 +68,14 @@ export class VariableContext {
       }));
     }
 
-    return ok(new VariableContext(
-      null as any, // Legacy mode
-      frontmatterDataResult.data,
-      null, // No hierarchy root in legacy mode
-      composedData.arrayData,
-    ));
+    return ok(
+      new VariableContext(
+        null as any, // Legacy mode
+        frontmatterDataResult.data,
+        null, // No hierarchy root in legacy mode
+        composedData.arrayData,
+      ),
+    );
   }
 
   /**
@@ -82,12 +88,14 @@ export class VariableContext {
     try {
       const plainData = arrayData.map((item) => item.getData());
       const emptyData = FrontmatterData.empty();
-      return ok(new VariableContext(
-        null as any, // Legacy mode
-        emptyData,
-        null, // No hierarchy root in legacy mode
-        plainData,
-      ));
+      return ok(
+        new VariableContext(
+          null as any, // Legacy mode
+          emptyData,
+          null, // No hierarchy root in legacy mode
+          plainData,
+        ),
+      );
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -123,7 +131,8 @@ export class VariableContext {
     if (!dataResult.ok) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Variable '${variableName}' not found: ${dataResult.error.message}`,
+        message:
+          `Variable '${variableName}' not found: ${dataResult.error.message}`,
       }));
     }
     return ok(dataResult.data);
@@ -143,7 +152,10 @@ export class VariableContext {
    * Resolves {@items} variable from the x-frontmatter-part hierarchy root.
    * This ensures consistency with $ref processing patterns.
    */
-  private resolveItemsVariable(): Result<unknown[], TemplateError & { message: string }> {
+  private resolveItemsVariable(): Result<
+    unknown[],
+    TemplateError & { message: string }
+  > {
     // Fallback to legacy array data if no schema hierarchy
     if (!this.hierarchyRoot && this.legacyArrayData) {
       return ok(this.legacyArrayData);
@@ -152,7 +164,8 @@ export class VariableContext {
     if (!this.hierarchyRoot) {
       return err(createError({
         kind: "RenderFailed",
-        message: "Cannot resolve {@items}: no x-frontmatter-part found in schema",
+        message:
+          "Cannot resolve {@items}: no x-frontmatter-part found in schema",
       }));
     }
 
@@ -161,7 +174,8 @@ export class VariableContext {
     if (!rootDataResult.ok) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Cannot resolve {@items}: data not found at hierarchy root ${this.hierarchyRoot}`,
+        message:
+          `Cannot resolve {@items}: data not found at hierarchy root ${this.hierarchyRoot}`,
       }));
     }
 
@@ -169,7 +183,8 @@ export class VariableContext {
     if (!Array.isArray(rootData)) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Cannot resolve {@items}: expected array at ${this.hierarchyRoot}, got ${typeof rootData}`,
+        message:
+          `Cannot resolve {@items}: expected array at ${this.hierarchyRoot}, got ${typeof rootData}`,
       }));
     }
 
@@ -187,7 +202,8 @@ export class VariableContext {
     if (!frontmatterPartResult.ok) {
       return err(createError({
         kind: "RenderFailed",
-        message: "No x-frontmatter-part found in schema for {@items} resolution",
+        message:
+          "No x-frontmatter-part found in schema for {@items} resolution",
       }));
     }
 
@@ -220,7 +236,8 @@ export class VariableContext {
     if (!this.hierarchyRoot) {
       return err(createError({
         kind: "RenderFailed",
-        message: "Invalid context: no x-frontmatter-part found for {@items} resolution",
+        message:
+          "Invalid context: no x-frontmatter-part found for {@items} resolution",
       }));
     }
 
@@ -229,7 +246,8 @@ export class VariableContext {
     if (!rootDataResult.ok) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Invalid context: hierarchy root ${this.hierarchyRoot} not found in data`,
+        message:
+          `Invalid context: hierarchy root ${this.hierarchyRoot} not found in data`,
       }));
     }
 
@@ -238,7 +256,8 @@ export class VariableContext {
     if (!Array.isArray(rootData)) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Invalid context: hierarchy root ${this.hierarchyRoot} must be an array for {@items}`,
+        message:
+          `Invalid context: hierarchy root ${this.hierarchyRoot} must be an array for {@items}`,
       }));
     }
 
@@ -267,7 +286,8 @@ export class VariableContext {
   }
 
   hasArrayData(): boolean {
-    return this.legacyArrayData !== undefined && this.legacyArrayData.length > 0;
+    return this.legacyArrayData !== undefined &&
+      this.legacyArrayData.length > 0;
   }
 
   getArrayData(): unknown[] {

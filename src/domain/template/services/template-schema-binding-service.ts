@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError, SchemaError } from "../../shared/types/errors.ts";
+import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -118,7 +118,7 @@ export class TemplateSchemaBindingService {
     }
 
     // Special validation for {@items} if present
-    const itemsVariables = variables.filter(v => v === "@items");
+    const itemsVariables = variables.filter((v) => v === "@items");
     if (itemsVariables.length > 0) {
       const itemsValidationResult = this.validateItemsBinding(schema, data);
       if (!itemsValidationResult.ok) {
@@ -196,7 +196,8 @@ export class TemplateSchemaBindingService {
     if (!resolveResult.ok) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Variable '${variable}' cannot be resolved: ${resolveResult.error.message}`,
+        message:
+          `Variable '${variable}' cannot be resolved: ${resolveResult.error.message}`,
       }));
     }
 
@@ -234,7 +235,8 @@ export class TemplateSchemaBindingService {
     if (!Array.isArray(rootData)) {
       return err(createError({
         kind: "RenderFailed",
-        message: `Hierarchy root ${hierarchyRoot} must be an array for {@items} binding`,
+        message:
+          `Hierarchy root ${hierarchyRoot} must be an array for {@items} binding`,
       }));
     }
 
@@ -256,11 +258,15 @@ export class TemplateSchemaBindingService {
       if (!itemDataResult.ok) {
         return err(createError({
           kind: "RenderFailed",
-          message: `Failed to create FrontmatterData for array item: ${itemDataResult.error.message}`,
+          message:
+            `Failed to create FrontmatterData for array item: ${itemDataResult.error.message}`,
         }));
       }
 
-      const contextResult = this.createVariableContext(schema, itemDataResult.data);
+      const contextResult = this.createVariableContext(
+        schema,
+        itemDataResult.data,
+      );
       if (!contextResult.ok) {
         return err(contextResult.error);
       }
@@ -288,8 +294,8 @@ export class BindingValidationReport {
    */
   isValid(): boolean {
     return this.invalidVariables.length === 0 &&
-           !this.itemsBindingError &&
-           (this.totalVariables === 0 || this.validVariables.length > 0);
+      !this.itemsBindingError &&
+      (this.totalVariables === 0 || this.validVariables.length > 0);
   }
 
   /**

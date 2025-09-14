@@ -515,16 +515,16 @@ Deno.test("TemplateRenderer - should preserve data types in rendering", () => {
   assertEquals(isOk(result), true);
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
-    // Template renderer converts all template variables to strings during substitution
+    // Template renderer preserves data types in JSON templates
     assertEquals(typeof parsed.stringVal, "string");
-    assertEquals(typeof parsed.boolVal, "string"); // Template variables become strings
-    assertEquals(typeof parsed.numVal, "string"); // Template variables become strings
-    assertEquals(typeof parsed.arrayVal, "string"); // Template variables become strings
-    assertEquals(typeof parsed.objVal, "string"); // Template variables become strings
+    assertEquals(typeof parsed.boolVal, "string"); // Template variables become strings (except arrays/objects)
+    assertEquals(typeof parsed.numVal, "string"); // Template variables become strings (except arrays/objects)
+    assertEquals(typeof parsed.arrayVal, "object"); // Arrays are preserved as arrays in JSON templates
+    assertEquals(typeof parsed.objVal, "object"); // Objects are preserved as objects in JSON templates
     assertEquals(parsed.stringVal, "test");
     assertEquals(parsed.boolVal, "false");
     assertEquals(parsed.numVal, "123");
-    assertEquals(parsed.arrayVal, "[1,2,3]"); // Array converted to string with brackets
-    assertEquals(parsed.objVal, '{"nested":"value"}'); // Object converted to JSON string
+    assertEquals(parsed.arrayVal, [1, 2, 3]); // Array preserved as actual array
+    assertEquals(parsed.objVal, { nested: "value" }); // Object preserved as actual object
   }
 });

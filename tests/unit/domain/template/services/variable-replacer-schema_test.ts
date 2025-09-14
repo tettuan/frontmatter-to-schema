@@ -17,8 +17,14 @@ describe("VariableReplacer - Schema Support", () => {
       if (result.ok) {
         const replacer = result.data;
         assertExists(replacer, "Variable replacer should exist");
-        assertExists(typeof replacer.replaceVariables === 'function', "Should have replaceVariables method");
-        assertExists(typeof replacer.replaceVariablesWithSchema === 'function', "Should have schema-aware method");
+        assertExists(
+          typeof replacer.replaceVariables === "function",
+          "Should have replaceVariables method",
+        );
+        assertExists(
+          typeof replacer.replaceVariablesWithSchema === "function",
+          "Should have schema-aware method",
+        );
       }
     });
   });
@@ -33,10 +39,12 @@ describe("VariableReplacer - Schema Support", () => {
       const replacer = replacerResult.data;
 
       // Create minimal frontmatter data for testing
-      const { FrontmatterData } = await import("../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts");
+      const { FrontmatterData } = await import(
+        "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts"
+      );
       const dataResult = FrontmatterData.create({
         title: "Test Project",
-        version: "1.0.0"
+        version: "1.0.0",
       });
 
       assertExists(dataResult.ok, "Should create frontmatter data");

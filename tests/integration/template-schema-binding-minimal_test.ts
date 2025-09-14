@@ -11,7 +11,7 @@ import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/fron
  */
 describe("Template-Schema Binding Minimal", () => {
   describe("Variable Context Legacy Support", () => {
-    it("should create and use variable context in legacy mode", async () => {
+    it("should create and use variable context in legacy mode", () => {
       // Arrange
       const dataResult = FrontmatterData.create({
         title: "My Project",
@@ -41,23 +41,32 @@ describe("Template-Schema Binding Minimal", () => {
       }
 
       // Test hierarchy properties
-      assertEquals(context.getHierarchyRoot(), null, "Legacy mode should have no hierarchy");
+      assertEquals(
+        context.getHierarchyRoot(),
+        null,
+        "Legacy mode should have no hierarchy",
+      );
       assertExists(context.getDataKeys().length > 0, "Should have data keys");
     });
 
-    it("should handle {@items} correctly in different modes", async () => {
+    it("should handle {@items} correctly in different modes", () => {
       // Test 1: Legacy mode without array data - should fail
       const simpleDataResult = FrontmatterData.create({ title: "Test" });
       assertExists(simpleDataResult.ok);
       if (!simpleDataResult.ok) return;
 
-      const simpleContextResult = VariableContext.fromSingleData(simpleDataResult.data);
+      const simpleContextResult = VariableContext.fromSingleData(
+        simpleDataResult.data,
+      );
       assertExists(simpleContextResult.ok);
       if (!simpleContextResult.ok) return;
 
       const simpleContext = simpleContextResult.data;
       const itemsFailResult = simpleContext.resolveVariable("@items");
-      assertExists(!itemsFailResult.ok, "Should fail {@items} without hierarchy");
+      assertExists(
+        !itemsFailResult.ok,
+        "Should fail {@items} without hierarchy",
+      );
 
       // Test 2: Composed mode with array data - should work
       const composedResult = VariableContext.fromComposedData({
@@ -70,15 +79,21 @@ describe("Template-Schema Binding Minimal", () => {
 
       const composedContext = composedResult.data;
       const itemsSuccessResult = composedContext.resolveVariable("@items");
-      assertExists(itemsSuccessResult.ok, "Should resolve {@items} with array data");
+      assertExists(
+        itemsSuccessResult.ok,
+        "Should resolve {@items} with array data",
+      );
       if (itemsSuccessResult.ok) {
-        assertExists(Array.isArray(itemsSuccessResult.data), "Should return array");
+        assertExists(
+          Array.isArray(itemsSuccessResult.data),
+          "Should return array",
+        );
         const arrayData = itemsSuccessResult.data as unknown[];
         assertEquals(arrayData.length, 2);
       }
     });
 
-    it("should handle error cases properly", async () => {
+    it("should handle error cases properly", () => {
       const dataResult = FrontmatterData.create({ title: "Test" });
       assertExists(dataResult.ok);
       if (!dataResult.ok) return;

@@ -68,6 +68,7 @@ describe("Template-Schema Binding Integration", () => {
       // Act: {@items} should resolve from legacy array data
       const itemsResult = context.resolveVariable("@items");
       assertExists(itemsResult.ok, "Should resolve {@items} in legacy mode");
+      if (!itemsResult.ok) return;
       assertExists(Array.isArray(itemsResult.data), "Should return array");
       assertEquals(itemsResult.data.length, 2);
       assertEquals(itemsResult.data[0].name, "task1");
@@ -75,6 +76,7 @@ describe("Template-Schema Binding Integration", () => {
       // Regular variables should also work
       const titleResult = context.resolveVariable("title");
       assertExists(titleResult.ok, "Should resolve main data variables");
+      if (!titleResult.ok) return;
       assertEquals(titleResult.data, "Test Project");
     });
 
@@ -166,11 +168,13 @@ describe("Template-Schema Binding Integration", () => {
       // But regular array access should work
       const commandsResult = context.resolveVariable("commands");
       assertExists(commandsResult.ok, "Should access commands as regular variable");
+      if (!commandsResult.ok) return;
       assertExists(Array.isArray(commandsResult.data), "Commands should be array");
       assertEquals(commandsResult.data.length, 2);
 
       const otherResult = context.resolveVariable("other_array");
       assertExists(otherResult.ok, "Should access other_array as regular variable");
+      if (!otherResult.ok) return;
       assertExists(Array.isArray(otherResult.data), "Other array should be accessible");
       assertEquals(otherResult.data.length, 3);
     });

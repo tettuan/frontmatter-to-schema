@@ -140,10 +140,10 @@ Deno.test("CLI Basic Functionality", async (t) => {
         `Published should be string "true". Got: ${outputJson.published}`,
       );
 
-      // Tags are also converted to string representation
+      // Tags should be preserved as arrays in JSON templates
       assert(
-        typeof outputJson.tags === "string",
-        "Tags should be a string representation",
+        Array.isArray(outputJson.tags),
+        "Tags should be an array in JSON templates",
       );
       assert(
         outputJson.tags.includes("test") && outputJson.tags.includes("e2e"),

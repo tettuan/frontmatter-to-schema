@@ -68,8 +68,8 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
       assertEquals(output.version, "2.0.0");
       assertEquals(output.metadata.author, "Test Author");
       assertEquals(output.metadata.created, "2024-01-01T00:00:00Z");
-      // VariableReplacer formats arrays as JSON strings when used as replacement values
-      assertEquals(output.metadata.tags, '["template","json","test"]');
+      // VariableReplacer preserves arrays as proper JSON arrays in JSON templates
+      assertEquals(output.metadata.tags, ["template", "json", "test"]);
       assertEquals(output.config.input, "./src");
       assertEquals(output.config.output, "./dist");
       // Booleans are converted to strings in VariableReplacer
@@ -137,8 +137,8 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
     if (isOk(result)) {
       const output = result.data as any;
       assertEquals(output.level1.level2.level3.value, "Deep Value");
-      // Arrays are formatted as JSON strings
-      assertEquals(output.level1.level2.level3.array, "[1,2,3]");
+      // Arrays are preserved as proper JSON arrays in JSON templates
+      assertEquals(output.level1.level2.level3.array, [1, 2, 3]);
       assertEquals(output.level1.sibling, "Sibling Value");
     }
   });

@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { TemplateSchemaBindingService } from "../../../../../src/domain/template/services/template-schema-binding-service.ts";
 
@@ -24,9 +24,18 @@ describe("TemplateSchemaBindingService - Simplified", () => {
       if (serviceResult.ok) {
         const service = serviceResult.data;
         assertExists(service, "Service should exist");
-        assertExists(typeof service.createVariableContext === 'function', "Should have createVariableContext method");
-        assertExists(typeof service.validateBinding === 'function', "Should have validateBinding method");
-        assertExists(typeof service.createItemContexts === 'function', "Should have createItemContexts method");
+        assertExists(
+          typeof service.createVariableContext === "function",
+          "Should have createVariableContext method",
+        );
+        assertExists(
+          typeof service.validateBinding === "function",
+          "Should have validateBinding method",
+        );
+        assertExists(
+          typeof service.createItemContexts === "function",
+          "Should have createItemContexts method",
+        );
       }
     });
   });

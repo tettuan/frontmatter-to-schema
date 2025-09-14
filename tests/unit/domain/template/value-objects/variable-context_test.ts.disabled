@@ -470,8 +470,10 @@ describe("VariableContext with Schema Hierarchy", () => {
         ],
       });
 
-      const contextResult = VariableContext.create(schemaResult.data!, data.data!);
-      const parentContext = contextResult.data!;
+      if (!schemaResult.ok || !data.ok) return;
+      const contextResult = VariableContext.create(schemaResult.data, data.data);
+      if (!contextResult.ok) return;
+      const parentContext = contextResult.data;
 
       // Create item data
       const itemData = FrontmatterData.create({
@@ -480,7 +482,8 @@ describe("VariableContext with Schema Hierarchy", () => {
       });
 
       // Act
-      const itemContextResult = parentContext.createItemContext(itemData.data!);
+      if (!itemData.ok) return;
+      const itemContextResult = parentContext.createItemContext(itemData.data);
 
       // Assert
       assertExists(itemContextResult.ok, "Should create item context");
@@ -509,10 +512,12 @@ describe("VariableContext with Schema Hierarchy", () => {
       });
 
       // Act
-      const contextResult = VariableContext.fromSingleData(data.data!);
+      if (!data.ok) return;
+      const contextResult = VariableContext.fromSingleData(data.data);
 
       // Assert
       assertExists(contextResult.ok, "Should create legacy context");
+      if (!contextResult.ok) return;
       const context = contextResult.data;
 
       // Should have no hierarchy root (legacy mode)
@@ -535,8 +540,10 @@ describe("VariableContext with Schema Hierarchy", () => {
         nested: { value: "test" },
       });
 
-      const contextResult = VariableContext.fromSingleData(data.data!);
-      const context = contextResult.data!;
+      if (!data.ok) return;
+      const contextResult = VariableContext.fromSingleData(data.data);
+      if (!contextResult.ok) return;
+      const context = contextResult.data;
 
       // Act & Assert - legacy method should work
       const valueResult = context.getValue("nested.value");
@@ -550,7 +557,8 @@ describe("VariableContext with Schema Hierarchy", () => {
       const data2 = FrontmatterData.create({ item: "second" });
 
       // Act
-      const contextResult = VariableContext.fromArrayData([data1.data!, data2.data!]);
+      if (!data1.ok || !data2.ok) return;
+      const contextResult = VariableContext.fromArrayData([data1.data, data2.data]);
 
       // Assert
       assertExists(contextResult.ok, "Should create legacy array context");
