@@ -14,7 +14,7 @@ import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/fron
  */
 describe("Template-Schema Binding Integration", () => {
   describe("Variable Context with Legacy Support", () => {
-    it("should resolve regular variables in legacy mode", () => {
+    it("should resolve regular variables in legacy mode", async () => {
       // Arrange: Use legacy context creation
       const data = FrontmatterData.create({
         project: {
@@ -36,21 +36,18 @@ describe("Template-Schema Binding Integration", () => {
       // Act & Assert: Regular variables should work
       const nameResult = context.resolveVariable("project.name");
       assertExists(nameResult.ok, "Should resolve nested variable");
-      if (!nameResult.ok) return;
       assertEquals(nameResult.data, "My Project");
 
       const versionResult = context.resolveVariable("project.version");
       assertExists(versionResult.ok, "Should resolve version");
-      if (!versionResult.ok) return;
       assertEquals(versionResult.data, "2.0.0");
 
       const descResult = context.resolveVariable("description");
       assertExists(descResult.ok, "Should resolve top-level variable");
-      if (!descResult.ok) return;
       assertEquals(descResult.data, "A test project");
     });
 
-    it("should handle {@items} in legacy mode with fallback", () => {
+    it("should handle {@items} in legacy mode with fallback", async () => {
       // Arrange: Legacy context with array data
       const mainData = { title: "Test Project" };
       const arrayData = [
@@ -73,9 +70,8 @@ describe("Template-Schema Binding Integration", () => {
       assertExists(itemsResult.ok, "Should resolve {@items} in legacy mode");
       if (!itemsResult.ok) return;
       assertExists(Array.isArray(itemsResult.data), "Should return array");
-      const itemsData = itemsResult.data as Array<{ name: string }>;
-      assertEquals(itemsData.length, 2);
-      assertEquals(itemsData[0].name, "task1");
+      assertEquals(itemsResult.data.length, 2);
+      assertEquals(itemsResult.data[0].name, "task1");
 
       // Regular variables should also work
       const titleResult = context.resolveVariable("title");
@@ -84,7 +80,7 @@ describe("Template-Schema Binding Integration", () => {
       assertEquals(titleResult.data, "Test Project");
     });
 
-    it("should validate context capabilities", () => {
+    it("should validate context capabilities", async () => {
       // Arrange
       const data = FrontmatterData.create({
         title: "Test",
@@ -112,7 +108,7 @@ describe("Template-Schema Binding Integration", () => {
       assertExists(!unknownResult.ok, "Should reject unknown @ variables");
     });
 
-    it("should handle error cases gracefully", () => {
+    it("should handle error cases gracefully", async () => {
       // Arrange
       const data = FrontmatterData.create({ title: "Test" });
       assertExists(data.ok);
@@ -127,7 +123,6 @@ describe("Template-Schema Binding Integration", () => {
       // Act & Assert: Missing variables should fail gracefully
       const missingResult = context.resolveVariable("missing");
       assertExists(!missingResult.ok, "Should fail for missing variable");
-      if (missingResult.ok) return;
       assertExists(
         missingResult.error.message.includes("not found"),
         "Should indicate variable not found",
@@ -136,7 +131,6 @@ describe("Template-Schema Binding Integration", () => {
       // {@items} without array data should fail
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail {@items} without hierarchy");
-      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("no x-frontmatter-part found"),
         "Should indicate missing schema context",
@@ -145,7 +139,7 @@ describe("Template-Schema Binding Integration", () => {
   });
 
   describe("Architectural Constraints", () => {
-    it("should demonstrate {@items} hierarchy constraint requirement", () => {
+    it("should demonstrate {@items} hierarchy constraint requirement", async () => {
       // This test demonstrates the architectural constraint that {@items}
       // should be resolved from x-frontmatter-part hierarchy level.
       // In legacy mode, this fails as expected.
@@ -173,30 +167,16 @@ describe("Template-Schema Binding Integration", () => {
 
       // But regular array access should work
       const commandsResult = context.resolveVariable("commands");
-      assertExists(
-        commandsResult.ok,
-        "Should access commands as regular variable",
-      );
+      assertExists(commandsResult.ok, "Should access commands as regular variable");
       if (!commandsResult.ok) return;
-      assertExists(
-        Array.isArray(commandsResult.data),
-        "Commands should be array",
-      );
-      const commandsData = commandsResult.data as Array<unknown>;
-      assertEquals(commandsData.length, 2);
+      assertExists(Array.isArray(commandsResult.data), "Commands should be array");
+      assertEquals(commandsResult.data.length, 2);
 
       const otherResult = context.resolveVariable("other_array");
-      assertExists(
-        otherResult.ok,
-        "Should access other_array as regular variable",
-      );
+      assertExists(otherResult.ok, "Should access other_array as regular variable");
       if (!otherResult.ok) return;
-      assertExists(
-        Array.isArray(otherResult.data),
-        "Other array should be accessible",
-      );
-      const otherData = otherResult.data as Array<unknown>;
-      assertEquals(otherData.length, 3);
+      assertExists(Array.isArray(otherResult.data), "Other array should be accessible");
+      assertEquals(otherResult.data.length, 3);
     });
   });
 });
