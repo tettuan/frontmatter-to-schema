@@ -3,13 +3,16 @@ import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
  * Follows Totality principles with Result<T,E> pattern.
  */
 export class VariableReplacer {
-  private constructor() {}
+  private constructor(
+    private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
+  ) {}
   private debugLogger = DebugLoggerFactory.create();
 
   /**
@@ -20,7 +23,10 @@ export class VariableReplacer {
     VariableReplacer,
     TemplateError & { message: string }
   > {
-    return ok(new VariableReplacer());
+    const strategyResult = ArrayExpansionStrategy.create();
+    if (!strategyResult.ok) return strategyResult;
+
+    return ok(new VariableReplacer(strategyResult.data));
   }
 
   /**
@@ -379,26 +385,8 @@ export class VariableReplacer {
     // If template is a string and contains {@items}, expand it
     if (typeof template === "string" && template.includes("{@items}")) {
       if (!itemTemplate) {
-        // For simple {@items} replacement, check if this is the entire content
-        // If the template is just "books:\n{@items}" or similar, return structured data
-        if (template.trim().endsWith("{@items}")) {
-          // Return structured data that the formatter can handle properly
-          const lines = template.split("\n");
-          const lastLine = lines[lines.length - 1];
-          if (lastLine.trim() === "{@items}") {
-            // Build structured object that YAML formatter can handle
-            const key = lines[lines.length - 2]?.replace(":", "").trim();
-            if (key) {
-              return ok({ [key]: dataArray });
-            }
-          }
-        }
-        // Fallback: stringify (for cases where {@items} is embedded in text)
-        const expanded = template.replace(
-          "{@items}",
-          JSON.stringify(dataArray),
-        );
-        return ok(expanded);
+        // ✅ DDD Fix: Use strategy pattern for consistent array expansion
+        return this.arrayExpansionStrategy.expandItems(template, dataArray);
       }
 
       // Process each item with the item template

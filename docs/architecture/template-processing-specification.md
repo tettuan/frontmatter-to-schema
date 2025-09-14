@@ -33,7 +33,7 @@ templates.
    dependency injection
 3. **PipelineOrchestrator**: Coordinates the entire processing pipeline:
    - Schema loading and validation
-   - Document processing via DocumentProcessingService
+   - Document processing via FrontmatterTransformationService
    - Template path resolution
    - Data extraction for x-frontmatter-part
    - Delegation to OutputRenderingService
@@ -55,7 +55,7 @@ graph TD
     C --> D[SchemaPathResolver]
     D --> E[Data Structuring via x-frontmatter-part]
 
-    E --> F[DocumentProcessingService]
+    E --> F[FrontmatterTransformationService]
     F --> G[Aggregation via x-derived-from]
 
     G --> H[Final Data Structure]

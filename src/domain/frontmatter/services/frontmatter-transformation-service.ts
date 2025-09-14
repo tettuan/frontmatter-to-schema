@@ -35,10 +35,17 @@ export type RuleConversionResult = {
 };
 
 /**
- * Domain service responsible for Document processing stage of the 3-stage pipeline.
- * Handles: Frontmatter → ValidatedData + Aggregation + BaseProperty population
+ * Domain service responsible for transforming multiple Markdown files into integrated domain data.
+ * Handles: Multiple Frontmatter → Validated + Aggregated + Structured Domain Data
+ *
+ * Transformation Pipeline:
+ * 1. Extract frontmatter from multiple files
+ * 2. Validate according to schema rules
+ * 3. Aggregate and structure data
+ * 4. Apply derivation rules
+ * 5. Generate final integrated domain data
  */
-export class DocumentProcessingService {
+export class FrontmatterTransformationService {
   constructor(
     private readonly frontmatterProcessor: FrontmatterProcessor,
     private readonly aggregator: Aggregator,
@@ -49,10 +56,10 @@ export class DocumentProcessingService {
   ) {}
 
   /**
-   * Process documents from file pattern with validation and aggregation.
-   * Follows 3-stage architecture: Extract → Validate → Aggregate
+   * Transform multiple frontmatter documents into integrated domain data.
+   * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
    */
-  processDocuments(
+  transformDocuments(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
