@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Registry Schema",
+  "x-template": "registry_template.json",
+  "description": "Schema for registry configuration with tools and commands",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Registry version",
+      "default": "1.0.0"
+    },
+    "description": {
+      "type": "string",
+      "description": "Overall registry description",
+      "default": "Command Registry"
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool configuration and command registry",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "description": "Tool names array - derived from commands[].c1",
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry",
+          "items": {
+            "x-frontmatter-part": true,
+            "$ref": "registry_command_schema.json"
+          }
+        }
+      },
+      "required": ["commands"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
+}
