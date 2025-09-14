@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "registry_command_template.json",
+  "title": "Command Schema",
+  "description": "Schema for a single command definition",
+  "properties": {
+    "c1": {
+      "type": "string",
+      "description": "Domain/category (git, spec, test, code, docs, meta)"
+    },
+    "c2": {
+      "type": "string",
+      "description": "Action/directive (create, analyze, execute, etc.)"
+    },
+    "c3": {
+      "type": "string",
+      "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Command title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Command description"
+    },
+    "usage": {
+      "type": "string",
+      "description": "Usage instructions and examples"
+    },
+    "options": {
+      "type": "object",
+      "description": "Available options for this command",
+      "properties": {
+        "input": {
+          "type": "array",
+          "description": "Supported input formats",
+          "items": { "type": "string" }
+        },
+        "adaptation": {
+          "type": "array",
+          "description": "Processing modes",
+          "items": { "type": "string" }
+        },
+        "input_file": {
+          "type": "array",
+          "description": "File input support",
+          "items": { "type": "boolean" }
+        },
+        "stdin": {
+          "type": "array",
+          "description": "Standard input support",
+          "items": { "type": "boolean" }
+        },
+        "destination": {
+          "type": "array",
+          "description": "Output destination support",
+          "items": { "type": "boolean" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["c1", "c2", "c3", "description", "usage", "options"],
+  "additionalProperties": false
+}

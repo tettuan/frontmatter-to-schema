@@ -1,328 +1,134 @@
-/**
- * RefResolver Domain Service
- *
- * Handles $ref resolution in JSON schemas following DDD and Totality principles
- * Uses value objects and returns Result<T,E> for all operations
- */
-
-import type { Result } from "../../core/result.ts";
-import { createDomainError, type DomainError } from "../../core/result.ts";
-import type { SchemaDefinition } from "../../value-objects/schema-definition.ts";
-import { SchemaPath } from "../../value-objects/schema-path.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, SchemaError } from "../../shared/types/errors.ts";
 import {
-  DEFAULT_ERROR_CONTEXT_LIMIT,
-  MAX_REFERENCE_DEPTH,
-} from "../../shared/constants.ts";
+  SchemaDefinition,
+  SchemaProperty,
+} from "../value-objects/schema-definition.ts";
+import { ResolvedSchema } from "../entities/schema.ts";
 
-/**
- * Resolved schema with all $ref dependencies resolved
- */
-export interface ResolvedSchema {
-  readonly content: Record<string, unknown>;
-  readonly resolvedRefs: readonly string[];
+export interface SchemaLoader {
+  load(ref: string): Result<SchemaProperty, SchemaError & { message: string }>;
 }
 
-/**
- * RefResolver domain service for handling $ref resolution in schemas
- * Follows Totality principles - all functions are total and return Result<T,E>
- */
 export class RefResolver {
-  private constructor(
-    private readonly maxDepth: number = MAX_REFERENCE_DEPTH.getValue(),
-    private readonly visited: Set<string> = new Set(),
-  ) {}
+  private readonly visitedRefs = new Set<string>();
 
-  /**
-   * Smart Constructor for RefResolver
-   * @param maxDepth - Maximum resolution depth to prevent infinite recursion
-   * @returns Result containing RefResolver or error
-   */
-  static create(
-    maxDepth: number = MAX_REFERENCE_DEPTH.getValue(),
-  ): Result<RefResolver, DomainError & { message: string }> {
-    if (maxDepth < 1) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "OutOfRange",
-            value: maxDepth,
-            min: 1,
-          },
-          "Maximum resolution depth must be at least 1",
-        ),
-      };
+  constructor(private readonly loader: SchemaLoader) {}
+
+  resolve(
+    definition: SchemaDefinition,
+  ): Result<ResolvedSchema, SchemaError & { message: string }> {
+    this.visitedRefs.clear();
+    const referencedSchemas = new Map<string, SchemaDefinition>();
+
+    const resolvedResult = this.resolveRecursive(
+      definition.getRawSchema(),
+      referencedSchemas,
+    );
+
+    if (!resolvedResult.ok) {
+      return resolvedResult;
     }
 
-    if (MAX_REFERENCE_DEPTH.isExceeded(maxDepth)) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "OutOfRange",
-            value: maxDepth,
-            min: 1,
-            max: MAX_REFERENCE_DEPTH.getValue(),
-          },
-          `Maximum resolution depth cannot exceed ${MAX_REFERENCE_DEPTH.getValue()}`,
-        ),
-      };
+    const resolvedDef = SchemaDefinition.create(resolvedResult.data);
+    if (!resolvedDef.ok) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: "Failed to create resolved schema definition",
+      }));
     }
 
-    return {
-      ok: true,
-      data: new RefResolver(maxDepth),
-    };
+    return ok({
+      definition: resolvedDef.data,
+      referencedSchemas,
+    });
   }
 
-  /**
-   * Resolve all $ref references in a schema
-   * @param schema - Schema to resolve
-   * @param schemaLoader - Function to load referenced schemas
-   * @returns Result containing resolved schema or error
-   */
-  resolveRefs(
-    schema: SchemaDefinition,
-    schemaLoader: (
-      path: SchemaPath,
-    ) => Promise<Result<SchemaDefinition, DomainError & { message: string }>>,
-  ): Promise<Result<ResolvedSchema, DomainError & { message: string }>> {
-    return this.resolveRefsInternal(schema, schemaLoader, 0, []);
-  }
-
-  /**
-   * Internal recursive ref resolution
-   */
-  private async resolveRefsInternal(
-    schema: SchemaDefinition,
-    schemaLoader: (
-      path: SchemaPath,
-    ) => Promise<Result<SchemaDefinition, DomainError & { message: string }>>,
-    depth: number,
-    resolvedRefs: string[],
-  ): Promise<Result<ResolvedSchema, DomainError & { message: string }>> {
-    // Check depth limit
-    if (depth >= this.maxDepth) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "TooDeep",
-            currentDepth: depth,
-            maxDepth: this.maxDepth,
-          },
-          `$ref resolution exceeded maximum depth of ${this.maxDepth}`,
-        ),
-      };
+  private resolveRecursive(
+    schema: SchemaProperty,
+    referencedSchemas: Map<string, SchemaDefinition>,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
+    if (schema.$ref) {
+      return this.resolveRef(schema.$ref, referencedSchemas);
     }
 
-    const contentResult = schema.getParsedSchema();
-    if (!contentResult.ok) {
-      return {
-        ok: false,
-        error: createDomainError(
-          {
-            kind: "ParseError",
-            input: DEFAULT_ERROR_CONTEXT_LIMIT.truncateContent(
-              schema.getRawDefinition(),
-            ),
-            details: contentResult.error.message,
-          },
-          "Failed to parse schema for $ref resolution",
-        ),
-      };
-    }
-    const content = contentResult.data;
+    const resolved: any = { ...schema };
 
-    // Find all $ref references
-    const refs = this.findRefs(content);
-    if (refs.length === 0) {
-      // No refs to resolve
-      return {
-        ok: true,
-        data: {
-          content,
-          resolvedRefs,
-        },
-      };
-    }
-
-    // Check for circular references
-    for (const ref of refs) {
-      if (this.visited.has(ref)) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "CircularReference",
-              reference: ref,
-              visitedRefs: Array.from(this.visited),
-            },
-            `Circular reference detected: ${ref}`,
-          ),
-        };
-      }
-    }
-
-    // Resolve each ref
-    let resolvedContent = { ...content };
-    const newResolvedRefs = [...resolvedRefs];
-
-    for (const ref of refs) {
-      this.visited.add(ref);
-
-      // Convert ref to SchemaPath
-      const schemaPathResult = SchemaPath.create(ref);
-      if (!schemaPathResult.ok) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "InvalidReference",
-              reference: ref,
-              reason: schemaPathResult.error.message,
-            },
-            `Invalid $ref path: ${ref}`,
-          ),
-        };
-      }
-
-      // Load referenced schema
-      const referencedSchemaResult = await schemaLoader(schemaPathResult.data);
-      if (!referencedSchemaResult.ok) {
-        return {
-          ok: false,
-          error: createDomainError(
-            {
-              kind: "ReferenceLoadError",
-              reference: ref,
-              reason: referencedSchemaResult.error.message,
-            },
-            `Failed to load $ref: ${ref}`,
-          ),
-        };
-      }
-
-      // Recursively resolve refs in the referenced schema
-      const nestedResolver = new RefResolver(
-        this.maxDepth,
-        new Set(this.visited),
-      );
-      const nestedResolvedResult = await nestedResolver.resolveRefsInternal(
-        referencedSchemaResult.data,
-        schemaLoader,
-        depth + 1,
-        [], // Start with empty array for nested resolution
-      );
-
-      if (!nestedResolvedResult.ok) {
-        return nestedResolvedResult;
-      }
-
-      // Replace $ref with resolved content
-      resolvedContent = this.replaceRef(
-        resolvedContent,
-        ref,
-        nestedResolvedResult.data.content,
-      );
-      newResolvedRefs.push(ref);
-      newResolvedRefs.push(...nestedResolvedResult.data.resolvedRefs);
-
-      this.visited.delete(ref);
-    }
-
-    return {
-      ok: true,
-      data: {
-        content: resolvedContent,
-        resolvedRefs: newResolvedRefs,
-      },
-    };
-  }
-
-  /**
-   * Find all $ref references in a schema object
-   */
-  private findRefs(obj: unknown): string[] {
-    const refs: string[] = [];
-
-    if (typeof obj === "object" && obj !== null) {
-      if (Array.isArray(obj)) {
-        for (const item of obj) {
-          refs.push(...this.findRefs(item));
+    if (schema.properties) {
+      const resolvedProperties: Record<string, SchemaProperty> = {};
+      for (const [key, prop] of Object.entries(schema.properties)) {
+        const resolvedProp = this.resolveRecursive(prop, referencedSchemas);
+        if (!resolvedProp.ok) {
+          return resolvedProp;
         }
-      } else {
-        const record = obj as Record<string, unknown>;
-        for (const [key, value] of Object.entries(record)) {
-          if (key === "$ref" && typeof value === "string") {
-            refs.push(value);
-          } else {
-            refs.push(...this.findRefs(value));
+        resolvedProperties[key] = resolvedProp.data;
+      }
+      resolved.properties = resolvedProperties;
+    }
+
+    if (schema.items) {
+      if (typeof schema.items === "object") {
+        if ("$ref" in schema.items && schema.items.$ref) {
+          const resolvedItems = this.resolveRef(
+            schema.items.$ref,
+            referencedSchemas,
+          );
+          if (!resolvedItems.ok) {
+            return resolvedItems;
           }
-        }
-      }
-    }
-
-    return refs;
-  }
-
-  /**
-   * Replace a $ref with resolved content
-   */
-  private replaceRef(
-    obj: Record<string, unknown>,
-    ref: string,
-    resolvedContent: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const result = { ...obj };
-
-    for (const [key, value] of Object.entries(result)) {
-      if (key === "$ref" && value === ref) {
-        // Replace the $ref with resolved content
-        return { ...resolvedContent };
-      } else if (typeof value === "object" && value !== null) {
-        if (Array.isArray(value)) {
-          result[key] = value.map((item) =>
-            typeof item === "object" && item !== null
-              ? this.replaceRef(
-                item as Record<string, unknown>,
-                ref,
-                resolvedContent,
-              )
-              : item
-          );
+          resolved.items = resolvedItems.data;
         } else {
-          result[key] = this.replaceRef(
-            value as Record<string, unknown>,
-            ref,
-            resolvedContent,
+          const resolvedItems = this.resolveRecursive(
+            schema.items as SchemaProperty,
+            referencedSchemas,
           );
+          if (!resolvedItems.ok) {
+            return resolvedItems;
+          }
+          resolved.items = resolvedItems.data;
         }
       }
     }
 
-    return result;
+    return ok(resolved);
   }
 
-  /**
-   * Check if a schema has any $ref references
-   */
-  static hasRefs(schema: SchemaDefinition): boolean {
-    const resolver = new RefResolver();
-    const contentResult = schema.getParsedSchema();
-    if (!contentResult.ok) return false;
+  private resolveRef(
+    ref: string,
+    referencedSchemas: Map<string, SchemaDefinition>,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
+    if (this.visitedRefs.has(ref)) {
+      return err(createError({
+        kind: "CircularReference",
+        refs: Array.from(this.visitedRefs).concat(ref),
+      }));
+    }
 
-    return resolver.findRefs(contentResult.data).length > 0;
-  }
+    this.visitedRefs.add(ref);
 
-  /**
-   * Get all $ref references in a schema without resolving them
-   */
-  static extractRefs(schema: SchemaDefinition): string[] {
-    const resolver = new RefResolver();
-    const contentResult = schema.getParsedSchema();
-    if (!contentResult.ok) return [];
+    const loadResult = this.loader.load(ref);
+    if (!loadResult.ok) {
+      return err(createError({
+        kind: "RefResolutionFailed",
+        ref,
+        message: loadResult.error.message,
+      }));
+    }
 
-    return resolver.findRefs(contentResult.data);
+    const schemaDef = SchemaDefinition.create(loadResult.data);
+    if (!schemaDef.ok) {
+      return err(createError({
+        kind: "RefResolutionFailed",
+        ref,
+        message: "Invalid referenced schema",
+      }));
+    }
+
+    referencedSchemas.set(ref, schemaDef.data);
+
+    const resolved = this.resolveRecursive(loadResult.data, referencedSchemas);
+    this.visitedRefs.delete(ref);
+
+    return resolved;
   }
 }

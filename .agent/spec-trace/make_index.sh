@@ -1,8 +1,10 @@
-# 全レベル処理                                                                                                       [fix/post-integration-adjustments]:+
+#!/bin/sh
+# 全レベル処理
 for level in req spec design impl test; do
-    ./frontmatter-to-schema \
-        ".agent/spec-trace/level_${level}_schema.json" \
-        ".agent/spec-trace/index/${level}_index.json" \
-        ".agent/spec-trace/docs/**/*.md" \
+    deno run --allow-all mod.ts \
+        --schema ".agent/spec-trace/index_${level}_schema.json" \
+        --template ".agent/spec-trace/level_index_template.json" \
+        --input ".agent/spec-trace/docs" \
+        --output ".agent/spec-trace/index/${level}_index.json"
         --verbose
 done

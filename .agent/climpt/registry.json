@@ -168,13 +168,31 @@
         "c1": "refactor",
         "c2": "basedon",
         "c3": "ddd",
-        "description": "実行済の結果から導き出したネクストアクションを進める。基本事項を維持した状態で、次アクションを指示する"
+        "description": "実行済の結果から導き出したネクストアクションを進める。基本事項を維持した状態で、次アクションを指示する",
+        "options": {
+          "input": "nextaction"
+        }
       },
       {
         "c1": "refactor",
         "c2": "basedon",
         "c3": "ddd",
         "description": "現在の実装をドメイン駆動設計と全域性（Totality）による設計で、堅牢になるようリファクタリングする"
+      },
+      {
+        "c1": "refactor",
+        "c2": "basedon",
+        "c3": "requirements",
+        "title": "要求に基づくリファクタリング。",
+        "description": "定期的に確認し実装が要求を満たしている状態をつくる。現在の実装を要求に基づいて、要求実現に必要なリファクタリングをする",
+        "usage": "climpt-refactor basedon requirement",
+        "options": {
+          "input": ["default"],
+          "adaptation": ["default"],
+          "file": [false],
+          "stdin": [false],
+          "destination": [false]
+        }
       },
       {
         "c1": "debug",
