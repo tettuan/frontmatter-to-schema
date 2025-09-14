@@ -24,11 +24,13 @@ export class VariableReplacer {
    * Replaces variables in template content with values from data
    * @param template - Template string with {variable} placeholders
    * @param data - FrontmatterData containing values for replacement
+   * @param arrayData - Optional array data for {@items} expansion
    * @returns Result containing processed template string or error
    */
   replaceVariables(
     template: string,
     data: FrontmatterData,
+    arrayData?: unknown[],
   ): Result<string, TemplateError & { message: string }> {
     try {
       if (!template.includes("{")) {
@@ -36,7 +38,13 @@ export class VariableReplacer {
       }
 
       const result = template.replace(/\{([^}]+)\}/g, (match, varName) => {
-        // Skip @ variables (special processing markers)
+        // Handle {@items} array expansion
+        if (varName === "@items" && arrayData) {
+          // Return special marker for array expansion
+          return "[@ITEMS_EXPANSION]";
+        }
+
+        // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
           return match;
         }
@@ -246,5 +254,106 @@ export class VariableReplacer {
     }
 
     return ok(results);
+  }
+
+  /**
+   * Process template with {@items} array expansion support
+   * @param template - Template content with potential {@items} marker
+   * @param dataArray - Array of data items to expand
+   * @param itemTemplate - Optional template to apply to each item
+   * @returns Result containing expanded content or error
+   */
+  processArrayExpansion(
+    template: unknown,
+    dataArray: unknown[],
+    itemTemplate?: unknown,
+  ): Result<unknown, TemplateError & { message: string }> {
+    // If template is a string and contains {@items}, expand it
+    if (typeof template === "string" && template.includes("{@items}")) {
+      if (!itemTemplate) {
+        // Without item template, just stringify the array
+        const expanded = template.replace(
+          "{@items}",
+          JSON.stringify(dataArray),
+        );
+        return ok(expanded);
+      }
+
+      // Process each item with the item template
+      const processedItems: unknown[] = [];
+      for (const item of dataArray) {
+        const itemDataResult = FrontmatterData.create(item);
+        if (!itemDataResult.ok) {
+          return err(createError({
+            kind: "RenderFailed",
+            message:
+              `Failed to create FrontmatterData from item: ${itemDataResult.error.message}`,
+          }));
+        }
+
+        const processedResult = this.processValue(
+          itemTemplate,
+          itemDataResult.data,
+        );
+        if (!processedResult.ok) {
+          return processedResult;
+        }
+        processedItems.push(processedResult.data);
+      }
+
+      // Replace {@items} with processed items
+      if (typeof template === "string") {
+        // For JSON templates, directly insert the array
+        if (template.trim().startsWith("[") && template.trim().endsWith("]")) {
+          return ok(processedItems);
+        }
+        // For string templates, join the items
+        const expanded = template.replace(
+          "{@items}",
+          JSON.stringify(processedItems),
+        );
+        return ok(expanded);
+      }
+
+      return ok(processedItems);
+    }
+
+    // If template is an array containing {@items}, expand it
+    if (Array.isArray(template)) {
+      const result: unknown[] = [];
+      for (const item of template) {
+        if (typeof item === "string" && item === "{@items}") {
+          // Expand array items here
+          result.push(...dataArray);
+        } else {
+          result.push(item);
+        }
+      }
+      return ok(result);
+    }
+
+    // If template is an object, recursively process it
+    if (template && typeof template === "object") {
+      const result: Record<string, unknown> = {};
+      for (
+        const [key, value] of Object.entries(
+          template as Record<string, unknown>,
+        )
+      ) {
+        const processedResult = this.processArrayExpansion(
+          value,
+          dataArray,
+          itemTemplate,
+        );
+        if (!processedResult.ok) {
+          return processedResult;
+        }
+        result[key] = processedResult.data;
+      }
+      return ok(result);
+    }
+
+    // Return template as-is if no {@items} processing needed
+    return ok(template);
   }
 }

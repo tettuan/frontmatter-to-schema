@@ -4,4 +4,4 @@ params:
     directiveType:
       pattern: "^(architecture|basedon|test)$"
     layerType:
-      pattern: "^(boundary|ddd|db|code|review)$"
+      pattern: "^(boundary|ddd|db|code|review|requirements)$"

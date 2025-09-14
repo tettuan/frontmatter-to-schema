@@ -8,6 +8,7 @@ import { ValidationRules } from "../../schema/value-objects/validation-rules.ts"
 import { Schema } from "../../schema/entities/schema.ts";
 import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
+import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.ts";
 
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
@@ -170,6 +171,7 @@ export class DocumentProcessingService {
 
   /**
    * Aggregate data using derivation rules from schema.
+   * Refactored to use SchemaPathResolver following DDD Totality principles.
    */
   private aggregateData(
     data: FrontmatterData[],
@@ -178,128 +180,152 @@ export class DocumentProcessingService {
     const derivationRules = schema.getDerivedRules();
 
     if (derivationRules.length > 0) {
-      // Has derivation rules: create base data structure with frontmatter-part array
-      const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
-      let baseData: FrontmatterData;
-
-      if (frontmatterPartSchemaResult.ok) {
-        // Create base data with commands array for derivation processing
-        // Need to nest the array according to its actual schema path
-        const commandsArray = data.map((item) => item.getData());
-
-        // Get the actual frontmatter-part path from schema
-        const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-        if (!frontmatterPartPathResult.ok) {
-          return frontmatterPartPathResult;
-        }
-        const frontmatterPartPath = frontmatterPartPathResult.data;
-
-        // Create the base structure with the array at the correct path
-        const emptyDataResult = FrontmatterData.create({});
-        if (!emptyDataResult.ok) {
-          return emptyDataResult;
-        }
-
-        // Put the array at the schema-defined path
-        let baseDataWithArray = emptyDataResult.data.withField(
-          frontmatterPartPath,
-          commandsArray,
-        );
-
-        // For derivation rules that expect 'commands[]' path,
-        // also provide the array at 'commands' if the path is nested
-        if (frontmatterPartPath !== "commands") {
-          baseDataWithArray = baseDataWithArray.withField(
-            "commands",
-            commandsArray,
-          );
-        }
-
-        baseData = baseDataWithArray;
-      } else {
-        // No frontmatter-part: merge all data as base
-        if (data.length > 0) {
-          let merged = data[0];
-          for (let i = 1; i < data.length; i++) {
-            merged = merged.merge(data[i]);
-          }
-          baseData = merged;
-        } else {
-          baseData = FrontmatterData.empty();
-        }
-      }
-
-      // Convert schema rules to domain rules with explicit error tracking
-      const ruleConversion = this.convertDerivationRules(derivationRules);
-
-      // For backward compatibility, we continue processing even with failed rules
-      // In future versions, we could return early on rule conversion failures
-      const rules = ruleConversion.successfulRules;
-
-      // Aggregate with rules using the base data
-      const aggregationResult = this.aggregator.aggregate([baseData], rules);
-      if (!aggregationResult.ok) {
-        return aggregationResult;
-      }
-
-      // Merge with base
-      const mergedResult = this.aggregator.mergeWithBase(
-        aggregationResult.data,
-      );
-      if (!mergedResult.ok) {
-        return mergedResult;
-      }
-
-      // Data is already at the correct path from baseData creation
-      return mergedResult;
+      return this.aggregateWithDerivationRules(data, schema, derivationRules);
     } else {
-      // No derivation rules - handle frontmatter-part aggregation or merge data
-      const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
-
-      if (frontmatterPartSchemaResult.ok) {
-        // Has frontmatter-part: create aggregated data with the array of documents
-        // Need to nest the array according to its actual schema path
-        const commandsArray = data.map((item) => item.getData());
-
-        // Get the actual frontmatter-part path from schema
-        const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-        if (!frontmatterPartPathResult.ok) {
-          return frontmatterPartPathResult;
-        }
-        const frontmatterPartPath = frontmatterPartPathResult.data;
-
-        // Create the base structure with the array at the correct path
-        const emptyDataResult = FrontmatterData.create({});
-        if (!emptyDataResult.ok) {
-          return emptyDataResult;
-        }
-
-        // Put the array at the schema-defined path
-        let aggregatedData = emptyDataResult.data.withField(
-          frontmatterPartPath,
-          commandsArray,
-        );
-
-        // For derivation rules that expect 'commands[]' path,
-        // also provide the array at 'commands' if the path is nested
-        if (frontmatterPartPath !== "commands") {
-          aggregatedData = aggregatedData.withField("commands", commandsArray);
-        }
-
-        return ok(aggregatedData);
-      } else {
-        // No frontmatter-part: merge all data as before
-        if (data.length > 0) {
-          let merged = data[0];
-          for (let i = 1; i < data.length; i++) {
-            merged = merged.merge(data[i]);
-          }
-          return ok(merged);
-        } else {
-          return ok(FrontmatterData.empty());
-        }
-      }
+      return this.aggregateWithoutDerivationRules(data, schema);
     }
+  }
+
+  /**
+   * Handles aggregation with derivation rules using schema-driven approach.
+   * Replaces hardcoded structure creation with SchemaPathResolver.
+   */
+  private aggregateWithDerivationRules(
+    data: FrontmatterData[],
+    schema: Schema,
+    derivationRules: Array<
+      { sourcePath: string; targetField: string; unique: boolean }
+    >,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
+
+    if (!frontmatterPartSchemaResult.ok) {
+      return this.mergeDataDirectly(data);
+    }
+
+    // Handle empty data by creating empty structure
+    if (data.length === 0) {
+      const emptyStructureResult = SchemaPathResolver.createEmptyStructure(
+        schema,
+      );
+      if (!emptyStructureResult.ok) {
+        return emptyStructureResult;
+      }
+
+      const baseDataResult = emptyStructureResult.data.toFrontmatterData();
+      if (!baseDataResult.ok) {
+        return baseDataResult;
+      }
+
+      return this.applyDerivationRules(baseDataResult.data, derivationRules);
+    }
+
+    // Use SchemaPathResolver instead of hardcoded structure creation
+    const commandsArray = data.map((item) => item.getData());
+    const structureResult = SchemaPathResolver.resolveDataStructure(
+      schema,
+      commandsArray,
+    );
+
+    if (!structureResult.ok) {
+      return structureResult;
+    }
+
+    // Convert to FrontmatterData and apply derivation rules
+    const baseDataResult = structureResult.data.toFrontmatterData();
+    if (!baseDataResult.ok) {
+      return baseDataResult;
+    }
+
+    return this.applyDerivationRules(baseDataResult.data, derivationRules);
+  }
+
+  /**
+   * Handles aggregation without derivation rules using schema-driven approach.
+   * Replaces hardcoded structure creation with SchemaPathResolver.
+   */
+  private aggregateWithoutDerivationRules(
+    data: FrontmatterData[],
+    schema: Schema,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
+
+    if (!frontmatterPartSchemaResult.ok) {
+      return this.mergeDataDirectly(data);
+    }
+
+    // Handle empty data by creating empty structure
+    if (data.length === 0) {
+      const emptyStructureResult = SchemaPathResolver.createEmptyStructure(
+        schema,
+      );
+      if (!emptyStructureResult.ok) {
+        return emptyStructureResult;
+      }
+
+      return emptyStructureResult.data.toFrontmatterData();
+    }
+
+    // Use SchemaPathResolver instead of hardcoded structure creation
+    const commandsArray = data.map((item) => item.getData());
+    const structureResult = SchemaPathResolver.resolveDataStructure(
+      schema,
+      commandsArray,
+    );
+
+    if (!structureResult.ok) {
+      return structureResult;
+    }
+
+    return structureResult.data.toFrontmatterData();
+  }
+
+  /**
+   * Applies derivation rules to base data using existing aggregator.
+   */
+  private applyDerivationRules(
+    baseData: FrontmatterData,
+    derivationRules: Array<
+      { sourcePath: string; targetField: string; unique: boolean }
+    >,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    // Convert schema rules to domain rules with explicit error tracking
+    const ruleConversion = this.convertDerivationRules(derivationRules);
+
+    // For backward compatibility, we continue processing even with failed rules
+    const rules = ruleConversion.successfulRules;
+
+    // Aggregate with rules using the base data
+    const aggregationResult = this.aggregator.aggregate([baseData], rules);
+    if (!aggregationResult.ok) {
+      return aggregationResult;
+    }
+
+    // Merge with base
+    const mergedResult = this.aggregator.mergeWithBase(aggregationResult.data);
+    if (!mergedResult.ok) {
+      return mergedResult;
+    }
+
+    return mergedResult;
+  }
+
+  /**
+   * Fallback for direct merging when no frontmatter-part schema exists.
+   * Follows Totality principle with proper error handling.
+   */
+  private mergeDataDirectly(
+    data: FrontmatterData[],
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    if (data.length === 0) {
+      return ok(FrontmatterData.empty());
+    }
+
+    let merged = data[0];
+    for (let i = 1; i < data.length; i++) {
+      merged = merged.merge(data[i]);
+    }
+    return ok(merged);
   }
 
   /**

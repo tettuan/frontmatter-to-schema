@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "article_template.yml",
+  "title": "Article Schema",
+  "description": "Schema for a single article metadata",
+  "properties": {
+    "filename": {
+      "type": "string",
+      "description": "The markdown file name"
+    },
+    "title": {
+      "type": "string",
+      "description": "Article title"
+    },
+    "emoji": {
+      "type": "string",
+      "description": "Emoji icon for the article"
+    },
+    "type": {
+      "type": "string",
+      "description": "Article type (tech/idea)",
+      "enum": ["tech", "idea"]
+    },
+    "topics": {
+      "type": "array",
+      "description": "Article topics/tags",
+      "items": {
+        "type": "string"
+      }
+    },
+    "published": {
+      "type": "boolean",
+      "description": "Publication status"
+    },
+    "published_at": {
+      "type": "string",
+      "description": "Publication date and time",
+      "format": "date-time"
+    },
+    "created_date": {
+      "type": "string",
+      "description": "Article creation date extracted from filename",
+      "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$"
+    }
+  },
+  "required": ["filename", "title", "type", "published"],
+  "additionalProperties": false
+}

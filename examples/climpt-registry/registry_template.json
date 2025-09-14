@@ -1,0 +1,10 @@
+{
+  "version": "{version}",
+  "description": "{description}",
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "commands": [
+      "{@items}"
+    ]
+  }
+}
