@@ -1,59 +1,93 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { createError, TemplateError, SchemaError } from "../../shared/types/errors.ts";
+import { Schema } from "../../schema/entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 
 /**
- * Represents the context for variable resolution in templates
- * Following DDD value object pattern with Totality principles
+ * Variable Context represents the hierarchical scope for template variable resolution.
+ * Follows DDD principles with clear value object semantics.
+ *
+ * Key architectural constraint: {@items} variables are resolved from the
+ * x-frontmatter-part hierarchy level, similar to $ref processing.
  */
 export class VariableContext {
   private constructor(
-    private readonly data: Record<string, unknown>,
-    private readonly arrayData?: unknown[],
+    private readonly schema: Schema,
+    private readonly data: FrontmatterData,
+    private readonly hierarchyRoot: string | null, // Path to x-frontmatter-part root
+    private readonly legacyArrayData?: unknown[], // Backward compatibility
   ) {}
 
   /**
-   * Smart Constructor for single data source
+   * Smart Constructor that establishes variable context from schema and data.
+   * Automatically determines the hierarchy root based on x-frontmatter-part location.
+   */
+  static create(
+    schema: Schema,
+    data: FrontmatterData,
+  ): Result<VariableContext, TemplateError & { message: string }> {
+    // Find the hierarchy root for {@items} resolution
+    const hierarchyRootResult = this.findFrontmatterPartRoot(schema);
+    const hierarchyRoot = hierarchyRootResult.ok ? hierarchyRootResult.data : null;
+
+    return ok(new VariableContext(schema, data, hierarchyRoot));
+  }
+
+  /**
+   * Legacy constructor for backward compatibility
+   * @deprecated Use create() instead for proper schema-aware context
    */
   static fromSingleData(
     data: FrontmatterData,
   ): Result<VariableContext, TemplateError & { message: string }> {
-    try {
-      const contextData = data.getData();
-      return ok(new VariableContext(contextData));
-    } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: error instanceof Error
-          ? error.message
-          : "Unknown error creating context",
-      }));
-    }
+    // Create a minimal schema for legacy support
+    const contextData = data.getData();
+    return ok(new VariableContext(
+      null as any, // Legacy mode - no schema
+      data,
+      null, // No hierarchy root in legacy mode
+    ));
   }
 
   /**
-   * Smart Constructor for composed data (main + items)
+   * Legacy constructor for backward compatibility with array data
+   * @deprecated Use create() with proper schema instead
    */
   static fromComposedData(
     composedData: ComposedData,
   ): Result<VariableContext, TemplateError & { message: string }> {
-    return ok(
-      new VariableContext(
-        composedData.mainData,
-        composedData.arrayData,
-      ),
-    );
+    const frontmatterDataResult = FrontmatterData.create(composedData.mainData);
+    if (!frontmatterDataResult.ok) {
+      return err(createError({
+        kind: "DataCompositionFailed",
+        reason: "Failed to create FrontmatterData from composed data",
+      }));
+    }
+
+    return ok(new VariableContext(
+      null as any, // Legacy mode
+      frontmatterDataResult.data,
+      null, // No hierarchy root in legacy mode
+      composedData.arrayData,
+    ));
   }
 
   /**
-   * Smart Constructor for array data
+   * Legacy constructor for array data
+   * @deprecated Use create() with proper schema instead
    */
   static fromArrayData(
     arrayData: FrontmatterData[],
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       const plainData = arrayData.map((item) => item.getData());
-      return ok(new VariableContext({}, plainData));
+      const emptyData = FrontmatterData.empty();
+      return ok(new VariableContext(
+        null as any, // Legacy mode
+        emptyData,
+        null, // No hierarchy root in legacy mode
+        plainData,
+      ));
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -65,90 +99,179 @@ export class VariableContext {
   }
 
   /**
-   * Get value for variable path using dot notation
+   * Resolves a variable within this context, respecting hierarchy rules.
+   * {@items} variables are resolved from the x-frontmatter-part root.
+   */
+  resolveVariable(
+    variableName: string,
+  ): Result<unknown, TemplateError & { message: string }> {
+    // Handle {@items} special variable with hierarchy root constraint
+    if (variableName === "@items") {
+      return this.resolveItemsVariable();
+    }
+
+    // Handle other @ variables (reserved for special processing)
+    if (variableName.startsWith("@")) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Unknown special variable: ${variableName}`,
+      }));
+    }
+
+    // Resolve regular variables from the full data context
+    const dataResult = this.data.get(variableName);
+    if (!dataResult.ok) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Variable '${variableName}' not found: ${dataResult.error.message}`,
+      }));
+    }
+    return ok(dataResult.data);
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use resolveVariable() instead
    */
   getValue(
     variablePath: string,
   ): Result<unknown, TemplateError & { message: string }> {
-    if (!variablePath.trim()) {
+    return this.resolveVariable(variablePath);
+  }
+
+  /**
+   * Resolves {@items} variable from the x-frontmatter-part hierarchy root.
+   * This ensures consistency with $ref processing patterns.
+   */
+  private resolveItemsVariable(): Result<unknown[], TemplateError & { message: string }> {
+    // Fallback to legacy array data if no schema hierarchy
+    if (!this.hierarchyRoot && this.legacyArrayData) {
+      return ok(this.legacyArrayData);
+    }
+
+    if (!this.hierarchyRoot) {
       return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: variablePath,
-        reason: "Variable path cannot be empty",
+        kind: "RenderFailed",
+        message: "Cannot resolve {@items}: no x-frontmatter-part found in schema",
       }));
     }
 
-    // Handle array expansion markers
-    if (variablePath.startsWith("@")) {
-      return this.resolveArrayMarker(variablePath);
+    // Resolve data from the hierarchy root (similar to $ref resolution)
+    const rootDataResult = this.data.get(this.hierarchyRoot);
+    if (!rootDataResult.ok) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Cannot resolve {@items}: data not found at hierarchy root ${this.hierarchyRoot}`,
+      }));
     }
 
-    return this.resolveDataPath(variablePath);
+    const rootData = rootDataResult.data;
+    if (!Array.isArray(rootData)) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Cannot resolve {@items}: expected array at ${this.hierarchyRoot}, got ${typeof rootData}`,
+      }));
+    }
+
+    return ok(rootData);
   }
 
   /**
-   * Get all available data keys
+   * Finds the path to the x-frontmatter-part root in the schema.
+   * This path becomes the hierarchy root for {@items} resolution.
+   */
+  private static findFrontmatterPartRoot(
+    schema: Schema,
+  ): Result<string, TemplateError & { message: string }> {
+    const frontmatterPartResult = schema.findFrontmatterPartPath();
+    if (!frontmatterPartResult.ok) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: "No x-frontmatter-part found in schema for {@items} resolution",
+      }));
+    }
+
+    return ok(frontmatterPartResult.data);
+  }
+
+  /**
+   * Creates a scoped context for array item processing.
+   * Each array item gets its own variable context.
+   */
+  createItemContext(
+    itemData: FrontmatterData,
+  ): Result<VariableContext, TemplateError & { message: string }> {
+    // Item contexts inherit the same schema but use item-specific data
+    return ok(new VariableContext(this.schema, itemData, this.hierarchyRoot));
+  }
+
+  /**
+   * Gets the hierarchy root path for debugging and validation.
+   */
+  getHierarchyRoot(): string | null {
+    return this.hierarchyRoot;
+  }
+
+  /**
+   * Validates that the context can properly resolve {@items}.
+   * Used for template-schema binding validation.
+   */
+  validateItemsResolution(): Result<void, TemplateError & { message: string }> {
+    if (!this.hierarchyRoot) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: "Invalid context: no x-frontmatter-part found for {@items} resolution",
+      }));
+    }
+
+    // Validate that the hierarchy root exists in the data
+    const rootDataResult = this.data.get(this.hierarchyRoot);
+    if (!rootDataResult.ok) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Invalid context: hierarchy root ${this.hierarchyRoot} not found in data`,
+      }));
+    }
+
+    // Validate that the root data is an array (required for {@items})
+    const rootData = rootDataResult.data;
+    if (!Array.isArray(rootData)) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: `Invalid context: hierarchy root ${this.hierarchyRoot} must be an array for {@items}`,
+      }));
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Gets the schema associated with this context.
+   */
+  getSchema(): Schema {
+    return this.schema;
+  }
+
+  /**
+   * Gets the data associated with this context.
+   */
+  getData(): FrontmatterData {
+    return this.data;
+  }
+
+  /**
+   * Legacy methods for backward compatibility
    */
   getDataKeys(): string[] {
-    return Object.keys(this.data);
+    return Object.keys(this.data.getData());
   }
 
-  /**
-   * Check if array data is available
-   */
   hasArrayData(): boolean {
-    return this.arrayData !== undefined && this.arrayData.length > 0;
+    return this.legacyArrayData !== undefined && this.legacyArrayData.length > 0;
   }
 
-  /**
-   * Get array data for expansion
-   */
   getArrayData(): unknown[] {
-    return this.arrayData ? [...this.arrayData] : [];
-  }
-
-  private resolveArrayMarker(
-    marker: string,
-  ): Result<unknown, TemplateError & { message: string }> {
-    if (marker === "@items" && this.arrayData) {
-      return ok(this.arrayData);
-    }
-
-    return err(createError({
-      kind: "VariableResolutionFailed",
-      variable: marker,
-      reason:
-        `Array marker '${marker}' not supported or no array data available`,
-    }));
-  }
-
-  private resolveDataPath(
-    path: string,
-  ): Result<unknown, TemplateError & { message: string }> {
-    const segments = path.split(".");
-    let current: any = this.data;
-
-    for (const segment of segments) {
-      if (current === null || current === undefined) {
-        return err(createError({
-          kind: "VariableResolutionFailed",
-          variable: path,
-          reason: `Path segment '${segment}' not found`,
-        }));
-      }
-
-      if (typeof current !== "object") {
-        return err(createError({
-          kind: "VariableResolutionFailed",
-          variable: path,
-          reason: `Cannot access property '${segment}' on non-object value`,
-        }));
-      }
-
-      current = current[segment];
-    }
-
-    return ok(current);
+    return this.legacyArrayData ? [...this.legacyArrayData] : [];
   }
 }
 

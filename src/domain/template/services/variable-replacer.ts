@@ -4,6 +4,9 @@ import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-dat
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
+import { TemplateSchemaBindingService } from "./template-schema-binding-service.ts";
+import { VariableContext } from "../value-objects/variable-context.ts";
+import { Schema } from "../../schema/entities/schema.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -12,6 +15,7 @@ import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 export class VariableReplacer {
   private constructor(
     private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
+    private readonly bindingService: TemplateSchemaBindingService,
   ) {}
   private debugLogger = DebugLoggerFactory.create();
 
@@ -26,7 +30,10 @@ export class VariableReplacer {
     const strategyResult = ArrayExpansionStrategy.create();
     if (!strategyResult.ok) return strategyResult;
 
-    return ok(new VariableReplacer(strategyResult.data));
+    const bindingServiceResult = TemplateSchemaBindingService.create();
+    if (!bindingServiceResult.ok) return bindingServiceResult;
+
+    return ok(new VariableReplacer(strategyResult.data, bindingServiceResult.data));
   }
 
   /**
@@ -368,6 +375,103 @@ export class VariableReplacer {
     }
 
     return ok(results);
+  }
+
+  /**
+   * Schema-aware variable replacement with proper {@items} hierarchy resolution.
+   * This method replaces the legacy replaceVariables for schema-aware contexts.
+   * @param template - Template string with {variable} placeholders
+   * @param schema - Schema for hierarchical context
+   * @param data - FrontmatterData containing values for replacement
+   * @returns Result containing processed template string or error
+   */
+  replaceVariablesWithSchema(
+    template: string,
+    schema: Schema,
+    data: FrontmatterData,
+  ): Result<string, TemplateError & { message: string }> {
+    try {
+      if (!template.includes("{")) {
+        return ok(template);
+      }
+
+      this.debugLogger?.logDebug(
+        "variable-replacer-schema",
+        "Starting schema-aware variable replacement",
+        {
+          template: template.substring(0, 200) +
+            (template.length > 200 ? "..." : ""),
+        },
+      );
+
+      // Create schema-aware variable context
+      const contextResult = this.bindingService.createVariableContext(schema, data);
+      if (!contextResult.ok) {
+        return err(contextResult.error);
+      }
+
+      const context = contextResult.data;
+
+      // Support both single and double brace syntax: {var} and {{var}}
+      let result = template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+        return this.resolveVariableInContext(varName, context, match);
+      });
+
+      result = result.replace(/\{([^}]+)\}/g, (match, varName) => {
+        return this.resolveVariableInContext(varName, context, match);
+      });
+
+      return ok(result);
+    } catch (error) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: error instanceof Error
+          ? `Schema-aware variable replacement failed: ${error.message}`
+          : "Schema-aware variable replacement failed",
+      }));
+    }
+  }
+
+  /**
+   * Resolves a single variable within a schema-aware context.
+   */
+  private resolveVariableInContext(
+    varName: string,
+    context: VariableContext,
+    originalMatch: string,
+  ): string {
+    this.debugLogger?.logDebug(
+      "variable-replacer-schema",
+      "Processing variable with schema context",
+      { varName, match: originalMatch },
+    );
+
+    const valueResult = context.resolveVariable(varName);
+    if (!valueResult.ok) {
+      this.debugLogger?.logDebug(
+        "variable-replacer-schema",
+        "Variable not found in schema context - keeping placeholder",
+        { varName, error: valueResult.error },
+      );
+      return originalMatch; // Keep placeholder if value not found
+    }
+
+    const formattedValue = this.formatValue(valueResult.data);
+    this.debugLogger?.logDebug(
+      "variable-replacer-schema",
+      "Variable resolved with schema context",
+      {
+        varName,
+        rawDataType: typeof valueResult.data,
+        rawDataIsArray: Array.isArray(valueResult.data),
+        formattedValue: typeof formattedValue === "string"
+          ? formattedValue.substring(0, 100) +
+            (formattedValue.length > 100 ? "..." : "")
+          : formattedValue,
+      },
+    );
+
+    return formattedValue;
   }
 
   /**
