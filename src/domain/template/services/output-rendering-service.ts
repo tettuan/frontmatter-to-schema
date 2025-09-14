@@ -305,6 +305,9 @@ export class OutputRenderingService {
     try {
       parsedOutput = JSON.parse(renderResult.data);
 
+      // ✅ Fix: Convert stringified JSON arrays back to actual arrays
+      parsedOutput = this.convertStringifiedArraysToObjects(parsedOutput);
+
       // Successfully parsed as JSON, format with the target formatter
       const formatResult = formatterResult.data.format(parsedOutput);
       if (!formatResult.ok) {
@@ -478,6 +481,41 @@ export class OutputRenderingService {
           : "Unknown JSON parsing error",
       });
     }
+  }
+
+  /**
+   * Recursively converts stringified JSON arrays back to actual objects/arrays.
+   * This fixes the issue where @items generates stringified JSON that needs to be parsed.
+   */
+  private convertStringifiedArraysToObjects(obj: unknown): unknown {
+    if (typeof obj === "string") {
+      // Try to parse stringified JSON arrays/objects
+      if ((obj.startsWith("[") && obj.endsWith("]")) || (obj.startsWith("{") && obj.endsWith("}"))) {
+        try {
+          const parsed = JSON.parse(obj);
+          // Recursively process the parsed object
+          return this.convertStringifiedArraysToObjects(parsed);
+        } catch {
+          // If parsing fails, return the original string
+          return obj;
+        }
+      }
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.convertStringifiedArraysToObjects(item));
+    }
+
+    if (obj && typeof obj === "object") {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = this.convertStringifiedArraysToObjects(value);
+      }
+      return result;
+    }
+
+    return obj;
   }
 
   private safeYamlParse(content: string): Result<unknown, { message: string }> {
