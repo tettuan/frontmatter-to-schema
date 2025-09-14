@@ -12,13 +12,15 @@ Just as Unix commands operate relative to a Present Working Directory (pwd), tem
 
 #### Definition of Mapping Origin
 
-The **Mapping Origin** is the absolute reference point from which all template variable paths are resolved. It functions as the "pwd" for template processing:
+The **Mapping Origin** is the reference point that determines **data partitioning** for template processing. It functions as a data splitting boundary:
 
-1. **Default Origin**: `x-template` uses **Schema Root** as the starting point
-2. **Moved Origin**: `x-frontmatter-part: true` **moves the origin** to that property location
-3. **Immutable Reference**: Once established, all variable resolution uses this origin
-4. **Absolute Path Base**: All variable paths resolve relative to this origin
-5. **Scope Boundary**: Variables cannot resolve "above" the mapping origin
+1. **Data Partitioning Purpose**: Origin defines how frontmatter data is split for template processing
+2. **Dual Template System**:
+   - `x-template`: Receives **schema root data** (origin at schema root)
+   - `x-template-items`: Receives **moved origin data** (origin at `x-frontmatter-part: true` location)
+3. **Independent Resolution**: Each template resolves variables from its respective data partition
+4. **Moved Origin**: `x-frontmatter-part: true` **moves the origin** to partition array data separately
+5. **Parallel Processing**: Both templates can coexist, each working with its assigned data partition
 
 #### Mapping Origin Rules
 
@@ -27,17 +29,18 @@ The **Mapping Origin** is the absolute reference point from which all template v
 - Multiple `x-frontmatter-part: true` properties are invalid
 - The origin is established during schema analysis phase
 
-**Rule MO-2: Origin Movement Rules**
-- `x-template` → **Schema Root** remains the origin (no movement)
-- `x-frontmatter-part: true` → **Origin moves** to that property location
-- The moved location becomes the `x-template-items` and `{@items}` resolution point
-- Nested properties → **Never become origin** without explicit marker
+**Rule MO-2: Data Partitioning Rules**
+- `x-template` → Always receives **full schema root data**
+- `x-frontmatter-part: true` → Creates **data partition boundary**
+- `x-template-items` → Receives **partitioned array data** from moved origin
+- Data is split and passed separately to each template type
 
-**Rule MO-3: Path Resolution Constraint**
-- All variable paths resolve FROM the mapping origin
-- `{@items}` → Origin's array data
-- `{property.nested}` → Origin.property.nested
-- **Cannot access data outside origin scope**
+**Rule MO-3: Template Independence**
+- `x-template` and `x-template-items` process **independently**
+- Each template receives its own data partition:
+  - `x-template`: Full frontmatter data from schema root
+  - `x-template-items`: Array data from `x-frontmatter-part: true` location
+- Templates don't share scope - they work with separate data partitions
 
 #### Mapping Origin Examples
 
@@ -60,49 +63,48 @@ The **Mapping Origin** is the absolute reference point from which all template v
 - `{metadata.version}` → `frontmatter.metadata.version` ✅
 - All schema properties accessible ✅
 
-**Example 2: x-frontmatter-part (Moved Origin)**
+**Example 2: Data Partitioning with x-frontmatter-part**
 ```json
-// Schema with moved origin
+// Schema with data partitioning
 {
-  "metadata": { "version": "string" },     // ← Not accessible (outside moved origin)
-  "commands": {                           // ← MAPPING ORIGIN (moved here)
+  "x-template": { "meta": "{metadata.version}", "cmds": "{@items}" },
+  "metadata": { "version": "1.0" },     // ← Accessible to x-template
+  "commands": {                         // ← Data partition boundary
     "type": "array",
-    "x-frontmatter-part": true,           // ← Origin movement marker
+    "x-frontmatter-part": true,         // ← Creates partition
     "x-template-items": { "id": "{id.full}" },
     "items": { "$ref": "command_schema.json" }
   }
 }
 ```
 
-**Mapping Origin**: `frontmatter.commands` (moved from root)
-**Variable Resolution**:
-- `{@items}` → `frontmatter.commands[*]` ✅
-- `{metadata.version}` → **INVALID** (outside moved origin) ❌
-- `{id.full}` → `frontmatter.commands[current].id.full` ✅
+**Data Partitioning**:
+- **Partition 1** (x-template): Full schema root data
+  - `{metadata.version}` → `frontmatter.metadata.version` ✅
+  - `{@items}` → Processed array from partition 2 ✅
+- **Partition 2** (x-template-items): Array data only
+  - `{id.full}` → `commands[current].id.full` ✅
+  - `{metadata.version}` → Not in this partition (but OK, different template)
 
 ## Core Mapping Rules
 
-### Rule 1: {@items} Resolution Path
+### Rule 1: {@items} Resolution with Data Partitioning
 
-`{@items}` resolution depends on origin movement:
+`{@items}` is always resolved in the context of `x-template` which receives full schema root data:
 
-**Without x-frontmatter-part (Schema Root Origin):**
+**Data Flow for {@items}:**
 ```
-Template: "design": "{@items}"
-Mapping Origin: Schema Root (frontmatter)
-Resolution Path: frontmatter → find first array → {@items}
-Variable Scope: ALL schema properties accessible
-```
-
-**With x-frontmatter-part (Moved Origin):**
-```
-Template: "design": "{@items}"
-Mapping Origin: frontmatter.commands (moved)
-Resolution Path: frontmatter.commands → {@items}
-Variable Scope: ONLY within moved origin scope
+1. x-template receives: Full frontmatter data (schema root)
+2. x-template-items receives: Array data only (from x-frontmatter-part location)
+3. x-template-items processes: Each array item with its template
+4. {@items} in x-template: Replaced with processed array from step 3
 ```
 
-**Critical Constraint**: When origin is moved by `x-frontmatter-part: true`, `{@items}` can only access data within that moved origin scope. Variables cannot access data outside the moved origin.
+**Key Points**:
+- `{@items}` appears in `x-template` but references processed results from `x-template-items`
+- Data partitioning allows `x-template` to access all schema properties
+- `x-template-items` works independently on array partition
+- The two templates collaborate through `{@items}` substitution
 
 ### Rule 2: $ref Template Source Resolution
 
@@ -149,35 +151,53 @@ Each item in the hierarchy root array gets the template from the `$ref` schema a
 ]
 ```
 
-## Complete Flow Example
+## Complete Flow Example with Data Partitioning
 
 ### Schema Definition
 ```json
 {
+  "x-template": {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  "version": "1.0.0",
+  "description": "Design level traceability",
   "commands": {
     "type": "array",
     "x-frontmatter-part": true,
+    "x-template-items": { "id": "{id.full}" },
     "items": { "$ref": "registry_command_schema.json" }
   }
 }
 ```
 
-### Template Definition
+### Data Partitioning
+
+**Partition 1 - Schema Root Data (for x-template):**
 ```json
 {
-  "version": "{version}",
-  "description": "{description}",
-  "design": "{@items}"
+  "version": "1.0.0",
+  "description": "Design level traceability",
+  "commands": [...]  // Full array available for {@items}
 }
+```
+
+**Partition 2 - Array Data (for x-template-items):**
+```json
+[
+  { "id": { "full": "design:api:rest#20250912" }},
+  { "id": { "full": "design:ui:component#20250913" }}
+]
 ```
 
 ### Processing Flow
 
-1. **Hierarchy Root**: `commands` (marked with `x-frontmatter-part: true`)
-2. **{@items} Source**: Array data from `commands`
-3. **Template Source**: Root structure from `registry_command_schema.json`
-4. **Template Application**: Each `commands` item → template → result item
-5. **Array Assembly**: All result items → replaces `{@items}`
+1. **Data Partitioning**: `x-frontmatter-part: true` splits data into two partitions
+2. **x-template Processing**: Uses schema root data, resolves `{version}`, `{description}`, `{@items}`
+3. **x-template-items Processing**: Uses array partition, applies to each item
+4. **{@items} Resolution**: Replaced with processed array from x-template-items
+5. **Final Assembly**: Container template with embedded processed items
 
 ### Final Output
 ```json
@@ -199,11 +219,13 @@ Each item in the hierarchy root array gets the template from the `$ref` schema a
 - `x-frontmatter-part: true`: **Moves origin** to that property location
 - Mixed usage: Schema analysis determines which pattern is active
 
-### Constraint 1a: Origin Scope Rules
-- **Schema Root Origin** (`x-template`): All schema properties accessible
-- **Moved Origin** (`x-frontmatter-part: true`): Only moved origin scope accessible
-- Cross-origin references are forbidden when origin is moved
-- This maintains data encapsulation and prevents scope leakage
+### Constraint 1a: Data Partitioning Scope
+- **Data Split Strategy**: Origin movement creates two separate data partitions
+- **Template Data Assignment**:
+  - `x-template`: Receives complete frontmatter data (schema root scope)
+  - `x-template-items`: Receives array data only (moved origin scope)
+- **Independent Processing**: Each template works within its assigned partition
+- This maintains clean separation of concerns between container and items
 
 ### Constraint 2: $ref Resolution Priority
 - When `$ref` is present, referenced schema's root becomes template
@@ -226,13 +248,13 @@ Each item in the hierarchy root array gets the template from the `$ref` schema a
 
 ## Implementation Notes
 
-This mapping hierarchy with strict Origin concept ensures:
-- **Deterministic Resolution**: Mapping Origin provides absolute reference point like pwd
-- **Scope Isolation**: Variables cannot escape their defined origin scope
-- **Predictable Paths**: All variable paths resolve relative to single origin
-- **Schema Consistency**: `$ref` schemas provide item-level templates within origin scope
-- **Error Prevention**: Origin-based validation prevents ambiguous resolution
-- **Security**: Scope isolation prevents unauthorized data access
+This mapping hierarchy with data partitioning ensures:
+- **Clean Data Separation**: Origin movement creates distinct data partitions for templates
+- **Template Independence**: `x-template` and `x-template-items` work with separate data
+- **Predictable Resolution**: Each template knows exactly which data partition it receives
+- **Schema Consistency**: `$ref` schemas provide item-level templates within array partition
+- **Parallel Processing**: Container and items templates process independently
+- **Separation of Concerns**: Container logic (x-template) separate from item logic (x-template-items)
 
 ### Comparison to Unix PWD
 
