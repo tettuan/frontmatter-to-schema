@@ -22,14 +22,14 @@ boundary:
 1. **Data Partitioning Purpose**: Origin defines how frontmatter data is split
    for template processing
 2. **Dual Template System**:
-   - `x-template`: Receives **schema root data** (origin at schema root)
-   - `x-template-items`: Receives **moved origin data** (origin at
-     `x-frontmatter-part: true` location)
-3. **Independent Resolution**: Each template resolves variables from its
+   - `x-template`: Specifies a template filename that receives **schema root data**
+   - `x-template-items`: Specifies a template filename that receives **moved origin data**
+     (from `x-frontmatter-part: true` location)
+3. **Template File References**: Both `x-template` and `x-template-items` must be
+   **filenames** (e.g., "template.json"), containing the actual template content
+4. **Independent Resolution**: Each template file resolves variables from its
    respective data partition
-4. **Moved Origin**: `x-frontmatter-part: true` **moves the origin** to
-   partition array data separately
-5. **Parallel Processing**: Both templates can coexist, each working with its
+5. **Parallel Processing**: Both template files can coexist, each working with its
    assigned data partition
 
 #### Mapping Origin Rules
@@ -42,32 +42,38 @@ boundary:
 
 **Rule MO-2: Data Partitioning Rules**
 
-- `x-template` → Always receives **full schema root data**
+- `x-template` → Specifies a filename of template that receives **full schema root data**
 - `x-frontmatter-part: true` → Creates **data partition boundary**
-- `x-template-items` → Receives **partitioned array data** from moved origin
-- Data is split and passed separately to each template type
+- `x-template-items` → Specifies a filename of template that receives **partitioned array data** from moved origin
+- Data is split and passed separately to each specified template file
 
 **Rule MO-3: Template Independence**
 
-- `x-template` and `x-template-items` process **independently**
-- Each template receives its own data partition:
-  - `x-template`: Full frontmatter data from schema root
-  - `x-template-items`: Array data from `x-frontmatter-part: true` location
-- Templates don't share scope - they work with separate data partitions
+- Template files referenced by `x-template` and `x-template-items` process **independently**
+- Each template file receives its own data partition:
+  - Template file in `x-template`: Full frontmatter data from schema root
+  - Template file in `x-template-items`: Array data from `x-frontmatter-part: true` location
+- Template files don't share scope - they work with separate data partitions
 
 #### Mapping Origin Examples
 
 **Example 1: x-template (Schema Root Origin)**
 
 ```json
-// Schema with x-template (no origin movement)
+// schema.json
 {
-  "x-template": { "design": "{@items}" },
-  "metadata": { "version": "string" }, // ← Accessible
-  "commands": { // ← Accessible
+  "x-template": "container_template.json",  // ← References template file
+  "metadata": { "version": "string" }, // ← Accessible to template
+  "commands": { // ← Accessible to template
     "type": "array",
     "items": { "$ref": "command_schema.json" }
   }
+}
+
+// container_template.json (referenced by x-template)
+{
+  "version": "{metadata.version}",
+  "items": "{@items}"
 }
 ```
 
@@ -80,16 +86,28 @@ boundary:
 **Example 2: Data Partitioning with x-frontmatter-part**
 
 ```json
-// Schema with data partitioning
+// schema.json
 {
-  "x-template": { "meta": "{metadata.version}", "cmds": "{@items}" },
-  "metadata": { "version": "1.0" }, // ← Accessible to x-template
+  "x-template": "output_template.json",  // ← References container template file
+  "metadata": { "version": "1.0" }, // ← Accessible to output_template.json
   "commands": { // ← Data partition boundary
     "type": "array",
     "x-frontmatter-part": true, // ← Creates partition
-    "x-template-items": { "id": "{id.full}" },
+    "x-template-items": "command_item_template.json", // ← References item template file
     "items": { "$ref": "command_schema.json" }
   }
+}
+
+// output_template.json (referenced by x-template)
+{
+  "meta": "{metadata.version}",
+  "cmds": "{@items}"
+}
+
+// command_item_template.json (referenced by x-template-items)
+{
+  "id": "{id.full}",
+  "category": "{category}"
 }
 ```
 
@@ -181,19 +199,45 @@ applied:
 ### Schema Definition
 
 ```json
+// schema.json
 {
-  "x-template": {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
+  "x-template": "design_output_template.json",  // ← Container template file
   "version": "1.0.0",
   "description": "Design level traceability",
   "commands": {
     "type": "array",
     "x-frontmatter-part": true,
-    "x-template-items": { "id": "{id.full}" },
+    "x-template-items": "design_item_template.json", // ← Item template file
     "items": { "$ref": "registry_command_schema.json" }
+  }
+}
+
+// design_output_template.json (referenced by x-template)
+{
+  "version": "{version}",
+  "description": "{description}",
+  "design": "{@items}"
+}
+
+// design_item_template.json (referenced by x-template-items)
+{
+  "id": "{id.full}",
+  "timestamp": "{timestamp}",
+  "level": "{level}"
+}
+
+// registry_command_schema.json (referenced by $ref)
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "object",
+      "properties": {
+        "full": { "type": "string" }
+      }
+    },
+    "timestamp": { "type": "string" },
+    "level": { "type": "string" }
   }
 }
 ```
@@ -221,13 +265,18 @@ applied:
 
 ### Processing Flow
 
-1. **Data Partitioning**: `x-frontmatter-part: true` splits data into two
-   partitions
-2. **x-template Processing**: Uses schema root data, resolves `{version}`,
-   `{description}`, `{@items}`
-3. **x-template-items Processing**: Uses array partition, applies to each item
-4. **{@items} Resolution**: Replaced with processed array from x-template-items
-5. **Final Assembly**: Container template with embedded processed items
+1. **Template Loading**:
+   - Load `design_output_template.json` for container processing
+   - Load `design_item_template.json` for item processing
+2. **Data Partitioning**: `x-frontmatter-part: true` splits data into two partitions
+3. **Container Template Processing**:
+   - `design_output_template.json` uses schema root data
+   - Resolves `{version}`, `{description}`, prepares for `{@items}`
+4. **Item Template Processing**:
+   - `design_item_template.json` uses array partition
+   - Applies to each item in commands array
+5. **{@items} Resolution**: Replaced with processed array from item template
+6. **Final Assembly**: Container template with embedded processed items
 
 ### Final Output
 
