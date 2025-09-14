@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Registry Schema",
+  "x-template": "registry_template.json",
+  "description": "Schema for registry configuration with tools and commands",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Registry version (e.g., \"1.0.0\")",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Overall registry description"
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool configuration and command registry",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry - defines all available C3L commands",
+          "x-frontmatter-part": true,
+          "items": { "$ref": "registry_command_schema.json" }
+        }
+      },
+      "required": ["availableConfigs", "commands"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
+}
