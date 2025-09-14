@@ -1,8 +1,0 @@
-{
-  "title": "{{title}}",
-  "author": "{{author}}",
-  "date": "{{date}}",
-  "tags": "{{tags}}",
-  "generated_at": "{{_timestamp}}",
-  "source": "frontmatter-to-schema"
-}

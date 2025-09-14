@@ -1,9 +1,0 @@
-books:
-  - title: "記事タイトル"
-    emoji: "📚"
-    type: "tech"
-    topics:
-      - "claudecode"
-      - "codingagents"
-    published: true
-    published_at: "2025-08-01 10:00"

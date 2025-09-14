@@ -1,5 +1,0 @@
-title: Article Index
-generated_at: "{{_timestamp}}"
-total_articles: "{{articles.length}}"
-articles:
-  {@items}
