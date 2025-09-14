@@ -126,6 +126,31 @@ export class SchemaDefinition {
     return this.schema;
   }
 
+  /**
+   * Safely extract items schema from an array schema property.
+   * Replaces unsafe type assertion with proper Result-based extraction.
+   */
+  private extractItemsSchema(
+    schemaProperty: SchemaProperty,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
+    if (!schemaProperty.items) {
+      return err(createError({
+        kind: "ItemsNotDefined",
+      }, "Schema property does not define items for array type"));
+    }
+
+    // Handle $ref items (should not be cast to SchemaProperty directly)
+    if (
+      typeof schemaProperty.items === "object" && "$ref" in schemaProperty.items
+    ) {
+      return err(createError({
+        kind: "RefNotDefined",
+      }, "Array items reference unresolved $ref - use resolved schema"));
+    }
+
+    return ok(schemaProperty.items as SchemaProperty);
+  }
+
   findProperty(
     path: string,
   ): Result<SchemaProperty, SchemaError & { message: string }> {
@@ -134,13 +159,18 @@ export class SchemaDefinition {
 
     for (const part of parts) {
       if (part === "[]") {
-        current = current.items as SchemaProperty;
-        if (!current) {
-          return err(createError({
-            kind: "PropertyNotFound",
-            path: path,
-          }));
+        // Use safe extraction instead of unsafe type assertion
+        const itemsResult = this.extractItemsSchema(current);
+        if (!itemsResult.ok) {
+          return err(createError(
+            {
+              kind: "PropertyNotFound",
+              path: path,
+            },
+            `Cannot access array items at path '${path}': ${itemsResult.error.message}`,
+          ));
         }
+        current = itemsResult.data;
       } else if (current.properties && current.properties[part]) {
         current = current.properties[part];
       } else {
