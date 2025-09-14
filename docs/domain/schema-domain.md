@@ -9,7 +9,8 @@ Schemaに加えて、アプリケーション固有の機能を提供する。
 
 テンプレートファイルの指定。Schemaから使用するテンプレートファイル名を指定する。
 
-詳細な処理ルールについては [Mapping Hierarchy Rules](../architecture/mapping-hierarchy-rules.md) を参照。
+詳細な処理ルールについては
+[Mapping Hierarchy Rules](../architecture/mapping-hierarchy-rules.md) を参照。
 
 ```json
 {

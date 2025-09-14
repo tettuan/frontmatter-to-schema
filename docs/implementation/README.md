@@ -15,14 +15,15 @@
 | `template-format-sequence.md` | 詳細シーケンス図とデータフロー       | Markdown + Mermaid |
 | `template-format-examples.md` | 具体的使用例とフロー                 | Markdown           |
 
-**x-template-format**: スキーマにて出力フォーマット（JSON/YAML/TOML/Markdown）を指定する機能
+**x-template-format**:
+スキーマにて出力フォーマット（JSON/YAML/TOML/Markdown）を指定する機能
 
 ### 2. Data Derivation Feature (x-derived-from, x-derived-unique)
 
-| File                             | Description                              | Format             |
-| -------------------------------- | ---------------------------------------- | ------------------ |
-| `derivation-processing-flow.dot` | データ集約処理のコンポーネントフロー     | Graphviz DOT       |
-| `derivation-processing-flow.md`  | x-derived ディレクティブの処理詳細       | Markdown + Mermaid |
+| File                             | Description                          | Format             |
+| -------------------------------- | ------------------------------------ | ------------------ |
+| `derivation-processing-flow.dot` | データ集約処理のコンポーネントフロー | Graphviz DOT       |
+| `derivation-processing-flow.md`  | x-derived ディレクティブの処理詳細   | Markdown + Mermaid |
 
 **x-derived-from**: 配列要素から特定プロパティを抽出して新しいフィールドを生成
 **x-derived-unique**: 抽出した値を一意化（重複除去）
@@ -56,7 +57,8 @@
 
 #### 責務分離の実装
 
-- **Schema Layer**: 全x-*拡張の抽出・検証（SchemaDefinition, SchemaPropertyUtils）
+- **Schema Layer**: 全x-*拡張の抽出・検証（SchemaDefinition,
+  SchemaPropertyUtils）
 - **Aggregation Layer**: x-derived-*の処理（DerivationRule, Aggregator）
 - **Transformation Layer**: データ変換の統合（FrontmatterTransformationService）
 - **Template Layer**: テンプレート処理とフォーマット解決

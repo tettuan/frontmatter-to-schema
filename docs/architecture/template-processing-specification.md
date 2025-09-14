@@ -122,17 +122,21 @@ graph TD
 
 ### 3.1 Data Partitioning Concept
 
-**Data Partitioning** is the mechanism that splits frontmatter data into separate
-partitions for template processing. This concept is fully specified in
-`mapping-hierarchy-rules.md` and is fundamental to understanding template processing.
+**Data Partitioning** is the mechanism that splits frontmatter data into
+separate partitions for template processing. This concept is fully specified in
+`mapping-hierarchy-rules.md` and is fundamental to understanding template
+processing.
 
 #### Key Principles
 
-1. **Partition Creation**: `x-frontmatter-part: true` creates a data partition boundary
+1. **Partition Creation**: `x-frontmatter-part: true` creates a data partition
+   boundary
 2. **Dual Template System**:
    - `x-template`: Receives full schema root data (Partition 1)
-   - `x-template-items`: Receives array data from partition boundary (Partition 2)
-3. **Template Independence**: Each template operates on its assigned partition independently
+   - `x-template-items`: Receives array data from partition boundary
+     (Partition 2)
+3. **Template Independence**: Each template operates on its assigned partition
+   independently
 4. **No Scope Sharing**: Templates don't share data between partitions
 
 #### Example

@@ -44,8 +44,8 @@ should be used when processing `{@items}` expansion, eliminating the need for
 ### Core Concept
 
 `x-template-items` allows the main schema to specify which template should be
-used for `{@items}` expansion. This is independent of any `$ref` schema references,
-which are purely for schema structure validation.
+used for `{@items}` expansion. This is independent of any `$ref` schema
+references, which are purely for schema structure validation.
 
 ### Syntax
 
@@ -83,8 +83,9 @@ the template for each array element.
 
 ### Template Resolution Rule
 
-**x-template-items in Main Schema**: Optional, but required for `{@items}` expansion.
-If not specified, `{@items}` expansion cannot occur and will remain unexpanded.
+**x-template-items in Main Schema**: Optional, but required for `{@items}`
+expansion. If not specified, `{@items}` expansion cannot occur and will remain
+unexpanded.
 
 ### Schema Independence
 
@@ -211,7 +212,8 @@ This specification establishes clear separation of concerns:
 
 - `x-template-items` is **OPTIONAL** but necessary for `{@items}` expansion
 - `$ref` is for schema structure only, not template resolution
-- Templates are specified exclusively through `x-template` and `x-template-items`
+- Templates are specified exclusively through `x-template` and
+  `x-template-items`
 - Without `x-template-items`, `{@items}` placeholders remain unexpanded
 
 ## Authority

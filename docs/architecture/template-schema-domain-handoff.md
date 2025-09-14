@@ -112,11 +112,11 @@ class OutputRenderingService {
   // 4. Output Generation & Writing - Formats output per x-template-format and writes to file
   // 5. Error Handling - Result types following Totality principles
   renderOutput(
-    templatePath: string,                    // Path to main template (x-template)
-    itemsTemplatePath: string | undefined,   // Path to items template (x-template-items, optional)
-    mainData: FrontmatterData,              // Main data for container template (Partition 1)
+    templatePath: string, // Path to main template (x-template)
+    itemsTemplatePath: string | undefined, // Path to items template (x-template-items, optional)
+    mainData: FrontmatterData, // Main data for container template (Partition 1)
     itemsData: FrontmatterData[] | undefined, // Array data for items template (Partition 2)
-    outputPath: string,                      // Output file path
+    outputPath: string, // Output file path
   ): Result<void, DomainError> {
     // Implementation follows template-processing-specification.md Section 6.2:
     // - Data Partitioning: x-template uses full data, x-template-items uses array only
@@ -304,7 +304,8 @@ type TemplateSchemaHandoffError =
 ## Validation Rules
 
 1. **Template Domain**: MUST request schema context before processing `{@items}`
-2. **Schema Domain**: MAY have `x-template-items` - if absent, `{@items}` remains unexpanded
+2. **Schema Domain**: MAY have `x-template-items` - if absent, `{@items}`
+   remains unexpanded
 3. **Cross-Domain Service**: MUST ensure both domains receive valid, consistent
    data
 4. **Error Propagation**: Errors MUST be propagated with domain-specific context

@@ -59,7 +59,8 @@ interface CorrectListProcessing {
 
 - Container templates define the outer structure
 - `x-template-items` specifies the actual repeatable item template
-- System incorrectly processes containers instead of items specified by x-template-items
+- System incorrectly processes containers instead of items specified by
+  x-template-items
 - `$ref` is only for schema validation, not template resolution
 
 ### 2. List Aggregation Logic Error
@@ -72,13 +73,13 @@ interface CorrectListProcessing {
 
 ```yaml
 # Container Schema (index_design_schema.json)
-x-template: "index_design_template.json"      # Container template
-x-template-items: "traceability_item_template.json"  # Item template (NOT from $ref)
+x-template: "index_design_template.json" # Container template
+x-template-items: "traceability_item_template.json" # Item template (NOT from $ref)
 properties:
   items:
     type: array
     items:
-      $ref: "traceability_item_schema.json"  # Schema structure only
+      $ref: "traceability_item_schema.json" # Schema structure only
 
 # The system should use x-template-items, not follow $ref for templates
 ```
@@ -135,7 +136,8 @@ interface TemplateProcessor {
 
 ### 2. Template Specification
 
-- Templates are specified exclusively through `x-template` and `x-template-items`
+- Templates are specified exclusively through `x-template` and
+  `x-template-items`
 - Container templates are NOT iterated over
 - Only templates specified by `x-template-items` are used for iteration
 - `$ref` is for schema structure only, not template resolution

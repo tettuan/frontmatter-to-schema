@@ -1,5 +1,5 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "spec": "{@items}"
+  "spec": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
 }

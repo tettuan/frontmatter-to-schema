@@ -1,5 +1,5 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "test": "{@items}"
+  "test": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
 }

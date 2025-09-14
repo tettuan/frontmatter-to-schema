@@ -22,15 +22,17 @@ boundary:
 1. **Data Partitioning Purpose**: Origin defines how frontmatter data is split
    for template processing
 2. **Dual Template System**:
-   - `x-template`: Specifies a template filename that receives **schema root data**
-   - `x-template-items`: Specifies a template filename that receives **moved origin data**
-     (from `x-frontmatter-part: true` location)
-3. **Template File References**: Both `x-template` and `x-template-items` must be
-   **filenames** (e.g., "template.json"), containing the actual template content
+   - `x-template`: Specifies a template filename that receives **schema root
+     data**
+   - `x-template-items`: Specifies a template filename that receives **moved
+     origin data** (from `x-frontmatter-part: true` location)
+3. **Template File References**: Both `x-template` and `x-template-items` must
+   be **filenames** (e.g., "template.json"), containing the actual template
+   content
 4. **Independent Resolution**: Each template file resolves variables from its
    respective data partition
-5. **Parallel Processing**: Both template files can coexist, each working with its
-   assigned data partition
+5. **Parallel Processing**: Both template files can coexist, each working with
+   its assigned data partition
 
 #### Mapping Origin Rules
 
@@ -42,17 +44,21 @@ boundary:
 
 **Rule MO-2: Data Partitioning Rules**
 
-- `x-template` → Specifies a filename of template that receives **full schema root data**
+- `x-template` → Specifies a filename of template that receives **full schema
+  root data**
 - `x-frontmatter-part: true` → Creates **data partition boundary**
-- `x-template-items` → Specifies a filename of template that receives **partitioned array data** from moved origin
+- `x-template-items` → Specifies a filename of template that receives
+  **partitioned array data** from moved origin
 - Data is split and passed separately to each specified template file
 
 **Rule MO-3: Template Independence**
 
-- Template files referenced by `x-template` and `x-template-items` process **independently**
+- Template files referenced by `x-template` and `x-template-items` process
+  **independently**
 - Each template file receives its own data partition:
   - Template file in `x-template`: Full frontmatter data from schema root
-  - Template file in `x-template-items`: Array data from `x-frontmatter-part: true` location
+  - Template file in `x-template-items`: Array data from
+    `x-frontmatter-part: true` location
 - Template files don't share scope - they work with separate data partitions
 
 #### Mapping Origin Examples
@@ -146,10 +152,13 @@ schema root data:
 
 ### Rule 2: Schema Reference Independence
 
-`$ref` is a standard JSON Schema feature for schema reuse and has NO relationship
-with template processing. Templates are specified exclusively through:
+`$ref` is a standard JSON Schema feature for schema reuse and has NO
+relationship with template processing. Templates are specified exclusively
+through:
+
 - `x-template`: Container template file
-- `x-template-items`: Item template file (optional, required for {@items} expansion)
+- `x-template-items`: Item template file (optional, required for {@items}
+  expansion)
 
 ```json
 // Main schema
@@ -160,7 +169,8 @@ with template processing. Templates are specified exclusively through:
 "x-template-items": "item_template.json"  // This specifies the item template
 ```
 
-**Key Point**: `$ref` defines schema structure, `x-template-items` defines template
+**Key Point**: `$ref` defines schema structure, `x-template-items` defines
+template
 
 ### Rule 3: Template Application Mapping
 
@@ -267,7 +277,8 @@ applied (NOT from $ref):
 1. **Template Loading**:
    - Load `design_output_template.json` for container processing
    - Load `design_item_template.json` for item processing
-2. **Data Partitioning**: `x-frontmatter-part: true` splits data into two partitions
+2. **Data Partitioning**: `x-frontmatter-part: true` splits data into two
+   partitions
 3. **Container Template Processing**:
    - `design_output_template.json` uses schema root data
    - Resolves `{version}`, `{description}`, prepares for `{@items}`

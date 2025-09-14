@@ -1,5 +1,5 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "impl": "{@items}"
+  "impl": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
 }

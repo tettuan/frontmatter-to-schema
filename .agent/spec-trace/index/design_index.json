@@ -1,5 +1,5 @@
 {
   "version": "{version}",
   "description": "{description}",
-  "design": "{@items}"
+  "design": "[{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"},{\"id\":\"{id.full}\"}]"
 }
