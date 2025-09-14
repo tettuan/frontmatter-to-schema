@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # 全レベル処理                                                                                                       [fix/post-integration-adjustments]:+
 for level in req spec design impl test; do
     ./frontmatter-to-schema \
