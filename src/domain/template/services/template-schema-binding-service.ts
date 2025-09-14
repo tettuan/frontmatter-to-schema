@@ -50,13 +50,17 @@ export class TemplateSchemaBindingService {
     // Validate the binding if {@items} might be used
     const hasItemsTemplateResult = this.checkForItemsTemplate(schema);
     if (hasItemsTemplateResult.ok && hasItemsTemplateResult.data) {
-      const validationResult = context.validateItemsResolution();
-      if (!validationResult.ok) {
+      const isValid = context.validateItemsResolution();
+      if (!isValid) {
+        const error = createError({
+          kind: "DataCompositionFailed",
+          reason: "Items resolution validation failed",
+        });
         this.debugLogger?.logError(
           "template-schema-binding",
-          validationResult.error,
+          error,
         );
-        return err(validationResult.error);
+        return err(error);
       }
 
       this.debugLogger?.logInfo(

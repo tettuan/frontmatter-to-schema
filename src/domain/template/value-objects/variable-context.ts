@@ -13,6 +13,17 @@ export class VariableContext {
   ) {}
 
   /**
+   * Legacy create method for backward compatibility
+   * @deprecated Use fromSingleData, fromComposedData, or fromArrayData instead
+   */
+  static create(
+    _schema: unknown,
+    data: FrontmatterData,
+  ): Result<VariableContext, TemplateError & { message: string }> {
+    return VariableContext.fromSingleData(data);
+  }
+
+  /**
    * Smart Constructor for single data source
    */
   static fromSingleData(
@@ -87,10 +98,44 @@ export class VariableContext {
   }
 
   /**
+   * Legacy method for backward compatibility
+   * @deprecated Use getValue instead
+   */
+  resolveVariable(
+    variablePath: string,
+  ): Result<unknown, TemplateError & { message: string }> {
+    return this.getValue(variablePath);
+  }
+
+  /**
    * Get all available data keys
    */
   getDataKeys(): string[] {
     return Object.keys(this.data);
+  }
+
+  /**
+   * Get hierarchy root (for legacy compatibility)
+   * @deprecated Will be removed in future versions
+   */
+  getHierarchyRoot(): string | null {
+    return null;
+  }
+
+  /**
+   * Validate items resolution (for legacy compatibility)
+   * @deprecated Will be removed in future versions
+   */
+  validateItemsResolution(): boolean {
+    return this.hasArrayData();
+  }
+
+  /**
+   * Create item context (for legacy compatibility)
+   * @deprecated Will be removed in future versions
+   */
+  createItemContext(item: unknown): VariableContext {
+    return new VariableContext(item as Record<string, unknown>);
   }
 
   /**
