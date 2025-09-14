@@ -5,6 +5,9 @@ frontmatter-to-schema project.
 
 ## Core Documents
 
+- **[template-processing-specification.md](./template-processing-specification.md)**:
+  Complete template processing system specification including main processing
+  flow (CLI → PipelineOrchestrator → OutputRenderingService)
 - **[template-output-subdomain-separation.md](./template-output-subdomain-separation.md)**:
   Template output subdomain architecture - Clear separation between list
   aggregation and document iteration processing

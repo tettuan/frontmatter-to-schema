@@ -136,6 +136,23 @@ export class SchemaDefinition {
   }
 
   /**
+   * Get template output format from x-template-format extension (user-requested feature)
+   */
+  getTemplateFormat(): Result<
+    "json" | "yaml" | "toml" | "markdown",
+    SchemaError & { message: string }
+  > {
+    return SchemaPropertyUtils.getTemplateFormat(this.schema);
+  }
+
+  /**
+   * Check if schema has template format directive
+   */
+  hasTemplateFormat(): boolean {
+    return SchemaPropertyUtils.hasTemplateFormat(this.schema);
+  }
+
+  /**
    * Check if schema is a reference
    */
   hasRef(): boolean {

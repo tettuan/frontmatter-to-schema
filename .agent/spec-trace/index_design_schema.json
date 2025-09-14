@@ -3,6 +3,7 @@
   "type": "object",
   "title": "Design Level Index Schema",
   "x-template": "index_design_template.json",
+  "x-template-items": "traceability_item_template.json",
   "description": "Schema for design level traceability index",
   "properties": {
     "version": {

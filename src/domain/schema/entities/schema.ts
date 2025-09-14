@@ -91,6 +91,13 @@ export class Schema {
     return this.definition.getTemplatePath();
   }
 
+  getTemplateFormat(): Result<
+    "json" | "yaml" | "toml" | "markdown",
+    SchemaError & { message: string }
+  > {
+    return this.definition.getTemplateFormat();
+  }
+
   hasFrontmatterPart(): boolean {
     return this.definition.hasFrontmatterPart();
   }

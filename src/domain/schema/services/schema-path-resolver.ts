@@ -3,6 +3,7 @@ import { createError, DomainError } from "../../shared/types/errors.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**
  * Schema path resolution errors following Totality principles
@@ -64,6 +65,8 @@ export class DataStructure {
  * - No hardcoding (structure determined by schema)
  */
 export class SchemaPathResolver {
+  private static debugLogger = DebugLoggerFactory.create();
+
   /**
    * Resolve data structure based on schema definition instead of hardcoding.
    * This replaces the hardcoded { tools: { commands: dataArray } } approach.
@@ -72,7 +75,22 @@ export class SchemaPathResolver {
     schema: Schema,
     dataArray: unknown[],
   ): Result<DataStructure, DomainError & { message: string }> {
+    this.debugLogger?.logDebug(
+      "schema-path-resolver",
+      "Starting data structure resolution",
+      {
+        inputDataLength: dataArray.length,
+        sampleDataKeys: dataArray[0]
+          ? Object.keys(dataArray[0] as Record<string, unknown>)
+          : [],
+      },
+    );
+
     if (dataArray.length === 0) {
+      this.debugLogger?.logDebug(
+        "schema-path-resolver",
+        "Empty data array - returning error",
+      );
       return err(createError({
         kind: "EmptyInput",
       }));
@@ -81,10 +99,22 @@ export class SchemaPathResolver {
     // Get frontmatter-part path from schema (not hardcoded)
     const frontmatterPartPathResult = schema.findFrontmatterPartPath();
     if (!frontmatterPartPathResult.ok) {
+      this.debugLogger?.logError(
+        "schema-path-resolver",
+        createError({
+          kind: "FrontmatterPartNotFound",
+          message: "Schema does not contain frontmatter-part path",
+        }),
+      );
       return frontmatterPartPathResult;
     }
 
     const path = frontmatterPartPathResult.data;
+    this.debugLogger?.logDebug(
+      "schema-path-resolver",
+      "Found frontmatter-part path",
+      { path },
+    );
 
     // Create dynamic structure based on schema definition
     return this.createDynamicStructure(path, dataArray);
@@ -100,13 +130,39 @@ export class SchemaPathResolver {
   ): Result<DataStructure, DomainError & { message: string }> {
     try {
       const pathParts = path.split(".");
+      this.debugLogger?.logDebug(
+        "schema-path-resolver",
+        "Creating dynamic structure",
+        {
+          path,
+          pathParts,
+          dataArrayLength: dataArray.length,
+        },
+      );
+
       const structure = this.buildNestedStructure(pathParts, dataArray);
+
+      this.debugLogger?.logDebug(
+        "schema-path-resolver",
+        "Built nested structure",
+        {
+          structure: JSON.stringify(structure, null, 2),
+          structureKeys: Object.keys(structure),
+        },
+      );
 
       // No hardcoded backward compatibility - this should be handled by schema configuration
       // If backward compatibility is needed, it should be specified in the schema's x-compatibility-path
 
       return DataStructure.create(structure);
     } catch (error) {
+      this.debugLogger?.logError(
+        "schema-path-resolver",
+        createError({
+          kind: "AggregationFailed",
+          message: `Failed to build structure for path "${path}": ${error}`,
+        }),
+      );
       return err(createError({
         kind: "AggregationFailed",
         message: `Failed to build structure for path "${path}": ${error}`,
@@ -122,20 +178,62 @@ export class SchemaPathResolver {
     pathParts: string[],
     dataArray: unknown[],
   ): Record<string, unknown> {
+    this.debugLogger?.logDebug(
+      "schema-path-resolver",
+      "Building nested structure recursively",
+      {
+        pathParts,
+        remainingPartsCount: pathParts.length,
+        dataArrayType: Array.isArray(dataArray) ? "array" : typeof dataArray,
+        dataArrayLength: Array.isArray(dataArray) ? dataArray.length : "N/A",
+      },
+    );
+
     if (pathParts.length === 0) {
       throw new Error("Path parts cannot be empty");
     }
 
     if (pathParts.length === 1) {
       // Base case: single part, assign array directly
-      return { [pathParts[0]]: dataArray };
+      const result = { [pathParts[0]]: dataArray };
+      this.debugLogger?.logDebug(
+        "schema-path-resolver",
+        "Base case: assigning data array directly",
+        {
+          key: pathParts[0],
+          dataArrayLength: Array.isArray(dataArray) ? dataArray.length : "N/A",
+          resultKeys: Object.keys(result),
+        },
+      );
+      return result;
     }
 
     // Recursive case: build nested structure
     const [currentPart, ...remainingParts] = pathParts;
-    return {
+    this.debugLogger?.logDebug(
+      "schema-path-resolver",
+      "Recursive case: building deeper nesting",
+      {
+        currentPart,
+        remainingParts,
+        remainingDepth: remainingParts.length,
+      },
+    );
+
+    const result = {
       [currentPart]: this.buildNestedStructure(remainingParts, dataArray),
     };
+
+    this.debugLogger?.logDebug(
+      "schema-path-resolver",
+      "Completed nested structure level",
+      {
+        currentPart,
+        resultStructure: JSON.stringify(result, null, 2),
+      },
+    );
+
+    return result;
   }
 
   /**

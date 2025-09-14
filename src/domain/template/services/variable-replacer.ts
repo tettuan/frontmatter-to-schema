@@ -2,6 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -9,6 +10,7 @@ import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-
  */
 export class VariableReplacer {
   private constructor() {}
+  private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor for VariableReplacer
@@ -38,24 +40,129 @@ export class VariableReplacer {
         return ok(template);
       }
 
-      const result = template.replace(/\{([^}]+)\}/g, (match, varName) => {
+      this.debugLogger?.logDebug(
+        "variable-replacer",
+        "Starting variable replacement",
+        {
+          template: template.substring(0, 200) +
+            (template.length > 200 ? "..." : ""),
+          hasArrayData: !!arrayData,
+          arrayDataLength: arrayData?.length,
+        },
+      );
+
+      // Support both single and double brace syntax: {var} and {{var}}
+      let result = template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Processing variable",
+          { varName, match },
+        );
+
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Processing @items array expansion",
+            { arrayDataLength: arrayData.length },
+          );
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Skipping @ variable",
+            { varName },
+          );
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Variable not found - keeping placeholder",
+            { varName, error: valueResult.error },
+          );
           return match; // Keep placeholder if value not found
         }
 
-        return this.formatValue(valueResult.data);
+        const formattedValue = this.formatValue(valueResult.data);
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Variable resolved successfully",
+          {
+            varName,
+            rawDataType: typeof valueResult.data,
+            rawDataIsArray: Array.isArray(valueResult.data),
+            formattedValue: typeof formattedValue === "string"
+              ? formattedValue.substring(0, 100) +
+                (formattedValue.length > 100 ? "..." : "")
+              : formattedValue,
+          },
+        );
+
+        return formattedValue;
+      });
+
+      // Also support single brace syntax: {var}
+      result = result.replace(/\{([^}]+)\}/g, (match, varName) => {
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Processing single-brace variable",
+          { varName, match },
+        );
+
+        // Handle {@items} array expansion
+        if (varName === "@items" && arrayData) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Processing @items array expansion (single-brace)",
+            { arrayDataLength: arrayData.length },
+          );
+          // Return special marker for array expansion
+          return "[@ITEMS_EXPANSION]";
+        }
+
+        // Skip other @ variables (special processing markers)
+        if (varName.startsWith("@")) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Skipping @ variable (single-brace)",
+            { varName },
+          );
+          return match;
+        }
+
+        const valueResult = data.get(varName);
+        if (!valueResult.ok) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Single-brace variable not found - keeping placeholder",
+            { varName, error: valueResult.error },
+          );
+          return match; // Keep placeholder if value not found
+        }
+
+        const formattedValue = this.formatValue(valueResult.data);
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Single-brace variable resolved successfully",
+          {
+            varName,
+            rawDataType: typeof valueResult.data,
+            rawDataIsArray: Array.isArray(valueResult.data),
+            formattedValue: typeof formattedValue === "string"
+              ? formattedValue.substring(0, 100) +
+                (formattedValue.length > 100 ? "..." : "")
+              : formattedValue,
+          },
+        );
+
+        return formattedValue;
       });
 
       return ok(result);
@@ -272,7 +379,21 @@ export class VariableReplacer {
     // If template is a string and contains {@items}, expand it
     if (typeof template === "string" && template.includes("{@items}")) {
       if (!itemTemplate) {
-        // Without item template, just stringify the array
+        // For simple {@items} replacement, check if this is the entire content
+        // If the template is just "books:\n{@items}" or similar, return structured data
+        if (template.trim().endsWith("{@items}")) {
+          // Return structured data that the formatter can handle properly
+          const lines = template.split("\n");
+          const lastLine = lines[lines.length - 1];
+          if (lastLine.trim() === "{@items}") {
+            // Build structured object that YAML formatter can handle
+            const key = lines[lines.length - 2]?.replace(":", "").trim();
+            if (key) {
+              return ok({ [key]: dataArray });
+            }
+          }
+        }
+        // Fallback: stringify (for cases where {@items} is embedded in text)
         const expanded = template.replace(
           "{@items}",
           JSON.stringify(dataArray),
