@@ -1,6 +1,10 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { VariableReplacer } from "../../../../../src/domain/template/services/variable-replacer.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import {
+  assertResultSuccess,
+  createTestFrontmatterData,
+  FrontmatterTestFactory,
+} from "../../../../helpers/frontmatter-test-factory.ts";
 import { err, ok } from "../../../../../src/domain/shared/types/result.ts";
 
 Deno.test({
@@ -20,22 +24,15 @@ Deno.test({
     const replacer = VariableReplacer.create();
     if (!replacer.ok) return;
 
-    const dataResult = FrontmatterData.create({
-      name: "John",
-      age: 30,
-      active: true,
-    });
-    if (!dataResult.ok) return;
-
+    const testData = FrontmatterTestFactory.createSimpleData();
     const result = replacer.data.replaceVariables(
-      "Hello {name}, you are {age} years old and {active}",
-      dataResult.data,
+      "Hello {name}, value is {value} and {active}",
+      testData,
     );
 
-    assertEquals(result.ok, true);
-    if (result.ok) {
-      assertEquals(result.data, "Hello John, you are 30 years old and true");
-    }
+    assertResultSuccess(result, (data) => {
+      assertEquals(data, "Hello Test Name, value is Test Value and true");
+    });
   },
 });
 
@@ -52,12 +49,10 @@ Deno.test({
       normalValue: "normal",
     };
 
-    const dataResult = FrontmatterData.create(testData);
-    if (!dataResult.ok) return;
-
+    const frontmatterData = createTestFrontmatterData(testData);
     const result = replacer.data.replaceVariables(
       "Success: {successResult}, Error: {errorResult}, Normal: {normalValue}",
-      dataResult.data,
+      frontmatterData,
     );
 
     assertEquals(result.ok, true);
@@ -85,10 +80,10 @@ Deno.test({
       error: err({ kind: "TestError", message: "Test error" }),
     };
 
-    const dataResult = FrontmatterData.create({ template: testTemplate });
-    if (!dataResult.ok) return;
-
-    const result = replacer.data.processValue(testTemplate, dataResult.data);
+    const frontmatterData = createTestFrontmatterData({
+      template: testTemplate,
+    });
+    const result = replacer.data.processValue(testTemplate, frontmatterData);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -114,10 +109,8 @@ Deno.test({
       }),
     };
 
-    const dataResult = FrontmatterData.create(nestedData);
-    if (!dataResult.ok) return;
-
-    const result = replacer.data.processValue(nestedData, dataResult.data);
+    const frontmatterData = createTestFrontmatterData(nestedData);
+    const result = replacer.data.processValue(nestedData, frontmatterData);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -146,10 +139,9 @@ Deno.test({
       ],
     };
 
-    const dataResult = FrontmatterData.create(arrayData);
-    if (!dataResult.ok) return;
+    const frontmatterData = createTestFrontmatterData(arrayData);
 
-    const result = replacer.data.processValue(arrayData, dataResult.data);
+    const result = replacer.data.processValue(arrayData, frontmatterData);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -169,14 +161,13 @@ Deno.test({
     const replacer = VariableReplacer.create();
     if (!replacer.ok) return;
 
-    const dataResult = FrontmatterData.create({
+    const frontmatterData = createTestFrontmatterData({
       items: ["item1", "item2"],
     });
-    if (!dataResult.ok) return;
 
     const result = replacer.data.replaceVariables(
       "Normal: {items}, Array: {@items}",
-      dataResult.data,
+      frontmatterData,
     );
 
     assertEquals(result.ok, true);
@@ -196,14 +187,13 @@ Deno.test({
     const replacer = VariableReplacer.create();
     if (!replacer.ok) return;
 
-    const dataResult = FrontmatterData.create({
+    const frontmatterData = createTestFrontmatterData({
       existing: "value",
     });
-    if (!dataResult.ok) return;
 
     const result = replacer.data.replaceVariables(
       "Existing: {existing}, Missing: {missing}",
-      dataResult.data,
+      frontmatterData,
     );
 
     assertEquals(result.ok, true);
@@ -229,10 +219,9 @@ Deno.test({
       missing: { frontmatter_value: "nonexistent" },
     };
 
-    const dataResult = FrontmatterData.create(testData);
-    if (!dataResult.ok) return;
+    const frontmatterData = createTestFrontmatterData(testData);
 
-    const result = replacer.data.processValue(template, dataResult.data);
+    const result = replacer.data.processValue(template, frontmatterData);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -263,10 +252,9 @@ Deno.test({
       },
     };
 
-    const dataResult = FrontmatterData.create(testData);
-    if (!dataResult.ok) return;
+    const frontmatterData = createTestFrontmatterData(testData);
 
-    const result = replacer.data.processValue(template, dataResult.data);
+    const result = replacer.data.processValue(template, frontmatterData);
 
     assertEquals(result.ok, true);
     if (result.ok) {
