@@ -1,37 +1,5 @@
-[
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "design": "{@items}"
-  }
-]
+{
+  "version": "1.0.0",
+  "description": "Design level traceability IDs",
+  "design": []
+}

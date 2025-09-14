@@ -1,37 +1,5 @@
-[
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "impl": "{@items}"
-  }
-]
+{
+  "version": "1.0.0",
+  "description": "Impl level traceability IDs",
+  "impl": []
+}

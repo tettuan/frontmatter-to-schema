@@ -1,9 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import {
-  SchemaDefinition,
+  isRefSchema,
   SchemaProperty,
-} from "../value-objects/schema-definition.ts";
+} from "../value-objects/schema-property-types.ts";
 import { ResolvedSchema } from "../entities/schema.ts";
 
 export interface SchemaLoader {
@@ -48,49 +49,78 @@ export class RefResolver {
     schema: SchemaProperty,
     referencedSchemas: Map<string, SchemaDefinition>,
   ): Result<SchemaProperty, SchemaError & { message: string }> {
-    if (schema.$ref) {
-      return this.resolveRef(schema.$ref, referencedSchemas);
+    // Exhaustive switch on schema kind - no default needed
+    switch (schema.kind) {
+      case "ref":
+        return this.resolveRef(schema.ref, referencedSchemas);
+
+      case "object":
+        return this.resolveObjectSchema(schema, referencedSchemas);
+
+      case "array":
+        return this.resolveArraySchema(schema, referencedSchemas);
+
+      case "string":
+      case "number":
+      case "integer":
+      case "boolean":
+      case "enum":
+      case "null":
+      case "any":
+        // Primitive types don't need resolution
+        return ok(schema);
     }
+  }
 
-    const resolved: any = { ...schema };
+  private resolveObjectSchema(
+    schema: SchemaProperty & { kind: "object" },
+    referencedSchemas: Map<string, SchemaDefinition>,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
+    const resolvedProperties: Record<string, SchemaProperty> = {};
 
-    if (schema.properties) {
-      const resolvedProperties: Record<string, SchemaProperty> = {};
-      for (const [key, prop] of Object.entries(schema.properties)) {
-        const resolvedProp = this.resolveRecursive(prop, referencedSchemas);
-        if (!resolvedProp.ok) {
-          return resolvedProp;
-        }
-        resolvedProperties[key] = resolvedProp.data;
+    for (const [key, prop] of Object.entries(schema.properties)) {
+      const resolvedProp = this.resolveRecursive(prop, referencedSchemas);
+      if (!resolvedProp.ok) {
+        return resolvedProp;
       }
-      resolved.properties = resolvedProperties;
+      resolvedProperties[key] = resolvedProp.data;
     }
 
-    if (schema.items) {
-      if (typeof schema.items === "object") {
-        if ("$ref" in schema.items && schema.items.$ref) {
-          const resolvedItems = this.resolveRef(
-            schema.items.$ref,
-            referencedSchemas,
-          );
-          if (!resolvedItems.ok) {
-            return resolvedItems;
-          }
-          resolved.items = resolvedItems.data;
-        } else {
-          const resolvedItems = this.resolveRecursive(
-            schema.items as SchemaProperty,
-            referencedSchemas,
-          );
-          if (!resolvedItems.ok) {
-            return resolvedItems;
-          }
-          resolved.items = resolvedItems.data;
-        }
+    return ok({
+      ...schema,
+      properties: resolvedProperties,
+    });
+  }
+
+  private resolveArraySchema(
+    schema: SchemaProperty & { kind: "array" },
+    referencedSchemas: Map<string, SchemaDefinition>,
+  ): Result<SchemaProperty, SchemaError & { message: string }> {
+    if (isRefSchema(schema.items)) {
+      const resolvedItems = this.resolveRef(
+        schema.items.$ref,
+        referencedSchemas,
+      );
+      if (!resolvedItems.ok) {
+        return resolvedItems;
       }
+      return ok({
+        ...schema,
+        items: resolvedItems.data,
+      });
+    } else {
+      const resolvedItems = this.resolveRecursive(
+        schema.items,
+        referencedSchemas,
+      );
+      if (!resolvedItems.ok) {
+        return resolvedItems;
+      }
+      return ok({
+        ...schema,
+        items: resolvedItems.data,
+      });
     }
-
-    return ok(resolved);
   }
 
   private resolveRef(

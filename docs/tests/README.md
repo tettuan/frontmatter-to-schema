@@ -22,6 +22,7 @@ on:
 tests/
 ├── unit/           # Unit tests for individual components
 ├── integration/    # Integration tests for component interactions
+├── e2e/           # End-to-end CLI workflow tests
 ├── domain/         # Domain logic and business rule tests
 ├── infrastructure/ # Infrastructure adapter tests
 └── fixtures/       # Test data and fixtures
@@ -49,12 +50,50 @@ tests/
 - **Focus**: Service orchestration, data flow, external dependencies
 - **Example**: `document_processor_test.ts`, `pipeline_integration_test.ts`
 
-### 3. Infrastructure Tests
+### 3. End-to-End Tests
+
+- **Purpose**: Test complete CLI workflows and user scenarios
+- **Location**: `tests/e2e/`
+- **Focus**: Full pipeline validation, CLI argument processing, file operations
+- **Example**: `cli_basic_test.ts`, `cli_validation_test.ts`
+
+### 4. Infrastructure Tests
 
 - **Purpose**: Test adapters and external system interfaces
 - **Location**: `tests/infrastructure/`
 - **Focus**: File system operations, external API calls, configuration
 - **Example**: `file_system_adapter_test.ts`, `ai_analyzer_adapter_test.ts`
+
+## BreakdownLogger Debug Integration
+
+### Strategic Test Debugging
+
+The test suite integrates `@tettuan/breakdownlogger` for enhanced debugging
+capabilities:
+
+#### Environment-Based Configuration
+
+- **LOG_KEY**: Filter debug output by component (`base-property-population`,
+  `schema-validation`)
+- **LOG_LENGTH**: Control output verbosity (`S`=160 chars, `L`=300 chars,
+  `W`=whole message)
+- **LOG_LEVEL**: Set severity threshold (`debug`, `info`, `warn`, `error`)
+
+#### Quick Debug Commands
+
+```bash
+# Component-specific debugging
+LOG_KEY=base-property-population LOG_LENGTH=L deno test --allow-all
+
+# Multiple component analysis
+LOG_KEY=schema-validation,template-rendering deno test --allow-all
+
+# Convenience script
+./scripts/test-with-debug.sh component-name
+```
+
+For detailed debugging strategies, see
+[BreakdownLogger Integration](./breakdownlogger-integration.md).
 
 ## Test Guidelines
 
@@ -88,11 +127,20 @@ tests/
 # Run all tests
 deno test --allow-read --allow-write --allow-run --allow-env
 
+# Run specific test categories
+deno test tests/unit/ --allow-read --allow-write --allow-run --allow-env
+deno test tests/integration/ --allow-read --allow-write --allow-run --allow-env
+deno test tests/e2e/ --allow-read --allow-write --allow-run --allow-env
+
 # Run specific test file
 deno test --allow-read --allow-write tests/domain/schema_analyzer_test.ts
 
 # Run with coverage
 deno test --coverage=coverage --allow-read --allow-write --allow-run --allow-env
+
+# Run with breakdownlogger debug output
+LOG_KEY=component-name LOG_LENGTH=L deno test --allow-all
+./scripts/test-with-debug.sh component-name
 ```
 
 ### CI/CD Pipeline
@@ -123,10 +171,11 @@ Tests are automatically executed as part of the CI pipeline:
 
 ### Current Test Statistics
 
-- **Total Tests**: 277 tests
-- **Test Files**: 62 test files
+- **Total Tests**: 124 tests (40 steps)
+- **Test Files**: 16 active test files
 - **Coverage Target**: >80% line coverage
-- **Performance**: Tests complete in <3.8s
+- **Performance**: Tests complete in <1.2s
+- **E2E Tests**: 2 test suites with 11 test steps
 
 ### Success Criteria
 
@@ -140,6 +189,14 @@ Tests are automatically executed as part of the CI pipeline:
 
 - [Testing Guidelines](./testing_guidelines.md) - Detailed TDD and testing
   practices
+- [Test Debugging Strategy](./test-debugging-strategy.md) - Comprehensive
+  debugging approach using breakdownlogger
+- [BreakdownLogger Integration](./breakdownlogger-integration.md) - Strategic
+  test debugging with LOG_KEY and LOG_LENGTH features
+- [E2E Test Execution Guide](../../tmp/e2e-test-execution-guide.md) -
+  Comprehensive E2E testing strategy and execution instructions
+- [E2E Test Architecture](../../tests/e2e/README.md) - End-to-end test design
+  principles
 - [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing
   infrastructure for parallel-safe, change-resistant tests
 - [Comprehensive Test Strategy](../testing/comprehensive-test-strategy.md) -

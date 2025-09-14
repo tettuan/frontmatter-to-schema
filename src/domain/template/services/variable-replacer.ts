@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -239,7 +240,7 @@ export class VariableReplacer {
 
     const results: unknown[] = [];
     for (const item of iterateData) {
-      const itemDataResult = FrontmatterData.create(item);
+      const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
       if (itemDataResult.ok) {
         const valueResult = itemDataResult.data.get(
           iterateValue.frontmatter_value!,
@@ -282,7 +283,7 @@ export class VariableReplacer {
       // Process each item with the item template
       const processedItems: unknown[] = [];
       for (const item of dataArray) {
-        const itemDataResult = FrontmatterData.create(item);
+        const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
           return err(createError({
             kind: "RenderFailed",

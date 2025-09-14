@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
-import type { SchemaProperty } from "./schema-definition.ts";
+import type { SchemaProperty } from "./schema-property-types.ts";
+import { isRefSchema } from "./schema-property-types.ts";
 
 export interface ValidationRule {
   readonly path: string;
@@ -61,41 +62,126 @@ function extractRules(
   path: string,
   rules: ValidationRule[],
 ): void {
-  const rule: ValidationRule = {
-    path,
-    type: schema.type,
-    pattern: schema.pattern,
-    minimum: schema.minimum,
-    maximum: schema.maximum,
-    minLength: schema.minLength,
-    maxLength: schema.maxLength,
-    format: schema.format,
-    enum: schema.enum,
-  };
-
-  rules.push(rule);
-
-  if (schema.properties) {
-    const required = schema.required || [];
-    for (const [key, prop] of Object.entries(schema.properties)) {
-      const propPath = path ? `${path}.${key}` : key;
-      if (required.includes(key)) {
-        const propRule = rules.find((r) => r.path === propPath);
-        if (propRule) {
-          Object.assign(propRule, { required: true });
-        } else {
-          rules.push({ path: propPath, required: true });
-        }
-      }
-      extractRules(prop, propPath, rules);
+  // Exhaustive switch based on schema kind
+  switch (schema.kind) {
+    case "string": {
+      const stringRule: ValidationRule = {
+        path,
+        type: "string",
+        pattern: schema.constraints?.pattern,
+        minLength: schema.constraints?.minLength,
+        maxLength: schema.constraints?.maxLength,
+        format: schema.constraints?.format,
+      };
+      rules.push(stringRule);
+      break;
     }
-  }
 
-  if (
-    schema.items && typeof schema.items === "object" &&
-    !("$ref" in schema.items)
-  ) {
-    extractRules(schema.items, `${path}[]`, rules);
+    case "number": {
+      const numberRule: ValidationRule = {
+        path,
+        type: "number",
+        minimum: schema.constraints?.minimum,
+        maximum: schema.constraints?.maximum,
+      };
+      rules.push(numberRule);
+      break;
+    }
+
+    case "integer": {
+      const integerRule: ValidationRule = {
+        path,
+        type: "integer",
+        minimum: schema.constraints?.minimum,
+        maximum: schema.constraints?.maximum,
+      };
+      rules.push(integerRule);
+      break;
+    }
+
+    case "boolean": {
+      const booleanRule: ValidationRule = {
+        path,
+        type: "boolean",
+      };
+      rules.push(booleanRule);
+      break;
+    }
+
+    case "array": {
+      const arrayRule: ValidationRule = {
+        path,
+        type: "array",
+      };
+      rules.push(arrayRule);
+
+      // Extract rules for array items
+      if (!isRefSchema(schema.items)) {
+        extractRules(schema.items, `${path}[]`, rules);
+      }
+      break;
+    }
+
+    case "object": {
+      const objectRule: ValidationRule = {
+        path,
+        type: "object",
+      };
+      rules.push(objectRule);
+
+      // Extract rules for object properties
+      for (const [key, prop] of Object.entries(schema.properties)) {
+        const propPath = path ? `${path}.${key}` : key;
+        if (schema.required.includes(key)) {
+          const propRule = rules.find((r) => r.path === propPath);
+          if (propRule) {
+            Object.assign(propRule, { required: true });
+          } else {
+            rules.push({ path: propPath, required: true });
+          }
+        }
+        extractRules(prop, propPath, rules);
+      }
+      break;
+    }
+
+    case "enum": {
+      const enumRule: ValidationRule = {
+        path,
+        type: schema.baseType || "string",
+        enum: schema.values,
+      };
+      rules.push(enumRule);
+      break;
+    }
+
+    case "ref": {
+      // References should be resolved before validation rule extraction
+      const refRule: ValidationRule = {
+        path,
+        type: "object", // Default assumption for refs
+      };
+      rules.push(refRule);
+      break;
+    }
+
+    case "null": {
+      const nullRule: ValidationRule = {
+        path,
+        type: "null",
+      };
+      rules.push(nullRule);
+      break;
+    }
+
+    case "any": {
+      const anyRule: ValidationRule = {
+        path,
+        // No specific type for any
+      };
+      rules.push(anyRule);
+      break;
+    }
   }
 }
 

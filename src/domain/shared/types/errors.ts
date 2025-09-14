@@ -43,6 +43,7 @@ export type SchemaError =
   | { readonly kind: "CircularReference"; readonly refs: string[] }
   | { readonly kind: "InvalidTemplate"; readonly template: string }
   | { readonly kind: "TemplateNotDefined" }
+  | { readonly kind: "TemplateItemsNotDefined" }
   | { readonly kind: "FrontmatterPartNotFound" }
   | { readonly kind: "SchemaNotResolved" }
   | { readonly kind: "TypeNotDefined" }
@@ -50,6 +51,7 @@ export type SchemaError =
   | { readonly kind: "RefNotDefined" }
   | { readonly kind: "DerivedFromNotDefined" }
   | { readonly kind: "ItemsNotDefined" }
+  | { readonly kind: "EnumNotDefined" }
   | { readonly kind: "PropertyNotFound"; readonly path: string };
 
 export type FrontmatterError =
@@ -163,6 +165,10 @@ const getDefaultMessage = (error: DomainError): string => {
       return "Schema does not define items";
     case "PropertyNotFound":
       return `Property not found at path: ${error.path}`;
+    case "TemplateItemsNotDefined":
+      return "Schema does not define x-template-items directive";
+    case "EnumNotDefined":
+      return "Schema is not an enum type";
     case "ExtractionFailed":
       return `Frontmatter extraction failed: ${error.message}`;
     case "InvalidYaml":

@@ -204,7 +204,6 @@ Deno.test("SchemaPathResolver - Integration patterns", async (t) => {
       assertEquals((structure.tools as any).commands[0].c1, "git");
       assertEquals((structure.tools as any).commands[1].c1, "spec");
       assertEquals((structure.tools as any).commands[2].c1, "test");
-
     }
   });
 

@@ -31,6 +31,7 @@ Deno.test({
   fn: () => {
     // Arrange: Create schema with base property default
     const schemaData = {
+      type: "object",
       properties: {
         version: {
           type: "string",
@@ -70,6 +71,7 @@ Deno.test({
   fn: () => {
     // Arrange
     const schemaData = {
+      type: "object",
       properties: {
         description: {
           type: "string",
@@ -111,6 +113,7 @@ Deno.test({
   fn: () => {
     // Arrange
     const schemaData = {
+      type: "object",
       properties: {
         version: {
           type: "string",
@@ -176,6 +179,7 @@ Deno.test({
   fn: () => {
     // Arrange
     const schemaData = {
+      type: "object",
       properties: {
         version: {
           type: "string",
@@ -217,9 +221,10 @@ Deno.test({
   fn: () => {
     // Arrange
     const schemaData = {
+      type: "object",
       properties: {
         title: { type: "string" }, // No base properties
-        commands: { type: "array" },
+        commands: { type: "array", items: { type: "string" } },
       },
     };
 
@@ -248,6 +253,7 @@ Deno.test({
   fn: () => {
     // Arrange: Schema with base property but missing default value
     const schemaData = {
+      type: "object",
       properties: {
         version: {
           type: "string",

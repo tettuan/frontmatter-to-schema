@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Basic Test Schema",
+  "x-template": "basic_template.json",
+  "description": "Simple schema for E2E testing",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Article title"
+    },
+    "author": {
+      "type": "string",
+      "description": "Article author"
+    },
+    "published": {
+      "type": "boolean",
+      "description": "Publication status"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Article tags"
+    }
+  },
+  "required": ["title", "author"]
+}

@@ -16,6 +16,13 @@
       "exclude": ["no-explicit-any"]
     }
   },
+  "fmt": {
+    "exclude": [
+      "examples/**/template.yml",
+      "examples/**/item_template.yml",
+      ".agent/**/*template*.yml"
+    ]
+  },
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty"
@@ -26,6 +33,7 @@
     "@std/path": "jsr:@std/path@^1.1.2",
     "@std/testing": "jsr:@std/testing@^1.0.15",
     "@std/testing/bdd": "jsr:@std/testing@^1.0.15/bdd",
+    "@tettuan/breakdownlogger": "jsr:@tettuan/breakdownlogger@^1.0.0",
     "jsr:@std/fs": "jsr:@std/fs@1.0.8",
     "jsr:@std/front-matter": "jsr:@std/front-matter@1.0.5",
     "jsr:@std/cli": "jsr:@std/cli@1.0.9",

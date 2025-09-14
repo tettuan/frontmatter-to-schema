@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DerivationRule } from "../value-objects/derivation-rule.ts";
 import { ExpressionEvaluator } from "../services/expression-evaluator.ts";
 
@@ -89,7 +90,7 @@ export class Aggregator {
       const arrayValue = item.get(arrayPath);
       if (Array.isArray(arrayValue)) {
         for (const arrayItem of arrayValue) {
-          const itemResult = FrontmatterData.create(arrayItem);
+          const itemResult = FrontmatterDataFactory.fromParsedData(arrayItem);
           if (itemResult.ok) {
             results.push(itemResult.data);
           }

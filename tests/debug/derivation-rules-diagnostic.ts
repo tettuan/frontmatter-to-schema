@@ -57,7 +57,7 @@ Deno.test({
       console.log("\\n=== RAW SCHEMA ANALYSIS ===");
       console.log("Root properties:");
 
-      if (rawSchema.properties) {
+      if (rawSchema.kind === "object") {
         for (const [key, value] of Object.entries(rawSchema.properties)) {
           console.log(`  ${key}: ${typeof value}`);
           if (typeof value === "object" && value !== null) {

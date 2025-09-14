@@ -2,6 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 
 /**
  * Schema path resolution errors following Totality principles
@@ -42,7 +43,7 @@ export class DataStructure {
     FrontmatterData,
     DomainError & { message: string }
   > {
-    return FrontmatterData.create(this.structure);
+    return FrontmatterDataFactory.fromObject(this.structure);
   }
 
   /**

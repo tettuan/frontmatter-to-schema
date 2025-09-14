@@ -1,37 +1,5 @@
-[
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "{level}": "{@items}"
-  }
-]
+{
+  "version": "1.0.0",
+  "description": "Req level traceability IDs",
+  "req": []
+}

@@ -1,7 +1,9 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, SchemaError } from "../../shared/types/errors.ts";
 import { Schema } from "../entities/schema.ts";
+import { SchemaProperty } from "../value-objects/schema-property-types.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 
 export interface BasePropertyRule {
   readonly field: string;
@@ -38,7 +40,7 @@ export class BasePropertyPopulator {
       }
     }
 
-    const result = FrontmatterData.create(newData);
+    const result = FrontmatterDataFactory.fromObject(newData);
     if (!result.ok) {
       // Convert FrontmatterError to SchemaError
       return err(createError({
@@ -62,33 +64,49 @@ export class BasePropertyPopulator {
   }
 
   private extractFromProperties(
-    schemaNode: any,
+    schemaNode: SchemaProperty,
     rules: BasePropertyRule[],
     path: string,
   ): void {
-    if (!schemaNode || typeof schemaNode !== "object") {
-      return;
-    }
-
-    const properties = schemaNode.properties;
-    if (properties && typeof properties === "object") {
-      for (const [key, propertyDef] of Object.entries(properties)) {
-        if (typeof propertyDef === "object" && propertyDef !== null) {
-          const prop = propertyDef as any;
+    // Use exhaustive pattern matching for schema types
+    switch (schemaNode.kind) {
+      case "object":
+        // Process object properties
+        for (
+          const [key, propertyDef] of Object.entries(schemaNode.properties)
+        ) {
           const fieldPath = path ? `${path}.${key}` : key;
 
-          // Check if this is a base property
-          if (prop["x-base-property"] === true) {
+          // Check if this is a base property (from extensions)
+          if (propertyDef.extensions?.["x-base-property"] === true) {
             rules.push({
               field: fieldPath,
-              defaultValue: prop["x-default-value"],
+              defaultValue: propertyDef.extensions?.["x-default-value"],
             });
           }
 
           // Recursively check nested properties
-          this.extractFromProperties(prop, rules, fieldPath);
+          this.extractFromProperties(propertyDef, rules, fieldPath);
         }
-      }
+        break;
+
+      case "array":
+        // For arrays, check if items are objects with base properties
+        if (!("$ref" in schemaNode.items)) {
+          this.extractFromProperties(schemaNode.items, rules, path);
+        }
+        break;
+
+      case "string":
+      case "number":
+      case "integer":
+      case "boolean":
+      case "enum":
+      case "ref":
+      case "null":
+      case "any":
+        // Primitive types and refs don't have nested properties
+        break;
     }
   }
 }

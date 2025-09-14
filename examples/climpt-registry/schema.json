@@ -20,26 +20,29 @@
       "properties": {
         "availableConfigs": {
           "type": "array",
-          "x-derived-from": "commands[].c1",
+          "x-derived-from": "tools.commands[].c1",
           "x-derived-unique": true,
           "items": { "type": "string" },
           "description": "Tool names array - each becomes available as climpt-{name}"
         },
         "allC1Categories": {
           "type": "array",
-          "x-derived-from": "commands[].c1",
+          "items": { "type": "string" },
+          "x-derived-from": "tools.commands[].c1",
           "x-derived-unique": true,
           "description": "All unique C1 categories/domains extracted from commands"
         },
         "allC2Actions": {
           "type": "array",
-          "x-derived-from": "commands[].c2",
+          "items": { "type": "string" },
+          "x-derived-from": "tools.commands[].c2",
           "x-derived-unique": true,
           "description": "All unique C2 actions/directives extracted from commands"
         },
         "allC3Targets": {
           "type": "array",
-          "x-derived-from": "commands[].c3",
+          "items": { "type": "string" },
+          "x-derived-from": "tools.commands[].c3",
           "x-derived-unique": true,
           "description": "All unique C3 targets/layers extracted from commands"
         },

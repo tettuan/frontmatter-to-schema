@@ -1,37 +1,5 @@
-[
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "spec": "{@items}"
-  }
-]
+{
+  "version": "1.0.0",
+  "description": "Spec level traceability IDs",
+  "spec": []
+}

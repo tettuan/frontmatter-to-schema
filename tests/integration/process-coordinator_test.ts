@@ -50,6 +50,15 @@ Deno.test({
 
       const parsedOutput = result.output as Record<string, unknown>;
 
+      // DEBUG: Let's see what the full output structure looks like
+      console.log("DEBUG: Full parsedOutput keys:", Object.keys(parsedOutput));
+      console.log("DEBUG: parsedOutput.version:", parsedOutput.version);
+      console.log("DEBUG: parsedOutput.description:", parsedOutput.description);
+      console.log(
+        "DEBUG: tools structure:",
+        JSON.stringify(parsedOutput.tools, null, 2),
+      );
+
       // CRITICAL: Template variables should be resolved (not remain as placeholders)
       assertEquals(
         parsedOutput.version !== "{version}",
@@ -66,6 +75,16 @@ Deno.test({
       // Verify: Derived fields are processed correctly (Core Business Logic)
       const tools = parsedOutput.tools as Record<string, unknown>;
 
+      // Debug output to see what we're getting
+      console.log(
+        "DEBUG: tools.availableConfigs type:",
+        typeof tools.availableConfigs,
+      );
+      console.log(
+        "DEBUG: tools.availableConfigs value:",
+        tools.availableConfigs,
+      );
+
       // Template rendering converts arrays to JSON strings
       assertEquals(
         typeof tools.availableConfigs,
@@ -77,7 +96,9 @@ Deno.test({
       let availableConfigs;
       try {
         availableConfigs = JSON.parse(tools.availableConfigs as string);
-      } catch {
+        console.log("DEBUG: parsed availableConfigs:", availableConfigs);
+      } catch (e) {
+        console.log("DEBUG: JSON parse error:", e);
         availableConfigs = null;
       }
 
