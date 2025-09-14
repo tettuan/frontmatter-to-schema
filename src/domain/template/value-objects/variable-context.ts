@@ -10,6 +10,7 @@ export class VariableContext {
   private constructor(
     private readonly data: Record<string, unknown>,
     private readonly arrayData?: unknown[],
+    private readonly hierarchyRoot?: string | null,
   ) {}
 
   /**
@@ -17,10 +18,48 @@ export class VariableContext {
    * @deprecated Use fromSingleData, fromComposedData, or fromArrayData instead
    */
   static create(
-    _schema: unknown,
+    schema: any,
     data: FrontmatterData,
   ): Result<VariableContext, TemplateError & { message: string }> {
-    return VariableContext.fromSingleData(data);
+    try {
+      // Extract hierarchy root from schema if it has x-frontmatter-part
+      let hierarchyRoot: string | null = null;
+      if (schema && schema.findFrontmatterPartPath) {
+        const pathResult = schema.findFrontmatterPartPath();
+        if (pathResult && pathResult.ok && pathResult.data) {
+          hierarchyRoot = pathResult.data;
+        }
+      }
+
+      const contextData = data.getData();
+
+      // If we have a hierarchy root, extract the array data from that path
+      let arrayData: unknown[] | undefined;
+      if (hierarchyRoot) {
+        const parts = hierarchyRoot.split('.');
+        let current: any = contextData;
+        for (const part of parts) {
+          if (current && typeof current === 'object' && part in current) {
+            current = current[part];
+          } else {
+            current = undefined;
+            break;
+          }
+        }
+        if (Array.isArray(current)) {
+          arrayData = current;
+        }
+      }
+
+      return ok(new VariableContext(contextData, arrayData, hierarchyRoot));
+    } catch (error) {
+      return err(createError({
+        kind: "DataCompositionFailed",
+        reason: error instanceof Error
+          ? error.message
+          : "Unknown error creating context",
+      }));
+    }
   }
 
   /**
@@ -31,7 +70,7 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       const contextData = data.getData();
-      return ok(new VariableContext(contextData));
+      return ok(new VariableContext(contextData, undefined, null));
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -52,6 +91,7 @@ export class VariableContext {
       new VariableContext(
         composedData.mainData,
         composedData.arrayData,
+        null,
       ),
     );
   }
@@ -64,7 +104,7 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       const plainData = arrayData.map((item) => item.getData());
-      return ok(new VariableContext({}, plainData));
+      return ok(new VariableContext({}, plainData, null));
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -119,7 +159,7 @@ export class VariableContext {
    * @deprecated Will be removed in future versions
    */
   getHierarchyRoot(): string | null {
-    return null;
+    return this.hierarchyRoot || null;
   }
 
   /**
@@ -135,7 +175,7 @@ export class VariableContext {
    * @deprecated Will be removed in future versions
    */
   createItemContext(item: unknown): VariableContext {
-    return new VariableContext(item as Record<string, unknown>);
+    return new VariableContext(item as Record<string, unknown>, undefined, this.hierarchyRoot);
   }
 
   /**
