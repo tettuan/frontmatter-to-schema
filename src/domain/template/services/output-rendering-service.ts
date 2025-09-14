@@ -5,6 +5,16 @@ import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 
+export type RenderingMode =
+  | {
+      readonly kind: "SingleData";
+      readonly data: FrontmatterData;
+    }
+  | {
+      readonly kind: "ArrayData";
+      readonly dataArray: FrontmatterData[];
+    };
+
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
 }
@@ -30,12 +40,12 @@ export class OutputRenderingService {
   /**
    * Render data using template and write to output file.
    * Follows Totality principle - all error paths handled explicitly.
+   * Uses discriminated union to eliminate partial states.
    */
   renderOutput(
     templatePath: string,
-    data: FrontmatterData,
+    renderingMode: RenderingMode,
     outputPath: string,
-    dataArray?: FrontmatterData[],
   ): Result<void, DomainError & { message: string }> {
     // Stage 1: Load and create template
     const templateResult = this.loadTemplate(templatePath);
@@ -43,10 +53,16 @@ export class OutputRenderingService {
       return templateResult;
     }
 
-    // Stage 2: Render data with template
-    const renderResult = dataArray && dataArray.length > 1
-      ? this.templateRenderer.renderWithArray(templateResult.data, dataArray)
-      : this.templateRenderer.render(templateResult.data, data);
+    // Stage 2: Render data with template using exhaustive pattern matching
+    const renderResult = renderingMode.kind === "ArrayData"
+      ? this.templateRenderer.renderWithArray(
+          templateResult.data,
+          renderingMode.dataArray,
+        )
+      : this.templateRenderer.render(
+          templateResult.data,
+          renderingMode.data,
+        );
 
     if (!renderResult.ok) {
       return renderResult;

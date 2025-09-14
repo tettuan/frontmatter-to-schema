@@ -23,6 +23,16 @@ export interface ProcessedDocuments {
 }
 
 /**
+ * Result of converting schema derivation rules to domain rules.
+ * Replaces silent error handling with explicit rule conversion tracking.
+ */
+export type RuleConversionResult = {
+  readonly successfulRules: DerivationRule[];
+  readonly failedRuleCount: number;
+  readonly errors: Array<DomainError & { message: string }>;
+};
+
+/**
  * Domain service responsible for Document processing stage of the 3-stage pipeline.
  * Handles: Frontmatter → ValidatedData + Aggregation + BaseProperty population
  */
@@ -198,20 +208,12 @@ export class DocumentProcessingService {
         }
       }
 
-      // Convert schema rules to domain rules
-      const rules: DerivationRule[] = [];
-      for (const r of derivationRules) {
-        const ruleResult = DerivationRule.create(
-          r.sourcePath,
-          r.targetField,
-          r.unique,
-        );
-        if (ruleResult.ok) {
-          rules.push(ruleResult.data);
-        }
-        // Note: Failed rule creation is silently ignored to maintain existing behavior
-        // In a future version, we could collect and return these errors
-      }
+      // Convert schema rules to domain rules with explicit error tracking
+      const ruleConversion = this.convertDerivationRules(derivationRules);
+
+      // For backward compatibility, we continue processing even with failed rules
+      // In future versions, we could return early on rule conversion failures
+      const rules = ruleConversion.successfulRules;
 
       // Aggregate with rules using the base data
       const aggregationResult = this.aggregator.aggregate([baseData], rules);
@@ -291,6 +293,35 @@ export class DocumentProcessingService {
         }
       }
     }
+  }
+
+  /**
+   * Convert schema derivation rules to domain rules with explicit error handling.
+   * Replaces silent error handling with tracked rule conversion results.
+   */
+  private convertDerivationRules(
+    derivationRules: Array<{ sourcePath: string; targetField: string; unique: boolean }>,
+  ): RuleConversionResult {
+    const successfulRules: DerivationRule[] = [];
+    const errors: Array<DomainError & { message: string }> = [];
+    let failedRuleCount = 0;
+
+    for (const rule of derivationRules) {
+      const ruleResult = DerivationRule.create(
+        rule.sourcePath,
+        rule.targetField,
+        rule.unique,
+      );
+
+      if (ruleResult.ok) {
+        successfulRules.push(ruleResult.data);
+      } else {
+        failedRuleCount++;
+        errors.push(ruleResult.error);
+      }
+    }
+
+    return { successfulRules, failedRuleCount, errors };
   }
 
   /**
