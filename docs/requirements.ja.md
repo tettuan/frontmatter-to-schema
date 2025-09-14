@@ -103,8 +103,22 @@ registry_schema.json 内部で指定される。
 
 ### テンプレート指定機能
 
-Schemaは、出力時に用いるテンプレートを内部的に指定できる。
-`"x-template": "registry_command_template.json"`
+Schemaは、出力時に用いるテンプレートを内部的に指定できる。以下の2つの指定方法がある：
+
+#### 1. コンテナテンプレート指定 (x-template)
+
+`"x-template": "registry_template.json"`
+
+メインのコンテナ構造を定義するテンプレートを指定する。
+
+#### 2. アイテムテンプレート指定 (x-template-items)
+
+`"x-template-items": "registry_command_template.json"`
+
+`{@items}`
+展開時に使用するテンプレートを指定する。この指定により、`$ref`で参照されるサブSchemaに`x-template`を記載する必要がなくなる。
+
+#### テンプレート変数の参照方法
 
 テンプレートには、Schema階層を指定した変数名を記載しており、テンプレート処理は
 `{id.full}` 形式で参照した変数をSchema値で置換する。 例)
@@ -114,7 +128,8 @@ Schemaのroot階層は、"x-template" と並列の"properties"を起点とする
 と記述する場合は
 
 ```json
-"x-template": "registry_command_template.json",
+"x-template": "registry_template.json",
+"x-template-items": "registry_command_template.json",
 "properties":
   "id":
     "full":
@@ -203,6 +218,7 @@ registry_command_template.json
   "type": "object",
   "title": "Registry Schema",
   "x-template": "registry_template.json",
+  "x-template-items": "registry_command_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
@@ -244,7 +260,6 @@ registry_command_template.json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "x-template": "registry_command_template.json",
   "title": "Command Schema",
   "description": "Schema for a single command definition",
   "properties": {

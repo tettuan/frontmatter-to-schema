@@ -21,7 +21,7 @@
         "availableConfigs": {
           "type": "array",
           "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
-          "x-derived-from": "commands[].c1",
+          "x-derived-from": "tools.commands[].c1",
           "x-derived-unique": true,
           "items": {
             "type": "string"

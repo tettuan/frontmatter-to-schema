@@ -202,7 +202,6 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
           Array.isArray(((resultData.registry as any).tools as any).commands),
           true,
         );
-
       }
     },
   );
@@ -342,7 +341,6 @@ Deno.test("DocumentProcessingService - Issue #780 hardcoding fix verification", 
             true,
             `Path ${path} should have array at final location`,
           );
-
         }
       }
     },

@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { PathSegment } from "../value-objects/path-segment.ts";
 
 /**
@@ -94,7 +95,7 @@ export class ExpressionEvaluator {
       // Process array items
       for (const arrayItem of baseValue) {
         if (propertyPath) {
-          const itemData = FrontmatterData.create(arrayItem);
+          const itemData = FrontmatterDataFactory.fromParsedData(arrayItem);
           if (itemData.ok) {
             const valueResult = itemData.data.get(propertyPath);
             if (valueResult.ok && valueResult.data !== undefined) {

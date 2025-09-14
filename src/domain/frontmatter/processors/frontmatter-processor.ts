@@ -4,6 +4,7 @@ import {
   ValidationError,
 } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../factories/frontmatter-data-factory.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 
 export interface FrontmatterExtractor {
@@ -48,7 +49,7 @@ export class FrontmatterProcessor {
       return parseResult;
     }
 
-    const dataResult = FrontmatterData.create(parseResult.data);
+    const dataResult = FrontmatterDataFactory.fromParsedData(parseResult.data);
     if (!dataResult.ok) {
       return dataResult;
     }
@@ -82,7 +83,7 @@ export class FrontmatterProcessor {
 
     const results: FrontmatterData[] = [];
     for (const item of partData) {
-      const itemResult = FrontmatterData.create(item);
+      const itemResult = FrontmatterDataFactory.fromParsedData(item);
       if (itemResult.ok) {
         results.push(itemResult.data);
       }

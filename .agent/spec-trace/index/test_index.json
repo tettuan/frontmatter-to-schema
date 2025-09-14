@@ -1,37 +1,5 @@
-[
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  },
-  {
-    "version": "{version}",
-    "description": "{description}",
-    "test": "{@items}"
-  }
-]
+{
+  "version": "1.0.0",
+  "description": "Test level traceability IDs",
+  "test": []
+}

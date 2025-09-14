@@ -310,6 +310,15 @@ description: Test command description
 
 This is a test markdown file.`,
 
+  basicCommandWithoutDescription: `---
+commands:
+  - name: TestCommand
+---
+
+# Test Content
+
+This is a test markdown file for base property testing.`,
+
   commandWithVersion: `---
 version: "2.0.0"
 title: "Custom Title"
@@ -318,12 +327,14 @@ title: "Custom Title"
 # Custom Content`,
 
   climptCommand: `---
-c1: git
-c2: create
-c3: refinement-issue
-title: Test Command
-description: Test description for validation
-usage: Test usage example
+tools:
+  commands:
+    - c1: git
+      c2: create
+      c3: refinement-issue
+      title: Test Command
+      description: Test description for validation
+      usage: Test usage example
 ---
 
 # Test Content

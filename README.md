@@ -211,6 +211,9 @@ deno test --allow-all tests/domain/core/frontmatter_test.ts
 # Run with coverage
 deno test --allow-all --coverage=coverage
 deno coverage coverage --lcov > coverage.lcov
+
+# Run with debug logging (using breakdownlogger)
+deno test --allow-all --env=DEBUG_LEVEL=debug
 ```
 
 ### Code Quality
@@ -373,3 +376,5 @@ Built with:
 
 - [Deno](https://deno.land) - Runtime
 - [JSR](https://jsr.io) - Package Registry
+- [@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger) - Debug
+  logging and test analysis

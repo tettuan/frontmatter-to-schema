@@ -6,6 +6,7 @@ import { TemplateRenderer } from "../../domain/template/renderers/template-rende
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { Template } from "../../domain/template/entities/template.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
@@ -366,7 +367,7 @@ export class PipelineOrchestrator {
 
     const result: FrontmatterData[] = [];
     for (const item of arrayDataResult.data) {
-      const itemDataResult = FrontmatterData.create(item);
+      const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
       if (!itemDataResult.ok) {
         return itemDataResult;
       }

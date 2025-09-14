@@ -109,6 +109,8 @@ export class DocumentProcessingService {
     if (verbose) {
       console.log("[VERBOSE] Aggregating data with derivation rules");
     }
+    const _derivationRules = schema.getDerivedRules();
+
     const aggregatedData = this.aggregateData(finalData, schema);
     if (!aggregatedData.ok) {
       return aggregatedData;
@@ -186,7 +188,7 @@ export class DocumentProcessingService {
 
   /**
    * Process frontmatter parts if schema defines x-frontmatter-part.
-   * When x-frontmatter-part is true, each markdown file becomes one array item.
+   * When x-frontmatter-part is true, extracts the specific part from each markdown file.
    */
   private processFrontmatterParts(
     data: FrontmatterData[],
@@ -197,10 +199,46 @@ export class DocumentProcessingService {
       return data;
     }
 
-    // For frontmatter-part processing, each frontmatter document
-    // represents one item in the resulting array
-    // No need to extract sub-parts - the data array is already the parts
-    return data;
+    // Get the path to the frontmatter part (e.g., "commands")
+    const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+    if (!frontmatterPartPathResult.ok) {
+      return data;
+    }
+
+    const partPath = frontmatterPartPathResult.data;
+    const extractedParts: FrontmatterData[] = [];
+
+    // Extract the frontmatter part from each document
+    for (const frontmatterData of data) {
+      const dataObj = frontmatterData.getData();
+      const partData = this.extractNestedProperty(dataObj, partPath);
+
+      if (partData !== undefined && Array.isArray(partData)) {
+        // If the part is an array, each item becomes a separate FrontmatterData
+        for (const item of partData) {
+          if (item && typeof item === "object") {
+            const itemDataResult = FrontmatterData.create(
+              item as Record<string, unknown>,
+            );
+            if (itemDataResult.ok) {
+              extractedParts.push(itemDataResult.data);
+            }
+          }
+        }
+      } else if (
+        partData !== undefined && partData && typeof partData === "object"
+      ) {
+        // If the part is an object, it becomes a single FrontmatterData
+        const partDataResult = FrontmatterData.create(
+          partData as Record<string, unknown>,
+        );
+        if (partDataResult.ok) {
+          extractedParts.push(partDataResult.data);
+        }
+      }
+    }
+
+    return extractedParts.length > 0 ? extractedParts : data;
   }
 
   /**
@@ -391,6 +429,30 @@ export class DocumentProcessingService {
     }
 
     return { successfulRules, failedRuleCount, errors };
+  }
+
+  /**
+   * Helper method to extract nested properties from an object.
+   */
+  private extractNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+  ): unknown {
+    const parts = path.split(".");
+    let current: unknown = obj;
+
+    for (const part of parts) {
+      if (
+        current && typeof current === "object" &&
+        part in (current as Record<string, unknown>)
+      ) {
+        current = (current as Record<string, unknown>)[part];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
   }
 
   /**

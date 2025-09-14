@@ -1,0 +1,10 @@
+{
+  "title": "E2E Test Article",
+  "author": "Test Author",
+  "published": true,
+  "tags": ["test", "e2e", "automation"],
+  "metadata": {
+    "processed": true,
+    "schema_version": "1.0.0"
+  }
+}

@@ -89,12 +89,11 @@ export class Schema {
 
       const propertiesResult = def.getProperties();
       if (propertiesResult.ok) {
-        for (const prop of Object.values(propertiesResult.data)) {
-          const propDef = SchemaDefinition.create(prop);
-          if (propDef.ok) {
-            const found = findInProperties(propDef.data);
-            if (found) return found;
-          }
+        for (const [_key, prop] of Object.entries(propertiesResult.data)) {
+          // Use fromSchemaProperty since prop is already migrated
+          const propDef = SchemaDefinition.fromSchemaProperty(prop);
+          const found = findInProperties(propDef);
+          if (found) return found;
         }
       }
 
@@ -120,14 +119,11 @@ export class Schema {
       const propertiesResult = def.getProperties();
       if (propertiesResult.ok) {
         for (const [propName, prop] of Object.entries(propertiesResult.data)) {
-          const propDef = SchemaDefinition.create(prop);
-          if (propDef.ok) {
-            const newPath = currentPath
-              ? `${currentPath}.${propName}`
-              : propName;
-            const found = findPath(propDef.data, newPath);
-            if (found) return found;
-          }
+          // Use fromSchemaProperty since prop is already migrated
+          const propDef = SchemaDefinition.fromSchemaProperty(prop);
+          const newPath = currentPath ? `${currentPath}.${propName}` : propName;
+          const found = findPath(propDef, newPath);
+          if (found) return found;
         }
       }
 
@@ -166,10 +162,9 @@ export class Schema {
       if (propertiesResult.ok) {
         for (const [key, prop] of Object.entries(propertiesResult.data)) {
           const propPath = path ? `${path}.${key}` : key;
-          const propDef = SchemaDefinition.create(prop);
-          if (propDef.ok) {
-            extractRules(propDef.data, propPath);
-          }
+          // Use fromSchemaProperty since prop is already migrated
+          const propDef = SchemaDefinition.fromSchemaProperty(prop);
+          extractRules(propDef, propPath);
         }
       }
     };

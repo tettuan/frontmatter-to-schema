@@ -1,8 +1,5 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import {
-  createError,
-  FrontmatterError,
-} from "../../shared/types/errors.ts";
+import { createError, FrontmatterError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 
 /**

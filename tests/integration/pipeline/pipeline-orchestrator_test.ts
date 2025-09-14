@@ -437,6 +437,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
         "properties": {
           "allAuthors": {
             "type": "array",
+            "items": { "type": "string" },
             "x-derived-from": "items[].author",
             "x-derived-unique": true,
           },
