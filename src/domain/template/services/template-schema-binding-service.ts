@@ -173,12 +173,12 @@ export class TemplateSchemaBindingService {
     const doubleBraceRegex = /\{\{([^}]+)\}\}/g;
     let match;
     while ((match = doubleBraceRegex.exec(content)) !== null) {
-      variables.add(match[1]);
+      variables.add(match[1].trim());
     }
 
-    // Extract single-brace variables: {variable}
-    const singleBraceRegex = /\{([^}]+)\}/g;
-    while ((match = singleBraceRegex.exec(content)) !== null) {
+    // Extract single-brace variables: {@items} only
+    const itemsRegex = /\{(@items)\}/g;
+    while ((match = itemsRegex.exec(content)) !== null) {
       variables.add(match[1]);
     }
 

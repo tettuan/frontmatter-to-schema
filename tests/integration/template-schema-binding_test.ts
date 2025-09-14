@@ -73,8 +73,9 @@ describe("Template-Schema Binding Integration", () => {
       assertExists(itemsResult.ok, "Should resolve {@items} in legacy mode");
       if (!itemsResult.ok) return;
       assertExists(Array.isArray(itemsResult.data), "Should return array");
-      assertEquals(itemsResult.data.length, 2);
-      assertEquals(itemsResult.data[0].name, "task1");
+      const itemsData = itemsResult.data as Array<{ name: string }>;
+      assertEquals(itemsData.length, 2);
+      assertEquals(itemsData[0].name, "task1");
 
       // Regular variables should also work
       const titleResult = context.resolveVariable("title");
@@ -126,6 +127,7 @@ describe("Template-Schema Binding Integration", () => {
       // Act & Assert: Missing variables should fail gracefully
       const missingResult = context.resolveVariable("missing");
       assertExists(!missingResult.ok, "Should fail for missing variable");
+      if (missingResult.ok) return;
       assertExists(
         missingResult.error.message.includes("not found"),
         "Should indicate variable not found",
@@ -134,6 +136,7 @@ describe("Template-Schema Binding Integration", () => {
       // {@items} without array data should fail
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail {@items} without hierarchy");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("no x-frontmatter-part found"),
         "Should indicate missing schema context",
@@ -173,13 +176,15 @@ describe("Template-Schema Binding Integration", () => {
       assertExists(commandsResult.ok, "Should access commands as regular variable");
       if (!commandsResult.ok) return;
       assertExists(Array.isArray(commandsResult.data), "Commands should be array");
-      assertEquals(commandsResult.data.length, 2);
+      const commandsData = commandsResult.data as Array<unknown>;
+      assertEquals(commandsData.length, 2);
 
       const otherResult = context.resolveVariable("other_array");
       assertExists(otherResult.ok, "Should access other_array as regular variable");
       if (!otherResult.ok) return;
       assertExists(Array.isArray(otherResult.data), "Other array should be accessible");
-      assertEquals(otherResult.data.length, 3);
+      const otherData = otherResult.data as Array<unknown>;
+      assertEquals(otherData.length, 3);
     });
   });
 });

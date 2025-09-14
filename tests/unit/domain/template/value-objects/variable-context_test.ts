@@ -77,6 +77,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(data.ok);
       if (!data.ok) return;
 
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
+
       // Act
       const contextResult = VariableContext.create(schemaResult.data, data.data);
 
@@ -91,10 +94,10 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(itemsResult.ok, "Should resolve {@items} from hierarchy root");
       if (!itemsResult.ok) return;
       assertExists(Array.isArray(itemsResult.data), "Should return array");
-      const itemsArray = itemsResult.data as Array<{ name: string; script: string }>;
-      assertEquals(itemsArray.length, 2);
-      assertEquals(itemsArray[0].name, "build");
-      assertEquals(itemsArray[1].name, "test");
+      const itemsData = itemsResult.data as Array<{ name: string; script: string }>;
+      assertEquals(itemsData.length, 2);
+      assertEquals(itemsData[0].name, "build");
+      assertEquals(itemsData[1].name, "test");
     });
 
     it("should resolve regular variables from full data context", async () => {
@@ -140,6 +143,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       });
       assertExists(data.ok);
       if (!data.ok) return;
+
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
 
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
@@ -204,17 +210,20 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Assert
       assertExists(contextResult.ok, "Should create context even without x-frontmatter-part");
+      if (!contextResult.ok) return;
       const context = contextResult.data;
       assertEquals(context.getHierarchyRoot(), null);
 
       // Regular variables should still work
       const titleResult = context.resolveVariable("title");
       assertExists(titleResult.ok, "Should resolve regular variable");
+      if (!titleResult.ok) return;
       assertEquals(titleResult.data, "Test Project");
 
       // {@items} should fail without hierarchy root
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail to resolve {@items}");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("no x-frontmatter-part found"),
         "Should indicate missing x-frontmatter-part",
@@ -253,15 +262,18 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
       assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({
         config: {
@@ -273,9 +285,11 @@ describe("VariableContext with Schema Hierarchy", () => {
         },
       });
       assertExists(data.ok);
+      if (!data.ok) return;
 
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
+      if (!contextResult.ok) return;
 
       // Act & Assert
       const context = contextResult.data;
@@ -312,9 +326,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -325,6 +341,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       const data = FrontmatterData.create({ items: [] });
       assertExists(data.ok);
       if (!data.ok) return;
+
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
 
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
@@ -341,6 +360,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       // Invalid @ variables
       const unknownResult = context.resolveVariable("@unknown");
       assertExists(!unknownResult.ok, "Should reject unknown @ variable");
+      if (unknownResult.ok) return;
       assertExists(
         unknownResult.error.message.includes("Unknown special variable"),
         "Should indicate unknown variable",
@@ -364,9 +384,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -381,6 +403,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(data.ok);
       if (!data.ok) return;
 
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
+
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -391,6 +416,7 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail when hierarchy data is missing");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("data not found at hierarchy root"),
         "Should indicate missing hierarchy data",
@@ -411,9 +437,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -427,6 +455,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(data.ok);
       if (!data.ok) return;
 
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
+
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -436,6 +467,7 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail when hierarchy data is not array");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("expected array"),
         "Should indicate type mismatch",
@@ -458,9 +490,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -473,6 +507,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       });
       assertExists(data.ok);
       if (!data.ok) return;
+
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
 
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
@@ -499,9 +536,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -512,6 +551,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       const data = FrontmatterData.create({ title: "Test" });
       assertExists(data.ok);
       if (!data.ok) return;
+
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
 
       const contextResult = VariableContext.create(schemaResult.data, data.data);
       assertExists(contextResult.ok);
@@ -524,10 +566,12 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Assert
       assertExists(!validationResult.ok, "Should detect invalid context");
-      assertExists(
-        validationResult.error.message.includes("no x-frontmatter-part found"),
-        "Should indicate missing x-frontmatter-part",
-      );
+      if (!validationResult.ok) {
+        assertExists(
+          validationResult.error.message.includes("no x-frontmatter-part found"),
+          "Should indicate missing x-frontmatter-part",
+        );
+      }
     });
   });
 
@@ -553,9 +597,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
       assertExists(schemaPathResult.ok);
+      if (!schemaPathResult.ok) return;
 
       const schemaDefResult = SchemaDefinition.create(schemaData);
       assertExists(schemaDefResult.ok);
+      if (!schemaDefResult.ok) return;
 
       const schemaResult = Schema.create(
         schemaPathResult.data,
@@ -571,8 +617,13 @@ describe("VariableContext with Schema Hierarchy", () => {
       });
       assertExists(data.ok);
 
-      if (!schemaResult.ok || !data.ok) return;
+      assertExists(schemaResult.ok);
+      if (!schemaResult.ok) return;
+
+      if (!data.ok) return;
+
       const contextResult = VariableContext.create(schemaResult.data, data.data);
+      assertExists(contextResult.ok);
       if (!contextResult.ok) return;
       const parentContext = contextResult.data;
 
@@ -672,8 +723,9 @@ describe("VariableContext with Schema Hierarchy", () => {
       const context = contextResult.data;
 
       assertExists(context.hasArrayData(), "Should have array data");
-      assertEquals(context.getArrayData().length, 2);
-      assertEquals(context.getArrayData()[0].item, "first");
+      const arrayData = context.getArrayData();
+      assertEquals(arrayData.length, 2);
+      assertEquals((arrayData[0] as any).item, "first");
     });
   });
 });
