@@ -89,8 +89,12 @@ export class CLI {
       return Promise.resolve(ok(void 0));
     }
 
+    // Extract verbose flag
+    const verbose = args.includes("--verbose");
+    const filteredArgs = args.filter((arg) => arg !== "--verbose");
+
     // Argument validation
-    if (args.length < 3) {
+    if (filteredArgs.length < 3) {
       console.error("Error: Missing required arguments");
       this.showUsage();
       return Promise.resolve(err(createError({
@@ -99,10 +103,15 @@ export class CLI {
       })));
     }
 
-    const [schemaPath, outputPath, inputPattern] = args;
+    const [schemaPath, outputPath, inputPattern] = filteredArgs;
 
     // Execute command - this is async and contains await
-    return await this.executeCommand(schemaPath, outputPath, inputPattern);
+    return await this.executeCommand(
+      schemaPath,
+      outputPath,
+      inputPattern,
+      verbose,
+    );
   }
 
   private showHelp(): void {
@@ -120,6 +129,7 @@ ARGUMENTS:
 OPTIONS:
   -h, --help     Show this help message
   -v, --version  Show version information
+  --verbose      Enable verbose logging
 
 EXAMPLES:
   frontmatter-to-schema schema.json output.json "docs/**/*.md"
@@ -150,12 +160,21 @@ DESCRIPTION:
     schemaPath: string,
     outputPath: string,
     inputPattern: string,
+    verbose: boolean = false,
   ): Promise<Result<void, DomainError & { message: string }>> {
     const config: PipelineConfig = {
       schemaPath,
       outputPath,
       inputPattern,
+      verbose,
     };
+
+    if (verbose) {
+      console.log("[VERBOSE] Starting pipeline with configuration:");
+      console.log("[VERBOSE]   Schema: " + schemaPath);
+      console.log("[VERBOSE]   Output: " + outputPath);
+      console.log("[VERBOSE]   Pattern: " + inputPattern);
+    }
 
     const result = await this.orchestrator.execute(config);
     if (!result.ok) {

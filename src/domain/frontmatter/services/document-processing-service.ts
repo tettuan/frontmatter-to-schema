@@ -54,11 +54,18 @@ export class DocumentProcessingService {
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
+    verbose: boolean = false,
   ): Result<FrontmatterData, DomainError & { message: string }> {
     // Stage 1: List matching files
+    if (verbose) {
+      console.log("[VERBOSE] Listing files with pattern: " + inputPattern);
+    }
     const filesResult = this.fileLister.list(inputPattern);
     if (!filesResult.ok) {
       return filesResult;
+    }
+    if (verbose) {
+      console.log(`[VERBOSE] Found ${filesResult.data.length} files`);
     }
 
     const processedData: FrontmatterData[] = [];
@@ -66,10 +73,21 @@ export class DocumentProcessingService {
 
     // Stage 2: Process each file
     for (const filePath of filesResult.data) {
+      if (verbose) {
+        console.log("[VERBOSE] Processing file: " + filePath);
+      }
       const documentResult = this.processDocument(filePath, validationRules);
       if (documentResult.ok) {
         processedData.push(documentResult.data.frontmatterData);
         documents.push(documentResult.data.document);
+        if (verbose) {
+          console.log("[VERBOSE]   ✓ File processed successfully");
+        }
+      } else if (verbose) {
+        console.log(
+          "[VERBOSE]   ✗ Failed to process file: " +
+            documentResult.error.message,
+        );
       }
       // Note: Individual file failures don't stop processing
     }
@@ -82,16 +100,32 @@ export class DocumentProcessingService {
     }
 
     // Stage 3: Apply frontmatter-part processing if needed
+    if (verbose) {
+      console.log("[VERBOSE] Applying frontmatter-part processing");
+    }
     const finalData = this.processFrontmatterParts(processedData, schema);
 
     // Stage 4: Aggregate data using derivation rules
+    if (verbose) {
+      console.log("[VERBOSE] Aggregating data with derivation rules");
+    }
     const aggregatedData = this.aggregateData(finalData, schema);
     if (!aggregatedData.ok) {
       return aggregatedData;
     }
 
     // Stage 5: Populate base properties from schema defaults
-    return this.basePropertyPopulator.populate(aggregatedData.data, schema);
+    if (verbose) {
+      console.log("[VERBOSE] Populating base properties from schema");
+    }
+    const result = this.basePropertyPopulator.populate(
+      aggregatedData.data,
+      schema,
+    );
+    if (verbose && result.ok) {
+      console.log("[VERBOSE] Document processing completed");
+    }
+    return result;
   }
 
   /**
