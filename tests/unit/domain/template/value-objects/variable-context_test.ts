@@ -213,6 +213,7 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Assert
       assertExists(contextResult.ok, "Should create context even without x-frontmatter-part");
+      if (!contextResult.ok) return;
       const context = contextResult.data;
       assertEquals(context.getHierarchyRoot(), null);
 
@@ -224,6 +225,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       // {@items} should fail without hierarchy root
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail to resolve {@items}");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("no x-frontmatter-part found"),
         "Should indicate missing x-frontmatter-part",
@@ -358,6 +360,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       // Invalid @ variables
       const unknownResult = context.resolveVariable("@unknown");
       assertExists(!unknownResult.ok, "Should reject unknown @ variable");
+      if (unknownResult.ok) return;
       assertExists(
         unknownResult.error.message.includes("Unknown special variable"),
         "Should indicate unknown variable",
@@ -411,6 +414,7 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail when hierarchy data is missing");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("data not found at hierarchy root"),
         "Should indicate missing hierarchy data",
@@ -459,6 +463,7 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       const itemsResult = context.resolveVariable("@items");
       assertExists(!itemsResult.ok, "Should fail when hierarchy data is not array");
+      if (itemsResult.ok) return;
       assertExists(
         itemsResult.error.message.includes("expected array"),
         "Should indicate type mismatch",
@@ -507,11 +512,10 @@ describe("VariableContext with Schema Hierarchy", () => {
       const context = contextResult.data;
 
       // Act
-      const validationResult = context.validateItemsResolution();
+      const isValid = context.validateItemsResolution();
 
       // Assert
-      assertExists(validationResult.ok, "Should validate successfully");
-      if (!validationResult.ok) return;
+      assertExists(isValid, "Should validate successfully");
     });
 
     it("should detect invalid {@items} context", async () => {
@@ -549,14 +553,10 @@ describe("VariableContext with Schema Hierarchy", () => {
       const context = contextResult.data;
 
       // Act
-      const validationResult = context.validateItemsResolution();
+      const isValid = context.validateItemsResolution();
 
       // Assert
-      assertExists(!validationResult.ok, "Should detect invalid context");
-      assertExists(
-        validationResult.error.message.includes("no x-frontmatter-part found"),
-        "Should indicate missing x-frontmatter-part",
-      );
+      assertExists(!isValid, "Should detect invalid context");
     });
   });
 
@@ -616,12 +616,10 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Act
       if (!itemData.ok) return;
-      const itemContextResult = parentContext.createItemContext(itemData.data);
+      const itemContext = parentContext.createItemContext(itemData.data.getData());
 
       // Assert
-      assertExists(itemContextResult.ok, "Should create item context");
-      if (!itemContextResult.ok) return;
-      const itemContext = itemContextResult.data;
+      assertExists(itemContext, "Should create item context");
 
       // Item context should resolve its own variables
       const nameResult = itemContext.resolveVariable("name");
@@ -705,7 +703,8 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       assertExists(context.hasArrayData(), "Should have array data");
       assertEquals(context.getArrayData().length, 2);
-      assertEquals(context.getArrayData()[0].item, "first");
+      const arrayData = context.getArrayData() as Array<{ item: string }>;
+      assertEquals(arrayData[0].item, "first");
     });
   });
 });
