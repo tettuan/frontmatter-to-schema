@@ -101,10 +101,8 @@ export class SchemaPathResolver {
       const pathParts = path.split(".");
       const structure = this.buildNestedStructure(pathParts, dataArray);
 
-      // For backward compatibility, also add at 'commands' path if different
-      if (path !== "commands") {
-        structure.commands = dataArray;
-      }
+      // No hardcoded backward compatibility - this should be handled by schema configuration
+      // If backward compatibility is needed, it should be specified in the schema's x-compatibility-path
 
       return DataStructure.create(structure);
     } catch (error) {
