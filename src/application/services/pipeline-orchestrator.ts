@@ -142,20 +142,25 @@ export class PipelineOrchestrator {
     let itemsData: FrontmatterData[] | undefined;
 
     // Check if we need to extract items data
-    // Extract frontmatter-part data if schema defines x-frontmatter-part
-    // This supports both dual-template (with x-template-items) and single-template scenarios
-    const frontmatterPartResult = this.extractFrontmatterPartData(
-      mainData,
-      schema,
-    );
-    if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
-      itemsData = frontmatterPartResult.data;
-      if (config.verbose) {
-        const templateType = itemsTemplatePath ? "items template" : "single template {@items} expansion";
-        console.log(
-          "[VERBOSE] Extracted " + itemsData.length +
-            " items for " + templateType,
-        );
+    // Extract frontmatter-part data if:
+    // 1. Schema defines x-frontmatter-part, OR
+    // 2. We have a separate items template (x-template-items)
+    const hasFrontmatterPart = schema.findFrontmatterPartPath().ok;
+
+    if (hasFrontmatterPart || itemsTemplatePath) {
+      const frontmatterPartResult = this.extractFrontmatterPartData(
+        mainData,
+        schema,
+      );
+      if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
+        itemsData = frontmatterPartResult.data;
+        if (config.verbose) {
+          const templateType = itemsTemplatePath ? "items template" : "single template {@items} expansion";
+          console.log(
+            "[VERBOSE] Extracted " + itemsData.length +
+              " items for " + templateType,
+          );
+        }
       }
     }
 
