@@ -35,10 +35,17 @@ export type RuleConversionResult = {
 };
 
 /**
- * Domain service responsible for Document processing stage of the 3-stage pipeline.
- * Handles: Frontmatter → ValidatedData + Aggregation + BaseProperty population
+ * Domain service responsible for transforming multiple Markdown files into integrated domain data.
+ * Handles: Multiple Frontmatter → Validated + Aggregated + Structured Domain Data
+ *
+ * Transformation Pipeline:
+ * 1. Extract frontmatter from multiple files
+ * 2. Validate according to schema rules
+ * 3. Aggregate and structure data
+ * 4. Apply derivation rules
+ * 5. Generate final integrated domain data
  */
-export class DocumentProcessingService {
+export class FrontmatterTransformationService {
   constructor(
     private readonly frontmatterProcessor: FrontmatterProcessor,
     private readonly aggregator: Aggregator,
@@ -49,10 +56,10 @@ export class DocumentProcessingService {
   ) {}
 
   /**
-   * Process documents from file pattern with validation and aggregation.
-   * Follows 3-stage architecture: Extract → Validate → Aggregate
+   * Transform multiple frontmatter documents into integrated domain data.
+   * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
    */
-  processDocuments(
+  transformDocuments(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
@@ -388,61 +395,40 @@ export class DocumentProcessingService {
       const dataObj = frontmatterData.getData();
       this.debugLogger?.logDebug(
         "frontmatter-part-extraction",
-        `Extracting part '${partPath}' from document`,
+        `Processing document for frontmatter-part at schema path '${partPath}'`,
         {
           availableKeys: Object.keys(dataObj),
         },
       );
 
-      const partData = this.extractNestedProperty(dataObj, partPath);
+      // For frontmatter-part processing, the individual markdown files contain
+      // the data that will become items in the target array. The partPath indicates
+      // where the final array will be placed in the aggregated result, NOT where
+      // to extract data from individual files.
+      // Therefore, we extract the entire frontmatter object from each file.
+      const partData = dataObj; // Use the entire frontmatter object
 
-      if (partData !== undefined && Array.isArray(partData)) {
+      if (partData && typeof partData === "object") {
         this.debugLogger?.logDebug(
           "frontmatter-part-extraction",
-          `Found array data at '${partPath}' with ${partData.length} items`,
+          "Found frontmatter object to extract as array item",
+          {
+            keys: Object.keys(partData),
+          },
         );
-        // If the part is an array, each item becomes a separate FrontmatterData
-        for (const item of partData) {
-          if (item && typeof item === "object") {
-            const itemDataResult = FrontmatterData.create(
-              item as Record<string, unknown>,
-            );
-            if (itemDataResult.ok) {
-              extractedParts.push(itemDataResult.data);
-              this.debugLogger?.logDebug(
-                "frontmatter-part-extraction",
-                "Successfully created FrontmatterData from array item",
-              );
-            } else {
-              this.debugLogger?.logError(
-                "frontmatter-part-extraction",
-                itemDataResult.error,
-                { item },
-              );
-            }
-          }
-        }
-      } else if (
-        partData !== undefined && partData && typeof partData === "object"
-      ) {
-        this.debugLogger?.logDebug(
-          "frontmatter-part-extraction",
-          `Found object data at '${partPath}'`,
-        );
-        // If the part is an object, it becomes a single FrontmatterData
-        const partDataResult = FrontmatterData.create(
-          partData as Record<string, unknown>,
-        );
-        if (partDataResult.ok) {
-          extractedParts.push(partDataResult.data);
+
+        // Each individual frontmatter object becomes one item in the target array
+        const itemDataResult = FrontmatterData.create(partData);
+        if (itemDataResult.ok) {
+          extractedParts.push(itemDataResult.data);
           this.debugLogger?.logDebug(
             "frontmatter-part-extraction",
-            "Successfully created FrontmatterData from object",
+            "Successfully processed frontmatter as array item",
           );
         } else {
           this.debugLogger?.logError(
             "frontmatter-part-extraction",
-            partDataResult.error,
+            itemDataResult.error,
             { partData },
           );
         }
@@ -521,20 +507,57 @@ export class DocumentProcessingService {
 
     // Use SchemaPathResolver instead of hardcoded structure creation
     const commandsArray = data.map((item) => item.getData());
+
+    this.debugLogger?.logDebug(
+      "data-structure-creation",
+      "Creating data structure using SchemaPathResolver",
+      {
+        inputDataCount: data.length,
+        commandsArrayLength: commandsArray.length,
+        sampleCommand: commandsArray[0]
+          ? Object.keys(commandsArray[0])
+          : "no data",
+      },
+    );
+
     const structureResult = SchemaPathResolver.resolveDataStructure(
       schema,
       commandsArray,
     );
 
     if (!structureResult.ok) {
+      this.debugLogger?.logError(
+        "data-structure-creation",
+        structureResult.error,
+      );
       return structureResult;
     }
+
+    this.debugLogger?.logDebug(
+      "data-structure-creation",
+      "Successfully created data structure",
+      {
+        structure: structureResult.data.getStructure(),
+      },
+    );
 
     // Convert to FrontmatterData and apply derivation rules
     const baseDataResult = structureResult.data.toFrontmatterData();
     if (!baseDataResult.ok) {
+      this.debugLogger?.logError(
+        "frontmatter-conversion",
+        baseDataResult.error,
+      );
       return baseDataResult;
     }
+
+    this.debugLogger?.logDebug(
+      "frontmatter-conversion",
+      "Successfully converted structure to FrontmatterData",
+      {
+        dataKeys: Object.keys(baseDataResult.data.getData()),
+      },
+    );
 
     return this.applyDerivationRules(baseDataResult.data, derivationRules);
   }
@@ -594,19 +617,194 @@ export class DocumentProcessingService {
     // For backward compatibility, we continue processing even with failed rules
     const rules = ruleConversion.successfulRules;
 
-    // Aggregate with rules using the base data
-    const aggregationResult = this.aggregator.aggregate([baseData], rules);
+    this.debugLogger?.logDebug(
+      "derivation-rules-application",
+      "Applying derivation rules while preserving frontmatter-part data",
+      {
+        ruleCount: rules.length,
+        baseDataKeys: Object.keys(baseData.getData()),
+        baseDataStructure: JSON.stringify(baseData.getData(), null, 2),
+      },
+    );
+
+    // Apply derivation rules and merge with base data
+    const aggregationResult = this.aggregator.aggregate(
+      [baseData],
+      rules,
+      baseData,
+    );
     if (!aggregationResult.ok) {
       return aggregationResult;
     }
 
-    // Merge with base
-    const mergedResult = this.aggregator.mergeWithBase(aggregationResult.data);
-    if (!mergedResult.ok) {
-      return mergedResult;
+    // Use aggregator's mergeWithBase to properly apply derived fields
+    const mergeResult = this.aggregator.mergeWithBase(aggregationResult.data);
+    if (!mergeResult.ok) {
+      return mergeResult;
     }
 
-    return mergedResult;
+    const finalData = mergeResult.data;
+
+    this.debugLogger?.logDebug(
+      "derivation-rules-application",
+      "Successfully applied derivation rules",
+      {
+        finalDataKeys: Object.keys(finalData.getData()),
+        finalDataStructure: JSON.stringify(finalData.getData(), null, 2),
+      },
+    );
+
+    return ok(finalData);
+  }
+
+  /**
+   * Calculate derived fields from source data using derivation rules.
+   * Preserves frontmatter-part data by computing only derived fields.
+   */
+  private calculateDerivedFields(
+    sourceData: FrontmatterData,
+    rules: DerivationRule[],
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const derivedFields: Record<string, unknown> = {};
+
+    this.debugLogger?.logDebug(
+      "derived-field-calculation",
+      "Calculating derived fields",
+      {
+        ruleCount: rules.length,
+        sourceDataKeys: Object.keys(sourceData.getData()),
+      },
+    );
+
+    for (const rule of rules) {
+      const sourceResult = sourceData.get(rule.getBasePath());
+      if (sourceResult.ok && Array.isArray(sourceResult.data)) {
+        this.debugLogger?.logDebug(
+          "derived-field-calculation",
+          `Processing rule: ${rule.getBasePath()} -> ${rule.getTargetField()}`,
+          {
+            sourceArrayLength: sourceResult.data.length,
+            isUnique: rule.isUnique(),
+          },
+        );
+
+        const values = sourceResult.data.map((item) =>
+          typeof item === "object" && item !== null
+            ? (item as Record<string, unknown>)[rule.getPropertyPath()]
+            : item
+        ).filter((value) => value !== undefined);
+
+        const finalValues = rule.isUnique() ? [...new Set(values)] : values;
+
+        // Set derived field using targetField path
+        this.setNestedField(derivedFields, rule.getTargetField(), finalValues);
+
+        this.debugLogger?.logDebug(
+          "derived-field-calculation",
+          `Calculated derived field: ${rule.getTargetField()}`,
+          {
+            valuesCount: finalValues.length,
+            sampleValue: finalValues[0],
+          },
+        );
+      } else {
+        this.debugLogger?.logDebug(
+          "derived-field-calculation",
+          `Skipping rule due to missing or non-array source: ${rule.getBasePath()}`,
+          {
+            sourceResult: sourceResult.ok ? "found but not array" : "not found",
+          },
+        );
+      }
+    }
+
+    this.debugLogger?.logDebug(
+      "derived-field-calculation",
+      "Derived field calculation completed",
+      {
+        derivedFieldsKeys: Object.keys(derivedFields),
+      },
+    );
+
+    return FrontmatterData.create(derivedFields);
+  }
+
+  /**
+   * Deep merge two FrontmatterData objects, preserving existing nested structures.
+   * Required to merge derived fields without overwriting frontmatter-part data.
+   */
+  private deepMerge(
+    baseData: FrontmatterData,
+    derivedData: FrontmatterData,
+  ): FrontmatterData {
+    const baseObj = baseData.getData();
+    const derivedObj = derivedData.getData();
+
+    const mergedObj = this.deepMergeObjects(baseObj, derivedObj);
+    const mergedResult = FrontmatterData.create(mergedObj);
+
+    // Since we control the input, this should never fail
+    if (!mergedResult.ok) {
+      throw new Error(`Deep merge failed: ${mergedResult.error.message}`);
+    }
+
+    return mergedResult.data;
+  }
+
+  /**
+   * Deep merge two objects recursively.
+   */
+  private deepMergeObjects(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const result = { ...target };
+
+    for (const key in source) {
+      if (source[key] !== undefined) {
+        if (
+          typeof source[key] === "object" &&
+          source[key] !== null &&
+          !Array.isArray(source[key]) &&
+          typeof result[key] === "object" &&
+          result[key] !== null &&
+          !Array.isArray(result[key])
+        ) {
+          // Both are objects - merge recursively
+          result[key] = this.deepMergeObjects(
+            result[key] as Record<string, unknown>,
+            source[key] as Record<string, unknown>,
+          );
+        } else {
+          // Replace value (for arrays, primitives, or when target is not object)
+          result[key] = source[key];
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Set nested field in object using dot notation path.
+   * Helper method for applying derived field values to nested structure.
+   */
+  private setNestedField(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): void {
+    const parts = path.split(".");
+    let current = obj;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
+        current[parts[i]] = {};
+      }
+      current = current[parts[i]] as Record<string, unknown>;
+    }
+
+    current[parts[parts.length - 1]] = value;
   }
 
   /**

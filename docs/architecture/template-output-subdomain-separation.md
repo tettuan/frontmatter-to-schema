@@ -1,19 +1,23 @@
 # Template Output Subdomain Separation
 
-## Problem Statement
+## Current Architecture
 
-The current template output domain has mixed responsibilities, causing confusion
-between:
+The template output domain is orchestrated by `OutputRenderingService`, which is
+called by `PipelineOrchestrator`. The flow is:
 
-1. **List Generation Processing** - Creating aggregate lists from multiple
-   documents
-2. **Document Iteration Processing** - Processing individual frontmatter
-   documents
+`PipelineOrchestrator` → `OutputRenderingService` → `TemplateRenderer`
 
-This mixing violates the Single Responsibility Principle and creates unclear
-boundaries within the template output domain.
+The `OutputRenderingService` handles:
 
-## Proposed Subdomain Architecture
+1. **Dual-Template Processing** - Main template and items template coordination
+2. **Variable Replacement** - Replacing template variables with data values
+3. **Template Composition** - Combining items template results into main
+   template
+
+See `template-processing-specification.md` Section 5.2 for the authoritative
+specification.
+
+## Subdomain Architecture
 
 ### 1. List Aggregation Subdomain
 
@@ -82,25 +86,32 @@ domain/template/document-processing/
 ## Integration Points
 
 ```typescript
-// Clear separation in PipelineOrchestrator with x-template-items support
+// PipelineOrchestrator delegates template rendering to OutputRenderingService
 class PipelineOrchestrator {
   constructor(
-    private readonly templateSchemaCoordinator: TemplateSchemaCoordinator, // Cross-domain service
+    private readonly documentProcessor: FrontmatterTransformationService,
+    private readonly schemaProcessor: SchemaProcessingService,
+    private readonly outputRenderingService: OutputRenderingService,
+    private readonly fileSystem: FileSystem,
   ) {}
 
-  async process(documents: MarkdownDocument[]): Promise<ProcessingResult> {
-    const frontmatterDataArray = await this.extractFrontmatter(documents);
-    const schema = await this.loadSchema();
+  async execute(config: PipelineConfig): Promise<Result<void, DomainError>> {
+    // 1. Process documents and schema
+    const processedData = await this.documentProcessor.processDocuments(...);
+    const schema = await this.loadSchema(config.schemaPath);
 
-    // Route to appropriate subdomain with schema-template coordination
-    if (this.isListAggregation(this.template)) {
-      return this.listAggregationSubdomain.process(
-        frontmatterDataArray,
-        await this.templateSchemaCoordinator.resolveTemplateContext(schema),
-      );
-    } else {
-      return this.documentProcessingSubdomain.process(frontmatterDataArray);
-    }
+    // 2. Extract items data if needed (x-frontmatter-part)
+    const itemsData = this.extractFrontmatterPartData(processedData, schema);
+
+    // 3. Delegate to OutputRenderingService for template rendering
+    return this.outputRenderingService.renderOutput(
+      templatePath,
+      itemsTemplatePath,
+      mainData,
+      itemsData,
+      config.outputPath,
+    );
+  }
   }
 }
 

@@ -1,8 +1,9 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
-import { DocumentProcessingService } from "../../domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
-import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
+import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
+import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { Template } from "../../domain/template/entities/template.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -58,9 +59,10 @@ export interface FileSystem {
  */
 export class PipelineOrchestrator {
   constructor(
-    private readonly documentProcessor: DocumentProcessingService,
+    private readonly frontmatterTransformer: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
-    private readonly templateRenderer: TemplateRenderer,
+    private readonly outputRenderingService: OutputRenderingService,
+    private readonly templatePathResolver: TemplatePathResolver,
     private readonly fileSystem: FileSystem,
   ) {}
 
@@ -83,31 +85,32 @@ export class PipelineOrchestrator {
       console.log("[VERBOSE] Schema loaded successfully");
     }
 
-    // Step 2: Determine template path (from config or schema)
+    // Step 2: Resolve template paths using TemplatePathResolver
     if (config.verbose) {
-      console.log("[VERBOSE] Step 2: Resolving template path");
+      console.log("[VERBOSE] Step 2: Resolving template paths");
     }
-    const templatePathResult = this.resolveTemplatePath(config, schema);
-    if (!templatePathResult.ok) {
-      return templatePathResult;
+    const templatePathConfig = {
+      schemaPath: config.schemaPath,
+      explicitTemplatePath: config.templatePath,
+    };
+    const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
+      schema,
+      templatePathConfig,
+    );
+    if (!resolvePathsResult.ok) {
+      return resolvePathsResult;
     }
+    const templatePath = resolvePathsResult.data.templatePath;
+    const itemsTemplatePath = resolvePathsResult.data.itemsTemplatePath;
+    const outputFormat = resolvePathsResult.data.outputFormat || "json";
     if (config.verbose) {
-      console.log(
-        "[VERBOSE] Template path resolved: " + templatePathResult.data,
-      );
-    }
-
-    // Step 3: Load template
-    if (config.verbose) {
-      console.log("[VERBOSE] Step 3: Loading template");
-    }
-    const templateResult = await this.loadTemplate(templatePathResult.data);
-    if (!templateResult.ok) {
-      return templateResult;
-    }
-    const template = templateResult.data;
-    if (config.verbose) {
-      console.log("[VERBOSE] Template loaded successfully");
+      console.log("[VERBOSE] Template path resolved: " + templatePath);
+      if (itemsTemplatePath) {
+        console.log(
+          "[VERBOSE] Items template path resolved: " + itemsTemplatePath,
+        );
+      }
+      console.log("[VERBOSE] Output format: " + outputFormat);
     }
 
     // Step 4: Process documents (成果A-D)
@@ -118,7 +121,7 @@ export class PipelineOrchestrator {
       );
     }
     const validationRules = schema.getValidationRules();
-    const processedDataResult = this.documentProcessor.processDocuments(
+    const processedDataResult = this.frontmatterTransformer.transformDocuments(
       config.inputPattern,
       validationRules,
       schema,
@@ -131,33 +134,59 @@ export class PipelineOrchestrator {
       console.log("[VERBOSE] Documents processed successfully");
     }
 
-    // Step 5: Handle array expansion if x-frontmatter-part is present
+    // Step 5: Extract items data if x-frontmatter-part is present
     if (config.verbose) {
-      console.log("[VERBOSE] Step 5: Rendering template with data");
+      console.log("[VERBOSE] Step 5: Preparing data for rendering");
     }
-    const outputResult = this.renderWithArraySupport(
-      template,
-      processedDataResult.data,
-      schema,
-    );
-    if (!outputResult.ok) {
-      return outputResult;
-    }
-    if (config.verbose) {
-      console.log("[VERBOSE] Template rendered successfully");
+    const mainData = processedDataResult.data;
+    let itemsData: FrontmatterData[] | undefined;
+
+    // Check if we need to extract items data
+    // Extract frontmatter-part data ONLY if we have a separate items template
+    // For single templates with {@items}, let the template handle the expansion
+    // using the full mainData which includes base properties
+    if (itemsTemplatePath) {
+      const frontmatterPartResult = this.extractFrontmatterPartData(
+        mainData,
+        schema,
+      );
+      if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
+        itemsData = frontmatterPartResult.data;
+        if (config.verbose) {
+          console.log(
+            "[VERBOSE] Extracted " + itemsData.length +
+              " items for dual-template rendering",
+          );
+        }
+      }
+    } else if (schema.findFrontmatterPartPath().ok) {
+      // For single template with frontmatter-part, keep itemsData undefined
+      // The template renderer will extract the array data from mainData during {@items} expansion
+      if (config.verbose) {
+        console.log(
+          "[VERBOSE] Single template with frontmatter-part detected - will use mainData for {@items} expansion",
+        );
+      }
     }
 
-    // Step 6: Write output (成果Z)
+    // Step 6: Use OutputRenderingService to render and write output
     if (config.verbose) {
-      console.log("[VERBOSE] Step 6: Writing output to " + config.outputPath);
+      console.log("[VERBOSE] Step 6: Rendering and writing output");
     }
-    const writeResult = await Promise.resolve(
-      this.fileSystem.write(config.outputPath, outputResult.data),
+    const renderResult = this.outputRenderingService.renderOutput(
+      templatePath,
+      itemsTemplatePath,
+      mainData,
+      itemsData,
+      config.outputPath,
+      outputFormat,
     );
-    if (config.verbose && writeResult.ok) {
-      console.log("[VERBOSE] Output written successfully");
+    if (config.verbose && renderResult.ok) {
+      console.log(
+        "[VERBOSE] Output written successfully to " + config.outputPath,
+      );
     }
-    return writeResult;
+    return renderResult;
   }
 
   /**
@@ -197,35 +226,6 @@ export class PipelineOrchestrator {
         message: `Failed to parse schema: ${error}`,
       }));
     }
-  }
-
-  /**
-   * Resolve template path from config or schema
-   */
-  private resolveTemplatePath(
-    config: PipelineConfig,
-    schema: Schema,
-  ): Result<string, DomainError & { message: string }> {
-    // Prefer explicit template path from config
-    if (config.templatePath) {
-      return ok(config.templatePath);
-    }
-
-    // Try to get template path from schema's x-template attribute
-    const schemaTemplateResult = schema.getTemplatePath();
-    if (schemaTemplateResult.ok) {
-      // Resolve relative to schema directory
-      const lastSlash = config.schemaPath.lastIndexOf("/");
-      const schemaDir = lastSlash > -1
-        ? config.schemaPath.substring(0, lastSlash)
-        : "."; // Use current directory if no path separator
-      return ok(`${schemaDir}/${schemaTemplateResult.data}`);
-    }
-
-    return err(createError({
-      kind: "TemplateNotDefined",
-      message: "No template path specified in config or schema",
-    }));
   }
 
   /**
@@ -280,57 +280,6 @@ export class PipelineOrchestrator {
     if (path.endsWith(".json")) return "json";
     if (path.endsWith(".yml") || path.endsWith(".yaml")) return "yaml";
     return "markdown";
-  }
-
-  /**
-   * Render template with array expansion support
-   */
-  private renderWithArraySupport(
-    template: Template,
-    data: FrontmatterData,
-    schema: Schema,
-  ): Result<string, DomainError & { message: string }> {
-    // Check if template contains {@items} pattern
-    const templateContent = template.getContent();
-    const hasArrayExpansion = this.containsArrayExpansion(templateContent);
-
-    if (hasArrayExpansion) {
-      // Get the frontmatter-part data
-      const frontmatterPartResult = this.extractFrontmatterPartData(
-        data,
-        schema,
-      );
-      if (!frontmatterPartResult.ok) {
-        return frontmatterPartResult;
-      }
-
-      // Render with array expansion
-      return this.templateRenderer.renderWithArray(
-        template,
-        frontmatterPartResult.data,
-      );
-    }
-
-    // Regular rendering without array expansion
-    return this.templateRenderer.render(template, data);
-  }
-
-  /**
-   * Check if template contains {@items} expansion pattern
-   */
-  private containsArrayExpansion(content: unknown): boolean {
-    if (typeof content === "string") {
-      return content.includes("{@items}");
-    }
-    if (Array.isArray(content)) {
-      return content.some((item) => this.containsArrayExpansion(item));
-    }
-    if (content && typeof content === "object") {
-      return Object.values(content as Record<string, unknown>).some(
-        (value) => this.containsArrayExpansion(value),
-      );
-    }
-    return false;
   }
 
   /**

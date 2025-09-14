@@ -110,73 +110,105 @@ export class TemplateRenderer {
   }
 
   /**
-   * Renders template with array of data sources
+   * Renders template with array of data sources using {@items} expansion
    */
   renderWithArray(
     template: Template,
     dataArray: FrontmatterData[],
   ): Result<string, TemplateError & { message: string }> {
-    this.debugLogger?.logInfo(
-      "template-render-array",
-      "Starting array data template rendering",
-      {
-        templateFormat: template.getFormat(),
-        arrayLength: dataArray.length,
-      },
-    );
-
     const content = template.getContent();
-    const results: unknown[] = [];
+    const contentStr = typeof content === "string"
+      ? content
+      : JSON.stringify(content);
+    const hasItemsExpansion = contentStr.includes("{@items}");
 
-    for (let i = 0; i < dataArray.length; i++) {
-      const data = dataArray[i];
-      this.debugLogger?.logDebug(
-        "array-item-processing",
-        `Processing array item ${i + 1}/${dataArray.length}`,
+    if (hasItemsExpansion) {
+      // Use array expansion for {@items} patterns
+      this.debugLogger?.logInfo(
+        "template-render-array",
+        "Starting array data template rendering with {@items} expansion",
         {
-          itemIndex: i,
-          dataKeys: Object.keys(data.getData()),
+          templateFormat: template.getFormat(),
+          arrayLength: dataArray.length,
         },
       );
 
-      const renderedResult = this.variableReplacer.processValue(content, data);
-      if (!renderedResult.ok) {
+      // Convert FrontmatterData array to plain data for array expansion
+      const plainDataArray = dataArray.map((data) => data.getData());
+
+      this.debugLogger?.logDebug(
+        "array-expansion",
+        "Processing template with {@items} expansion",
+        {
+          templateType: typeof content,
+          hasArrayData: Array.isArray(plainDataArray),
+          itemCount: plainDataArray.length,
+        },
+      );
+
+      // Use processArrayExpansion to handle {@items} properly
+      const expansionResult = this.variableReplacer.processArrayExpansion(
+        content,
+        plainDataArray,
+      );
+      if (!expansionResult.ok) {
         this.debugLogger?.logError(
-          "array-item-processing",
-          renderedResult.error,
+          "array-expansion",
+          expansionResult.error,
           {
-            itemIndex: i,
             templateFormat: template.getFormat(),
           },
         );
-        return renderedResult;
+        return expansionResult;
       }
 
-      results.push(renderedResult.data);
-      this.debugLogger?.logDebug(
-        "array-item-processing",
-        `Successfully processed array item ${i + 1}`,
-      );
-    }
-
-    this.debugLogger?.logInfo(
-      "array-processing",
-      `Successfully processed all ${dataArray.length} array items`,
-    );
-
-    const formatResult = this.formatOutput(results, template.getFormat());
-    if (formatResult.ok) {
       this.debugLogger?.logInfo(
-        "template-render-array",
-        "Array data template rendering completed successfully",
+        "array-expansion",
+        "Array expansion completed successfully",
         {
-          outputLength: formatResult.data.length,
-          processedItems: results.length,
+          resultType: typeof expansionResult.data,
         },
       );
-    }
 
-    return formatResult;
+      return this.formatOutput(
+        expansionResult.data,
+        template.getFormat(),
+      );
+    } else {
+      // Use individual item processing for traditional array rendering
+      this.debugLogger?.logInfo(
+        "template-render-array",
+        "Starting individual item template rendering",
+        {
+          templateFormat: template.getFormat(),
+          arrayLength: dataArray.length,
+        },
+      );
+
+      const results: unknown[] = [];
+      for (const item of dataArray) {
+        const itemResult = this.variableReplacer.processValue(content, item);
+        if (!itemResult.ok) {
+          this.debugLogger?.logError(
+            "item-processing",
+            itemResult.error,
+            { templateFormat: template.getFormat() },
+          );
+          return itemResult;
+        }
+        results.push(itemResult.data);
+      }
+
+      this.debugLogger?.logInfo(
+        "template-render-array",
+        "Individual item processing completed successfully",
+        {
+          resultCount: results.length,
+        },
+      );
+
+      return this.formatOutput(results, template.getFormat());
+    }
   }
 
   private formatOutput(

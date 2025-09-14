@@ -128,7 +128,10 @@ Deno.test("CLI Basic Functionality", async (t) => {
       const outputJson = outputJsonResult.data;
 
       // Verify core fields exist and have expected content
-      assert(outputJson.title === "E2E Test Article", "Title should match");
+      assert(
+        outputJson.title === "E2E Test Article",
+        `Title should match. Expected: "E2E Test Article", Got: "${outputJson.title}"`,
+      );
       assert(outputJson.author === "Test Author", "Author should match");
 
       // The template processing converts values to strings, so we need to check for that

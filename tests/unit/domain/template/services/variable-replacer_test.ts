@@ -276,3 +276,128 @@ Deno.test({
     }
   },
 });
+
+// ✅ DDD Fix: Add comprehensive YAML array expansion tests
+Deno.test({
+  name:
+    "VariableReplacer - processArrayExpansion should handle YAML list format",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const yamlTemplate = "books:\n  - {@items}";
+    const dataArray = [
+      { title: "Book 1", author: "Author 1" },
+      { title: "Book 2", author: "Author 2" },
+    ];
+
+    const result = replacer.data.processArrayExpansion(yamlTemplate, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, {
+        books: dataArray,
+      });
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "VariableReplacer - processArrayExpansion should handle JSON array format",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const jsonTemplate = "{@items}";
+    const dataArray = ["item1", "item2", "item3"];
+
+    const result = replacer.data.processArrayExpansion(jsonTemplate, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      // ✅ JSON format should stringify the array (backward compatibility)
+      assertEquals(result.data, JSON.stringify(dataArray));
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "VariableReplacer - processArrayExpansion should handle embedded {@items} in text",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const textTemplate = "Items: {@items}";
+    const dataArray = ["apple", "banana"];
+
+    const result = replacer.data.processArrayExpansion(textTemplate, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, 'Items: ["apple","banana"]');
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "VariableReplacer - processArrayExpansion should handle template without {@items}",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const template = "No items here";
+    const dataArray = ["item1"];
+
+    const result = replacer.data.processArrayExpansion(template, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, "No items here");
+    }
+  },
+});
+
+Deno.test({
+  name: "VariableReplacer - processArrayExpansion should handle empty array",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const yamlTemplate = "books:\n  - {@items}";
+    const dataArray: unknown[] = [];
+
+    const result = replacer.data.processArrayExpansion(yamlTemplate, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, { books: [] });
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "VariableReplacer - processArrayExpansion should handle quoted YAML list format",
+  fn: () => {
+    const replacer = VariableReplacer.create();
+    if (!replacer.ok) return;
+
+    const yamlTemplate = 'books:\n  - "{@items}"';
+    const dataArray = [
+      { title: "Book 1", author: "Author 1" },
+      { title: "Book 2", author: "Author 2" },
+    ];
+
+    const result = replacer.data.processArrayExpansion(yamlTemplate, dataArray);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data, {
+        books: dataArray,
+      });
+    }
+  },
+});

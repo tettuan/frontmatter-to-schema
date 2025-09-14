@@ -105,4 +105,37 @@ export class SchemaProcessingService {
 
     return ok(templatePath);
   }
+
+  /**
+   * Extract items template path (x-template-items) and resolve relative paths.
+   * Returns Result with resolved path or undefined if not specified.
+   */
+  resolveItemsTemplatePath(
+    schema: Schema,
+    schemaPath: string,
+  ): Result<string | undefined, DomainError & { message: string }> {
+    // Get x-template-items from schema if it exists
+    const schemaData = schema.getDefinition().getRawSchema() as Record<
+      string,
+      unknown
+    >;
+    const itemsTemplatePath = schemaData["x-template-items"] as
+      | string
+      | undefined;
+
+    if (!itemsTemplatePath) {
+      return ok(undefined);
+    }
+
+    // Resolve relative template paths
+    if (itemsTemplatePath.startsWith("./")) {
+      const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));
+      const resolvedPath = schemaDir
+        ? `${schemaDir}/${itemsTemplatePath.substring(2)}`
+        : itemsTemplatePath.substring(2);
+      return ok(resolvedPath);
+    }
+
+    return ok(itemsTemplatePath);
+  }
 }

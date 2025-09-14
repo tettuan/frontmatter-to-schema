@@ -38,6 +38,19 @@
 - **[schema-matching-test-spec.md](./test-specifications/schema-matching-test-spec.md)**:
   Schema validation specifications
 
+### `/implementation/`
+
+- **[README.md](./implementation/README.md)**: Implementation documentation
+  overview
+- **[template-format-flow.dot](./implementation/template-format-flow.dot)**:
+  x-template-format feature component flow diagram
+- **[template-format-modules.dot](./implementation/template-format-modules.dot)**:
+  Module dependency diagram for template format feature
+- **[template-format-sequence.md](./implementation/template-format-sequence.md)**:
+  Detailed sequence diagrams and data flow
+- **[template-format-examples.md](./implementation/template-format-examples.md)**:
+  Concrete usage examples and implementation traces
+
 ## Usage Guidelines
 
 ### For Developers
@@ -58,6 +71,14 @@
 2. Maintain
    [architecture/canonical-processing-paths.md](./architecture/canonical-processing-paths.md)
    as single source of truth
+
+### For Implementation Analysis
+
+1. Refer to [implementation/README.md](./implementation/README.md) for current
+   implementation status
+2. Use implementation documentation to understand actual code flow and
+   dependencies
+3. Update implementation docs when making structural changes
 
 **Authority**: This documentation establishes definitive project standards. All
 development decisions must align with these principles.

@@ -1,0 +1,82 @@
+// Template Format Flow - Implementation Architecture
+// This diagram represents the current implementation of x-template-format feature
+// showing component relationships and data flow.
+
+digraph TemplateFormatFlow {
+  // Graph settings
+  rankdir=TB;
+  node [shape=box, style=filled];
+  edge [fontsize=10];
+
+  // Define node styles by layer
+  subgraph cluster_schema {
+    label="Schema Layer (抽出責務)";
+    style=filled;
+    color=lightblue;
+
+    schema_ext [label="x-template-format\nスキーマ拡張", fillcolor=lightyellow];
+    schema_utils [label="SchemaPropertyUtils\n.getTemplateFormat()", fillcolor=lightgreen];
+    schema_def [label="SchemaDefinition\n.getTemplateFormat()", fillcolor=lightgreen];
+    schema_entity [label="Schema\n.getTemplateFormat()", fillcolor=lightgreen];
+  }
+
+  subgraph cluster_template {
+    label="Template Layer (解決責務)";
+    style=filled;
+    color=lightcyan;
+
+    resolver [label="TemplatePathResolver\n.resolveTemplatePaths()", fillcolor=orange];
+    auto_detect [label="Auto-detect from\nfile extension", fillcolor=wheat];
+    resolved_paths [label="ResolvedTemplatePaths\n{outputFormat}", fillcolor=lightcoral];
+  }
+
+  subgraph cluster_application {
+    label="Application Layer (統合責務)";
+    style=filled;
+    color=lavender;
+
+    orchestrator [label="PipelineOrchestrator\n.execute()", fillcolor=plum];
+  }
+
+  subgraph cluster_output {
+    label="Output Layer (利用責務)";
+    style=filled;
+    color=mistyrose;
+
+    output_service [label="OutputRenderingService\n.renderOutput()", fillcolor=pink];
+    formatter_factory [label="FormatterFactory\n.createFormatter()", fillcolor=lightsalmon];
+
+    json_formatter [label="JsonFormatter", fillcolor=lightsteelblue];
+    yaml_formatter [label="YamlFormatter", fillcolor=lightsteelblue];
+    toml_formatter [label="TomlFormatter", fillcolor=lightsteelblue];
+    markdown_formatter [label="MarkdownFormatter", fillcolor=lightsteelblue];
+  }
+
+  // Data flow edges
+  schema_ext -> schema_utils [label="読み取り"];
+  schema_utils -> schema_def [label="呼び出し"];
+  schema_def -> schema_entity [label="委譲"];
+
+  schema_entity -> resolver [label="1. フォーマット取得試行"];
+  auto_detect -> resolver [label="2. 失敗時の代替"];
+  resolver -> resolved_paths [label="outputFormat設定"];
+
+  resolved_paths -> orchestrator [label="解決済みパス取得"];
+  orchestrator -> output_service [label="フォーマット指定で呼び出し"];
+
+  output_service -> formatter_factory [label="フォーマッター生成要求"];
+
+  formatter_factory -> json_formatter [label='format="json"'];
+  formatter_factory -> yaml_formatter [label='format="yaml"'];
+  formatter_factory -> toml_formatter [label='format="toml"'];
+  formatter_factory -> markdown_formatter [label='format="markdown"'];
+
+  // Decision flow
+  resolver -> auto_detect [style=dashed, label="x-template-format\n未定義時", color=red];
+
+  // Output flow
+  json_formatter -> output_file_json [label="JSON出力", shape=ellipse, fillcolor=white];
+  yaml_formatter -> output_file_yaml [label="YAML出力", shape=ellipse, fillcolor=white];
+  toml_formatter -> output_file_toml [label="TOML出力", shape=ellipse, fillcolor=white];
+  markdown_formatter -> output_file_md [label="Markdown出力", shape=ellipse, fillcolor=white];
+}

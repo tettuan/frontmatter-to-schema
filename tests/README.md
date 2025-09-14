@@ -63,7 +63,6 @@ Target specific test components for focused debugging:
 LOG_KEY=base-property-population      # Base property logic
 LOG_KEY=base-property-override        # Frontmatter override behavior
 LOG_KEY=pipeline-orchestrator         # Complete processing pipeline
-LOG_KEY=process-coordinator           # Document processing coordination
 
 # Unit test components
 LOG_KEY=schema-validation             # Schema validation logic
@@ -238,7 +237,7 @@ LOG_KEY=component1,component2 LOG_LEVEL=debug deno test
 
 ```bash
 # Cross-component communication
-LOG_KEY=pipeline-orchestrator,process-coordinator LOG_LENGTH=L deno test tests/integration/
+LOG_KEY=pipeline-orchestrator LOG_LENGTH=L deno test tests/integration/
 
 # Data flow investigation
 LOG_KEY=frontmatter-parsing,template-rendering deno test

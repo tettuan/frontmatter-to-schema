@@ -5,6 +5,11 @@ import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { parse as parseYaml } from "jsr:@std/yaml@1.0.5";
+import { TemplateStructureAnalyzer } from "./template-structure-analyzer.ts";
+import { DynamicDataComposer } from "./dynamic-data-composer.ts";
+import { VariableContext } from "../value-objects/variable-context.ts";
+import { FormatterFactory } from "../formatters/formatter-factory.ts";
 
 export type RenderingMode =
   | {
@@ -32,34 +37,64 @@ export interface FileWriter {
  * Handles: Template + Data → RenderedOutput + File writing
  */
 export class OutputRenderingService {
+  private readonly structureAnalyzer: TemplateStructureAnalyzer;
+  private readonly dataComposer: DynamicDataComposer;
+
   constructor(
     private readonly templateRenderer: TemplateRenderer,
     private readonly fileReader: FileReader,
     private readonly fileWriter: FileWriter,
     private readonly debugLogger?: DebugLogger,
-  ) {}
+  ) {
+    // Initialize DDD services following Totality pattern
+    const analyzerResult = TemplateStructureAnalyzer.create();
+    if (!analyzerResult.ok) {
+      throw new Error(
+        `Failed to create TemplateStructureAnalyzer: ${analyzerResult.error.message}`,
+      );
+    }
+    this.structureAnalyzer = analyzerResult.data;
+
+    const composerResult = DynamicDataComposer.create();
+    if (!composerResult.ok) {
+      throw new Error(
+        `Failed to create DynamicDataComposer: ${composerResult.error.message}`,
+      );
+    }
+    this.dataComposer = composerResult.data;
+  }
 
   /**
    * Render data using template and write to output file.
    * Follows Totality principle - all error paths handled explicitly.
-   * Uses discriminated union to eliminate partial states.
+   * @param templatePath - Main template path (x-template)
+   * @param itemsTemplatePath - Optional items template path (x-template-items)
+   * @param mainData - Data for main template
+   * @param itemsData - Optional array data for items template
+   * @param outputPath - Output file path
+   * @param outputFormat - Optional output format (defaults to "json")
    */
   renderOutput(
     templatePath: string,
-    renderingMode: RenderingMode,
+    itemsTemplatePath: string | undefined,
+    mainData: FrontmatterData,
+    itemsData: FrontmatterData[] | undefined,
     outputPath: string,
+    outputFormat: "json" | "yaml" | "toml" | "markdown" = "json",
   ): Result<void, DomainError & { message: string }> {
     this.debugLogger?.logInfo(
       "template-rendering",
       `Starting template rendering pipeline`,
       {
         templatePath,
-        renderingMode: renderingMode.kind,
+        itemsTemplatePath,
+        hasItemsData: !!itemsData,
         outputPath,
+        outputFormat,
       },
     );
 
-    // Stage 1: Load and create template
+    // Stage 1: Load and create template(s)
     this.debugLogger?.logDebug(
       "template-loading",
       `Loading template from: ${templatePath}`,
@@ -77,27 +112,156 @@ export class OutputRenderingService {
       `Successfully loaded template: ${templatePath}`,
     );
 
-    // Stage 2: Render data with template using exhaustive pattern matching
+    // Load items template if provided
+    let itemsTemplateResult:
+      | Result<Template, DomainError & { message: string }>
+      | undefined;
+    if (itemsTemplatePath) {
+      this.debugLogger?.logDebug(
+        "template-loading",
+        `Loading items template from: ${itemsTemplatePath}`,
+      );
+      itemsTemplateResult = this.loadTemplate(itemsTemplatePath);
+      if (!itemsTemplateResult.ok) {
+        this.debugLogger?.logError(
+          "template-loading",
+          itemsTemplateResult.error,
+          {
+            itemsTemplatePath,
+          },
+        );
+        return itemsTemplateResult;
+      }
+      this.debugLogger?.logDebug(
+        "template-loading",
+        `Successfully loaded items template: ${itemsTemplatePath}`,
+      );
+    }
+
+    // Stage 2: Render data with template
     this.debugLogger?.logInfo(
       "template-rendering-stage",
-      `Rendering with mode: ${renderingMode.kind}`,
+      `Starting template rendering`,
       {
-        mode: renderingMode.kind,
-        dataCount: renderingMode.kind === "ArrayData"
-          ? renderingMode.dataArray.length
-          : 1,
+        hasItemsTemplate: !!itemsTemplatePath,
+        hasItemsData: !!itemsData,
+        itemsCount: itemsData?.length ?? 0,
       },
     );
 
-    const renderResult = renderingMode.kind === "ArrayData"
-      ? this.templateRenderer.renderWithArray(
-        templateResult.data,
-        renderingMode.dataArray,
-      )
-      : this.templateRenderer.render(
-        templateResult.data,
-        renderingMode.data,
+    let renderResult: Result<string, DomainError & { message: string }>;
+
+    // Analyze template structure to determine processing strategy
+    const structureResult = this.structureAnalyzer.analyzeStructure(
+      templateResult.data,
+    );
+    if (!structureResult.ok) {
+      this.debugLogger?.logError(
+        "template-structure-analysis",
+        structureResult.error,
       );
+      return structureResult;
+    }
+
+    const templateStructure = structureResult.data;
+
+    // If we have both items template and items data, use dual-template rendering
+    if (
+      itemsTemplatePath && itemsTemplateResult && itemsTemplateResult.ok &&
+      itemsData
+    ) {
+      // First render each item with the items template
+      const renderedItems: string[] = [];
+      for (const item of itemsData) {
+        const itemResult = this.templateRenderer.render(
+          itemsTemplateResult.data,
+          item,
+        );
+        if (!itemResult.ok) {
+          this.debugLogger?.logError(
+            "template-rendering-stage",
+            itemResult.error,
+            {
+              itemsTemplatePath,
+            },
+          );
+          return itemResult;
+        }
+        renderedItems.push(itemResult.data);
+      }
+
+      // ✅ DDD Fix: Use dynamic data composition instead of hardcoded 'items'
+      const composedDataResult = this.dataComposer.createDualTemplateData(
+        mainData,
+        renderedItems,
+      );
+      if (!composedDataResult.ok) {
+        this.debugLogger?.logError(
+          "data-composition",
+          composedDataResult.error,
+        );
+        return composedDataResult;
+      }
+
+      // Create variable context from composed data
+      const contextResult = VariableContext.fromComposedData(
+        composedDataResult.data,
+      );
+      if (!contextResult.ok) {
+        this.debugLogger?.logError(
+          "variable-context-creation",
+          contextResult.error,
+        );
+        return contextResult;
+      }
+
+      // Render with main template using proper context
+      const finalFrontmatterResult = FrontmatterData.create(
+        composedDataResult.data.mainData,
+      );
+      if (!finalFrontmatterResult.ok) {
+        return finalFrontmatterResult;
+      }
+      renderResult = this.templateRenderer.render(
+        templateResult.data,
+        finalFrontmatterResult.data,
+      );
+    } else if (itemsData) {
+      // ✅ DDD Fix: Use dynamic data composition for array rendering
+      const composedDataResult = this.dataComposer.compose(
+        mainData,
+        itemsData,
+        templateStructure.getArrayExpansionKeys(),
+      );
+      if (!composedDataResult.ok) {
+        this.debugLogger?.logError(
+          "array-data-composition",
+          composedDataResult.error,
+        );
+        return composedDataResult;
+      }
+
+      // Use renderWithArray with proper composition
+      renderResult = this.templateRenderer.renderWithArray(
+        templateResult.data,
+        itemsData,
+      );
+    } else {
+      // ✅ DDD Fix: Single data rendering with proper context
+      const composedDataResult = this.dataComposer.composeSingle(mainData);
+      if (!composedDataResult.ok) {
+        this.debugLogger?.logError(
+          "single-data-composition",
+          composedDataResult.error,
+        );
+        return composedDataResult;
+      }
+
+      renderResult = this.templateRenderer.render(
+        templateResult.data,
+        mainData,
+      );
+    }
 
     if (!renderResult.ok) {
       this.debugLogger?.logError(
@@ -105,7 +269,7 @@ export class OutputRenderingService {
         renderResult.error,
         {
           templatePath,
-          renderingMode: renderingMode.kind,
+          itemsTemplatePath,
         },
       );
       return renderResult;
@@ -119,12 +283,68 @@ export class OutputRenderingService {
       },
     );
 
-    // Stage 3: Write rendered output to file
+    // Stage 3: Format the rendered output
+    let finalOutput: string;
+
+    this.debugLogger?.logDebug(
+      "output-formatting",
+      `Formatting output as ${outputFormat}`,
+      { outputFormat },
+    );
+
+    const formatterResult = FormatterFactory.createFormatter(outputFormat);
+    if (!formatterResult.ok) {
+      this.debugLogger?.logError("output-formatting", formatterResult.error, {
+        outputFormat,
+      });
+      return formatterResult;
+    }
+
+    // Try to parse the rendered output as JSON first
+    let parsedOutput: unknown;
+    try {
+      parsedOutput = JSON.parse(renderResult.data);
+
+      // Successfully parsed as JSON, format with the target formatter
+      const formatResult = formatterResult.data.format(parsedOutput);
+      if (!formatResult.ok) {
+        this.debugLogger?.logError("output-formatting", formatResult.error, {
+          outputFormat,
+        });
+        return formatResult;
+      }
+      finalOutput = formatResult.data;
+    } catch (error) {
+      // If parsing as JSON fails, check if it's already in the target format
+      if (outputFormat === "json") {
+        // Expected JSON but couldn't parse - this is an error
+        this.debugLogger?.logError("output-parsing", {
+          kind: "InvalidTemplate",
+          message: `Failed to parse rendered output: ${error}`,
+        }, { renderResult: renderResult.data });
+        return err(createError({
+          kind: "InvalidTemplate",
+          message: `Failed to parse rendered output for formatting: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        }));
+      } else {
+        // Non-JSON format - assume template already produces correct format
+        this.debugLogger?.logDebug(
+          "output-direct-use",
+          `Using rendered output directly for ${outputFormat}`,
+          { outputFormat },
+        );
+        finalOutput = renderResult.data;
+      }
+    }
+
+    // Stage 4: Write formatted output to file
     this.debugLogger?.logDebug(
       "output-writing",
-      `Writing rendered output to: ${outputPath}`,
+      `Writing formatted output to: ${outputPath}`,
     );
-    const writeResult = this.fileWriter.write(outputPath, renderResult.data);
+    const writeResult = this.fileWriter.write(outputPath, finalOutput);
 
     if (writeResult.ok) {
       this.debugLogger?.logInfo(
@@ -132,7 +352,8 @@ export class OutputRenderingService {
         `Template rendering pipeline completed successfully`,
         {
           outputPath,
-          outputSize: renderResult.data.length,
+          outputSize: finalOutput.length,
+          outputFormat,
         },
       );
     } else {
@@ -163,13 +384,17 @@ export class OutputRenderingService {
       return templateContentResult;
     }
 
-    // Parse template JSON
-    const parseResult = this.safeJsonParse(templateContentResult.data);
+    // Parse template content (supports both JSON and YAML)
+    const parseResult = this.parseTemplateContent(
+      templateContentResult.data,
+      templatePath,
+    );
     if (!parseResult.ok) {
       return err(createError({
         kind: "InvalidTemplate",
         template: templatePath,
-        message: `Failed to parse template JSON: ${parseResult.error.message}`,
+        message:
+          `Failed to parse template content: ${parseResult.error.message}`,
       }));
     }
 
@@ -179,12 +404,91 @@ export class OutputRenderingService {
     return Template.create(templatePathResult.data, templateContent);
   }
 
+  /**
+   * Parse template content supporting both JSON and YAML formats.
+   * Attempts JSON first, falls back to YAML if JSON parsing fails.
+   */
+  private parseTemplateContent(
+    content: string,
+    templatePath: string,
+  ): Result<unknown, { message: string }> {
+    this.debugLogger?.logDebug(
+      "template-parsing",
+      `Attempting to parse template: ${templatePath}`,
+      {
+        contentLength: content.length,
+        isLikelyJson: content.trim().startsWith("{") ||
+          content.trim().startsWith("["),
+      },
+    );
+
+    // Try JSON parsing first
+    const jsonResult = this.safeJsonParse(content);
+    if (jsonResult.ok) {
+      this.debugLogger?.logDebug(
+        "template-parsing",
+        `Successfully parsed template as JSON: ${templatePath}`,
+      );
+      return jsonResult;
+    }
+
+    this.debugLogger?.logDebug(
+      "template-parsing",
+      `JSON parsing failed, attempting YAML: ${templatePath}`,
+      {
+        jsonError: jsonResult.error.message,
+      },
+    );
+
+    // Try YAML parsing as fallback
+    const yamlResult = this.safeYamlParse(content);
+    if (yamlResult.ok) {
+      this.debugLogger?.logDebug(
+        "template-parsing",
+        `Successfully parsed template as YAML: ${templatePath}`,
+      );
+      return yamlResult;
+    }
+
+    // Both parsing methods failed
+    const parseError = createError({
+      kind: "InvalidTemplate",
+      template: templatePath,
+      message: `Failed to parse template as JSON or YAML: ${templatePath}`,
+    });
+
+    this.debugLogger?.logError("template-parsing", parseError, {
+      jsonError: jsonResult.error.message,
+      yamlError: yamlResult.error.message,
+    });
+
+    return err({
+      message:
+        `Failed to parse as JSON (${jsonResult.error.message}) or YAML (${yamlResult.error.message})`,
+    });
+  }
+
   private safeJsonParse(content: string): Result<unknown, { message: string }> {
     try {
       return ok(JSON.parse(content));
     } catch (error) {
       return err({
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error
+          ? error.message
+          : "Unknown JSON parsing error",
+      });
+    }
+  }
+
+  private safeYamlParse(content: string): Result<unknown, { message: string }> {
+    try {
+      const parsed = parseYaml(content);
+      return ok(parsed);
+    } catch (error) {
+      return err({
+        message: error instanceof Error
+          ? error.message
+          : "Unknown YAML parsing error",
       });
     }
   }

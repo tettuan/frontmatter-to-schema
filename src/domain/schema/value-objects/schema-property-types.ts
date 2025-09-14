@@ -11,6 +11,7 @@ export interface SchemaExtensions {
   readonly "x-derived-from"?: string;
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string; // User-requested: explicit template for array items
+  readonly "x-template-format"?: "json" | "yaml" | "toml" | "markdown"; // User-requested: output format specification
   readonly "x-base-property"?: boolean; // Base property marker
   readonly "x-default-value"?: unknown; // Default value for base properties
   readonly description?: string;
@@ -314,6 +315,49 @@ export class SchemaPropertyUtils {
       error: {
         kind: "TemplateItemsNotDefined",
         message: "x-template-items directive not found in schema extensions",
+      },
+    };
+  }
+
+  /**
+   * Check if schema property has x-template-format directive
+   */
+  static hasTemplateFormat(schema: SchemaProperty): boolean {
+    return schema.extensions?.["x-template-format"] !== undefined;
+  }
+
+  /**
+   * Get x-template-format from schema property
+   */
+  static getTemplateFormat(
+    schema: SchemaProperty,
+  ): Result<
+    "json" | "yaml" | "toml" | "markdown",
+    SchemaError & { message: string }
+  > {
+    const templateFormat = schema.extensions?.["x-template-format"];
+    if (templateFormat) {
+      // Validate format and ensure type safety
+      if (
+        templateFormat === "json" || templateFormat === "yaml" ||
+        templateFormat === "toml" || templateFormat === "markdown"
+      ) {
+        return { ok: true, data: templateFormat };
+      }
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidTemplateFormat",
+          message:
+            `Invalid x-template-format: ${templateFormat}. Must be one of: json, yaml, toml, markdown`,
+        },
+      };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "TemplateFormatNotDefined",
+        message: "x-template-format directive not found in schema extensions",
       },
     };
   }

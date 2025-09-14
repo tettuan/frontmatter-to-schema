@@ -64,7 +64,6 @@ The following logger keys are strategically used across the test suite:
 - `base-property-population`: Base property population logic
 - `base-property-override`: Frontmatter override behavior
 - `pipeline-orchestrator`: Complete processing pipeline
-- `process-coordinator`: Document processing coordination
 
 ### Unit Tests
 

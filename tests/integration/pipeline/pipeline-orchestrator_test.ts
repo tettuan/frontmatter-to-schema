@@ -1,9 +1,11 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { PipelineOrchestrator } from "../../../src/application/services/pipeline-orchestrator.ts";
-import { DocumentProcessingService } from "../../../src/domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { TemplateRenderer } from "../../../src/domain/template/renderers/template-renderer.ts";
+import { OutputRenderingService } from "../../../src/domain/template/services/output-rendering-service.ts";
+import { TemplatePathResolver } from "../../../src/domain/template/services/template-path-resolver.ts";
 import { FrontmatterProcessor } from "../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
 import { err, ok, Result } from "../../../src/domain/shared/types/result.ts";
 import {
@@ -30,7 +32,7 @@ class MockFileSystem {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        "x-template": "./template.json",
         "properties": {
           "items": {
             "type": "array",
@@ -182,7 +184,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -197,10 +199,20 @@ describe("PipelineOrchestrator Integration Tests", () => {
     assertExists(templateRendererResult.ok);
     if (!templateRendererResult.ok) return;
 
+    // Create OutputRenderingService using the template renderer and file system
+    const outputRenderingService = new OutputRenderingService(
+      templateRendererResult.data,
+      fileSystem,
+      fileSystem,
+    );
+
+    const templatePathResolver = new TemplatePathResolver();
+
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRendererResult.data,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
 
@@ -214,6 +226,9 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const result = await orchestrator.execute(config);
 
     // Assert
+    if (!result.ok) {
+      console.error("Pipeline execution failed:", result.error);
+    }
     assertEquals(result.ok, true);
 
     // Check output was written
@@ -240,7 +255,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template_with_items.json",
+        "x-template": "./template_with_items.json",
         "properties": {
           "documents": {
             "type": "array",
@@ -270,7 +285,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -283,10 +298,20 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) return;
 
+    // Create OutputRenderingService using the template renderer and file system
+    const outputRenderingService = new OutputRenderingService(
+      templateRendererResult.data,
+      fileSystem,
+      fileSystem,
+    );
+
+    const templatePathResolver = new TemplatePathResolver();
+
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRendererResult.data,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
 
@@ -300,6 +325,9 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const result = await orchestrator.execute(config);
 
     // Assert
+    if (!result.ok) {
+      console.error("Items pipeline execution failed:", result.error);
+    }
     assertEquals(result.ok, true);
     assertExists(fileSystem.getWrittenContent("/test/output_items.json"));
   });
@@ -324,7 +352,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -337,10 +365,20 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) return;
 
+    // Create OutputRenderingService using the template renderer and file system
+    const outputRenderingService = new OutputRenderingService(
+      templateRendererResult.data,
+      fileSystem,
+      fileSystem,
+    );
+
+    const templatePathResolver = new TemplatePathResolver();
+
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRendererResult.data,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
 
@@ -391,7 +429,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -404,10 +442,20 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) return;
 
+    // Create OutputRenderingService using the template renderer and file system
+    const outputRenderingService = new OutputRenderingService(
+      templateRendererResult.data,
+      fileSystem,
+      fileSystem,
+    );
+
+    const templatePathResolver = new TemplatePathResolver();
+
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRendererResult.data,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
 
@@ -425,6 +473,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
   });
 
   it("should process x-derived-from aggregation correctly", async () => {
+    // Re-enabled: Derivation rules functionality has been fixed
     const fileSystem = new MockFileSystem();
 
     // Schema with x-derived-from
@@ -433,7 +482,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        "x-template": "./template.json",
         "properties": {
           "allAuthors": {
             "type": "array",
@@ -472,7 +521,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -485,10 +534,20 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) return;
 
+    // Create OutputRenderingService using the template renderer and file system
+    const outputRenderingService = new OutputRenderingService(
+      templateRendererResult.data,
+      fileSystem,
+      fileSystem,
+    );
+
+    const templatePathResolver = new TemplatePathResolver();
+
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRendererResult.data,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
 

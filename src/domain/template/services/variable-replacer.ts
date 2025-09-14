@@ -2,13 +2,18 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
  * Follows Totality principles with Result<T,E> pattern.
  */
 export class VariableReplacer {
-  private constructor() {}
+  private constructor(
+    private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
+  ) {}
+  private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor for VariableReplacer
@@ -18,7 +23,10 @@ export class VariableReplacer {
     VariableReplacer,
     TemplateError & { message: string }
   > {
-    return ok(new VariableReplacer());
+    const strategyResult = ArrayExpansionStrategy.create();
+    if (!strategyResult.ok) return strategyResult;
+
+    return ok(new VariableReplacer(strategyResult.data));
   }
 
   /**
@@ -38,24 +46,129 @@ export class VariableReplacer {
         return ok(template);
       }
 
-      const result = template.replace(/\{([^}]+)\}/g, (match, varName) => {
+      this.debugLogger?.logDebug(
+        "variable-replacer",
+        "Starting variable replacement",
+        {
+          template: template.substring(0, 200) +
+            (template.length > 200 ? "..." : ""),
+          hasArrayData: !!arrayData,
+          arrayDataLength: arrayData?.length,
+        },
+      );
+
+      // Support both single and double brace syntax: {var} and {{var}}
+      let result = template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Processing variable",
+          { varName, match },
+        );
+
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Processing @items array expansion",
+            { arrayDataLength: arrayData.length },
+          );
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Skipping @ variable",
+            { varName },
+          );
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Variable not found - keeping placeholder",
+            { varName, error: valueResult.error },
+          );
           return match; // Keep placeholder if value not found
         }
 
-        return this.formatValue(valueResult.data);
+        const formattedValue = this.formatValue(valueResult.data);
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Variable resolved successfully",
+          {
+            varName,
+            rawDataType: typeof valueResult.data,
+            rawDataIsArray: Array.isArray(valueResult.data),
+            formattedValue: typeof formattedValue === "string"
+              ? formattedValue.substring(0, 100) +
+                (formattedValue.length > 100 ? "..." : "")
+              : formattedValue,
+          },
+        );
+
+        return formattedValue;
+      });
+
+      // Also support single brace syntax: {var}
+      result = result.replace(/\{([^}]+)\}/g, (match, varName) => {
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Processing single-brace variable",
+          { varName, match },
+        );
+
+        // Handle {@items} array expansion
+        if (varName === "@items" && arrayData) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Processing @items array expansion (single-brace)",
+            { arrayDataLength: arrayData.length },
+          );
+          // Return special marker for array expansion
+          return "[@ITEMS_EXPANSION]";
+        }
+
+        // Skip other @ variables (special processing markers)
+        if (varName.startsWith("@")) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Skipping @ variable (single-brace)",
+            { varName },
+          );
+          return match;
+        }
+
+        const valueResult = data.get(varName);
+        if (!valueResult.ok) {
+          this.debugLogger?.logDebug(
+            "variable-replacer",
+            "Single-brace variable not found - keeping placeholder",
+            { varName, error: valueResult.error },
+          );
+          return match; // Keep placeholder if value not found
+        }
+
+        const formattedValue = this.formatValue(valueResult.data);
+        this.debugLogger?.logDebug(
+          "variable-replacer",
+          "Single-brace variable resolved successfully",
+          {
+            varName,
+            rawDataType: typeof valueResult.data,
+            rawDataIsArray: Array.isArray(valueResult.data),
+            formattedValue: typeof formattedValue === "string"
+              ? formattedValue.substring(0, 100) +
+                (formattedValue.length > 100 ? "..." : "")
+              : formattedValue,
+          },
+        );
+
+        return formattedValue;
       });
 
       return ok(result);
@@ -272,12 +385,8 @@ export class VariableReplacer {
     // If template is a string and contains {@items}, expand it
     if (typeof template === "string" && template.includes("{@items}")) {
       if (!itemTemplate) {
-        // Without item template, just stringify the array
-        const expanded = template.replace(
-          "{@items}",
-          JSON.stringify(dataArray),
-        );
-        return ok(expanded);
+        // ✅ DDD Fix: Use strategy pattern for consistent array expansion
+        return this.arrayExpansionStrategy.expandItems(template, dataArray);
       }
 
       // Process each item with the item template

@@ -72,37 +72,62 @@ interface TemplatePath {
 ### Template Domain Components
 
 ```typescript
-// Template Domain - Renderer Service
-class TemplateRenderer {
+// PipelineOrchestrator is the main coordinator that calls OutputRenderingService
+class PipelineOrchestrator {
   constructor(
-    private readonly templateLoader: TemplateLoader,
-    private readonly schemaTemplateResolver: SchemaTemplateResolver, // Cross-domain service
+    private readonly documentProcessor: FrontmatterTransformationService,
+    private readonly schemaProcessor: SchemaProcessingService,
+    private readonly outputRenderingService: OutputRenderingService,
+    private readonly fileSystem: FileSystem,
   ) {}
 
-  async renderWithItems(
-    template: Template,
-    data: FrontmatterData[],
-  ): Promise<Result<RenderedOutput, TemplateError>> {
-    // 1. Detect {@items} in template
-    if (template.containsItemsExpansion()) {
-      // 2. Request template context from Schema Domain
-      const handoffContext = await this.schemaTemplateResolver
-        .resolveTemplateContext(template.getSourceSchema());
+  // Orchestrates the entire pipeline including template rendering
+  async execute(config: PipelineConfig): Promise<Result<void, DomainError>> {
+    // ... process documents and schema ...
 
-      if (!handoffContext.ok) {
-        return handoffContext;
-      }
-
-      // 3. Use resolved item template for expansion
-      return this.processItemsExpansion(
-        template,
-        data,
-        handoffContext.data,
-      );
-    }
-
-    return this.renderStandard(template, data);
+    // Delegates template rendering to OutputRenderingService
+    return this.outputRenderingService.renderOutput(
+      templatePath,
+      itemsTemplatePath,
+      mainData,
+      itemsData,
+      config.outputPath,
+    );
   }
+}
+
+// Template Domain - OutputRenderingService orchestrates template processing
+// Called by PipelineOrchestrator, coordinates template loading, rendering, and file I/O
+class OutputRenderingService {
+  constructor(
+    private readonly templateRenderer: TemplateRenderer,
+    private readonly fileReader: FileReader,
+    private readonly fileWriter: FileWriter,
+  ) {}
+
+  // Main orchestration method - handles dual-template processing
+  renderOutput(
+    templatePath: string,
+    itemsTemplatePath: string | undefined,
+    mainData: FrontmatterData,
+    itemsData: FrontmatterData[] | undefined,
+    outputPath: string,
+  ): Result<void, DomainError> {
+    // See template-processing-specification.md Section 5.2 for full details
+    // Orchestrates dual-template rendering with variable replacement
+  }
+}
+
+// TemplateRenderer is the internal rendering engine used by OutputRenderingService
+class TemplateRenderer {
+  render(
+    template: Template,
+    data: FrontmatterData,
+  ): Result<string, DomainError>;
+  renderWithArray(
+    template: Template,
+    dataArray: FrontmatterData[],
+  ): Result<string, DomainError>;
 }
 ```
 
