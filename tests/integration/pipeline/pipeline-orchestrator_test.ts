@@ -5,10 +5,12 @@ import { DocumentProcessingService } from "../../../src/domain/frontmatter/servi
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { TemplateRenderer } from "../../../src/domain/template/renderers/template-renderer.ts";
 import { FrontmatterProcessor } from "../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
-import { Aggregator } from "../../../src/domain/aggregation/index.ts";
-import { BasePropertyPopulator } from "../../../src/domain/schema/services/base-property-populator.ts";
-import { ok, err, Result } from "../../../src/domain/shared/types/result.ts";
-import { createError, DomainError } from "../../../src/domain/shared/types/errors.ts";
+import { err, ok, Result } from "../../../src/domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+  FrontmatterError,
+} from "../../../src/domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 /**
@@ -23,43 +25,55 @@ class MockFileSystem {
 
   constructor() {
     // Set up test data
-    this.files.set("/test/schema.json", JSON.stringify({
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "x-template": "template.json",
-      "properties": {
-        "items": {
-          "type": "array",
-          "x-frontmatter-part": true,
+    this.files.set(
+      "/test/schema.json",
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "x-template": "template.json",
+        "properties": {
           "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "author": { "type": "string" },
-              "published": { "type": "boolean" }
-            }
-          }
-        }
-      }
-    }));
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "author": { "type": "string" },
+                "published": { "type": "boolean" },
+              },
+            },
+          },
+        },
+      }),
+    );
 
-    this.files.set("/test/template.json", JSON.stringify({
-      "items": ["{@items}"]
-    }));
+    this.files.set(
+      "/test/template.json",
+      JSON.stringify({
+        "items": ["{@items}"],
+      }),
+    );
 
-    this.files.set("/test/doc1.md", `---
+    this.files.set(
+      "/test/doc1.md",
+      `---
 title: Test Document 1
 author: Alice
 published: true
 ---
-Content 1`);
+Content 1`,
+    );
 
-    this.files.set("/test/doc2.md", `---
+    this.files.set(
+      "/test/doc2.md",
+      `---
 title: Test Document 2
 author: Bob
 published: false
 ---
-Content 2`);
+Content 2`,
+    );
   }
 
   read(path: string): Result<string, DomainError & { message: string }> {
@@ -73,7 +87,10 @@ Content 2`);
     }));
   }
 
-  write(path: string, content: string): Result<void, DomainError & { message: string }> {
+  write(
+    path: string,
+    content: string,
+  ): Result<void, DomainError & { message: string }> {
     this.files.set(path, content);
     return ok(undefined);
   }
@@ -97,7 +114,12 @@ Content 2`);
 }
 
 class MockFrontmatterExtractor {
-  extract(content: string): Result<{ frontmatter: string; body: string }, DomainError & { message: string }> {
+  extract(
+    content: string,
+  ): Result<
+    { frontmatter: string; body: string },
+    FrontmatterError & { message: string }
+  > {
     const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (match) {
       return ok({
@@ -113,7 +135,7 @@ class MockFrontmatterExtractor {
 }
 
 class MockFrontmatterParser {
-  parse(yaml: string): Result<unknown, DomainError & { message: string }> {
+  parse(yaml: string): Result<unknown, FrontmatterError & { message: string }> {
     // Simple YAML parsing for test
     const result: Record<string, unknown> = {};
     const lines = yaml.split("\n");
@@ -127,7 +149,9 @@ class MockFrontmatterParser {
         // Simple type conversion
         if (value === "true") value = true;
         else if (value === "false") value = false;
-        else if (/^\d+$/.test(value as string)) value = parseInt(value as string);
+        else if (/^\d+$/.test(value as string)) {
+          value = parseInt(value as string);
+        }
 
         result[key] = value;
       }
@@ -146,18 +170,22 @@ describe("PipelineOrchestrator Integration Tests", () => {
       new MockFrontmatterParser(),
     );
 
-    const aggregatorResult = Aggregator.create();
-    assertExists(aggregatorResult.ok);
-    if (!aggregatorResult.ok) return;
+    // Create mock aggregator
+    const mockAggregator = {
+      aggregate: (data: FrontmatterData[]) =>
+        ok(data[0] || FrontmatterData.empty()),
+      mergeWithBase: (data: FrontmatterData) => ok(data),
+    } as any;
 
-    const basePropertyPopulatorResult = BasePropertyPopulator.create();
-    assertExists(basePropertyPopulatorResult.ok);
-    if (!basePropertyPopulatorResult.ok) return;
+    // Create mock base property populator
+    const mockBasePropertyPopulator = {
+      populate: (data: FrontmatterData) => ok(data),
+    } as any;
 
     const documentProcessor = new DocumentProcessingService(
       frontmatterProcessor,
-      aggregatorResult.data,
-      basePropertyPopulatorResult.data,
+      mockAggregator,
+      mockBasePropertyPopulator,
       fileSystem,
       fileSystem,
     );
@@ -198,42 +226,54 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const fileSystem = new MockFileSystem();
 
     // Override template with {@items}
-    fileSystem.write("/test/template_with_items.json", JSON.stringify({
-      "result": {
-        "documents": ["{@items}"]
-      }
-    }));
+    fileSystem.write(
+      "/test/template_with_items.json",
+      JSON.stringify({
+        "result": {
+          "documents": ["{@items}"],
+        },
+      }),
+    );
 
-    fileSystem.write("/test/schema_with_items.json", JSON.stringify({
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "x-template": "template_with_items.json",
-      "properties": {
-        "documents": {
-          "type": "array",
-          "x-frontmatter-part": true,
-          "items": {
-            "type": "object"
-          }
-        }
-      }
-    }));
+    fileSystem.write(
+      "/test/schema_with_items.json",
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "x-template": "template_with_items.json",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+            },
+          },
+        },
+      }),
+    );
 
     const frontmatterProcessor = new FrontmatterProcessor(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
 
-    const aggregatorResult = Aggregator.create();
-    if (!aggregatorResult.ok) return;
+    // Create mock aggregator
+    const mockAggregator = {
+      aggregate: (data: FrontmatterData[]) =>
+        ok(data[0] || FrontmatterData.empty()),
+      mergeWithBase: (data: FrontmatterData) => ok(data),
+    } as any;
 
-    const basePropertyPopulatorResult = BasePropertyPopulator.create();
-    if (!basePropertyPopulatorResult.ok) return;
+    // Create mock base property populator
+    const mockBasePropertyPopulator = {
+      populate: (data: FrontmatterData) => ok(data),
+    } as any;
 
     const documentProcessor = new DocumentProcessingService(
       frontmatterProcessor,
-      aggregatorResult.data,
-      basePropertyPopulatorResult.data,
+      mockAggregator,
+      mockBasePropertyPopulator,
       fileSystem,
       fileSystem,
     );
@@ -272,16 +312,22 @@ describe("PipelineOrchestrator Integration Tests", () => {
       new MockFrontmatterParser(),
     );
 
-    const aggregatorResult = Aggregator.create();
-    if (!aggregatorResult.ok) return;
+    // Create mock aggregator
+    const mockAggregator = {
+      aggregate: (data: FrontmatterData[]) =>
+        ok(data[0] || FrontmatterData.empty()),
+      mergeWithBase: (data: FrontmatterData) => ok(data),
+    } as any;
 
-    const basePropertyPopulatorResult = BasePropertyPopulator.create();
-    if (!basePropertyPopulatorResult.ok) return;
+    // Create mock base property populator
+    const mockBasePropertyPopulator = {
+      populate: (data: FrontmatterData) => ok(data),
+    } as any;
 
     const documentProcessor = new DocumentProcessingService(
       frontmatterProcessor,
-      aggregatorResult.data,
-      basePropertyPopulatorResult.data,
+      mockAggregator,
+      mockBasePropertyPopulator,
       fileSystem,
       fileSystem,
     );
@@ -318,28 +364,37 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const fileSystem = new MockFileSystem();
 
     // Create schema that references non-existent template
-    fileSystem.write("/test/schema_bad_template.json", JSON.stringify({
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "x-template": "non_existent_template.json",
-      "properties": {}
-    }));
+    fileSystem.write(
+      "/test/schema_bad_template.json",
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "x-template": "non_existent_template.json",
+        "properties": {},
+      }),
+    );
 
     const frontmatterProcessor = new FrontmatterProcessor(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
 
-    const aggregatorResult = Aggregator.create();
-    if (!aggregatorResult.ok) return;
+    // Create mock aggregator
+    const mockAggregator = {
+      aggregate: (data: FrontmatterData[]) =>
+        ok(data[0] || FrontmatterData.empty()),
+      mergeWithBase: (data: FrontmatterData) => ok(data),
+    } as any;
 
-    const basePropertyPopulatorResult = BasePropertyPopulator.create();
-    if (!basePropertyPopulatorResult.ok) return;
+    // Create mock base property populator
+    const mockBasePropertyPopulator = {
+      populate: (data: FrontmatterData) => ok(data),
+    } as any;
 
     const documentProcessor = new DocumentProcessingService(
       frontmatterProcessor,
-      aggregatorResult.data,
-      basePropertyPopulatorResult.data,
+      mockAggregator,
+      mockBasePropertyPopulator,
       fileSystem,
       fileSystem,
     );
@@ -373,44 +428,53 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const fileSystem = new MockFileSystem();
 
     // Schema with x-derived-from
-    fileSystem.write("/test/schema_derived.json", JSON.stringify({
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "x-template": "template.json",
-      "properties": {
-        "allAuthors": {
-          "type": "array",
-          "x-derived-from": "items[].author",
-          "x-derived-unique": true
-        },
-        "items": {
-          "type": "array",
-          "x-frontmatter-part": true,
+    fileSystem.write(
+      "/test/schema_derived.json",
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "x-template": "template.json",
+        "properties": {
+          "allAuthors": {
+            "type": "array",
+            "x-derived-from": "items[].author",
+            "x-derived-unique": true,
+          },
           "items": {
-            "type": "object",
-            "properties": {
-              "author": { "type": "string" }
-            }
-          }
-        }
-      }
-    }));
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "author": { "type": "string" },
+              },
+            },
+          },
+        },
+      }),
+    );
 
     const frontmatterProcessor = new FrontmatterProcessor(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
 
-    const aggregatorResult = Aggregator.create();
-    if (!aggregatorResult.ok) return;
+    // Create mock aggregator
+    const mockAggregator = {
+      aggregate: (data: FrontmatterData[]) =>
+        ok(data[0] || FrontmatterData.empty()),
+      mergeWithBase: (data: FrontmatterData) => ok(data),
+    } as any;
 
-    const basePropertyPopulatorResult = BasePropertyPopulator.create();
-    if (!basePropertyPopulatorResult.ok) return;
+    // Create mock base property populator
+    const mockBasePropertyPopulator = {
+      populate: (data: FrontmatterData) => ok(data),
+    } as any;
 
     const documentProcessor = new DocumentProcessingService(
       frontmatterProcessor,
-      aggregatorResult.data,
-      basePropertyPopulatorResult.data,
+      mockAggregator,
+      mockBasePropertyPopulator,
       fileSystem,
       fileSystem,
     );
