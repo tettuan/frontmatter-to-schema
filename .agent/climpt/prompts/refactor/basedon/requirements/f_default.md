@@ -103,8 +103,8 @@ options:
    - registry_schema.json/registry_template.jsonによる処理
    - `.agent/test-climpt/registry.json` への出力
 
-2. 実例2（記事索引）の実装サンプル作成
-  `.agent/articles` 配下の docs から記事の公開状態を一覧化する
+2. 実例2（記事索引）の実装サンプル作成 `.agent/articles` 配下の docs
+   から記事の公開状態を一覧化する
 
 3. 実例3（spec-trace）の実装
    - `.agent/spec-trace/docs` 配下のMarkdownファイル解析

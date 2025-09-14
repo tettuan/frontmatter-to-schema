@@ -1,8 +1,13 @@
-import { ProcessDocumentsUseCase } from "../../application/index.ts";
-import { ProcessCoordinator } from "../../application/coordinators/process-coordinator.ts";
+import {
+  PipelineConfig,
+  PipelineOrchestrator,
+} from "../../application/services/pipeline-orchestrator.ts";
+import { DocumentProcessingService } from "../../domain/frontmatter/services/document-processing-service.ts";
+import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
 import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
 import { Aggregator } from "../../domain/aggregation/aggregators/aggregator.ts";
+import { BasePropertyPopulator } from "../../domain/schema/services/base-property-populator.ts";
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import {
@@ -15,7 +20,7 @@ import {
 } from "../../infrastructure/index.ts";
 
 export class CLI {
-  private readonly useCase: ProcessDocumentsUseCase;
+  private readonly orchestrator: PipelineOrchestrator;
 
   constructor() {
     const fileReader = new DenoFileReader();
@@ -30,6 +35,22 @@ export class CLI {
       frontmatterParser,
     );
 
+    const aggregator = new Aggregator();
+    const basePropertyPopulator = new BasePropertyPopulator();
+
+    const documentProcessor = new DocumentProcessingService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+    );
+
+    const schemaProcessor = new SchemaProcessingService(
+      schemaRepository,
+      basePropertyPopulator,
+    );
+
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) {
       throw new Error(
@@ -37,22 +58,25 @@ export class CLI {
       );
     }
     const templateRenderer = templateRendererResult.data;
-    const aggregator = new Aggregator();
 
-    const coordinator = new ProcessCoordinator(
-      schemaRepository,
-      frontmatterProcessor,
+    // Create file system adapter
+    const fileSystem = {
+      read: (path: string) => fileReader.read(path),
+      write: (path: string, content: string) => fileWriter.write(path, content),
+      list: (pattern: string) => fileLister.list(pattern),
+    };
+
+    this.orchestrator = new PipelineOrchestrator(
+      documentProcessor,
+      schemaProcessor,
       templateRenderer,
-      aggregator,
-      fileReader,
-      fileWriter,
-      fileLister,
+      fileSystem,
     );
-
-    this.useCase = new ProcessDocumentsUseCase(coordinator);
   }
 
-  run(args: string[]): Result<void, DomainError & { message: string }> {
+  async run(
+    args: string[],
+  ): Promise<Result<void, DomainError & { message: string }>> {
     // Help display
     if (args.includes("--help") || args.includes("-h")) {
       this.showHelp();
@@ -122,24 +146,25 @@ DESCRIPTION:
     console.log("Use --help for detailed information");
   }
 
-  private executeCommand(
+  private async executeCommand(
     schemaPath: string,
     outputPath: string,
     inputPattern: string,
-  ): Result<void, DomainError & { message: string }> {
-    const result = this.useCase.execute({
+  ): Promise<Result<void, DomainError & { message: string }>> {
+    const config: PipelineConfig = {
       schemaPath,
       outputPath,
       inputPattern,
-    });
+    };
 
+    const result = await this.orchestrator.execute(config);
     if (!result.ok) {
       console.error(`Error: ${result.error.message}`);
       return result;
     }
 
     console.log(
-      `Processing completed successfully. Output written to: ${result.data.outputPath}`,
+      `Processing completed successfully. Output written to: ${outputPath}`,
     );
     return ok(void 0);
   }

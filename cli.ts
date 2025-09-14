@@ -2,11 +2,11 @@
 
 import { CLI } from "./mod.ts";
 
-function main() {
+async function main() {
   const cli = new CLI();
   const args = Deno.args;
 
-  const result = cli.run(args);
+  const result = await cli.run(args);
 
   if (!result.ok) {
     console.error(`CLI Error: ${result.error.message}`);
@@ -18,7 +18,7 @@ function main() {
 
 if (import.meta.main) {
   try {
-    main();
+    await main();
   } catch (error) {
     console.error("Unexpected error:", error);
     Deno.exit(1);

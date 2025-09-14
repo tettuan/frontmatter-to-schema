@@ -1,14 +1,17 @@
 # Article Index Generator
 
-This directory contains Schema and template files for generating an article index from markdown files with frontmatter.
+This directory contains Schema and template files for generating an article
+index from markdown files with frontmatter.
 
 ## Files
 
 ### Schema Files
+
 - `articles_schema.json` - Main schema for the article index
 - `article_schema.json` - Schema for individual article entries
 
 ### Template Files
+
 - `articles_template.yml` - Main template for the index output
 - `article_template.yml` - Template for individual article entries
 
@@ -48,6 +51,7 @@ published_at: "2025-01-15 10:00"
 ## Output Format
 
 The generated index will include:
+
 - Metadata (generation time, counts)
 - Complete article list with all properties
 - Aggregated topics and types lists
