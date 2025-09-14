@@ -2,12 +2,10 @@
   "version": "1.0.0",
   "description": "Climpt comprehensive configuration for MCP server and command registry",
   "tools": {
-    "availableConfigs": [],
-    "allC1Categories": [],
-    "allC2Actions": [],
-    "allC3Targets": [],
-    "commands": [
-      {}
-    ]
+    "availableConfigs": "{tools.availableConfigs}",
+    "allC1Categories": "{tools.allC1Categories}",
+    "allC2Actions": "{tools.allC2Actions}",
+    "allC3Targets": "{tools.allC3Targets}",
+    "commands": "[{\"c1\":\"git\",\"c2\":\"create\",\"c3\":\"refinement-issue\",\"description\":\"Create a refinement issue from requirements documentation\",\"usage\":\"Create refinement issues from requirement documents\",\"input\":[\"MD\"],\"adaptation\":[\"default\",\"detailed\"],\"input_file\":[true],\"stdin\":[false],\"destination\":[true]},{\"c1\":\"test\",\"c2\":\"execute\",\"c3\":\"integration-suite\",\"description\":\"Execute integration test suite\",\"usage\":\"Run comprehensive integration tests\",\"input\":[\"CODE\",\"CONFIG\"],\"adaptation\":[\"fast\",\"thorough\"],\"input_file\":[false],\"stdin\":[true],\"destination\":[true]}]"
   }
 }

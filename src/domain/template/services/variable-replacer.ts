@@ -4,9 +4,6 @@ import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-dat
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
-import { TemplateSchemaBindingService } from "./template-schema-binding-service.ts";
-import { VariableContext } from "../value-objects/variable-context.ts";
-import { Schema } from "../../schema/entities/schema.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -15,7 +12,6 @@ import { Schema } from "../../schema/entities/schema.ts";
 export class VariableReplacer {
   private constructor(
     private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
-    private readonly bindingService: TemplateSchemaBindingService,
   ) {}
   private debugLogger = DebugLoggerFactory.create();
 
@@ -30,12 +26,7 @@ export class VariableReplacer {
     const strategyResult = ArrayExpansionStrategy.create();
     if (!strategyResult.ok) return strategyResult;
 
-    const bindingServiceResult = TemplateSchemaBindingService.create();
-    if (!bindingServiceResult.ok) return bindingServiceResult;
-
-    return ok(
-      new VariableReplacer(strategyResult.data, bindingServiceResult.data),
-    );
+    return ok(new VariableReplacer(strategyResult.data));
   }
 
   /**
@@ -105,11 +96,7 @@ export class VariableReplacer {
           return match; // Keep placeholder if value not found
         }
 
-        const isJsonTemplate = this.isJsonTemplate(template);
-        const formattedValue = this.formatValue(
-          valueResult.data,
-          isJsonTemplate,
-        );
+        const formattedValue = this.formatValue(valueResult.data);
         this.debugLogger?.logDebug(
           "variable-replacer",
           "Variable resolved successfully",
@@ -166,11 +153,7 @@ export class VariableReplacer {
           return match; // Keep placeholder if value not found
         }
 
-        const isJsonTemplate = this.isJsonTemplate(template);
-        const formattedValue = this.formatValue(
-          valueResult.data,
-          isJsonTemplate,
-        );
+        const formattedValue = this.formatValue(valueResult.data);
         this.debugLogger?.logDebug(
           "variable-replacer",
           "Single-brace variable resolved successfully",
@@ -188,9 +171,7 @@ export class VariableReplacer {
         return formattedValue;
       });
 
-      // Post-process JSON templates to convert placeholders to proper JSON
-      const finalResult = this.postProcessJsonTemplate(result);
-      return ok(finalResult);
+      return ok(result);
     } catch (error) {
       return err(createError({
         kind: "RenderFailed",
@@ -205,13 +186,11 @@ export class VariableReplacer {
    * Processes template values recursively, handling objects and arrays
    * @param value - Value to process (can be object, array, or primitive)
    * @param data - FrontmatterData for variable substitution
-   * @param isInJsonContext - Whether we're processing within a JSON template context
    * @returns Result containing processed value or error
    */
   processValue(
     value: unknown,
     data: FrontmatterData,
-    isInJsonContext: boolean = false,
   ): Result<unknown, TemplateError & { message: string }> {
     try {
       // Handle Result types first - unwrap successful Results, return empty for errors
@@ -223,43 +202,20 @@ export class VariableReplacer {
         };
         if (resultValue.ok && resultValue.data !== undefined) {
           // Recursively process the unwrapped data
-          return this.processValue(resultValue.data, data, isInJsonContext);
+          return this.processValue(resultValue.data, data);
         }
         // For error Results, return empty string
         return ok("");
       }
 
       if (typeof value === "string") {
-        const result = this.replaceVariables(value, data);
-        if (result.ok && isInJsonContext) {
-          // Post-process if we're in JSON context and have placeholders
-          const postProcessed = this.postProcessJsonTemplate(result.data);
-
-          // Try to parse the result as JSON if it looks like structured data
-          if (
-            this.isJsonTemplate(postProcessed) || postProcessed !== result.data
-          ) {
-            try {
-              // If the post-processed result is valid JSON, parse and return it
-              const parsed = JSON.parse(postProcessed);
-              return ok(parsed);
-            } catch {
-              // If parsing fails, return the post-processed string
-              return ok(postProcessed);
-            }
-          }
-        }
-        return result;
+        return this.replaceVariables(value, data);
       }
 
       if (Array.isArray(value)) {
         const results: unknown[] = [];
         for (const item of value) {
-          const processedResult = this.processValue(
-            item,
-            data,
-            isInJsonContext,
-          );
+          const processedResult = this.processValue(item, data);
           if (!processedResult.ok) {
             return processedResult;
           }
@@ -269,11 +225,7 @@ export class VariableReplacer {
       }
 
       if (value && typeof value === "object") {
-        return this.processObject(
-          value as Record<string, unknown>,
-          data,
-          isInJsonContext || this.isJsonTemplate(JSON.stringify(value)),
-        );
+        return this.processObject(value as Record<string, unknown>, data);
       }
 
       return ok(value);
@@ -287,7 +239,7 @@ export class VariableReplacer {
     }
   }
 
-  private formatValue(value: unknown, isJsonTemplate: boolean = false): string {
+  private formatValue(value: unknown): string {
     if (
       typeof value === "string" || typeof value === "number" ||
       typeof value === "boolean"
@@ -304,22 +256,15 @@ export class VariableReplacer {
       };
       if (resultValue.ok && resultValue.data !== undefined) {
         // Recursively format the data inside successful Result
-        return this.formatValue(resultValue.data, isJsonTemplate);
+        return this.formatValue(resultValue.data);
       }
       // For error Results, return empty string (fail gracefully)
       return "";
     }
 
-    // Handle arrays - special handling for JSON templates
+    // Handle arrays
     if (Array.isArray(value)) {
-      if (isJsonTemplate) {
-        // For JSON templates, return raw JSON without quotes to avoid double-escaping
-        // This creates proper JSON structure: "key": [array] instead of "key": "[array]"
-        return `__JSON_PLACEHOLDER_${JSON.stringify(value)}_JSON_PLACEHOLDER__`;
-      } else {
-        // For non-JSON templates (text, HTML, etc.), keep existing string behavior
-        return JSON.stringify(value);
-      }
+      return JSON.stringify(value);
     }
 
     // Handle null/undefined
@@ -330,11 +275,7 @@ export class VariableReplacer {
       return "";
     }
 
-    // For complex objects
-    if (isJsonTemplate) {
-      // For JSON templates, use placeholder to avoid double-escaping
-      return `__JSON_PLACEHOLDER_${JSON.stringify(value)}_JSON_PLACEHOLDER__`;
-    }
+    // For complex objects, stringify but be cautious
     return JSON.stringify(value);
   }
 
@@ -347,50 +288,9 @@ export class VariableReplacer {
     );
   }
 
-  /**
-   * Detect if a template string is likely JSON format.
-   * Used to determine if special JSON placeholder handling is needed.
-   */
-  private isJsonTemplate(template: string): boolean {
-    const trimmed = template.trim();
-    return (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-      (trimmed.startsWith("[") && trimmed.endsWith("]"));
-  }
-
-  /**
-   * Post-process template result to convert JSON placeholders back to proper JSON.
-   * This handles the special placeholders inserted by formatValue for JSON templates.
-   */
-  private postProcessJsonTemplate(result: string): string {
-    // For single values with placeholders, we don't need the full JSON template check
-    if (!result.includes("__JSON_PLACEHOLDER_")) {
-      return result;
-    }
-
-    // Replace JSON placeholders with actual JSON structures
-    // Handle both quoted and unquoted placeholders
-    const processed = result.replace(
-      /"?__JSON_PLACEHOLDER_(.+?)_JSON_PLACEHOLDER__"?/g,
-      (match, jsonContent) => {
-        try {
-          // Validate it's proper JSON first
-          JSON.parse(jsonContent);
-          // Return the raw JSON without surrounding quotes
-          return jsonContent;
-        } catch {
-          // If invalid JSON, return the original match
-          return match;
-        }
-      },
-    );
-
-    return processed;
-  }
-
   private processObject(
     obj: Record<string, unknown>,
     data: FrontmatterData,
-    isInJsonContext: boolean = false,
   ): Result<Record<string, unknown>, TemplateError & { message: string }> {
     const result: Record<string, unknown> = {};
 
@@ -422,7 +322,7 @@ export class VariableReplacer {
       }
 
       // Process regular values
-      const processedResult = this.processValue(val, data, isInJsonContext);
+      const processedResult = this.processValue(val, data);
       if (!processedResult.ok) {
         return err(processedResult.error);
       }
@@ -471,110 +371,6 @@ export class VariableReplacer {
   }
 
   /**
-   * Schema-aware variable replacement with proper {@items} hierarchy resolution.
-   * This method replaces the legacy replaceVariables for schema-aware contexts.
-   * @param template - Template string with {variable} placeholders
-   * @param schema - Schema for hierarchical context
-   * @param data - FrontmatterData containing values for replacement
-   * @returns Result containing processed template string or error
-   */
-  replaceVariablesWithSchema(
-    template: string,
-    schema: Schema,
-    data: FrontmatterData,
-  ): Result<string, TemplateError & { message: string }> {
-    try {
-      if (!template.includes("{")) {
-        return ok(template);
-      }
-
-      this.debugLogger?.logDebug(
-        "variable-replacer-schema",
-        "Starting schema-aware variable replacement",
-        {
-          template: template.substring(0, 200) +
-            (template.length > 200 ? "..." : ""),
-        },
-      );
-
-      // Create schema-aware variable context
-      const contextResult = this.bindingService.createVariableContext(
-        schema,
-        data,
-      );
-      if (!contextResult.ok) {
-        return err(contextResult.error);
-      }
-
-      const context = contextResult.data;
-
-      // Support both single and double brace syntax: {var} and {{var}}
-      let result = template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-        return this.resolveVariableInContext(varName, context, match, template);
-      });
-
-      result = result.replace(/\{([^}]+)\}/g, (match, varName) => {
-        return this.resolveVariableInContext(varName, context, match, template);
-      });
-
-      // Post-process JSON templates to convert placeholders to proper JSON
-      const finalResult = this.postProcessJsonTemplate(result);
-      return ok(finalResult);
-    } catch (error) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: error instanceof Error
-          ? `Schema-aware variable replacement failed: ${error.message}`
-          : "Schema-aware variable replacement failed",
-      }));
-    }
-  }
-
-  /**
-   * Resolves a single variable within a schema-aware context.
-   */
-  private resolveVariableInContext(
-    varName: string,
-    context: VariableContext,
-    originalMatch: string,
-    template?: string,
-  ): string {
-    this.debugLogger?.logDebug(
-      "variable-replacer-schema",
-      "Processing variable with schema context",
-      { varName, match: originalMatch },
-    );
-
-    const valueResult = context.resolveVariable(varName);
-    if (!valueResult.ok) {
-      this.debugLogger?.logDebug(
-        "variable-replacer-schema",
-        "Variable not found in schema context - keeping placeholder",
-        { varName, error: valueResult.error },
-      );
-      return originalMatch; // Keep placeholder if value not found
-    }
-
-    const isJsonTemplate = template ? this.isJsonTemplate(template) : false;
-    const formattedValue = this.formatValue(valueResult.data, isJsonTemplate);
-    this.debugLogger?.logDebug(
-      "variable-replacer-schema",
-      "Variable resolved with schema context",
-      {
-        varName,
-        rawDataType: typeof valueResult.data,
-        rawDataIsArray: Array.isArray(valueResult.data),
-        formattedValue: typeof formattedValue === "string"
-          ? formattedValue.substring(0, 100) +
-            (formattedValue.length > 100 ? "..." : "")
-          : formattedValue,
-      },
-    );
-
-    return formattedValue;
-  }
-
-  /**
    * Process template with {@items} array expansion support
    * @param template - Template content with potential {@items} marker
    * @param dataArray - Array of data items to expand
@@ -608,7 +404,6 @@ export class VariableReplacer {
         const processedResult = this.processValue(
           itemTemplate,
           itemDataResult.data,
-          false, // Array expansion templates are usually not JSON objects themselves
         );
         if (!processedResult.ok) {
           return processedResult;

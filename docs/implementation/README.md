@@ -8,17 +8,16 @@
 
 ### x-template-format 機能の実装ドキュメント
 
-| File                          | Description                          | Format             |
-| ----------------------------- | ------------------------------------ | ------------------ |
-| `template-format-flow.dot`    | コンポーネント間の関係とデータフロー | Graphviz DOT       |
-| `template-format-modules.dot` | モジュール依存関係図                 | Graphviz DOT       |
-| `template-format-sequence.md` | 詳細シーケンス図とデータフロー       | Markdown + Mermaid |
-| `template-format-examples.md` | 具体的使用例とフロー                 | Markdown           |
+| File | Description | Format |
+|------|-------------|---------|
+| `template-format-flow.dot` | コンポーネント間の関係とデータフロー | Graphviz DOT |
+| `template-format-modules.dot` | モジュール依存関係図 | Graphviz DOT |
+| `template-format-sequence.md` | 詳細シーケンス図とデータフロー | Markdown + Mermaid |
+| `template-format-examples.md` | 具体的使用例とフロー | Markdown |
 
 ### 実装された機能概要
 
-**x-template-format**:
-スキーマにて出力フォーマット（JSON/YAML/TOML/Markdown）を指定する機能
+**x-template-format**: スキーマにて出力フォーマット（JSON/YAML/TOML/Markdown）を指定する機能
 
 #### 責務分離の実装
 
@@ -36,7 +35,6 @@ Schema拡張 → SchemaPropertyUtils → SchemaDefinition → Schema → Templat
 ### 図の生成方法
 
 #### Graphviz DOT図のSVG生成
-
 ```bash
 # フロー図
 dot -Tsvg docs/implementation/template-format-flow.dot -o tmp/template-format-flow.svg
@@ -46,13 +44,11 @@ dot -Tsvg docs/implementation/template-format-modules.dot -o tmp/template-format
 ```
 
 #### Mermaidシーケンス図の表示
-
 Mermaid対応エディタまたはmermaid-cliで`template-format-sequence.md`内の図を表示
 
 ### 実装状況
 
 ✅ **完了済み**:
-
 - スキーマ拡張の追加
 - 出力フォーマッター群（JSON/YAML/TOML/Markdown）
 - パス解決での自動検出機能

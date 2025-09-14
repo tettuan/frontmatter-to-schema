@@ -79,16 +79,7 @@ export class TemplateRenderer {
       },
     );
 
-    // Detect if template content is JSON format for proper array handling
-    const isJsonTemplate = typeof content === "object" ||
-      (typeof content === "string" &&
-        ((content.trim().startsWith("{") && content.trim().endsWith("}")) ||
-          (content.trim().startsWith("[") && content.trim().endsWith("]"))));
-    const renderedResult = this.variableReplacer.processValue(
-      content,
-      data,
-      isJsonTemplate,
-    );
+    const renderedResult = this.variableReplacer.processValue(content, data);
     if (!renderedResult.ok) {
       this.debugLogger?.logError("variable-processing", renderedResult.error, {
         templateFormat: template.getFormat(),
@@ -196,17 +187,7 @@ export class TemplateRenderer {
 
       const results: unknown[] = [];
       for (const item of dataArray) {
-        // Same JSON detection logic as above for consistency
-        const isJsonTemplate = typeof content === "object" ||
-          (typeof content === "string" &&
-            ((content.trim().startsWith("{") && content.trim().endsWith("}")) ||
-              (content.trim().startsWith("[") &&
-                content.trim().endsWith("]"))));
-        const itemResult = this.variableReplacer.processValue(
-          content,
-          item,
-          isJsonTemplate,
-        );
+        const itemResult = this.variableReplacer.processValue(content, item);
         if (!itemResult.ok) {
           this.debugLogger?.logError(
             "item-processing",
