@@ -14,10 +14,11 @@ Just as Unix commands operate relative to a Present Working Directory (pwd), tem
 
 The **Mapping Origin** is the absolute reference point from which all template variable paths are resolved. It functions as the "pwd" for template processing:
 
-1. **Schema-Defined Origin**: Determined by `x-frontmatter-part: true` annotation
-2. **Immutable Reference**: Once established, all variable resolution uses this origin
-3. **Absolute Path Base**: All variable paths resolve relative to this origin
-4. **Scope Boundary**: Variables cannot resolve "above" the mapping origin
+1. **Default Origin**: `x-template` uses **Schema Root** as the starting point
+2. **Moved Origin**: `x-frontmatter-part: true` **moves the origin** to that property location
+3. **Immutable Reference**: Once established, all variable resolution uses this origin
+4. **Absolute Path Base**: All variable paths resolve relative to this origin
+5. **Scope Boundary**: Variables cannot resolve "above" the mapping origin
 
 #### Mapping Origin Rules
 
@@ -26,9 +27,10 @@ The **Mapping Origin** is the absolute reference point from which all template v
 - Multiple `x-frontmatter-part: true` properties are invalid
 - The origin is established during schema analysis phase
 
-**Rule MO-2: Origin Precedence**
-- `x-frontmatter-part: true` → **Primary origin marker**
-- Schema root → **Default origin** (if no explicit marker)
+**Rule MO-2: Origin Movement Rules**
+- `x-template` → **Schema Root** remains the origin (no movement)
+- `x-frontmatter-part: true` → **Origin moves** to that property location
+- The moved location becomes the `x-template-items` and `{@items}` resolution point
 - Nested properties → **Never become origin** without explicit marker
 
 **Rule MO-3: Path Resolution Constraint**
@@ -37,60 +39,72 @@ The **Mapping Origin** is the absolute reference point from which all template v
 - `{property.nested}` → Origin.property.nested
 - **Cannot access data outside origin scope**
 
-#### Mapping Origin Example
+#### Mapping Origin Examples
 
+**Example 1: x-template (Schema Root Origin)**
 ```json
-// Schema defines origin
+// Schema with x-template (no origin movement)
 {
-  "metadata": { "version": "string" },     // ← Not accessible to templates
-  "commands": {                           // ← MAPPING ORIGIN
+  "x-template": { "design": "{@items}" },
+  "metadata": { "version": "string" },     // ← Accessible
+  "commands": {                           // ← Accessible
     "type": "array",
-    "x-frontmatter-part": true,           // ← Origin marker
     "items": { "$ref": "command_schema.json" }
   }
 }
 ```
 
-**Mapping Origin**: `frontmatter.commands`
+**Mapping Origin**: Schema Root (`frontmatter`)
 **Variable Resolution**:
 - `{@items}` → `frontmatter.commands[*]` ✅
-- `{metadata.version}` → **INVALID** (outside origin) ❌
-- `{id.full}` → `frontmatter.commands[current].id.full` ✅
+- `{metadata.version}` → `frontmatter.metadata.version` ✅
+- All schema properties accessible ✅
 
-## Core Mapping Rules
-
-### Rule 1: Hierarchy Root Determination (Legacy Reference)
-
-**Note**: This rule is superseded by the Mapping Origin concept defined above.
-
-When a schema property has `x-frontmatter-part: true`, that property becomes the **Mapping Origin** for all template variable resolution.
-
+**Example 2: x-frontmatter-part (Moved Origin)**
 ```json
+// Schema with moved origin
 {
-  "commands": {
+  "metadata": { "version": "string" },     // ← Not accessible (outside moved origin)
+  "commands": {                           // ← MAPPING ORIGIN (moved here)
     "type": "array",
-    "x-frontmatter-part": true,
-    "items": { "$ref": "registry_command_schema.json" }
+    "x-frontmatter-part": true,           // ← Origin movement marker
+    "x-template-items": { "id": "{id.full}" },
+    "items": { "$ref": "command_schema.json" }
   }
 }
 ```
 
-In this case: `commands` → **Mapping Origin** for all variables
+**Mapping Origin**: `frontmatter.commands` (moved from root)
+**Variable Resolution**:
+- `{@items}` → `frontmatter.commands[*]` ✅
+- `{metadata.version}` → **INVALID** (outside moved origin) ❌
+- `{id.full}` → `frontmatter.commands[current].id.full` ✅
 
-### Rule 2: {@items} Resolution Path
+## Core Mapping Rules
 
-`{@items}` always resolves from the **Mapping Origin** defined by `x-frontmatter-part`, NOT from nested properties or arbitrary arrays.
+### Rule 1: {@items} Resolution Path
 
+`{@items}` resolution depends on origin movement:
+
+**Without x-frontmatter-part (Schema Root Origin):**
 ```
 Template: "design": "{@items}"
-Mapping Origin: frontmatter.commands
-Resolution Path: frontmatter.commands → {@items}
-Variable Scope: ONLY within commands array
+Mapping Origin: Schema Root (frontmatter)
+Resolution Path: frontmatter → find first array → {@items}
+Variable Scope: ALL schema properties accessible
 ```
 
-**Critical Constraint**: `{@items}` can only access data within the Mapping Origin scope. Any attempt to access data outside this scope results in resolution failure.
+**With x-frontmatter-part (Moved Origin):**
+```
+Template: "design": "{@items}"
+Mapping Origin: frontmatter.commands (moved)
+Resolution Path: frontmatter.commands → {@items}
+Variable Scope: ONLY within moved origin scope
+```
 
-### Rule 3: $ref Template Source Resolution
+**Critical Constraint**: When origin is moved by `x-frontmatter-part: true`, `{@items}` can only access data within that moved origin scope. Variables cannot access data outside the moved origin.
+
+### Rule 2: $ref Template Source Resolution
 
 When `items` contains a `$ref`, the referenced schema's root structure becomes the template source for each array item.
 
@@ -108,7 +122,7 @@ When `items` contains a `$ref`, the referenced schema's root structure becomes t
 
 **Template Source**: Root of `registry_command_schema.json`
 
-### Rule 4: Template Application Mapping
+### Rule 3: Template Application Mapping
 
 Each item in the hierarchy root array gets the template from the `$ref` schema applied:
 
@@ -180,14 +194,15 @@ Each item in the hierarchy root array gets the template from the `$ref` schema a
 
 ## Architectural Constraints
 
-### Constraint 1: Mapping Origin Requirement
-- All template variables **MUST** resolve from a valid Mapping Origin
-- `x-frontmatter-part: true` **MUST** be present to establish Mapping Origin
-- Without Mapping Origin, all variable resolution fails
+### Constraint 1: Mapping Origin Types
+- `x-template`: Uses **Schema Root** as origin (no movement required)
+- `x-frontmatter-part: true`: **Moves origin** to that property location
+- Mixed usage: Schema analysis determines which pattern is active
 
-### Constraint 1a: Origin Isolation
-- Variables **CANNOT** access data outside the Mapping Origin scope
-- Cross-origin references are strictly forbidden
+### Constraint 1a: Origin Scope Rules
+- **Schema Root Origin** (`x-template`): All schema properties accessible
+- **Moved Origin** (`x-frontmatter-part: true`): Only moved origin scope accessible
+- Cross-origin references are forbidden when origin is moved
 - This maintains data encapsulation and prevents scope leakage
 
 ### Constraint 2: $ref Resolution Priority
@@ -223,13 +238,14 @@ This mapping hierarchy with strict Origin concept ensures:
 
 | Unix PWD | Mapping Origin |
 |----------|----------------|
-| `pwd` shows current directory | `x-frontmatter-part: true` defines origin |
-| `./file` resolves relative to pwd | `{variable}` resolves relative to origin |
-| Cannot access above filesystem root | Cannot access outside origin scope |
+| Default PWD is root directory | `x-template` uses schema root as origin |
+| `cd /path` moves PWD to new location | `x-frontmatter-part: true` moves origin |
+| `./file` resolves relative to current PWD | `{variable}` resolves relative to current origin |
+| Cannot access above filesystem root | Cannot access outside origin scope when moved |
 | Path resolution is deterministic | Variable resolution is deterministic |
-| Commands operate from current directory | Templates operate from mapping origin |
+| Commands operate from current directory | Templates operate from current mapping origin |
 
-This PWD-like approach ensures template processing has the same predictability and security as filesystem operations.
+This PWD-like approach ensures template processing has the same predictability and security as filesystem operations, with origin movement providing the same flexibility as changing directories.
 
 ## Related Documentation
 
