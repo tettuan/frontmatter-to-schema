@@ -167,7 +167,7 @@ Deno.test("TemplateRenderer - should render nested object template", () => {
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
     assertEquals(parsed.project.name, "My Project");
-    assertEquals(parsed.project.settings.debug, "true"); // Template renderer converts values to strings
+    assertEquals(parsed.project.settings.debug, true); // JSON templates preserve boolean values
     assertEquals(parsed.project.settings.version, "2.0.0");
     assertEquals(parsed.metadata.author, "Developer");
   }
@@ -410,9 +410,9 @@ Deno.test("TemplateRenderer - should handle boolean and number values", () => {
   assertEquals(isOk(result), true);
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
-    assertEquals(parsed.enabled, "true"); // Template renderer converts to strings
-    assertEquals(parsed.count, "42"); // Template renderer converts to strings
-    assertEquals(parsed.rate, "3.14"); // Template renderer converts to strings
+    assertEquals(parsed.enabled, true); // JSON templates preserve original data types
+    assertEquals(parsed.count, 42); // JSON templates preserve original data types
+    assertEquals(parsed.rate, 3.14); // JSON templates preserve original data types
     assertEquals(parsed.message, "Status: true, Count: 42");
   }
 });
@@ -445,7 +445,7 @@ Deno.test("TemplateRenderer - should handle null and undefined values", () => {
   assertEquals(isOk(result), true);
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
-    assertEquals(parsed.nullValue, "null"); // Template renderer converts to strings
+    assertEquals(parsed.nullValue, null); // JSON templates preserve null values
     assertEquals(parsed.undefinedValue, "{undefinedValue}"); // Unresolved
     assertEquals(parsed.normalValue, "normal");
   }
@@ -515,15 +515,15 @@ Deno.test("TemplateRenderer - should preserve data types in rendering", () => {
   assertEquals(isOk(result), true);
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
-    // Template renderer preserves data types in JSON templates
+    // JSON templates now preserve original data types (correct behavior)
     assertEquals(typeof parsed.stringVal, "string");
-    assertEquals(typeof parsed.boolVal, "string"); // Template variables become strings (except arrays/objects)
-    assertEquals(typeof parsed.numVal, "string"); // Template variables become strings (except arrays/objects)
+    assertEquals(typeof parsed.boolVal, "boolean"); // Data types are now preserved
+    assertEquals(typeof parsed.numVal, "number"); // Data types are now preserved
     assertEquals(typeof parsed.arrayVal, "object"); // Arrays are preserved as arrays in JSON templates
     assertEquals(typeof parsed.objVal, "object"); // Objects are preserved as objects in JSON templates
     assertEquals(parsed.stringVal, "test");
-    assertEquals(parsed.boolVal, "false");
-    assertEquals(parsed.numVal, "123");
+    assertEquals(parsed.boolVal, false); // Original boolean value preserved
+    assertEquals(parsed.numVal, 123); // Original number value preserved
     assertEquals(parsed.arrayVal, [1, 2, 3]); // Array preserved as actual array
     assertEquals(parsed.objVal, { nested: "value" }); // Object preserved as actual object
   }

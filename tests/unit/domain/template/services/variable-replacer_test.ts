@@ -316,8 +316,8 @@ Deno.test({
 
     assertEquals(result.ok, true);
     if (result.ok) {
-      // ✅ JSON format should stringify the array (backward compatibility)
-      assertEquals(result.data, JSON.stringify(dataArray));
+      // ✅ JSON format should return actual array (not stringified for proper JSON structure)
+      assertEquals(result.data, dataArray);
     }
   },
 });

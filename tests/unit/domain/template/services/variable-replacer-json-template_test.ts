@@ -68,13 +68,13 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
       assertEquals(output.version, "2.0.0");
       assertEquals(output.metadata.author, "Test Author");
       assertEquals(output.metadata.created, "2024-01-01T00:00:00Z");
-      // VariableReplacer formats arrays as JSON strings when used as replacement values
-      assertEquals(output.metadata.tags, '["template","json","test"]');
+      // JSON templates now preserve arrays as actual arrays (correct behavior)
+      assertEquals(output.metadata.tags, ["template", "json", "test"]);
       assertEquals(output.config.input, "./src");
       assertEquals(output.config.output, "./dist");
-      // Booleans are converted to strings in VariableReplacer
-      assertEquals(output.config.options.debug, "false");
-      assertEquals(output.config.options.verbose, "true");
+      // JSON templates now preserve booleans as actual booleans (correct behavior)
+      assertEquals(output.config.options.debug, false);
+      assertEquals(output.config.options.verbose, true);
       assertEquals(output.staticValue, "This should not change");
       assertEquals(Array.isArray(output.items), true);
       assertEquals(output.items.length, 0);
@@ -137,8 +137,8 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
     if (isOk(result)) {
       const output = result.data as any;
       assertEquals(output.level1.level2.level3.value, "Deep Value");
-      // Arrays are formatted as JSON strings
-      assertEquals(output.level1.level2.level3.array, "[1,2,3]");
+      // JSON templates now preserve arrays as actual arrays (correct behavior)
+      assertEquals(output.level1.level2.level3.array, [1, 2, 3]);
       assertEquals(output.level1.sibling, "Sibling Value");
     }
   });
@@ -218,10 +218,9 @@ Deno.test("VariableReplacer - Array Expansion with {@items}", async (t) => {
       const output = result.data as any;
       assertEquals(output.registry.name, "climpt");
       assertEquals(output.registry.version, "1.0.0");
-      // When {@items} is a string value, it gets JSON stringified in the current implementation
-      // This is a limitation of the current VariableReplacer implementation
-      const expectedJson = JSON.stringify(dataArray);
-      assertEquals(output.registry.commands, expectedJson);
+      // ✅ Fixed: {@items} now properly expands to actual array instead of stringified JSON
+      // This ensures proper JSON structure in output files
+      assertEquals(output.registry.commands, dataArray);
     }
   });
 
@@ -335,9 +334,8 @@ Deno.test("VariableReplacer - Real-world climpt registry template", async (t) =>
     if (isOk(arrayResult)) {
       const output = arrayResult.data as any;
       assertExists(output.commands);
-      // When {@items} is a string value, it gets JSON stringified in the current implementation
-      const expectedJson = JSON.stringify(commands);
-      assertEquals(output.commands, expectedJson);
+      // ✅ Fixed: {@items} now properly expands to actual array instead of stringified JSON
+      assertEquals(output.commands, commands);
     }
   });
 });
