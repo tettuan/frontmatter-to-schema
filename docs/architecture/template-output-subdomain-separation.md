@@ -14,7 +14,7 @@ The `OutputRenderingService` handles:
 3. **Template Composition** - Combining items template results into main
    template
 
-See `template-processing-specification.md` Section 5.2 for the authoritative
+See `template-processing-specification.md` Section 6.2 for the authoritative
 specification.
 
 ## Subdomain Architecture

@@ -116,7 +116,7 @@ contain template specifications:
 ```typescript
 interface TemplateResolutionLogic {
   resolveItemTemplate(schema: Schema): string {
-    // Check main schema for x-template-items (REQUIRED)
+    // Check main schema for x-template-items (optional)
     if (schema.hasMainSchemaTemplateItems()) {
       return schema.getMainSchemaTemplateItems();
     }

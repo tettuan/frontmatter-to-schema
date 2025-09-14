@@ -220,6 +220,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       // Regular variables should still work
       const titleResult = context.resolveVariable("title");
       assertExists(titleResult.ok, "Should resolve regular variable");
+      if (!titleResult.ok) return;
       assertEquals(titleResult.data, "Test Project");
 
       // {@items} should fail without hierarchy root

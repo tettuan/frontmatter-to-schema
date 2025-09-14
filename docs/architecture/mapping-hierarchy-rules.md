@@ -1,9 +1,9 @@
-# Mapping Hierarchy Rules for {@items} and $ref Processing
+# Mapping Hierarchy Rules for {@items} Processing and Data Partitioning
 
 ## Overview
 
 This document defines the explicit mapping hierarchy rules for how `{@items}`
-array expansion interacts with `$ref` schema references and template processing.
+array expansion works with data partitioning and template processing.
 
 ## Fundamental Concepts
 
