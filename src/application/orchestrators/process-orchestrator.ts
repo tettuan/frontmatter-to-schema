@@ -33,15 +33,18 @@ export class ProcessOrchestrator {
       return schemaResult;
     }
 
-    const { schema, validationRules, templatePath } = schemaResult.data;
+    const processedSchema = schemaResult.data;
 
-    // Validate template path exists
-    if (!templatePath) {
+    // Handle schema based on whether it has a template
+    if (processedSchema.kind === "WithoutTemplate") {
       return err(createError({
         kind: "InvalidTemplate",
         template: "No template path specified in schema",
       }));
     }
+
+    // Schema has template - extract data and resolve path
+    const { schema, validationRules } = processedSchema;
 
     // Resolve template path relative to schema directory
     const resolvedTemplatePathResult = this.schemaProcessingService
