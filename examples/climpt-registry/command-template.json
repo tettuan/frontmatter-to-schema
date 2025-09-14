@@ -1,8 +1,11 @@
 {
-  "c1": "{c1}",
-  "c2": "{c2}",
-  "c3": "{c3}",
+  "version": "{version}",
   "description": "{description}",
-  "usage": "{usage}",
-  "options": "{options}"
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "allC1Categories": "{tools.allC1Categories}",
+    "allC2Actions": "{tools.allC2Actions}",
+    "allC3Targets": "{tools.allC3Targets}",
+    "commands": "{tools.commands}"
+  }
 }

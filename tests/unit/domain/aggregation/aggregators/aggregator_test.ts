@@ -10,28 +10,39 @@ Deno.test("Aggregator - x-derived-from - should aggregate simple array property"
   const data1Result = FrontmatterData.create({
     commands: [
       { c1: "meta", c2: "resolve" },
-      { c1: "spec", c2: "analyze" }
-    ]
+      { c1: "spec", c2: "analyze" },
+    ],
   });
   const data2Result = FrontmatterData.create({
     commands: [
       { c1: "git", c2: "commit" },
-      { c1: "meta", c2: "update" }
-    ]
+      { c1: "meta", c2: "update" },
+    ],
   });
   assert(data1Result.ok && data2Result.ok);
 
   // Create derivation rule for x-derived-from
-  const ruleResult = DerivationRule.create("commands[].c1", "allC1Categories", false);
+  const ruleResult = DerivationRule.create(
+    "commands[].c1",
+    "allC1Categories",
+    false,
+  );
   assert(ruleResult.ok);
 
-  const result = aggregator.aggregate([data1Result.data, data2Result.data], [ruleResult.data!]);
+  const result = aggregator.aggregate([data1Result.data, data2Result.data], [
+    ruleResult.data!,
+  ]);
   assert(result.ok);
 
   if (result.ok) {
     const derivedFields = result.data.derivedFields;
     assert(Array.isArray(derivedFields.allC1Categories));
-    assertEquals(derivedFields.allC1Categories, ["meta", "spec", "git", "meta"]);
+    assertEquals(derivedFields.allC1Categories, [
+      "meta",
+      "spec",
+      "git",
+      "meta",
+    ]);
   }
 });
 
@@ -43,29 +54,39 @@ Deno.test("Aggregator - x-derived-unique - should aggregate with unique values",
     commands: [
       { c1: "meta", c2: "resolve" },
       { c1: "spec", c2: "analyze" },
-      { c1: "meta", c2: "check" }
-    ]
+      { c1: "meta", c2: "check" },
+    ],
   });
   const data2Result = FrontmatterData.create({
     commands: [
       { c1: "git", c2: "commit" },
-      { c1: "spec", c2: "validate" }
-    ]
+      { c1: "spec", c2: "validate" },
+    ],
   });
   assert(data1Result.ok && data2Result.ok);
 
   // Create derivation rule with unique flag (x-derived-unique: true)
-  const ruleResult = DerivationRule.create("commands[].c1", "availableConfigs", true);
+  const ruleResult = DerivationRule.create(
+    "commands[].c1",
+    "availableConfigs",
+    true,
+  );
   assert(ruleResult.ok);
 
-  const result = aggregator.aggregate([data1Result.data, data2Result.data], [ruleResult.data!]);
+  const result = aggregator.aggregate([data1Result.data, data2Result.data], [
+    ruleResult.data!,
+  ]);
   assert(result.ok);
 
   if (result.ok) {
     const derivedFields = result.data.derivedFields;
     assert(Array.isArray(derivedFields.availableConfigs));
     // Should have unique values only
-    assertEquals(derivedFields.availableConfigs.sort(), ["git", "meta", "spec"]);
+    assertEquals(derivedFields.availableConfigs.sort(), [
+      "git",
+      "meta",
+      "spec",
+    ]);
   }
 });
 
@@ -75,21 +96,33 @@ Deno.test("Aggregator - should handle multiple derivation rules", () => {
   const data1Result = FrontmatterData.create({
     commands: [
       { c1: "meta", c2: "resolve", c3: "registered-commands" },
-      { c1: "spec", c2: "analyze", c3: "quality-metrics" }
-    ]
+      { c1: "spec", c2: "analyze", c3: "quality-metrics" },
+    ],
   });
   const data2Result = FrontmatterData.create({
     commands: [
       { c1: "git", c2: "commit", c3: "changes" },
-      { c1: "meta", c2: "resolve", c3: "dependencies" }
-    ]
+      { c1: "meta", c2: "resolve", c3: "dependencies" },
+    ],
   });
   assert(data1Result.ok && data2Result.ok);
 
   // Create multiple derivation rules
-  const rule1Result = DerivationRule.create("commands[].c1", "allC1Categories", true);
-  const rule2Result = DerivationRule.create("commands[].c2", "allC2Actions", true);
-  const rule3Result = DerivationRule.create("commands[].c3", "allC3Targets", false);
+  const rule1Result = DerivationRule.create(
+    "commands[].c1",
+    "allC1Categories",
+    true,
+  );
+  const rule2Result = DerivationRule.create(
+    "commands[].c2",
+    "allC2Actions",
+    true,
+  );
+  const rule3Result = DerivationRule.create(
+    "commands[].c3",
+    "allC3Targets",
+    false,
+  );
 
   assert(rule1Result.ok);
   assert(rule2Result.ok);
@@ -97,7 +130,7 @@ Deno.test("Aggregator - should handle multiple derivation rules", () => {
 
   const result = aggregator.aggregate(
     [data1Result.data, data2Result.data],
-    [rule1Result.data!, rule2Result.data!, rule3Result.data!]
+    [rule1Result.data!, rule2Result.data!, rule3Result.data!],
   );
   assert(result.ok);
 
@@ -105,15 +138,23 @@ Deno.test("Aggregator - should handle multiple derivation rules", () => {
     const derivedFields = result.data.derivedFields;
 
     // Check x-derived-unique fields
-    assertEquals((derivedFields.allC1Categories as string[]).sort(), ["git", "meta", "spec"]);
-    assertEquals((derivedFields.allC2Actions as string[]).sort(), ["analyze", "commit", "resolve"]);
+    assertEquals((derivedFields.allC1Categories as string[]).sort(), [
+      "git",
+      "meta",
+      "spec",
+    ]);
+    assertEquals((derivedFields.allC2Actions as string[]).sort(), [
+      "analyze",
+      "commit",
+      "resolve",
+    ]);
 
     // Check non-unique field
     assertEquals(derivedFields.allC3Targets, [
       "registered-commands",
       "quality-metrics",
       "changes",
-      "dependencies"
+      "dependencies",
     ]);
   }
 });
@@ -125,30 +166,40 @@ Deno.test("Aggregator - should handle nested property paths", () => {
     tools: {
       commands: [
         { name: "meta-resolve", category: "meta" },
-        { name: "spec-analyze", category: "spec" }
-      ]
-    }
+        { name: "spec-analyze", category: "spec" },
+      ],
+    },
   });
   const data2Result = FrontmatterData.create({
     tools: {
       commands: [
         { name: "git-commit", category: "git" },
-        { name: "meta-update", category: "meta" }
-      ]
-    }
+        { name: "meta-update", category: "meta" },
+      ],
+    },
   });
   assert(data1Result.ok && data2Result.ok);
 
   // Create derivation rule for nested path
-  const ruleResult = DerivationRule.create("tools.commands[].category", "categories", true);
+  const ruleResult = DerivationRule.create(
+    "tools.commands[].category",
+    "categories",
+    true,
+  );
   assert(ruleResult.ok);
 
-  const result = aggregator.aggregate([data1Result.data, data2Result.data], [ruleResult.data!]);
+  const result = aggregator.aggregate([data1Result.data, data2Result.data], [
+    ruleResult.data!,
+  ]);
   assert(result.ok);
 
   if (result.ok) {
     const derivedFields = result.data.derivedFields;
-    assertEquals((derivedFields.categories as string[]).sort(), ["git", "meta", "spec"]);
+    assertEquals((derivedFields.categories as string[]).sort(), [
+      "git",
+      "meta",
+      "spec",
+    ]);
   }
 });
 
@@ -156,18 +207,20 @@ Deno.test("Aggregator - should handle empty data gracefully", () => {
   const aggregator = new Aggregator();
 
   const data1Result = FrontmatterData.create({
-    commands: []
+    commands: [],
   });
   const data2Result = FrontmatterData.create({
     // No commands property at all
-    other: "value"
+    other: "value",
   });
   assert(data1Result.ok && data2Result.ok);
 
   const ruleResult = DerivationRule.create("commands[].c1", "configs", true);
   assert(ruleResult.ok);
 
-  const result = aggregator.aggregate([data1Result.data, data2Result.data], [ruleResult.data!]);
+  const result = aggregator.aggregate([data1Result.data, data2Result.data], [
+    ruleResult.data!,
+  ]);
   assert(result.ok);
 
   if (result.ok) {
@@ -182,25 +235,29 @@ Deno.test("Aggregator - should merge derived fields with base data", () => {
 
   const baseDataResult = FrontmatterData.create({
     version: "1.0.0",
-    description: "Test configuration"
+    description: "Test configuration",
   });
   assert(baseDataResult.ok);
 
   const data1Result = FrontmatterData.create({
     commands: [
       { c1: "meta" },
-      { c1: "spec" }
-    ]
+      { c1: "spec" },
+    ],
   });
   assert(data1Result.ok);
 
-  const ruleResult = DerivationRule.create("commands[].c1", "availableConfigs", true);
+  const ruleResult = DerivationRule.create(
+    "commands[].c1",
+    "availableConfigs",
+    true,
+  );
   assert(ruleResult.ok);
 
   const aggregateResult = aggregator.aggregate(
     [data1Result.data],
     [ruleResult.data!],
-    baseDataResult.data!
+    baseDataResult.data!,
   );
   assert(aggregateResult.ok);
 
@@ -228,7 +285,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     c2: "resolve",
     c3: "registered-commands",
     title: "Resolve Registered Commands",
-    description: "Resolve and display all registered commands"
+    description: "Resolve and display all registered commands",
   });
 
   const specAnalyzeResult = FrontmatterData.create({
@@ -236,7 +293,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     c2: "analyze",
     c3: "quality-metrics",
     title: "Analyze Quality Metrics",
-    description: "Analyze specification quality and completeness metrics"
+    description: "Analyze specification quality and completeness metrics",
   });
 
   const gitCommitResult = FrontmatterData.create({
@@ -244,13 +301,25 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     c2: "commit",
     c3: "changes",
     title: "Commit Changes",
-    description: "Create a git commit with changes"
+    description: "Create a git commit with changes",
   });
 
   // Create rules as defined in schema
-  const c1Rule = DerivationRule.create("commands[].c1", "tools.availableConfigs", true);
-  const c2Rule = DerivationRule.create("commands[].c2", "tools.allC2Actions", true);
-  const c3Rule = DerivationRule.create("commands[].c3", "tools.allC3Targets", true);
+  const c1Rule = DerivationRule.create(
+    "commands[].c1",
+    "tools.availableConfigs",
+    true,
+  );
+  const c2Rule = DerivationRule.create(
+    "commands[].c2",
+    "tools.allC2Actions",
+    true,
+  );
+  const c3Rule = DerivationRule.create(
+    "commands[].c3",
+    "tools.allC3Targets",
+    true,
+  );
 
   assert(c1Rule.ok);
   assert(c2Rule.ok);
@@ -263,14 +332,14 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     commands: [
       metaResolveResult.data.getData(),
       specAnalyzeResult.data.getData(),
-      gitCommitResult.data.getData()
-    ]
+      gitCommitResult.data.getData(),
+    ],
   });
   assert(structuredDataResult.ok);
 
   const result = aggregator.aggregate(
     [structuredDataResult.data],
-    [c1Rule.data!, c2Rule.data!, c3Rule.data!]
+    [c1Rule.data!, c2Rule.data!, c3Rule.data!],
   );
 
   assert(result.ok);
@@ -278,9 +347,21 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     const derivedFields = result.data.derivedFields;
 
     // Verify all derived fields match expected schema structure
-    assertEquals((derivedFields["tools.availableConfigs"] as string[]).sort(), ["git", "meta", "spec"]);
-    assertEquals((derivedFields["tools.allC2Actions"] as string[]).sort(), ["analyze", "commit", "resolve"]);
-    assertEquals((derivedFields["tools.allC3Targets"] as string[]).sort(), ["changes", "quality-metrics", "registered-commands"]);
+    assertEquals((derivedFields["tools.availableConfigs"] as string[]).sort(), [
+      "git",
+      "meta",
+      "spec",
+    ]);
+    assertEquals((derivedFields["tools.allC2Actions"] as string[]).sort(), [
+      "analyze",
+      "commit",
+      "resolve",
+    ]);
+    assertEquals((derivedFields["tools.allC3Targets"] as string[]).sort(), [
+      "changes",
+      "quality-metrics",
+      "registered-commands",
+    ]);
   }
 });
 
@@ -288,12 +369,16 @@ Deno.test("Aggregator - should handle evaluation errors gracefully", () => {
   const aggregator = new Aggregator();
 
   const dataResult = FrontmatterData.create({
-    notAnArray: "string value"
+    notAnArray: "string value",
   });
   assert(dataResult.ok);
 
   // Try to extract from non-existent array
-  const ruleResult = DerivationRule.create("nonExistent[].property", "target", false);
+  const ruleResult = DerivationRule.create(
+    "nonExistent[].property",
+    "target",
+    false,
+  );
   assert(ruleResult.ok);
 
   const result = aggregator.aggregate([dataResult.data], [ruleResult.data!]);

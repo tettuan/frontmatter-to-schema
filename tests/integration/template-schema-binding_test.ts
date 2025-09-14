@@ -14,7 +14,7 @@ import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/fron
  */
 describe("Template-Schema Binding Integration", () => {
   describe("Variable Context with Legacy Support", () => {
-    it("should resolve regular variables in legacy mode", async () => {
+    it("should resolve regular variables in legacy mode", () => {
       // Arrange: Use legacy context creation
       const data = FrontmatterData.create({
         project: {
@@ -50,7 +50,7 @@ describe("Template-Schema Binding Integration", () => {
       assertEquals(descResult.data, "A test project");
     });
 
-    it("should handle {@items} in legacy mode with fallback", async () => {
+    it("should handle {@items} in legacy mode with fallback", () => {
       // Arrange: Legacy context with array data
       const mainData = { title: "Test Project" };
       const arrayData = [
@@ -84,7 +84,7 @@ describe("Template-Schema Binding Integration", () => {
       assertEquals(titleResult.data, "Test Project");
     });
 
-    it("should validate context capabilities", async () => {
+    it("should validate context capabilities", () => {
       // Arrange
       const data = FrontmatterData.create({
         title: "Test",
@@ -112,7 +112,7 @@ describe("Template-Schema Binding Integration", () => {
       assertExists(!unknownResult.ok, "Should reject unknown @ variables");
     });
 
-    it("should handle error cases gracefully", async () => {
+    it("should handle error cases gracefully", () => {
       // Arrange
       const data = FrontmatterData.create({ title: "Test" });
       assertExists(data.ok);
@@ -145,7 +145,7 @@ describe("Template-Schema Binding Integration", () => {
   });
 
   describe("Architectural Constraints", () => {
-    it("should demonstrate {@items} hierarchy constraint requirement", async () => {
+    it("should demonstrate {@items} hierarchy constraint requirement", () => {
       // This test demonstrates the architectural constraint that {@items}
       // should be resolved from x-frontmatter-part hierarchy level.
       // In legacy mode, this fails as expected.
@@ -173,16 +173,28 @@ describe("Template-Schema Binding Integration", () => {
 
       // But regular array access should work
       const commandsResult = context.resolveVariable("commands");
-      assertExists(commandsResult.ok, "Should access commands as regular variable");
+      assertExists(
+        commandsResult.ok,
+        "Should access commands as regular variable",
+      );
       if (!commandsResult.ok) return;
-      assertExists(Array.isArray(commandsResult.data), "Commands should be array");
+      assertExists(
+        Array.isArray(commandsResult.data),
+        "Commands should be array",
+      );
       const commandsData = commandsResult.data as Array<unknown>;
       assertEquals(commandsData.length, 2);
 
       const otherResult = context.resolveVariable("other_array");
-      assertExists(otherResult.ok, "Should access other_array as regular variable");
+      assertExists(
+        otherResult.ok,
+        "Should access other_array as regular variable",
+      );
       if (!otherResult.ok) return;
-      assertExists(Array.isArray(otherResult.data), "Other array should be accessible");
+      assertExists(
+        Array.isArray(otherResult.data),
+        "Other array should be accessible",
+      );
       const otherData = otherResult.data as Array<unknown>;
       assertEquals(otherData.length, 3);
     });

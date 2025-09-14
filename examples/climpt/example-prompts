@@ -6,6 +6,6 @@
     "allC1Categories": "[]",
     "allC2Actions": "[]",
     "allC3Targets": "[]",
-    "commands": "{tools.commands}"
+    "commands": "[{}]"
   }
 }

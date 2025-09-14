@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "description": "Climpt comprehensive configuration for MCP server and command registry",
+  "tools": {
+    "availableConfigs": [],
+    "allC1Categories": [],
+    "allC2Actions": [],
+    "allC3Targets": [],
+    "commands": [
+      {}
+    ]
+  }
+}

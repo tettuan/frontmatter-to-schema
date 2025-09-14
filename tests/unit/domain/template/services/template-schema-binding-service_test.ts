@@ -30,7 +30,7 @@ describe("TemplateSchemaBindingService", () => {
   });
 
   describe("Schema-aware Variable Context Creation", () => {
-    it("should create context with hierarchy root from x-frontmatter-part", async () => {
+    it("should create context with hierarchy root from x-frontmatter-part", () => {
       // Arrange: Schema with x-frontmatter-part at commands level
       const schemaData = {
         type: "object",
@@ -94,7 +94,7 @@ describe("TemplateSchemaBindingService", () => {
       assertEquals(itemsArray.length, 2);
     });
 
-    it("should handle schema without x-frontmatter-part", async () => {
+    it("should handle schema without x-frontmatter-part", () => {
       // Arrange: Schema without x-frontmatter-part
       const schemaData = {
         type: "object",
@@ -137,7 +137,10 @@ describe("TemplateSchemaBindingService", () => {
       );
 
       // Assert
-      assertExists(contextResult.ok, "Should create context even without x-frontmatter-part");
+      assertExists(
+        contextResult.ok,
+        "Should create context even without x-frontmatter-part",
+      );
       if (!contextResult.ok) return;
       const context = contextResult.data;
       assertEquals(context.getHierarchyRoot(), null);
@@ -152,7 +155,7 @@ describe("TemplateSchemaBindingService", () => {
       );
     });
 
-    it("should resolve regular variables correctly", async () => {
+    it("should resolve regular variables correctly", () => {
       // Arrange: Schema and data with regular variables
       const schemaData = {
         type: "object",
@@ -222,7 +225,7 @@ describe("TemplateSchemaBindingService", () => {
   });
 
   describe("Binding Validation", () => {
-    it("should validate template with valid variables", async () => {
+    it("should validate template with valid variables", () => {
       // Arrange
       const schemaData = {
         type: "object",
@@ -238,17 +241,27 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({
         title: "Test Project",
         author: "John Doe",
         commands: [{ name: "test" }],
       });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
 
       const template = `
         Project: {{title}}
@@ -257,6 +270,8 @@ describe("TemplateSchemaBindingService", () => {
       `;
 
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const validationResult = service.data.validateBinding(
@@ -273,12 +288,15 @@ describe("TemplateSchemaBindingService", () => {
       assertEquals(report.totalVariables, 3);
       assertEquals(report.validVariables.length, 3);
       assertEquals(report.invalidVariables.length, 0);
-      assertExists(report.itemsBindingValid, "Should validate {@items} binding");
+      assertExists(
+        report.itemsBindingValid,
+        "Should validate {@items} binding",
+      );
       assertEquals(report.hierarchyRoot, "commands");
       assertExists(report.isValid(), "Report should be valid");
     });
 
-    it("should detect invalid variables in template", async () => {
+    it("should detect invalid variables in template", () => {
       // Arrange
       const schemaData = {
         type: "object",
@@ -288,15 +306,25 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({
         title: "Test Project",
       });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
 
       const template = `
         Project: {{title}}
@@ -305,6 +333,8 @@ describe("TemplateSchemaBindingService", () => {
       `;
 
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const validationResult = service.data.validateBinding(
@@ -323,12 +353,12 @@ describe("TemplateSchemaBindingService", () => {
       assertEquals(report.invalidVariables.length, 2); // "nonexistent", "author"
       assertExists(!report.isValid(), "Report should be invalid");
 
-      const invalidVars = report.invalidVariables.map(v => v.variable);
+      const invalidVars = report.invalidVariables.map((v: any) => v.variable);
       assertExists(invalidVars.includes("nonexistent"));
       assertExists(invalidVars.includes("author"));
     });
 
-    it("should validate {@items} binding requirements", async () => {
+    it("should validate {@items} binding requirements", () => {
       // Arrange: Schema with x-frontmatter-part but data without matching array
       const schemaData = {
         type: "object",
@@ -342,20 +372,32 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       // Data missing the expected array
       const data = FrontmatterData.create({
         title: "Test Project",
         // items array is missing
       });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
 
       const template = "Items: {@items}";
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const validationResult = service.data.validateBinding(
@@ -369,15 +411,21 @@ describe("TemplateSchemaBindingService", () => {
       if (!validationResult.ok) return;
       const report = validationResult.data;
 
-      assertExists(!report.itemsBindingValid, "Should detect invalid {@items} binding");
+      assertExists(
+        !report.itemsBindingValid,
+        "Should detect invalid {@items} binding",
+      );
       assertExists(
         report.itemsBindingError?.includes("hierarchy root items not found"),
         "Should indicate missing hierarchy root data",
       );
-      assertExists(!report.isValid(), "Report should be invalid due to {@items} error");
+      assertExists(
+        !report.isValid(),
+        "Report should be invalid due to {@items} error",
+      );
     });
 
-    it("should validate {@items} with non-array data", async () => {
+    it("should validate {@items} with non-array data", () => {
       // Arrange: Schema expects array but data has non-array
       const schemaData = {
         type: "object",
@@ -390,18 +438,30 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({
         items: "not an array", // Should be array
       });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
 
       const template = "Items: {@items}";
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const validationResult = service.data.validateBinding(
@@ -415,7 +475,10 @@ describe("TemplateSchemaBindingService", () => {
       if (!validationResult.ok) return;
       const report = validationResult.data;
 
-      assertExists(!report.itemsBindingValid, "Should detect invalid {@items} binding");
+      assertExists(
+        !report.itemsBindingValid,
+        "Should detect invalid {@items} binding",
+      );
       assertExists(
         report.itemsBindingError?.includes("must be an array"),
         "Should indicate type mismatch",
@@ -424,7 +487,7 @@ describe("TemplateSchemaBindingService", () => {
   });
 
   describe("Item Context Creation", () => {
-    it("should create individual contexts for array items", async () => {
+    it("should create individual contexts for array items", () => {
       // Arrange
       const schemaData = {
         type: "object",
@@ -444,11 +507,19 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const arrayData = [
         { name: "build", script: "npm run build" },
@@ -456,6 +527,8 @@ describe("TemplateSchemaBindingService", () => {
       ];
 
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const contextsResult = service.data.createItemContexts(
@@ -485,11 +558,15 @@ describe("TemplateSchemaBindingService", () => {
       // Test second item context
       const secondContext = contexts[1];
       const secondNameResult = secondContext.resolveVariable("name");
-      assertExists(secondNameResult.ok, "Should resolve name in second context");
+      assertExists(
+        secondNameResult.ok,
+        "Should resolve name in second context",
+      );
+      if (!secondNameResult.ok) return;
       assertEquals(secondNameResult.data, "test");
     });
 
-    it("should handle invalid array item data", async () => {
+    it("should handle invalid array item data", () => {
       // Arrange
       const schemaData = {
         type: "object",
@@ -502,11 +579,19 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const invalidArrayData = [
         null, // Invalid item
@@ -514,6 +599,8 @@ describe("TemplateSchemaBindingService", () => {
       ];
 
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const contextsResult = service.data.createItemContexts(
@@ -525,14 +612,16 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(!contextsResult.ok, "Should fail with invalid item data");
       if (contextsResult.ok) return;
       assertExists(
-        contextsResult.error.message.includes("Failed to create FrontmatterData"),
+        contextsResult.error.message.includes(
+          "Failed to create FrontmatterData",
+        ),
         "Should indicate FrontmatterData creation failure",
       );
     });
   });
 
   describe("Validation Report", () => {
-    it("should provide comprehensive validation summary", async () => {
+    it("should provide comprehensive validation summary", () => {
       // Arrange: Mixed valid/invalid scenario
       const schemaData = {
         type: "object",
@@ -546,16 +635,26 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({
         title: "Test Project",
         items: [{ name: "item1" }],
       });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
 
       const template = `
         Title: {{title}}
@@ -564,6 +663,8 @@ describe("TemplateSchemaBindingService", () => {
       `;
 
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act
       const validationResult = service.data.validateBinding(
@@ -578,7 +679,10 @@ describe("TemplateSchemaBindingService", () => {
       const report = validationResult.data;
 
       const summary = report.getSummary();
-      assertExists(summary.includes("invalid"), "Summary should mention invalid variables");
+      assertExists(
+        summary.includes("invalid"),
+        "Summary should mention invalid variables",
+      );
 
       // Test individual components
       assertEquals(report.totalVariables, 3);
@@ -591,7 +695,7 @@ describe("TemplateSchemaBindingService", () => {
   });
 
   describe("Error Handling", () => {
-    it("should handle schema without findFrontmatterPartPath method gracefully", async () => {
+    it("should handle schema without findFrontmatterPartPath method gracefully", () => {
       // This tests robustness against different schema implementations
       const schemaData = {
         type: "object",
@@ -601,14 +705,27 @@ describe("TemplateSchemaBindingService", () => {
       };
 
       const schemaPathResult = SchemaPath.create("test-schema.json");
+      assertExists(schemaPathResult.ok, "Should create schema path");
+      if (!schemaPathResult.ok) return;
+
       const schemaDefResult = SchemaDefinition.create(schemaData);
+      assertExists(schemaDefResult.ok, "Should create schema definition");
+      if (!schemaDefResult.ok) return;
+
       const schemaResult = Schema.create(
         schemaPathResult.data,
         schemaDefResult.data,
       );
+      assertExists(schemaResult.ok, "Should create schema");
+      if (!schemaResult.ok) return;
 
       const data = FrontmatterData.create({ title: "Test" });
+      assertExists(data.ok, "Should create frontmatter data");
+      if (!data.ok) return;
+
       const service = TemplateSchemaBindingService.create();
+      assertExists(service.ok, "Should create binding service");
+      if (!service.ok) return;
 
       // Act - should not throw even if schema lacks x-frontmatter-part
       const contextResult = service.data.createVariableContext(

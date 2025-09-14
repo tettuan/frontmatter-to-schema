@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Document title"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Publication date"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Document tags"
+        }
+      },
+      "required": ["title", "author"],
+      "x-frontmatter-part": true
+    }
+  },
+  "required": ["metadata"]
+}

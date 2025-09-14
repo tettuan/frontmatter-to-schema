@@ -1,0 +1,5 @@
+title: Article Index
+generated: "{{_timestamp}}"
+total_articles: "{{articles.length}}"
+articles:
+  {@items}
