@@ -6,6 +6,8 @@ import { DocumentProcessingService } from "../../domain/frontmatter/services/doc
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
 import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
+import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
+import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
 import { Aggregator } from "../../domain/aggregation/aggregators/aggregator.ts";
 import { BasePropertyPopulator } from "../../domain/schema/services/base-property-populator.ts";
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
@@ -51,6 +53,7 @@ export class CLI {
       basePropertyPopulator,
     );
 
+    // Create TemplateRenderer for OutputRenderingService
     const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) {
       throw new Error(
@@ -58,6 +61,16 @@ export class CLI {
       );
     }
     const templateRenderer = templateRendererResult.data;
+
+    // Create OutputRenderingService
+    const outputRenderingService = new OutputRenderingService(
+      templateRenderer,
+      fileReader,
+      fileWriter,
+    );
+
+    // Create TemplatePathResolver
+    const templatePathResolver = new TemplatePathResolver();
 
     // Create file system adapter
     const fileSystem = {
@@ -69,7 +82,8 @@ export class CLI {
     this.orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
-      templateRenderer,
+      outputRenderingService,
+      templatePathResolver,
       fileSystem,
     );
   }

@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Traceability Item Schema",
-  "x-template": "traceability_item_template.json",
   "description": "Unified schema for all traceability items across all levels",
   "properties": {
     "id": {

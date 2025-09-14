@@ -1,26 +1,30 @@
 #!/bin/sh
-# Generate traceability index files
-# TODO: This currently generates empty indices as there are no structured traceability items
-# Future enhancement: Process actual traceability item files
+# Generate traceability index files using frontmatter-to-schema CLI
+# This script processes Markdown files in docs/ directory and extracts
+# traceability information from their frontmatter to create index files
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Ensure index directory exists
 mkdir -p "$SCRIPT_DIR/index"
 
-# Generate valid but empty index files for each level
+# Process each traceability level using the CLI
 for level in req spec design impl test; do
-    level_cap="$(printf '%s%s' "$(echo "$level" | cut -c1 | tr '[:lower:]' '[:upper:]')" "$(echo "$level" | cut -c2-)")"
-    cat > "$SCRIPT_DIR/index/${level}_index.json" << EOF
-{
-  "version": "1.0.0",
-  "description": "${level_cap} level traceability IDs",
-  "${level}": []
-}
-EOF
-    echo "Generated empty index for ${level} level: index/${level}_index.json"
+    echo "Processing ${level} level..."
+
+    # Run the frontmatter-to-schema CLI
+    # Arguments: <schema> <output> <pattern>
+    deno run --allow-all cli.ts \
+        "${SCRIPT_DIR}/index_${level}_schema.json" \
+        "${SCRIPT_DIR}/index/${level}_index.json" \
+        "${SCRIPT_DIR}/docs/**/*.md" \
+        --verbose
+
+    if [ $? -eq 0 ]; then
+        echo "Generated index for ${level} level: index/${level}_index.json"
+    else
+        echo "Error processing ${level} level"
+    fi
 done
 
-echo "All index files generated. Note: Currently generating empty indices."
-echo "To populate with actual traceability items, create structured files matching"
-echo "traceability_item_schema.json and modify this script accordingly."
+echo "All index files processed."

@@ -1,10 +1,13 @@
 # Debug Logging Guide
 
-This guide covers the enhanced debug logging functionality implemented to address issue #798, providing comprehensive visibility into processing flows across the application.
+This guide covers the enhanced debug logging functionality implemented to
+address issue #798, providing comprehensive visibility into processing flows
+across the application.
 
 ## Overview
 
-The debug logging system provides structured, configurable logging for all major processing stages, including:
+The debug logging system provides structured, configurable logging for all major
+processing stages, including:
 
 - Schema processing (loading, resolution, analysis)
 - Frontmatter processing (extraction, validation, aggregation)
@@ -63,6 +66,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 ### Schema Processing
 
 **Stages logged**:
+
 - `schema-loading`: Schema file loading and caching
 - `schema-parsing`: JSON parsing and validation
 - `schema-analysis`: Schema structure analysis
@@ -71,6 +75,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 - `extension-detection`: Detection of schema extensions (x-*)
 
 **Example output**:
+
 ```
 [2025-09-14T07:30:00.000Z] INFO [schema-loading] Loading schema from: registry_schema.json
 [2025-09-14T07:30:00.100Z] DEBUG [schema-analysis] Searching for frontmatter-part schema
@@ -80,6 +85,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 ### Frontmatter Processing
 
 **Stages logged**:
+
 - `document-processing`: Overall document processing pipeline
 - `file-listing`: File discovery and pattern matching
 - `file-processing`: Individual file processing
@@ -89,6 +95,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 - `aggregation`: Data aggregation with derivation rules
 
 **Example output**:
+
 ```
 [2025-09-14T07:30:00.200Z] INFO [document-processing] Starting document processing with pattern: .agent/climpt/prompts/**/*.md
 [2025-09-14T07:30:00.250Z] INFO [file-listing] Found 25 files to process
@@ -98,6 +105,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 ### Template Processing
 
 **Stages logged**:
+
 - `template-rendering`: Overall template rendering pipeline
 - `template-loading`: Template file loading
 - `variable-processing`: Variable replacement processing
@@ -106,6 +114,7 @@ deno run --allow-all cli.ts process "*.md" schema.json template.json output.json
 - `output-writing`: File output operations
 
 **Example output**:
+
 ```
 [2025-09-14T07:30:01.000Z] INFO [template-rendering] Starting template rendering pipeline
 [2025-09-14T07:30:01.050Z] INFO [template-render-array] Starting array data template rendering
@@ -131,7 +140,7 @@ const documentService = new DocumentProcessingService(
   basePropertyPopulator,
   fileReader,
   fileLister,
-  debugLogger  // Optional parameter
+  debugLogger, // Optional parameter
 );
 ```
 
@@ -143,9 +152,13 @@ Implement the `DebugLogger` interface for custom logging:
 import { DebugLogger } from "./infrastructure/adapters/debug-logger.ts";
 
 class CustomDebugLogger implements DebugLogger {
-  logInfo(stage: string, message: string, details?: Record<string, unknown>): void {
+  logInfo(
+    stage: string,
+    message: string,
+    details?: Record<string, unknown>,
+  ): void {
     // Custom implementation
-    myLoggingService.log({ level: 'info', stage, message, details });
+    myLoggingService.log({ level: "info", stage, message, details });
   }
 
   // Implement other methods...
@@ -164,6 +177,7 @@ class CustomDebugLogger implements DebugLogger {
 ### Structured Data
 
 All log entries include:
+
 - **timestamp**: ISO timestamp
 - **level**: Log level (error, info, debug)
 - **stage**: Processing stage identifier
@@ -181,6 +195,7 @@ export DEBUG_LEVEL=3
 ```
 
 **Common messages**:
+
 - `Schema cache miss/hit` - Cache behavior
 - `No x-frontmatter-part schema found` - Missing required schema sections
 - `Extracted N derivation rules` - Rule discovery results
@@ -194,6 +209,7 @@ export DEBUG_LEVEL=2
 ```
 
 **Common messages**:
+
 - `No valid data found at path` - Frontmatter-part extraction issues
 - `Successfully processed N documents` - Processing summary
 - `Frontmatter parsing FAILED` - Parse errors in markdown files
@@ -207,6 +223,7 @@ export DEBUG_LEVEL=2
 ```
 
 **Common messages**:
+
 - `Variable processing successful/failed` - Variable replacement status
 - `Template rendering successful` - Overall rendering status
 - `Formatting output as [format]` - Output format processing
@@ -216,6 +233,7 @@ export DEBUG_LEVEL=2
 ### DDD Integration
 
 Debug logging follows Domain-Driven Design principles:
+
 - **Infrastructure Layer**: Logger implementation
 - **Domain Services**: Accept logger via dependency injection
 - **No Coupling**: Domain logic doesn't depend on specific logger implementation
@@ -236,6 +254,7 @@ deno test tests/unit/infrastructure/debug-logger_test.ts --allow-env
 ```
 
 Tests cover:
+
 - Environment variable configuration
 - Logger factory behavior
 - Output format validation
@@ -244,6 +263,8 @@ Tests cover:
 
 ## Related Documentation
 
-- [Issue #798](https://github.com/user/repo/issues/798) - Original enhancement request
-- [AI Complexity Control](./ai-complexity-control.md) - Overall development strategy
+- [Issue #798](https://github.com/user/repo/issues/798) - Original enhancement
+  request
+- [AI Complexity Control](./ai-complexity-control.md) - Overall development
+  strategy
 - [Totality Principles](./totality.md) - Error handling philosophy

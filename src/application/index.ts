@@ -1,11 +1,16 @@
-export { ProcessCoordinator } from "./coordinators/process-coordinator.ts";
-export { ProcessDocumentsUseCase } from "./use-cases/process-documents.ts";
+// Application services
+export { PipelineOrchestrator } from "./services/pipeline-orchestrator.ts";
+export type {
+  FileSystem,
+  PipelineConfig,
+} from "./services/pipeline-orchestrator.ts";
+
+// Use cases
+export { GenerateIdListUseCase } from "./use-cases/generate-id-list.ts";
 export type {
   FileLister,
   FileReader,
   FileWriter,
-} from "./coordinators/process-coordinator.ts";
-export type {
-  ProcessDocumentsRequest,
-  ProcessDocumentsResponse,
-} from "./use-cases/process-documents.ts";
+  GenerateIdListRequest,
+  GenerateIdListResponse,
+} from "./use-cases/generate-id-list.ts";

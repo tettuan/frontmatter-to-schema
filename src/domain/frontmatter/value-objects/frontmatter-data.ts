@@ -4,6 +4,7 @@ import {
   FrontmatterError,
   ValidationError,
 } from "../../shared/types/errors.ts";
+import { PathParser, PathSegment } from "../services/path-parser.ts";
 
 export type FrontmatterContent = Record<string, unknown>;
 
@@ -44,6 +45,19 @@ export class FrontmatterData {
       }, "Path cannot be empty"));
     }
 
+    // Try enhanced path parsing first (supports array indices)
+    const parserResult = PathParser.create();
+    if (!parserResult.ok) {
+      return err(parserResult.error);
+    }
+
+    const segmentsResult = parserResult.data.parseComplex(path);
+    if (segmentsResult.ok) {
+      // Use enhanced path resolution
+      return this.getBySegments(segmentsResult.data, path);
+    }
+
+    // Fallback to simple dot notation for backward compatibility
     const parts = path.split(".");
     let current: unknown = this.data;
 
@@ -75,6 +89,83 @@ export class FrontmatterData {
         kind: "FieldNotFound",
         path,
       }, `Value not found at path: ${path}`));
+    }
+
+    return ok(current);
+  }
+
+  /**
+   * Navigate through data using parsed path segments
+   * Supports both property access and array index access
+   * @param segments - Array of path segments from PathParser
+   * @param originalPath - Original path string for error reporting
+   * @returns Result containing the value or error
+   */
+  private getBySegments(
+    segments: PathSegment[],
+    originalPath: string,
+  ): Result<unknown, ValidationError & { message: string }> {
+    let current: unknown = this.data;
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+
+      if (current === null || current === undefined) {
+        return err(createError({
+          kind: "FieldNotFound",
+          path: originalPath,
+        }, `Field not found at segment ${i}: ${originalPath}`));
+      }
+
+      switch (segment.kind) {
+        case "property": {
+          if (typeof current !== "object") {
+            return err(createError(
+              {
+                kind: "InvalidType",
+                expected: "object",
+                actual: typeof current,
+              },
+              `Expected object at property '${segment.value}' in path: ${originalPath}`,
+            ));
+          }
+
+          current = (current as Record<string, unknown>)[segment.value];
+          break;
+        }
+        case "arrayIndex": {
+          if (!Array.isArray(current)) {
+            return err(createError(
+              {
+                kind: "InvalidType",
+                expected: "array",
+                actual: typeof current,
+              },
+              `Expected array at index ${segment.value} in path: ${originalPath}`,
+            ));
+          }
+
+          if (segment.value >= current.length || segment.value < 0) {
+            return err(createError(
+              {
+                kind: "FieldNotFound",
+                path: originalPath,
+              },
+              `Array index ${segment.value} out of bounds (length: ${current.length}) in path: ${originalPath}`,
+            ));
+          }
+
+          current = current[segment.value];
+          break;
+        }
+      }
+    }
+
+    if (current === undefined) {
+      return err(createError({
+        kind: "FieldNotFound",
+        path: originalPath,
+      }, `Value not found at path: ${originalPath}`));
     }
 
     return ok(current);

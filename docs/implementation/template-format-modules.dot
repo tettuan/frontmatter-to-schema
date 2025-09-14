@@ -1,0 +1,116 @@
+// Template Format Modules - Implementation Dependencies
+// This diagram shows module-level dependencies for the x-template-format feature
+// implementation, including class relationships and data flow.
+
+digraph TemplateFormatModules {
+  rankdir=LR;
+  node [shape=record, style=filled];
+
+  // Schema Domain
+  subgraph cluster_schema_domain {
+    label="Schema Domain";
+    style=filled;
+    color=lightblue;
+
+    schema_property_types [
+      label="schema-property-types.ts|{SchemaPropertyUtils|+ getTemplateFormat()\l+ hasTemplateFormat()\l+ validateFormat()\l}",
+      fillcolor=lightgreen
+    ];
+
+    schema_definition [
+      label="schema-definition.ts|{SchemaDefinition|+ getTemplateFormat()\l+ hasTemplateFormat()\l}",
+      fillcolor=lightgreen
+    ];
+
+    schema_entity [
+      label="schema.ts|{Schema|+ getTemplateFormat()\l}",
+      fillcolor=lightgreen
+    ];
+  }
+
+  // Template Domain
+  subgraph cluster_template_domain {
+    label="Template Domain";
+    style=filled;
+    color=lightcyan;
+
+    template_path_resolver [
+      label="template-path-resolver.ts|{TemplatePathResolver|+ resolveTemplatePaths()\l- detectFormatFromExtension()\l}",
+      fillcolor=orange
+    ];
+
+    output_formatter [
+      label="output-formatter.ts|{OutputFormatter\l(interface)|+ format()\l+ getFormat()\l}",
+      fillcolor=wheat
+    ];
+
+    formatter_factory [
+      label="formatter-factory.ts|{FormatterFactory|+ createFormatter()\l- formatters: Map\l}",
+      fillcolor=wheat
+    ];
+
+    json_formatter [
+      label="json-formatter.ts|{JsonFormatter|+ format()\l+ getFormat()\l}",
+      fillcolor=lightsteelblue
+    ];
+
+    yaml_formatter [
+      label="yaml-formatter.ts|{YamlFormatter|+ format()\l+ getFormat()\l}",
+      fillcolor=lightsteelblue
+    ];
+
+    toml_formatter [
+      label="toml-formatter.ts|{TomlFormatter|+ format()\l+ getFormat()\l}",
+      fillcolor=lightsteelblue
+    ];
+
+    markdown_formatter [
+      label="markdown-formatter.ts|{MarkdownFormatter|+ format()\l+ getFormat()\l}",
+      fillcolor=lightsteelblue
+    ];
+
+    output_rendering_service [
+      label="output-rendering-service.ts|{OutputRenderingService|+ renderOutput()\l- applyFormatter()\l}",
+      fillcolor=pink
+    ];
+  }
+
+  // Application Layer
+  subgraph cluster_application {
+    label="Application Layer";
+    style=filled;
+    color=lavender;
+
+    pipeline_orchestrator [
+      label="pipeline-orchestrator.ts|{PipelineOrchestrator|+ execute()\l- extractFormat()\l- passToRenderer()\l}",
+      fillcolor=plum
+    ];
+  }
+
+  // Dependencies (arrows show direction of dependency)
+  schema_definition -> schema_property_types [label="uses"];
+  schema_entity -> schema_definition [label="delegates"];
+
+  template_path_resolver -> schema_entity [label="calls getTemplateFormat()"];
+
+  pipeline_orchestrator -> template_path_resolver [label="resolves paths"];
+  pipeline_orchestrator -> output_rendering_service [label="renders output"];
+
+  output_rendering_service -> formatter_factory [label="creates formatter"];
+
+  formatter_factory -> json_formatter [label="instantiates"];
+  formatter_factory -> yaml_formatter [label="instantiates"];
+  formatter_factory -> toml_formatter [label="instantiates"];
+  formatter_factory -> markdown_formatter [label="instantiates"];
+
+  json_formatter -> output_formatter [label="implements", style=dashed];
+  yaml_formatter -> output_formatter [label="implements", style=dashed];
+  toml_formatter -> output_formatter [label="implements", style=dashed];
+  markdown_formatter -> output_formatter [label="implements", style=dashed];
+
+  // Data flow annotations
+  schema_entity -> template_path_resolver [label="outputFormat\nResult", color=red, fontcolor=red];
+  template_path_resolver -> pipeline_orchestrator [label="ResolvedTemplatePaths\n{outputFormat}", color=red, fontcolor=red];
+  pipeline_orchestrator -> output_rendering_service [label="outputFormat\nparameter", color=red, fontcolor=red];
+  output_rendering_service -> formatter_factory [label="OutputFormat\nenum", color=red, fontcolor=red];
+}

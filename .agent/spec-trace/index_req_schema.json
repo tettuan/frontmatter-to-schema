@@ -3,6 +3,7 @@
   "type": "object",
   "title": "Requirement Level Index Schema",
   "x-template": "index_level_template.json",
+  "x-template-items": "traceability_item_template.json",
   "description": "Schema for requirement level traceability index",
   "properties": {
     "version": {
@@ -17,13 +18,16 @@
     },
     "level": {
       "type": "string",
-      "description": "Level name for template",
+      "description": "Traceability level",
       "default": "req"
     },
     "req": {
       "type": "array",
-      "description": "Requirement level traceability IDs",
-      "x-frontmatter-part": true,
+      "description": "Requirement level traceability items",
+      "x-frontmatter-part": "traceability",
+      "x-filter": {
+        "id.level": "req"
+      },
       "items": {
         "$ref": "traceability_item_schema.json"
       }

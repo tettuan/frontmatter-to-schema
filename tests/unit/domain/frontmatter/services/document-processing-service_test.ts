@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert";
 import { DocumentProcessingService } from "../../../../../src/domain/frontmatter/services/document-processing-service.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
+import { Aggregator } from "../../../../../src/domain/aggregation/index.ts";
 import { err, ok } from "../../../../../src/domain/shared/types/result.ts";
 
 // Mock implementations
@@ -124,29 +125,48 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
     }
   });
 
-  await t.step("should handle derivation rules with frontmatter-part", () => {
-    setup();
-    const derivationRules = [
-      {
-        sourcePath: "commands[].c1",
-        targetField: "availableConfigs",
-        unique: true,
-      },
-    ];
-    const schema = new MockSchema(
-      "commands",
-      derivationRules,
-    ) as unknown as Schema;
-    const data = [
-      createTestFrontmatterData({ c1: "git", c2: "commit" }),
-      createTestFrontmatterData({ c1: "spec", c2: "analyze" }),
-    ];
+  await t.step(
+    "should handle derivation rules with frontmatter-part",
+    () => {
+      // Use real aggregator for this test
+      service = new DocumentProcessingService(
+        new MockFrontmatterProcessor() as any,
+        new Aggregator(),
+        new MockBasePropertyPopulator() as any,
+        new MockFileReader() as any,
+        new MockFileLister() as any,
+      );
 
-    const result = (service as any).aggregateData(data, schema);
+      const derivationRules = [
+        {
+          sourcePath: "commands[].c1",
+          targetField: "availableConfigs",
+          unique: true,
+        },
+      ];
+      const schema = new MockSchema(
+        "commands",
+        derivationRules,
+      ) as unknown as Schema;
+      const data = [
+        createTestFrontmatterData({ c1: "git", c2: "commit" }),
+        createTestFrontmatterData({ c1: "spec", c2: "analyze" }),
+      ];
 
-    assertEquals(result.ok, true);
-    // With derivation rules, the aggregator should be called
-  });
+      const result = (service as any).aggregateData(data, schema);
+
+      assertEquals(result.ok, true);
+      // With derivation rules, the aggregator should be called
+      // and should create the availableConfigs field with unique c1 values
+      if (result.ok) {
+        const resultData = result.data.getData();
+        assertEquals(Array.isArray(resultData.availableConfigs), true);
+        assertEquals(resultData.availableConfigs.length, 2);
+        assertEquals(resultData.availableConfigs.includes("git"), true);
+        assertEquals(resultData.availableConfigs.includes("spec"), true);
+      }
+    },
+  );
 
   await t.step("should handle no frontmatter-part schema", () => {
     setup();
@@ -220,38 +240,41 @@ Deno.test("DocumentProcessingService - DDD Totality compliance", async (t) => {
     );
   };
 
-  await t.step("should return Result type from all aggregation methods", () => {
-    setup();
-    const schema = new MockSchema("commands") as unknown as Schema;
-    const data = [createTestFrontmatterData({ test: "value" })];
+  await t.step(
+    "should return Result type from all aggregation methods",
+    () => {
+      setup();
+      const schema = new MockSchema("commands") as unknown as Schema;
+      const data = [createTestFrontmatterData({ test: "value" })];
 
-    // Test aggregateData
-    const result1 = (service as any).aggregateData(data, schema);
-    assertEquals(typeof result1, "object");
-    assertEquals(typeof result1.ok, "boolean");
+      // Test aggregateData
+      const result1 = (service as any).aggregateData(data, schema);
+      assertEquals(typeof result1, "object");
+      assertEquals(typeof result1.ok, "boolean");
 
-    // Test aggregateWithDerivationRules
-    const result2 = (service as any).aggregateWithDerivationRules(
-      data,
-      schema,
-      [],
-    );
-    assertEquals(typeof result2, "object");
-    assertEquals(typeof result2.ok, "boolean");
+      // Test aggregateWithDerivationRules
+      const result2 = (service as any).aggregateWithDerivationRules(
+        data,
+        schema,
+        [],
+      );
+      assertEquals(typeof result2, "object");
+      assertEquals(typeof result2.ok, "boolean");
 
-    // Test aggregateWithoutDerivationRules
-    const result3 = (service as any).aggregateWithoutDerivationRules(
-      data,
-      schema,
-    );
-    assertEquals(typeof result3, "object");
-    assertEquals(typeof result3.ok, "boolean");
+      // Test aggregateWithoutDerivationRules
+      const result3 = (service as any).aggregateWithoutDerivationRules(
+        data,
+        schema,
+      );
+      assertEquals(typeof result3, "object");
+      assertEquals(typeof result3.ok, "boolean");
 
-    // Test mergeDataDirectly
-    const result4 = (service as any).mergeDataDirectly(data);
-    assertEquals(typeof result4, "object");
-    assertEquals(typeof result4.ok, "boolean");
-  });
+      // Test mergeDataDirectly
+      const result4 = (service as any).mergeDataDirectly(data);
+      assertEquals(typeof result4, "object");
+      assertEquals(typeof result4.ok, "boolean");
+    },
+  );
 
   await t.step("should handle all error cases with proper Result types", () => {
     setup();

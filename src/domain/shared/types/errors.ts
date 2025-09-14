@@ -44,6 +44,8 @@ export type SchemaError =
   | { readonly kind: "InvalidTemplate"; readonly template: string }
   | { readonly kind: "TemplateNotDefined" }
   | { readonly kind: "TemplateItemsNotDefined" }
+  | { readonly kind: "TemplateFormatNotDefined" }
+  | { readonly kind: "InvalidTemplateFormat" }
   | { readonly kind: "FrontmatterPartNotFound" }
   | { readonly kind: "SchemaNotResolved" }
   | { readonly kind: "TypeNotDefined" }
@@ -65,7 +67,18 @@ export type TemplateError =
   | { readonly kind: "InvalidTemplate"; readonly message: string }
   | { readonly kind: "VariableNotFound"; readonly variable: string }
   | { readonly kind: "RenderFailed"; readonly message: string }
-  | { readonly kind: "InvalidFormat"; readonly format: string };
+  | { readonly kind: "InvalidFormat"; readonly format: string }
+  | {
+    readonly kind: "TemplateStructureInvalid";
+    readonly template: string;
+    readonly issue: string;
+  }
+  | {
+    readonly kind: "VariableResolutionFailed";
+    readonly variable: string;
+    readonly reason: string;
+  }
+  | { readonly kind: "DataCompositionFailed"; readonly reason: string };
 
 export type AggregationError =
   | { readonly kind: "InvalidExpression"; readonly expression: string }
@@ -167,6 +180,10 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Property not found at path: ${error.path}`;
     case "TemplateItemsNotDefined":
       return "Schema does not define x-template-items directive";
+    case "TemplateFormatNotDefined":
+      return "Schema does not define x-template-format directive";
+    case "InvalidTemplateFormat":
+      return "Invalid template format specified";
     case "EnumNotDefined":
       return "Schema is not an enum type";
     case "ExtractionFailed":
@@ -183,6 +200,12 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Variable not found: ${error.variable}`;
     case "RenderFailed":
       return `Template render failed: ${error.message}`;
+    case "TemplateStructureInvalid":
+      return `Invalid template structure in ${error.template}: ${error.issue}`;
+    case "VariableResolutionFailed":
+      return `Failed to resolve variable ${error.variable}: ${error.reason}`;
+    case "DataCompositionFailed":
+      return `Data composition failed: ${error.reason}`;
     case "InvalidExpression":
       return `Invalid expression: ${error.expression}`;
     case "PathNotFound":

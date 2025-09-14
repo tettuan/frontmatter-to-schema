@@ -1,0 +1,195 @@
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, DomainError } from "../../shared/types/errors.ts";
+import { Schema } from "../../schema/entities/schema.ts";
+
+/**
+ * Template path resolution configuration
+ */
+export interface TemplatePathConfig {
+  readonly schemaPath: string;
+  readonly explicitTemplatePath?: string;
+}
+
+/**
+ * Resolved template paths
+ */
+export interface ResolvedTemplatePaths {
+  readonly templatePath: string;
+  readonly itemsTemplatePath?: string;
+  readonly outputFormat?: "json" | "yaml" | "toml" | "markdown";
+}
+
+/**
+ * Service responsible for extracting and resolving template paths from schema.
+ * Handles both x-template and x-template-items extraction and path resolution.
+ *
+ * This service separates the template path resolution concern from PipelineOrchestrator,
+ * making it testable and reusable across different contexts.
+ */
+export class TemplatePathResolver {
+  /**
+   * Resolve all template paths (main and items) from schema and configuration.
+   *
+   * @param schema - Schema entity containing template path information
+   * @param config - Configuration containing schema path and optional explicit template path
+   * @returns Result containing resolved template paths or error
+   */
+  resolveTemplatePaths(
+    schema: Schema,
+    config: TemplatePathConfig,
+  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
+    // Resolve main template path
+    const mainTemplateResult = this.resolveMainTemplatePath(schema, config);
+    if (!mainTemplateResult.ok) {
+      return mainTemplateResult;
+    }
+
+    // Resolve items template path (optional)
+    const itemsTemplateResult = this.resolveItemsTemplatePath(schema, config);
+    if (!itemsTemplateResult.ok) {
+      return itemsTemplateResult;
+    }
+
+    // Stage 3: Extract output format using Schema entity or detect from template extension
+    const outputFormatResult = schema.getTemplateFormat();
+    let outputFormat: "json" | "yaml" | "toml" | "markdown";
+
+    if (outputFormatResult.ok) {
+      outputFormat = outputFormatResult.data;
+    } else {
+      // Auto-detect format from template file extension
+      outputFormat = this.detectFormatFromExtension(mainTemplateResult.data);
+    }
+
+    return ok({
+      templatePath: mainTemplateResult.data,
+      itemsTemplatePath: itemsTemplateResult.data,
+      outputFormat,
+    });
+  }
+
+  /**
+   * Resolve main template path from config or schema's x-template.
+   *
+   * @param schema - Schema entity
+   * @param config - Template path configuration
+   * @returns Result containing resolved main template path or error
+   */
+  resolveMainTemplatePath(
+    schema: Schema,
+    config: TemplatePathConfig,
+  ): Result<string, DomainError & { message: string }> {
+    // Prefer explicit template path from config
+    if (config.explicitTemplatePath) {
+      return ok(config.explicitTemplatePath);
+    }
+
+    // Try to get template path from schema's x-template attribute
+    const schemaTemplateResult = schema.getTemplatePath();
+    if (schemaTemplateResult.ok) {
+      return this.resolveRelativePath(
+        schemaTemplateResult.data,
+        config.schemaPath,
+      );
+    }
+
+    return err(createError({
+      kind: "TemplateNotDefined",
+      message: "No template path specified in config or schema",
+    }));
+  }
+
+  /**
+   * Resolve items template path from schema's x-template-items.
+   *
+   * @param schema - Schema entity
+   * @param config - Template path configuration
+   * @returns Result containing resolved items template path (undefined if not specified) or error
+   */
+  resolveItemsTemplatePath(
+    schema: Schema,
+    config: TemplatePathConfig,
+  ): Result<string | undefined, DomainError & { message: string }> {
+    // Get x-template-items from schema using proper method
+    const templateItemsResult = schema.getDefinition().getTemplateItems();
+
+    if (!templateItemsResult.ok) {
+      // If x-template-items is not defined, return undefined (not an error)
+      return ok(undefined);
+    }
+
+    return this.resolveRelativePath(
+      templateItemsResult.data,
+      config.schemaPath,
+    );
+  }
+
+  /**
+   * Resolve relative template paths relative to schema directory.
+   *
+   * @param templatePath - Template path (may be relative)
+   * @param schemaPath - Schema file path for relative resolution
+   * @returns Result containing resolved absolute path
+   */
+  private resolveRelativePath(
+    templatePath: string,
+    schemaPath: string,
+  ): Result<string, DomainError & { message: string }> {
+    // If path starts with "./" it's relative to schema directory
+    if (templatePath.startsWith("./")) {
+      const lastSlash = schemaPath.lastIndexOf("/");
+      const schemaDir = lastSlash > -1
+        ? schemaPath.substring(0, lastSlash)
+        : "."; // Use current directory if no path separator
+
+      const resolvedPath = schemaDir === "."
+        ? templatePath.substring(2)
+        : `${schemaDir}/${templatePath.substring(2)}`;
+
+      return ok(resolvedPath);
+    }
+
+    // If path starts with "/" it's absolute, return as-is
+    if (templatePath.startsWith("/")) {
+      return ok(templatePath);
+    }
+
+    // For relative paths that don't start with "./", resolve relative to schema directory
+    // This matches the old PipelineOrchestrator behavior
+    const lastSlash = schemaPath.lastIndexOf("/");
+    const schemaDir = lastSlash > -1 ? schemaPath.substring(0, lastSlash) : "."; // Use current directory if no path separator
+
+    const resolvedPath = schemaDir === "."
+      ? templatePath
+      : `${schemaDir}/${templatePath}`;
+
+    return ok(resolvedPath);
+  }
+
+  /**
+   * Auto-detect output format from template file extension.
+   *
+   * @param templatePath - Template file path
+   * @returns Detected output format
+   */
+  private detectFormatFromExtension(
+    templatePath: string,
+  ): "json" | "yaml" | "toml" | "markdown" {
+    const lowercasePath = templatePath.toLowerCase();
+
+    if (lowercasePath.endsWith(".yml") || lowercasePath.endsWith(".yaml")) {
+      return "yaml";
+    }
+
+    if (lowercasePath.endsWith(".toml")) {
+      return "toml";
+    }
+
+    if (lowercasePath.endsWith(".md") || lowercasePath.endsWith(".markdown")) {
+      return "markdown";
+    }
+
+    // Default to JSON for .json files or unrecognized extensions
+    return "json";
+  }
+}

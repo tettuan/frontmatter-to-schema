@@ -3,6 +3,7 @@
   "type": "object",
   "title": "Implementation Level Index Schema",
   "x-template": "index_impl_template.json",
+  "x-template-items": "traceability_item_template.json",
   "description": "Schema for implementation level traceability index",
   "properties": {
     "version": {

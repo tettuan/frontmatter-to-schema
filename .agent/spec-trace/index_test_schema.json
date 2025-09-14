@@ -3,6 +3,7 @@
   "type": "object",
   "title": "Test Level Index Schema",
   "x-template": "index_test_template.json",
+  "x-template-items": "traceability_item_template.json",
   "description": "Schema for test level traceability index",
   "properties": {
     "version": {
