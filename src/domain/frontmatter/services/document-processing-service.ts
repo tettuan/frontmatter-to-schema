@@ -300,7 +300,9 @@ export class DocumentProcessingService {
    * Replaces silent error handling with tracked rule conversion results.
    */
   private convertDerivationRules(
-    derivationRules: Array<{ sourcePath: string; targetField: string; unique: boolean }>,
+    derivationRules: Array<
+      { sourcePath: string; targetField: string; unique: boolean }
+    >,
   ): RuleConversionResult {
     const successfulRules: DerivationRule[] = [];
     const errors: Array<DomainError & { message: string }> = [];

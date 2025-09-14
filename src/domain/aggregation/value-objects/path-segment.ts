@@ -8,7 +8,9 @@ import { createError, DomainError } from "../../shared/types/errors.ts";
 export class PathSegment {
   private constructor(private readonly segment: string) {}
 
-  static create(segment: string): Result<PathSegment, DomainError & { message: string }> {
+  static create(
+    segment: string,
+  ): Result<PathSegment, DomainError & { message: string }> {
     if (typeof segment !== "string") {
       return err(createError({
         kind: "InvalidType",
@@ -37,12 +39,15 @@ export class PathSegment {
   /**
    * Safely extract property from an object, returning Result instead of undefined.
    */
-  extractFrom(target: unknown): Result<unknown, DomainError & { message: string }> {
+  extractFrom(
+    target: unknown,
+  ): Result<unknown, DomainError & { message: string }> {
     if (target === null || target === undefined) {
       return err(createError({
         kind: "PathNotFound",
         path: this.segment,
-        message: `Cannot access property '${this.segment}' on null or undefined`,
+        message:
+          `Cannot access property '${this.segment}' on null or undefined`,
       }));
     }
 
@@ -75,8 +80,8 @@ export class PathSegment {
 
   private isValidObjectForPropertyAccess(value: unknown): boolean {
     return typeof value === "object" &&
-           value !== null &&
-           !Array.isArray(value);
+      value !== null &&
+      !Array.isArray(value);
   }
 
   toString(): string {

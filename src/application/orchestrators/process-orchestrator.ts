@@ -2,7 +2,10 @@ import { err, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { DocumentProcessingService } from "../../domain/frontmatter/services/document-processing-service.ts";
-import { OutputRenderingService, RenderingMode } from "../../domain/template/services/output-rendering-service.ts";
+import {
+  OutputRenderingService,
+  RenderingMode,
+} from "../../domain/template/services/output-rendering-service.ts";
 
 /**
  * Application orchestrator that coordinates the 3-stage processing pipeline.

@@ -38,7 +38,11 @@ export class ExpressionEvaluator {
     const propertyPath = parts[1].startsWith(".") ? parts[1].substring(1) : "";
 
     // Use accumulation pattern instead of silent skipping
-    const evaluationResult = this.evaluateWithAccumulation(data, basePath, propertyPath);
+    const evaluationResult = this.evaluateWithAccumulation(
+      data,
+      basePath,
+      propertyPath,
+    );
 
     // For backward compatibility, return just the values
     // In future versions, we could expose the full EvaluationResult
