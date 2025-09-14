@@ -80,29 +80,29 @@ export class CLI {
     // Help display
     if (args.includes("--help") || args.includes("-h")) {
       this.showHelp();
-      return ok(void 0);
+      return Promise.resolve(ok(void 0));
     }
 
     // Version display
     if (args.includes("--version") || args.includes("-v")) {
       this.showVersion();
-      return ok(void 0);
+      return Promise.resolve(ok(void 0));
     }
 
     // Argument validation
     if (args.length < 3) {
       console.error("Error: Missing required arguments");
       this.showUsage();
-      return err(createError({
+      return Promise.resolve(err(createError({
         kind: "MissingRequired",
         field: "arguments",
-      }));
+      })));
     }
 
     const [schemaPath, outputPath, inputPattern] = args;
 
-    // Execute command
-    return this.executeCommand(schemaPath, outputPath, inputPattern);
+    // Execute command - this is async and contains await
+    return await this.executeCommand(schemaPath, outputPath, inputPattern);
   }
 
   private showHelp(): void {
