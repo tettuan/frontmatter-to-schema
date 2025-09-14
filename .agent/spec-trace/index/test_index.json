@@ -1,6 +1,6 @@
 {
-  "version": "{version}",
-  "description": "{description}",
+  "version": "1.0.0",
+  "description": "Test level traceability IDs",
   "test": [
     {
       "id": "{id.full}"

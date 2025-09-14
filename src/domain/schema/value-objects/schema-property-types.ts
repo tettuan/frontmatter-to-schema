@@ -79,26 +79,31 @@ export type SchemaProperty =
     readonly kind: "string";
     readonly constraints?: StringConstraints;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "number";
     readonly constraints?: NumberConstraints;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "integer";
     readonly constraints?: NumberConstraints;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "boolean";
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "array";
     readonly items: SchemaProperty | RefSchema;
     readonly constraints?: ArrayConstraints;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "object";
@@ -106,25 +111,30 @@ export type SchemaProperty =
     readonly required: readonly string[];
     readonly constraints?: ObjectConstraints;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "ref";
     readonly ref: string;
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "enum";
     readonly values: readonly unknown[];
     readonly baseType?: "string" | "number" | "integer" | "boolean";
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "null";
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   }
   | {
     readonly kind: "any";
     readonly extensions?: SchemaExtensions;
+    readonly default?: unknown;
   };
 
 /**
@@ -188,40 +198,50 @@ export class SchemaPropertyFactory {
   static createString(
     constraints?: StringConstraints,
     extensions?: SchemaExtensions,
+    defaultValue?: unknown,
   ): SchemaProperty {
     return {
       kind: "string",
       constraints,
       extensions,
+      default: defaultValue,
     };
   }
 
   static createNumber(
     constraints?: NumberConstraints,
     extensions?: SchemaExtensions,
+    defaultValue?: unknown,
   ): SchemaProperty {
     return {
       kind: "number",
       constraints,
       extensions,
+      default: defaultValue,
     };
   }
 
   static createInteger(
     constraints?: NumberConstraints,
     extensions?: SchemaExtensions,
+    defaultValue?: unknown,
   ): SchemaProperty {
     return {
       kind: "integer",
       constraints,
       extensions,
+      default: defaultValue,
     };
   }
 
-  static createBoolean(extensions?: SchemaExtensions): SchemaProperty {
+  static createBoolean(
+    extensions?: SchemaExtensions,
+    defaultValue?: unknown,
+  ): SchemaProperty {
     return {
       kind: "boolean",
       extensions,
+      default: defaultValue,
     };
   }
 

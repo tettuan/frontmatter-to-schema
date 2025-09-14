@@ -1,7 +1,7 @@
 {
-  "version": "{version}",
-  "description": "{description}",
-  "{level}": [
+  "version": "1.0.0",
+  "description": "Requirement level traceability IDs",
+  "req": [
     {
       "id": "{id.full}"
     }

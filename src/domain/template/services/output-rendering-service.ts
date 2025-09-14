@@ -490,7 +490,10 @@ export class OutputRenderingService {
   private convertStringifiedArraysToObjects(obj: unknown): unknown {
     if (typeof obj === "string") {
       // Try to parse stringified JSON arrays/objects
-      if ((obj.startsWith("[") && obj.endsWith("]")) || (obj.startsWith("{") && obj.endsWith("}"))) {
+      if (
+        (obj.startsWith("[") && obj.endsWith("]")) ||
+        (obj.startsWith("{") && obj.endsWith("}"))
+      ) {
         try {
           const parsed = JSON.parse(obj);
           // Recursively process the parsed object
@@ -504,7 +507,7 @@ export class OutputRenderingService {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.convertStringifiedArraysToObjects(item));
+      return obj.map((item) => this.convertStringifiedArraysToObjects(item));
     }
 
     if (obj && typeof obj === "object") {

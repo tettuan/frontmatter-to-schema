@@ -153,7 +153,9 @@ describe("OutputRenderingService - Dual Template Rendering", () => {
 
       // SPECIFICATION VALIDATION: Two-layer structure must be properly combined
       assertExists(output.items, "Items should exist");
-      const items = JSON.parse(output.items);
+      const items = Array.isArray(output.items)
+        ? output.items
+        : JSON.parse(output.items);
       assertEquals(items.length, 3, "Should have 3 items");
 
       // SPECIFICATION VALIDATION: Each item's variables must be replaced

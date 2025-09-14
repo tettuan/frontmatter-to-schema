@@ -83,6 +83,14 @@ export class BasePropertyPopulator {
               field: fieldPath,
               defaultValue: propertyDef.extensions?.["x-default-value"],
             });
+          } else if (propertyDef.default !== undefined) {
+            // CRITICAL: Handle standard JSON Schema default properties
+            // This enables template variable replacement for schema defaults
+            // Without this, variables like {version}, {description}, {level} remain unreplaced
+            rules.push({
+              field: fieldPath,
+              defaultValue: propertyDef.default,
+            });
           }
 
           // Recursively check nested properties

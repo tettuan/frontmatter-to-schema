@@ -46,6 +46,7 @@ export interface LegacySchemaProperty {
   readonly "x-template-items"?: string;
   readonly "x-base-property"?: boolean;
   readonly "x-default-value"?: unknown;
+  readonly default?: unknown; // Standard JSON Schema default property
 }
 
 /**
@@ -166,22 +167,27 @@ export class SchemaPropertyMigration {
         return ok(SchemaPropertyFactory.createString(
           this.extractStringConstraints(legacy),
           extensions,
+          legacy.default, // Pass the default value
         ));
 
       case "number":
         return ok(SchemaPropertyFactory.createNumber(
           this.extractNumberConstraints(legacy),
           extensions,
+          legacy.default, // Pass the default value
         ));
 
       case "integer":
         return ok(SchemaPropertyFactory.createInteger(
           this.extractNumberConstraints(legacy),
           extensions,
+          legacy.default, // Pass the default value
         ));
 
       case "boolean":
-        return ok(SchemaPropertyFactory.createBoolean(extensions));
+        return ok(
+          SchemaPropertyFactory.createBoolean(extensions, legacy.default),
+        );
 
       case "array":
         return this.migrateArraySchema(legacy, extensions);
