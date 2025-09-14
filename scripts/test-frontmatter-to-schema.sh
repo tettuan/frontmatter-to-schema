@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test configuration
-TEST_REGISTRY_SCHEMA="./examples/climpt-registry/schema.json"
+TEST_REGISTRY_SCHEMA="./examples/2.climpt/registry_schema.json"
 TEST_OUTPUT_FILE="./tmp/test-output.json"
 TEST_PROMPTS_DIR="./.agent/climpt/prompts"
 

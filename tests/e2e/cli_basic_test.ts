@@ -134,10 +134,10 @@ Deno.test("CLI Basic Functionality", async (t) => {
       );
       assert(outputJson.author === "Test Author", "Author should match");
 
-      // The template processing converts values to strings, so we need to check for that
+      // JSON templates now preserve original data types
       assert(
-        outputJson.published === "true",
-        `Published should be string "true". Got: ${outputJson.published}`,
+        outputJson.published === true,
+        `Published should be boolean true. Got: ${outputJson.published}`,
       );
 
       // Tags should be preserved as arrays in JSON templates
