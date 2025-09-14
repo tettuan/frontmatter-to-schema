@@ -1,0 +1,137 @@
+digraph DerivationProcessingFlow {
+  // Graph settings
+  rankdir=TB;
+  node [shape=box, style="rounded,filled", fontname="Arial"];
+  edge [fontname="Arial"];
+
+  // Color scheme
+  // Schema layer: light blue
+  // Aggregation layer: light green
+  // Transformation layer: light yellow
+  // Application layer: light gray
+  // Output layer: light pink
+
+  // Subgraph: Schema Layer
+  subgraph cluster_schema {
+    label="Schema Layer\n(x-* Directives Detection)";
+    style=filled;
+    fillcolor=lightblue;
+    color=black;
+
+    schema_file [label="Schema JSON\nwith x-derived-*", shape=note, fillcolor=white];
+    schema_entity [label="Schema Entity", fillcolor=lightcyan];
+    schema_def [label="SchemaDefinition", fillcolor=lightcyan];
+    schema_utils [label="SchemaPropertyUtils", fillcolor=lightcyan];
+    derived_rules [label="getDerivedRules()\n→ DerivationRule[]", shape=ellipse, fillcolor=lightyellow];
+
+    schema_file -> schema_entity [label="load"];
+    schema_entity -> schema_def [label="uses"];
+    schema_def -> schema_utils [label="delegates"];
+    schema_entity -> derived_rules [label="extracts"];
+  }
+
+  // Subgraph: Aggregation Layer
+  subgraph cluster_aggregation {
+    label="Aggregation Layer\n(x-derived-* Processing)";
+    style=filled;
+    fillcolor=lightgreen;
+    color=black;
+
+    derivation_rule [label="DerivationRule\n(Value Object)", fillcolor=palegreen];
+    aggregator [label="Aggregator", fillcolor=palegreen];
+    expression_eval [label="ExpressionEvaluator", fillcolor=palegreen];
+
+    derivation_rule -> aggregator [label="used by"];
+    aggregator -> expression_eval [label="evaluates with"];
+  }
+
+  // Subgraph: Transformation Layer
+  subgraph cluster_transformation {
+    label="Transformation Layer";
+    style=filled;
+    fillcolor=lightyellow;
+    color=black;
+
+    frontmatter_service [label="FrontmatterTransformationService", fillcolor=khaki];
+    document_processor [label="DocumentProcessingService", fillcolor=khaki];
+
+    document_processor -> frontmatter_service [label="processes"];
+  }
+
+  // Subgraph: Application Layer
+  subgraph cluster_application {
+    label="Application Layer\n(Orchestration)";
+    style=filled;
+    fillcolor=lightgray;
+    color=black;
+
+    pipeline [label="PipelineOrchestrator", fillcolor=darkgray, fontcolor=white];
+    cli [label="CLI", fillcolor=darkgray, fontcolor=white];
+
+    cli -> pipeline [label="delegates"];
+  }
+
+  // Subgraph: Data Flow
+  subgraph cluster_data {
+    label="Data Flow";
+    style=filled;
+    fillcolor=mistyrose;
+    color=black;
+
+    markdown_files [label="Markdown Files\nwith Frontmatter", shape=folder, fillcolor=white];
+    frontmatter_data [label="FrontmatterData[]", shape=cylinder, fillcolor=lavender];
+    aggregated_data [label="Aggregated Data\nwith derived fields", shape=cylinder, fillcolor=lavender];
+    final_output [label="Output File\n(JSON/YAML/etc)", shape=note, fillcolor=white];
+  }
+
+  // Main flow connections
+  pipeline -> frontmatter_service [label="transformDocuments()", style=bold, color=blue];
+  frontmatter_service -> derived_rules [label="getDerivedRules()", style=bold, color=blue];
+
+  markdown_files -> document_processor [label="read & parse"];
+  document_processor -> frontmatter_data [label="extract"];
+
+  frontmatter_service -> aggregator [label="aggregate(data, rules)", style=bold, color=green];
+  frontmatter_data -> aggregator [label="input data"];
+  derived_rules -> aggregator [label="apply rules", style=dashed];
+
+  aggregator -> aggregated_data [label="produces", style=bold, color=green];
+
+  // Output phase
+  subgraph cluster_output {
+    label="Output Layer";
+    style=filled;
+    fillcolor=pink;
+    color=black;
+
+    output_service [label="OutputRenderingService", fillcolor=lightpink];
+    template_renderer [label="TemplateRenderer", fillcolor=lightpink];
+
+    output_service -> template_renderer [label="uses"];
+  }
+
+  pipeline -> output_service [label="renderOutput()"];
+  aggregated_data -> output_service [label="with derived fields"];
+  output_service -> final_output [label="generates"];
+
+  // Legend
+  subgraph cluster_legend {
+    label="Legend";
+    style=filled;
+    fillcolor=white;
+
+    legend1 [label="Data Flow", shape=none, fillcolor=white];
+    legend2 [label="Control Flow", shape=none, fillcolor=white];
+    legend3 [label="Uses/Delegates", shape=none, fillcolor=white];
+
+    legend1 -> legend2 [label="", style=bold, color=green];
+    legend2 -> legend3 [label="", style=solid];
+  }
+
+  // Annotations
+  note1 [label="x-derived-from:\n'commands[].c1'\n→ availableConfigs", shape=note, style=filled, fillcolor=yellow];
+  note2 [label="x-derived-unique: true\n→ Remove duplicates", shape=note, style=filled, fillcolor=yellow];
+
+  derivation_rule -> note1 [style=dotted, arrowhead=none];
+  expression_eval -> note2 [style=dotted, arrowhead=none];
+}
