@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Specification Level Index Schema",
-  "x-template": "index_spec_template.json",
+  "x-template": "index_level_template.json",
   "x-template-items": "traceability_item_template.json",
   "description": "Schema for specification level traceability index",
   "properties": {

@@ -340,7 +340,8 @@ duplicates).
 
 ### Array Expansion with {@items}
 
-The `{@items}` placeholder provides special array expansion functionality, but its behavior depends on how it's positioned in the JSON template:
+The `{@items}` placeholder provides special array expansion functionality, but
+its behavior depends on how it's positioned in the JSON template:
 
 #### ✅ Correct Usage (Object Property Value)
 
@@ -355,14 +356,15 @@ The `{@items}` placeholder provides special array expansion functionality, but i
 ```
 
 **Result**: `{@items}` is replaced with the actual array data:
+
 ```json
 {
   "version": "1.0.0",
   "description": "Basic command registry example",
   "tools": {
     "commands": [
-      {"id": "command1"},
-      {"id": "command2"}
+      { "id": "command1" },
+      { "id": "command2" }
     ]
   }
 }
@@ -381,6 +383,7 @@ The `{@items}` placeholder provides special array expansion functionality, but i
 ```
 
 **Result**: `{@items}` is treated as a regular string and remains unreplaced:
+
 ```json
 {
   "version": "1.0.0",
@@ -393,11 +396,14 @@ The `{@items}` placeholder provides special array expansion functionality, but i
 
 #### Key Rules
 
-- **`{@items}` must be the complete property value** - not embedded in arrays or other structures
+- **`{@items}` must be the complete property value** - not embedded in arrays or
+  other structures
 - **Array expansion only occurs when positioned as an object property value**
-- **Use exact match**: `"property": "{@items}"` (works), `"property": "[{@items}]"` (doesn't work)
+- **Use exact match**: `"property": "{@items}"` (works),
+  `"property": "[{@items}]"` (doesn't work)
 
-This design ensures type-safe JSON generation while maintaining clear template semantics.
+This design ensures type-safe JSON generation while maintaining clear template
+semantics.
 
 ## Configuration Options
 

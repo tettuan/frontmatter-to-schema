@@ -58,7 +58,8 @@ export class VariableReplacer {
       );
 
       // Support both single and double brace syntax: {var} and {{var}}
-      let result = template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+      // Use more restrictive regex to avoid matching across JSON structure
+      let result = template.replace(/\{\{([\w.@-]+)\}\}/g, (match, varName) => {
         this.debugLogger?.logDebug(
           "variable-replacer",
           "Processing variable",
@@ -115,7 +116,8 @@ export class VariableReplacer {
       });
 
       // Also support single brace syntax: {var}
-      result = result.replace(/\{([^}]+)\}/g, (match, varName) => {
+      // Use more restrictive regex to avoid matching across JSON structure
+      result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
         this.debugLogger?.logDebug(
           "variable-replacer",
           "Processing single-brace variable",
@@ -331,7 +333,7 @@ export class VariableReplacer {
       if (typeof val === "string") {
         // Special handling for JSON context: if the string is exactly a variable reference,
         // preserve the original data type instead of converting to string
-        const variableMatch = val.match(/^\{([^}]+)\}$/);
+        const variableMatch = val.match(/^\{([\w.@-]+)\}$/);
         if (variableMatch) {
           const varName = variableMatch[1];
 

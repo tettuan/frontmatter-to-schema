@@ -1,6 +1,7 @@
 # Test Scripts
 
-This directory contains test scripts for validating the frontmatter-to-schema functionality.
+This directory contains test scripts for validating the frontmatter-to-schema
+functionality.
 
 ## Scripts
 
@@ -9,12 +10,14 @@ This directory contains test scripts for validating the frontmatter-to-schema fu
 Tests the legacy CLI interface with climpt-registry example.
 
 **Usage:**
+
 ```bash
 cd /path/to/frontmatter-to-schema
 ./examples/4.test-scripts/test-climpt-registry.sh
 ```
 
 **Configuration:**
+
 - Schema: `./examples/climpt-registry/schema.json`
 - Template: `./examples/climpt-registry/template.json`
 - Input: `./.agent/climpt/prompts`
@@ -25,12 +28,14 @@ cd /path/to/frontmatter-to-schema
 Tests the new CLI interface with improved argument handling.
 
 **Usage:**
+
 ```bash
 cd /path/to/frontmatter-to-schema
 ./examples/4.test-scripts/test-frontmatter-to-schema.sh
 ```
 
 **Configuration:**
+
 - Schema: `./examples/2.climpt/registry_schema.json`
 - Input Pattern: `./.agent/climpt/prompts/**/*.md`
 - Output: `./tmp/test-output.json`
@@ -38,6 +43,7 @@ cd /path/to/frontmatter-to-schema
 ## Exit Codes
 
 Both scripts return:
+
 - `0`: Success
 - `2`: Expected failure or controlled exit
 

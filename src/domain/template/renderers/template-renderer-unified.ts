@@ -13,16 +13,15 @@ import { ProcessingContext } from "../value-objects/processing-context.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**
- * TemplateRenderer eliminates dual-path processing architecture.
+ * UnifiedTemplateRenderer eliminates dual-path processing architecture.
  * Follows DDD principles with unified processing strategy and Totality patterns.
  *
- * REFACTORED: Resolves Issue #810 with unified processing approach:
+ * This replaces the original TemplateRenderer to resolve Issue #810:
  * - Single processing path for all template types
  * - Consistent variable replacement across contexts
  * - Full Result<T,E> compliance
- * - Strategy pattern for extensible variable replacement
  */
-export class TemplateRenderer {
+export class UnifiedTemplateRenderer {
   private constructor(
     private readonly variableStrategy: VariableReplacementStrategy,
     private readonly jsonFormatter: JsonFormatter,
@@ -32,11 +31,11 @@ export class TemplateRenderer {
   ) {}
 
   /**
-   * Smart Constructor for TemplateRenderer
-   * @returns Result containing TemplateRenderer instance or error
+   * Smart Constructor for UnifiedTemplateRenderer
+   * @returns Result containing UnifiedTemplateRenderer instance or error
    */
   static create(debugLogger?: DebugLogger): Result<
-    TemplateRenderer,
+    UnifiedTemplateRenderer,
     TemplateError & { message: string }
   > {
     const strategyResult = UnifiedVariableReplacementStrategy.create();
@@ -52,7 +51,7 @@ export class TemplateRenderer {
     if (!markdownFormatterResult.ok) return markdownFormatterResult;
 
     return ok(
-      new TemplateRenderer(
+      new UnifiedTemplateRenderer(
         strategyResult.data,
         jsonFormatterResult.data,
         yamlFormatterResult.data,
