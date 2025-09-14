@@ -144,29 +144,28 @@ schema root data:
 - `x-template-items` works independently on array partition
 - The two templates collaborate through `{@items}` substitution
 
-### Rule 2: $ref Template Source Resolution
+### Rule 2: Schema Reference Independence
 
-When `items` contains a `$ref`, the referenced schema's root structure becomes
-the template source for each array item.
+`$ref` is a standard JSON Schema feature for schema reuse and has NO relationship
+with template processing. Templates are specified exclusively through:
+- `x-template`: Container template file
+- `x-template-items`: Item template file (optional, required for {@items} expansion)
 
 ```json
 // Main schema
-"items": { "$ref": "registry_command_schema.json" }
+"items": { "$ref": "registry_command_schema.json" }  // Schema structure only
 
-// Referenced schema (registry_command_schema.json)
-{
-  "id": "{id.full}",
-  "description": "{description}",
-  "category": "{category}"
-}
+// Template specification (completely independent of $ref)
+"x-template": "container_template.json",
+"x-template-items": "item_template.json"  // This specifies the item template
 ```
 
-**Template Source**: Root of `registry_command_schema.json`
+**Key Point**: `$ref` defines schema structure, `x-template-items` defines template
 
 ### Rule 3: Template Application Mapping
 
-Each item in the hierarchy root array gets the template from the `$ref` schema
-applied:
+Each item in the hierarchy root array gets the template from `x-template-items`
+applied (NOT from $ref):
 
 **Input Array** (from `commands`):
 
@@ -178,7 +177,7 @@ applied:
 ]
 ```
 
-**Template** (from `$ref` schema):
+**Template** (from `x-template-items` file):
 
 ```json
 { "id": "{id.full}" }
@@ -309,10 +308,11 @@ applied:
 - **Independent Processing**: Each template works within its assigned partition
 - This maintains clean separation of concerns between container and items
 
-### Constraint 2: $ref Resolution Priority
+### Constraint 2: Template Specification
 
-- When `$ref` is present, referenced schema's root becomes template
-- `x-template-items` in main schema overrides `$ref` template if both exist
+- `$ref` is for schema structure only, not template resolution
+- `x-template-items` is the only way to specify item templates
+- If `x-template-items` is not specified, {@items} expansion cannot occur
 
 ### Constraint 3: Origin Type Validation
 
@@ -322,8 +322,9 @@ applied:
 
 ### Constraint 4: Template Scope Consistency
 
-- Templates from `$ref` schemas apply to individual items
+- Item templates (from `x-template-items`) apply to individual items
 - Container templates with `{@items}` apply to the entire array
+- `$ref` has no role in template processing
 
 ### Constraint 5: Object Structure Consistency
 
@@ -345,8 +346,7 @@ This mapping hierarchy with data partitioning ensures:
   separate data
 - **Predictable Resolution**: Each template knows exactly which data partition
   it receives
-- **Schema Consistency**: `$ref` schemas provide item-level templates within
-  array partition
+- **Schema Consistency**: `$ref` provides schema structure validation only
 - **Parallel Processing**: Container and items templates process independently
 - **Separation of Concerns**: Container logic (x-template) separate from item
   logic (x-template-items)

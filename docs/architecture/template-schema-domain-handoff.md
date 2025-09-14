@@ -105,16 +105,24 @@ class OutputRenderingService {
     private readonly fileWriter: FileWriter,
   ) {}
 
-  // Main orchestration method - handles dual-template processing
+  // Main orchestration method implementing responsibilities from Section 6.2:
+  // 1. Dual-Template Processing - Handles both main and items templates
+  // 2. Template Loading & Validation - Loads and validates JSON templates
+  // 3. Variable Resolution & {@items} Expansion - Replaces variables and expands items
+  // 4. Output Generation & Writing - Formats output per x-template-format and writes to file
+  // 5. Error Handling - Result types following Totality principles
   renderOutput(
-    templatePath: string,
-    itemsTemplatePath: string | undefined,
-    mainData: FrontmatterData,
-    itemsData: FrontmatterData[] | undefined,
-    outputPath: string,
+    templatePath: string,                    // Path to main template (x-template)
+    itemsTemplatePath: string | undefined,   // Path to items template (x-template-items, optional)
+    mainData: FrontmatterData,              // Main data for container template (Partition 1)
+    itemsData: FrontmatterData[] | undefined, // Array data for items template (Partition 2)
+    outputPath: string,                      // Output file path
   ): Result<void, DomainError> {
-    // See template-processing-specification.md Section 5.2 for full details
-    // Orchestrates dual-template rendering with variable replacement
+    // Implementation follows template-processing-specification.md Section 6.2:
+    // - Data Partitioning: x-template uses full data, x-template-items uses array only
+    // - If x-template-items exists: render items, combine, apply main template
+    // - If no x-template-items: {@items} remains unexpanded
+    // - Format output according to x-template-format schema attribute
   }
 }
 
@@ -146,10 +154,17 @@ class SchemaTemplateResolver {
     const itemsTemplate = this.extractItemsTemplate(extensions);
 
     if (!itemsTemplate) {
-      return err(createError({
-        kind: "MissingTemplateReference",
-        message: "x-template-items is required for {@items} expansion",
-      }));
+      // x-template-items is optional - without it, {@items} won't be expanded
+      // This is valid and not an error condition
+      return ok({
+        containerTemplate,
+        itemsTemplate: null,
+        schemaContext: {
+          sourceSchema: schema,
+          resolvedExtensions: extensions,
+          templateResolutionStrategy: this.getResolutionStrategy(schema),
+        },
+      });
     }
 
     return ok({
@@ -265,7 +280,7 @@ class PipelineOrchestrator {
 
 ### Schema Domain Error Conditions
 
-- Missing `x-template-items` when `{@items}` expansion required
+- `{@items}` found but no `x-template-items` specified (remains unexpanded)
 - Invalid template path references
 - Schema extension parsing errors
 
@@ -289,8 +304,7 @@ type TemplateSchemaHandoffError =
 ## Validation Rules
 
 1. **Template Domain**: MUST request schema context before processing `{@items}`
-2. **Schema Domain**: MUST validate `x-template-items` exists before creating
-   handoff context
+2. **Schema Domain**: MAY have `x-template-items` - if absent, `{@items}` remains unexpanded
 3. **Cross-Domain Service**: MUST ensure both domains receive valid, consistent
    data
 4. **Error Propagation**: Errors MUST be propagated with domain-specific context

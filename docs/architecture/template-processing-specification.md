@@ -118,9 +118,56 @@ graph TD
 }
 ```
 
-## 3. Variable Resolution Specification
+## 3. Data Partitioning Specification
 
-### 3.1 Variable Notation
+### 3.1 Data Partitioning Concept
+
+**Data Partitioning** is the mechanism that splits frontmatter data into separate
+partitions for template processing. This concept is fully specified in
+`mapping-hierarchy-rules.md` and is fundamental to understanding template processing.
+
+#### Key Principles
+
+1. **Partition Creation**: `x-frontmatter-part: true` creates a data partition boundary
+2. **Dual Template System**:
+   - `x-template`: Receives full schema root data (Partition 1)
+   - `x-template-items`: Receives array data from partition boundary (Partition 2)
+3. **Template Independence**: Each template operates on its assigned partition independently
+4. **No Scope Sharing**: Templates don't share data between partitions
+
+#### Example
+
+```json
+// Schema with data partitioning
+{
+  "x-template": "container.json",           // Uses Partition 1 (full data)
+  "metadata": { "version": "1.0" },
+  "commands": {
+    "type": "array",
+    "x-frontmatter-part": true,            // Creates partition boundary
+    "x-template-items": "item.json",       // Uses Partition 2 (array only)
+    "items": { "$ref": "cmd_schema.json" } // Schema validation only
+  }
+}
+
+// Partition 1 Data (for x-template):
+{
+  "metadata": { "version": "1.0" },
+  "commands": [...]  // Full array available
+}
+
+// Partition 2 Data (for x-template-items):
+[
+  { "id": "cmd1", "name": "..." },
+  { "id": "cmd2", "name": "..." }
+]
+```
+
+For complete details, see `mapping-hierarchy-rules.md`.
+
+## 4. Variable Resolution Specification
+
+### 4.1 Variable Notation
 
 | Notation             | Description               | Resolution Method                      |
 | -------------------- | ------------------------- | -------------------------------------- |
@@ -129,7 +176,7 @@ graph TD
 | `{array[].property}` | Array property extraction | Map operation on array elements        |
 | `{@items}`           | Array item expansion      | Apply x-template-items to each element |
 
-### 3.2 Variable Resolution Algorithm
+### 4.2 Variable Resolution Algorithm
 
 ```typescript
 interface VariableResolver {
@@ -150,9 +197,9 @@ The resolver shall:
 3. Handle array notation for collection processing
 4. Return the resolved value or undefined if not found
 
-## 4. {@items} Expansion Specification
+## 5. {@items} Expansion Specification
 
-### 4.1 Expansion Process Flow
+### 5.1 Expansion Process Flow
 
 ```mermaid
 graph LR
@@ -165,7 +212,7 @@ graph LR
     D --> H[Direct Array Insertion]
 ```
 
-### 4.2 Implementation Requirements
+### 5.2 Implementation Requirements
 
 1. **Template Resolution**
    - Retrieve `x-template-items` from schema
@@ -185,16 +232,16 @@ graph LR
    - Combine processed items in appropriate format
    - Replace `{@items}` marker in container template
 
-## 5. Domain Interaction Model
+## 6. Domain Interaction Model
 
-### 5.1 Schema Domain Responsibilities
+### 6.1 Schema Domain Responsibilities
 
 - Store and provide template references (`x-template`, `x-template-items`)
 - Resolve template paths to absolute locations
 - Validate template reference integrity
 - Provide schema extension metadata
 
-### 5.2 Template Domain Responsibilities
+### 6.2 Template Domain Responsibilities
 
 #### Core Responsibilities
 
@@ -240,7 +287,7 @@ responsibilities:
   schema attribute
 - Full error handling with Result types following Totality principles
 
-### 5.3 Cross-Domain Coordination
+### 6.3 Cross-Domain Coordination
 
 ```typescript
 interface TemplateSchemaCoordinator {
@@ -254,9 +301,9 @@ interface TemplateSchemaCoordinator {
 }
 ```
 
-## 6. Data Access Patterns
+## 7. Data Access Patterns
 
-### 6.1 Hierarchical Data Access
+### 7.1 Hierarchical Data Access
 
 The system shall support deep property access using dot notation:
 
@@ -273,7 +320,7 @@ interface DataAccessor {
 }
 ```
 
-### 6.2 Array Processing Patterns
+### 7.2 Array Processing Patterns
 
 Support for array operations:
 
@@ -281,9 +328,9 @@ Support for array operations:
 - Property extraction: `{commands[].c1}`
 - Unique value collection: via `x-derived-unique: true`
 
-## 7. Template Processing Rules
+## 8. Template Processing Rules
 
-### 7.1 Core Principles
+### 8.1 Core Principles
 
 1. **Template Completeness**: Templates fully define output structure
 2. **Explicit Output**: Only template content appears in output
@@ -292,7 +339,7 @@ Support for array operations:
 5. **Format Separation**: Template format (JSON) is separate from output format
    (controlled by x-template-format)
 
-### 7.2 Template Format Specification
+### 8.2 Template Format Specification
 
 **Template Input Format**:
 
@@ -313,7 +360,7 @@ Support for array operations:
 3. Format final output according to x-template-format
 4. Write formatted output to target file
 
-### 7.3 Processing Order
+### 8.3 Processing Order
 
 1. Load and validate schema
 2. Extract and aggregate frontmatter data
@@ -323,9 +370,9 @@ Support for array operations:
 6. Handle `{@items}` expansions
 7. Format output according to x-template-format schema attribute
 
-## 8. Error Handling Strategy
+## 9. Error Handling Strategy
 
-### 8.1 Error Categories
+### 9.1 Error Categories
 
 | Category          | Description                          | Recovery Strategy             |
 | ----------------- | ------------------------------------ | ----------------------------- |
@@ -334,7 +381,7 @@ Support for array operations:
 | Data Errors       | Missing required data                | Use defaults or skip item     |
 | Resolution Errors | Unresolvable variables               | Keep placeholder or use empty |
 
-### 8.2 Error Propagation
+### 9.2 Error Propagation
 
 All errors shall be wrapped in Result types following Totality principles:
 
@@ -342,24 +389,24 @@ All errors shall be wrapped in Result types following Totality principles:
 type ProcessingResult<T> = Result<T, ProcessingError>;
 ```
 
-## 9. Performance Considerations
+## 10. Performance Considerations
 
-### 9.1 Optimization Strategies
+### 10.1 Optimization Strategies
 
 1. **Template Caching**: Cache parsed templates
 2. **Lazy Evaluation**: Process only required data paths
 3. **Batch Processing**: Process multiple files in parallel
 4. **Memory Management**: Stream large datasets
 
-### 9.2 Scalability Requirements
+### 10.2 Scalability Requirements
 
 - Support processing of 1000+ markdown files
 - Handle templates up to 1MB in size
 - Process nested data structures up to 10 levels deep
 
-## 10. Validation Requirements
+## 11. Validation Requirements
 
-### 10.1 Input Validation
+### 11.1 Input Validation
 
 - Schema must be valid JSON Schema Draft-07
 - Templates must be valid JSON format only
@@ -367,29 +414,29 @@ type ProcessingResult<T> = Result<T, ProcessingError>;
   (json|yaml|toml|markdown)
 - Frontmatter must be valid YAML
 
-### 10.2 Output Validation
+### 11.2 Output Validation
 
 - Output must conform to template format
 - All required variables must be resolved
 - Array expansions must maintain data integrity
 
-## 11. Success Criteria
+## 12. Success Criteria
 
-### 11.1 Functional Requirements
+### 12.1 Functional Requirements
 
 1. **Variable Resolution**: All variable notations resolve correctly
 2. **Array Expansion**: `{@items}` expands with proper templates
 3. **Data Aggregation**: x-derived-from rules apply correctly
 4. **Format Support**: JSON, YAML, and Markdown output formats work
 
-### 11.2 Quality Requirements
+### 12.2 Quality Requirements
 
 - Test coverage ≥ 80%
 - Zero hardcoding in implementation
 - Complete error handling
 - Full DDD/Totality compliance
 
-## 12. Authority
+## 13. Authority
 
 This specification establishes the definitive architecture for the template
 processing system. All implementations must conform to these requirements to

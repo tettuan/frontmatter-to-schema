@@ -8,32 +8,33 @@ should be used when processing `{@items}` expansion, eliminating the need for
 
 ## Problem Statement
 
-### Previous Design Issues
+### Design Clarification
 
-1. **Mandatory x-template in Sub-schemas**: Every `$ref` referenced schema
-   required its own `x-template` declaration
-2. **Template Reference Coupling**: Template selection was tightly coupled to
-   schema structure
-3. **Configuration Complexity**: Multiple template declarations scattered across
-   schema files
+1. **Schema Independence**: `$ref` is a standard JSON Schema feature for schema
+   reuse and has no relationship with template processing
+2. **Template Specification**: Templates are specified exclusively through
+   `x-template` and `x-template-items` extensions
+3. **Configuration Simplicity**: Template declarations are centralized in the
+   main schema file
 
-### Example of Previous Complexity
+### Clarified Design
 
 ```json
 // Main schema
 {
   "x-template": "main_template.json",
+  "x-template-items": "item_template.json",  // Optional, but needed for {@items}
   "properties": {
     "items": {
       "type": "array",
-      "items": { "$ref": "sub_schema.json" }
+      "items": { "$ref": "sub_schema.json" }  // Schema structure only
     }
   }
 }
 
-// Sub-schema (REQUIRED x-template)
+// Sub-schema (defines structure only)
 {
-  "x-template": "item_template.json",  // MANDATORY
+  // No x-template needed - templates are specified in main schema
   "properties": { ... }
 }
 ```
@@ -43,7 +44,8 @@ should be used when processing `{@items}` expansion, eliminating the need for
 ### Core Concept
 
 `x-template-items` allows the main schema to specify which template should be
-used for `{@items}` expansion, making `x-template` optional in sub-schemas.
+used for `{@items}` expansion. This is independent of any `$ref` schema references,
+which are purely for schema structure validation.
 
 ### Syntax
 
@@ -81,13 +83,13 @@ the template for each array element.
 
 ### Template Resolution Rule
 
-**x-template-items in Main Schema**: MUST be specified for `{@items}` expansion.
-If not specified, an error occurs.
+**x-template-items in Main Schema**: Optional, but required for `{@items}` expansion.
+If not specified, `{@items}` expansion cannot occur and will remain unexpanded.
 
-### Sub-schema Simplification
+### Schema Independence
 
-Sub-schemas no longer require `x-template` when the main schema provides
-`x-template-items`:
+Sub-schemas referenced via `$ref` are purely for structure validation and never
+contain template specifications:
 
 ```json
 // Sub-schema (x-template now OPTIONAL)
@@ -119,8 +121,8 @@ interface TemplateResolutionLogic {
       return schema.getMainSchemaTemplateItems();
     }
 
-    // Error - x-template-items is mandatory
-    throw new Error("x-template-items must be specified in main schema for {@items} expansion");
+    // No x-template-items - {@items} will not be expanded
+    return null;  // {@items} remains as placeholder
   }
 }
 ```
@@ -203,13 +205,14 @@ Apply item_template.json to each array element
 }
 ```
 
-## Breaking Change Notice
+## Design Principles
 
-This specification introduces a **breaking change**:
+This specification establishes clear separation of concerns:
 
-- `x-template-items` is **REQUIRED** in main schema for `{@items}` expansion
-- Sub-schema `x-template` declarations are **NO LONGER SUPPORTED**
-- This eliminates complexity and ensures consistent template resolution
+- `x-template-items` is **OPTIONAL** but necessary for `{@items}` expansion
+- `$ref` is for schema structure only, not template resolution
+- Templates are specified exclusively through `x-template` and `x-template-items`
+- Without `x-template-items`, `{@items}` placeholders remain unexpanded
 
 ## Authority
 

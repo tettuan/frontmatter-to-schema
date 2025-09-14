@@ -25,9 +25,9 @@ Being processed as array elements in:
 ### Correct Pattern Should Be
 
 ```
-Container: index_design_template.json
-  └── References: "$ref": "traceability_item_schema.json"
-      └── Template: traceability_item_template.json  <- These are the ACTUAL list items
+Container: index_design_template.json (specified by x-template)
+  └── Item Template: traceability_item_template.json (specified by x-template-items)
+      └── Schema Structure: "$ref": "traceability_item_schema.json" (for validation only)
 ```
 
 ## Architectural Violation Analysis
@@ -58,8 +58,9 @@ interface CorrectListProcessing {
 ### 1. Template Reference Misinterpretation
 
 - Container templates define the outer structure
-- `$ref` references point to the actual repeatable item template
-- System incorrectly processes containers instead of referenced items
+- `x-template-items` specifies the actual repeatable item template
+- System incorrectly processes containers instead of items specified by x-template-items
+- `$ref` is only for schema validation, not template resolution
 
 ### 2. List Aggregation Logic Error
 
@@ -71,13 +72,15 @@ interface CorrectListProcessing {
 
 ```yaml
 # Container Schema (index_design_schema.json)
+x-template: "index_design_template.json"      # Container template
+x-template-items: "traceability_item_template.json"  # Item template (NOT from $ref)
 properties:
   items:
     type: array
     items:
-      $ref: "traceability_item_schema.json" # This points to the REAL items
+      $ref: "traceability_item_schema.json"  # Schema structure only
 
-# The system should follow the $ref, not process the container
+# The system should use x-template-items, not follow $ref for templates
 ```
 
 ## Correct Architecture
@@ -106,10 +109,11 @@ properties:
 
 ### Correct Processing Flow
 
-1. **Items Processing**: Process each document with
-   `traceability_item_template.json`
-2. **Container Wrapping**: Wrap processed items with `index_*_template.json`
-3. **Reference Resolution**: Follow `$ref` to find actual item templates
+1. **Items Processing**: Process each document with template specified by
+   `x-template-items` (e.g., `traceability_item_template.json`)
+2. **Container Wrapping**: Wrap processed items with template specified by
+   `x-template` (e.g., `index_*_template.json`)
+3. **Schema Validation**: Use `$ref` for schema structure validation only
 
 ## Implementation Fix Requirements
 
@@ -129,11 +133,12 @@ interface TemplateProcessor {
 }
 ```
 
-### 2. Reference Following
+### 2. Template Specification
 
-- When encountering `$ref`, follow to referenced template
+- Templates are specified exclusively through `x-template` and `x-template-items`
 - Container templates are NOT iterated over
-- Only referenced item templates are used for iteration
+- Only templates specified by `x-template-items` are used for iteration
+- `$ref` is for schema structure only, not template resolution
 
 ### 3. Clear Type Distinction
 
@@ -141,8 +146,10 @@ interface TemplateProcessor {
 type ContainerTemplate = {
   version: string;
   description: string;
-  items: ItemReference; // Points to actual items via $ref
+  items: string; // Placeholder for {@items} expansion
 };
+
+// Note: Item template is specified by x-template-items, not $ref
 
 type ItemTemplate = {
   // Actual structure for individual entries
@@ -155,8 +162,9 @@ type ItemTemplate = {
 This architectural principle establishes the definitive separation between list
 containers and list items. All list processing must distinguish between:
 
-- Container templates (rendered once)
-- Item templates (rendered per document, referenced via $ref)
+- Container templates (rendered once, specified by x-template)
+- Item templates (rendered per document, specified by x-template-items)
+- Schema references ($ref - for validation only, not template resolution)
 
 Failure to maintain this separation results in fundamental processing errors and
 architectural violations.
