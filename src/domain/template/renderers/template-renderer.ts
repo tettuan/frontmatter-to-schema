@@ -187,7 +187,11 @@ export class TemplateRenderer {
 
       const results: unknown[] = [];
       for (const item of dataArray) {
-        const itemResult = this.variableReplacer.processValue(content, item);
+        const itemResult = this.variableReplacer.processValue(
+          content,
+          item,
+          dataArray,
+        );
         if (!itemResult.ok) {
           this.debugLogger?.logError(
             "item-processing",

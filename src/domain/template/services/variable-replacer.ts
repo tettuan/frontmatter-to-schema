@@ -191,6 +191,7 @@ export class VariableReplacer {
   processValue(
     value: unknown,
     data: FrontmatterData,
+    arrayData?: unknown[],
   ): Result<unknown, TemplateError & { message: string }> {
     try {
       // Handle Result types first - unwrap successful Results, return empty for errors
@@ -202,20 +203,20 @@ export class VariableReplacer {
         };
         if (resultValue.ok && resultValue.data !== undefined) {
           // Recursively process the unwrapped data
-          return this.processValue(resultValue.data, data);
+          return this.processValue(resultValue.data, data, arrayData);
         }
         // For error Results, return empty string
         return ok("");
       }
 
       if (typeof value === "string") {
-        return this.replaceVariables(value, data);
+        return this.replaceVariables(value, data, arrayData);
       }
 
       if (Array.isArray(value)) {
         const results: unknown[] = [];
         for (const item of value) {
-          const processedResult = this.processValue(item, data);
+          const processedResult = this.processValue(item, data, arrayData);
           if (!processedResult.ok) {
             return processedResult;
           }
@@ -225,7 +226,11 @@ export class VariableReplacer {
       }
 
       if (value && typeof value === "object") {
-        return this.processObject(value as Record<string, unknown>, data);
+        return this.processObject(
+          value as Record<string, unknown>,
+          data,
+          arrayData,
+        );
       }
 
       return ok(value);
@@ -291,6 +296,7 @@ export class VariableReplacer {
   private processObject(
     obj: Record<string, unknown>,
     data: FrontmatterData,
+    arrayData?: unknown[],
   ): Result<Record<string, unknown>, TemplateError & { message: string }> {
     const result: Record<string, unknown> = {};
 
@@ -322,7 +328,30 @@ export class VariableReplacer {
       }
 
       // Process regular values
-      const processedResult = this.processValue(val, data);
+      if (typeof val === "string") {
+        // Special handling for JSON context: if the string is exactly a variable reference,
+        // preserve the original data type instead of converting to string
+        const variableMatch = val.match(/^\{([^}]+)\}$/);
+        if (variableMatch) {
+          const varName = variableMatch[1];
+
+          // Handle {@items} array expansion in JSON object context
+          if (varName === "@items" && arrayData) {
+            // In object property context, use raw array for proper JSON structure
+            result[renderedKey] = arrayData;
+            continue;
+          }
+
+          const valueResult = data.get(varName);
+          if (valueResult.ok) {
+            // Preserve original data type for JSON context
+            result[renderedKey] = valueResult.data;
+            continue;
+          }
+        }
+      }
+
+      const processedResult = this.processValue(val, data, arrayData);
       if (!processedResult.ok) {
         return err(processedResult.error);
       }
@@ -371,6 +400,24 @@ export class VariableReplacer {
   }
 
   /**
+   * Schema-aware variable replacement method
+   * This is a compatibility method for schema-aware variable replacement
+   * @param template - Template string with {variable} placeholders
+   * @param data - FrontmatterData containing values for replacement
+   * @param schema - Schema information (currently unused, for future enhancement)
+   * @returns Result containing processed template string or error
+   */
+  replaceVariablesWithSchema(
+    template: string,
+    data: FrontmatterData,
+    _schema?: unknown,
+  ): Result<string, TemplateError & { message: string }> {
+    // For now, delegate to the existing replaceVariables method
+    // This provides compatibility while maintaining the interface for future schema integration
+    return this.replaceVariables(template, data);
+  }
+
+  /**
    * Process template with {@items} array expansion support
    * @param template - Template content with potential {@items} marker
    * @param dataArray - Array of data items to expand
@@ -404,6 +451,7 @@ export class VariableReplacer {
         const processedResult = this.processValue(
           itemTemplate,
           itemDataResult.data,
+          dataArray,
         );
         if (!processedResult.ok) {
           return processedResult;

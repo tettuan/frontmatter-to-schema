@@ -36,10 +36,10 @@ export class VariableContext {
       // If we have a hierarchy root, extract the array data from that path
       let arrayData: unknown[] | undefined;
       if (hierarchyRoot) {
-        const parts = hierarchyRoot.split('.');
+        const parts = hierarchyRoot.split(".");
         let current: any = contextData;
         for (const part of parts) {
-          if (current && typeof current === 'object' && part in current) {
+          if (current && typeof current === "object" && part in current) {
             current = current[part];
           } else {
             current = undefined;
@@ -175,7 +175,11 @@ export class VariableContext {
    * @deprecated Will be removed in future versions
    */
   createItemContext(item: unknown): VariableContext {
-    return new VariableContext(item as Record<string, unknown>, undefined, this.hierarchyRoot);
+    return new VariableContext(
+      item as Record<string, unknown>,
+      undefined,
+      this.hierarchyRoot,
+    );
   }
 
   /**

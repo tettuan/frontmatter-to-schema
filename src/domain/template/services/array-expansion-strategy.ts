@@ -89,14 +89,18 @@ export class ArrayExpansionStrategy {
 
   /**
    * Handles JSON array format expansion.
-   * Input: "{@items}" -> Output: dataArray
+   * Input: "{@items}" -> Output: dataArray (actual array for proper JSON structure)
    */
   private expandJsonArray(
     template: string,
     dataArray: unknown[],
   ): Result<unknown, TemplateError & { message: string }> {
-    // ✅ Fix: For JSON format, always use string replacement to maintain backward compatibility
-    // This matches the original behavior where JSON object properties get stringified
+    // ✅ Fix: For JSON format, return the actual array instead of stringified version
+    // This ensures @items expands to proper JSON array structure
+    if (template.trim() === "{@items}") {
+      return ok(dataArray);
+    }
+    // For templates containing other content, fall back to string replacement
     return this.expandPlainText(template, dataArray);
   }
 
