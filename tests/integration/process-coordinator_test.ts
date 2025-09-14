@@ -10,7 +10,7 @@ import {
 // Robust test design following DDD and Totality principles
 Deno.test({
   name: "ProcessCoordinator - complete data flow from markdown to JSON",
-  ignore: true, // Temporarily disabled while investigating frontmatter-part Result object issue
+  ignore: false, // Fixed - template variables now properly resolved
   fn: async () => {
     // Setup: Create isolated test environment for complete data flow validation
     const testEnv = new IntegrationTestEnvironment("complete-data-flow");
@@ -112,7 +112,7 @@ Deno.test({
 Deno.test({
   name:
     "ProcessCoordinator - should not create empty data when no derivation rules",
-  ignore: true, // Temporarily disabled while investigating frontmatter-part Result object issue
+  ignore: false, // Fixed - template variables now properly resolved
   fn: async () => {
     // Setup: Test environment for simple schema processing
     const testEnv = new IntegrationTestEnvironment(

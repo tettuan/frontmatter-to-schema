@@ -9,7 +9,7 @@ import {
 Deno.test({
   name:
     "ProcessCoordinator - should populate base properties from schema defaults",
-  ignore: true, // Temporarily disabled - same frontmatter-part processing issue
+  ignore: false, // Testing to identify actual issue
   fn: async () => {
     // Setup: Create isolated test environment
     const testEnv = new IntegrationTestEnvironment("base-property-population");

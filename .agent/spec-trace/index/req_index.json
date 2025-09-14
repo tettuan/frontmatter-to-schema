@@ -1,12 +1,5 @@
 {
-  "version": "1.0.0",
-  "description": "Requirement level traceability IDs",
-  "req": [
-    "req:api:deepresearch-3f8d2a#20250909",
-    "req:crawler:ir-collect-9c4e3b#20250909",
-    "req:stock:multitenant-7a3f1d#20250909",
-    "req:user:ai-settings-2c5e9b#20250909",
-    "req:auth:primary-key-5d8c2a#20250909",
-    "req:workflow:automation-8f6a4c#20250909"
-  ]
+  "version": "{version}",
+  "description": "{description}",
+  "{level}": []
 }

@@ -184,17 +184,38 @@ export class DocumentProcessingService {
 
       if (frontmatterPartSchemaResult.ok) {
         // Create base data with commands array for derivation processing
-        // Need to nest the array according to its schema path (tools.commands)
+        // Need to nest the array according to its actual schema path
         const commandsArray = data.map((item) => item.getData());
-        const baseDataResult = FrontmatterData.create({
-          tools: {
-            commands: commandsArray,
-          },
-        });
-        if (!baseDataResult.ok) {
-          return baseDataResult;
+
+        // Get the actual frontmatter-part path from schema
+        const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+        if (!frontmatterPartPathResult.ok) {
+          return frontmatterPartPathResult;
         }
-        baseData = baseDataResult.data;
+        const frontmatterPartPath = frontmatterPartPathResult.data;
+
+        // Create the base structure with the array at the correct path
+        const emptyDataResult = FrontmatterData.create({});
+        if (!emptyDataResult.ok) {
+          return emptyDataResult;
+        }
+
+        // Put the array at the schema-defined path
+        let baseDataWithArray = emptyDataResult.data.withField(
+          frontmatterPartPath,
+          commandsArray,
+        );
+
+        // For derivation rules that expect 'commands[]' path,
+        // also provide the array at 'commands' if the path is nested
+        if (frontmatterPartPath !== "commands") {
+          baseDataWithArray = baseDataWithArray.withField(
+            "commands",
+            commandsArray,
+          );
+        }
+
+        baseData = baseDataWithArray;
       } else {
         // No frontmatter-part: merge all data as base
         if (data.length > 0) {
@@ -229,23 +250,7 @@ export class DocumentProcessingService {
         return mergedResult;
       }
 
-      // If there's a frontmatter-part, also add the commands to the correct nested path
-      const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-      if (
-        frontmatterPartPathResult.ok &&
-        frontmatterPartPathResult.data !== "commands"
-      ) {
-        const commandsData = mergedResult.data.get("commands");
-        if (commandsData) {
-          return ok(
-            mergedResult.data.withField(
-              frontmatterPartPathResult.data,
-              commandsData,
-            ),
-          );
-        }
-      }
-
+      // Data is already at the correct path from baseData creation
       return mergedResult;
     } else {
       // No derivation rules - handle frontmatter-part aggregation or merge data
@@ -253,33 +258,35 @@ export class DocumentProcessingService {
 
       if (frontmatterPartSchemaResult.ok) {
         // Has frontmatter-part: create aggregated data with the array of documents
-        // Need to nest the array according to its schema path (tools.commands)
+        // Need to nest the array according to its actual schema path
         const commandsArray = data.map((item) => item.getData());
-        const aggregatedDataResult = FrontmatterData.create({
-          tools: {
-            commands: commandsArray,
-          },
-        });
 
-        if (!aggregatedDataResult.ok) {
-          return aggregatedDataResult;
-        }
-
-        // Also add the commands to the correct nested path for template access
+        // Get the actual frontmatter-part path from schema
         const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-        if (
-          frontmatterPartPathResult.ok &&
-          frontmatterPartPathResult.data !== "commands"
-        ) {
-          return ok(
-            aggregatedDataResult.data.withField(
-              frontmatterPartPathResult.data,
-              commandsArray,
-            ),
-          );
+        if (!frontmatterPartPathResult.ok) {
+          return frontmatterPartPathResult;
+        }
+        const frontmatterPartPath = frontmatterPartPathResult.data;
+
+        // Create the base structure with the array at the correct path
+        const emptyDataResult = FrontmatterData.create({});
+        if (!emptyDataResult.ok) {
+          return emptyDataResult;
         }
 
-        return aggregatedDataResult;
+        // Put the array at the schema-defined path
+        let aggregatedData = emptyDataResult.data.withField(
+          frontmatterPartPath,
+          commandsArray,
+        );
+
+        // For derivation rules that expect 'commands[]' path,
+        // also provide the array at 'commands' if the path is nested
+        if (frontmatterPartPath !== "commands") {
+          aggregatedData = aggregatedData.withField("commands", commandsArray);
+        }
+
+        return ok(aggregatedData);
       } else {
         // No frontmatter-part: merge all data as before
         if (data.length > 0) {
