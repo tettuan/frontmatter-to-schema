@@ -6,4 +6,5 @@ for level in req spec design impl test; do
         --template ".agent/spec-trace/level_index_template.json" \
         --input ".agent/spec-trace/docs" \
         --output ".agent/spec-trace/index/${level}_index.json"
+        --verbose
 done
