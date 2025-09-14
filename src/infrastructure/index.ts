@@ -6,3 +6,10 @@ export {
   JsonFrontmatterParser,
   YamlFrontmatterExtractor,
 } from "./adapters/frontmatter-extractor.ts";
+export type { DebugLogger, LogEntry } from "./adapters/debug-logger.ts";
+export {
+  ConsoleDebugLogger,
+  DebugLevel,
+  DebugLoggerFactory,
+  NoOpDebugLogger,
+} from "./adapters/debug-logger.ts";

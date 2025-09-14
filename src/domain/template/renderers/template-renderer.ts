@@ -6,6 +6,7 @@ import { JsonFormatter } from "../services/formatters/json-formatter.ts";
 import { YamlFormatter } from "../services/formatters/yaml-formatter.ts";
 import { MarkdownFormatter } from "../services/formatters/markdown-formatter.ts";
 import { VariableReplacer } from "../services/variable-replacer.ts";
+import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**
  * TemplateRenderer orchestrates template rendering using specialized formatters.
@@ -17,13 +18,14 @@ export class TemplateRenderer {
     private readonly jsonFormatter: JsonFormatter,
     private readonly yamlFormatter: YamlFormatter,
     private readonly markdownFormatter: MarkdownFormatter,
+    private readonly debugLogger?: DebugLogger,
   ) {}
 
   /**
    * Smart Constructor for TemplateRenderer
    * @returns Result containing TemplateRenderer instance or error
    */
-  static create(): Result<
+  static create(debugLogger?: DebugLogger): Result<
     TemplateRenderer,
     TemplateError & { message: string }
   > {
@@ -45,6 +47,7 @@ export class TemplateRenderer {
         jsonFormatterResult.data,
         yamlFormatterResult.data,
         markdownFormatterResult.data,
+        debugLogger,
       ),
     );
   }
@@ -56,11 +59,54 @@ export class TemplateRenderer {
     template: Template,
     data: FrontmatterData,
   ): Result<string, TemplateError & { message: string }> {
-    const content = template.getContent();
-    const renderedResult = this.variableReplacer.processValue(content, data);
-    if (!renderedResult.ok) return renderedResult;
+    this.debugLogger?.logInfo(
+      "template-render",
+      "Starting single data template rendering",
+      {
+        templateFormat: template.getFormat(),
+        dataKeys: Object.keys(data.getData()),
+      },
+    );
 
-    return this.formatOutput(renderedResult.data, template.getFormat());
+    const content = template.getContent();
+    this.debugLogger?.logDebug(
+      "variable-processing",
+      "Processing template variables with data",
+      {
+        templateLength: typeof content === "string"
+          ? content.length
+          : "unknown",
+      },
+    );
+
+    const renderedResult = this.variableReplacer.processValue(content, data);
+    if (!renderedResult.ok) {
+      this.debugLogger?.logError("variable-processing", renderedResult.error, {
+        templateFormat: template.getFormat(),
+      });
+      return renderedResult;
+    }
+
+    this.debugLogger?.logDebug(
+      "variable-processing",
+      "Variable processing successful",
+    );
+
+    const formatResult = this.formatOutput(
+      renderedResult.data,
+      template.getFormat(),
+    );
+    if (formatResult.ok) {
+      this.debugLogger?.logInfo(
+        "template-render",
+        "Single data template rendering completed successfully",
+        {
+          outputLength: formatResult.data.length,
+        },
+      );
+    }
+
+    return formatResult;
   }
 
   /**
@@ -70,34 +116,120 @@ export class TemplateRenderer {
     template: Template,
     dataArray: FrontmatterData[],
   ): Result<string, TemplateError & { message: string }> {
+    this.debugLogger?.logInfo(
+      "template-render-array",
+      "Starting array data template rendering",
+      {
+        templateFormat: template.getFormat(),
+        arrayLength: dataArray.length,
+      },
+    );
+
     const content = template.getContent();
     const results: unknown[] = [];
 
-    for (const data of dataArray) {
+    for (let i = 0; i < dataArray.length; i++) {
+      const data = dataArray[i];
+      this.debugLogger?.logDebug(
+        "array-item-processing",
+        `Processing array item ${i + 1}/${dataArray.length}`,
+        {
+          itemIndex: i,
+          dataKeys: Object.keys(data.getData()),
+        },
+      );
+
       const renderedResult = this.variableReplacer.processValue(content, data);
-      if (!renderedResult.ok) return renderedResult;
+      if (!renderedResult.ok) {
+        this.debugLogger?.logError(
+          "array-item-processing",
+          renderedResult.error,
+          {
+            itemIndex: i,
+            templateFormat: template.getFormat(),
+          },
+        );
+        return renderedResult;
+      }
+
       results.push(renderedResult.data);
+      this.debugLogger?.logDebug(
+        "array-item-processing",
+        `Successfully processed array item ${i + 1}`,
+      );
     }
 
-    return this.formatOutput(results, template.getFormat());
+    this.debugLogger?.logInfo(
+      "array-processing",
+      `Successfully processed all ${dataArray.length} array items`,
+    );
+
+    const formatResult = this.formatOutput(results, template.getFormat());
+    if (formatResult.ok) {
+      this.debugLogger?.logInfo(
+        "template-render-array",
+        "Array data template rendering completed successfully",
+        {
+          outputLength: formatResult.data.length,
+          processedItems: results.length,
+        },
+      );
+    }
+
+    return formatResult;
   }
 
   private formatOutput(
     data: unknown,
     format: "json" | "yaml" | "markdown",
   ): Result<string, TemplateError & { message: string }> {
+    this.debugLogger?.logDebug(
+      "output-formatting",
+      `Formatting output as ${format}`,
+      {
+        format,
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+      },
+    );
+
+    let result: Result<string, TemplateError & { message: string }>;
+
     switch (format) {
-      case "json":
-        return this.jsonFormatter.format(data);
-      case "yaml":
-        return this.yamlFormatter.format(data);
-      case "markdown":
-        return this.markdownFormatter.format(data);
-      default:
-        return err(createError({
+      case "json": {
+        result = this.jsonFormatter.format(data);
+        break;
+      }
+      case "yaml": {
+        result = this.yamlFormatter.format(data);
+        break;
+      }
+      case "markdown": {
+        result = this.markdownFormatter.format(data);
+        break;
+      }
+      default: {
+        const error = createError({
           kind: "InvalidFormat",
           format,
-        }));
+        });
+        this.debugLogger?.logError("output-formatting", error, { format });
+        return err(error);
+      }
     }
+
+    if (result.ok) {
+      this.debugLogger?.logDebug(
+        "output-formatting",
+        `Successfully formatted output as ${format}`,
+        {
+          outputLength: result.data.length,
+        },
+      );
+    } else {
+      this.debugLogger?.logError("output-formatting", result.error, { format });
+    }
+
+    return result;
   }
 }

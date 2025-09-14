@@ -9,6 +9,7 @@ import { Schema } from "../../schema/entities/schema.ts";
 import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.ts";
+import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
@@ -44,6 +45,7 @@ export class DocumentProcessingService {
     private readonly basePropertyPopulator: BasePropertyPopulator,
     private readonly fileReader: FileReader,
     private readonly fileLister: FileLister,
+    private readonly debugLogger?: DebugLogger,
   ) {}
 
   /**
@@ -57,13 +59,34 @@ export class DocumentProcessingService {
     verbose: boolean = false,
   ): Result<FrontmatterData, DomainError & { message: string }> {
     // Stage 1: List matching files
+    this.debugLogger?.logInfo(
+      "document-processing",
+      `Starting document processing with pattern: ${inputPattern}`,
+      {
+        pattern: inputPattern,
+      },
+    );
+
     if (verbose) {
       console.log("[VERBOSE] Listing files with pattern: " + inputPattern);
     }
     const filesResult = this.fileLister.list(inputPattern);
     if (!filesResult.ok) {
+      this.debugLogger?.logError("file-listing", filesResult.error, {
+        pattern: inputPattern,
+      });
       return filesResult;
     }
+
+    this.debugLogger?.logInfo(
+      "file-listing",
+      `Found ${filesResult.data.length} files to process`,
+      {
+        count: filesResult.data.length,
+        files: filesResult.data,
+      },
+    );
+
     if (verbose) {
       console.log(`[VERBOSE] Found ${filesResult.data.length} files`);
     }
@@ -73,6 +96,11 @@ export class DocumentProcessingService {
 
     // Stage 2: Process each file
     for (const filePath of filesResult.data) {
+      this.debugLogger?.logDebug(
+        "file-processing",
+        `Processing file: ${filePath}`,
+      );
+
       if (verbose) {
         console.log("[VERBOSE] Processing file: " + filePath);
       }
@@ -80,43 +108,100 @@ export class DocumentProcessingService {
       if (documentResult.ok) {
         processedData.push(documentResult.data.frontmatterData);
         documents.push(documentResult.data.document);
+
+        this.debugLogger?.logDebug(
+          "file-processing",
+          `Successfully processed: ${filePath}`,
+        );
+
         if (verbose) {
           console.log("[VERBOSE]   ✓ File processed successfully");
         }
-      } else if (verbose) {
-        console.log(
-          "[VERBOSE]   ✗ Failed to process file: " +
-            documentResult.error.message,
-        );
+      } else {
+        this.debugLogger?.logError("file-processing", documentResult.error, {
+          filePath,
+          stage: "individual-file-processing",
+        });
+
+        if (verbose) {
+          console.log(
+            "[VERBOSE]   ✗ Failed to process file: " +
+              documentResult.error.message,
+          );
+        }
       }
       // Note: Individual file failures don't stop processing
     }
 
     if (processedData.length === 0) {
-      return err(createError({
+      const noDataError = createError({
         kind: "AggregationFailed",
         message: "No valid documents found to process",
-      }));
+      });
+      this.debugLogger?.logError("document-processing", noDataError);
+      return err(noDataError);
     }
 
+    this.debugLogger?.logInfo(
+      "document-processing",
+      `Successfully processed ${processedData.length} documents`,
+      {
+        processedCount: processedData.length,
+        totalFiles: filesResult.data.length,
+      },
+    );
+
     // Stage 3: Apply frontmatter-part processing if needed
+    this.debugLogger?.logDebug(
+      "frontmatter-part-processing",
+      "Starting frontmatter-part processing",
+    );
     if (verbose) {
       console.log("[VERBOSE] Applying frontmatter-part processing");
     }
     const finalData = this.processFrontmatterParts(processedData, schema);
 
+    this.debugLogger?.logInfo(
+      "frontmatter-part-processing",
+      `Frontmatter-part processing complete`,
+      {
+        inputCount: processedData.length,
+        outputCount: finalData.length,
+      },
+    );
+
     // Stage 4: Aggregate data using derivation rules
+    this.debugLogger?.logDebug(
+      "aggregation",
+      "Starting data aggregation with derivation rules",
+    );
     if (verbose) {
       console.log("[VERBOSE] Aggregating data with derivation rules");
     }
-    const _derivationRules = schema.getDerivedRules();
+    const derivationRules = schema.getDerivedRules();
+
+    this.debugLogger?.logInfo(
+      "aggregation",
+      `Found ${derivationRules.length} derivation rules`,
+      {
+        rules: derivationRules.map((r) => ({
+          sourcePath: r.sourcePath,
+          targetField: r.targetField,
+        })),
+      },
+    );
 
     const aggregatedData = this.aggregateData(finalData, schema);
     if (!aggregatedData.ok) {
+      this.debugLogger?.logError("aggregation", aggregatedData.error);
       return aggregatedData;
     }
 
     // Stage 5: Populate base properties from schema defaults
+    this.debugLogger?.logDebug(
+      "base-property-population",
+      "Starting base property population",
+    );
     if (verbose) {
       console.log("[VERBOSE] Populating base properties from schema");
     }
@@ -124,9 +209,19 @@ export class DocumentProcessingService {
       aggregatedData.data,
       schema,
     );
-    if (verbose && result.ok) {
-      console.log("[VERBOSE] Document processing completed");
+
+    if (result.ok) {
+      this.debugLogger?.logInfo(
+        "document-processing",
+        "Document processing pipeline completed successfully",
+      );
+      if (verbose) {
+        console.log("[VERBOSE] Document processing completed");
+      }
+    } else {
+      this.debugLogger?.logError("base-property-population", result.error);
     }
+
     return result;
   }
 
@@ -140,36 +235,86 @@ export class DocumentProcessingService {
     { document: MarkdownDocument; frontmatterData: FrontmatterData },
     DomainError & { message: string }
   > {
+    this.debugLogger?.logDebug(
+      "single-document",
+      `Starting processing of document: ${filePath}`,
+    );
+
     // Create file path value object
     const filePathResult = FilePath.create(filePath);
     if (!filePathResult.ok) {
+      this.debugLogger?.logError("file-path-validation", filePathResult.error, {
+        filePath,
+      });
       return filePathResult;
     }
 
     // Read file content
+    this.debugLogger?.logDebug(
+      "file-reading",
+      `Reading file content: ${filePath}`,
+    );
     const contentResult = this.fileReader.read(filePath);
     if (!contentResult.ok) {
+      this.debugLogger?.logError("file-reading", contentResult.error, {
+        filePath,
+      });
       return contentResult;
     }
 
     // Extract frontmatter
+    this.debugLogger?.logDebug(
+      "frontmatter-extraction",
+      `Extracting frontmatter from: ${filePath}`,
+    );
     const extractResult = this.frontmatterProcessor.extract(contentResult.data);
     if (!extractResult.ok) {
+      this.debugLogger?.logError(
+        "frontmatter-extraction",
+        extractResult.error,
+        { filePath },
+      );
       return extractResult;
     }
 
     const { frontmatter, body } = extractResult.data;
+    this.debugLogger?.logDebug(
+      "frontmatter-extraction",
+      `Successfully extracted frontmatter from: ${filePath}`,
+      {
+        frontmatterKeys: Object.keys(frontmatter || {}),
+        bodyLength: body.length,
+      },
+    );
 
     // Validate frontmatter
+    this.debugLogger?.logDebug(
+      "frontmatter-validation",
+      `Validating frontmatter for: ${filePath}`,
+    );
     const validationResult = this.frontmatterProcessor.validate(
       frontmatter,
       validationRules,
     );
     if (!validationResult.ok) {
+      this.debugLogger?.logError(
+        "frontmatter-validation",
+        validationResult.error,
+        { filePath },
+      );
       return validationResult;
     }
 
+    this.debugLogger?.logDebug(
+      "frontmatter-validation",
+      `Successfully validated frontmatter for: ${filePath}`,
+    );
+
     // Create document entity
+    this.debugLogger?.logDebug(
+      "document-creation",
+      `Creating MarkdownDocument entity for: ${filePath}`,
+    );
     const docResult = MarkdownDocument.create(
       filePathResult.data,
       contentResult.data,
@@ -177,8 +322,16 @@ export class DocumentProcessingService {
       body,
     );
     if (!docResult.ok) {
+      this.debugLogger?.logError("document-creation", docResult.error, {
+        filePath,
+      });
       return docResult;
     }
+
+    this.debugLogger?.logDebug(
+      "single-document",
+      `Successfully processed document: ${filePath}`,
+    );
 
     return ok({
       document: docResult.data,
@@ -194,26 +347,60 @@ export class DocumentProcessingService {
     data: FrontmatterData[],
     schema: Schema,
   ): FrontmatterData[] {
+    this.debugLogger?.logDebug(
+      "frontmatter-parts",
+      "Checking for x-frontmatter-part schema definition",
+    );
+
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (!frontmatterPartSchemaResult.ok) {
+      this.debugLogger?.logDebug(
+        "frontmatter-parts",
+        "No x-frontmatter-part schema found, returning original data",
+      );
       return data;
     }
 
     // Get the path to the frontmatter part (e.g., "commands")
     const frontmatterPartPathResult = schema.findFrontmatterPartPath();
     if (!frontmatterPartPathResult.ok) {
+      this.debugLogger?.logDebug(
+        "frontmatter-parts",
+        "No x-frontmatter-part path found, returning original data",
+      );
       return data;
     }
 
     const partPath = frontmatterPartPathResult.data;
+    this.debugLogger?.logInfo(
+      "frontmatter-parts",
+      `Processing frontmatter parts at path: ${partPath}`,
+      {
+        partPath,
+        inputDataCount: data.length,
+      },
+    );
+
     const extractedParts: FrontmatterData[] = [];
 
     // Extract the frontmatter part from each document
     for (const frontmatterData of data) {
       const dataObj = frontmatterData.getData();
+      this.debugLogger?.logDebug(
+        "frontmatter-part-extraction",
+        `Extracting part '${partPath}' from document`,
+        {
+          availableKeys: Object.keys(dataObj),
+        },
+      );
+
       const partData = this.extractNestedProperty(dataObj, partPath);
 
       if (partData !== undefined && Array.isArray(partData)) {
+        this.debugLogger?.logDebug(
+          "frontmatter-part-extraction",
+          `Found array data at '${partPath}' with ${partData.length} items`,
+        );
         // If the part is an array, each item becomes a separate FrontmatterData
         for (const item of partData) {
           if (item && typeof item === "object") {
@@ -222,23 +409,63 @@ export class DocumentProcessingService {
             );
             if (itemDataResult.ok) {
               extractedParts.push(itemDataResult.data);
+              this.debugLogger?.logDebug(
+                "frontmatter-part-extraction",
+                "Successfully created FrontmatterData from array item",
+              );
+            } else {
+              this.debugLogger?.logError(
+                "frontmatter-part-extraction",
+                itemDataResult.error,
+                { item },
+              );
             }
           }
         }
       } else if (
         partData !== undefined && partData && typeof partData === "object"
       ) {
+        this.debugLogger?.logDebug(
+          "frontmatter-part-extraction",
+          `Found object data at '${partPath}'`,
+        );
         // If the part is an object, it becomes a single FrontmatterData
         const partDataResult = FrontmatterData.create(
           partData as Record<string, unknown>,
         );
         if (partDataResult.ok) {
           extractedParts.push(partDataResult.data);
+          this.debugLogger?.logDebug(
+            "frontmatter-part-extraction",
+            "Successfully created FrontmatterData from object",
+          );
+        } else {
+          this.debugLogger?.logError(
+            "frontmatter-part-extraction",
+            partDataResult.error,
+            { partData },
+          );
         }
+      } else {
+        this.debugLogger?.logDebug(
+          "frontmatter-part-extraction",
+          `No valid data found at '${partPath}' (type: ${typeof partData})`,
+        );
       }
     }
 
-    return extractedParts.length > 0 ? extractedParts : data;
+    const result = extractedParts.length > 0 ? extractedParts : data;
+    this.debugLogger?.logInfo(
+      "frontmatter-parts",
+      `Frontmatter parts processing complete`,
+      {
+        inputCount: data.length,
+        extractedCount: extractedParts.length,
+        returningOriginalData: extractedParts.length === 0,
+      },
+    );
+
+    return result;
   }
 
   /**

@@ -4,6 +4,7 @@ import { Template } from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 
 export type RenderingMode =
   | {
@@ -35,6 +36,7 @@ export class OutputRenderingService {
     private readonly templateRenderer: TemplateRenderer,
     private readonly fileReader: FileReader,
     private readonly fileWriter: FileWriter,
+    private readonly debugLogger?: DebugLogger,
   ) {}
 
   /**
@@ -47,13 +49,46 @@ export class OutputRenderingService {
     renderingMode: RenderingMode,
     outputPath: string,
   ): Result<void, DomainError & { message: string }> {
+    this.debugLogger?.logInfo(
+      "template-rendering",
+      `Starting template rendering pipeline`,
+      {
+        templatePath,
+        renderingMode: renderingMode.kind,
+        outputPath,
+      },
+    );
+
     // Stage 1: Load and create template
+    this.debugLogger?.logDebug(
+      "template-loading",
+      `Loading template from: ${templatePath}`,
+    );
     const templateResult = this.loadTemplate(templatePath);
     if (!templateResult.ok) {
+      this.debugLogger?.logError("template-loading", templateResult.error, {
+        templatePath,
+      });
       return templateResult;
     }
 
+    this.debugLogger?.logDebug(
+      "template-loading",
+      `Successfully loaded template: ${templatePath}`,
+    );
+
     // Stage 2: Render data with template using exhaustive pattern matching
+    this.debugLogger?.logInfo(
+      "template-rendering-stage",
+      `Rendering with mode: ${renderingMode.kind}`,
+      {
+        mode: renderingMode.kind,
+        dataCount: renderingMode.kind === "ArrayData"
+          ? renderingMode.dataArray.length
+          : 1,
+      },
+    );
+
     const renderResult = renderingMode.kind === "ArrayData"
       ? this.templateRenderer.renderWithArray(
         templateResult.data,
@@ -65,11 +100,48 @@ export class OutputRenderingService {
       );
 
     if (!renderResult.ok) {
+      this.debugLogger?.logError(
+        "template-rendering-stage",
+        renderResult.error,
+        {
+          templatePath,
+          renderingMode: renderingMode.kind,
+        },
+      );
       return renderResult;
     }
 
+    this.debugLogger?.logDebug(
+      "template-rendering-stage",
+      `Template rendering successful`,
+      {
+        outputLength: renderResult.data.length,
+      },
+    );
+
     // Stage 3: Write rendered output to file
-    return this.fileWriter.write(outputPath, renderResult.data);
+    this.debugLogger?.logDebug(
+      "output-writing",
+      `Writing rendered output to: ${outputPath}`,
+    );
+    const writeResult = this.fileWriter.write(outputPath, renderResult.data);
+
+    if (writeResult.ok) {
+      this.debugLogger?.logInfo(
+        "template-rendering",
+        `Template rendering pipeline completed successfully`,
+        {
+          outputPath,
+          outputSize: renderResult.data.length,
+        },
+      );
+    } else {
+      this.debugLogger?.logError("output-writing", writeResult.error, {
+        outputPath,
+      });
+    }
+
+    return writeResult;
   }
 
   /**
