@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { DocumentProcessingService } from "../../../../../src/domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { Aggregator } from "../../../../../src/domain/aggregation/index.ts";
@@ -74,11 +74,11 @@ const createTestFrontmatterData = (data: Record<string, any>) => {
   return result.data;
 };
 
-Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
-  let service: DocumentProcessingService;
+Deno.test("FrontmatterTransformationService - aggregateData method", async (t) => {
+  let service: FrontmatterTransformationService;
 
   const setup = () => {
-    service = new DocumentProcessingService(
+    service = new FrontmatterTransformationService(
       new MockFrontmatterProcessor() as any,
       new MockAggregator() as any,
       new MockBasePropertyPopulator() as any,
@@ -129,7 +129,7 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
     "should handle derivation rules with frontmatter-part",
     () => {
       // Use real aggregator for this test
-      service = new DocumentProcessingService(
+      service = new FrontmatterTransformationService(
         new MockFrontmatterProcessor() as any,
         new Aggregator(),
         new MockBasePropertyPopulator() as any,
@@ -227,11 +227,11 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
   );
 });
 
-Deno.test("DocumentProcessingService - DDD Totality compliance", async (t) => {
-  let service: DocumentProcessingService;
+Deno.test("FrontmatterTransformationService - DDD Totality compliance", async (t) => {
+  let service: FrontmatterTransformationService;
 
   const setup = () => {
-    service = new DocumentProcessingService(
+    service = new FrontmatterTransformationService(
       new MockFrontmatterProcessor() as any,
       new MockAggregator() as any,
       new MockBasePropertyPopulator() as any,
@@ -306,11 +306,11 @@ Deno.test("DocumentProcessingService - DDD Totality compliance", async (t) => {
 });
 
 // Test to verify the fix for Issue #780 (hardcoding violations)
-Deno.test("DocumentProcessingService - Issue #780 hardcoding fix verification", async (t) => {
-  let service: DocumentProcessingService;
+Deno.test("FrontmatterTransformationService - Issue #780 hardcoding fix verification", async (t) => {
+  let service: FrontmatterTransformationService;
 
   const setup = () => {
-    service = new DocumentProcessingService(
+    service = new FrontmatterTransformationService(
       new MockFrontmatterProcessor() as any,
       new MockAggregator() as any,
       new MockBasePropertyPopulator() as any,

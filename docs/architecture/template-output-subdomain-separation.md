@@ -89,7 +89,7 @@ domain/template/document-processing/
 // PipelineOrchestrator delegates template rendering to OutputRenderingService
 class PipelineOrchestrator {
   constructor(
-    private readonly documentProcessor: DocumentProcessingService,
+    private readonly documentProcessor: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
     private readonly outputRenderingService: OutputRenderingService,
     private readonly fileSystem: FileSystem,

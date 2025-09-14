@@ -1,6 +1,6 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
-import { DocumentProcessingService } from "../../domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
@@ -59,7 +59,7 @@ export interface FileSystem {
  */
 export class PipelineOrchestrator {
   constructor(
-    private readonly documentProcessor: DocumentProcessingService,
+    private readonly frontmatterTransformer: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
     private readonly outputRenderingService: OutputRenderingService,
     private readonly templatePathResolver: TemplatePathResolver,
@@ -121,7 +121,7 @@ export class PipelineOrchestrator {
       );
     }
     const validationRules = schema.getValidationRules();
-    const processedDataResult = this.documentProcessor.processDocuments(
+    const processedDataResult = this.frontmatterTransformer.transformDocuments(
       config.inputPattern,
       validationRules,
       schema,
@@ -142,12 +142,10 @@ export class PipelineOrchestrator {
     let itemsData: FrontmatterData[] | undefined;
 
     // Check if we need to extract items data
-    // Extract frontmatter-part data if:
-    // 1. Schema defines x-frontmatter-part, OR
-    // 2. We have a separate items template (x-template-items)
-    const hasFrontmatterPart = schema.findFrontmatterPartPath().ok;
-
-    if (hasFrontmatterPart || itemsTemplatePath) {
+    // Extract frontmatter-part data ONLY if we have a separate items template
+    // For single templates with {@items}, let the template handle the expansion
+    // using the full mainData which includes base properties
+    if (itemsTemplatePath) {
       const frontmatterPartResult = this.extractFrontmatterPartData(
         mainData,
         schema,
@@ -155,12 +153,19 @@ export class PipelineOrchestrator {
       if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
         itemsData = frontmatterPartResult.data;
         if (config.verbose) {
-          const templateType = itemsTemplatePath ? "items template" : "single template {@items} expansion";
           console.log(
             "[VERBOSE] Extracted " + itemsData.length +
-              " items for " + templateType,
+              " items for dual-template rendering",
           );
         }
+      }
+    } else if (schema.findFrontmatterPartPath().ok) {
+      // For single template with frontmatter-part, keep itemsData undefined
+      // The template renderer will extract the array data from mainData during {@items} expansion
+      if (config.verbose) {
+        console.log(
+          "[VERBOSE] Single template with frontmatter-part detected - will use mainData for {@items} expansion",
+        );
       }
     }
 

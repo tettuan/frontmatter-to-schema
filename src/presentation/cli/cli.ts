@@ -2,7 +2,7 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
 } from "../../application/services/pipeline-orchestrator.ts";
-import { DocumentProcessingService } from "../../domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
 import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
@@ -40,7 +40,7 @@ export class CLI {
     const aggregator = new Aggregator();
     const basePropertyPopulator = new BasePropertyPopulator();
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       aggregator,
       basePropertyPopulator,

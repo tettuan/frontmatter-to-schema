@@ -134,7 +134,7 @@ import { DebugLoggerFactory } from "./infrastructure/adapters/debug-logger.ts";
 const debugLogger = DebugLoggerFactory.create();
 
 // Inject into services
-const documentService = new DocumentProcessingService(
+const documentService = new FrontmatterTransformationService(
   frontmatterProcessor,
   aggregator,
   basePropertyPopulator,

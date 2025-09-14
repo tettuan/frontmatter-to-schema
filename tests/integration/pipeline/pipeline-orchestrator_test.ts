@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { PipelineOrchestrator } from "../../../src/application/services/pipeline-orchestrator.ts";
-import { DocumentProcessingService } from "../../../src/domain/frontmatter/services/document-processing-service.ts";
+import { FrontmatterTransformationService } from "../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { TemplateRenderer } from "../../../src/domain/template/renderers/template-renderer.ts";
 import { OutputRenderingService } from "../../../src/domain/template/services/output-rendering-service.ts";
@@ -184,7 +184,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -285,7 +285,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -352,7 +352,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -429,7 +429,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,
@@ -521,7 +521,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new DocumentProcessingService(
+    const documentProcessor = new FrontmatterTransformationService(
       frontmatterProcessor,
       mockAggregator,
       mockBasePropertyPopulator,

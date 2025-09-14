@@ -75,7 +75,7 @@ interface TemplatePath {
 // PipelineOrchestrator is the main coordinator that calls OutputRenderingService
 class PipelineOrchestrator {
   constructor(
-    private readonly documentProcessor: DocumentProcessingService,
+    private readonly documentProcessor: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
     private readonly outputRenderingService: OutputRenderingService,
     private readonly fileSystem: FileSystem,
