@@ -1,0 +1,12 @@
+[
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "tools": {
+      "availableConfigs": "[\"build\",\"debug\",\"design\",\"docs\",\"git\",\"meta\",\"refactor\",\"requirement\",\"spec\"]",
+      "commands": [
+        "{@items}"
+      ]
+    }
+  }
+]

@@ -334,46 +334,46 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Extract frontmatter-part data as array for {@items} expansion
+   * Extract frontmatter-part data as array for {@items} expansion.
+   *
+   * Key insight: frontmatter-part path in schema indicates where aggregated
+   * data will be placed in final output, NOT where it exists in individual files.
+   * Individual markdown files contribute directly to the array items.
    */
   private extractFrontmatterPartData(
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData[], DomainError & { message: string }> {
-    // Find the frontmatter-part path in schema
+    // Check if schema has frontmatter-part definition
     const pathResult = schema.findFrontmatterPartPath();
     if (!pathResult.ok) {
-      // No frontmatter-part, return data as single item array
+      // No frontmatter-part defined, return data as single item array
       return ok([data]);
     }
 
-    // Get the array data from the path
+    // For individual frontmatter processing: each file contributes one item
+    // The frontmatter-part path (e.g., "tools.commands") indicates the target
+    // location in the aggregated result, not the source location in individual files
+
+    // Check if this data already contains an array at the frontmatter-part path
+    // This handles cases where a single file contains multiple items
     const arrayDataResult = data.get(pathResult.data);
-    if (!arrayDataResult.ok) {
-      return err(createError({
-        kind: "FieldNotFound",
-        path: pathResult.data,
-      }));
-    }
-
-    // Convert array items to FrontmatterData
-    if (!Array.isArray(arrayDataResult.data)) {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "array",
-        actual: typeof arrayDataResult.data,
-      }));
-    }
-
-    const result: FrontmatterData[] = [];
-    for (const item of arrayDataResult.data) {
-      const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
-      if (!itemDataResult.ok) {
-        return itemDataResult;
+    if (arrayDataResult.ok && Array.isArray(arrayDataResult.data)) {
+      // File contains array at target path - extract individual items
+      const result: FrontmatterData[] = [];
+      for (const item of arrayDataResult.data) {
+        const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
+        if (!itemDataResult.ok) {
+          return itemDataResult;
+        }
+        result.push(itemDataResult.data);
       }
-      result.push(itemDataResult.data);
+      return ok(result);
+    } else {
+      // Default case: individual file contributes directly as one item
+      // This is the typical scenario for frontmatter-part processing
+      // Each markdown file's frontmatter becomes one item in the final array
+      return ok([data]);
     }
-
-    return ok(result);
   }
 }
