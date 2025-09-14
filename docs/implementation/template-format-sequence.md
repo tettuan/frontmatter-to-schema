@@ -1,8 +1,9 @@
-# Template Format Flow - Implementation Sequence
+# Processing Flow - Implementation Sequence
 
-## フォーマット指定の抽出から出力までの実装シーケンス
+## 全体処理フローと x-* ディレクティブの実装シーケンス
 
-> **実装ドキュメント**: このファイルは現在の実装におけるx-template-format機能のデータフローと責務分離を表現しています。
+> **実装ドキュメント**:
+> このファイルは現在の実装における全x-*ディレクティブ（x-template-format, x-derived-from/unique等）の処理フローと責務分離を表現しています。
 
 ```mermaid
 sequenceDiagram
@@ -65,12 +66,14 @@ sequenceDiagram
 ## データフロー詳細
 
 ### 1. Schema Extensions → SchemaPropertyUtils
+
 ```typescript
 // スキーマ内の拡張フィールドから抽出
 const templateFormat = schema.extensions?.["x-template-format"];
 ```
 
 ### 2. TemplatePathResolver → Auto-detection
+
 ```typescript
 // x-template-format未定義時の自動検出ロジック
 private detectFormatFromExtension(templatePath: string): OutputFormat {
@@ -90,6 +93,7 @@ private detectFormatFromExtension(templatePath: string): OutputFormat {
 ```
 
 ### 3. PipelineOrchestrator → Format Passing
+
 ```typescript
 // 解決されたフォーマットの抽出と渡し
 const outputFormat = resolvePathsResult.data.outputFormat || "json";
@@ -105,6 +109,7 @@ const renderResult = this.outputRenderingService.renderOutput(
 ```
 
 ### 4. FormatterFactory → Formatter Selection
+
 ```typescript
 // フォーマットに応じた適切なフォーマッター生成
 static createFormatter(format: OutputFormat): Result<OutputFormatter, DomainError> {
@@ -121,15 +126,41 @@ static createFormatter(format: OutputFormat): Result<OutputFormatter, DomainErro
 
 ## 責務の分離
 
-| Layer | Class | 責務 | 入力 | 出力 |
-|-------|-------|------|------|------|
-| **Schema** | SchemaPropertyUtils | x-template-format拡張の抽出・検証 | SchemaProperty | Result<OutputFormat> |
-| **Schema** | SchemaDefinition | スキーマ定義からのフォーマット取得 | Schema | Result<OutputFormat> |
-| **Schema** | Schema | エンティティレベルでのフォーマット提供 | - | Result<OutputFormat> |
-| **Template** | TemplatePathResolver | フォーマット解決（スキーマ or 自動検出） | Schema, Config | ResolvedTemplatePaths |
-| **Application** | PipelineOrchestrator | フォーマット情報の統合・渡し | Config | 処理実行 |
-| **Output** | OutputRenderingService | フォーマッター利用での出力生成 | Data, Format | ファイル出力 |
-| **Output** | FormatterFactory | フォーマットに応じたフォーマッター生成 | OutputFormat | Formatter |
-| **Output** | Formatters | 実際のフォーマット変換処理 | Data | String |
+### 1. Schema Layer (x-* ディレクティブ検出)
 
-この設計により、各レイヤーが明確な責務を持ち、フォーマット指定から出力まで一貫したフローが実現されています。
+| Class                  | 責務                                     | x-* Directives                                    |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- |
+| SchemaPropertyUtils    | 各種x-*拡張の抽出・検証                   | x-template-format, x-derived-from, x-derived-unique |
+| SchemaDefinition       | スキーマ定義からのディレクティブ取得       | 全x-*ディレクティブ                               |
+| Schema                 | エンティティレベルでのディレクティブ提供   | getDerivedRules(), getTemplateFormat()等         |
+
+### 2. Aggregation Layer (x-derived-* 処理)
+
+| Class                  | 責務                            | 入力                     | 出力              |
+| ---------------------- | ------------------------------- | ------------------------- | ----------------- |
+| DerivationRule         | 派生ルールのモデル化             | sourcePath, targetField   | Rule Object       |
+| Aggregator             | 派生ルールの適用と集約           | Data[], DerivationRule[]  | AggregatedResult  |
+| ExpressionEvaluator    | パス式の評価とデータ抽出         | Data[], Expression        | Extracted Values  |
+
+### 3. Transformation Layer
+
+| Class                          | 責務                        | Key Processing                        |
+| ------------------------------ | --------------------------- | ------------------------------------- |
+| FrontmatterTransformationService | 全体のデータ変換統合         | x-derived-* rules適用、データ集約      |
+
+### 4. Template & Application Layers
+
+| Layer           | Class                  | 責務                                     | 入力           | 出力                  |
+| --------------- | ---------------------- | ---------------------------------------- | -------------- | --------------------- |
+| **Template**    | TemplatePathResolver   | パス解決とフォーマット検出               | Schema, Config | ResolvedTemplatePaths |
+| **Application** | PipelineOrchestrator   | 全処理フローのオーケストレーション        | Config         | 処理実行              |
+
+### 5. Output Layer
+
+| Class                  | 責務                            | 入力           | 出力             |
+| ---------------------- | ------------------------------- | -------------- | ---------------- |
+| OutputRenderingService | 最終出力生成                    | Data, Format   | ファイル出力      |
+| FormatterFactory       | フォーマッター生成               | OutputFormat   | Formatter        |
+| Formatters             | 実際のフォーマット変換           | Data           | String           |
+
+この設計により、x-derived-from/unique を含む全x-*ディレクティブが統合的に処理され、各レイヤーが明確な責務を持って連携しています。
