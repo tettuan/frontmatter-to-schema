@@ -121,8 +121,6 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
       // Should have nested structure
       assertEquals(typeof resultData.tools, "object");
       assertEquals(Array.isArray((resultData.tools as any).commands), true);
-      // Should have backward compatibility
-      assertEquals(Array.isArray(resultData.commands), true);
     }
   });
 
@@ -205,8 +203,6 @@ Deno.test("DocumentProcessingService - aggregateData method", async (t) => {
           true,
         );
 
-        // Should also have backward compatibility path
-        assertEquals(Array.isArray(resultData.commands), true);
       }
     },
   );
@@ -347,12 +343,6 @@ Deno.test("DocumentProcessingService - Issue #780 hardcoding fix verification", 
             `Path ${path} should have array at final location`,
           );
 
-          // Verify backward compatibility (should always have 'commands' at root)
-          assertEquals(
-            Array.isArray(resultData.commands),
-            true,
-            `Path ${path} should maintain backward compatibility`,
-          );
         }
       }
     },

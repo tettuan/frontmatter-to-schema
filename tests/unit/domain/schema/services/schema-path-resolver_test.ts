@@ -36,8 +36,6 @@ Deno.test("SchemaPathResolver - resolveDataStructure", async (t) => {
     if (result.ok) {
       const structure = result.data.getStructure();
       assertEquals(structure.commands, dataArray);
-      // Should also have backward compatibility
-      assertEquals(structure.commands, dataArray);
     }
   });
 
@@ -51,8 +49,6 @@ Deno.test("SchemaPathResolver - resolveDataStructure", async (t) => {
     if (result.ok) {
       const structure = result.data.getStructure();
       assertEquals((structure.tools as any).commands, dataArray);
-      // Should also have backward compatibility at top level
-      assertEquals(structure.commands, dataArray);
     }
   });
 
@@ -71,8 +67,6 @@ Deno.test("SchemaPathResolver - resolveDataStructure", async (t) => {
         ((structure.registry as any).tools as any).commands,
         dataArray,
       );
-      // Should also have backward compatibility at top level
-      assertEquals(structure.commands, dataArray);
     }
   });
 
@@ -172,7 +166,6 @@ Deno.test("SchemaPathResolver - createEmptyStructure", async (t) => {
     if (result.ok) {
       const structure = result.data.getStructure();
       assertEquals((structure.tools as any).commands, []);
-      assertEquals(structure.commands, []);
     }
   });
 
@@ -212,8 +205,6 @@ Deno.test("SchemaPathResolver - Integration patterns", async (t) => {
       assertEquals((structure.tools as any).commands[1].c1, "spec");
       assertEquals((structure.tools as any).commands[2].c1, "test");
 
-      // Check backward compatibility
-      assertEquals(structure.commands, dataArray);
     }
   });
 

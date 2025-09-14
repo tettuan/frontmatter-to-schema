@@ -1,5 +1,37 @@
-{
-  "version": "{version}",
-  "description": "{description}",
-  "{level}": []
-}
+[
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  },
+  {
+    "version": "{version}",
+    "description": "{description}",
+    "design": "{@items}"
+  }
+]

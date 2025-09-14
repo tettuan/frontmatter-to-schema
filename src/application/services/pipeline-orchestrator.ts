@@ -18,6 +18,7 @@ export interface PipelineConfig {
   readonly schemaPath: string;
   readonly outputPath: string;
   readonly templatePath?: string; // Optional, can be extracted from schema
+  readonly verbose?: boolean; // Optional verbose logging flag
 }
 
 /**
@@ -69,37 +70,70 @@ export class PipelineOrchestrator {
     config: PipelineConfig,
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Step 1: Load and process schema
+    if (config.verbose) {
+      console.log("[VERBOSE] Step 1: Loading schema from " + config.schemaPath);
+    }
     const schemaResult = await this.loadSchema(config.schemaPath);
     if (!schemaResult.ok) {
       return schemaResult;
     }
     const schema = schemaResult.data;
+    if (config.verbose) {
+      console.log("[VERBOSE] Schema loaded successfully");
+    }
 
     // Step 2: Determine template path (from config or schema)
+    if (config.verbose) {
+      console.log("[VERBOSE] Step 2: Resolving template path");
+    }
     const templatePathResult = this.resolveTemplatePath(config, schema);
     if (!templatePathResult.ok) {
       return templatePathResult;
     }
+    if (config.verbose) {
+      console.log(
+        "[VERBOSE] Template path resolved: " + templatePathResult.data,
+      );
+    }
 
     // Step 3: Load template
+    if (config.verbose) {
+      console.log("[VERBOSE] Step 3: Loading template");
+    }
     const templateResult = await this.loadTemplate(templatePathResult.data);
     if (!templateResult.ok) {
       return templateResult;
     }
     const template = templateResult.data;
+    if (config.verbose) {
+      console.log("[VERBOSE] Template loaded successfully");
+    }
 
     // Step 4: Process documents (成果A-D)
+    if (config.verbose) {
+      console.log(
+        "[VERBOSE] Step 4: Processing documents with pattern: " +
+          config.inputPattern,
+      );
+    }
     const validationRules = schema.getValidationRules();
     const processedDataResult = this.documentProcessor.processDocuments(
       config.inputPattern,
       validationRules,
       schema,
+      config.verbose,
     );
     if (!processedDataResult.ok) {
       return processedDataResult;
     }
+    if (config.verbose) {
+      console.log("[VERBOSE] Documents processed successfully");
+    }
 
     // Step 5: Handle array expansion if x-frontmatter-part is present
+    if (config.verbose) {
+      console.log("[VERBOSE] Step 5: Rendering template with data");
+    }
     const outputResult = this.renderWithArraySupport(
       template,
       processedDataResult.data,
@@ -108,11 +142,21 @@ export class PipelineOrchestrator {
     if (!outputResult.ok) {
       return outputResult;
     }
+    if (config.verbose) {
+      console.log("[VERBOSE] Template rendered successfully");
+    }
 
     // Step 6: Write output (成果Z)
-    return Promise.resolve(
+    if (config.verbose) {
+      console.log("[VERBOSE] Step 6: Writing output to " + config.outputPath);
+    }
+    const writeResult = await Promise.resolve(
       this.fileSystem.write(config.outputPath, outputResult.data),
     );
+    if (config.verbose && writeResult.ok) {
+      console.log("[VERBOSE] Output written successfully");
+    }
+    return writeResult;
   }
 
   /**
@@ -170,10 +214,10 @@ export class PipelineOrchestrator {
     const schemaTemplateResult = schema.getTemplatePath();
     if (schemaTemplateResult.ok) {
       // Resolve relative to schema directory
-      const schemaDir = config.schemaPath.substring(
-        0,
-        config.schemaPath.lastIndexOf("/"),
-      );
+      const lastSlash = config.schemaPath.lastIndexOf("/");
+      const schemaDir = lastSlash > -1
+        ? config.schemaPath.substring(0, lastSlash)
+        : "."; // Use current directory if no path separator
       return ok(`${schemaDir}/${schemaTemplateResult.data}`);
     }
 
