@@ -187,8 +187,128 @@ function extractRules(
 
 function validateWithRules(
   data: unknown,
-  _rules: readonly ValidationRule[],
-  _path: string,
+  rules: readonly ValidationRule[],
+  path: string,
 ): Result<unknown, ValidationError & { message: string }> {
+  // Filter rules for current path
+  const pathRules = rules.filter((rule) => rule.path === path);
+
+  // If no rules for this path, data is valid
+  if (pathRules.length === 0) {
+    return ok(data);
+  }
+
+  for (const rule of pathRules) {
+    // Check required fields
+    if (rule.required && (data === undefined || data === null)) {
+      return err(createError({
+        kind: "MissingRequired",
+        field: path,
+      }));
+    }
+
+    // Skip further validation if data is null/undefined and not required
+    if (data === undefined || data === null) {
+      continue;
+    }
+
+    // Type validation
+    if (rule.type) {
+      const actualType = getDataType(data);
+      if (rule.type !== actualType) {
+        // Special case: number can be integer
+        if (
+          !(rule.type === "integer" && actualType === "number" &&
+            Number.isInteger(data))
+        ) {
+          return err(createError({
+            kind: "InvalidType",
+            expected: rule.type,
+            actual: actualType,
+          }));
+        }
+      }
+    }
+
+    // Enum validation
+    if (rule.enum && rule.enum.length > 0) {
+      if (!rule.enum.includes(data)) {
+        return err(createError({
+          kind: "InvalidType",
+          expected: `enum: [${rule.enum.join(", ")}]`,
+          actual: String(data),
+        }));
+      }
+    }
+
+    // String-specific validations
+    if (typeof data === "string") {
+      // Pattern validation
+      if (rule.pattern) {
+        try {
+          const regex = new RegExp(rule.pattern);
+          if (!regex.test(data)) {
+            return err(createError({
+              kind: "PatternMismatch",
+              value: data,
+              pattern: rule.pattern,
+            }));
+          }
+        } catch {
+          return err(createError({
+            kind: "InvalidRegex",
+            pattern: rule.pattern,
+          }));
+        }
+      }
+
+      // Length validations
+      if (rule.minLength !== undefined && data.length < rule.minLength) {
+        return err(createError({
+          kind: "InvalidType",
+          expected: `string with minimum length ${rule.minLength}`,
+          actual: `string with length ${data.length}`,
+        }));
+      }
+
+      if (rule.maxLength !== undefined && data.length > rule.maxLength) {
+        return err(createError({
+          kind: "TooLong",
+          value: data,
+          maxLength: rule.maxLength,
+        }));
+      }
+    }
+
+    // Number-specific validations
+    if (typeof data === "number") {
+      if (rule.minimum !== undefined && data < rule.minimum) {
+        return err(createError({
+          kind: "OutOfRange",
+          value: data,
+          min: rule.minimum,
+          max: rule.maximum,
+        }));
+      }
+
+      if (rule.maximum !== undefined && data > rule.maximum) {
+        return err(createError({
+          kind: "OutOfRange",
+          value: data,
+          min: rule.minimum,
+          max: rule.maximum,
+        }));
+      }
+    }
+  }
+
   return ok(data);
+}
+
+function getDataType(data: unknown): string {
+  if (data === null) return "null";
+  if (Array.isArray(data)) return "array";
+  const type = typeof data;
+  if (type === "object") return "object";
+  return type;
 }
