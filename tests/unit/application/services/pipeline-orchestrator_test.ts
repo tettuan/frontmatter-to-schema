@@ -4,6 +4,8 @@ import {
   FileSystem,
   PipelineConfig,
   PipelineOrchestrator,
+  TemplateConfig,
+  VerbosityConfig,
 } from "../../../../src/application/services/pipeline-orchestrator.ts";
 // Note: The actual service imports are not needed since we're using mocks
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
@@ -16,6 +18,24 @@ import {
 } from "../../../../src/domain/shared/types/errors.ts";
 
 describe("PipelineOrchestrator", () => {
+  // Helper function to create test configurations with discriminated unions
+  function createTestConfig(overrides: {
+    schemaPath?: string;
+    outputPath?: string;
+    inputPattern?: string;
+    templateConfig?: TemplateConfig;
+    verbosityConfig?: VerbosityConfig;
+  } = {}): PipelineConfig {
+    return {
+      schemaPath: overrides.schemaPath ?? "/test/schema.json",
+      outputPath: overrides.outputPath ?? "/test/output.json",
+      inputPattern: overrides.inputPattern ?? "**/*.md",
+      templateConfig: overrides.templateConfig ?? { kind: "schema-derived" },
+      verbosityConfig: overrides.verbosityConfig ??
+        { kind: "quiet", enabled: false },
+    };
+  }
+
   // Mock implementations
   class MockFileSystem implements FileSystem {
     private files = new Map<string, string>();
@@ -217,11 +237,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -255,12 +271,9 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-        verbose: true,
-      };
+      const config = createTestConfig({
+        verbosityConfig: { kind: "verbose", enabled: true },
+      });
 
       const result = await orchestrator.execute(config);
 
@@ -290,11 +303,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -321,11 +330,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -367,11 +372,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -414,11 +415,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -463,11 +460,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -526,11 +519,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -587,12 +576,9 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-        verbose: true,
-      };
+      const config = createTestConfig({
+        verbosityConfig: { kind: "verbose", enabled: true },
+      });
 
       const result = await orchestrator.execute(config);
 
@@ -626,12 +612,12 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-        templatePath: "/custom/template.json",
-      };
+      const config = createTestConfig({
+        templateConfig: {
+          kind: "explicit",
+          templatePath: "/custom/template.json",
+        },
+      });
 
       const result = await orchestrator.execute(config);
 
@@ -665,11 +651,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -700,11 +682,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -731,11 +709,9 @@ describe("PipelineOrchestrator", () => {
       );
 
       // Test with non-existent file to trigger file reading failure
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
+      const config = createTestConfig({
         schemaPath: "/nonexistent/schema.json",
-        outputPath: "/test/output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
 
@@ -771,11 +747,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -838,11 +810,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -898,11 +866,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -957,11 +921,7 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-      };
+      const config = createTestConfig();
 
       const result = await orchestrator.execute(config);
 
@@ -1018,12 +978,9 @@ describe("PipelineOrchestrator", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
-        inputPattern: "**/*.md",
-        schemaPath: "/test/schema.json",
-        outputPath: "/test/output.json",
-        verbose: true, // Test verbose logging with items template
-      };
+      const config = createTestConfig({
+        verbosityConfig: { kind: "verbose", enabled: true }, // Test verbose logging with items template
+      });
 
       const result = await orchestrator.execute(config);
 

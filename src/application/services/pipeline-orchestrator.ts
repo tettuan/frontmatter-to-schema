@@ -27,14 +27,28 @@ import { SchemaDefinition } from "../../domain/schema/value-objects/schema-defin
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 
 /**
- * Configuration for pipeline processing
+ * Template configuration using discriminated unions for type safety
+ */
+export type TemplateConfig =
+  | { readonly kind: "explicit"; readonly templatePath: string }
+  | { readonly kind: "schema-derived" };
+
+/**
+ * Verbosity configuration using discriminated unions
+ */
+export type VerbosityConfig =
+  | { readonly kind: "verbose"; readonly enabled: true }
+  | { readonly kind: "quiet"; readonly enabled: false };
+
+/**
+ * Configuration for pipeline processing following Totality principles
  */
 export interface PipelineConfig {
   readonly inputPattern: string;
   readonly schemaPath: string;
   readonly outputPath: string;
-  readonly templatePath?: string; // Optional, can be extracted from schema
-  readonly verbose?: boolean; // Optional verbose logging flag
+  readonly templateConfig: TemplateConfig;
+  readonly verbosityConfig: VerbosityConfig;
 }
 
 /**
@@ -87,7 +101,8 @@ export class PipelineOrchestrator {
     config: PipelineConfig,
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Step 1: Load and process schema
-    if (config.verbose) {
+    const isVerbose = config.verbosityConfig.kind === "verbose";
+    if (isVerbose) {
       console.log("[VERBOSE] Step 1: Loading schema from " + config.schemaPath);
     }
     const schemaResult = await this.loadSchema(config.schemaPath);
@@ -95,12 +110,12 @@ export class PipelineOrchestrator {
       return schemaResult;
     }
     const schema = schemaResult.data;
-    if (config.verbose) {
+    if (isVerbose) {
       console.log("[VERBOSE] Schema loaded successfully");
     }
 
     // Step 2: Resolve template paths using TemplatePathResolver
-    if (config.verbose) {
+    if (isVerbose) {
       console.log("[VERBOSE] Step 2: Resolving template paths");
     }
 
@@ -114,21 +129,27 @@ export class PipelineOrchestrator {
       return templateResolutionContext;
     }
 
+    // Extract template configuration using discriminated union pattern
+    const explicitTemplatePath = config.templateConfig.kind === "explicit"
+      ? config.templateConfig.templatePath
+      : undefined;
+
     const templatePathConfig = {
       schemaPath: config.schemaPath,
-      explicitTemplatePath: config.templatePath,
+      explicitTemplatePath,
     };
 
     // Enhance context with input parameters and decision logic
     const enhancedContext = templateResolutionContext.data
       .withInput("schemaPath", config.schemaPath)
-      .withInput("explicitTemplatePath", config.templatePath)
-      .withInput("hasExplicitTemplate", !!config.templatePath);
+      .withInput("explicitTemplatePath", explicitTemplatePath)
+      .withInput(
+        "hasExplicitTemplate",
+        config.templateConfig.kind === "explicit",
+      );
 
     // Create decision record for template resolution strategy
-    const resolutionStrategy = config.templatePath
-      ? "explicit"
-      : "schema-derived";
+    const resolutionStrategy = config.templateConfig.kind;
     const templateDecisionResult = Decision.create(
       "Template path resolution strategy selection",
       ["explicit", "schema-derived", "auto-detect"],
@@ -144,7 +165,7 @@ export class PipelineOrchestrator {
       templateDecisionResult.data,
     );
 
-    if (config.verbose) {
+    if (isVerbose) {
       console.log(
         "[DEBUG] Template resolution context:",
         contextWithDecision.getDebugInfo(),
@@ -169,7 +190,7 @@ export class PipelineOrchestrator {
     const outputFormat = resolvePathsResult.data.outputFormat || "json";
 
     // Log successful resolution with context
-    if (config.verbose) {
+    if (isVerbose) {
       const resultContext = contextWithDecision
         .withInput("resolvedTemplatePath", templatePath)
         .withInput("resolvedItemsTemplatePath", itemsTemplatePath)
@@ -190,7 +211,7 @@ export class PipelineOrchestrator {
     }
 
     // Step 4: Process documents (成果A-D)
-    if (config.verbose) {
+    if (isVerbose) {
       console.log(
         "[VERBOSE] Step 4: Processing documents with pattern: " +
           config.inputPattern,
@@ -201,17 +222,17 @@ export class PipelineOrchestrator {
       config.inputPattern,
       validationRules,
       schema,
-      config.verbose,
+      isVerbose,
     );
     if (!processedDataResult.ok) {
       return processedDataResult;
     }
-    if (config.verbose) {
+    if (isVerbose) {
       console.log("[VERBOSE] Documents processed successfully");
     }
 
     // Step 5: Extract items data if x-frontmatter-part is present
-    if (config.verbose) {
+    if (isVerbose) {
       console.log("[VERBOSE] Step 5: Preparing data for rendering");
     }
 
@@ -265,7 +286,7 @@ export class PipelineOrchestrator {
       .withInput("mainDataSize", JSON.stringify(mainData.getData()).length)
       .withProgress(dataProgressResult.data);
 
-    if (config.verbose) {
+    if (isVerbose) {
       console.log(
         "[DEBUG] Data preparation context:",
         dataContext.getDebugInfo(),
@@ -291,7 +312,7 @@ export class PipelineOrchestrator {
         extractionDecisionResult.data,
       );
 
-      if (config.verbose) {
+      if (isVerbose) {
         console.log(
           "[DEBUG] Dual template path - extracting frontmatter-part data",
         );
@@ -324,7 +345,7 @@ export class PipelineOrchestrator {
             .withInput("extractedItemCount", itemsData.length)
             .withInput("renderingStrategy", "dual-template");
 
-          if (config.verbose) {
+          if (isVerbose) {
             console.log(
               "[DEBUG] Data extraction completed:",
               completionContext.getDebugInfo(),
@@ -336,7 +357,7 @@ export class PipelineOrchestrator {
           }
         }
       } else {
-        if (config.verbose) {
+        if (isVerbose) {
           console.log(
             "[DEBUG] No frontmatter-part data found in dual template mode",
           );
@@ -345,7 +366,7 @@ export class PipelineOrchestrator {
     } else if (schema.findFrontmatterPartPath().ok) {
       // For single template with frontmatter-part, keep itemsData undefined
       // The template renderer will extract the array data from mainData during {@items} expansion
-      if (config.verbose) {
+      if (isVerbose) {
         console.log("[DEBUG] Single template with frontmatter-part:", {
           renderingStrategy: "single-template-with-items-expansion",
           frontmatterPartPath: frontmatterPartPathResult.ok
@@ -357,7 +378,7 @@ export class PipelineOrchestrator {
         );
       }
     } else {
-      if (config.verbose) {
+      if (isVerbose) {
         console.log(
           "[DEBUG] Standard single template rendering - no frontmatter-part processing",
         );
@@ -365,7 +386,7 @@ export class PipelineOrchestrator {
     }
 
     // Step 6: Use OutputRenderingService to render and write output
-    if (config.verbose) {
+    if (isVerbose) {
       console.log("[VERBOSE] Step 6: Rendering and writing output");
     }
     const renderResult = this.outputRenderingService.renderOutput(
@@ -376,7 +397,7 @@ export class PipelineOrchestrator {
       config.outputPath,
       outputFormat,
     );
-    if (config.verbose && renderResult.ok) {
+    if (isVerbose && renderResult.ok) {
       console.log(
         "[VERBOSE] Output written successfully to " + config.outputPath,
       );

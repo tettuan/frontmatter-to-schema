@@ -22,6 +22,8 @@ import {
   FileSystem,
   PipelineConfig,
   PipelineOrchestrator,
+  TemplateConfig,
+  VerbosityConfig,
 } from "../../src/application/services/pipeline-orchestrator.ts";
 import { Schema } from "../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -31,6 +33,24 @@ import {
   createError,
   DomainError,
 } from "../../src/domain/shared/types/errors.ts";
+
+// Helper function to create test configurations with discriminated unions
+function createTestConfig(overrides: {
+  schemaPath?: string;
+  outputPath?: string;
+  inputPattern?: string;
+  templateConfig?: TemplateConfig;
+  verbosityConfig?: VerbosityConfig;
+} = {}): PipelineConfig {
+  return {
+    schemaPath: overrides.schemaPath ?? "/test/schema.json",
+    outputPath: overrides.outputPath ?? "/test/output.json",
+    inputPattern: overrides.inputPattern ?? "**/*.md",
+    templateConfig: overrides.templateConfig ?? { kind: "schema-derived" },
+    verbosityConfig: overrides.verbosityConfig ??
+      { kind: "quiet", enabled: false },
+  };
+}
 
 // Mock implementations following existing pipeline-orchestrator_test.ts patterns
 class MockFileSystem implements FileSystem {
@@ -232,11 +252,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -286,11 +306,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -344,11 +364,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -418,11 +438,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -479,11 +499,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -542,11 +562,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -571,11 +591,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/invalid-schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
@@ -601,11 +621,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/missing-schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
@@ -644,11 +664,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
@@ -688,11 +708,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
@@ -734,11 +754,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
@@ -776,11 +796,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -815,11 +835,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -868,11 +888,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -969,11 +989,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -1025,11 +1045,11 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -1098,11 +1118,11 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -1187,12 +1207,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-        verbose: true,
-      };
+        verbosityConfig: { kind: "verbose", enabled: true },
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -1246,11 +1266,11 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
@@ -1310,11 +1330,11 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         fileSystem,
       );
 
-      const config: PipelineConfig = {
+      const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
         schemaPath: "/test/schema.json",
         outputPath: "output.json",
-      };
+      });
 
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);

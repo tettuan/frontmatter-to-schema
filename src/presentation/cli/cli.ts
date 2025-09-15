@@ -1,6 +1,8 @@
 import {
   PipelineConfig,
   PipelineOrchestrator,
+  TemplateConfig,
+  VerbosityConfig,
 } from "../../application/services/pipeline-orchestrator.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
@@ -220,11 +222,18 @@ DESCRIPTION:
       this.orchestrator = orchestratorResult.data;
     }
 
+    // Create discriminated union configurations following Totality principles
+    const templateConfig: TemplateConfig = { kind: "schema-derived" };
+    const verbosityConfig: VerbosityConfig = verbose
+      ? { kind: "verbose", enabled: true }
+      : { kind: "quiet", enabled: false };
+
     const config: PipelineConfig = {
       schemaPath,
       outputPath,
       inputPattern,
-      verbose,
+      templateConfig,
+      verbosityConfig,
     };
 
     if (verbose) {

@@ -1,6 +1,11 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
-import { PipelineOrchestrator } from "../../../src/application/services/pipeline-orchestrator.ts";
+import {
+  PipelineConfig,
+  PipelineOrchestrator,
+  TemplateConfig,
+  VerbosityConfig,
+} from "../../../src/application/services/pipeline-orchestrator.ts";
 import { FrontmatterTransformationService } from "../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { TemplateRenderer } from "../../../src/domain/template/renderers/template-renderer.ts";
@@ -14,6 +19,24 @@ import {
   FrontmatterError,
 } from "../../../src/domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+
+// Helper function to create test configurations with discriminated unions
+function createTestConfig(overrides: {
+  schemaPath?: string;
+  outputPath?: string;
+  inputPattern?: string;
+  templateConfig?: TemplateConfig;
+  verbosityConfig?: VerbosityConfig;
+} = {}): PipelineConfig {
+  return {
+    schemaPath: overrides.schemaPath ?? "/test/schema.json",
+    outputPath: overrides.outputPath ?? "/test/output.json",
+    inputPattern: overrides.inputPattern ?? "**/*.md",
+    templateConfig: overrides.templateConfig ?? { kind: "schema-derived" },
+    verbosityConfig: overrides.verbosityConfig ??
+      { kind: "quiet", enabled: false },
+  };
+}
 
 /**
  * Integration tests for Pipeline Orchestrator
@@ -221,11 +244,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
     );
 
     // Execute pipeline
-    const config = {
+    const config = createTestConfig({
       inputPattern: "/test/*.md",
       schemaPath: "/test/schema.json",
       outputPath: "/test/output.json",
-    };
+    });
 
     const result = await orchestrator.execute(config);
 
@@ -324,11 +347,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
     );
 
     // Execute
-    const config = {
+    const config = createTestConfig({
       inputPattern: "/test/*.md",
       schemaPath: "/test/schema_with_items.json",
       outputPath: "/test/output_items.json",
-    };
+    });
 
     const result = await orchestrator.execute(config);
 
@@ -395,11 +418,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
     );
 
     // Execute with non-existent schema
-    const config = {
+    const config = createTestConfig({
       inputPattern: "/test/*.md",
       schemaPath: "/test/non_existent_schema.json",
       outputPath: "/test/output.json",
-    };
+    });
 
     const result = await orchestrator.execute(config);
 
@@ -476,11 +499,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
     );
 
     // Execute
-    const config = {
+    const config = createTestConfig({
       inputPattern: "/test/*.md",
       schemaPath: "/test/schema_bad_template.json",
       outputPath: "/test/output.json",
-    };
+    });
 
     const result = await orchestrator.execute(config);
 
@@ -572,11 +595,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
     );
 
     // Execute
-    const config = {
+    const config = createTestConfig({
       inputPattern: "/test/*.md",
       schemaPath: "/test/schema_derived.json",
       outputPath: "/test/output_derived.json",
-    };
+    });
 
     const result = await orchestrator.execute(config);
 
