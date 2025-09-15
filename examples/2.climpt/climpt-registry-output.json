@@ -1,10 +1,18 @@
 {
   "version": "1.0.0",
-  "description": "Analyze specification quality and completeness metrics",
+  "description": "Command Registry",
   "tools": {
-    "availableConfigs": "{tools.availableConfigs}",
-    "commands": [
-      "{@items}"
-    ]
+    "availableConfigs": [
+      "build",
+      "debug",
+      "design",
+      "docs",
+      "git",
+      "meta",
+      "refactor",
+      "requirement",
+      "spec"
+    ],
+    "commands": "{@items}"
   }
 }

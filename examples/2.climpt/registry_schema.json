@@ -22,7 +22,7 @@
         "availableConfigs": {
           "type": "array",
           "description": "Tool names array - derived from commands[].c1",
-          "x-derived-from": "commands[].c1",
+          "x-derived-from": "tools.commands[].c1",
           "x-derived-unique": true,
           "items": {
             "type": "string"
@@ -31,8 +31,8 @@
         "commands": {
           "type": "array",
           "description": "Command registry",
+          "x-frontmatter-part": true,
           "items": {
-            "x-frontmatter-part": true,
             "$ref": "registry_command_schema.json"
           }
         }
