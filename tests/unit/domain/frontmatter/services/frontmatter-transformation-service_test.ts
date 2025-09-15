@@ -24,6 +24,8 @@ import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-obj
 import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
 import { createError } from "../../../../../src/domain/shared/types/errors.ts";
 import { ProcessingBoundsFactory } from "../../../../../src/domain/shared/types/processing-bounds.ts";
+import { DebugLoggerFactory } from "../../../../../src/infrastructure/logging/debug-logger-factory.ts";
+import { NullDebugLogger } from "../../../../../src/infrastructure/logging/null-debug-logger.ts";
 
 // Comprehensive Mock Implementations for Error Path Testing
 class MockFrontmatterProcessor {
@@ -169,11 +171,17 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
+      // Create verbose logger for test
+      const verboseLoggerResult = DebugLoggerFactory.createForVerbose(true);
+      const verboseLogger = verboseLoggerResult.ok
+        ? verboseLoggerResult.data
+        : undefined;
+
       const result = service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        true, // verbose mode
+        verboseLogger,
       );
 
       // Assert
@@ -196,11 +204,17 @@ describe("FrontmatterTransformationService", () => {
       if (!boundsResult.ok) return;
 
       // Act
+      // Create null logger for quiet mode test
+      const nullLoggerResult = NullDebugLogger.create();
+      const nullLogger = nullLoggerResult.ok
+        ? nullLoggerResult.data
+        : undefined;
+
       const result = service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        false,
+        nullLogger,
         boundsResult.data,
       );
 
@@ -282,11 +296,17 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
+      // Create null logger for quiet mode test
+      const nullLoggerResult = NullDebugLogger.create();
+      const nullLogger = nullLoggerResult.ok
+        ? nullLoggerResult.data
+        : undefined;
+
       const result = service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        false,
+        nullLogger,
         strictBounds.data,
       );
 

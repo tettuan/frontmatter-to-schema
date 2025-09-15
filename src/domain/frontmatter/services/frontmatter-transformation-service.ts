@@ -14,7 +14,10 @@ import { Schema } from "../../schema/entities/schema.ts";
 import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.ts";
-import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import {
+  createLogContext,
+  DebugLogger,
+} from "../../shared/services/debug-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import {
   defaultFrontmatterDataCreationService,
@@ -64,7 +67,7 @@ export class FrontmatterTransformationService {
     private readonly fileLister: FileLister,
     private readonly frontmatterDataCreationService:
       FrontmatterDataCreationService = defaultFrontmatterDataCreationService,
-    private readonly debugLogger?: DebugLogger,
+    private readonly logger?: DebugLogger,
   ) {}
 
   /**
@@ -76,41 +79,42 @@ export class FrontmatterTransformationService {
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
-    verbose: boolean = false,
+    logger?: DebugLogger,
     processingBounds?: ProcessingBounds,
   ): Result<FrontmatterData, DomainError & { message: string }> {
     // Stage 1: List matching files
-    this.debugLogger?.logInfo(
-      "document-processing",
+    const activeLogger = logger || this.logger;
+    activeLogger?.info(
       `Starting document processing with pattern: ${inputPattern}`,
       {
+        operation: "document-processing",
         pattern: inputPattern,
+        timestamp: new Date().toISOString(),
       },
     );
-
-    if (verbose) {
-      console.log("[VERBOSE] Listing files with pattern: " + inputPattern);
-    }
     const filesResult = this.fileLister.list(inputPattern);
     if (!filesResult.ok) {
-      this.debugLogger?.logError("file-listing", filesResult.error, {
-        pattern: inputPattern,
-      });
+      activeLogger?.error(
+        `Failed to list files with pattern: ${inputPattern}`,
+        {
+          operation: "file-listing",
+          pattern: inputPattern,
+          error: filesResult.error,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return filesResult;
     }
 
-    this.debugLogger?.logInfo(
-      "file-listing",
+    activeLogger?.info(
       `Found ${filesResult.data.length} files to process`,
       {
+        operation: "file-listing",
         count: filesResult.data.length,
         files: filesResult.data,
+        timestamp: new Date().toISOString(),
       },
     );
-
-    if (verbose) {
-      console.log(`[VERBOSE] Found ${filesResult.data.length} files`);
-    }
 
     // Initialize memory bounds monitoring following Totality principles
     let actualBounds: ProcessingBounds;
@@ -128,12 +132,13 @@ export class FrontmatterTransformationService {
 
     const boundsMonitor = ProcessingBoundsMonitor.create(actualBounds);
 
-    this.debugLogger?.logDebug(
-      "memory-monitoring",
+    activeLogger?.debug(
       "Initialized processing bounds",
       {
+        operation: "memory-monitoring",
         boundsType: actualBounds.kind,
         fileCount: filesResult.data.length,
+        timestamp: new Date().toISOString(),
       },
     );
 
@@ -152,32 +157,41 @@ export class FrontmatterTransformationService {
       }
 
       if (state.kind === "approaching_limit") {
-        this.debugLogger?.logInfo(
-          "memory-monitoring",
+        activeLogger?.warn(
           `Approaching memory limit: ${
             Math.round(state.usage.heapUsed / 1024 / 1024)
           }MB used, threshold: ${
             Math.round(state.warningThreshold / 1024 / 1024)
           }MB`,
+          {
+            operation: "memory-monitoring",
+            heapUsed: state.usage.heapUsed,
+            warningThreshold: state.warningThreshold,
+            timestamp: new Date().toISOString(),
+          },
         );
       }
 
-      this.debugLogger?.logDebug(
-        "file-processing",
+      activeLogger?.debug(
         `Processing file: ${filePath}`,
+        {
+          operation: "file-processing",
+          filePath,
+          timestamp: new Date().toISOString(),
+        },
       );
-
-      if (verbose) {
-        console.log("[VERBOSE] Processing file: " + filePath);
-      }
       const documentResult = this.processDocument(filePath, validationRules);
       if (documentResult.ok) {
         processedData.push(documentResult.data.frontmatterData);
         documents.push(documentResult.data.document);
 
-        this.debugLogger?.logDebug(
-          "file-processing",
+        activeLogger?.debug(
           `Successfully processed: ${filePath}`,
+          {
+            operation: "file-processing",
+            filePath,
+            timestamp: new Date().toISOString(),
+          },
         );
 
         // Periodic O(log n) memory growth validation
@@ -186,28 +200,36 @@ export class FrontmatterTransformationService {
             processedData.length,
           );
           if (!growthResult.ok) {
-            this.debugLogger?.logInfo(
-              "memory-monitoring",
+            activeLogger?.warn(
               `Memory growth validation warning: ${growthResult.error.message}`,
+              {
+                operation: "memory-monitoring",
+                processedCount: processedData.length,
+                timestamp: new Date().toISOString(),
+              },
             );
           }
         }
 
-        if (verbose) {
-          console.log("[VERBOSE]   ✓ File processed successfully");
-        }
+        activeLogger?.debug(
+          "File processed successfully",
+          {
+            operation: "file-processing",
+            status: "success",
+            timestamp: new Date().toISOString(),
+          },
+        );
       } else {
-        this.debugLogger?.logError("file-processing", documentResult.error, {
-          filePath,
-          stage: "individual-file-processing",
-        });
-
-        if (verbose) {
-          console.log(
-            "[VERBOSE]   ✗ Failed to process file: " +
-              documentResult.error.message,
-          );
-        }
+        activeLogger?.error(
+          `Failed to process file: ${filePath}`,
+          {
+            operation: "file-processing",
+            filePath,
+            stage: "individual-file-processing",
+            error: documentResult.error,
+            timestamp: new Date().toISOString(),
+          },
+        );
       }
       // Note: Individual file failures don't stop processing
     }
@@ -217,88 +239,113 @@ export class FrontmatterTransformationService {
         kind: "AggregationFailed",
         message: "No valid documents found to process",
       });
-      this.debugLogger?.logError("document-processing", noDataError);
+      activeLogger?.error(
+        "No valid documents found to process",
+        {
+          operation: "document-processing",
+          error: noDataError,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return err(noDataError);
     }
 
-    this.debugLogger?.logInfo(
-      "document-processing",
+    activeLogger?.info(
       `Successfully processed ${processedData.length} documents`,
       {
+        operation: "document-processing",
         processedCount: processedData.length,
         totalFiles: filesResult.data.length,
+        timestamp: new Date().toISOString(),
       },
     );
 
     // Stage 3: Apply frontmatter-part processing if needed
-    this.debugLogger?.logDebug(
-      "frontmatter-part-processing",
+    activeLogger?.debug(
       "Starting frontmatter-part processing",
+      {
+        operation: "frontmatter-part-processing",
+        timestamp: new Date().toISOString(),
+      },
     );
-    if (verbose) {
-      console.log("[VERBOSE] Applying frontmatter-part processing");
-    }
     const finalData = this.processFrontmatterParts(processedData, schema);
 
-    this.debugLogger?.logInfo(
-      "frontmatter-part-processing",
-      `Frontmatter-part processing complete`,
+    activeLogger?.info(
+      "Frontmatter-part processing complete",
       {
+        operation: "frontmatter-part-processing",
         inputCount: processedData.length,
         outputCount: finalData.length,
+        timestamp: new Date().toISOString(),
       },
     );
 
     // Stage 4: Aggregate data using derivation rules
-    this.debugLogger?.logDebug(
-      "aggregation",
+    activeLogger?.debug(
       "Starting data aggregation with derivation rules",
+      {
+        operation: "aggregation",
+        timestamp: new Date().toISOString(),
+      },
     );
-    if (verbose) {
-      console.log("[VERBOSE] Aggregating data with derivation rules");
-    }
     const derivationRules = schema.getDerivedRules();
 
-    this.debugLogger?.logInfo(
-      "aggregation",
+    activeLogger?.info(
       `Found ${derivationRules.length} derivation rules`,
       {
+        operation: "aggregation",
+        rulesCount: derivationRules.length,
         rules: derivationRules.map((r) => ({
           sourcePath: r.sourcePath,
           targetField: r.targetField,
         })),
+        timestamp: new Date().toISOString(),
       },
     );
 
     const aggregatedData = this.aggregateData(finalData, schema);
     if (!aggregatedData.ok) {
-      this.debugLogger?.logError("aggregation", aggregatedData.error);
+      activeLogger?.error(
+        "Data aggregation failed",
+        {
+          operation: "aggregation",
+          error: aggregatedData.error,
+          timestamp: new Date().toISOString(),
+        },
+      );
       return aggregatedData;
     }
 
     // Stage 5: Populate base properties from schema defaults
-    this.debugLogger?.logDebug(
-      "base-property-population",
+    activeLogger?.debug(
       "Starting base property population",
+      {
+        operation: "base-property-population",
+        timestamp: new Date().toISOString(),
+      },
     );
-    if (verbose) {
-      console.log("[VERBOSE] Populating base properties from schema");
-    }
     const result = this.basePropertyPopulator.populate(
       aggregatedData.data,
       schema,
     );
 
     if (result.ok) {
-      this.debugLogger?.logInfo(
-        "document-processing",
+      activeLogger?.info(
         "Document processing pipeline completed successfully",
+        {
+          operation: "document-processing",
+          timestamp: new Date().toISOString(),
+        },
       );
-      if (verbose) {
-        console.log("[VERBOSE] Document processing completed");
-      }
     } else {
-      this.debugLogger?.logError("base-property-population", result.error);
+      activeLogger?.error(
+        "Base property population failed",
+        {
+          operation: "base-property-population",
+          error: result.error,
+          timestamp: new Date().toISOString(),
+        },
+      );
     }
 
     return result;
@@ -314,85 +361,118 @@ export class FrontmatterTransformationService {
     { document: MarkdownDocument; frontmatterData: FrontmatterData },
     DomainError & { message: string }
   > {
-    this.debugLogger?.logDebug(
-      "single-document",
+    const activeLogger = this.logger;
+    activeLogger?.debug(
       `Starting processing of document: ${filePath}`,
+      createLogContext({
+        operation: "single-document",
+        location: filePath,
+      }),
     );
 
     // Create file path value object
     const filePathResult = FilePath.create(filePath);
     if (!filePathResult.ok) {
-      this.debugLogger?.logError("file-path-validation", filePathResult.error, {
-        filePath,
-      });
+      activeLogger?.error(
+        `File path validation failed: ${filePathResult.error.message}`,
+        createLogContext({
+          operation: "file-path-validation",
+          location: filePath,
+        }),
+      );
       return filePathResult;
     }
 
     // Read file content
-    this.debugLogger?.logDebug(
-      "file-reading",
+    activeLogger?.debug(
       `Reading file content: ${filePath}`,
+      createLogContext({
+        operation: "file-reading",
+        location: filePath,
+      }),
     );
     const contentResult = this.fileReader.read(filePath);
     if (!contentResult.ok) {
-      this.debugLogger?.logError("file-reading", contentResult.error, {
-        filePath,
-      });
+      activeLogger?.error(
+        `File reading failed: ${contentResult.error.message}`,
+        createLogContext({
+          operation: "file-reading",
+          location: filePath,
+        }),
+      );
       return contentResult;
     }
 
     // Extract frontmatter
-    this.debugLogger?.logDebug(
-      "frontmatter-extraction",
+    activeLogger?.debug(
       `Extracting frontmatter from: ${filePath}`,
+      createLogContext({
+        operation: "frontmatter-extraction",
+        location: filePath,
+      }),
     );
     const extractResult = this.frontmatterProcessor.extract(contentResult.data);
     if (!extractResult.ok) {
-      this.debugLogger?.logError(
-        "frontmatter-extraction",
-        extractResult.error,
-        { filePath },
+      activeLogger?.error(
+        `Frontmatter extraction failed: ${extractResult.error.message}`,
+        createLogContext({
+          operation: "frontmatter-extraction",
+          location: filePath,
+        }),
       );
       return extractResult;
     }
 
     const { frontmatter, body } = extractResult.data;
-    this.debugLogger?.logDebug(
-      "frontmatter-extraction",
+    activeLogger?.debug(
       `Successfully extracted frontmatter from: ${filePath}`,
-      {
-        frontmatterKeys: Object.keys(frontmatter || {}),
-        bodyLength: body.length,
-      },
+      createLogContext({
+        operation: "frontmatter-extraction",
+        location: filePath,
+        inputs: `keys: ${
+          Object.keys(frontmatter || {}).join(", ")
+        }, bodyLength: ${body.length}`,
+      }),
     );
 
     // Validate frontmatter
-    this.debugLogger?.logDebug(
-      "frontmatter-validation",
+    activeLogger?.debug(
       `Validating frontmatter for: ${filePath}`,
+      createLogContext({
+        operation: "frontmatter-validation",
+        location: filePath,
+      }),
     );
     const validationResult = this.frontmatterProcessor.validate(
       frontmatter,
       validationRules,
     );
     if (!validationResult.ok) {
-      this.debugLogger?.logError(
-        "frontmatter-validation",
-        validationResult.error,
-        { filePath },
+      activeLogger?.error(
+        `Frontmatter validation failed: ${validationResult.error.message}`,
+        createLogContext({
+          operation: "frontmatter-validation",
+          location: filePath,
+        }),
       );
       return validationResult;
     }
 
-    this.debugLogger?.logDebug(
-      "frontmatter-validation",
+    activeLogger?.debug(
       `Successfully validated frontmatter for: ${filePath}`,
+      createLogContext({
+        operation: "frontmatter-validation",
+        location: filePath,
+      }),
     );
 
     // Create document entity
-    this.debugLogger?.logDebug(
-      "document-creation",
+    activeLogger?.debug(
       `Creating MarkdownDocument entity for: ${filePath}`,
+      createLogContext({
+        operation: "document-creation",
+        location: filePath,
+      }),
     );
     const docResult = MarkdownDocument.create(
       filePathResult.data,
@@ -401,15 +481,22 @@ export class FrontmatterTransformationService {
       body,
     );
     if (!docResult.ok) {
-      this.debugLogger?.logError("document-creation", docResult.error, {
-        filePath,
-      });
+      activeLogger?.error(
+        `Document creation failed: ${docResult.error.message}`,
+        createLogContext({
+          operation: "document-creation",
+          location: filePath,
+        }),
+      );
       return docResult;
     }
 
-    this.debugLogger?.logDebug(
-      "single-document",
+    activeLogger?.debug(
       `Successfully processed document: ${filePath}`,
+      createLogContext({
+        operation: "single-document",
+        location: filePath,
+      }),
     );
 
     return ok({
@@ -428,16 +515,21 @@ export class FrontmatterTransformationService {
   ): FrontmatterData[] {
     const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
       .getValue();
-    this.debugLogger?.logDebug(
-      "frontmatter-parts",
+    const activeLogger = this.logger;
+    activeLogger?.debug(
       `Checking for ${extensionKey} schema definition`,
+      createLogContext({
+        operation: "frontmatter-parts",
+      }),
     );
 
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (!frontmatterPartSchemaResult.ok) {
-      this.debugLogger?.logDebug(
-        "frontmatter-parts",
+      activeLogger?.debug(
         `No ${extensionKey} schema found, returning original data`,
+        createLogContext({
+          operation: "frontmatter-parts",
+        }),
       );
       return data;
     }
@@ -445,21 +537,22 @@ export class FrontmatterTransformationService {
     // Get the path to the frontmatter part (e.g., "commands")
     const frontmatterPartPathResult = schema.findFrontmatterPartPath();
     if (!frontmatterPartPathResult.ok) {
-      this.debugLogger?.logDebug(
-        "frontmatter-parts",
+      activeLogger?.debug(
         `No ${extensionKey} path found, returning original data`,
+        createLogContext({
+          operation: "frontmatter-parts",
+        }),
       );
       return data;
     }
 
     const partPath = frontmatterPartPathResult.data;
-    this.debugLogger?.logInfo(
-      "frontmatter-parts",
+    activeLogger?.info(
       `Processing frontmatter parts at path: ${partPath}`,
-      {
-        partPath,
-        inputDataCount: data.length,
-      },
+      createLogContext({
+        operation: "frontmatter-parts",
+        inputs: `path: ${partPath}, inputCount: ${data.length}`,
+      }),
     );
 
     const extractedParts: FrontmatterData[] = [];
@@ -467,12 +560,12 @@ export class FrontmatterTransformationService {
     // Extract the frontmatter part from each document
     for (const frontmatterData of data) {
       const dataObj = frontmatterData.getData();
-      this.debugLogger?.logDebug(
-        "frontmatter-part-extraction",
+      activeLogger?.debug(
         `Processing document for frontmatter-part at schema path '${partPath}'`,
-        {
-          availableKeys: Object.keys(dataObj),
-        },
+        createLogContext({
+          operation: "frontmatter-part-extraction",
+          inputs: `availableKeys: ${Object.keys(dataObj).join(", ")}`,
+        }),
       );
 
       // For frontmatter-part processing, the individual markdown files contain
@@ -483,12 +576,12 @@ export class FrontmatterTransformationService {
       const partData = dataObj; // Use the entire frontmatter object
 
       if (partData && typeof partData === "object") {
-        this.debugLogger?.logDebug(
-          "frontmatter-part-extraction",
+        activeLogger?.debug(
           "Found frontmatter object to extract as array item",
-          {
-            keys: Object.keys(partData),
-          },
+          createLogContext({
+            operation: "frontmatter-part-extraction",
+            inputs: `keys: ${Object.keys(partData).join(", ")}`,
+          }),
         );
 
         // Each individual frontmatter object becomes one item in the target array
@@ -496,34 +589,41 @@ export class FrontmatterTransformationService {
           .createFromRaw(partData);
         if (itemDataResult.ok) {
           extractedParts.push(itemDataResult.data);
-          this.debugLogger?.logDebug(
-            "frontmatter-part-extraction",
+          activeLogger?.debug(
             "Successfully processed frontmatter as array item",
+            createLogContext({
+              operation: "frontmatter-part-extraction",
+            }),
           );
         } else {
-          this.debugLogger?.logError(
-            "frontmatter-part-extraction",
-            itemDataResult.error,
-            { partData },
+          activeLogger?.error(
+            `Failed to process frontmatter as array item: ${itemDataResult.error.message}`,
+            createLogContext({
+              operation: "frontmatter-part-extraction",
+            }),
           );
         }
       } else {
-        this.debugLogger?.logDebug(
-          "frontmatter-part-extraction",
+        activeLogger?.debug(
           `No valid data found at '${partPath}' (type: ${typeof partData})`,
+          createLogContext({
+            operation: "frontmatter-part-extraction",
+          }),
         );
       }
     }
 
     const result = extractedParts.length > 0 ? extractedParts : data;
-    this.debugLogger?.logInfo(
-      "frontmatter-parts",
+    activeLogger?.info(
       `Frontmatter parts processing complete`,
-      {
-        inputCount: data.length,
-        extractedCount: extractedParts.length,
-        returningOriginalData: extractedParts.length === 0,
-      },
+      createLogContext({
+        operation: "frontmatter-parts",
+        inputs:
+          `inputCount: ${data.length}, extractedCount: ${extractedParts.length}`,
+        decisions: extractedParts.length === 0
+          ? ["returning original data"]
+          : undefined,
+      }),
     );
 
     return result;
@@ -583,16 +683,14 @@ export class FrontmatterTransformationService {
     // Use SchemaPathResolver instead of hardcoded structure creation
     const commandsArray = data.map((item) => item.getData());
 
-    this.debugLogger?.logDebug(
-      "data-structure-creation",
+    const activeLogger = this.logger;
+    activeLogger?.debug(
       "Creating data structure using SchemaPathResolver",
-      {
-        inputDataCount: data.length,
-        commandsArrayLength: commandsArray.length,
-        sampleCommand: commandsArray[0]
-          ? Object.keys(commandsArray[0])
-          : "no data",
-      },
+      createLogContext({
+        operation: "data-structure-creation",
+        inputs:
+          `inputCount: ${data.length}, commandsArrayLength: ${commandsArray.length}`,
+      }),
     );
 
     const structureResult = SchemaPathResolver.resolveDataStructure(
@@ -601,37 +699,42 @@ export class FrontmatterTransformationService {
     );
 
     if (!structureResult.ok) {
-      this.debugLogger?.logError(
-        "data-structure-creation",
-        structureResult.error,
+      activeLogger?.error(
+        `Data structure creation failed: ${structureResult.error.message}`,
+        createLogContext({
+          operation: "data-structure-creation",
+        }),
       );
       return structureResult;
     }
 
-    this.debugLogger?.logDebug(
-      "data-structure-creation",
+    activeLogger?.debug(
       "Successfully created data structure",
-      {
-        structure: structureResult.data.getStructure(),
-      },
+      createLogContext({
+        operation: "data-structure-creation",
+      }),
     );
 
     // Convert to FrontmatterData and apply derivation rules
     const baseDataResult = structureResult.data.toFrontmatterData();
     if (!baseDataResult.ok) {
-      this.debugLogger?.logError(
-        "frontmatter-conversion",
-        baseDataResult.error,
+      activeLogger?.error(
+        `Frontmatter conversion failed: ${baseDataResult.error.message}`,
+        createLogContext({
+          operation: "frontmatter-conversion",
+        }),
       );
       return baseDataResult;
     }
 
-    this.debugLogger?.logDebug(
-      "frontmatter-conversion",
+    activeLogger?.debug(
       "Successfully converted structure to FrontmatterData",
-      {
-        dataKeys: Object.keys(baseDataResult.data.getData()),
-      },
+      createLogContext({
+        operation: "frontmatter-conversion",
+        inputs: `dataKeys: ${
+          Object.keys(baseDataResult.data.getData()).join(", ")
+        }`,
+      }),
     );
 
     return this.applyDerivationRules(baseDataResult.data, derivationRules);
@@ -692,14 +795,15 @@ export class FrontmatterTransformationService {
     // For backward compatibility, we continue processing even with failed rules
     const rules = ruleConversion.successfulRules;
 
-    this.debugLogger?.logDebug(
-      "derivation-rules-application",
+    const activeLogger = this.logger;
+    activeLogger?.debug(
       "Applying derivation rules while preserving frontmatter-part data",
-      {
-        ruleCount: rules.length,
-        baseDataKeys: Object.keys(baseData.getData()),
-        baseDataStructure: JSON.stringify(baseData.getData(), null, 2),
-      },
+      createLogContext({
+        operation: "derivation-rules-application",
+        inputs: `ruleCount: ${rules.length}, baseDataKeys: ${
+          Object.keys(baseData.getData()).join(", ")
+        }`,
+      }),
     );
 
     // Apply derivation rules and merge with base data
@@ -720,13 +824,12 @@ export class FrontmatterTransformationService {
 
     const finalData = mergeResult.data;
 
-    this.debugLogger?.logDebug(
-      "derivation-rules-application",
+    activeLogger?.debug(
       "Successfully applied derivation rules",
-      {
-        finalDataKeys: Object.keys(finalData.getData()),
-        finalDataStructure: JSON.stringify(finalData.getData(), null, 2),
-      },
+      createLogContext({
+        operation: "derivation-rules-application",
+        inputs: `finalDataKeys: ${Object.keys(finalData.getData()).join(", ")}`,
+      }),
     );
 
     return ok(finalData);
@@ -742,25 +845,27 @@ export class FrontmatterTransformationService {
   ): Result<FrontmatterData, DomainError & { message: string }> {
     const derivedFields: Record<string, unknown> = {};
 
-    this.debugLogger?.logDebug(
-      "derived-field-calculation",
+    const activeLogger = this.logger;
+    activeLogger?.debug(
       "Calculating derived fields",
-      {
-        ruleCount: rules.length,
-        sourceDataKeys: Object.keys(sourceData.getData()),
-      },
+      createLogContext({
+        operation: "derived-field-calculation",
+        inputs: `ruleCount: ${rules.length}, sourceDataKeys: ${
+          Object.keys(sourceData.getData()).join(", ")
+        }`,
+      }),
     );
 
     for (const rule of rules) {
       const sourceResult = sourceData.get(rule.getBasePath());
       if (sourceResult.ok && Array.isArray(sourceResult.data)) {
-        this.debugLogger?.logDebug(
-          "derived-field-calculation",
+        activeLogger?.debug(
           `Processing rule: ${rule.getBasePath()} -> ${rule.getTargetField()}`,
-          {
-            sourceArrayLength: sourceResult.data.length,
-            isUnique: rule.isUnique(),
-          },
+          createLogContext({
+            operation: "derived-field-calculation",
+            inputs:
+              `sourceArrayLength: ${sourceResult.data.length}, isUnique: ${rule.isUnique()}`,
+          }),
         );
 
         const values = sourceResult.data.map((item) =>
@@ -774,31 +879,30 @@ export class FrontmatterTransformationService {
         // Set derived field using targetField path
         this.setNestedField(derivedFields, rule.getTargetField(), finalValues);
 
-        this.debugLogger?.logDebug(
-          "derived-field-calculation",
+        activeLogger?.debug(
           `Calculated derived field: ${rule.getTargetField()}`,
-          {
-            valuesCount: finalValues.length,
-            sampleValue: finalValues[0],
-          },
+          createLogContext({
+            operation: "derived-field-calculation",
+            inputs: `valuesCount: ${finalValues.length}`,
+          }),
         );
       } else {
-        this.debugLogger?.logDebug(
-          "derived-field-calculation",
+        activeLogger?.debug(
           `Skipping rule due to missing or non-array source: ${rule.getBasePath()}`,
-          {
-            sourceResult: sourceResult.ok ? "found but not array" : "not found",
-          },
+          createLogContext({
+            operation: "derived-field-calculation",
+            decisions: [sourceResult.ok ? "found but not array" : "not found"],
+          }),
         );
       }
     }
 
-    this.debugLogger?.logDebug(
-      "derived-field-calculation",
+    activeLogger?.debug(
       "Derived field calculation completed",
-      {
-        derivedFieldsKeys: Object.keys(derivedFields),
-      },
+      createLogContext({
+        operation: "derived-field-calculation",
+        inputs: `derivedFieldsKeys: ${Object.keys(derivedFields).join(", ")}`,
+      }),
     );
 
     return this.frontmatterDataCreationService.createFromRaw(derivedFields);

@@ -26,6 +26,8 @@ import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { SchemaCacheManager } from "../../infrastructure/caching/schema-cache.ts";
+import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 
 /**
  * Template configuration using discriminated unions for type safety
@@ -93,6 +95,7 @@ export class PipelineOrchestrator {
     private readonly outputRenderingService: OutputRenderingService,
     private readonly templatePathResolver: TemplatePathResolver,
     private readonly fileSystem: FileSystem,
+    private readonly logger?: DebugLogger,
   ) {}
 
   /**
@@ -244,11 +247,23 @@ export class PipelineOrchestrator {
       );
     }
     const validationRules = schema.getValidationRules();
+    // Create logger for transformation service based on verbosity configuration
+    const transformationLoggerResult = this.logger
+      ? ok(this.logger)
+      : DebugLoggerFactory.createForVerbose(isVerbose);
+    if (!transformationLoggerResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create transformation logger: ${transformationLoggerResult.error.message}`,
+      }));
+    }
+
     const processedDataResult = this.frontmatterTransformer.transformDocuments(
       config.inputPattern,
       validationRules,
       schema,
-      isVerbose,
+      transformationLoggerResult.data,
     );
     if (!processedDataResult.ok) {
       return processedDataResult;
