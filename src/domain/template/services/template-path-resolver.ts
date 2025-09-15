@@ -21,7 +21,7 @@ export interface TemplatePathConfig {
 export interface ResolvedTemplatePaths {
   readonly templatePath: string;
   readonly itemsTemplatePath?: string;
-  readonly outputFormat?: "json" | "yaml" | "toml" | "markdown";
+  readonly outputFormat?: "json" | "yaml" | "markdown";
 }
 
 /**
@@ -106,7 +106,7 @@ export class TemplatePathResolver {
 
     // Stage 3: Extract output format using Schema entity or detect from template extension
     const outputFormatResult = schema.getTemplateFormat();
-    let outputFormat: "json" | "yaml" | "toml" | "markdown";
+    let outputFormat: "json" | "yaml" | "markdown";
 
     // Create decision tracking for format determination
     const formatDecisionResult = Decision.create(
@@ -241,15 +241,11 @@ export class TemplatePathResolver {
    */
   private detectFormatFromExtension(
     templatePath: string,
-  ): "json" | "yaml" | "toml" | "markdown" {
+  ): "json" | "yaml" | "markdown" {
     const lowercasePath = templatePath.toLowerCase();
 
     if (lowercasePath.endsWith(".yml") || lowercasePath.endsWith(".yaml")) {
       return "yaml";
-    }
-
-    if (lowercasePath.endsWith(".toml")) {
-      return "toml";
     }
 
     if (lowercasePath.endsWith(".md") || lowercasePath.endsWith(".markdown")) {

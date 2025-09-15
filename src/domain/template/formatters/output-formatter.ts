@@ -4,7 +4,7 @@ import { DomainError } from "../../shared/types/errors.ts";
 /**
  * Output format types supported by the system
  */
-export type OutputFormat = "json" | "yaml" | "toml" | "markdown";
+export type OutputFormat = "json" | "yaml" | "markdown";
 
 /**
  * Interface for formatting template output into different formats

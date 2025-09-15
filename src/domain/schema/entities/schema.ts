@@ -93,7 +93,7 @@ export class Schema {
   }
 
   getTemplateFormat(): Result<
-    "json" | "yaml" | "toml" | "markdown",
+    "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
     return this.definition.getTemplateFormat();

@@ -151,6 +151,10 @@ Schemaのroot階層は、"x-template" と並列の"properties"を起点とする
 各マークダウンファイルの処理が完了したあとに実行される。 さらに
 `x-derived-unique: true`がある場合は、ユニーク化される。
 
+**JMESPath フィルタリング**: `"x-jmespath-filter": "commands[?c1 == 'git']"`
+のように、JMESPath式でデータの動的フィルタリングが可能である。
+Schema解析時にJMESPath式が評価され、条件に合うデータのみが抽出される。
+
 例えば、以下は、availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
 
 ```
