@@ -100,6 +100,10 @@ export class PipelineOrchestrator {
   async execute(
     config: PipelineConfig,
   ): Promise<Result<void, DomainError & { message: string }>> {
+    // Performance monitoring initialization
+    const pipelineStartTime = performance.now();
+    const initialMemory = Deno.memoryUsage();
+
     // Step 1: Load and process schema
     const isVerbose = config.verbosityConfig.kind === "verbose";
     if (isVerbose) {
@@ -107,6 +111,11 @@ export class PipelineOrchestrator {
         `[DEBUG] Verbosity config: kind="${config.verbosityConfig.kind}", enabled=${config.verbosityConfig.enabled}`,
       );
       console.log("[VERBOSE] Step 1: Loading schema from " + config.schemaPath);
+      console.log(
+        `[PERF] Pipeline start - Memory: ${
+          Math.round(initialMemory.heapUsed / 1024 / 1024)
+        }MB`,
+      );
     }
     const schemaResult = await this.loadSchema(config.schemaPath);
     if (!schemaResult.ok) {
@@ -226,6 +235,7 @@ export class PipelineOrchestrator {
     }
 
     // Step 4: Process documents (成果A-D)
+    const docProcessingStartTime = performance.now();
     if (isVerbose) {
       console.log(
         "[VERBOSE] Step 4: Processing documents with pattern: " +
@@ -242,8 +252,21 @@ export class PipelineOrchestrator {
     if (!processedDataResult.ok) {
       return processedDataResult;
     }
+
+    // Performance monitoring for document processing
+    const docProcessingTime = performance.now() - docProcessingStartTime;
+    const currentMemory = Deno.memoryUsage();
     if (isVerbose) {
       console.log("[VERBOSE] Documents processed successfully");
+      console.log(
+        `[PERF] Document processing: ${
+          Math.round(docProcessingTime)
+        }ms, Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB (Δ${
+          Math.round(
+            (currentMemory.heapUsed - initialMemory.heapUsed) / 1024 / 1024,
+          )
+        }MB)`,
+      );
     }
 
     // Step 5: Extract items data if x-frontmatter-part is present
@@ -415,6 +438,19 @@ export class PipelineOrchestrator {
     if (isVerbose && renderResult.ok) {
       console.log(
         "[VERBOSE] Output written successfully to " + config.outputPath,
+      );
+
+      // Final pipeline performance summary
+      const totalPipelineTime = performance.now() - pipelineStartTime;
+      const finalMemory = Deno.memoryUsage();
+      const totalMemoryDelta = (finalMemory.heapUsed - initialMemory.heapUsed) /
+        1024 / 1024;
+      console.log(
+        `[PERF] Pipeline completed: ${
+          Math.round(totalPipelineTime)
+        }ms total, Memory: ${
+          Math.round(finalMemory.heapUsed / 1024 / 1024)
+        }MB (Δ${Math.round(totalMemoryDelta)}MB)`,
       );
     }
     return renderResult;
