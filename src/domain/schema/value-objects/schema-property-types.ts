@@ -13,7 +13,7 @@ export interface SchemaExtensions {
   readonly "x-derived-from"?: string;
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string; // User-requested: explicit template for array items
-  readonly "x-template-format"?: "json" | "yaml" | "toml" | "markdown"; // User-requested: output format specification
+  readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
   readonly "x-jmespath-filter"?: string; // User-requested: JMESPath expression for data filtering
   readonly "x-base-property"?: boolean; // Base property marker
   readonly "x-default-value"?: unknown; // Default value for base properties
@@ -359,7 +359,7 @@ export class SchemaPropertyUtils {
   static getTemplateFormat(
     schema: SchemaProperty,
   ): Result<
-    "json" | "yaml" | "toml" | "markdown",
+    "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
     const templateFormat = schema.extensions?.["x-template-format"];
@@ -367,7 +367,7 @@ export class SchemaPropertyUtils {
       // Validate format and ensure type safety
       if (
         templateFormat === "json" || templateFormat === "yaml" ||
-        templateFormat === "toml" || templateFormat === "markdown"
+        templateFormat === "markdown"
       ) {
         return { ok: true, data: templateFormat };
       }
@@ -376,7 +376,7 @@ export class SchemaPropertyUtils {
         error: {
           kind: "InvalidTemplateFormat",
           message:
-            `Invalid x-template-format: ${templateFormat}. Must be one of: json, yaml, toml, markdown`,
+            `Invalid x-template-format: ${templateFormat}. Must be one of: json, yaml, markdown`,
         },
       };
     }
