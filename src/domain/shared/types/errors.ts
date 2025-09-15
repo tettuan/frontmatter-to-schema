@@ -129,7 +129,14 @@ export type PerformanceError =
   | { readonly kind: "MemoryMonitorError"; readonly content: string }
   | { readonly kind: "InvalidMemoryComparison"; readonly content: string }
   | { readonly kind: "MemoryBoundsViolation"; readonly content: string }
-  | { readonly kind: "InsufficientData"; readonly content: string };
+  | { readonly kind: "InsufficientData"; readonly content: string }
+  | { readonly kind: "TestScenarioError"; readonly content: string }
+  | { readonly kind: "PipelineExecutionError"; readonly content: string }
+  | { readonly kind: "DirectoryCreationError"; readonly content: string }
+  | { readonly kind: "FileWriteError"; readonly content: string }
+  | { readonly kind: "SchemaWriteError"; readonly content: string }
+  | { readonly kind: "TemplateWriteError"; readonly content: string }
+  | { readonly kind: "CleanupError"; readonly content: string };
 
 export type DomainError =
   | ValidationError
@@ -313,6 +320,20 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Memory bounds violation: ${error.content}`;
     case "InsufficientData":
       return `Insufficient data: ${error.content}`;
+    case "TestScenarioError":
+      return `Test scenario error: ${error.content}`;
+    case "PipelineExecutionError":
+      return `Pipeline execution error: ${error.content}`;
+    case "DirectoryCreationError":
+      return `Directory creation error: ${error.content}`;
+    case "FileWriteError":
+      return `File write error: ${error.content}`;
+    case "SchemaWriteError":
+      return `Schema write error: ${error.content}`;
+    case "TemplateWriteError":
+      return `Template write error: ${error.content}`;
+    case "CleanupError":
+      return `Cleanup error: ${error.content}`;
     default: {
       const _exhaustive: never = error;
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
