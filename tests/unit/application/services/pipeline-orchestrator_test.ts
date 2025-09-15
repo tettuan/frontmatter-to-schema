@@ -8,6 +8,7 @@ import {
   VerbosityConfig,
 } from "../../../../src/application/services/pipeline-orchestrator.ts";
 // Note: The actual service imports are not needed since we're using mocks
+import { SchemaCacheFactory } from "../../../../src/infrastructure/caching/schema-cache.ts";
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../../../src/domain/schema/value-objects/validation-rules.ts";
@@ -228,6 +229,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -235,6 +237,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -262,6 +265,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -269,6 +273,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig({
@@ -294,6 +299,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -301,6 +307,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -321,6 +328,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -328,6 +336,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -364,12 +373,14 @@ describe("PipelineOrchestrator", () => {
         }),
       );
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -406,6 +417,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -413,6 +425,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -452,12 +465,14 @@ describe("PipelineOrchestrator", () => {
 
       const templateResolver = new MockTemplatePathResolver();
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -511,12 +526,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -568,12 +585,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig({
@@ -603,6 +622,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -610,6 +630,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig({
@@ -642,6 +663,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -649,6 +671,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -673,6 +696,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -680,6 +704,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -699,6 +724,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -706,6 +732,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       // Test with non-existent file to trigger file reading failure
@@ -738,6 +765,7 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -745,6 +773,7 @@ describe("PipelineOrchestrator", () => {
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -802,12 +831,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -858,12 +889,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -913,12 +946,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig();
@@ -970,12 +1005,14 @@ describe("PipelineOrchestrator", () => {
         outputFormat: "json",
       });
 
+      const schemaCache = SchemaCacheFactory.createForTesting();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
         templateResolver as any,
         fileSystem,
+        schemaCache,
       );
 
       const config = createTestConfig({

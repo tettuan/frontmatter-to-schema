@@ -15,6 +15,9 @@ import { Aggregator } from "../../domain/aggregation/aggregators/aggregator.ts";
 import { BasePropertyPopulator } from "../../domain/schema/services/base-property-populator.ts";
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
+import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -26,21 +29,32 @@ import {
 
 export class CLI {
   private orchestrator: PipelineOrchestrator;
+  private logger: DebugLogger;
 
-  private constructor(orchestrator: PipelineOrchestrator) {
+  private constructor(orchestrator: PipelineOrchestrator, logger: DebugLogger) {
     this.orchestrator = orchestrator;
+    this.logger = logger;
   }
 
   static create(): Result<CLI, DomainError> {
-    const orchestratorResult = CLI.createOrchestrator(false);
+    // Create default null logger for non-verbose mode
+    const loggerResult = DebugLoggerFactory.createFromEnvironment(false);
+    if (!loggerResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Failed to create logger",
+      }));
+    }
+
+    const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
     if (!orchestratorResult.ok) {
       return err(orchestratorResult.error);
     }
-    return ok(new CLI(orchestratorResult.data));
+    return ok(new CLI(orchestratorResult.data, loggerResult.data));
   }
 
   private static createOrchestrator(
-    _verbose: boolean,
+    logger: DebugLogger,
   ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
@@ -107,6 +121,9 @@ export class CLI {
     // Create TemplatePathResolver
     const templatePathResolver = new TemplatePathResolver();
 
+    // Create SchemaCache with default configuration
+    const schemaCache = SchemaCacheFactory.create();
+
     // Create file system adapter
     const fileSystem = {
       read: (path: string) => fileReader.read(path),
@@ -121,6 +138,8 @@ export class CLI {
         outputRenderingService,
         templatePathResolver,
         fileSystem,
+        schemaCache,
+        logger,
       ),
     );
   }
@@ -213,13 +232,22 @@ DESCRIPTION:
     outputPath: string,
     verbose: boolean = false,
   ): Promise<Result<void, DomainError & { message: string }>> {
-    // Recreate orchestrator with verbose flag if needed
+    // Recreate orchestrator and logger with proper verbose configuration if needed
     if (verbose) {
-      const orchestratorResult = CLI.createOrchestrator(verbose);
+      const loggerResult = DebugLoggerFactory.createFromEnvironment(verbose);
+      if (!loggerResult.ok) {
+        return Promise.resolve(err(createError({
+          kind: "ConfigurationError",
+          message: "Failed to create verbose logger",
+        })));
+      }
+
+      const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
       if (!orchestratorResult.ok) {
         return Promise.resolve(err(createError(orchestratorResult.error)));
       }
       this.orchestrator = orchestratorResult.data;
+      this.logger = loggerResult.data;
     }
 
     // Create discriminated union configurations following Totality principles
@@ -236,12 +264,12 @@ DESCRIPTION:
       verbosityConfig,
     };
 
-    if (verbose) {
-      console.log("[VERBOSE] Starting pipeline with configuration:");
-      console.log("[VERBOSE]   Schema: " + schemaPath);
-      console.log("[VERBOSE]   Output: " + outputPath);
-      console.log("[VERBOSE]   Pattern: " + inputPattern);
-    }
+    // Use proper logging instead of hardcoded verbose conditionals
+    this.logger.info("Starting pipeline with configuration", {
+      operation: "pipeline-start",
+      timestamp: new Date().toISOString(),
+      inputs: JSON.stringify({ schemaPath, outputPath, inputPattern }),
+    });
 
     const result = await this.orchestrator.execute(config);
     if (!result.ok) {

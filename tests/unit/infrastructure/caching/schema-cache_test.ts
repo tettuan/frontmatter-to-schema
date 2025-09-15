@@ -1,7 +1,7 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import {
   SchemaCache,
-  SchemaCacheManager,
+  SchemaCacheFactory,
 } from "../../../../src/infrastructure/caching/schema-cache.ts";
 import { SchemaDefinition } from "../../../../src/domain/schema/value-objects/schema-definition.ts";
 
@@ -369,29 +369,28 @@ Deno.test("SchemaCache", async (t) => {
   });
 });
 
-Deno.test("SchemaCacheManager", async (t) => {
-  await t.step("should provide singleton instance", () => {
-    const instance1 = SchemaCacheManager.getInstance();
-    const instance2 = SchemaCacheManager.getInstance();
+Deno.test("SchemaCacheFactory", async (t) => {
+  await t.step("should create new instances", () => {
+    const instance1 = SchemaCacheFactory.create();
+    const instance2 = SchemaCacheFactory.create();
 
-    assertEquals(instance1, instance2);
-  });
-
-  await t.step("should reset instance correctly", () => {
-    const instance1 = SchemaCacheManager.getInstance();
-    SchemaCacheManager.resetInstance();
-    const instance2 = SchemaCacheManager.getInstance();
-
+    // Each instance should be independent (no singleton)
     assertEquals(instance1 !== instance2, true);
   });
 
-  await t.step("should accept configuration for new instance", () => {
-    SchemaCacheManager.resetInstance();
-
+  await t.step("should create instances with custom configuration", () => {
     const config = { maxEntries: 200 };
-    const instance = SchemaCacheManager.getInstance(config);
+    const instance = SchemaCacheFactory.create(config);
 
     const stats = instance.getStats();
     assertEquals(stats.totalEntries, 0);
+  });
+
+  await t.step("should create testing instances with optimized config", () => {
+    const testInstance = SchemaCacheFactory.createForTesting();
+
+    const stats = testInstance.getStats();
+    assertEquals(stats.totalEntries, 0);
+    // Testing instances should have shorter TTL and smaller capacity
   });
 });

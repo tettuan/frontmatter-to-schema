@@ -12,6 +12,7 @@ import { TemplateRenderer } from "../../../src/domain/template/renderers/templat
 import { OutputRenderingService } from "../../../src/domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../../src/domain/template/services/template-path-resolver.ts";
 import { FrontmatterProcessor } from "../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
+import { SchemaCacheFactory } from "../../../src/infrastructure/caching/schema-cache.ts";
 import { err, ok, Result } from "../../../src/domain/shared/types/result.ts";
 import {
   createError,
@@ -234,6 +235,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
+    const schemaCache = SchemaCacheFactory.createForTesting();
 
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
@@ -241,6 +243,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       outputRenderingService,
       templatePathResolver,
       fileSystem,
+      schemaCache,
     );
 
     // Execute pipeline
@@ -337,6 +340,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
+    const schemaCache = SchemaCacheFactory.createForTesting();
 
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
@@ -344,6 +348,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       outputRenderingService,
       templatePathResolver,
       fileSystem,
+      schemaCache,
     );
 
     // Execute
@@ -408,6 +413,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
+    const schemaCache = SchemaCacheFactory.createForTesting();
 
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
@@ -415,6 +421,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       outputRenderingService,
       templatePathResolver,
       fileSystem,
+      schemaCache,
     );
 
     // Execute with non-existent schema
@@ -489,6 +496,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
+    const schemaCache = SchemaCacheFactory.createForTesting();
 
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
@@ -496,6 +504,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       outputRenderingService,
       templatePathResolver,
       fileSystem,
+      schemaCache,
     );
 
     // Execute
@@ -585,6 +594,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
+    const schemaCache = SchemaCacheFactory.createForTesting();
 
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
@@ -592,6 +602,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       outputRenderingService,
       templatePathResolver,
       fileSystem,
+      schemaCache,
     );
 
     // Execute
