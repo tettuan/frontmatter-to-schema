@@ -270,6 +270,63 @@ describe("UnifiedVariableReplacementStrategy", () => {
         );
       });
 
+      it("should handle null/undefined values in verbose mode by preserving template variables", () => {
+        // Arrange
+        const result = UnifiedVariableReplacementStrategy.create();
+        assertEquals(result.ok, true);
+        if (!result.ok) return;
+
+        const strategy = result.data;
+        const data = createTestFrontmatterData({
+          title: "Test",
+          nullValue: null,
+          undefinedValue: undefined,
+        });
+        const context = createVerboseTestContext();
+
+        // Act
+        const replaceResult = strategy.replaceVariables(
+          "Title: {title}, Null: {nullValue}, Undefined: {undefinedValue}",
+          data,
+          context,
+        );
+
+        // Assert
+        assertEquals(replaceResult.ok, true);
+        if (!replaceResult.ok) return;
+
+        assertEquals(
+          replaceResult.data,
+          "Title: Test, Null: {nullValue}, Undefined: {undefinedValue}",
+        );
+      });
+
+      it("should handle missing variables in verbose mode by preserving template variables", () => {
+        // Arrange
+        const result = UnifiedVariableReplacementStrategy.create();
+        assertEquals(result.ok, true);
+        if (!result.ok) return;
+
+        const strategy = result.data;
+        const data = createTestFrontmatterData({
+          title: "Test",
+        });
+        const context = createVerboseTestContext();
+
+        // Act
+        const replaceResult = strategy.replaceVariables(
+          "Title: {title}, Missing: {missing_var}",
+          data,
+          context,
+        );
+
+        // Assert
+        assertEquals(replaceResult.ok, true);
+        if (!replaceResult.ok) return;
+
+        assertEquals(replaceResult.data, "Title: Test, Missing: {missing_var}");
+      });
+
       it("should handle complex data types in variables", () => {
         // Arrange
         const result = UnifiedVariableReplacementStrategy.create();
@@ -534,6 +591,42 @@ describe("UnifiedVariableReplacementStrategy", () => {
         assertEquals(Array.isArray(resultObj.tagList), true); // Preserved array
         assertEquals(typeof resultObj.versionInfo, "object"); // Preserved object
         assertEquals(resultObj.mixedText, "Count: 42"); // Converted to string
+      });
+
+      it("should handle verbose mode for JSON object property values", () => {
+        // Arrange
+        const result = UnifiedVariableReplacementStrategy.create();
+        assertEquals(result.ok, true);
+        if (!result.ok) return;
+
+        const strategy = result.data;
+        const data = createTestFrontmatterData({
+          title: "Test",
+          nullValue: null,
+        });
+        const context = createVerboseTestContext();
+
+        // Act
+        const replaceResult = strategy.replaceVariables(
+          {
+            documentTitle: "{title}",
+            missingField: "{missing_var}",
+            nullField: "{nullValue}",
+            staticField: "No variables here",
+          },
+          data,
+          context,
+        );
+
+        // Assert
+        assertEquals(replaceResult.ok, true);
+        if (!replaceResult.ok) return;
+
+        const result_data = replaceResult.data as Record<string, unknown>;
+        assertEquals(result_data.documentTitle, "Test");
+        assertEquals(result_data.missingField, "{missing_var}"); // Preserved in verbose mode
+        assertEquals(result_data.nullField, "{nullValue}"); // Preserved in verbose mode
+        assertEquals(result_data.staticField, "No variables here");
       });
 
       it("should handle nested objects recursively", () => {
@@ -959,4 +1052,12 @@ function createArrayExpansionContext(arrayData: unknown[]): ProcessingContext {
 
 function createArrayProcessingContext(arrayData: unknown[]): ProcessingContext {
   return createTestContext(false, true, arrayData);
+}
+
+function createVerboseTestContext(): ProcessingContext {
+  const result = ProcessingContext.forSingleItem({ kind: "verbose" });
+  if (!result.ok) {
+    throw new Error("Failed to create verbose context");
+  }
+  return result.data;
 }
