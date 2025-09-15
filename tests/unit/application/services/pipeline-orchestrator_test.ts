@@ -1,14 +1,11 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import {
-  PipelineOrchestrator,
-  PipelineConfig,
   FileSystem,
+  PipelineConfig,
+  PipelineOrchestrator,
 } from "../../../../src/application/services/pipeline-orchestrator.ts";
-import { FrontmatterTransformationService } from "../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
-import { SchemaProcessingService } from "../../../../src/domain/schema/services/schema-processing-service.ts";
-import { OutputRenderingService } from "../../../../src/domain/template/services/output-rendering-service.ts";
-import { TemplatePathResolver } from "../../../../src/domain/template/services/template-path-resolver.ts";
+// Note: The actual service imports are not needed since we're using mocks
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../../../src/domain/schema/value-objects/validation-rules.ts";
@@ -86,10 +83,10 @@ describe("PipelineOrchestrator", () => {
     }
 
     transformDocuments(
-      pattern: string,
-      rules: ValidationRules,
-      schema: Schema,
-      verbose?: boolean,
+      _pattern: string,
+      _rules: ValidationRules,
+      _schema: Schema,
+      _verbose?: boolean,
     ): Result<FrontmatterData, DomainError & { message: string }> {
       if (this.shouldFail && this.errorToReturn) {
         return err(this.errorToReturn);
@@ -112,7 +109,7 @@ describe("PipelineOrchestrator", () => {
 
     process(
       data: FrontmatterData,
-      schema: Schema,
+      _schema: Schema,
     ): Result<FrontmatterData, DomainError & { message: string }> {
       if (this.shouldFail && this.errorToReturn) {
         return err(this.errorToReturn);
@@ -131,12 +128,12 @@ describe("PipelineOrchestrator", () => {
     }
 
     renderOutput(
-      templatePath: string,
-      itemsTemplatePath: string | undefined,
-      mainData: FrontmatterData,
-      itemsData: FrontmatterData[] | undefined,
-      outputPath: string,
-      outputFormat: string,
+      _templatePath: string,
+      _itemsTemplatePath: string | undefined,
+      _mainData: FrontmatterData,
+      _itemsData: FrontmatterData[] | undefined,
+      _outputPath: string,
+      _outputFormat: string,
     ): Result<void, DomainError & { message: string }> {
       if (this.shouldFail && this.errorToReturn) {
         return err(this.errorToReturn);
@@ -171,8 +168,8 @@ describe("PipelineOrchestrator", () => {
     }
 
     resolveTemplatePaths(
-      schema: Schema,
-      config: { schemaPath: string; explicitTemplatePath?: string },
+      _schema: Schema,
+      _config: { schemaPath: string; explicitTemplatePath?: string },
     ): Result<
       {
         templatePath: string;
@@ -272,10 +269,13 @@ describe("PipelineOrchestrator", () => {
 
     it("should handle schema loading failure", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setShouldFail(true, createError({
-        kind: "FileNotFound",
-        path: "/test/schema.json",
-      }));
+      fileSystem.setShouldFail(
+        true,
+        createError({
+          kind: "FileNotFound",
+          path: "/test/schema.json",
+        }),
+      );
 
       const frontmatterTransformer = new MockFrontmatterTransformationService();
       const schemaProcessor = new MockSchemaProcessingService();
@@ -351,10 +351,13 @@ describe("PipelineOrchestrator", () => {
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
       const templateResolver = new MockTemplatePathResolver();
-      templateResolver.setShouldFail(true, createError({
-        kind: "TemplateNotFound",
-        path: "/test/template.json",
-      }));
+      templateResolver.setShouldFail(
+        true,
+        createError({
+          kind: "TemplateNotFound",
+          path: "/test/template.json",
+        }),
+      );
 
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
@@ -391,10 +394,13 @@ describe("PipelineOrchestrator", () => {
       );
 
       const frontmatterTransformer = new MockFrontmatterTransformationService();
-      frontmatterTransformer.setShouldFail(true, createError({
-        kind: "ExtractionFailed",
-        message: "Failed to transform documents",
-      }));
+      frontmatterTransformer.setShouldFail(
+        true,
+        createError({
+          kind: "ExtractionFailed",
+          message: "Failed to transform documents",
+        }),
+      );
 
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
@@ -439,10 +445,13 @@ describe("PipelineOrchestrator", () => {
 
       const schemaProcessor = new MockSchemaProcessingService();
       const outputRenderer = new MockOutputRenderingService();
-      outputRenderer.setShouldFail(true, createError({
-        kind: "RenderFailed",
-        message: "Failed to render output",
-      }));
+      outputRenderer.setShouldFail(
+        true,
+        createError({
+          kind: "RenderFailed",
+          message: "Failed to render output",
+        }),
+      );
 
       const templateResolver = new MockTemplatePathResolver();
 

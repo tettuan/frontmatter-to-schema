@@ -7,11 +7,15 @@ import {
 } from "../../../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
-import { err, ok, Result } from "../../../../../src/domain/shared/types/result.ts";
+import {
+  err,
+  ok,
+  Result,
+} from "../../../../../src/domain/shared/types/result.ts";
 import {
   createError,
   FrontmatterError,
-  ValidationError,
+  ValidationError as _ValidationError,
 } from "../../../../../src/domain/shared/types/errors.ts";
 
 describe("FrontmatterProcessor", () => {
@@ -21,7 +25,10 @@ describe("FrontmatterProcessor", () => {
     private errorToReturn?: FrontmatterError & { message: string };
     private dataToReturn = { frontmatter: "title: Test", body: "Body content" };
 
-    setShouldFail(fail: boolean, error?: FrontmatterError & { message: string }) {
+    setShouldFail(
+      fail: boolean,
+      error?: FrontmatterError & { message: string },
+    ) {
       this.shouldFail = fail;
       this.errorToReturn = error;
     }
@@ -30,7 +37,7 @@ describe("FrontmatterProcessor", () => {
       this.dataToReturn = data;
     }
 
-    extract(content: string): Result<{
+    extract(_content: string): Result<{
       frontmatter: string;
       body: string;
     }, FrontmatterError & { message: string }> {
@@ -46,7 +53,10 @@ describe("FrontmatterProcessor", () => {
     private errorToReturn?: FrontmatterError & { message: string };
     private dataToReturn: unknown = { title: "Test" };
 
-    setShouldFail(fail: boolean, error?: FrontmatterError & { message: string }) {
+    setShouldFail(
+      fail: boolean,
+      error?: FrontmatterError & { message: string },
+    ) {
       this.shouldFail = fail;
       this.errorToReturn = error;
     }
@@ -55,7 +65,9 @@ describe("FrontmatterProcessor", () => {
       this.dataToReturn = data;
     }
 
-    parse(yaml: string): Result<unknown, FrontmatterError & { message: string }> {
+    parse(
+      _yaml: string,
+    ): Result<unknown, FrontmatterError & { message: string }> {
       if (this.shouldFail && this.errorToReturn) {
         return err(this.errorToReturn);
       }
@@ -71,7 +83,8 @@ describe("FrontmatterProcessor", () => {
 
       const processor = new FrontmatterProcessor(extractor, parser);
 
-      const content = "---\ntitle: Test Document\nauthor: John\n---\nBody content";
+      const content =
+        "---\ntitle: Test Document\nauthor: John\n---\nBody content";
       const result = processor.extract(content);
 
       assertEquals(result.ok, true);
@@ -122,10 +135,13 @@ describe("FrontmatterProcessor", () => {
 
     it("should handle extraction failure", () => {
       const extractor = new MockFrontmatterExtractor();
-      extractor.setShouldFail(true, createError({
-        kind: "ExtractionFailed",
-        message: "Failed to extract frontmatter",
-      }));
+      extractor.setShouldFail(
+        true,
+        createError({
+          kind: "ExtractionFailed",
+          message: "Failed to extract frontmatter",
+        }),
+      );
       const parser = new MockFrontmatterParser();
 
       const processor = new FrontmatterProcessor(extractor, parser);
@@ -141,12 +157,18 @@ describe("FrontmatterProcessor", () => {
 
     it("should handle parsing failure", () => {
       const extractor = new MockFrontmatterExtractor();
-      extractor.setDataToReturn({ frontmatter: "invalid: yaml: content:", body: "Body" });
+      extractor.setDataToReturn({
+        frontmatter: "invalid: yaml: content:",
+        body: "Body",
+      });
       const parser = new MockFrontmatterParser();
-      parser.setShouldFail(true, createError({
-        kind: "InvalidYaml",
-        message: "Failed to parse YAML",
-      }));
+      parser.setShouldFail(
+        true,
+        createError({
+          kind: "InvalidYaml",
+          message: "Failed to parse YAML",
+        }),
+      );
 
       const processor = new FrontmatterProcessor(extractor, parser);
 
@@ -373,7 +395,10 @@ describe("FrontmatterProcessor", () => {
       });
       if (!dataResult.ok) throw new Error("Failed to create test data");
 
-      const result = processor.extractFromPart(dataResult.data, "data.nested.items");
+      const result = processor.extractFromPart(
+        dataResult.data,
+        "data.nested.items",
+      );
 
       assertEquals(Array.isArray(result), true);
       assertEquals(result.length, 2);
@@ -438,7 +463,9 @@ describe("FrontmatterProcessor", () => {
       const processor = new FrontmatterProcessor(extractor, parser);
 
       // Extract
-      const extractResult = processor.extract("---\ntitle: Test\ncount: 5\n---\nDocument body");
+      const extractResult = processor.extract(
+        "---\ntitle: Test\ncount: 5\n---\nDocument body",
+      );
       assertEquals(extractResult.ok, true);
 
       if (extractResult.ok) {
@@ -478,7 +505,10 @@ describe("FrontmatterProcessor", () => {
 
       if (extractResult.ok) {
         // Extract from part
-        const items = processor.extractFromPart(extractResult.data.frontmatter, "items");
+        const items = processor.extractFromPart(
+          extractResult.data.frontmatter,
+          "items",
+        );
 
         assertEquals(items.length, 2);
 
