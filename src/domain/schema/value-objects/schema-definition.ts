@@ -139,7 +139,7 @@ export class SchemaDefinition {
    * Get template output format from x-template-format extension (user-requested feature)
    */
   getTemplateFormat(): Result<
-    "json" | "yaml" | "toml" | "markdown",
+    "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
     return SchemaPropertyUtils.getTemplateFormat(this.schema);

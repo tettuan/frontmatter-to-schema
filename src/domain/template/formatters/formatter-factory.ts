@@ -3,7 +3,6 @@ import { createError, DomainError } from "../../shared/types/errors.ts";
 import { OutputFormat, OutputFormatter } from "./output-formatter.ts";
 import { JsonFormatter } from "./json-formatter.ts";
 import { YamlFormatter } from "./yaml-formatter.ts";
-import { TomlFormatter } from "./toml-formatter.ts";
 import { MarkdownFormatter } from "./markdown-formatter.ts";
 
 /**
@@ -16,7 +15,6 @@ export class FormatterFactory {
   >([
     ["json", () => new JsonFormatter()],
     ["yaml", () => new YamlFormatter()],
-    ["toml", () => new TomlFormatter()],
     ["markdown", () => new MarkdownFormatter()],
   ]);
 

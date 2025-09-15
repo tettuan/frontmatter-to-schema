@@ -198,14 +198,15 @@ export class SchemaProcessingService {
     schema: Schema,
     schemaPath: string,
   ): Result<string | undefined, DomainError & { message: string }> {
-    // Get x-template-items from schema if it exists
-    const schemaData = schema.getDefinition().getRawSchema() as Record<
-      string,
-      unknown
-    >;
-    const itemsTemplatePath = schemaData["x-template-items"] as
-      | string
-      | undefined;
+    // Use proper domain method instead of unsafe type assertion
+    const itemsTemplateResult = schema.getDefinition().getTemplateItems();
+
+    if (!itemsTemplateResult.ok) {
+      // x-template-items not defined, return undefined (not an error)
+      return ok(undefined);
+    }
+
+    const itemsTemplatePath = itemsTemplateResult.data;
 
     if (!itemsTemplatePath) {
       return ok(undefined);
