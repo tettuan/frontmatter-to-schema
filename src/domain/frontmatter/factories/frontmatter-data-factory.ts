@@ -122,4 +122,36 @@ export class FrontmatterDataFactory {
 
     return { successful, failed };
   }
+
+  /**
+   * Merge multiple FrontmatterData instances into one
+   */
+  static merge(
+    dataArray: FrontmatterData[],
+  ): Result<FrontmatterData, FrontmatterError & { message: string }> {
+    if (dataArray.length === 0) {
+      return ok(FrontmatterData.empty());
+    }
+
+    let merged: Record<string, unknown> = {};
+    for (const data of dataArray) {
+      // Use getData to get the raw data
+      merged = { ...merged, ...data.getData() };
+    }
+
+    return FrontmatterData.create(merged);
+  }
+
+  /**
+   * Apply defaults to FrontmatterData
+   */
+  static withDefaults(
+    data: FrontmatterData,
+    defaults: Record<string, unknown>,
+  ): Result<FrontmatterData, FrontmatterError & { message: string }> {
+    // Use getData to get the raw data, then merge with defaults (data overrides defaults)
+    const base = data.getData();
+    const merged = { ...defaults, ...base };
+    return FrontmatterData.create(merged);
+  }
 }
