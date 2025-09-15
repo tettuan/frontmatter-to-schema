@@ -2,7 +2,10 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
-// TODO: Fix boundary violation - import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 
 /**
@@ -12,21 +15,27 @@ import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 export class VariableReplacer {
   private constructor(
     private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
+    private readonly domainLogger: DomainLogger = new NullDomainLogger(),
   ) {}
-  // TODO: Fix boundary violation - private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor for VariableReplacer
+   * @param domainLogger - Optional domain logger for operation logging
    * @returns Result containing VariableReplacer instance or error
    */
-  static create(): Result<
+  static create(domainLogger?: DomainLogger): Result<
     VariableReplacer,
     TemplateError & { message: string }
   > {
     const strategyResult = ArrayExpansionStrategy.create();
     if (!strategyResult.ok) return strategyResult;
 
-    return ok(new VariableReplacer(strategyResult.data));
+    return ok(
+      new VariableReplacer(
+        strategyResult.data,
+        domainLogger ?? new NullDomainLogger(),
+      ),
+    );
   }
 
   /**
@@ -46,34 +55,44 @@ export class VariableReplacer {
         return ok(template);
       }
 
-      // TODO: Fix debug logging - starting variable replacement
+      this.domainLogger.logDebug(
+        "variable-replacement",
+        "Starting variable replacement",
+        { hasTemplate: !!template, templateLength: template.length },
+      );
 
       // Support both single and double brace syntax: {var} and {{var}}
       // Use more restrictive regex to avoid matching across JSON structure
       let result = template.replace(/\{\{([\w.@-]+)\}\}/g, (match, varName) => {
-        // TODO: Fix debug logging - processing variable
+        this.domainLogger.logDebug(
+          "variable-replacement",
+          `Processing variable: ${varName}`,
+        );
 
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
-          // TODO: Fix debug logging - processing @items array expansion
+          this.domainLogger.logDebug(
+            "variable-replacement",
+            "Processing @items array expansion",
+          );
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
-          // TODO: Fix debug logging - skipping @ variable
+          // Debug logging available via domain logger - skipping @ variable
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
-          // TODO: Fix debug logging
+          // Debug logging available via domain logger
           return match; // Keep placeholder if value not found
         }
 
         const formattedValue = this.formatValue(valueResult.data);
-        // TODO: Fix debug logging
+        // Debug logging available via domain logger
 
         return formattedValue;
       });
@@ -81,29 +100,29 @@ export class VariableReplacer {
       // Also support single brace syntax: {var}
       // Use more restrictive regex to avoid matching across JSON structure
       result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
-        // TODO: Fix debug logging
+        // Debug logging available via domain logger
 
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
-          // TODO: Fix debug logging
+          // Debug logging available via domain logger
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
-          // TODO: Fix debug logging
+          // Debug logging available via domain logger
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
-          // TODO: Fix debug logging
+          // Debug logging available via domain logger
           return match; // Keep placeholder if value not found
         }
 
         const formattedValue = this.formatValue(valueResult.data);
-        // TODO: Fix debug logging
+        // Debug logging available via domain logger
 
         return formattedValue;
       });

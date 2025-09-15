@@ -26,10 +26,12 @@ export type ValidationError =
     readonly actual: string;
   }
   | { readonly kind: "MissingRequired"; readonly field: string }
+  | { readonly kind: "TooManyArguments"; readonly field: string }
   | {
     readonly kind: "InvalidFormat";
     readonly format: string;
-    readonly value: string;
+    readonly value?: string;
+    readonly field?: string;
   }
   | { readonly kind: "FieldNotFound"; readonly path: string }
   | { readonly kind: "ValidationRuleNotFound"; readonly path: string };
@@ -218,6 +220,8 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Expected type ${error.expected}, got ${error.actual}`;
     case "MissingRequired":
       return `Required field "${error.field}" is missing`;
+    case "TooManyArguments":
+      return `Too many arguments provided for ${error.field}`;
     case "InvalidFormat":
       return `Invalid ${error.format} format: ${
         "value" in error ? error.value : ""

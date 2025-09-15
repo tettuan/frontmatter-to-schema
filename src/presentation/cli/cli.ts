@@ -18,6 +18,9 @@ import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
+import { CLIArguments } from "./value-objects/cli-arguments.ts";
+import { PathExpansionService } from "./services/path-expansion-service.ts";
+import { CLIErrorMessageService } from "./services/cli-error-message-service.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -30,13 +33,19 @@ import {
 export class CLI {
   private orchestrator: PipelineOrchestrator;
   private logger: EnhancedDebugLogger;
+  private pathExpansionService: PathExpansionService;
+  private errorMessageService: CLIErrorMessageService;
 
   private constructor(
     orchestrator: PipelineOrchestrator,
     logger: EnhancedDebugLogger,
+    pathExpansionService: PathExpansionService,
+    errorMessageService: CLIErrorMessageService,
   ) {
     this.orchestrator = orchestrator;
     this.logger = logger;
+    this.pathExpansionService = pathExpansionService;
+    this.errorMessageService = errorMessageService;
   }
 
   static create(): Result<CLI, DomainError> {
@@ -49,11 +58,36 @@ export class CLI {
       }));
     }
 
+    // Create CLI services
+    const pathExpansionResult = PathExpansionService.create();
+    if (!pathExpansionResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Failed to create path expansion service",
+      }));
+    }
+
+    const errorMessageResult = CLIErrorMessageService.create();
+    if (!errorMessageResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Failed to create error message service",
+      }));
+    }
+
     const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
     if (!orchestratorResult.ok) {
       return err(orchestratorResult.error);
     }
-    return ok(new CLI(orchestratorResult.data, loggerResult.data));
+
+    return ok(
+      new CLI(
+        orchestratorResult.data,
+        loggerResult.data,
+        pathExpansionResult.data,
+        errorMessageResult.data,
+      ),
+    );
   }
 
   private static createOrchestrator(
@@ -162,33 +196,43 @@ export class CLI {
       return Promise.resolve(ok(void 0));
     }
 
-    // Extract verbose flag
-    const verbose = args.includes("--verbose");
-    const filteredArgs = args.filter((arg) => arg !== "--verbose");
-
-    // Argument validation
-    if (filteredArgs.length < 3) {
-      // Use errorOutput for user-facing errors that must be visible
-      const logResult = this.logger.errorOutput("Missing required arguments");
+    // Parse and validate CLI arguments using new CLIArguments value object
+    const cliArgsResult = CLIArguments.create(args);
+    if (!cliArgsResult.ok) {
+      const errorMessage = this.errorMessageService.generateErrorMessage(
+        cliArgsResult.error,
+      );
+      const logResult = this.logger.errorOutput(errorMessage);
       if (!logResult.ok) {
         // Fallback to console.error if logger fails
-        console.error("Error: Missing required arguments");
+        console.error(errorMessage);
       }
-      this.showUsage();
-      return Promise.resolve(err(createError({
-        kind: "MissingRequired",
-        field: "arguments",
-      })));
+      return Promise.resolve(err(cliArgsResult.error));
     }
 
-    const [schemaPath, inputPattern, outputPath] = filteredArgs;
+    const cliArgs = cliArgsResult.data;
 
-    // Execute command - this is async and contains await
+    // Expand input pattern (directory → glob pattern)
+    const expandedPatternResult = this.pathExpansionService.expandInputPattern(
+      cliArgs.inputPattern,
+    );
+    if (!expandedPatternResult.ok) {
+      const errorMessage = this.errorMessageService.generateErrorMessage(
+        expandedPatternResult.error,
+      );
+      const logResult = this.logger.errorOutput(errorMessage);
+      if (!logResult.ok) {
+        console.error(errorMessage);
+      }
+      return Promise.resolve(err(expandedPatternResult.error));
+    }
+
+    // Execute command with expanded pattern
     return await this.executeCommand(
-      schemaPath,
-      inputPattern,
-      outputPath,
-      verbose,
+      cliArgs.schemaPath,
+      expandedPatternResult.data,
+      cliArgs.outputPath,
+      cliArgs.verbose,
     );
   }
 
@@ -198,21 +242,43 @@ export class CLI {
 frontmatter-to-schema - Generate JSON from Markdown frontmatter
 
 USAGE:
-  frontmatter-to-schema <schema> <pattern> <output>
+  deno run --allow-read --allow-write cli.ts <schema> <input> <output>
 
 ARGUMENTS:
   <schema>   Path to JSON schema file (e.g., schema.json)
-  <pattern>  Glob pattern for input Markdown files (e.g., "**/*.md")
-  <output>   Output file path for generated JSON (e.g., output.json)
+  <input>    Input pattern: directory, glob pattern, or single file
+             • Directory: "docs/", "examples/prompts/"
+             • Glob: "**/*.md", "docs/**/*.md"
+             • File: "readme.md", "docs/intro.md"
+  <output>   Output file path (e.g., output.json, result.yaml)
 
 OPTIONS:
   -h, --help     Show this help message
   -v, --version  Show version information
   --verbose      Enable verbose logging
 
+REQUIRED PERMISSIONS:
+  --allow-read   Read schema files and markdown documents
+  --allow-write  Write output files
+
+OPTIONAL PERMISSIONS:
+  --allow-env    Enhanced debug logging (set DEBUG_LEVEL=0-3)
+
 EXAMPLES:
-  frontmatter-to-schema schema.json output.json "docs/**/*.md"
-  frontmatter-to-schema ./config/schema.json ./dist/data.json "*.md"
+  # Process all markdown files in a directory
+  deno run --allow-read --allow-write cli.ts schema.json docs/ output.json
+
+  # Use glob pattern for specific files
+  deno run --allow-read --allow-write cli.ts schema.json "**/*.md" output.json
+
+  # Process single file
+  deno run --allow-read --allow-write cli.ts schema.json readme.md output.json
+
+  # With verbose logging
+  deno run --allow-read --allow-write cli.ts schema.json docs/ output.json --verbose
+
+  # Advanced debug logging (optional --allow-env)
+  deno run --allow-read --allow-write --allow-env cli.ts schema.json docs/ output.json
 
 DESCRIPTION:
   Extracts frontmatter from Markdown files, validates against schema,
@@ -222,7 +288,15 @@ DESCRIPTION:
   - Schema-based validation and default value population
   - Template variable resolution ({version}, {description}, etc.)
   - Derived field processing (x-derived-from schema extensions)
+  - Directory and glob pattern support
   - Comprehensive error handling with detailed messages
+  - YAML and JSON output formats
+
+TROUBLESHOOTING:
+  • Permission errors: Ensure all required permissions are granted
+  • File not found: Check paths and use absolute paths if needed
+  • Pattern issues: Use quotes around glob patterns: "**/*.md"
+  • For more help: Run with --verbose for detailed logging
 `;
     const logResult = this.logger.output(helpText);
     if (!logResult.ok) {
@@ -267,12 +341,32 @@ DESCRIPTION:
         })));
       }
 
+      // Recreate services with verbose logger
+      const pathExpansionResult = PathExpansionService.create();
+      if (!pathExpansionResult.ok) {
+        return Promise.resolve(err(createError({
+          kind: "ConfigurationError",
+          message: "Failed to create path expansion service",
+        })));
+      }
+
+      const errorMessageResult = CLIErrorMessageService.create();
+      if (!errorMessageResult.ok) {
+        return Promise.resolve(err(createError({
+          kind: "ConfigurationError",
+          message: "Failed to create error message service",
+        })));
+      }
+
       const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
       if (!orchestratorResult.ok) {
         return Promise.resolve(err(createError(orchestratorResult.error)));
       }
+
       this.orchestrator = orchestratorResult.data;
       this.logger = loggerResult.data;
+      this.pathExpansionService = pathExpansionResult.data;
+      this.errorMessageService = errorMessageResult.data;
     }
 
     // Create discriminated union configurations following Totality principles

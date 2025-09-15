@@ -13,7 +13,10 @@ import {
   ProcessingContext,
   VerbosityMode,
 } from "../value-objects/processing-context.ts";
-import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 
 /**
  * TemplateRenderer eliminates dual-path processing architecture.
@@ -31,14 +34,14 @@ export class TemplateRenderer {
     private readonly jsonFormatter: JsonFormatter,
     private readonly yamlFormatter: YamlFormatter,
     private readonly markdownFormatter: MarkdownFormatter,
-    private readonly debugLogger?: DebugLogger,
+    private readonly domainLogger: DomainLogger = new NullDomainLogger(),
   ) {}
 
   /**
    * Smart Constructor for TemplateRenderer
    * @returns Result containing TemplateRenderer instance or error
    */
-  static create(debugLogger?: DebugLogger): Result<
+  static create(domainLogger?: DomainLogger): Result<
     TemplateRenderer,
     TemplateError & { message: string }
   > {
@@ -60,7 +63,7 @@ export class TemplateRenderer {
         jsonFormatterResult.data,
         yamlFormatterResult.data,
         markdownFormatterResult.data,
-        debugLogger,
+        domainLogger ?? new NullDomainLogger(),
       ),
     );
   }
@@ -79,7 +82,7 @@ export class TemplateRenderer {
     data: FrontmatterData | FrontmatterData[],
     verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<string, TemplateError & { message: string }> {
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-render",
       "Starting unified template rendering",
       {
@@ -102,7 +105,7 @@ export class TemplateRenderer {
     const context = contextResult.data;
     const effectiveData = Array.isArray(data) ? data[0] : data; // Use first item for template processing context
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-render",
       "Processing context determined",
       {
@@ -122,7 +125,7 @@ export class TemplateRenderer {
     );
 
     if (!replacementResult.ok) {
-      this.debugLogger?.logError(
+      this.domainLogger.logError(
         "template-render",
         replacementResult.error,
         {
@@ -134,7 +137,7 @@ export class TemplateRenderer {
       return replacementResult;
     }
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-render",
       "Variable replacement completed successfully",
       {
@@ -151,7 +154,7 @@ export class TemplateRenderer {
     );
 
     if (formatResult.ok) {
-      this.debugLogger?.logInfo(
+      this.domainLogger.logInfo(
         "template-render",
         "Unified template rendering completed successfully",
         {
@@ -161,7 +164,7 @@ export class TemplateRenderer {
         },
       );
     } else {
-      this.debugLogger?.logError(
+      this.domainLogger.logError(
         "template-render",
         formatResult.error,
         {
@@ -196,7 +199,7 @@ export class TemplateRenderer {
 
       // Check if template has {@items} expansion markers
       if (contentStr.includes("{@items}")) {
-        this.debugLogger?.logDebug(
+        this.domainLogger.logDebug(
           "template-context",
           "Determined array expansion context",
           {
@@ -210,7 +213,7 @@ export class TemplateRenderer {
           verbosityMode,
         );
       } else {
-        this.debugLogger?.logDebug(
+        this.domainLogger.logDebug(
           "template-context",
           "Determined array processing context",
           {
@@ -227,7 +230,7 @@ export class TemplateRenderer {
     }
 
     // Single item processing
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-context",
       "Determined single item context",
       {
@@ -246,7 +249,7 @@ export class TemplateRenderer {
     data: unknown,
     format: "json" | "yaml" | "markdown",
   ): Result<string, TemplateError & { message: string }> {
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-format",
       `Formatting output as ${format}`,
       {
@@ -278,7 +281,7 @@ export class TemplateRenderer {
           kind: "InvalidFormat",
           format,
         });
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "template-format",
           createError({
             kind: "InvalidTemplate",
@@ -295,7 +298,7 @@ export class TemplateRenderer {
     }
 
     if (result.ok) {
-      this.debugLogger?.logDebug(
+      this.domainLogger.logDebug(
         "template-format",
         `Successfully formatted output as ${format}`,
         {
@@ -305,7 +308,7 @@ export class TemplateRenderer {
         },
       );
     } else {
-      this.debugLogger?.logError(
+      this.domainLogger.logError(
         "template-format",
         result.error,
         {
