@@ -5,6 +5,9 @@ import { SchemaPath } from "../value-objects/schema-path.ts";
 import { SchemaRepository } from "../repositories/schema-repository.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
 import { BasePropertyPopulator } from "./base-property-populator.ts";
+import { JMESPathFilterService } from "./jmespath-filter-service.ts";
+import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 
 export type ProcessedSchema =
   | {
@@ -27,6 +30,7 @@ export class SchemaProcessingService {
   constructor(
     private readonly schemaRepository: SchemaRepository,
     private readonly basePropertyPopulator: BasePropertyPopulator,
+    private readonly jmespathFilterService: JMESPathFilterService,
   ) {}
 
   /**
@@ -137,5 +141,110 @@ export class SchemaProcessingService {
     }
 
     return ok(itemsTemplatePath);
+  }
+
+  /**
+   * Apply JMESPath filtering to frontmatter data based on schema configuration
+   * Returns filtered data if schema has x-jmespath-filter, otherwise returns original data
+   *
+   * @param data - FrontmatterData to potentially filter
+   * @param schema - Schema containing potential JMESPath filter expression
+   * @returns Result with filtered data or error if filtering fails
+   */
+  applyJMESPathFiltering(
+    data: FrontmatterData,
+    schema: Schema,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const schemaDefinition = schema.getDefinition();
+
+    // Check if schema has JMESPath filter directive
+    if (!schemaDefinition.hasJMESPathFilter()) {
+      // No filtering required - return original data
+      return ok(data);
+    }
+
+    // Get the JMESPath expression
+    const filterExpressionResult = schemaDefinition.getJMESPathFilter();
+    if (!filterExpressionResult.ok) {
+      return filterExpressionResult;
+    }
+
+    const expression = filterExpressionResult.data;
+
+    // Apply the filter
+    const filteredResult = this.jmespathFilterService.applyFilter(
+      data,
+      expression,
+    );
+    if (!filteredResult.ok) {
+      return filteredResult;
+    }
+
+    // Convert filtered result back to FrontmatterData
+    const filteredDataResult = FrontmatterData.create(filteredResult.data);
+    if (!filteredDataResult.ok) {
+      return filteredDataResult;
+    }
+
+    return ok(filteredDataResult.data);
+  }
+
+  /**
+   * Apply JMESPath filtering to a specific property within a schema
+   * Useful for filtering array items or nested objects with their own filter expressions
+   *
+   * @param data - FrontmatterData to filter
+   * @param propertyPath - Path to the property in the schema (e.g., "commands", "metadata.tags")
+   * @param schema - Schema containing the property with potential JMESPath filter
+   * @returns Result with filtered data or original data if no filter is applied
+   */
+  applyPropertyJMESPathFiltering(
+    data: FrontmatterData,
+    propertyPath: string,
+    schema: Schema,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const schemaDefinition = schema.getDefinition();
+
+    // Find the property at the given path
+    const propertyResult = schemaDefinition.findProperty(propertyPath);
+    if (!propertyResult.ok) {
+      // Property not found - return original data (no filtering)
+      return ok(data);
+    }
+
+    // Create a temporary schema definition for the property
+    const propertySchemaDefinition = SchemaDefinition.fromSchemaProperty(
+      propertyResult.data,
+    );
+
+    // Check if the property has JMESPath filter
+    if (!propertySchemaDefinition.hasJMESPathFilter()) {
+      return ok(data);
+    }
+
+    // Get the filter expression for this property
+    const filterExpressionResult = propertySchemaDefinition.getJMESPathFilter();
+    if (!filterExpressionResult.ok) {
+      return filterExpressionResult;
+    }
+
+    const expression = filterExpressionResult.data;
+
+    // Apply the filter
+    const filteredResult = this.jmespathFilterService.applyFilter(
+      data,
+      expression,
+    );
+    if (!filteredResult.ok) {
+      return filteredResult;
+    }
+
+    // Convert filtered result back to FrontmatterData
+    const filteredDataResult = FrontmatterData.create(filteredResult.data);
+    if (!filteredDataResult.ok) {
+      return filteredDataResult;
+    }
+
+    return ok(filteredDataResult.data);
   }
 }

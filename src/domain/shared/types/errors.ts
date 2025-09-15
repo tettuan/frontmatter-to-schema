@@ -46,6 +46,22 @@ export type SchemaError =
   | { readonly kind: "TemplateItemsNotDefined" }
   | { readonly kind: "TemplateFormatNotDefined" }
   | { readonly kind: "InvalidTemplateFormat" }
+  | { readonly kind: "JMESPathFilterNotDefined" }
+  | {
+    readonly kind: "JMESPathCompilationFailed";
+    readonly expression: string;
+    readonly message: string;
+  }
+  | {
+    readonly kind: "JMESPathExecutionFailed";
+    readonly expression: string;
+    readonly message: string;
+  }
+  | {
+    readonly kind: "InvalidJMESPathResult";
+    readonly expression: string;
+    readonly result: unknown;
+  }
   | { readonly kind: "FrontmatterPartNotFound" }
   | { readonly kind: "SchemaNotResolved" }
   | { readonly kind: "TypeNotDefined" }
@@ -190,6 +206,14 @@ const getDefaultMessage = (error: DomainError): string => {
       return "Schema does not define x-template-format directive";
     case "InvalidTemplateFormat":
       return "Invalid template format specified";
+    case "JMESPathFilterNotDefined":
+      return "Schema does not define x-jmespath-filter directive";
+    case "JMESPathCompilationFailed":
+      return `JMESPath expression compilation failed: ${error.expression} - ${error.message}`;
+    case "JMESPathExecutionFailed":
+      return `JMESPath expression execution failed: ${error.expression} - ${error.message}`;
+    case "InvalidJMESPathResult":
+      return `Invalid JMESPath result for expression: ${error.expression}`;
     case "EnumNotDefined":
       return "Schema is not an enum type";
     case "ExtractionFailed":

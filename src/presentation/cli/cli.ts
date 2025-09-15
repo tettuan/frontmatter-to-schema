@@ -4,6 +4,7 @@ import {
 } from "../../application/services/pipeline-orchestrator.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
+import { JMESPathFilterService } from "../../domain/schema/services/jmespath-filter-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
 import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
@@ -62,9 +63,19 @@ export class CLI {
       fileLister,
     );
 
+    // Create JMESPath Filter Service
+    const jmespathFilterServiceResult = JMESPathFilterService.create();
+    if (!jmespathFilterServiceResult.ok) {
+      return err(createError({
+        kind: "RenderFailed",
+        message: "Failed to create JMESPath Filter Service",
+      }));
+    }
+
     const schemaProcessor = new SchemaProcessingService(
       schemaRepository,
       basePropertyPopulator,
+      jmespathFilterServiceResult.data,
     );
 
     // Create TemplateRenderer with verbose flag

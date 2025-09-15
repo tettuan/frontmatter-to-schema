@@ -4,6 +4,7 @@ import { SchemaError } from "../../shared/types/errors.ts";
 /**
  * Extensions for schema properties following JSON Schema extension pattern
  * Incorporates x-template-items directive for explicit array item templating
+ * Incorporates x-jmespath-filter directive for JMESPath-based data filtering
  */
 export interface SchemaExtensions {
   readonly "x-template"?: string;
@@ -12,6 +13,7 @@ export interface SchemaExtensions {
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string; // User-requested: explicit template for array items
   readonly "x-template-format"?: "json" | "yaml" | "toml" | "markdown"; // User-requested: output format specification
+  readonly "x-jmespath-filter"?: string; // User-requested: JMESPath expression for data filtering
   readonly "x-base-property"?: boolean; // Base property marker
   readonly "x-default-value"?: unknown; // Default value for base properties
   readonly description?: string;
@@ -446,5 +448,31 @@ export class SchemaPropertyUtils {
    */
   static isDerivedUnique(schema: SchemaProperty): boolean {
     return schema.extensions?.["x-derived-unique"] === true;
+  }
+
+  /**
+   * Check if schema property has JMESPath filter directive
+   */
+  static hasJMESPathFilter(schema: SchemaProperty): boolean {
+    return schema.extensions?.["x-jmespath-filter"] !== undefined;
+  }
+
+  /**
+   * Get JMESPath filter expression from schema property
+   */
+  static getJMESPathFilter(
+    schema: SchemaProperty,
+  ): Result<string, SchemaError & { message: string }> {
+    const jmespathFilter = schema.extensions?.["x-jmespath-filter"];
+    if (jmespathFilter) {
+      return { ok: true, data: jmespathFilter };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "JMESPathFilterNotDefined",
+        message: "x-jmespath-filter directive not found in schema extensions",
+      },
+    };
   }
 }

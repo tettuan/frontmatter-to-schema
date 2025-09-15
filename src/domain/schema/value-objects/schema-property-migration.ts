@@ -46,6 +46,7 @@ export interface LegacySchemaProperty {
   readonly "x-template-items"?: string;
   readonly "x-base-property"?: boolean;
   readonly "x-default-value"?: unknown;
+  readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
   readonly default?: unknown; // Standard JSON Schema default property
 }
 
@@ -137,6 +138,7 @@ export class SchemaPropertyMigration {
       "x-template-items": legacy["x-template-items"], // Support user-requested directive
       "x-base-property": legacy["x-base-property"], // Base property marker
       "x-default-value": legacy["x-default-value"], // Default value for base properties
+      "x-jmespath-filter": legacy["x-jmespath-filter"], // JMESPath filtering expression
       description: legacy.description,
     };
   }
