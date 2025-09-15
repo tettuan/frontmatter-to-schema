@@ -76,7 +76,12 @@ export class FrontmatterProcessor {
     data: FrontmatterData,
     partPath: string,
   ): FrontmatterData[] {
-    const partData = data.get(partPath);
+    const partDataResult = data.get(partPath);
+    if (!partDataResult.ok) {
+      return [];
+    }
+
+    const partData = partDataResult.data;
     if (!Array.isArray(partData)) {
       return [];
     }
