@@ -103,6 +103,9 @@ export class PipelineOrchestrator {
     // Step 1: Load and process schema
     const isVerbose = config.verbosityConfig.kind === "verbose";
     if (isVerbose) {
+      console.log(
+        `[DEBUG] Verbosity config: kind="${config.verbosityConfig.kind}", enabled=${config.verbosityConfig.enabled}`,
+      );
       console.log("[VERBOSE] Step 1: Loading schema from " + config.schemaPath);
     }
     const schemaResult = await this.loadSchema(config.schemaPath);
@@ -130,9 +133,21 @@ export class PipelineOrchestrator {
     }
 
     // Extract template configuration using discriminated union pattern
+    if (isVerbose) {
+      console.log(
+        `[DEBUG] Template config discriminated union: kind="${config.templateConfig.kind}"`,
+      );
+    }
     const explicitTemplatePath = config.templateConfig.kind === "explicit"
       ? config.templateConfig.templatePath
       : undefined;
+    if (isVerbose) {
+      console.log(
+        `[DEBUG] Resolved template path: ${
+          explicitTemplatePath ?? "schema-derived"
+        }`,
+      );
+    }
 
     const templatePathConfig = {
       schemaPath: config.schemaPath,
@@ -437,10 +452,35 @@ export class PipelineOrchestrator {
       // Create schema entity
       return Schema.create(pathResult.data, definitionResult.data);
     } catch (error) {
-      return err(createError({
+      // Create error context for schema loading failure
+      const schemaErrorContext = ErrorContextFactory.forSchema(
+        "Schema Loading",
+        schemaPath,
+        "loadSchema",
+      );
+
+      if (!schemaErrorContext.ok) {
+        return err(createError({
+          kind: "InvalidSchema",
+          message: `Failed to parse schema: ${error}`,
+        }));
+      }
+
+      const enhancedContext = schemaErrorContext.data
+        .withInput("filePath", schemaPath)
+        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
+        .withInput("errorMessage", String(error));
+
+      const baseError = createError({
         kind: "InvalidSchema",
         message: `Failed to parse schema: ${error}`,
-      }));
+      });
+
+      return err(createEnhancedError(
+        baseError,
+        enhancedContext,
+        `Schema parsing failed for ${schemaPath}`,
+      ));
     }
   }
 
@@ -479,10 +519,36 @@ export class PipelineOrchestrator {
         templateData = contentResult.data;
       }
     } catch (error) {
-      return err(createError({
+      // Create error context for template loading failure
+      const templateErrorContext = ErrorContextFactory.forTemplate(
+        "Template Loading",
+        templatePath,
+        "loadTemplate",
+      );
+
+      if (!templateErrorContext.ok) {
+        return err(createError({
+          kind: "InvalidTemplate",
+          message: `Failed to parse template: ${error}`,
+        }));
+      }
+
+      const enhancedContext = templateErrorContext.data
+        .withInput("filePath", templatePath)
+        .withInput("templateFormat", format)
+        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
+        .withInput("errorMessage", String(error));
+
+      const baseError = createError({
         kind: "InvalidTemplate",
         message: `Failed to parse template: ${error}`,
-      }));
+      });
+
+      return err(createEnhancedError(
+        baseError,
+        enhancedContext,
+        `Template parsing failed for ${templatePath}`,
+      ));
     }
 
     // Create template entity
