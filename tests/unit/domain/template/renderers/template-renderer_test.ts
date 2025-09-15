@@ -452,9 +452,9 @@ Deno.test("TemplateRenderer - should handle null and undefined values in normal 
   }
 });
 
-Deno.test("TemplateRenderer - should preserve template variables in verbose mode", () => {
+Deno.test("TemplateRenderer - should handle null/undefined values consistently", () => {
   // Arrange
-  const rendererResult = TemplateRenderer.create(undefined, true); // verbose mode
+  const rendererResult = TemplateRenderer.create(undefined, true); // verbose flag for debugging only
   if (!rendererResult.ok) {
     throw new Error(
       `Failed to create renderer: ${rendererResult.error.message}`,
@@ -480,21 +480,21 @@ Deno.test("TemplateRenderer - should preserve template variables in verbose mode
   assertEquals(isOk(result), true);
   if (isOk(result)) {
     const parsed = JSON.parse(result.data);
-    assertEquals(parsed.nullValue, "{nullValue}"); // In verbose mode, null preserves template variable
-    assertEquals(parsed.undefinedValue, "{undefinedValue}"); // In verbose mode, undefined preserves template variable
+    assertEquals(parsed.nullValue, ""); // Totality compliance: null becomes empty string
+    assertEquals(parsed.undefinedValue, ""); // Totality compliance: undefined becomes empty string
     assertEquals(parsed.normalValue, "normal");
   }
 });
 
-Deno.test("TemplateRenderer - should handle null/undefined in string templates", () => {
-  // Test normal mode
-  const normalRendererResult = TemplateRenderer.create(undefined, false);
-  if (!normalRendererResult.ok) {
+Deno.test("TemplateRenderer - should handle null/undefined in string templates consistently", () => {
+  // Arrange
+  const rendererResult = TemplateRenderer.create(undefined, false);
+  if (!rendererResult.ok) {
     throw new Error(
-      `Failed to create renderer: ${normalRendererResult.error.message}`,
+      `Failed to create renderer: ${rendererResult.error.message}`,
     );
   }
-  const normalRenderer = normalRendererResult.data;
+  const renderer = rendererResult.data;
   const stringTemplate = createTestTemplate(
     "Values: {nullValue}, {undefinedValue}, {normalValue}",
   );
@@ -504,30 +504,14 @@ Deno.test("TemplateRenderer - should handle null/undefined in string templates",
     // undefinedValue is intentionally missing
   });
 
-  const normalResult = normalRenderer.render(stringTemplate, data);
-  assertEquals(isOk(normalResult), true);
-  if (isOk(normalResult)) {
-    // In normal mode, null/undefined become empty strings
-    assertEquals(normalResult.data, '"Values: , , normal"');
-  }
+  // Act
+  const result = renderer.render(stringTemplate, data);
 
-  // Test verbose mode
-  const verboseRendererResult = TemplateRenderer.create(undefined, true);
-  if (!verboseRendererResult.ok) {
-    throw new Error(
-      `Failed to create renderer: ${verboseRendererResult.error.message}`,
-    );
-  }
-  const verboseRenderer = verboseRendererResult.data;
-
-  const verboseResult = verboseRenderer.render(stringTemplate, data);
-  assertEquals(isOk(verboseResult), true);
-  if (isOk(verboseResult)) {
-    // In verbose mode, template variables are preserved
-    assertEquals(
-      verboseResult.data,
-      '"Values: {nullValue}, {undefinedValue}, normal"',
-    );
+  // Assert
+  assertEquals(isOk(result), true);
+  if (isOk(result)) {
+    // Totality compliance: null/undefined become empty strings consistently
+    assertEquals(result.data, '"Values: , , normal"');
   }
 });
 

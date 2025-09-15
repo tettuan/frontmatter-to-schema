@@ -112,7 +112,6 @@ export class TemplateRenderer {
       content,
       effectiveData,
       context,
-      this.verbose,
     );
 
     if (!replacementResult.ok) {

@@ -173,7 +173,6 @@ describe("UnifiedVariableReplacementStrategy", () => {
           "Title: {title}, Missing: {missing_var}",
           data,
           context,
-          false, // normal mode
         );
 
         // Assert
@@ -184,7 +183,7 @@ describe("UnifiedVariableReplacementStrategy", () => {
         assertEquals(replaceResult.data, "Title: Test Document, Missing: ");
       });
 
-      it("should handle missing variables in verbose mode", () => {
+      it("should handle missing variables consistently", () => {
         // Arrange
         const result = UnifiedVariableReplacementStrategy.create();
         assertEquals(result.ok, true);
@@ -199,21 +198,20 @@ describe("UnifiedVariableReplacementStrategy", () => {
           "Title: {title}, Missing: {missing_var}",
           data,
           context,
-          true, // verbose mode
         );
 
         // Assert
         assertEquals(replaceResult.ok, true);
         if (!replaceResult.ok) return;
 
-        // Missing variable should keep placeholder in verbose mode
+        // Missing variable should be replaced with empty string (Totality compliance)
         assertEquals(
           replaceResult.data,
-          "Title: Test Document, Missing: {missing_var}",
+          "Title: Test Document, Missing: ",
         );
       });
 
-      it("should handle null/undefined values in normal mode", () => {
+      it("should handle null/undefined values consistently", () => {
         // Arrange
         const result = UnifiedVariableReplacementStrategy.create();
         assertEquals(result.ok, true);
@@ -232,7 +230,6 @@ describe("UnifiedVariableReplacementStrategy", () => {
           "Title: {title}, Null: {nullValue}, Undefined: {undefinedValue}",
           data,
           context,
-          false,
         );
 
         // Assert
@@ -242,7 +239,7 @@ describe("UnifiedVariableReplacementStrategy", () => {
         assertEquals(replaceResult.data, "Title: Test, Null: , Undefined: ");
       });
 
-      it("should handle null/undefined values in verbose mode", () => {
+      it("should handle null/undefined values with empty string replacement", () => {
         // Arrange
         const result = UnifiedVariableReplacementStrategy.create();
         assertEquals(result.ok, true);
@@ -261,7 +258,6 @@ describe("UnifiedVariableReplacementStrategy", () => {
           "Title: {title}, Null: {nullValue}, Undefined: {undefinedValue}",
           data,
           context,
-          true,
         );
 
         // Assert
@@ -270,7 +266,7 @@ describe("UnifiedVariableReplacementStrategy", () => {
 
         assertEquals(
           replaceResult.data,
-          "Title: Test, Null: {nullValue}, Undefined: {undefinedValue}",
+          "Title: Test, Null: , Undefined: ",
         );
       });
 
