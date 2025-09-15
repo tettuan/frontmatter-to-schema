@@ -7,6 +7,15 @@
   "exclude": [
     "tests/e2e/test-output/"
   ],
+  "publish": {
+    "exclude": [
+      "tests/**/*",
+      "tmp/**/*",
+      ".agent/**/*",
+      "scripts/**/*",
+      "examples/**/*"
+    ]
+  },
   "lint": {
     "exclude": [
       "tests/integration/process-documents.orchestrator.test.ts"

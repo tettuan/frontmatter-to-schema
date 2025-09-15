@@ -154,13 +154,13 @@ export class CLI {
       })));
     }
 
-    const [schemaPath, outputPath, inputPattern] = filteredArgs;
+    const [schemaPath, inputPattern, outputPath] = filteredArgs;
 
     // Execute command - this is async and contains await
     return await this.executeCommand(
       schemaPath,
-      outputPath,
       inputPattern,
+      outputPath,
       verbose,
     );
   }
@@ -170,12 +170,12 @@ export class CLI {
 frontmatter-to-schema - Generate JSON from Markdown frontmatter
 
 USAGE:
-  frontmatter-to-schema <schema> <output> <pattern>
+  frontmatter-to-schema <schema> <pattern> <output>
 
 ARGUMENTS:
   <schema>   Path to JSON schema file (e.g., schema.json)
-  <output>   Output file path for generated JSON (e.g., output.json)
   <pattern>  Glob pattern for input Markdown files (e.g., "**/*.md")
+  <output>   Output file path for generated JSON (e.g., output.json)
 
 OPTIONS:
   -h, --help     Show this help message
@@ -203,14 +203,14 @@ DESCRIPTION:
   }
 
   private showUsage(): void {
-    console.log("Usage: frontmatter-to-schema <schema> <output> <pattern>");
+    console.log("Usage: frontmatter-to-schema <schema> <pattern> <output>");
     console.log("Use --help for detailed information");
   }
 
   private async executeCommand(
     schemaPath: string,
-    outputPath: string,
     inputPattern: string,
+    outputPath: string,
     verbose: boolean = false,
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Recreate orchestrator with verbose flag if needed
