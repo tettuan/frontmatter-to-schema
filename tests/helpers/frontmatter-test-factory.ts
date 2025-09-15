@@ -159,6 +159,37 @@ export class FrontmatterTestFactory {
     }
     return result.data;
   }
+
+  /**
+   * Create array commands data for common test scenarios
+   */
+  static createArrayCommands(commands: string[]): FrontmatterData {
+    return FrontmatterTestFactory.createCustomData({ commands });
+  }
+
+  /**
+   * Create object array data with name/type pattern
+   */
+  static createObjectArray<T extends Record<string, unknown>>(
+    items: T[],
+    key = "items",
+  ): FrontmatterData {
+    return FrontmatterTestFactory.createCustomData({ [key]: items });
+  }
+
+  /**
+   * Create empty data for boundary testing
+   */
+  static createEmptyData(): FrontmatterData {
+    return FrontmatterTestFactory.createCustomData({});
+  }
+
+  /**
+   * Create tags array data for testing
+   */
+  static createTagsData(tags: string[]): FrontmatterData {
+    return FrontmatterTestFactory.createCustomData({ tags });
+  }
 }
 
 /**

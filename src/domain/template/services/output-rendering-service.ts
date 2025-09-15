@@ -40,28 +40,51 @@ export class OutputRenderingService {
   private readonly structureAnalyzer: TemplateStructureAnalyzer;
   private readonly dataComposer: DynamicDataComposer;
 
-  constructor(
+  private constructor(
     private readonly templateRenderer: TemplateRenderer,
     private readonly fileReader: FileReader,
     private readonly fileWriter: FileWriter,
+    private readonly structureAnalyzerInstance: TemplateStructureAnalyzer,
+    private readonly dataComposerInstance: DynamicDataComposer,
     private readonly debugLogger?: DebugLogger,
   ) {
+    this.structureAnalyzer = structureAnalyzerInstance;
+    this.dataComposer = dataComposerInstance;
+  }
+
+  static create(
+    templateRenderer: TemplateRenderer,
+    fileReader: FileReader,
+    fileWriter: FileWriter,
+    debugLogger?: DebugLogger,
+  ): Result<OutputRenderingService, DomainError> {
     // Initialize DDD services following Totality pattern
     const analyzerResult = TemplateStructureAnalyzer.create();
     if (!analyzerResult.ok) {
-      throw new Error(
-        `Failed to create TemplateStructureAnalyzer: ${analyzerResult.error.message}`,
-      );
+      return err(createError({
+        kind: "InitializationError",
+        message: `Failed to create TemplateStructureAnalyzer`,
+      }));
     }
-    this.structureAnalyzer = analyzerResult.data;
 
     const composerResult = DynamicDataComposer.create();
     if (!composerResult.ok) {
-      throw new Error(
-        `Failed to create DynamicDataComposer: ${composerResult.error.message}`,
-      );
+      return err(createError({
+        kind: "InitializationError",
+        message: `Failed to create DynamicDataComposer`,
+      }));
     }
-    this.dataComposer = composerResult.data;
+
+    return ok(
+      new OutputRenderingService(
+        templateRenderer,
+        fileReader,
+        fileWriter,
+        analyzerResult.data,
+        composerResult.data,
+        debugLogger,
+      ),
+    );
   }
 
   /**
@@ -241,8 +264,8 @@ export class OutputRenderingService {
         return composedDataResult;
       }
 
-      // Use renderWithArray with proper composition
-      renderResult = this.templateRenderer.renderWithArray(
+      // Use unified render method with proper composition
+      renderResult = this.templateRenderer.render(
         templateResult.data,
         itemsData,
       );

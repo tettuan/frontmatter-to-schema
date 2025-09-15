@@ -83,7 +83,8 @@ export type TemplateError =
 export type AggregationError =
   | { readonly kind: "InvalidExpression"; readonly expression: string }
   | { readonly kind: "PathNotFound"; readonly path: string }
-  | { readonly kind: "AggregationFailed"; readonly message: string };
+  | { readonly kind: "AggregationFailed"; readonly message: string }
+  | { readonly kind: "MergeFailed"; readonly message: string };
 
 export type FileSystemError =
   | { readonly kind: "FileNotFound"; readonly path: string }
@@ -100,13 +101,18 @@ export type FileSystemError =
   | { readonly kind: "InvalidPath"; readonly path: string }
   | { readonly kind: "PermissionDenied"; readonly path: string };
 
+export type SystemError =
+  | { readonly kind: "InitializationError"; readonly message: string }
+  | { readonly kind: "ConfigurationError"; readonly message: string };
+
 export type DomainError =
   | ValidationError
   | SchemaError
   | FrontmatterError
   | TemplateError
   | AggregationError
-  | FileSystemError;
+  | FileSystemError
+  | SystemError;
 
 export interface ErrorWithMessage {
   readonly message: string;
@@ -212,6 +218,8 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Path not found in data: ${error.path}`;
     case "AggregationFailed":
       return `Aggregation failed: ${error.message}`;
+    case "MergeFailed":
+      return `Merge failed: ${error.message}`;
     case "FileNotFound":
       return `File not found: ${error.path}`;
     case "ReadFailed":
@@ -222,6 +230,10 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Invalid path: ${error.path}`;
     case "PermissionDenied":
       return `Permission denied: ${error.path}`;
+    case "InitializationError":
+      return `Initialization error: ${error.message}`;
+    case "ConfigurationError":
+      return `Configuration error: ${error.message}`;
     default: {
       const _exhaustive: never = error;
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;

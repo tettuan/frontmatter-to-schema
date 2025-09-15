@@ -22,9 +22,23 @@ import {
 } from "../../infrastructure/index.ts";
 
 export class CLI {
-  private readonly orchestrator: PipelineOrchestrator;
+  private orchestrator: PipelineOrchestrator;
 
-  constructor() {
+  private constructor(orchestrator: PipelineOrchestrator) {
+    this.orchestrator = orchestrator;
+  }
+
+  static create(): Result<CLI, DomainError> {
+    const orchestratorResult = CLI.createOrchestrator(false);
+    if (!orchestratorResult.ok) {
+      return err(orchestratorResult.error);
+    }
+    return ok(new CLI(orchestratorResult.data));
+  }
+
+  private static createOrchestrator(
+    verbose: boolean,
+  ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
     const fileLister = new DenoFileLister();
@@ -53,21 +67,29 @@ export class CLI {
       basePropertyPopulator,
     );
 
-    // Create TemplateRenderer for OutputRenderingService
-    const templateRendererResult = TemplateRenderer.create();
+    // Create TemplateRenderer with verbose flag
+    const templateRendererResult = TemplateRenderer.create(undefined, verbose);
     if (!templateRendererResult.ok) {
-      throw new Error(
-        `Failed to create TemplateRenderer: ${templateRendererResult.error.message}`,
-      );
+      return err(createError({
+        kind: "ConfigurationError",
+        message: `Failed to create TemplateRenderer`,
+      }));
     }
     const templateRenderer = templateRendererResult.data;
 
     // Create OutputRenderingService
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRenderer,
       fileReader,
       fileWriter,
     );
+    if (!outputRenderingServiceResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: `Failed to create OutputRenderingService`,
+      }));
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     // Create TemplatePathResolver
     const templatePathResolver = new TemplatePathResolver();
@@ -79,12 +101,14 @@ export class CLI {
       list: (pattern: string) => fileLister.list(pattern),
     };
 
-    this.orchestrator = new PipelineOrchestrator(
-      documentProcessor,
-      schemaProcessor,
-      outputRenderingService,
-      templatePathResolver,
-      fileSystem,
+    return ok(
+      new PipelineOrchestrator(
+        documentProcessor,
+        schemaProcessor,
+        outputRenderingService,
+        templatePathResolver,
+        fileSystem,
+      ),
     );
   }
 
@@ -176,6 +200,15 @@ DESCRIPTION:
     inputPattern: string,
     verbose: boolean = false,
   ): Promise<Result<void, DomainError & { message: string }>> {
+    // Recreate orchestrator with verbose flag if needed
+    if (verbose) {
+      const orchestratorResult = CLI.createOrchestrator(verbose);
+      if (!orchestratorResult.ok) {
+        return Promise.resolve(err(createError(orchestratorResult.error)));
+      }
+      this.orchestrator = orchestratorResult.data;
+    }
+
     const config: PipelineConfig = {
       schemaPath,
       outputPath,

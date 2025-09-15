@@ -1,5 +1,9 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import {
+  createError,
+  DomainError,
+  SchemaError,
+} from "../../shared/types/errors.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
@@ -140,7 +144,11 @@ export class SchemaPathResolver {
         },
       );
 
-      const structure = this.buildNestedStructure(pathParts, dataArray);
+      const structureResult = this.buildNestedStructure(pathParts, dataArray);
+      if (!structureResult.ok) {
+        return err(createError(structureResult.error));
+      }
+      const structure = structureResult.data;
 
       this.debugLogger?.logDebug(
         "schema-path-resolver",
@@ -177,7 +185,7 @@ export class SchemaPathResolver {
   private static buildNestedStructure(
     pathParts: string[],
     dataArray: unknown[],
-  ): Record<string, unknown> {
+  ): Result<Record<string, unknown>, SchemaError> {
     this.debugLogger?.logDebug(
       "schema-path-resolver",
       "Building nested structure recursively",
@@ -190,7 +198,10 @@ export class SchemaPathResolver {
     );
 
     if (pathParts.length === 0) {
-      throw new Error("Path parts cannot be empty");
+      return err(createError({
+        kind: "InvalidSchema",
+        message: "Path parts cannot be empty",
+      }));
     }
 
     if (pathParts.length === 1) {
@@ -205,7 +216,7 @@ export class SchemaPathResolver {
           resultKeys: Object.keys(result),
         },
       );
-      return result;
+      return ok(result);
     }
 
     // Recursive case: build nested structure
@@ -220,8 +231,12 @@ export class SchemaPathResolver {
       },
     );
 
+    const nestedResult = this.buildNestedStructure(remainingParts, dataArray);
+    if (!nestedResult.ok) {
+      return err(nestedResult.error);
+    }
     const result = {
-      [currentPart]: this.buildNestedStructure(remainingParts, dataArray),
+      [currentPart]: nestedResult.data,
     };
 
     this.debugLogger?.logDebug(
@@ -233,7 +248,7 @@ export class SchemaPathResolver {
       },
     );
 
-    return result;
+    return ok(result);
   }
 
   /**

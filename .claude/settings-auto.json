@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/hook_stops.sh"
+            "command": "/Users/tettuan/github/frontmatter-to-schema/scripts/hook_stops.sh"
           }
         ]
       }
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/hook_stops.sh"
+            "command": "/Users/tettuan/github/frontmatter-to-schema/scripts/hook_stops.sh"
           }
         ]
       }

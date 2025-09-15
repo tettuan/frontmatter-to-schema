@@ -5,11 +5,5 @@
   "title": "{title}",
   "description": "{description}",
   "usage": "{usage}",
-  "options": {
-    "input": "{options.input}",
-    "adaptation": "{options.adaptation}",
-    "input_file": "{options.input_file}",
-    "stdin": "{options.stdin}",
-    "destination": "{options.destination}"
-  }
+  "options": "{options}"
 }

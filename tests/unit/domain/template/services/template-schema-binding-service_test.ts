@@ -4,7 +4,7 @@ import { TemplateSchemaBindingService } from "../../../../../src/domain/template
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 
 /**
  * COMPREHENSIVE TEST: Template-Schema Binding Service
@@ -59,7 +59,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         commands: [
           { name: "build", script: "npm run build" },
@@ -119,7 +119,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         version: "1.0.0",
       });
@@ -186,7 +186,7 @@ describe("TemplateSchemaBindingService", () => {
       if (!schemaResult.ok) return;
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         project: {
           name: "My Project",
           version: "2.0.0",
@@ -255,7 +255,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         author: "John Doe",
         commands: [{ name: "test" }],
@@ -322,7 +322,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
       });
       assertExists(data.ok, "Should create frontmatter data");
@@ -390,7 +390,7 @@ describe("TemplateSchemaBindingService", () => {
       if (!schemaResult.ok) return;
 
       // Data missing the expected array
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         // items array is missing
       });
@@ -455,7 +455,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         items: "not an array", // Should be array
       });
       assertExists(data.ok, "Should create frontmatter data");
@@ -652,7 +652,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         items: [{ name: "item1" }],
       });
@@ -722,7 +722,7 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(schemaResult.ok, "Should create schema");
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({ title: "Test" });
+      const data = TestDataFactory.createFrontmatterData({ title: "Test" });
       assertExists(data.ok, "Should create frontmatter data");
       if (!data.ok) return;
 

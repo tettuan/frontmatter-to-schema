@@ -1,19 +1,19 @@
 import { assert, assertEquals } from "@std/assert";
 import { Aggregator } from "../../../../../src/domain/aggregation/aggregators/aggregator.ts";
 import { DerivationRule } from "../../../../../src/domain/aggregation/value-objects/derivation-rule.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 
 Deno.test("Aggregator - x-derived-from - should aggregate simple array property", () => {
   const aggregator = new Aggregator();
 
   // Create test data with commands array
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "meta", c2: "resolve" },
       { c1: "spec", c2: "analyze" },
     ],
   });
-  const data2Result = FrontmatterData.create({
+  const data2Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "git", c2: "commit" },
       { c1: "meta", c2: "update" },
@@ -50,14 +50,14 @@ Deno.test("Aggregator - x-derived-unique - should aggregate with unique values",
   const aggregator = new Aggregator();
 
   // Create test data with duplicate values
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "meta", c2: "resolve" },
       { c1: "spec", c2: "analyze" },
       { c1: "meta", c2: "check" },
     ],
   });
-  const data2Result = FrontmatterData.create({
+  const data2Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "git", c2: "commit" },
       { c1: "spec", c2: "validate" },
@@ -93,13 +93,13 @@ Deno.test("Aggregator - x-derived-unique - should aggregate with unique values",
 Deno.test("Aggregator - should handle multiple derivation rules", () => {
   const aggregator = new Aggregator();
 
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "meta", c2: "resolve", c3: "registered-commands" },
       { c1: "spec", c2: "analyze", c3: "quality-metrics" },
     ],
   });
-  const data2Result = FrontmatterData.create({
+  const data2Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "git", c2: "commit", c3: "changes" },
       { c1: "meta", c2: "resolve", c3: "dependencies" },
@@ -162,7 +162,7 @@ Deno.test("Aggregator - should handle multiple derivation rules", () => {
 Deno.test("Aggregator - should handle nested property paths", () => {
   const aggregator = new Aggregator();
 
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     tools: {
       commands: [
         { name: "meta-resolve", category: "meta" },
@@ -170,7 +170,7 @@ Deno.test("Aggregator - should handle nested property paths", () => {
       ],
     },
   });
-  const data2Result = FrontmatterData.create({
+  const data2Result = TestDataFactory.createFrontmatterData({
     tools: {
       commands: [
         { name: "git-commit", category: "git" },
@@ -206,10 +206,10 @@ Deno.test("Aggregator - should handle nested property paths", () => {
 Deno.test("Aggregator - should handle empty data gracefully", () => {
   const aggregator = new Aggregator();
 
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     commands: [],
   });
-  const data2Result = FrontmatterData.create({
+  const data2Result = TestDataFactory.createFrontmatterData({
     // No commands property at all
     other: "value",
   });
@@ -233,13 +233,13 @@ Deno.test("Aggregator - should handle empty data gracefully", () => {
 Deno.test("Aggregator - should merge derived fields with base data", () => {
   const aggregator = new Aggregator();
 
-  const baseDataResult = FrontmatterData.create({
+  const baseDataResult = TestDataFactory.createFrontmatterData({
     version: "1.0.0",
     description: "Test configuration",
   });
   assert(baseDataResult.ok);
 
-  const data1Result = FrontmatterData.create({
+  const data1Result = TestDataFactory.createFrontmatterData({
     commands: [
       { c1: "meta" },
       { c1: "spec" },
@@ -280,7 +280,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
   const aggregator = new Aggregator();
 
   // Simulate real climpt registry data
-  const metaResolveResult = FrontmatterData.create({
+  const metaResolveResult = TestDataFactory.createFrontmatterData({
     c1: "meta",
     c2: "resolve",
     c3: "registered-commands",
@@ -288,7 +288,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     description: "Resolve and display all registered commands",
   });
 
-  const specAnalyzeResult = FrontmatterData.create({
+  const specAnalyzeResult = TestDataFactory.createFrontmatterData({
     c1: "spec",
     c2: "analyze",
     c3: "quality-metrics",
@@ -296,7 +296,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
     description: "Analyze specification quality and completeness metrics",
   });
 
-  const gitCommitResult = FrontmatterData.create({
+  const gitCommitResult = TestDataFactory.createFrontmatterData({
     c1: "git",
     c2: "commit",
     c3: "changes",
@@ -328,7 +328,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
   assert(metaResolveResult.ok && specAnalyzeResult.ok && gitCommitResult.ok);
 
   // Process as frontmatter-part would structure it
-  const structuredDataResult = FrontmatterData.create({
+  const structuredDataResult = TestDataFactory.createFrontmatterData({
     commands: [
       metaResolveResult.data.getData(),
       specAnalyzeResult.data.getData(),
@@ -368,7 +368,7 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
 Deno.test("Aggregator - should handle evaluation errors gracefully", () => {
   const aggregator = new Aggregator();
 
-  const dataResult = FrontmatterData.create({
+  const dataResult = TestDataFactory.createFrontmatterData({
     notAnArray: "string value",
   });
   assert(dataResult.ok);

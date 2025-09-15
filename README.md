@@ -317,8 +317,8 @@ item in the array corresponds to a separate markdown file.
 
 ### x-derived-from
 
-Creates derived fields by aggregating values from nested properties. Uses
-JSONPath-like expressions.
+Creates derived fields by aggregating values from nested properties. Uses simple
+array notation with dot-path expressions.
 
 ```json
 {
@@ -331,10 +331,41 @@ JSONPath-like expressions.
 }
 ```
 
+**Supported expressions:**
+
+- `items[].property` - Extract property from array items
+- `nested.items[].deep.property` - Navigate nested structures
+
+**Not supported:**
+
+- JMESPath filter expressions like `items[?status==true]`
+- Complex queries or transformations
+
 ### x-derived-unique
 
 When used with `x-derived-from`, ensures derived values are unique (removes
 duplicates).
+
+### x-template-items
+
+Specifies a separate template file for rendering array items when using
+dual-template rendering with `x-frontmatter-part`.
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "main_template.json",
+  "x-template-items": "item_template.json",
+  "properties": {
+    "commands": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "command_schema.json" }
+    }
+  }
+}
+```
 
 ## Template Writing Guidelines
 

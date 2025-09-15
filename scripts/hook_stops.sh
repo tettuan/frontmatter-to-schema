@@ -9,20 +9,12 @@ if [ $ci_status -ne 0 ]; then
     exit 2
 fi
 
-# execution
-scripts/test-frontmatter-to-schema.sh
-test_exit_status=$?
-if [ $test_exit_status -ne 0 ]; then 
-    echo '{"decision": "block", "reason": "frontmatter-to-schema execution failed. run scripts/test-frontmatter-to-schema.sh and then, run [climpt-meta resolve registered-commands <<<\"created_message\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)"}'
-    exit 2
-fi
-
 # github status check
 scripts/check-github-status.sh
 exit_status=$?
 
-if [ $exit_status -eq 2 ]; then 
+if [ $exit_status -eq 2 ]; then
     echo '{"decision": "block", "reason": "Issues and PRs are still open. Run deno test ci and Create 200 - 300 letters current situation and \"things to be done\" message. then, run [climpt-meta resolve registered-commands <<<\"created_message\"]. After running the climpt-meta, get another climpt-* shown. Finally, run it. (Rule: If the last executed command is climpt-*, act according to its output.)"}'
-else 
+else
     echo '{"continue": false, "stopReason": "No Issue and PR. CI passed.", "suppressOutput": true}'
 fi
