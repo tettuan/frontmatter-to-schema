@@ -336,17 +336,19 @@ describe("FrontmatterProcessor", () => {
 
       const result = processor.extractFromPart(dataResult.data, "items");
 
-      assertEquals(Array.isArray(result), true);
-      assertEquals(result.length, 3);
+      assertEquals(result.ok, true);
+      if (!result.ok) throw new Error("Expected successful extraction");
+      assertEquals(Array.isArray(result.data), true);
+      assertEquals(result.data.length, 3);
 
-      const firstItem = result[0];
+      const firstItem = result.data[0];
       const idResult = firstItem.get("id");
       if (idResult.ok) {
         assertEquals(idResult.data, 1);
       }
     });
 
-    it("should return empty array for non-array data", () => {
+    it("should return error for non-array data", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
       const processor = new FrontmatterProcessor(extractor, parser);
@@ -358,8 +360,11 @@ describe("FrontmatterProcessor", () => {
 
       const result = processor.extractFromPart(dataResult.data, "items");
 
-      assertEquals(Array.isArray(result), true);
-      assertEquals(result.length, 0);
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "MalformedFrontmatter");
+        assertEquals(result.error.message.includes("not an array"), true);
+      }
     });
 
     it("should return empty array for non-existent path", () => {
@@ -374,8 +379,10 @@ describe("FrontmatterProcessor", () => {
 
       const result = processor.extractFromPart(dataResult.data, "items");
 
-      assertEquals(Array.isArray(result), true);
-      assertEquals(result.length, 0);
+      assertEquals(result.ok, true);
+      if (!result.ok) throw new Error("Expected successful extraction");
+      assertEquals(Array.isArray(result.data), true);
+      assertEquals(result.data.length, 0);
     });
 
     it("should handle nested path extraction", () => {
@@ -400,10 +407,12 @@ describe("FrontmatterProcessor", () => {
         "data.nested.items",
       );
 
-      assertEquals(Array.isArray(result), true);
-      assertEquals(result.length, 2);
+      assertEquals(result.ok, true);
+      if (!result.ok) throw new Error("Expected successful extraction");
+      assertEquals(Array.isArray(result.data), true);
+      assertEquals(result.data.length, 2);
 
-      const firstValue = result[0].get("value");
+      const firstValue = result.data[0].get("value");
       if (firstValue.ok) {
         assertEquals(firstValue.data, "A");
       }
@@ -421,8 +430,10 @@ describe("FrontmatterProcessor", () => {
 
       const result = processor.extractFromPart(dataResult.data, "items");
 
-      assertEquals(Array.isArray(result), true);
-      assertEquals(result.length, 0);
+      assertEquals(result.ok, true);
+      if (!result.ok) throw new Error("Expected successful extraction");
+      assertEquals(Array.isArray(result.data), true);
+      assertEquals(result.data.length, 0);
     });
 
     it("should handle array with invalid items", () => {
@@ -443,9 +454,11 @@ describe("FrontmatterProcessor", () => {
 
       const result = processor.extractFromPart(dataResult.data, "items");
 
-      // The actual implementation may handle nulls/undefined differently
-      // Adjust assertion based on actual behavior
-      assertEquals(Array.isArray(result), true);
+      // The actual implementation now returns Result with successfully parsed items
+      assertEquals(result.ok, true);
+      if (!result.ok) throw new Error("Expected successful extraction");
+      assertEquals(Array.isArray(result.data), true);
+      assertEquals(result.data.length, 3); // Only valid objects are included
     });
   });
 
@@ -505,14 +518,16 @@ describe("FrontmatterProcessor", () => {
 
       if (extractResult.ok) {
         // Extract from part
-        const items = processor.extractFromPart(
+        const itemsResult = processor.extractFromPart(
           extractResult.data.frontmatter,
           "items",
         );
 
-        assertEquals(items.length, 2);
+        assertEquals(itemsResult.ok, true);
+        if (!itemsResult.ok) throw new Error("Expected successful extraction");
+        assertEquals(itemsResult.data.length, 2);
 
-        const firstNameResult = items[0].get("name");
+        const firstNameResult = itemsResult.data[0].get("name");
         if (firstNameResult.ok) {
           assertEquals(firstNameResult.data, "First");
         }

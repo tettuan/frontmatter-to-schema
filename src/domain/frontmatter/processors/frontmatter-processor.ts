@@ -75,25 +75,42 @@ export class FrontmatterProcessor {
   extractFromPart(
     data: FrontmatterData,
     partPath: string,
-  ): FrontmatterData[] {
+  ): Result<FrontmatterData[], FrontmatterError & { message: string }> {
     const partDataResult = data.get(partPath);
     if (!partDataResult.ok) {
-      return [];
+      return ok([]); // Empty array for missing path is valid
     }
 
     const partData = partDataResult.data;
     if (!Array.isArray(partData)) {
-      return [];
+      return err({
+        kind: "MalformedFrontmatter" as const,
+        content: `Expected array at path "${partPath}", got ${typeof partData}`,
+        message: `Data at path "${partPath}" is not an array`,
+      });
     }
 
     const results: FrontmatterData[] = [];
-    for (const item of partData) {
+    const errors: string[] = [];
+
+    for (let i = 0; i < partData.length; i++) {
+      const item = partData[i];
       const itemResult = FrontmatterDataFactory.fromParsedData(item);
       if (itemResult.ok) {
         results.push(itemResult.data);
+      } else {
+        errors.push(`Item at index ${i}: ${itemResult.error.message}`);
       }
     }
 
-    return results;
+    if (errors.length > 0 && results.length === 0) {
+      return err({
+        kind: "MalformedFrontmatter" as const,
+        content: errors.join("; "),
+        message: `Failed to parse all items in array at path "${partPath}"`,
+      });
+    }
+
+    return ok(results);
   }
 }
