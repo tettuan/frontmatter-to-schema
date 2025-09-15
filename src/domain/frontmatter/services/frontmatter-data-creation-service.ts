@@ -153,5 +153,5 @@ export class FrontmatterDataCreationService {
  * Default singleton instance for convenience
  * Can be injected into services that need FrontmatterData creation
  */
-export const defaultFrontmatterDataCreationService =
-  FrontmatterDataCreationService.create();
+export const defaultFrontmatterDataCreationService:
+  FrontmatterDataCreationService = FrontmatterDataCreationService.create();
