@@ -1,5 +1,19 @@
-import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import {
+  contextualErr,
+  err,
+  ok,
+  Result,
+} from "../../domain/shared/types/result.ts";
+import {
+  createEnhancedError,
+  createError,
+  DomainError,
+} from "../../domain/shared/types/errors.ts";
+import {
+  Decision,
+  ErrorContextFactory,
+  ProcessingProgress,
+} from "../../domain/shared/types/error-context.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
@@ -89,21 +103,83 @@ export class PipelineOrchestrator {
     if (config.verbose) {
       console.log("[VERBOSE] Step 2: Resolving template paths");
     }
+
+    // Create context for template path resolution
+    const templateResolutionContext = ErrorContextFactory.forPipeline(
+      "Template Resolution",
+      "resolveTemplatePaths",
+      106,
+    );
+    if (!templateResolutionContext.ok) {
+      return templateResolutionContext;
+    }
+
     const templatePathConfig = {
       schemaPath: config.schemaPath,
       explicitTemplatePath: config.templatePath,
     };
+
+    // Enhance context with input parameters and decision logic
+    const enhancedContext = templateResolutionContext.data
+      .withInput("schemaPath", config.schemaPath)
+      .withInput("explicitTemplatePath", config.templatePath)
+      .withInput("hasExplicitTemplate", !!config.templatePath);
+
+    // Create decision record for template resolution strategy
+    const resolutionStrategy = config.templatePath
+      ? "explicit"
+      : "schema-derived";
+    const templateDecisionResult = Decision.create(
+      "Template path resolution strategy selection",
+      ["explicit", "schema-derived", "auto-detect"],
+      resolutionStrategy === "explicit"
+        ? "Explicit template path provided in configuration"
+        : "No explicit template, deriving from schema definition",
+    );
+    if (!templateDecisionResult.ok) {
+      return contextualErr(templateDecisionResult.error, enhancedContext);
+    }
+
+    const contextWithDecision = enhancedContext.withDecision(
+      templateDecisionResult.data,
+    );
+
+    if (config.verbose) {
+      console.log(
+        "[DEBUG] Template resolution context:",
+        contextWithDecision.getDebugInfo(),
+      );
+    }
+
     const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
       schema,
       templatePathConfig,
     );
     if (!resolvePathsResult.ok) {
-      return resolvePathsResult;
+      const enhancedError = createEnhancedError(
+        resolvePathsResult.error,
+        contextWithDecision,
+        "Template path resolution failed during pipeline execution",
+      );
+      return err(enhancedError);
     }
+
     const templatePath = resolvePathsResult.data.templatePath;
     const itemsTemplatePath = resolvePathsResult.data.itemsTemplatePath;
     const outputFormat = resolvePathsResult.data.outputFormat || "json";
+
+    // Log successful resolution with context
     if (config.verbose) {
+      const resultContext = contextWithDecision
+        .withInput("resolvedTemplatePath", templatePath)
+        .withInput("resolvedItemsTemplatePath", itemsTemplatePath)
+        .withInput("resolvedOutputFormat", outputFormat)
+        .withInput("isDualTemplate", !!itemsTemplatePath);
+
+      console.log(
+        "[DEBUG] Template resolution completed:",
+        resultContext.getDebugInfo(),
+      );
       console.log("[VERBOSE] Template path resolved: " + templatePath);
       if (itemsTemplatePath) {
         console.log(
@@ -138,24 +214,131 @@ export class PipelineOrchestrator {
     if (config.verbose) {
       console.log("[VERBOSE] Step 5: Preparing data for rendering");
     }
+
+    // Create context for data preparation phase
+    const dataPreparationContext = ErrorContextFactory.forPipeline(
+      "Data Preparation",
+      "prepareDataForRendering",
+      193,
+    );
+    if (!dataPreparationContext.ok) {
+      return dataPreparationContext;
+    }
+
     const mainData = processedDataResult.data;
     let itemsData: FrontmatterData[] | undefined;
+
+    // Analyze frontmatter-part requirements and create processing progress
+    const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+    const hasFrontmatterPart = frontmatterPartPathResult.ok;
+    const frontmatterPartPath = hasFrontmatterPart
+      ? frontmatterPartPathResult.data
+      : null;
+
+    // Create processing progress for data preparation
+    const dataSteps = [
+      "Schema analysis",
+      "Frontmatter-part detection",
+      "Template strategy determination",
+      "Data extraction",
+    ];
+    const completedSteps = ["Schema analysis", "Frontmatter-part detection"];
+    const dataProgressResult = ProcessingProgress.create(
+      "Data Preparation",
+      "Template strategy determination",
+      completedSteps,
+      dataSteps.length,
+    );
+    if (!dataProgressResult.ok) {
+      return contextualErr(
+        dataProgressResult.error,
+        dataPreparationContext.data,
+      );
+    }
+
+    // Enhance context with analysis results
+    const dataContext = dataPreparationContext.data
+      .withInput("hasFrontmatterPart", hasFrontmatterPart)
+      .withInput("frontmatterPartPath", frontmatterPartPath)
+      .withInput("hasDualTemplate", !!itemsTemplatePath)
+      .withInput("mainDataKeys", Object.keys(mainData.getData()))
+      .withInput("mainDataSize", JSON.stringify(mainData.getData()).length)
+      .withProgress(dataProgressResult.data);
+
+    if (config.verbose) {
+      console.log(
+        "[DEBUG] Data preparation context:",
+        dataContext.getDebugInfo(),
+      );
+    }
 
     // Check if we need to extract items data
     // Extract frontmatter-part data ONLY if we have a separate items template
     // For single templates with {@items}, let the template handle the expansion
     // using the full mainData which includes base properties
     if (itemsTemplatePath) {
+      // Create decision for dual template data extraction
+      const extractionDecisionResult = Decision.create(
+        "Data extraction strategy for dual template",
+        ["extract-frontmatter-part", "use-main-data", "skip-extraction"],
+        "Dual template requires frontmatter-part data extraction for items template",
+      );
+      if (!extractionDecisionResult.ok) {
+        return contextualErr(extractionDecisionResult.error, dataContext);
+      }
+
+      const extractionContext = dataContext.withDecision(
+        extractionDecisionResult.data,
+      );
+
+      if (config.verbose) {
+        console.log(
+          "[DEBUG] Dual template path - extracting frontmatter-part data",
+        );
+      }
+
       const frontmatterPartResult = this.extractFrontmatterPartData(
         mainData,
         schema,
       );
-      if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
+      if (!frontmatterPartResult.ok) {
+        const enhancedError = createEnhancedError(
+          frontmatterPartResult.error,
+          extractionContext,
+          "Frontmatter-part data extraction failed in dual template mode",
+        );
+        return err(enhancedError);
+      } else if (frontmatterPartResult.data.length > 0) {
         itemsData = frontmatterPartResult.data;
+
+        // Update progress to completion
+        const completionProgressResult = ProcessingProgress.create(
+          "Data Preparation",
+          "Data extraction completed",
+          dataSteps,
+          dataSteps.length,
+        );
+        if (completionProgressResult.ok) {
+          const completionContext = extractionContext
+            .withProgress(completionProgressResult.data)
+            .withInput("extractedItemCount", itemsData.length)
+            .withInput("renderingStrategy", "dual-template");
+
+          if (config.verbose) {
+            console.log(
+              "[DEBUG] Data extraction completed:",
+              completionContext.getDebugInfo(),
+            );
+            console.log(
+              "[VERBOSE] Extracted " + itemsData.length +
+                " items for dual-template rendering",
+            );
+          }
+        }
+      } else {
         if (config.verbose) {
           console.log(
-            "[VERBOSE] Extracted " + itemsData.length +
-              " items for dual-template rendering",
+            "[DEBUG] No frontmatter-part data found in dual template mode",
           );
         }
       }
@@ -163,8 +346,20 @@ export class PipelineOrchestrator {
       // For single template with frontmatter-part, keep itemsData undefined
       // The template renderer will extract the array data from mainData during {@items} expansion
       if (config.verbose) {
+        console.log("[DEBUG] Single template with frontmatter-part:", {
+          renderingStrategy: "single-template-with-items-expansion",
+          frontmatterPartPath: frontmatterPartPathResult.ok
+            ? frontmatterPartPathResult.data
+            : "unknown",
+        });
         console.log(
           "[VERBOSE] Single template with frontmatter-part detected - will use mainData for {@items} expansion",
+        );
+      }
+    } else {
+      if (config.verbose) {
+        console.log(
+          "[DEBUG] Standard single template rendering - no frontmatter-part processing",
         );
       }
     }
@@ -293,35 +488,138 @@ export class PipelineOrchestrator {
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData[], DomainError & { message: string }> {
+    // Create context for frontmatter-part extraction
+    const extractionContext = ErrorContextFactory.forPipeline(
+      "Frontmatter-Part Extraction",
+      "extractFrontmatterPartData",
+      453,
+    );
+    if (!extractionContext.ok) {
+      return extractionContext;
+    }
+
+    const context = extractionContext.data
+      .withInput("inputDataKeys", Object.keys(data.getData()))
+      .withInput("inputDataSize", JSON.stringify(data.getData()).length);
+
     // Check if schema has frontmatter-part definition
     const pathResult = schema.findFrontmatterPartPath();
     if (!pathResult.ok) {
       // No frontmatter-part defined, return data as single item array
+      const noPathDecisionResult = Decision.create(
+        "Frontmatter-part path handling strategy",
+        ["return-single-item", "return-empty", "return-error"],
+        "No frontmatter-part path defined in schema, using fallback single-item strategy",
+      );
+      if (noPathDecisionResult.ok) {
+        const fallbackContext = context.withDecision(noPathDecisionResult.data);
+        console.log(
+          "[DEBUG] Frontmatter-part extraction context:",
+          fallbackContext.getDebugInfo(),
+        );
+      }
       return ok([data]);
     }
 
-    // For individual frontmatter processing: each file contributes one item
-    // The frontmatter-part path (e.g., "tools.commands") indicates the target
-    // location in the aggregated result, not the source location in individual files
+    const frontmatterPartPath = pathResult.data;
+    const pathContext = context.withInput(
+      "frontmatterPartPath",
+      frontmatterPartPath,
+    );
 
     // Check if this data already contains an array at the frontmatter-part path
     // This handles cases where a single file contains multiple items
-    const arrayDataResult = data.get(pathResult.data);
-    if (arrayDataResult.ok && Array.isArray(arrayDataResult.data)) {
+    const arrayDataResult = data.get(frontmatterPartPath);
+    const hasArrayData = arrayDataResult.ok &&
+      Array.isArray(arrayDataResult.data);
+    const arrayLength = hasArrayData ? arrayDataResult.data.length : 0;
+
+    const analysisContext = pathContext
+      .withInput("pathAccessSuccess", arrayDataResult.ok)
+      .withInput("isArrayData", hasArrayData)
+      .withInput("arrayLength", arrayLength);
+
+    if (hasArrayData) {
       // File contains array at target path - extract individual items
+      const arrayProcessingDecisionResult = Decision.create(
+        "Array data processing strategy",
+        ["process-each-item", "return-as-is", "skip-processing"],
+        `Found array with ${arrayLength} items at frontmatter-part path, processing each item individually`,
+      );
+      if (!arrayProcessingDecisionResult.ok) {
+        return contextualErr(
+          arrayProcessingDecisionResult.error,
+          analysisContext,
+        );
+      }
+
+      const processingContext = analysisContext.withDecision(
+        arrayProcessingDecisionResult.data,
+      );
+
+      // Create processing progress for array items
+      const processingProgressResult = ProcessingProgress.create(
+        "Array Item Processing",
+        "Processing individual array items",
+        [],
+        arrayLength,
+      );
+      if (!processingProgressResult.ok) {
+        return contextualErr(processingProgressResult.error, processingContext);
+      }
+
+      const progressContext = processingContext.withProgress(
+        processingProgressResult.data,
+      );
+      console.log(
+        "[DEBUG] Array processing context:",
+        progressContext.getDebugInfo(),
+      );
+
       const result: FrontmatterData[] = [];
-      for (const item of arrayDataResult.data) {
+      for (let i = 0; i < arrayDataResult.data.length; i++) {
+        const item = arrayDataResult.data[i];
+        // Skip invalid items gracefully (null, primitives, etc.)
+        if (!item || typeof item !== "object") {
+          continue;
+        }
+
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
-          return itemDataResult;
+          // Log the failure but continue processing other items gracefully
+          console.log(
+            `[DEBUG] Skipping invalid array item ${i}:`,
+            itemDataResult.error.message,
+          );
+          continue;
         }
         result.push(itemDataResult.data);
       }
+
+      console.log(
+        "[DEBUG] Successfully extracted",
+        result.length,
+        "items from array",
+      );
       return ok(result);
     } else {
       // Default case: individual file contributes directly as one item
       // This is the typical scenario for frontmatter-part processing
       // Each markdown file's frontmatter becomes one item in the final array
+      const fallbackDecisionResult = Decision.create(
+        "Fallback extraction strategy",
+        ["single-item-array", "empty-array", "error"],
+        "No array found at frontmatter-part path, using fallback single-item strategy",
+      );
+      if (fallbackDecisionResult.ok) {
+        const fallbackContext = analysisContext.withDecision(
+          fallbackDecisionResult.data,
+        );
+        console.log(
+          "[DEBUG] Fallback extraction context:",
+          fallbackContext.getDebugInfo(),
+        );
+      }
       return ok([data]);
     }
   }

@@ -8,6 +8,11 @@ import { BasePropertyPopulator } from "./base-property-populator.ts";
 import { JMESPathFilterService } from "./jmespath-filter-service.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
+import {
+  Decision,
+  ErrorContextFactory,
+  ProcessingProgress,
+} from "../../shared/types/error-context.ts";
 
 export type ProcessedSchema =
   | {
@@ -40,16 +45,63 @@ export class SchemaProcessingService {
   processSchema(
     schemaPath: string,
   ): Result<ProcessedSchema, DomainError & { message: string }> {
+    // Create ErrorContext for schema processing operation
+    const contextResult = ErrorContextFactory.forDomainService(
+      "SchemaProcessingService",
+      "Process schema",
+      "processSchema",
+    );
+    if (!contextResult.ok) {
+      return contextResult;
+    }
+
+    const context = contextResult.data.withInput("schemaPath", schemaPath);
+
+    // Create processing progress tracker
+    const progressResult = ProcessingProgress.create(
+      "Schema Processing",
+      "Validating schema path",
+      [],
+      5,
+    );
+    if (!progressResult.ok) {
+      return progressResult;
+    }
+
+    let currentContext = context.withProgress(progressResult.data);
+
     // Stage 1: Create and validate schema path
     const schemaPathResult = SchemaPath.create(schemaPath);
     if (!schemaPathResult.ok) {
       return schemaPathResult;
     }
 
+    // Update progress: Schema path validated
+    const progressAfterPath = ProcessingProgress.create(
+      "Schema Processing",
+      "Loading schema from repository",
+      ["Validating schema path"],
+      5,
+    );
+    if (progressAfterPath.ok) {
+      currentContext = currentContext.withProgress(progressAfterPath.data);
+    }
+
     // Stage 2: Load schema from repository
     const schemaResult = this.schemaRepository.load(schemaPathResult.data);
     if (!schemaResult.ok) {
       return schemaResult;
+    }
+
+    // Update progress: Schema loaded
+    const progressAfterLoad = ProcessingProgress.create(
+      "Schema Processing",
+      "Resolving schema references",
+      ["Validating schema path", "Loading schema from repository"],
+      5,
+    );
+    if (progressAfterLoad.ok) {
+      currentContext = currentContext.withProgress(progressAfterLoad.data);
     }
 
     // Stage 3: Resolve schema references
@@ -62,11 +114,39 @@ export class SchemaProcessingService {
 
     const schema = resolvedSchemaResult.data;
 
+    // Update progress: References resolved
+    const progressAfterResolve = ProcessingProgress.create(
+      "Schema Processing",
+      "Extracting validation rules",
+      [
+        "Validating schema path",
+        "Loading schema from repository",
+        "Resolving schema references",
+      ],
+      5,
+    );
+    if (progressAfterResolve.ok) {
+      currentContext = currentContext.withProgress(progressAfterResolve.data);
+    }
+
     // Stage 4: Extract validation rules
     const validationRules = schema.getValidationRules();
 
     // Stage 5: Extract template path and create appropriate discriminated union
     const templatePathResult = schema.getTemplatePath();
+
+    // Create decision tracking for template path resolution
+    const templateDecisionResult = Decision.create(
+      "Template path availability determination",
+      ["WithTemplate", "WithoutTemplate"],
+      templatePathResult.ok
+        ? "Schema contains x-template attribute with valid path"
+        : "Schema does not contain x-template attribute or path is invalid",
+    );
+
+    if (templateDecisionResult.ok) {
+      currentContext = currentContext.withDecision(templateDecisionResult.data);
+    }
 
     if (templatePathResult.ok) {
       return ok({

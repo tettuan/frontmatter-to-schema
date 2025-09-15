@@ -10,6 +10,21 @@ export type Err<E> = {
 
 export type Result<T, E> = Ok<T> | Err<E>;
 
+// Context-aware result types for enhanced error tracking
+export type ContextualOk<T> = {
+  readonly ok: true;
+  readonly data: T;
+  readonly context?: import("./error-context.ts").ErrorContext;
+};
+
+export type ContextualErr<E> = {
+  readonly ok: false;
+  readonly error: E;
+  readonly context: import("./error-context.ts").ErrorContext;
+};
+
+export type ContextualResult<T, E> = ContextualOk<T> | ContextualErr<E>;
+
 export const ok = <T>(data: T): Ok<T> => ({
   ok: true,
   data,
@@ -81,4 +96,90 @@ export const combine = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
     values.push(result.data);
   }
   return ok(values);
+};
+
+// Context-aware result helpers
+export const contextualOk = <T>(
+  data: T,
+  context?: import("./error-context.ts").ErrorContext,
+): ContextualOk<T> => ({
+  ok: true,
+  data,
+  context,
+});
+
+export const contextualErr = <E>(
+  error: E,
+  context: import("./error-context.ts").ErrorContext,
+): ContextualErr<E> => ({
+  ok: false,
+  error,
+  context,
+});
+
+export const isContextualOk = <T, E>(
+  result: ContextualResult<T, E>,
+): result is ContextualOk<T> => result.ok === true;
+
+export const isContextualErr = <T, E>(
+  result: ContextualResult<T, E>,
+): result is ContextualErr<E> => result.ok === false;
+
+export const mapContextual = <T, U, E>(
+  result: ContextualResult<T, E>,
+  fn: (value: T) => U,
+): ContextualResult<U, E> => {
+  if (isContextualOk(result)) {
+    return contextualOk(fn(result.data), result.context);
+  }
+  return result;
+};
+
+export const mapContextualError = <T, E, F>(
+  result: ContextualResult<T, E>,
+  fn: (error: E) => F,
+): ContextualResult<T, F> => {
+  if (isContextualErr(result)) {
+    return contextualErr(fn(result.error), result.context);
+  }
+  return result;
+};
+
+export const chainContextual = <T, U, E>(
+  result: ContextualResult<T, E>,
+  fn: (value: T) => ContextualResult<U, E>,
+): ContextualResult<U, E> => {
+  if (isContextualOk(result)) {
+    const newResult = fn(result.data);
+    // Preserve parent context in chain
+    if (isContextualErr(newResult) && result.context) {
+      return contextualErr(
+        newResult.error,
+        newResult.context.withParent(result.context),
+      );
+    }
+    return newResult;
+  }
+  return result;
+};
+
+// Convert regular Result to ContextualResult
+export const addContext = <T, E>(
+  result: Result<T, E>,
+  context: import("./error-context.ts").ErrorContext,
+): ContextualResult<T, E> => {
+  if (isOk(result)) {
+    return contextualOk(result.data, context);
+  }
+  return contextualErr(result.error, context);
+};
+
+// Convert ContextualResult to regular Result (strips context)
+export const stripContext = <T, E>(
+  result: ContextualResult<T, E>,
+): Result<T, E> => {
+  if (isContextualOk(result)) {
+    return ok(result.data);
+  }
+  return err(result.error);
 };
