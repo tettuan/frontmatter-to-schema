@@ -72,6 +72,17 @@ export class SchemaPathResolver {
   private static debugLogger = DebugLoggerFactory.create();
 
   /**
+   * Type guard to check if value is a Record<string, unknown>
+   * Replaces unsafe type assertion with proper validation
+   */
+  private static isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      value.constructor === Object;
+  }
+
+  /**
    * Resolve data structure based on schema definition instead of hardcoding.
    * This replaces the hardcoded { tools: { commands: dataArray } } approach.
    */
@@ -84,8 +95,8 @@ export class SchemaPathResolver {
       "Starting data structure resolution",
       {
         inputDataLength: dataArray.length,
-        sampleDataKeys: dataArray[0]
-          ? Object.keys(dataArray[0] as Record<string, unknown>)
+        sampleDataKeys: dataArray[0] && this.isRecord(dataArray[0])
+          ? Object.keys(dataArray[0])
           : [],
       },
     );
