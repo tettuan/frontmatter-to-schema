@@ -6,8 +6,8 @@ title: Domain Architecture Design
 description: Performs domain design based on domain boundary information and related materials.
 usage: climpt-design domain architecture -f boundary_info.md -o design_output/
 options:
-  file: [true]
-  destination: [true]
+  file: true
+  destination: true
 ---
 
 # ドメイン設計

@@ -6,7 +6,7 @@ title: Climpt Executable Commands List Builder
 description: Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.
 usage: climpt-meta build-list command-registry -o registered-commands.md
 options:
-  destination: [true]
+  destination: true
 ---
 
 # 実施事項

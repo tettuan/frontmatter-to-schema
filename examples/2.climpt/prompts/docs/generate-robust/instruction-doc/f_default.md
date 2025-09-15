@@ -6,8 +6,8 @@ title: Robust Instruction Document Generator
 description: Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.
 usage: climpt-docs generate-robust instruction-doc -i=description -o instruction.md
 options:
-  stdin: [true]
-  destination: [true]
+  stdin: true
+  destination: true
 ---
 
 これは「指示書作成」の指示である。以下の記述に従い、指示書を作成して。

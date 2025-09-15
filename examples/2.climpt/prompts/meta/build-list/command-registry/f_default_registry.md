@@ -7,7 +7,7 @@ description: Automatically generates a registry.json file for MCP server configu
 usage: climpt-meta build-list command-registry -a=registry -o registry.json
 options:
   adaptation: ["registry"]
-  destination: [true]
+  destination: true
 ---
 
 # Implementation Tasks

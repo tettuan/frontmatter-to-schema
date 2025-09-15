@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "x-template": "article_template.yml",
+  "x-template": "article_template.json",
   "title": "Article Schema",
   "description": "Schema for a single article metadata",
   "properties": {

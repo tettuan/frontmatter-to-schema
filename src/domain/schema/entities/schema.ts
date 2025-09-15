@@ -114,14 +114,14 @@ export class Schema {
 
     const findInProperties = (
       def: SchemaDefinition,
-    ): SchemaDefinition | undefined => {
+    ): Result<SchemaDefinition, SchemaError & { message: string }> => {
       if (def.hasFrontmatterPart()) {
         this.debugLogger?.logExtensionDetection(
           defaultSchemaExtensionRegistry.getFrontmatterPartKey().getValue(),
           true,
           true,
         );
-        return def;
+        return ok(def);
       }
 
       const propertiesResult = def.getProperties();
@@ -133,28 +133,28 @@ export class Schema {
           );
           // Use fromSchemaProperty since prop is already migrated
           const propDef = SchemaDefinition.fromSchemaProperty(prop);
-          const found = findInProperties(propDef);
-          if (found) return found;
+          const foundResult = findInProperties(propDef);
+          if (foundResult.ok) return foundResult;
         }
       }
 
-      return undefined;
+      return err(createError({ kind: "FrontmatterPartNotFound" }));
     };
 
-    const found = findInProperties(this.definition);
-    if (found) {
+    const foundResult = findInProperties(this.definition);
+    if (foundResult.ok) {
       this.debugLogger?.logInfo(
         "schema-analysis",
         "Found frontmatter-part schema",
       );
-      return ok(found);
+      return foundResult;
     }
 
     this.debugLogger?.logInfo(
       "schema-analysis",
       "No frontmatter-part schema found",
     );
-    return err(createError({ kind: "FrontmatterPartNotFound" }));
+    return foundResult;
   }
 
   findFrontmatterPartPath(): Result<string, SchemaError & { message: string }> {
@@ -166,13 +166,13 @@ export class Schema {
     const findPath = (
       def: SchemaDefinition,
       currentPath: string = "",
-    ): string | undefined => {
+    ): Result<string, SchemaError & { message: string }> => {
       if (def.hasFrontmatterPart()) {
         this.debugLogger?.logDebug(
           "schema-path-analysis",
           `Found frontmatter-part at path: ${currentPath || "root"}`,
         );
-        return currentPath;
+        return ok(currentPath);
       }
 
       const propertiesResult = def.getProperties();
@@ -185,28 +185,28 @@ export class Schema {
             "schema-path-traversal",
             `Checking path: ${newPath}`,
           );
-          const found = findPath(propDef, newPath);
-          if (found) return found;
+          const foundResult = findPath(propDef, newPath);
+          if (foundResult.ok) return foundResult;
         }
       }
 
-      return undefined;
+      return err(createError({ kind: "FrontmatterPartNotFound" }));
     };
 
-    const path = findPath(this.definition);
-    if (path !== undefined) {
+    const pathResult = findPath(this.definition);
+    if (pathResult.ok) {
       this.debugLogger?.logInfo(
         "schema-path-analysis",
-        `Frontmatter-part path found: ${path}`,
+        `Frontmatter-part path found: ${pathResult.data}`,
       );
-      return ok(path);
+      return pathResult;
     }
 
     this.debugLogger?.logInfo(
       "schema-path-analysis",
       "No frontmatter-part path found",
     );
-    return err(createError({ kind: "FrontmatterPartNotFound" }));
+    return pathResult;
   }
 
   getDerivedRules(): Array<{
@@ -241,7 +241,10 @@ export class Schema {
           `unique=${def.isDerivedUnique()}`,
         );
       } else {
-        this.debugLogger?.logExtensionDetection("x-derived-from", false);
+        this.debugLogger?.logExtensionDetection(
+          defaultSchemaExtensionRegistry.getDerivedFromKey().getValue(),
+          false,
+        );
       }
 
       const propertiesResult = def.getProperties();

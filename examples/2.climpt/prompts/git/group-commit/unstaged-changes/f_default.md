@@ -6,7 +6,7 @@ title: Group Commits by Semantic Proximity
 description: Groups Git commits based on semantic proximity of file changes and creates organized commit units.
 usage: climpt-git group-commit unstaged-changes -o commit_plan.md
 options:
-  destination: [true]
+  destination: true
 ---
 
 # 指示

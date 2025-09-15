@@ -45,6 +45,7 @@ export interface LegacySchemaProperty {
   readonly "x-derived-from"?: string;
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string;
+  readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
   readonly "x-base-property"?: boolean;
   readonly "x-default-value"?: unknown;
   readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
@@ -139,6 +140,7 @@ export class SchemaPropertyMigration {
       [registry.getDerivedFromKey().getValue()]: legacy["x-derived-from"],
       [registry.getDerivedUniqueKey().getValue()]: legacy["x-derived-unique"],
       [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
+      "x-template-format": legacy["x-template-format"], // User-requested: output format specification
       "x-base-property": legacy["x-base-property"], // Base property marker
       "x-default-value": legacy["x-default-value"], // Default value for base properties
       [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression

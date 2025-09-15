@@ -24,6 +24,7 @@ echo
   "$SCHEMA_FILE" \
   "$OUTPUT_FILE" \
   "$DOCS_DIR/**/*.md" \
+  -o=yaml \
   --verbose
 
 # Capture the exit status

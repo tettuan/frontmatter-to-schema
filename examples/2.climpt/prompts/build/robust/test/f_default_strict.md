@@ -7,9 +7,9 @@ description: Comprehensive guide for constructing robust, change-resilient, and 
 usage: climpt-build robust test -a=strict -f specification.md -i=additional_requirements -o test_output/
 options:
   adaptation: ["strict"]
-  file: [true]
-  stdin: [true]
-  destination: [true]
+  file: true
+  stdin: true
+  destination: true
 ---
 
 # 強固で堅牢なテスト構築指示書

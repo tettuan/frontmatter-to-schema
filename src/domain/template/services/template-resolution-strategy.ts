@@ -1,4 +1,5 @@
 import { Result } from "../../shared/types/result.ts";
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 
 /**
  * Template Resolution Context
@@ -7,10 +8,7 @@ import { Result } from "../../shared/types/result.ts";
 export interface TemplateResolutionContext {
   schemaPath: string;
   explicitTemplatePath?: string;
-  schemaDefinition: {
-    "x-template"?: string;
-    "x-template-items"?: string;
-  };
+  schemaDefinition: Record<string, unknown>;
   baseDirectory: string;
 }
 
@@ -74,17 +72,21 @@ export class SchemaBasedResolution implements TemplateResolutionStrategy {
   readonly name = "schema-derived";
 
   canResolve(context: TemplateResolutionContext): boolean {
-    return !!context.schemaDefinition["x-template"];
+    const templateKey = defaultSchemaExtensionRegistry.getTemplateKey()
+      .getValue();
+    return !!context.schemaDefinition[templateKey];
   }
 
   resolve(
     context: TemplateResolutionContext,
   ): Result<ResolvedTemplate, string> {
-    const mainTemplate = context.schemaDefinition["x-template"];
-    if (!mainTemplate) {
+    const templateKey = defaultSchemaExtensionRegistry.getTemplateKey()
+      .getValue();
+    const mainTemplate = context.schemaDefinition[templateKey];
+    if (!mainTemplate || typeof mainTemplate !== "string") {
       return {
         ok: false,
-        error: "Schema does not contain x-template property",
+        error: `Schema does not contain valid ${templateKey} property`,
       };
     }
 
@@ -95,10 +97,13 @@ export class SchemaBasedResolution implements TemplateResolutionStrategy {
     );
 
     // Check for items template
-    const itemsTemplate = context.schemaDefinition["x-template-items"];
-    const itemsTemplatePath = itemsTemplate
-      ? this.resolvePath(itemsTemplate, context.baseDirectory)
-      : undefined;
+    const templateItemsKey = defaultSchemaExtensionRegistry
+      .getTemplateItemsKey().getValue();
+    const itemsTemplate = context.schemaDefinition[templateItemsKey];
+    const itemsTemplatePath =
+      (itemsTemplate && typeof itemsTemplate === "string")
+        ? this.resolvePath(itemsTemplate, context.baseDirectory)
+        : undefined;
 
     return {
       ok: true,

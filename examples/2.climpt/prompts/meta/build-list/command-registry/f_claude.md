@@ -7,7 +7,7 @@ description: Generates available commands list using Claude Code with shell scri
 usage: climpt-meta build-list command-registry -a=claude -o tools-list.md
 options:
   input: ["claude"]
-  destination: [true]
+  destination: true
 ---
 
 # 指示書: 実行可能なClimptコマンドの登録

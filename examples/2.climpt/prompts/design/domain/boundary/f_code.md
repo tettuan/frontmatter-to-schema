@@ -9,9 +9,9 @@ usage: |
   実装コードを分析してドメイン境界線を設計します。
 options:
   input: ["code"]
-  file: [true]
-  stdin: [true]
-  destination: [true]
+  file: true
+  stdin: true
+  destination: true
 ---
 
 # ドメイン境界線の設計

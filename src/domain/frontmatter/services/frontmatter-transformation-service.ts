@@ -1,5 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import {
+  ProcessingBounds,
+  ProcessingBoundsFactory,
+  ProcessingBoundsMonitor,
+} from "../../shared/types/processing-bounds.ts";
 import { FilePath } from "../value-objects/file-path.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
@@ -65,12 +70,14 @@ export class FrontmatterTransformationService {
   /**
    * Transform multiple frontmatter documents into integrated domain data.
    * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
+   * Includes memory bounds monitoring following Totality principles
    */
   transformDocuments(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
     verbose: boolean = false,
+    processingBounds?: ProcessingBounds,
   ): Result<FrontmatterData, DomainError & { message: string }> {
     // Stage 1: List matching files
     this.debugLogger?.logInfo(
@@ -105,11 +112,56 @@ export class FrontmatterTransformationService {
       console.log(`[VERBOSE] Found ${filesResult.data.length} files`);
     }
 
+    // Initialize memory bounds monitoring following Totality principles
+    let actualBounds: ProcessingBounds;
+    if (processingBounds) {
+      actualBounds = processingBounds;
+    } else {
+      const defaultBoundsResult = ProcessingBoundsFactory.createDefault(
+        filesResult.data.length,
+      );
+      if (!defaultBoundsResult.ok) {
+        return err(defaultBoundsResult.error);
+      }
+      actualBounds = defaultBoundsResult.data;
+    }
+
+    const boundsMonitor = ProcessingBoundsMonitor.create(actualBounds);
+
+    this.debugLogger?.logDebug(
+      "memory-monitoring",
+      "Initialized processing bounds",
+      {
+        boundsType: actualBounds.kind,
+        fileCount: filesResult.data.length,
+      },
+    );
+
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
 
     // Stage 2: Process each file
     for (const filePath of filesResult.data) {
+      // Memory bounds monitoring - check state before processing each file
+      const state = boundsMonitor.checkState(processedData.length);
+      if (state.kind === "exceeded_limit") {
+        return err(createError({
+          kind: "MemoryBoundsViolation",
+          content: `Processing exceeded bounds: ${state.limit}`,
+        }));
+      }
+
+      if (state.kind === "approaching_limit") {
+        this.debugLogger?.logInfo(
+          "memory-monitoring",
+          `Approaching memory limit: ${
+            Math.round(state.usage.heapUsed / 1024 / 1024)
+          }MB used, threshold: ${
+            Math.round(state.warningThreshold / 1024 / 1024)
+          }MB`,
+        );
+      }
+
       this.debugLogger?.logDebug(
         "file-processing",
         `Processing file: ${filePath}`,
@@ -127,6 +179,19 @@ export class FrontmatterTransformationService {
           "file-processing",
           `Successfully processed: ${filePath}`,
         );
+
+        // Periodic O(log n) memory growth validation
+        if (processedData.length % 100 === 0 && processedData.length > 0) {
+          const growthResult = boundsMonitor.validateMemoryGrowth(
+            processedData.length,
+          );
+          if (!growthResult.ok) {
+            this.debugLogger?.logInfo(
+              "memory-monitoring",
+              `Memory growth validation warning: ${growthResult.error.message}`,
+            );
+          }
+        }
 
         if (verbose) {
           console.log("[VERBOSE]   ✓ File processed successfully");

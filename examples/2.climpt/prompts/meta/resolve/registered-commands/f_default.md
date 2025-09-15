@@ -6,8 +6,8 @@ title: Climpt Command Builder
 description: Constructs and recommends appropriate climpt-* commands based on provided content and requirements.
 usage: climpt-meta resolve registered-commands -i=content -o command_output.txt
 options:
-  stdin: [true]
-  destination: [true]
+  stdin: true
+  destination: true
 ---
 
 # Climpt CLI　コマンド作成指示書
