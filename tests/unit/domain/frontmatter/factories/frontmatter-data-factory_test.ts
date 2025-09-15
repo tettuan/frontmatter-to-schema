@@ -246,4 +246,230 @@ describe("FrontmatterDataFactory", () => {
       }
     });
   });
+
+  describe("empty", () => {
+    it("should create empty FrontmatterData", () => {
+      const empty = FrontmatterDataFactory.empty();
+      assertEquals(empty.isEmpty(), true);
+    });
+
+    it("should return empty data that behaves correctly", () => {
+      const empty = FrontmatterDataFactory.empty();
+      const result = empty.get("nonexistent");
+      assertEquals(result.ok, false);
+    });
+  });
+
+  describe("withDefault", () => {
+    it("should use default data for null input", () => {
+      const defaults = { version: "1.0.0", type: "default" };
+      const result = FrontmatterDataFactory.withDefault(null, defaults);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const version = result.data.get("version");
+        assertEquals(version.ok, true);
+        if (version.ok) {
+          assertEquals(version.data, "1.0.0");
+        }
+      }
+    });
+
+    it("should use default data for undefined input", () => {
+      const defaults = { version: "1.0.0", type: "default" };
+      const result = FrontmatterDataFactory.withDefault(undefined, defaults);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const version = result.data.get("version");
+        assertEquals(version.ok, true);
+        if (version.ok) {
+          assertEquals(version.data, "1.0.0");
+        }
+      }
+    });
+
+    it("should use provided data when not null/undefined", () => {
+      const data = { title: "Test Title", count: 42 };
+      const defaults = { version: "1.0.0", title: "Default Title" };
+      const result = FrontmatterDataFactory.withDefault(data, defaults);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const title = result.data.get("title");
+        assertEquals(title.ok, true);
+        if (title.ok) {
+          assertEquals(title.data, "Test Title"); // Original data, not default
+        }
+      }
+    });
+
+    it("should use empty defaults when not provided", () => {
+      const result = FrontmatterDataFactory.withDefault(null);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isEmpty(), true);
+      }
+    });
+  });
+
+  describe("fromMerged", () => {
+    it("should merge multiple object sources", () => {
+      const source1 = { a: 1, b: 2 };
+      const source2 = { b: 3, c: 4 };
+      const source3 = { d: 5 };
+
+      const result = FrontmatterDataFactory.fromMerged(
+        source1,
+        source2,
+        source3,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const a = result.data.get("a");
+        const b = result.data.get("b");
+        const c = result.data.get("c");
+        const d = result.data.get("d");
+
+        assertEquals(a.ok, true);
+        assertEquals(b.ok, true);
+        assertEquals(c.ok, true);
+        assertEquals(d.ok, true);
+
+        if (a.ok) assertEquals(a.data, 1);
+        if (b.ok) assertEquals(b.data, 3); // Later source wins
+        if (c.ok) assertEquals(c.data, 4);
+        if (d.ok) assertEquals(d.data, 5);
+      }
+    });
+
+    it("should ignore non-object sources", () => {
+      const source1 = { a: 1 };
+      const source2 = "invalid"; // String - should be ignored
+      const source3 = [1, 2, 3]; // Array - should be ignored
+      const source4 = null; // Null - should be ignored
+      const source5 = { b: 2 };
+
+      const result = FrontmatterDataFactory.fromMerged(
+        source1,
+        source2,
+        source3,
+        source4,
+        source5,
+      );
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const a = result.data.get("a");
+        const b = result.data.get("b");
+
+        assertEquals(a.ok, true);
+        assertEquals(b.ok, true);
+
+        if (a.ok) assertEquals(a.data, 1);
+        if (b.ok) assertEquals(b.data, 2);
+      }
+    });
+
+    it("should handle no valid sources", () => {
+      const result = FrontmatterDataFactory.fromMerged("string", 123, null, []);
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isEmpty(), true);
+      }
+    });
+
+    it("should handle empty input", () => {
+      const result = FrontmatterDataFactory.fromMerged();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isEmpty(), true);
+      }
+    });
+  });
+
+  describe("batchCreate", () => {
+    it("should create multiple FrontmatterData instances successfully", () => {
+      const items = [
+        { id: 1, name: "Item1" },
+        { id: 2, name: "Item2" },
+        { id: 3, name: "Item3" },
+      ];
+
+      const result = FrontmatterDataFactory.batchCreate(items);
+
+      assertEquals(result.successful.length, 3);
+      assertEquals(result.failed.length, 0);
+
+      const firstItem = result.successful[0].get("name");
+      assertEquals(firstItem.ok, true);
+      if (firstItem.ok) {
+        assertEquals(firstItem.data, "Item1");
+      }
+    });
+
+    it("should handle mixed valid and invalid items", () => {
+      const items = [
+        { id: 1, name: "Valid1" }, // Valid
+        null, // Invalid
+        { id: 2, name: "Valid2" }, // Valid
+        "invalid", // Invalid
+        { id: 3, name: "Valid3" }, // Valid
+      ];
+
+      const result = FrontmatterDataFactory.batchCreate(items);
+
+      assertEquals(result.successful.length, 3);
+      assertEquals(result.failed.length, 2);
+
+      // Check failed items have correct indices
+      assertEquals(result.failed[0].index, 1); // null at index 1
+      assertEquals(result.failed[1].index, 3); // "invalid" at index 3
+
+      // Check successful items
+      const firstValid = result.successful[0].get("name");
+      assertEquals(firstValid.ok, true);
+      if (firstValid.ok) {
+        assertEquals(firstValid.data, "Valid1");
+      }
+    });
+
+    it("should handle all invalid items", () => {
+      const items = [null, "string", 123, []];
+
+      const result = FrontmatterDataFactory.batchCreate(items);
+
+      assertEquals(result.successful.length, 0);
+      assertEquals(result.failed.length, 4);
+
+      // Check all indices are recorded
+      assertEquals(result.failed[0].index, 0);
+      assertEquals(result.failed[1].index, 1);
+      assertEquals(result.failed[2].index, 2);
+      assertEquals(result.failed[3].index, 3);
+    });
+
+    it("should handle empty array", () => {
+      const result = FrontmatterDataFactory.batchCreate([]);
+
+      assertEquals(result.successful.length, 0);
+      assertEquals(result.failed.length, 0);
+    });
+
+    it("should handle large batch efficiently", () => {
+      const items = Array.from({ length: 100 }, (_, i) => ({
+        id: i,
+        name: `Item${i}`,
+      }));
+
+      const result = FrontmatterDataFactory.batchCreate(items);
+
+      assertEquals(result.successful.length, 100);
+      assertEquals(result.failed.length, 0);
+    });
+  });
 });

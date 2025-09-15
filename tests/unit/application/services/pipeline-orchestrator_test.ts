@@ -711,4 +711,323 @@ describe("PipelineOrchestrator", () => {
       assertEquals(result.ok, true);
     });
   });
+
+  describe("private method coverage", () => {
+    it("should handle schema creation failures", async () => {
+      const fileSystem = new MockFileSystem();
+      // Don't set the file to trigger file not found
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      // Test with non-existent file to trigger file reading failure
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/nonexistent/schema.json",
+        outputPath: "/test/output.json",
+      };
+
+      const result = await orchestrator.execute(config);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "FileNotFound");
+      }
+    });
+
+    it("should handle malformed schema definition", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          // Schema that will trigger SchemaDefinition validation failure
+          type: "invalid-type", // Invalid type value
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+      };
+
+      const result = await orchestrator.execute(config);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidSchema");
+      }
+    });
+
+    it("should handle frontmatter-part extraction with invalid items gracefully", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            commands: {
+              type: "array",
+              "x-frontmatter-part": true,
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      // Create data with array containing invalid items (null, primitives)
+      // The system handles these gracefully by filtering them out
+      const dataResult = FrontmatterData.create({
+        commands: [
+          { name: "valid-command" },
+          null, // This gets filtered out gracefully
+          "invalid-string", // This gets filtered out gracefully
+          { name: "another-valid" },
+        ],
+      });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setPathsToReturn({
+        templatePath: "/test/template.json",
+        itemsTemplatePath: "/test/items-template.json", // Dual template mode
+        outputFormat: "json",
+      });
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+      };
+
+      const result = await orchestrator.execute(config);
+
+      // Should succeed - invalid items are handled gracefully
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle frontmatter-part extraction with no array data", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            commands: {
+              type: "array",
+              "x-frontmatter-part": true,
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      // Create data without the frontmatter-part array
+      const dataResult = FrontmatterData.create({
+        title: "Test Document",
+        description: "No commands array here",
+      });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setPathsToReturn({
+        templatePath: "/test/template.json",
+        itemsTemplatePath: "/test/items-template.json", // Dual template mode
+        outputFormat: "json",
+      });
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+      };
+
+      const result = await orchestrator.execute(config);
+
+      // Should succeed - when no array data is found, it defaults to single item array
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle frontmatter-part extraction with non-array at target path", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            commands: {
+              type: "array",
+              "x-frontmatter-part": true,
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      // Create data with non-array at the frontmatter-part path
+      const dataResult = FrontmatterData.create({
+        commands: "this-should-be-an-array-but-isnt",
+      });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setPathsToReturn({
+        templatePath: "/test/template.json",
+        itemsTemplatePath: "/test/items-template.json", // Dual template mode
+        outputFormat: "json",
+      });
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+      };
+
+      const result = await orchestrator.execute(config);
+
+      // Should succeed - when non-array data is found, it defaults to single item array
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle verbose logging with items template path", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            commands: {
+              type: "array",
+              "x-frontmatter-part": true,
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const dataResult = FrontmatterData.create({
+        commands: [
+          { name: "command1" },
+          { name: "command2" },
+        ],
+      });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setPathsToReturn({
+        templatePath: "/test/template.json",
+        itemsTemplatePath: "/test/items-template.json",
+        outputFormat: "json",
+      });
+
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+      );
+
+      const config: PipelineConfig = {
+        inputPattern: "**/*.md",
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        verbose: true, // Test verbose logging with items template
+      };
+
+      const result = await orchestrator.execute(config);
+
+      assertEquals(result.ok, true);
+    });
+  });
 });
