@@ -3,6 +3,7 @@
   "type": "object",
   "title": "Registry Schema",
   "x-template": "registry_template.json",
+  "x-template-items": "registry_command_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
