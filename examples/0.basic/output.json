@@ -59,6 +59,21 @@
             false
           ]
         }
+      },
+      {
+        "c1": "",
+        "c2": "",
+        "c3": "",
+        "title": "",
+        "description": "",
+        "usage": "",
+        "options": {
+          "input": "",
+          "adaptation": "",
+          "input_file": "",
+          "stdin": "",
+          "destination": ""
+        }
       }
     ]
   }

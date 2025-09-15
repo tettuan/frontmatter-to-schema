@@ -81,10 +81,16 @@ export class SchemaExtensionKey {
 /**
  * Registry for schema extension keys following DDD patterns.
  * Provides a single source of truth for all schema extension definitions.
+ * Following Totality principles - uses direct property access instead of Map lookups.
  */
 export class SchemaExtensionRegistry {
   private constructor(
-    private readonly extensions: Map<string, SchemaExtensionKey>,
+    private readonly frontmatterPartKey: SchemaExtensionKey,
+    private readonly templateKey: SchemaExtensionKey,
+    private readonly templateItemsKey: SchemaExtensionKey,
+    private readonly derivedFromKey: SchemaExtensionKey,
+    private readonly derivedUniqueKey: SchemaExtensionKey,
+    private readonly jmespathFilterKey: SchemaExtensionKey,
   ) {}
 
   /**
@@ -92,73 +98,77 @@ export class SchemaExtensionRegistry {
    * Following Totality principle - creates registry with all standard extensions
    */
   static create(): SchemaExtensionRegistry {
-    const extensions = new Map([
-      ["frontmatter-part", SchemaExtensionKey.frontmatterPart()],
-      ["template", SchemaExtensionKey.template()],
-      ["template-items", SchemaExtensionKey.templateItems()],
-      ["derived-from", SchemaExtensionKey.derivedFrom()],
-      ["derived-unique", SchemaExtensionKey.derivedUnique()],
-      ["jmespath-filter", SchemaExtensionKey.jmespathFilter()],
-    ]);
-    return new SchemaExtensionRegistry(extensions);
+    return new SchemaExtensionRegistry(
+      SchemaExtensionKey.frontmatterPart(),
+      SchemaExtensionKey.template(),
+      SchemaExtensionKey.templateItems(),
+      SchemaExtensionKey.derivedFrom(),
+      SchemaExtensionKey.derivedUnique(),
+      SchemaExtensionKey.jmespathFilter(),
+    );
   }
 
   /**
    * Get frontmatter-part extension key
    */
   getFrontmatterPartKey(): SchemaExtensionKey {
-    return this.extensions.get("frontmatter-part")!;
+    return this.frontmatterPartKey;
   }
 
   /**
    * Get template extension key
    */
   getTemplateKey(): SchemaExtensionKey {
-    return this.extensions.get("template")!;
+    return this.templateKey;
   }
 
   /**
    * Get template-items extension key
    */
   getTemplateItemsKey(): SchemaExtensionKey {
-    return this.extensions.get("template-items")!;
+    return this.templateItemsKey;
   }
 
   /**
    * Get derived-from extension key
    */
   getDerivedFromKey(): SchemaExtensionKey {
-    return this.extensions.get("derived-from")!;
+    return this.derivedFromKey;
   }
 
   /**
    * Get derived-unique extension key
    */
   getDerivedUniqueKey(): SchemaExtensionKey {
-    return this.extensions.get("derived-unique")!;
+    return this.derivedUniqueKey;
   }
 
   /**
    * Get jmespath-filter extension key
    */
   getJmespathFilterKey(): SchemaExtensionKey {
-    return this.extensions.get("jmespath-filter")!;
+    return this.jmespathFilterKey;
   }
 
   /**
    * Get all registered extension keys
    */
   getAllKeys(): SchemaExtensionKey[] {
-    return Array.from(this.extensions.values());
+    return [
+      this.frontmatterPartKey,
+      this.templateKey,
+      this.templateItemsKey,
+      this.derivedFromKey,
+      this.derivedUniqueKey,
+      this.jmespathFilterKey,
+    ];
   }
 
   /**
    * Check if an extension key is registered
    */
   hasExtension(key: string): boolean {
-    return Array.from(this.extensions.values()).some((ext) =>
-      ext.getValue() === key
-    );
+    return this.getAllKeys().some((ext) => ext.getValue() === key);
   }
 }
 

@@ -50,8 +50,8 @@ Deno.test("CLI Argument Validation", async (t) => {
 
       const result = await executeCliCommand([
         nonExistentSchema,
-        outputPath,
         "*.md",
+        outputPath,
       ], { cwd: tempDir });
 
       assert(!result.ok, "CLI should fail with non-existent schema");
@@ -82,8 +82,8 @@ Deno.test("CLI Argument Validation", async (t) => {
 
       const result = await executeCliCommand([
         invalidSchemaPath,
-        outputPath,
         "*.md",
+        outputPath,
       ], { cwd: tempDir });
 
       assert(!result.ok, "CLI should fail with invalid schema");
@@ -130,8 +130,8 @@ Deno.test("CLI Argument Validation", async (t) => {
       // Use pattern that matches no files
       const result = await executeCliCommand([
         schemaPath,
-        outputPath,
         "non_existent_*.md",
+        outputPath,
       ], { cwd: tempDir });
 
       // CLI should complete but may produce empty or default output
@@ -180,8 +180,8 @@ Deno.test("CLI Argument Validation", async (t) => {
 
         const result = await executeCliCommand([
           schemaPath,
-          outputPath,
           "*.md",
+          outputPath,
         ], { cwd: tempDir });
 
         // Should either succeed (auto-create dirs) or fail gracefully
@@ -212,8 +212,8 @@ Deno.test("CLI Argument Validation", async (t) => {
 
       const result = await executeCliCommand([
         schemaPath,
-        outputPath,
         "*.md",
+        outputPath,
         "--unknown-flag",
       ], { cwd: tempDir });
 

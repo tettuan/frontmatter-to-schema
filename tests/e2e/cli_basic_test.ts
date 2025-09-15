@@ -94,8 +94,8 @@ Deno.test("CLI Basic Functionality", async (t) => {
       // Act: Execute CLI command
       const result = await executeCliCommand([
         schemaPath,
-        outputPath,
         "*.md",
+        outputPath,
       ], { cwd: tempDir });
 
       // Assert: Validate results
@@ -200,8 +200,8 @@ Deno.test("CLI Basic Functionality", async (t) => {
       // Act: Execute CLI command with verbose flag
       const result = await executeCliCommand([
         schemaPath,
-        outputPath,
         "*.md",
+        outputPath,
         "--verbose",
       ], { cwd: tempDir });
 

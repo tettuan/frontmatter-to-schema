@@ -22,7 +22,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
 
       try {
         const cmd = new Deno.Command("deno", {
-          args: ["run", "--allow-all", cliPath, schemaPath, outputPath, "*.md"],
+          args: ["run", "--allow-all", cliPath, schemaPath, "*.md", outputPath],
           stdout: "piped",
           stderr: "piped",
         });
@@ -71,8 +71,8 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
             "--allow-write",
             cliPath,
             schemaPath,
-            "/root/forbidden/output.json",
             "*.md",
+            "/root/forbidden/output.json",
           ],
           stdout: "piped",
           stderr: "piped",
@@ -108,7 +108,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
 
       try {
         const cmd = new Deno.Command("deno", {
-          args: ["run", "--allow-all", cliPath, schemaPath, outputPath, "*.md"],
+          args: ["run", "--allow-all", cliPath, schemaPath, "*.md", outputPath],
           stdout: "piped",
           stderr: "piped",
         });
@@ -144,7 +144,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
 
       try {
         const cmd = new Deno.Command("deno", {
-          args: ["run", "--allow-all", cliPath, schemaPath, outputPath, "*.md"],
+          args: ["run", "--allow-all", cliPath, schemaPath, "*.md", outputPath],
           stdout: "piped",
           stderr: "piped",
         });
@@ -184,8 +184,8 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
           "--allow-all",
           cliPath,
           schemaPath,
-          outputPath,
           join(tempDir, "nonexistent_*.md"),
+          outputPath,
         ],
         stdout: "piped",
         stderr: "piped",
@@ -228,8 +228,8 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
           "--allow-all",
           cliPath,
           schemaPath,
-          "/nonexistent/path/output.json",
           "*.md",
+          "/nonexistent/path/output.json",
         ],
         stdout: "piped",
         stderr: "piped",
@@ -275,7 +275,7 @@ invalid: yaml: content: here
 
       try {
         const cmd = new Deno.Command("deno", {
-          args: ["run", "--allow-all", cliPath, schemaPath, outputPath, mdPath],
+          args: ["run", "--allow-all", cliPath, schemaPath, mdPath, outputPath],
           stdout: "piped",
           stderr: "piped",
         });

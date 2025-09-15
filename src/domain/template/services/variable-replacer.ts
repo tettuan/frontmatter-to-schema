@@ -382,13 +382,14 @@ export class VariableReplacer {
       return ok(iterateData);
     }
 
+    // At this point we know frontmatter_value exists due to the guard above
+    const frontmatterValueKey = iterateValue.frontmatter_value;
+
     const results: unknown[] = [];
     for (const item of iterateData) {
       const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
       if (itemDataResult.ok) {
-        const valueResult = itemDataResult.data.get(
-          iterateValue.frontmatter_value!,
-        );
+        const valueResult = itemDataResult.data.get(frontmatterValueKey);
         if (valueResult.ok) {
           results.push(valueResult.data);
         }
