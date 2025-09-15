@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { VariableContext } from "../../src/domain/template/value-objects/variable-context.ts";
-import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../helpers/test-data-factory.ts";
 
 /**
  * MINIMAL INTEGRATION TEST: Template-Schema Binding Layer
@@ -13,7 +13,7 @@ describe("Template-Schema Binding Minimal", () => {
   describe("Variable Context Legacy Support", () => {
     it("should create and use variable context in legacy mode", () => {
       // Arrange
-      const dataResult = FrontmatterData.create({
+      const dataResult = TestDataFactory.createFrontmatterData({
         title: "My Project",
         version: "1.0.0",
       });
@@ -51,7 +51,9 @@ describe("Template-Schema Binding Minimal", () => {
 
     it("should handle {@items} correctly in different modes", () => {
       // Test 1: Legacy mode without array data - should fail
-      const simpleDataResult = FrontmatterData.create({ title: "Test" });
+      const simpleDataResult = TestDataFactory.createFrontmatterData({
+        title: "Test",
+      });
       assertExists(simpleDataResult.ok);
       if (!simpleDataResult.ok) return;
 
@@ -94,7 +96,9 @@ describe("Template-Schema Binding Minimal", () => {
     });
 
     it("should handle error cases properly", () => {
-      const dataResult = FrontmatterData.create({ title: "Test" });
+      const dataResult = TestDataFactory.createFrontmatterData({
+        title: "Test",
+      });
       assertExists(dataResult.ok);
       if (!dataResult.ok) return;
 

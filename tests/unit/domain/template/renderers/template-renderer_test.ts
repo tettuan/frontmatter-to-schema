@@ -1,9 +1,10 @@
 import { assertEquals } from "@std/assert";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 import { isOk } from "../../../../../src/domain/shared/types/result.ts";
+import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 // Test helper to create template
 function createTestTemplate(
@@ -32,7 +33,7 @@ function createTestTemplate(
 function createTestFrontmatterData(
   data: Record<string, unknown>,
 ): FrontmatterData {
-  const result = FrontmatterData.create(data);
+  const result = TestDataFactory.createFrontmatterData(data);
   if (!isOk(result)) {
     throw new Error("Failed to create frontmatter data");
   }

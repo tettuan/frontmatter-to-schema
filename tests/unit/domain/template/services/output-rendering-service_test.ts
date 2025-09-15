@@ -2,8 +2,9 @@ import { assertEquals, assertExists } from "@std/assert";
 import { beforeEach, describe, it } from "@std/testing/bdd";
 import { OutputRenderingService } from "../../../../../src/domain/template/services/output-rendering-service.ts";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { ok } from "../../../../../src/domain/shared/types/result.ts";
+import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 /**
  * CRITICAL SPECIFICATION TEST: Dual Template Rendering
@@ -95,7 +96,7 @@ describe("OutputRenderingService - Dual Template Rendering", () => {
      */
     it("should render two-layer template structure with replaced variables", () => {
       // Prepare main data
-      const mainDataResult = FrontmatterData.create({
+      const mainDataResult = TestDataFactory.createFrontmatterData({
         description: "Test Articles",
         totalCount: 3,
       });
@@ -106,7 +107,7 @@ describe("OutputRenderingService - Dual Template Rendering", () => {
       // Prepare items data array
       const itemsData: FrontmatterData[] = [];
       for (let i = 1; i <= 3; i++) {
-        const itemResult = FrontmatterData.create({
+        const itemResult = TestDataFactory.createFrontmatterData({
           id: `item-${i}`,
           name: `Item ${i}`,
           value: i * 100,
@@ -205,7 +206,7 @@ describe("OutputRenderingService - Dual Template Rendering", () => {
      * This is critical for existing schemas that don't use dual templates.
      */
     it("should handle single template when items template is not provided", () => {
-      const mainDataResult = FrontmatterData.create({
+      const mainDataResult = TestDataFactory.createFrontmatterData({
         title: "Single Template",
         content: "Test content",
       });

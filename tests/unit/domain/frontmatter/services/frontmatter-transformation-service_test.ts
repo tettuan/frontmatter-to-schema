@@ -1,9 +1,10 @@
 import { assertEquals } from "jsr:@std/assert";
 import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { Aggregator } from "../../../../../src/domain/aggregation/index.ts";
 import { err, ok } from "../../../../../src/domain/shared/types/result.ts";
+import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 // Mock implementations
 class MockFrontmatterProcessor {
@@ -69,7 +70,7 @@ class MockSchema {
 
 // Create test data
 const createTestFrontmatterData = (data: Record<string, any>) => {
-  const result = FrontmatterData.create(data);
+  const result = TestDataFactory.createFrontmatterData(data);
   if (!result.ok) throw new Error("Failed to create test data");
   return result.data;
 };

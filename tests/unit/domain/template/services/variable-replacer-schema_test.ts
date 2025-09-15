@@ -39,10 +39,10 @@ describe("VariableReplacer - Schema Support", () => {
       const replacer = replacerResult.data;
 
       // Create minimal frontmatter data for testing
-      const { FrontmatterData } = await import(
-        "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts"
+      const { TestDataFactory } = await import(
+        "../../../../helpers/test-data-factory.ts"
       );
-      const dataResult = FrontmatterData.create({
+      const dataResult = TestDataFactory.createFrontmatterData({
         title: "Test Project",
         version: "1.0.0",
       });
