@@ -241,8 +241,8 @@ export class OutputRenderingService {
         return composedDataResult;
       }
 
-      // Use renderWithArray with proper composition
-      renderResult = this.templateRenderer.renderWithArray(
+      // Use unified render method with proper composition
+      renderResult = this.templateRenderer.render(
         templateResult.data,
         itemsData,
       );

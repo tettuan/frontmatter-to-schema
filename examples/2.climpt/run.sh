@@ -7,8 +7,8 @@ echo "=== Climpt Registry Processing ==="
 
 # Test configuration
 REGISTRY_SCHEMA="./examples/2.climpt/registry_schema.json"
-OUTPUT_FILE="./tmp/climpt-registry-output.json"
-PROMPTS_DIR="./.agent/climpt/prompts"
+OUTPUT_FILE="./examples/2.climpt/climpt-registry-output.json"
+PROMPTS_DIR="./examples/2.climpt/prompts"
 
 # Create tmp directory if it doesn't exist
 mkdir -p tmp

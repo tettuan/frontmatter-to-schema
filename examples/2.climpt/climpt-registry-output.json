@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "description": "Analyze specification quality and completeness metrics",
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "commands": [
+      "{@items}"
+    ]
+  }
+}
