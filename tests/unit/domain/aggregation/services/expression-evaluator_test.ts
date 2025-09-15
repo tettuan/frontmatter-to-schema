@@ -1,15 +1,15 @@
 import { assert, assertEquals } from "@std/assert";
 import { ExpressionEvaluator } from "../../../../../src/domain/aggregation/services/expression-evaluator.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 
 Deno.test("ExpressionEvaluator - should evaluate simple array expression", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data1 = FrontmatterData.create({
+  const data1 = TestDataFactory.createFrontmatterData({
     commands: ["build", "test", "deploy"],
   });
 
-  const data2 = FrontmatterData.create({
+  const data2 = TestDataFactory.createFrontmatterData({
     commands: ["lint", "format"],
   });
 
@@ -26,14 +26,14 @@ Deno.test("ExpressionEvaluator - should evaluate simple array expression", () =>
 Deno.test("ExpressionEvaluator - should evaluate array with property access", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data1 = FrontmatterData.create({
+  const data1 = TestDataFactory.createFrontmatterData({
     commands: [
       { name: "build", type: "script" },
       { name: "test", type: "script" },
     ],
   });
 
-  const data2 = FrontmatterData.create({
+  const data2 = TestDataFactory.createFrontmatterData({
     commands: [
       { name: "lint", type: "check" },
     ],
@@ -55,7 +55,7 @@ Deno.test("ExpressionEvaluator - should evaluate array with property access", ()
 Deno.test("ExpressionEvaluator - should handle missing array path", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     other: "value",
   });
 
@@ -72,7 +72,7 @@ Deno.test("ExpressionEvaluator - should handle missing array path", () => {
 Deno.test("ExpressionEvaluator - should handle non-array values", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     commands: "not-an-array",
   });
 
@@ -89,7 +89,7 @@ Deno.test("ExpressionEvaluator - should handle non-array values", () => {
 Deno.test("ExpressionEvaluator - should reject expression without array notation", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     name: "test",
   });
 
@@ -107,7 +107,7 @@ Deno.test("ExpressionEvaluator - should reject expression without array notation
 Deno.test("ExpressionEvaluator - should reject expression with multiple array notations", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     nested: [[1, 2], [3, 4]],
   });
 
@@ -125,7 +125,7 @@ Deno.test("ExpressionEvaluator - should reject expression with multiple array no
 Deno.test("ExpressionEvaluator - should handle complex nested objects", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     items: [
       { metadata: { category: "script", priority: 1 } },
       { metadata: { category: "test", priority: 2 } },
@@ -148,11 +148,11 @@ Deno.test("ExpressionEvaluator - should handle complex nested objects", () => {
 Deno.test("ExpressionEvaluator - should handle empty arrays", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data1 = FrontmatterData.create({
+  const data1 = TestDataFactory.createFrontmatterData({
     commands: [],
   });
 
-  const data2 = FrontmatterData.create({
+  const data2 = TestDataFactory.createFrontmatterData({
     commands: ["build"],
   });
 
@@ -169,11 +169,11 @@ Deno.test("ExpressionEvaluator - should handle empty arrays", () => {
 Deno.test("ExpressionEvaluator - evaluateUnique should remove duplicates", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data1 = FrontmatterData.create({
+  const data1 = TestDataFactory.createFrontmatterData({
     tags: ["javascript", "deno", "javascript"],
   });
 
-  const data2 = FrontmatterData.create({
+  const data2 = TestDataFactory.createFrontmatterData({
     tags: ["deno", "typescript"],
   });
 
@@ -190,14 +190,14 @@ Deno.test("ExpressionEvaluator - evaluateUnique should remove duplicates", () =>
 Deno.test("ExpressionEvaluator - evaluateUnique should handle object duplicates", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data1 = FrontmatterData.create({
+  const data1 = TestDataFactory.createFrontmatterData({
     items: [
       { name: "build", type: "script" },
       { name: "test", type: "script" },
     ],
   });
 
-  const data2 = FrontmatterData.create({
+  const data2 = TestDataFactory.createFrontmatterData({
     items: [
       { name: "build", type: "script" }, // Duplicate
       { name: "lint", type: "check" },
@@ -299,7 +299,7 @@ Deno.test("ExpressionEvaluator - should handle root-level array from object", ()
   const evaluator = new ExpressionEvaluator();
 
   // FrontmatterData requires an object, so we need to wrap the array
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     rootItems: ["item1", "item2", "item3"],
   });
 
@@ -316,7 +316,7 @@ Deno.test("ExpressionEvaluator - should handle root-level array from object", ()
 Deno.test("ExpressionEvaluator - should handle nested property access with undefined values", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     items: [
       { name: "valid", metadata: { type: "script" } },
       { name: "incomplete" }, // Missing metadata
@@ -340,7 +340,7 @@ Deno.test("ExpressionEvaluator - should handle nested property access with undef
 Deno.test("ExpressionEvaluator - should handle mixed data types in arrays", () => {
   const evaluator = new ExpressionEvaluator();
 
-  const data = FrontmatterData.create({
+  const data = TestDataFactory.createFrontmatterData({
     mixed: [
       "string",
       42,
