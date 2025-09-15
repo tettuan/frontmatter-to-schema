@@ -25,7 +25,7 @@ import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/front
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
-import { SchemaCacheManager } from "../../infrastructure/caching/schema-cache.ts";
+import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 
@@ -95,6 +95,7 @@ export class PipelineOrchestrator {
     private readonly outputRenderingService: OutputRenderingService,
     private readonly templatePathResolver: TemplatePathResolver,
     private readonly fileSystem: FileSystem,
+    private readonly schemaCache: SchemaCache,
     private readonly logger?: DebugLogger,
   ) {}
 
@@ -361,7 +362,7 @@ export class PipelineOrchestrator {
     schemaPath: string,
   ): Promise<Result<Schema, DomainError & { message: string }>> {
     // Performance optimization: Check schema cache first
-    const cache = SchemaCacheManager.getInstance();
+    const cache = this.schemaCache;
 
     // Try to get from cache
     const cacheResult = await cache.get(schemaPath);

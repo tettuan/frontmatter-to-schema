@@ -17,6 +17,7 @@ import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
+import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -120,6 +121,9 @@ export class CLI {
     // Create TemplatePathResolver
     const templatePathResolver = new TemplatePathResolver();
 
+    // Create SchemaCache with default configuration
+    const schemaCache = SchemaCacheFactory.create();
+
     // Create file system adapter
     const fileSystem = {
       read: (path: string) => fileReader.read(path),
@@ -134,6 +138,7 @@ export class CLI {
         outputRenderingService,
         templatePathResolver,
         fileSystem,
+        schemaCache,
         logger,
       ),
     );
