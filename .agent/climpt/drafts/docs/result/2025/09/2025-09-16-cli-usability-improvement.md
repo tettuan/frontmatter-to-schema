@@ -13,16 +13,18 @@ variables:
 
 ## 目的・適用範囲
 
-**目的**:
-技術的に優秀な frontmatter-to-schema プロジェクトの CLI インターフェースを、ユーザーが直感的に使用できるレベルまで改善し、プロジェクトの採用を促進する。
+**目的**: 技術的に優秀な frontmatter-to-schema プロジェクトの CLI
+インターフェースを、ユーザーが直感的に使用できるレベルまで改善し、プロジェクトの採用を促進する。
 
 **適用範囲**:
+
 - CLI の引数処理とエラーハンドリング
 - examples/ ディレクトリの動作保証
 - ユーザー向けドキュメント
 - 権限要件の明確化
 
 **非適用範囲**:
+
 - 内部アーキテクチャの変更（DDD/Totality 設計は維持）
 - コア機能の仕様変更
 
@@ -37,11 +39,13 @@ variables:
 ## 前提条件・入力
 
 **前提条件**:
+
 - Issue #863 が作成済みで、具体的な問題が特定されている
 - CI パイプラインが完全パス状態である
 - プロジェクトの内部品質が高い状態である
 
 **主要な問題点（Issue #863 より）**:
+
 1. ディレクトリパス処理の未対応
 2. Glob パターン処理の未対応
 3. 権限要件（--allow-env）の不明確さ
@@ -50,6 +54,7 @@ variables:
 ## 実装手順
 
 ### Gitブランチ準備
+
 ```bash
 echo "CLI usability improvements for Issue 863" | climpt-git decide-branch working-branch
 ```
@@ -57,27 +62,34 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ### Phase 1: CLI 引数処理の改善
 
 #### 1.1 ディレクトリ処理の実装
-**目標**: `cli.ts examples/2.climpt/prompts/` のようなディレクトリ指定を可能にする
+
+**目標**: `cli.ts examples/2.climpt/prompts/`
+のようなディレクトリ指定を可能にする
 
 **実装方針**:
+
 - ディレクトリが指定された場合、内部で `*.md` パターンに展開
 - ファイル存在チェックを事前に実行
 - 明確なエラーメッセージで不正パスを通知
 
 **完了条件**:
+
 - [ ] ディレクトリパス指定でのファイル自動検出
 - [ ] サブディレクトリの再帰処理オプション
 - [ ] 見つからない場合の親切な案内メッセージ
 
 #### 1.2 Glob パターン対応
+
 **目標**: `"examples/**/*.md"` のような柔軟なファイル指定を可能にする
 
 **実装方針**:
+
 - Deno 標準の glob 機能を活用
 - シェルエスケープ処理を適切に実装
 - パターンマッチ結果の事前表示オプション
 
 **完了条件**:
+
 - [ ] ワイルドカード パターンの解釈
 - [ ] 複数パターンの同時指定
 - [ ] マッチしたファイル一覧の確認機能
@@ -85,22 +97,27 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ### Phase 2: 権限要件の標準化
 
 #### 2.1 統一権限セットの定義
+
 **目標**: ユーザーが迷わない標準的な権限指定を提供
 
 **実装方針**:
+
 - 最小権限の組み合わせを特定
 - 用途別の権限セット（dev/prod）を定義
 - help テキストに権限要件を明記
 
 **完了条件**:
+
 - [ ] 標準権限セット: `--allow-read --allow-write --allow-env`
 - [ ] debug 用権限セット: 上記 + `--allow-run`
 - [ ] help テキストでの権限説明
 
 #### 2.2 権限エラーの改善
+
 **目標**: 権限不足時に具体的な解決方法を提示
 
 **実装方針**:
+
 - エラー発生時に必要な権限を具体的に表示
 - コピペ可能な正しいコマンド例を提示
 - 権限が不要な代替手段があれば案内
@@ -108,19 +125,23 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ### Phase 3: examples/ の動作保証
 
 #### 3.1 全サンプルの動作検証
+
 **目標**: README や文書に記載されたコマンドが全て動作する
 
 **検証対象**:
+
 - `examples/0.basic/` の基本例
 - `examples/2.climpt/` の複雑な例
 - `examples/1.articles/` の記事例
 
 **実装方針**:
+
 - 各サンプルディレクトリに `run.sh` を配置
 - CI での自動テストに含める
 - README.md の更新
 
 **完了条件**:
+
 - [ ] 全 examples/ のコマンドが成功
 - [ ] CI での examples/ テスト実行
 - [ ] 各サンプルの README 更新
@@ -128,18 +149,22 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ### Phase 4: ドキュメント整備
 
 #### 4.1 CLI help の充実
+
 **目標**: `--help` で十分な情報を提供
 
 **内容**:
+
 - 基本的な使用方法
 - 権限要件の説明
 - よくあるエラーと対処法
 - 実用的なコマンド例
 
 #### 4.2 トラブルシューティングガイド
+
 **出力先**: `{destination_path}/troubleshooting.md`
 
 **内容**:
+
 - 権限エラーの対処法
 - ファイルが見つからない場合の対処
 - Schema validation エラーの読み方
@@ -148,14 +173,17 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ### Phase 5: エラーメッセージの改善
 
 #### 5.1 建設的なエラーメッセージ
+
 **目標**: エラー発生時にユーザーが次に何をすべきかわかる
 
 **改善方針**:
+
 - 「何が問題か」→「どう修正するか」の構造
 - 具体的なファイルパスやコマンド例を含む
 - 関連ドキュメントへのリンク
 
 **完了条件**:
+
 - [ ] File not found → 近似ファイルの提案
 - [ ] Permission denied → 必要な権限の具体的提示
 - [ ] Schema error → 該当行番号とサンプル
@@ -163,11 +191,13 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ## 品質検証方法
 
 ### 動作テスト
+
 1. **基本動作**: 各 examples/ で documented コマンドを実行
 2. **エラーハンドリング**: 意図的にエラーを発生させてメッセージを確認
 3. **権限テスト**: 最小権限での動作確認
 
 ### ユーザビリティテスト
+
 1. **初回利用者**: プロジェクトを知らない人が README だけで動かせるか
 2. **エラー遭遇**: エラーメッセージだけで解決できるか
 3. **逆引き**: やりたいことから適切なコマンドを見つけられるか
@@ -175,6 +205,7 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ## 完了条件（DoD）
 
 ### 必須項目
+
 - [ ] Issue #863 の全チェックボックスが完了
 - [ ] examples/ の全サンプルが documented コマンドで動作
 - [ ] CI テストが全て成功（リグレッション無し）
@@ -182,6 +213,7 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 - [ ] トラブルシューティングガイドが作成
 
 ### 品質項目
+
 - [ ] 新規ユーザーが 15分以内に最初の成功体験を得られる
 - [ ] エラーメッセージから解決方法が 90% 推測可能
 - [ ] ドキュメントの内容と実際の動作が一致
@@ -189,17 +221,21 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ## 参照資料
 
 ### 必須参照資料
+
 - **全域性原則**: `docs/development/totality.ja.md`
-- **AI複雑化防止（科学的制御）**: `docs/development/ai-complexity-control_compact.ja.md`
+- **AI複雑化防止（科学的制御）**:
+  `docs/development/ai-complexity-control_compact.ja.md`
 - **ハードコーディング禁止規定**: `docs/development/prohibit-hardcoding.ja.md`
 
 ### 技術資料
+
 - Issue #863: CLI Usability and Documentation Improvements
 - `examples/` ディレクトリ: 実際のサンプルケース
 - `cli.ts`: 現在の CLI 実装
 - CI ログ: 現在のテスト成功パターン
 
 ### 品質基準
+
 - DDD アーキテクチャ文書: コアロジックの変更禁止
 - Totality 原則: Result 型パターンの維持
 
@@ -213,13 +249,16 @@ echo "CLI usability improvements for Issue 863" | climpt-git decide-branch worki
 ## 注意事項
 
 ### 維持すべき品質
+
 - DDD アーキテクチャパターン
 - Result 型による関数型エラーハンドリング
 - 現在の高いテストカバレッジ
 
 ### 避けるべき変更
+
 - コアドメインロジックの修正
 - エラー型の構造変更
 - 既存 API の破壊的変更
 
-この指示書により、技術的に優秀な frontmatter-to-schema プロジェクトのユーザビリティが大幅に向上し、ユーザー採用が促進されることを目指す。
+この指示書により、技術的に優秀な frontmatter-to-schema
+プロジェクトのユーザビリティが大幅に向上し、ユーザー採用が促進されることを目指す。
