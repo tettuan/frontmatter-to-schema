@@ -3,6 +3,7 @@ import { BasePropertyPopulator } from "../../../src/domain/schema/services/base-
 import { Schema } from "../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../src/domain/schema/value-objects/schema-definition.ts";
+import { TestDataFactory } from "../../helpers/test-data-factory.ts";
 import { FrontmatterData } from "../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 // Test helper to create schema from data
@@ -20,7 +21,7 @@ function createTestSchema(schemaData: any): Schema {
 }
 
 function createTestFrontmatter(data: any): FrontmatterData {
-  const result = FrontmatterData.create(data);
+  const result = TestDataFactory.createFrontmatterData(data);
   if (!result.ok) throw new Error("Frontmatter creation failed");
   return result.data;
 }

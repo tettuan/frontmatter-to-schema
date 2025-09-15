@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { isOk } from "../../../../../src/domain/shared/types/result.ts";
 
@@ -29,7 +30,7 @@ const testData = {
 };
 
 function createTestData(): FrontmatterData {
-  const result = FrontmatterData.create(testData);
+  const result = TestDataFactory.createFrontmatterData(testData);
   if (!isOk(result)) {
     throw new Error("Failed to create test data");
   }
@@ -314,7 +315,7 @@ Deno.test("FrontmatterData Enhanced - should handle complex nested access patter
     ],
   };
 
-  const dataResult = FrontmatterData.create(complexData);
+  const dataResult = TestDataFactory.createFrontmatterData(complexData);
   if (!isOk(dataResult)) throw new Error("Failed to create complex data");
   const data = dataResult.data;
 

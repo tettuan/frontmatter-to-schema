@@ -317,8 +317,8 @@ item in the array corresponds to a separate markdown file.
 
 ### x-derived-from
 
-Creates derived fields by aggregating values from nested properties. Uses
-simple array notation with dot-path expressions.
+Creates derived fields by aggregating values from nested properties. Uses simple
+array notation with dot-path expressions.
 
 ```json
 {
@@ -332,10 +332,12 @@ simple array notation with dot-path expressions.
 ```
 
 **Supported expressions:**
+
 - `items[].property` - Extract property from array items
 - `nested.items[].deep.property` - Navigate nested structures
 
 **Not supported:**
+
 - JMESPath filter expressions like `items[?status==true]`
 - Complex queries or transformations
 

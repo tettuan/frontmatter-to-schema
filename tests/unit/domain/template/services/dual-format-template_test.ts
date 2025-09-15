@@ -2,7 +2,7 @@ import { assertEquals, assertExists } from "jsr:@std/assert@1.0.8";
 import { describe, it } from "jsr:@std/testing@1.0.5/bdd";
 import { OutputRenderingService } from "../../../../../src/domain/template/services/output-rendering-service.ts";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { ok, Result } from "../../../../../src/domain/shared/types/result.ts";
 import { DomainError } from "../../../../../src/domain/shared/types/errors.ts";
 
@@ -78,18 +78,18 @@ describe("OutputRenderingService - Dual Format Template Support", () => {
         "item-template.json": itemTemplate,
       });
 
-      const mainData = FrontmatterData.create({
+      const mainData = TestDataFactory.createFrontmatterData({
         version: "1.0.0",
         description: "Test registry",
       });
 
       const itemsData = [
-        FrontmatterData.create({
+        TestDataFactory.createFrontmatterData({
           c1: "git",
           c2: "commit",
           description: "Git commit command",
         }),
-        FrontmatterData.create({
+        TestDataFactory.createFrontmatterData({
           c1: "spec",
           c2: "analyze",
           description: "Spec analysis command",
@@ -137,13 +137,13 @@ description: "{description}"`;
         "item-template.yaml": itemTemplate,
       });
 
-      const mainData = FrontmatterData.create({
+      const mainData = TestDataFactory.createFrontmatterData({
         version: "2.0.0",
         description: "YAML test registry",
       });
 
       const itemsData = [
-        FrontmatterData.create({
+        TestDataFactory.createFrontmatterData({
           c1: "build",
           c2: "test",
           description: "Build test command",
@@ -189,13 +189,13 @@ items:
         "item.json": jsonItemTemplate,
       });
 
-      const mainData = FrontmatterData.create({
+      const mainData = TestDataFactory.createFrontmatterData({
         name: "Mixed Format Test",
         type: "hybrid",
       });
 
       const itemsData = [
-        FrontmatterData.create({
+        TestDataFactory.createFrontmatterData({
           id: "item1",
           value: "test value",
         }),
@@ -224,7 +224,7 @@ items:
         "invalid.json": "{ invalid: json: content: [missing bracket }",
       });
 
-      const mainData = FrontmatterData.create({
+      const mainData = TestDataFactory.createFrontmatterData({
         test: "data",
       });
 
@@ -249,7 +249,7 @@ items:
         "invalid.yaml": "invalid: yaml: content: [missing bracket",
       });
 
-      const mainData = FrontmatterData.create({
+      const mainData = TestDataFactory.createFrontmatterData({
         test: "data",
       });
 

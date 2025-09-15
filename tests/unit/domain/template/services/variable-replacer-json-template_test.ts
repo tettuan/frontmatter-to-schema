@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { VariableReplacer } from "../../../../../src/domain/template/services/variable-replacer.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { isOk } from "../../../../../src/domain/shared/types/result.ts";
 
 /**
@@ -36,7 +36,7 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
       "items": [],
     };
 
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       project: {
         name: "frontmatter-to-schema",
         version: "2.0.0",
@@ -115,7 +115,7 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
       },
     };
 
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       deep: {
         nested: {
           value: "Deep Value",
@@ -159,7 +159,7 @@ Deno.test("VariableReplacer - JSON Template Structure Preservation", async (t) =
       ],
     };
 
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       dynamic: "Dynamic Value",
       value: "Injected Value",
       item1: "First Item",
@@ -271,7 +271,7 @@ Deno.test("VariableReplacer - Real-world climpt registry template", async (t) =>
     };
 
     // 単一コマンドデータ
-    const commandData = FrontmatterData.create({
+    const commandData = TestDataFactory.createFrontmatterData({
       name: "climpt",
       version: "1.0.0",
       description: "Command Line Prompt Tool",
@@ -354,7 +354,7 @@ Deno.test("VariableReplacer - Error handling and edge cases", async (t) => {
       "nested": "{nested.missing.value}",
     };
 
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       existing: "I exist",
       nested: {
         present: "I am here",
@@ -379,7 +379,7 @@ Deno.test("VariableReplacer - Error handling and edge cases", async (t) => {
 
   await t.step("should handle empty template", () => {
     const emptyTemplate = {};
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       some: "data",
     });
 
@@ -404,7 +404,7 @@ Deno.test("VariableReplacer - Error handling and edge cases", async (t) => {
       "static4": ["a", "b", "c"],
     };
 
-    const dataResult = FrontmatterData.create({
+    const dataResult = TestDataFactory.createFrontmatterData({
       unused: "This data is not used",
     });
 
