@@ -123,6 +123,14 @@ export type SystemError =
   | { readonly kind: "InitializationError"; readonly message: string }
   | { readonly kind: "ConfigurationError"; readonly message: string };
 
+export type PerformanceError =
+  | { readonly kind: "BenchmarkError"; readonly content: string }
+  | { readonly kind: "PerformanceViolation"; readonly content: string }
+  | { readonly kind: "MemoryMonitorError"; readonly content: string }
+  | { readonly kind: "InvalidMemoryComparison"; readonly content: string }
+  | { readonly kind: "MemoryBoundsViolation"; readonly content: string }
+  | { readonly kind: "InsufficientData"; readonly content: string };
+
 export type DomainError =
   | ValidationError
   | SchemaError
@@ -130,7 +138,8 @@ export type DomainError =
   | TemplateError
   | AggregationError
   | FileSystemError
-  | SystemError;
+  | SystemError
+  | PerformanceError;
 
 export interface ErrorWithMessage {
   readonly message: string;
@@ -292,6 +301,18 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Initialization error: ${error.message}`;
     case "ConfigurationError":
       return `Configuration error: ${error.message}`;
+    case "BenchmarkError":
+      return `Benchmark error: ${error.content}`;
+    case "PerformanceViolation":
+      return `Performance violation: ${error.content}`;
+    case "MemoryMonitorError":
+      return `Memory monitor error: ${error.content}`;
+    case "InvalidMemoryComparison":
+      return `Invalid memory comparison: ${error.content}`;
+    case "MemoryBoundsViolation":
+      return `Memory bounds violation: ${error.content}`;
+    case "InsufficientData":
+      return `Insufficient data: ${error.content}`;
     default: {
       const _exhaustive: never = error;
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
