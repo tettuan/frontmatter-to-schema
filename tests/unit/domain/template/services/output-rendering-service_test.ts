@@ -75,11 +75,15 @@ describe("OutputRenderingService - Dual Template Rendering", () => {
       write: (_path: string, _content: string) => ok(undefined),
     };
 
-    service = new OutputRenderingService(
+    const serviceResult = OutputRenderingService.create(
       templateRenderer,
       mockFileReader,
       mockFileWriter,
     );
+    if (!serviceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    service = serviceResult.data;
   });
 
   describe("renderOutput with x-template and x-template-items", () => {

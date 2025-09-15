@@ -736,19 +736,21 @@ export class FrontmatterTransformationService {
   private deepMerge(
     baseData: FrontmatterData,
     derivedData: FrontmatterData,
-  ): FrontmatterData {
+  ): Result<FrontmatterData, DomainError> {
     const baseObj = baseData.getData();
     const derivedObj = derivedData.getData();
 
     const mergedObj = this.deepMergeObjects(baseObj, derivedObj);
     const mergedResult = FrontmatterData.create(mergedObj);
 
-    // Since we control the input, this should never fail
     if (!mergedResult.ok) {
-      throw new Error(`Deep merge failed: ${mergedResult.error.message}`);
+      return err(createError({
+        kind: "MergeFailed",
+        message: `Deep merge failed: ${mergedResult.error.message}`,
+      }));
     }
 
-    return mergedResult.data;
+    return ok(mergedResult.data);
   }
 
   /**
