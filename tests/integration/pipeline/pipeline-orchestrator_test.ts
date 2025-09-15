@@ -200,11 +200,15 @@ describe("PipelineOrchestrator Integration Tests", () => {
     if (!templateRendererResult.ok) return;
 
     // Create OutputRenderingService using the template renderer and file system
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRendererResult.data,
       fileSystem,
       fileSystem,
     );
+    if (!outputRenderingServiceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
 
@@ -299,11 +303,15 @@ describe("PipelineOrchestrator Integration Tests", () => {
     if (!templateRendererResult.ok) return;
 
     // Create OutputRenderingService using the template renderer and file system
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRendererResult.data,
       fileSystem,
       fileSystem,
     );
+    if (!outputRenderingServiceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
 
@@ -366,11 +374,15 @@ describe("PipelineOrchestrator Integration Tests", () => {
     if (!templateRendererResult.ok) return;
 
     // Create OutputRenderingService using the template renderer and file system
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRendererResult.data,
       fileSystem,
       fileSystem,
     );
+    if (!outputRenderingServiceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
 
@@ -443,11 +455,15 @@ describe("PipelineOrchestrator Integration Tests", () => {
     if (!templateRendererResult.ok) return;
 
     // Create OutputRenderingService using the template renderer and file system
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRendererResult.data,
       fileSystem,
       fileSystem,
     );
+    if (!outputRenderingServiceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
 
@@ -535,11 +551,15 @@ describe("PipelineOrchestrator Integration Tests", () => {
     if (!templateRendererResult.ok) return;
 
     // Create OutputRenderingService using the template renderer and file system
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRendererResult.data,
       fileSystem,
       fileSystem,
     );
+    if (!outputRenderingServiceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     const templatePathResolver = new TemplatePathResolver();
 

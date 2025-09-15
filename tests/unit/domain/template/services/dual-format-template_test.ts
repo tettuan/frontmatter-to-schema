@@ -44,11 +44,15 @@ describe("OutputRenderingService - Dual Format Template Support", () => {
     const mockFileReader = new MockFileReader(fileContents);
     const mockFileWriter = new MockFileWriter();
 
-    const service = new OutputRenderingService(
+    const serviceResult = OutputRenderingService.create(
       templateRendererResult.data,
       mockFileReader,
       mockFileWriter,
     );
+    if (!serviceResult.ok) {
+      throw new Error(`Failed to create OutputRenderingService`);
+    }
+    const service = serviceResult.data;
 
     return { service, mockFileWriter };
   };

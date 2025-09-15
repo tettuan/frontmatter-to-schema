@@ -24,12 +24,21 @@ import {
 export class CLI {
   private orchestrator: PipelineOrchestrator;
 
-  constructor() {
-    // Initialize with default (non-verbose) orchestrator
-    this.orchestrator = this.createOrchestrator(false);
+  private constructor(orchestrator: PipelineOrchestrator) {
+    this.orchestrator = orchestrator;
   }
 
-  private createOrchestrator(verbose: boolean): PipelineOrchestrator {
+  static create(): Result<CLI, DomainError> {
+    const orchestratorResult = CLI.createOrchestrator(false);
+    if (!orchestratorResult.ok) {
+      return err(orchestratorResult.error);
+    }
+    return ok(new CLI(orchestratorResult.data));
+  }
+
+  private static createOrchestrator(
+    verbose: boolean,
+  ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
     const fileLister = new DenoFileLister();
@@ -61,18 +70,26 @@ export class CLI {
     // Create TemplateRenderer with verbose flag
     const templateRendererResult = TemplateRenderer.create(undefined, verbose);
     if (!templateRendererResult.ok) {
-      throw new Error(
-        `Failed to create TemplateRenderer: ${templateRendererResult.error.message}`,
-      );
+      return err(createError({
+        kind: "ConfigurationError",
+        message: `Failed to create TemplateRenderer`,
+      }));
     }
     const templateRenderer = templateRendererResult.data;
 
     // Create OutputRenderingService
-    const outputRenderingService = new OutputRenderingService(
+    const outputRenderingServiceResult = OutputRenderingService.create(
       templateRenderer,
       fileReader,
       fileWriter,
     );
+    if (!outputRenderingServiceResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: `Failed to create OutputRenderingService`,
+      }));
+    }
+    const outputRenderingService = outputRenderingServiceResult.data;
 
     // Create TemplatePathResolver
     const templatePathResolver = new TemplatePathResolver();
@@ -84,12 +101,14 @@ export class CLI {
       list: (pattern: string) => fileLister.list(pattern),
     };
 
-    return new PipelineOrchestrator(
-      documentProcessor,
-      schemaProcessor,
-      outputRenderingService,
-      templatePathResolver,
-      fileSystem,
+    return ok(
+      new PipelineOrchestrator(
+        documentProcessor,
+        schemaProcessor,
+        outputRenderingService,
+        templatePathResolver,
+        fileSystem,
+      ),
     );
   }
 
@@ -183,7 +202,11 @@ DESCRIPTION:
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Recreate orchestrator with verbose flag if needed
     if (verbose) {
-      this.orchestrator = this.createOrchestrator(verbose);
+      const orchestratorResult = CLI.createOrchestrator(verbose);
+      if (!orchestratorResult.ok) {
+        return Promise.resolve(err(createError(orchestratorResult.error)));
+      }
+      this.orchestrator = orchestratorResult.data;
     }
 
     const config: PipelineConfig = {
