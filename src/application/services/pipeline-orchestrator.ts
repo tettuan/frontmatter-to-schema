@@ -93,17 +93,42 @@ export class PipelineOrchestrator {
       schemaPath: config.schemaPath,
       explicitTemplatePath: config.templatePath,
     };
+
+    // DEBUG: Template path resolution decision points
+    if (config.verbose) {
+      console.log("[DEBUG] Template resolution inputs:", {
+        hasExplicitTemplate: !!config.templatePath,
+        schemaPath: config.schemaPath,
+        templatePathConfig: JSON.stringify(templatePathConfig),
+      });
+    }
+
     const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
       schema,
       templatePathConfig,
     );
     if (!resolvePathsResult.ok) {
+      if (config.verbose) {
+        console.log(
+          "[DEBUG] Template path resolution FAILED:",
+          resolvePathsResult.error,
+        );
+      }
       return resolvePathsResult;
     }
     const templatePath = resolvePathsResult.data.templatePath;
     const itemsTemplatePath = resolvePathsResult.data.itemsTemplatePath;
     const outputFormat = resolvePathsResult.data.outputFormat || "json";
+
+    // DEBUG: Template path resolution results
     if (config.verbose) {
+      console.log("[DEBUG] Template resolution results:", {
+        templatePath,
+        itemsTemplatePath,
+        outputFormat,
+        isDualTemplate: !!itemsTemplatePath,
+        resolutionStrategy: config.templatePath ? "explicit" : "schema-derived",
+      });
       console.log("[VERBOSE] Template path resolved: " + templatePath);
       if (itemsTemplatePath) {
         console.log(
@@ -141,21 +166,60 @@ export class PipelineOrchestrator {
     const mainData = processedDataResult.data;
     let itemsData: FrontmatterData[] | undefined;
 
+    // DEBUG: Data preparation decision points
+    const frontmatterPartPathResult = schema.findFrontmatterPartPath();
+    if (config.verbose) {
+      console.log("[DEBUG] Data preparation analysis:", {
+        hasFrontmatterPart: frontmatterPartPathResult.ok,
+        frontmatterPartPath: frontmatterPartPathResult.ok
+          ? frontmatterPartPathResult.data
+          : null,
+        hasDualTemplate: !!itemsTemplatePath,
+        mainDataKeys: Object.keys(mainData.getData()),
+        mainDataSize: JSON.stringify(mainData.getData()).length,
+      });
+    }
+
     // Check if we need to extract items data
     // Extract frontmatter-part data ONLY if we have a separate items template
     // For single templates with {@items}, let the template handle the expansion
     // using the full mainData which includes base properties
     if (itemsTemplatePath) {
+      if (config.verbose) {
+        console.log(
+          "[DEBUG] Dual template path - extracting frontmatter-part data",
+        );
+      }
       const frontmatterPartResult = this.extractFrontmatterPartData(
         mainData,
         schema,
       );
-      if (frontmatterPartResult.ok && frontmatterPartResult.data.length > 0) {
+      if (!frontmatterPartResult.ok) {
+        if (config.verbose) {
+          console.log(
+            "[DEBUG] Frontmatter-part extraction FAILED:",
+            frontmatterPartResult.error,
+          );
+        }
+      } else if (frontmatterPartResult.data.length > 0) {
         itemsData = frontmatterPartResult.data;
         if (config.verbose) {
+          console.log("[DEBUG] Extracted frontmatter-part data:", {
+            itemCount: itemsData.length,
+            firstItemKeys: itemsData[0]
+              ? Object.keys(itemsData[0].getData())
+              : [],
+            renderingStrategy: "dual-template",
+          });
           console.log(
             "[VERBOSE] Extracted " + itemsData.length +
               " items for dual-template rendering",
+          );
+        }
+      } else {
+        if (config.verbose) {
+          console.log(
+            "[DEBUG] No frontmatter-part data found in dual template mode",
           );
         }
       }
@@ -163,8 +227,20 @@ export class PipelineOrchestrator {
       // For single template with frontmatter-part, keep itemsData undefined
       // The template renderer will extract the array data from mainData during {@items} expansion
       if (config.verbose) {
+        console.log("[DEBUG] Single template with frontmatter-part:", {
+          renderingStrategy: "single-template-with-items-expansion",
+          frontmatterPartPath: frontmatterPartPathResult.ok
+            ? frontmatterPartPathResult.data
+            : "unknown",
+        });
         console.log(
           "[VERBOSE] Single template with frontmatter-part detected - will use mainData for {@items} expansion",
+        );
+      }
+    } else {
+      if (config.verbose) {
+        console.log(
+          "[DEBUG] Standard single template rendering - no frontmatter-part processing",
         );
       }
     }
@@ -293,12 +369,24 @@ export class PipelineOrchestrator {
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData[], DomainError & { message: string }> {
+    // DEBUG: Start of frontmatter-part extraction
+    console.log(
+      "[DEBUG] extractFrontmatterPartData called with data keys:",
+      Object.keys(data.getData()),
+    );
+
     // Check if schema has frontmatter-part definition
     const pathResult = schema.findFrontmatterPartPath();
     if (!pathResult.ok) {
       // No frontmatter-part defined, return data as single item array
+      console.log(
+        "[DEBUG] No frontmatter-part path found - returning single item array",
+      );
       return ok([data]);
     }
+
+    const frontmatterPartPath = pathResult.data;
+    console.log("[DEBUG] Frontmatter-part path found:", frontmatterPartPath);
 
     // For individual frontmatter processing: each file contributes one item
     // The frontmatter-part path (e.g., "tools.commands") indicates the target
@@ -306,22 +394,57 @@ export class PipelineOrchestrator {
 
     // Check if this data already contains an array at the frontmatter-part path
     // This handles cases where a single file contains multiple items
-    const arrayDataResult = data.get(pathResult.data);
+    const arrayDataResult = data.get(frontmatterPartPath);
+    console.log("[DEBUG] Attempting to get data at path:", {
+      path: frontmatterPartPath,
+      success: arrayDataResult.ok,
+      isArray: arrayDataResult.ok ? Array.isArray(arrayDataResult.data) : false,
+      arrayLength: arrayDataResult.ok && Array.isArray(arrayDataResult.data)
+        ? arrayDataResult.data.length
+        : 0,
+    });
+
     if (arrayDataResult.ok && Array.isArray(arrayDataResult.data)) {
       // File contains array at target path - extract individual items
+      console.log(
+        "[DEBUG] Processing array data with",
+        arrayDataResult.data.length,
+        "items",
+      );
       const result: FrontmatterData[] = [];
-      for (const item of arrayDataResult.data) {
+      for (let i = 0; i < arrayDataResult.data.length; i++) {
+        const item = arrayDataResult.data[i];
+        console.log(
+          "[DEBUG] Processing array item",
+          i,
+          "with keys:",
+          typeof item === "object" && item ? Object.keys(item) : "not-object",
+        );
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
+          console.log(
+            "[DEBUG] Failed to create FrontmatterData from array item",
+            i,
+            ":",
+            itemDataResult.error,
+          );
           return itemDataResult;
         }
         result.push(itemDataResult.data);
       }
+      console.log(
+        "[DEBUG] Successfully extracted",
+        result.length,
+        "items from array",
+      );
       return ok(result);
     } else {
       // Default case: individual file contributes directly as one item
       // This is the typical scenario for frontmatter-part processing
       // Each markdown file's frontmatter becomes one item in the final array
+      console.log(
+        "[DEBUG] Using fallback: returning input data as single item array",
+      );
       return ok([data]);
     }
   }

@@ -136,6 +136,11 @@ export interface ErrorWithMessage {
   readonly message: string;
 }
 
+export interface ErrorWithContext {
+  readonly message: string;
+  readonly context: import("./error-context.ts").ErrorContext;
+}
+
 export const createError = <T extends DomainError>(
   error: T,
   customMessage?: string,
@@ -143,6 +148,33 @@ export const createError = <T extends DomainError>(
   ...error,
   message: customMessage || getDefaultMessage(error),
 });
+
+export const createContextualError = <T extends DomainError>(
+  error: T,
+  context: import("./error-context.ts").ErrorContext,
+  customMessage?: string,
+): T & ErrorWithContext => ({
+  ...error,
+  message: customMessage || getDefaultMessage(error),
+  context,
+});
+
+// Enhanced error creation with automatic context inclusion
+export const createEnhancedError = <T extends DomainError>(
+  error: T,
+  context: import("./error-context.ts").ErrorContext,
+  customMessage?: string,
+): T & ErrorWithContext => {
+  const baseMessage = customMessage || getDefaultMessage(error);
+  const contextInfo = context.toString();
+  const enhancedMessage = `${baseMessage} | Context: ${contextInfo}`;
+
+  return {
+    ...error,
+    message: enhancedMessage,
+    context,
+  };
+};
 
 const getDefaultMessage = (error: DomainError): string => {
   switch (error.kind) {
