@@ -136,7 +136,13 @@ export type PerformanceError =
   | { readonly kind: "FileWriteError"; readonly content: string }
   | { readonly kind: "SchemaWriteError"; readonly content: string }
   | { readonly kind: "TemplateWriteError"; readonly content: string }
-  | { readonly kind: "CleanupError"; readonly content: string };
+  | { readonly kind: "CleanupError"; readonly content: string }
+  | { readonly kind: "CircuitBreakerError"; readonly content: string }
+  | { readonly kind: "ComplexityThresholdExceeded"; readonly content: string }
+  | { readonly kind: "CircuitBreakerOpen"; readonly content: string }
+  | { readonly kind: "StreamingTimeout"; readonly content: string }
+  | { readonly kind: "StreamingError"; readonly content: string }
+  | { readonly kind: "MemoryBoundsExceeded"; readonly content: string };
 
 export type DomainError =
   | ValidationError
@@ -334,6 +340,18 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Template write error: ${error.content}`;
     case "CleanupError":
       return `Cleanup error: ${error.content}`;
+    case "CircuitBreakerError":
+      return `Circuit breaker error: ${error.content}`;
+    case "ComplexityThresholdExceeded":
+      return `Complexity threshold exceeded: ${error.content}`;
+    case "CircuitBreakerOpen":
+      return `Circuit breaker open: ${error.content}`;
+    case "StreamingTimeout":
+      return `Streaming timeout: ${error.content}`;
+    case "StreamingError":
+      return `Streaming error: ${error.content}`;
+    case "MemoryBoundsExceeded":
+      return `Memory bounds exceeded: ${error.content}`;
     default: {
       const _exhaustive: never = error;
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
