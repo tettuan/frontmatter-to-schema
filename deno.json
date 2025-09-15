@@ -25,10 +25,14 @@
   },
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
-    "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty"
+    "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
+    "test:performance": "deno test --allow-all tests/performance/",
+    "test:coverage": "deno test --allow-all --coverage=tmp/coverage",
+    "coverage:report": "deno coverage tmp/coverage --lcov --output=tmp/coverage.lcov"
   },
   "imports": {
     "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@^1.0.89",
+    "@halvardm/jmespath": "jsr:@halvardm/jmespath@^0.17.0",
     "@std/assert": "jsr:@std/assert@^1.0.14",
     "@std/path": "jsr:@std/path@^1.1.2",
     "@std/testing": "jsr:@std/testing@^1.0.15",

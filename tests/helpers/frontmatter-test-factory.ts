@@ -1,19 +1,24 @@
 /**
  * Test Factory for FrontmatterData following DDD and Totality principles
  *
- * Reduces duplication of FrontmatterData.create() calls across 121 test locations.
+ * Reduces duplication of this.creationService.createFromRaw() calls across 121 test locations.
+ * Now uses FrontmatterDataCreationService for centralized creation.
  * Applies Smart Constructor pattern with Result types for type safety.
  */
 import { assertEquals } from "@std/assert";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Result } from "../../src/domain/shared/types/result.ts";
+import { defaultFrontmatterDataCreationService } from "../../src/domain/frontmatter/services/frontmatter-data-creation-service.ts";
 
 export class FrontmatterTestFactory {
+  private static readonly creationService =
+    defaultFrontmatterDataCreationService;
+
   /**
    * Create simple test data with common properties
    */
   static createSimpleData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       name: "Test Name",
       value: "Test Value",
       active: true,
@@ -31,7 +36,7 @@ export class FrontmatterTestFactory {
    * Create project-style test data with nested structure
    */
   static createProjectData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       project: {
         name: "Test Project",
         version: "1.0.0",
@@ -55,7 +60,7 @@ export class FrontmatterTestFactory {
    * Create command array test data for template processing tests
    */
   static createCommandArrayData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       title: "Command Registry",
       commands: [
         { name: "build", script: "npm run build", type: "build" },
@@ -76,7 +81,7 @@ export class FrontmatterTestFactory {
    * Create variable replacement test data
    */
   static createVariableData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       user: {
         name: "John Doe",
         age: 30,
@@ -103,7 +108,7 @@ export class FrontmatterTestFactory {
   static createCustomData<T extends Record<string, unknown>>(
     data: T,
   ): FrontmatterData {
-    const result = FrontmatterData.create(data);
+    const result = this.creationService.createFromRaw(data);
     if (!result.ok) {
       throw new Error(
         `Custom test data creation failed: ${result.error.message}`,
@@ -116,7 +121,7 @@ export class FrontmatterTestFactory {
    * Create minimal test data for edge cases
    */
   static createMinimalData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       title: "Minimal Test",
     });
     if (!result.ok) {
@@ -131,7 +136,7 @@ export class FrontmatterTestFactory {
    * Create complex nested array data for aggregation tests
    */
   static createAggregationData(): FrontmatterData {
-    const result = FrontmatterData.create({
+    const result = this.creationService.createFromRaw({
       project: {
         name: "Aggregation Test",
         modules: [
@@ -212,7 +217,7 @@ export function createTestFrontmatterData<T extends Record<string, unknown>>(
   data: T,
   errorMessage?: string,
 ): FrontmatterData {
-  const result = FrontmatterData.create(data);
+  const result = defaultFrontmatterDataCreationService.createFromRaw(data);
   if (!result.ok) {
     throw new Error(
       errorMessage || `Test data creation failed: ${result.error.message}`,
@@ -228,6 +233,6 @@ export function assertFrontmatterDataSuccess<T extends Record<string, unknown>>(
   data: T,
   test: (frontmatterData: FrontmatterData) => void,
 ): void {
-  const result = FrontmatterData.create(data);
+  const result = defaultFrontmatterDataCreationService.createFromRaw(data);
   assertResultSuccess(result, test);
 }

@@ -153,6 +153,20 @@ export class SchemaDefinition {
   }
 
   /**
+   * Get JMESPath filter expression from x-jmespath-filter extension
+   */
+  getJMESPathFilter(): Result<string, SchemaError & { message: string }> {
+    return SchemaPropertyUtils.getJMESPathFilter(this.schema);
+  }
+
+  /**
+   * Check if schema has JMESPath filter directive
+   */
+  hasJMESPathFilter(): boolean {
+    return SchemaPropertyUtils.hasJMESPathFilter(this.schema);
+  }
+
+  /**
    * Check if schema is a reference
    */
   hasRef(): boolean {

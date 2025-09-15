@@ -1,3 +1,5 @@
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
+
 export type ValidationError =
   | {
     readonly kind: "OutOfRange";
@@ -46,6 +48,22 @@ export type SchemaError =
   | { readonly kind: "TemplateItemsNotDefined" }
   | { readonly kind: "TemplateFormatNotDefined" }
   | { readonly kind: "InvalidTemplateFormat" }
+  | { readonly kind: "JMESPathFilterNotDefined" }
+  | {
+    readonly kind: "JMESPathCompilationFailed";
+    readonly expression: string;
+    readonly message: string;
+  }
+  | {
+    readonly kind: "JMESPathExecutionFailed";
+    readonly expression: string;
+    readonly message: string;
+  }
+  | {
+    readonly kind: "InvalidJMESPathResult";
+    readonly expression: string;
+    readonly result: unknown;
+  }
   | { readonly kind: "FrontmatterPartNotFound" }
   | { readonly kind: "SchemaNotResolved" }
   | { readonly kind: "TypeNotDefined" }
@@ -105,6 +123,14 @@ export type SystemError =
   | { readonly kind: "InitializationError"; readonly message: string }
   | { readonly kind: "ConfigurationError"; readonly message: string };
 
+export type PerformanceError =
+  | { readonly kind: "BenchmarkError"; readonly content: string }
+  | { readonly kind: "PerformanceViolation"; readonly content: string }
+  | { readonly kind: "MemoryMonitorError"; readonly content: string }
+  | { readonly kind: "InvalidMemoryComparison"; readonly content: string }
+  | { readonly kind: "MemoryBoundsViolation"; readonly content: string }
+  | { readonly kind: "InsufficientData"; readonly content: string };
+
 export type DomainError =
   | ValidationError
   | SchemaError
@@ -112,10 +138,16 @@ export type DomainError =
   | TemplateError
   | AggregationError
   | FileSystemError
-  | SystemError;
+  | SystemError
+  | PerformanceError;
 
 export interface ErrorWithMessage {
   readonly message: string;
+}
+
+export interface ErrorWithContext {
+  readonly message: string;
+  readonly context: import("./error-context.ts").ErrorContext;
 }
 
 export const createError = <T extends DomainError>(
@@ -125,6 +157,33 @@ export const createError = <T extends DomainError>(
   ...error,
   message: customMessage || getDefaultMessage(error),
 });
+
+export const createContextualError = <T extends DomainError>(
+  error: T,
+  context: import("./error-context.ts").ErrorContext,
+  customMessage?: string,
+): T & ErrorWithContext => ({
+  ...error,
+  message: customMessage || getDefaultMessage(error),
+  context,
+});
+
+// Enhanced error creation with automatic context inclusion
+export const createEnhancedError = <T extends DomainError>(
+  error: T,
+  context: import("./error-context.ts").ErrorContext,
+  customMessage?: string,
+): T & ErrorWithContext => {
+  const baseMessage = customMessage || getDefaultMessage(error);
+  const contextInfo = context.toString();
+  const enhancedMessage = `${baseMessage} | Context: ${contextInfo}`;
+
+  return {
+    ...error,
+    message: enhancedMessage,
+    context,
+  };
+};
 
 const getDefaultMessage = (error: DomainError): string => {
   switch (error.kind) {
@@ -179,17 +238,25 @@ const getDefaultMessage = (error: DomainError): string => {
     case "RefNotDefined":
       return "Schema does not define a $ref";
     case "DerivedFromNotDefined":
-      return "Schema does not define x-derived-from";
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`;
     case "ItemsNotDefined":
       return "Schema does not define items";
     case "PropertyNotFound":
       return `Property not found at path: ${error.path}`;
     case "TemplateItemsNotDefined":
-      return "Schema does not define x-template-items directive";
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getTemplateItemsKey().getValue()} directive`;
     case "TemplateFormatNotDefined":
       return "Schema does not define x-template-format directive";
     case "InvalidTemplateFormat":
       return "Invalid template format specified";
+    case "JMESPathFilterNotDefined":
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getJmespathFilterKey().getValue()} directive`;
+    case "JMESPathCompilationFailed":
+      return `JMESPath expression compilation failed: ${error.expression} - ${error.message}`;
+    case "JMESPathExecutionFailed":
+      return `JMESPath expression execution failed: ${error.expression} - ${error.message}`;
+    case "InvalidJMESPathResult":
+      return `Invalid JMESPath result for expression: ${error.expression}`;
     case "EnumNotDefined":
       return "Schema is not an enum type";
     case "ExtractionFailed":
@@ -234,6 +301,18 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Initialization error: ${error.message}`;
     case "ConfigurationError":
       return `Configuration error: ${error.message}`;
+    case "BenchmarkError":
+      return `Benchmark error: ${error.content}`;
+    case "PerformanceViolation":
+      return `Performance violation: ${error.content}`;
+    case "MemoryMonitorError":
+      return `Memory monitor error: ${error.content}`;
+    case "InvalidMemoryComparison":
+      return `Invalid memory comparison: ${error.content}`;
+    case "MemoryBoundsViolation":
+      return `Memory bounds violation: ${error.content}`;
+    case "InsufficientData":
+      return `Insufficient data: ${error.content}`;
     default: {
       const _exhaustive: never = error;
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;

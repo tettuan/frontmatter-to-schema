@@ -10,6 +10,11 @@ import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
+import {
+  defaultFrontmatterDataCreationService,
+  FrontmatterDataCreationService,
+} from "./frontmatter-data-creation-service.ts";
 
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
@@ -52,6 +57,8 @@ export class FrontmatterTransformationService {
     private readonly basePropertyPopulator: BasePropertyPopulator,
     private readonly fileReader: FileReader,
     private readonly fileLister: FileLister,
+    private readonly frontmatterDataCreationService:
+      FrontmatterDataCreationService = defaultFrontmatterDataCreationService,
     private readonly debugLogger?: DebugLogger,
   ) {}
 
@@ -354,16 +361,18 @@ export class FrontmatterTransformationService {
     data: FrontmatterData[],
     schema: Schema,
   ): FrontmatterData[] {
+    const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
+      .getValue();
     this.debugLogger?.logDebug(
       "frontmatter-parts",
-      "Checking for x-frontmatter-part schema definition",
+      `Checking for ${extensionKey} schema definition`,
     );
 
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (!frontmatterPartSchemaResult.ok) {
       this.debugLogger?.logDebug(
         "frontmatter-parts",
-        "No x-frontmatter-part schema found, returning original data",
+        `No ${extensionKey} schema found, returning original data`,
       );
       return data;
     }
@@ -373,7 +382,7 @@ export class FrontmatterTransformationService {
     if (!frontmatterPartPathResult.ok) {
       this.debugLogger?.logDebug(
         "frontmatter-parts",
-        "No x-frontmatter-part path found, returning original data",
+        `No ${extensionKey} path found, returning original data`,
       );
       return data;
     }
@@ -418,7 +427,8 @@ export class FrontmatterTransformationService {
         );
 
         // Each individual frontmatter object becomes one item in the target array
-        const itemDataResult = FrontmatterData.create(partData);
+        const itemDataResult = this.frontmatterDataCreationService
+          .createFromRaw(partData);
         if (itemDataResult.ok) {
           extractedParts.push(itemDataResult.data);
           this.debugLogger?.logDebug(
@@ -726,7 +736,7 @@ export class FrontmatterTransformationService {
       },
     );
 
-    return FrontmatterData.create(derivedFields);
+    return this.frontmatterDataCreationService.createFromRaw(derivedFields);
   }
 
   /**
@@ -741,7 +751,9 @@ export class FrontmatterTransformationService {
     const derivedObj = derivedData.getData();
 
     const mergedObj = this.deepMergeObjects(baseObj, derivedObj);
-    const mergedResult = FrontmatterData.create(mergedObj);
+    const mergedResult = this.frontmatterDataCreationService.createFromRaw(
+      mergedObj,
+    );
 
     if (!mergedResult.ok) {
       return err(createError({

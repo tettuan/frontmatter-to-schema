@@ -1,19 +1,25 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, FrontmatterError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
+import { defaultFrontmatterDataCreationService } from "../services/frontmatter-data-creation-service.ts";
 
 /**
  * Factory for creating FrontmatterData instances following DDD and Totality principles.
- * Centralizes creation logic and provides specialized factory methods for common use cases.
+ * Delegates to FrontmatterDataCreationService to eliminate duplication.
+ *
+ * @deprecated Consider using FrontmatterDataCreationService directly for better DDD compliance
  */
 export class FrontmatterDataFactory {
+  private static readonly creationService =
+    defaultFrontmatterDataCreationService;
+
   /**
    * Create FrontmatterData from unknown parsed data (default behavior)
    */
   static fromParsedData(
     data: unknown,
   ): Result<FrontmatterData, FrontmatterError & { message: string }> {
-    return FrontmatterData.create(data);
+    return this.creationService.createFromRaw(data);
   }
 
   /**
@@ -28,7 +34,7 @@ export class FrontmatterDataFactory {
         content: JSON.stringify(obj).substring(0, 100),
       }));
     }
-    return FrontmatterData.create(obj);
+    return this.creationService.createFromRaw(obj);
   }
 
   /**
@@ -44,15 +50,7 @@ export class FrontmatterDataFactory {
       }));
     }
 
-    const results: FrontmatterData[] = [];
-    for (const item of items) {
-      const result = FrontmatterData.create(item);
-      if (!result.ok) {
-        return result;
-      }
-      results.push(result.data);
-    }
-    return ok(results);
+    return this.creationService.createFromArray(items);
   }
 
   /**
@@ -69,10 +67,7 @@ export class FrontmatterDataFactory {
     data: unknown,
     defaultData: Record<string, unknown> = {},
   ): Result<FrontmatterData, FrontmatterError & { message: string }> {
-    if (data === null || data === undefined) {
-      return FrontmatterData.create(defaultData);
-    }
-    return FrontmatterData.create(data);
+    return this.creationService.createWithDefaults(data, defaultData);
   }
 
   /**
@@ -89,7 +84,7 @@ export class FrontmatterDataFactory {
       }
     }
 
-    return FrontmatterData.create(merged);
+    return this.creationService.createFromRaw(merged);
   }
 
   /**
@@ -105,21 +100,37 @@ export class FrontmatterDataFactory {
       error: FrontmatterError & { message: string };
     }>;
   } {
-    const successful: FrontmatterData[] = [];
-    const failed: Array<{
-      index: number;
-      error: FrontmatterError & { message: string };
-    }> = [];
+    const batchResult = this.creationService.createBatch(items);
+    return {
+      successful: batchResult.successful,
+      failed: batchResult.errors,
+    };
+  }
 
-    items.forEach((item, index) => {
-      const result = FrontmatterData.create(item);
-      if (result.ok) {
-        successful.push(result.data);
-      } else {
-        failed.push({ index, error: result.error });
-      }
-    });
+  /**
+   * Merge multiple FrontmatterData instances into one
+   */
+  static merge(
+    dataArray: FrontmatterData[],
+  ): Result<FrontmatterData, FrontmatterError & { message: string }> {
+    if (dataArray.length === 0) {
+      return ok(this.creationService.createEmpty());
+    }
 
-    return { successful, failed };
+    const sources = dataArray.map((data) => data.getData());
+    return this.creationService.createFromMerge(
+      sources[0],
+      ...sources.slice(1),
+    );
+  }
+
+  /**
+   * Apply defaults to FrontmatterData
+   */
+  static withDefaults(
+    data: FrontmatterData,
+    defaults: Record<string, unknown>,
+  ): Result<FrontmatterData, FrontmatterError & { message: string }> {
+    return this.creationService.createWithDefaultsFromExisting(data, defaults);
   }
 }

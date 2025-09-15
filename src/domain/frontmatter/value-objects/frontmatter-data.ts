@@ -186,6 +186,48 @@ export class FrontmatterData {
     return Object.keys(this.data).length === 0;
   }
 
+  /**
+   * Get all keys available in the frontmatter data
+   * Returns both top-level keys and nested keys using dot notation
+   */
+  getAllKeys(): string[] {
+    return this.extractKeysRecursively(this.data, "");
+  }
+
+  /**
+   * Recursively extract all keys from nested objects using dot notation
+   */
+  private extractKeysRecursively(obj: unknown, prefix: string): string[] {
+    if (obj === null || obj === undefined || typeof obj !== "object") {
+      return [];
+    }
+
+    if (Array.isArray(obj)) {
+      // For arrays, we don't expand individual indices as keys
+      // The array itself is the value for the current path
+      return prefix ? [prefix] : [];
+    }
+
+    const keys: string[] = [];
+    const record = obj as Record<string, unknown>;
+
+    for (const [key, value] of Object.entries(record)) {
+      const currentPath = prefix ? `${prefix}.${key}` : key;
+
+      if (
+        value !== null && typeof value === "object" && !Array.isArray(value)
+      ) {
+        // Recursively extract nested keys
+        keys.push(...this.extractKeysRecursively(value, currentPath));
+      } else {
+        // Add this key (for primitives, arrays, and null values)
+        keys.push(currentPath);
+      }
+    }
+
+    return keys;
+  }
+
   merge(other: FrontmatterData): FrontmatterData {
     return new FrontmatterData({
       ...this.data,

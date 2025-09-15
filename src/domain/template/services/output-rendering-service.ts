@@ -10,6 +10,10 @@ import { TemplateStructureAnalyzer } from "./template-structure-analyzer.ts";
 import { DynamicDataComposer } from "./dynamic-data-composer.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FormatterFactory } from "../formatters/formatter-factory.ts";
+import {
+  ErrorContextFactory,
+  ProcessingProgress,
+} from "../../shared/types/error-context.ts";
 
 export type RenderingMode =
   | {
@@ -105,6 +109,36 @@ export class OutputRenderingService {
     outputPath: string,
     outputFormat: "json" | "yaml" | "toml" | "markdown" = "json",
   ): Result<void, DomainError & { message: string }> {
+    // Create ErrorContext for output rendering operation
+    const contextResult = ErrorContextFactory.forDomainService(
+      "OutputRenderingService",
+      "Render output",
+      "renderOutput",
+    );
+    if (!contextResult.ok) {
+      return contextResult;
+    }
+
+    const context = contextResult.data
+      .withInput("templatePath", templatePath)
+      .withInput("itemsTemplatePath", itemsTemplatePath)
+      .withInput("hasItemsData", !!itemsData)
+      .withInput("outputPath", outputPath)
+      .withInput("outputFormat", outputFormat);
+
+    // Create processing progress tracker
+    const progressResult = ProcessingProgress.create(
+      "Template Rendering",
+      "Loading main template",
+      [],
+      4,
+    );
+    if (!progressResult.ok) {
+      return progressResult;
+    }
+
+    const currentContext = context.withProgress(progressResult.data);
+
     this.debugLogger?.logInfo(
       "template-rendering",
       `Starting template rendering pipeline`,
@@ -114,6 +148,7 @@ export class OutputRenderingService {
         hasItemsData: !!itemsData,
         outputPath,
         outputFormat,
+        context: currentContext.getDebugInfo(),
       },
     );
 
@@ -126,6 +161,7 @@ export class OutputRenderingService {
     if (!templateResult.ok) {
       this.debugLogger?.logError("template-loading", templateResult.error, {
         templatePath,
+        context: currentContext.getDebugInfo(),
       });
       return templateResult;
     }

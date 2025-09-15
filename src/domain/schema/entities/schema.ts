@@ -4,6 +4,7 @@ import { SchemaPath } from "../value-objects/schema-path.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
 
 export interface ResolvedSchema {
   readonly definition: SchemaDefinition;
@@ -116,7 +117,7 @@ export class Schema {
     ): SchemaDefinition | undefined => {
       if (def.hasFrontmatterPart()) {
         this.debugLogger?.logExtensionDetection(
-          "x-frontmatter-part",
+          defaultSchemaExtensionRegistry.getFrontmatterPartKey().getValue(),
           true,
           true,
         );

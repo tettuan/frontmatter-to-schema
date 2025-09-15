@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { defaultSchemaExtensionRegistry } from "./schema-extension-registry.ts";
 import {
   ArrayConstraints,
   NumberConstraints,
@@ -46,6 +47,7 @@ export interface LegacySchemaProperty {
   readonly "x-template-items"?: string;
   readonly "x-base-property"?: boolean;
   readonly "x-default-value"?: unknown;
+  readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
   readonly default?: unknown; // Standard JSON Schema default property
 }
 
@@ -129,14 +131,17 @@ export class SchemaPropertyMigration {
   private static extractExtensions(
     legacy: LegacySchemaProperty,
   ): SchemaExtensions {
+    const registry = defaultSchemaExtensionRegistry;
     return {
-      "x-template": legacy["x-template"],
-      "x-frontmatter-part": legacy["x-frontmatter-part"],
-      "x-derived-from": legacy["x-derived-from"],
-      "x-derived-unique": legacy["x-derived-unique"],
-      "x-template-items": legacy["x-template-items"], // Support user-requested directive
+      [registry.getTemplateKey().getValue()]: legacy["x-template"],
+      [registry.getFrontmatterPartKey().getValue()]:
+        legacy["x-frontmatter-part"],
+      [registry.getDerivedFromKey().getValue()]: legacy["x-derived-from"],
+      [registry.getDerivedUniqueKey().getValue()]: legacy["x-derived-unique"],
+      [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
       "x-base-property": legacy["x-base-property"], // Base property marker
       "x-default-value": legacy["x-default-value"], // Default value for base properties
+      [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression
       description: legacy.description,
     };
   }
@@ -364,14 +369,23 @@ export class SchemaPropertyLegacyAdapter {
    * This is a temporary measure during migration
    */
   static toLegacy(schema: NewSchemaProperty): LegacySchemaProperty {
+    const registry = defaultSchemaExtensionRegistry;
     const base: LegacySchemaProperty = {
       description: schema.extensions?.description,
-      "x-template": schema.extensions?.["x-template"],
-      "x-frontmatter-part": schema.extensions?.["x-frontmatter-part"],
-      "x-derived-from": schema.extensions?.["x-derived-from"],
-      "x-derived-unique": schema.extensions?.["x-derived-unique"],
-      "x-template-items": schema.extensions?.["x-template-items"],
-      "x-base-property": schema.extensions?.["x-base-property"],
+      "x-template": schema.extensions?.[registry.getTemplateKey().getValue()] as
+        | string
+        | undefined,
+      "x-frontmatter-part": schema.extensions
+        ?.[registry.getFrontmatterPartKey().getValue()] as boolean | undefined,
+      "x-derived-from": schema.extensions
+        ?.[registry.getDerivedFromKey().getValue()] as string | undefined,
+      "x-derived-unique": schema.extensions
+        ?.[registry.getDerivedUniqueKey().getValue()] as boolean | undefined,
+      "x-template-items": schema.extensions
+        ?.[registry.getTemplateItemsKey().getValue()] as string | undefined,
+      "x-base-property": schema.extensions?.["x-base-property"] as
+        | boolean
+        | undefined,
       "x-default-value": schema.extensions?.["x-default-value"],
     };
 

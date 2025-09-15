@@ -1,9 +1,11 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import { SchemaProcessingService } from "../../schema/services/schema-processing-service.ts";
 
 /**
  * Template-Schema Binding Service ensures consistency between template variables
@@ -14,22 +16,28 @@ import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logge
  * maintaining variable mapping consistency.
  */
 export class TemplateSchemaBindingService {
-  private constructor() {}
+  private constructor(
+    private readonly schemaProcessingService?: SchemaProcessingService,
+  ) {}
   private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor following Totality principles.
+   * @param schemaProcessingService - Optional service for JMESPath filtering support
    */
-  static create(): Result<
+  static create(
+    schemaProcessingService?: SchemaProcessingService,
+  ): Result<
     TemplateSchemaBindingService,
     TemplateError & { message: string }
   > {
-    return ok(new TemplateSchemaBindingService());
+    return ok(new TemplateSchemaBindingService(schemaProcessingService));
   }
 
   /**
    * Creates a schema-aware variable context that respects hierarchy rules.
    * This replaces direct VariableContext creation to ensure proper binding.
+   * Applies JMESPath filtering if configured in the schema.
    */
   createVariableContext(
     schema: Schema,
@@ -40,7 +48,38 @@ export class TemplateSchemaBindingService {
       "Creating schema-aware variable context",
     );
 
-    const contextResult = VariableContext.create(schema, data);
+    // Apply JMESPath filtering if service is available and schema has filters
+    let processedData = data;
+    if (this.schemaProcessingService) {
+      const filteredDataResult = this.schemaProcessingService
+        .applyJMESPathFiltering(data, schema);
+      if (!filteredDataResult.ok) {
+        this.debugLogger?.logError(
+          "template-schema-binding",
+          filteredDataResult.error,
+          { context: "JMESPath filtering failed" },
+        );
+        return err(createError({
+          kind: "RenderFailed",
+          message:
+            `JMESPath filtering failed: ${filteredDataResult.error.message}`,
+        }));
+      }
+      processedData = filteredDataResult.data;
+
+      if (processedData !== data) {
+        this.debugLogger?.logInfo(
+          "template-schema-binding",
+          "Applied JMESPath filtering to data",
+          {
+            originalKeys: data.getAllKeys().length,
+            filteredKeys: processedData.getAllKeys().length,
+          },
+        );
+      }
+    }
+
+    const contextResult = VariableContext.create(schema, processedData);
     if (!contextResult.ok) {
       return err(contextResult.error);
     }
@@ -218,9 +257,11 @@ export class TemplateSchemaBindingService {
     // Check if schema has x-frontmatter-part
     const frontmatterPartResult = schema.findFrontmatterPartPath();
     if (!frontmatterPartResult.ok) {
+      const extensionKey = defaultSchemaExtensionRegistry
+        .getFrontmatterPartKey().getValue();
       return err(createError({
         kind: "RenderFailed",
-        message: "Schema must have x-frontmatter-part for {@items} binding",
+        message: `Schema must have ${extensionKey} for {@items} binding`,
       }));
     }
 
@@ -250,6 +291,7 @@ export class TemplateSchemaBindingService {
   /**
    * Creates item-specific variable contexts for array expansion.
    * Each array item gets its own context with proper hierarchical scope.
+   * Applies JMESPath filtering to individual items if configured.
    */
   createItemContexts(
     schema: Schema,
@@ -267,6 +309,7 @@ export class TemplateSchemaBindingService {
         }));
       }
 
+      // Use createVariableContext to ensure JMESPath filtering is applied consistently
       const contextResult = this.createVariableContext(
         schema,
         itemDataResult.data,
@@ -277,6 +320,15 @@ export class TemplateSchemaBindingService {
 
       contexts.push(contextResult.data);
     }
+
+    this.debugLogger?.logInfo(
+      "template-schema-binding",
+      "Created item contexts for array expansion",
+      {
+        itemCount: arrayData.length,
+        contextsCreated: contexts.length,
+      },
+    );
 
     return ok(contexts);
   }

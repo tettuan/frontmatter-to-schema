@@ -1,6 +1,8 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@halvardm/jmespath@*": "0.17.0",
+    "jsr:@halvardm/jmespath@0.17": "0.17.0",
     "jsr:@std/assert@*": "1.0.14",
     "jsr:@std/assert@1": "1.0.14",
     "jsr:@std/assert@1.0.11": "1.0.11",
@@ -55,6 +57,12 @@
     "npm:jsonpath-plus@7.2.0": "7.2.0"
   },
   "jsr": {
+    "@halvardm/jmespath@0.17.0": {
+      "integrity": "9a22c9596464396efc3f3bbe4aab6b55346db6f9f06e108376faa19ceb50d97b",
+      "dependencies": [
+        "jsr:@std/assert@1"
+      ]
+    },
     "@std/assert@1.0.5": {
       "integrity": "e37da8e4033490ce613eec4ac1d78dba1faf5b02a3f6c573a28f15365b9b440f",
       "dependencies": [
@@ -607,6 +615,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@halvardm/jmespath@0.17",
       "jsr:@std/assert@^1.0.14",
       "jsr:@std/cli@1.0.9",
       "jsr:@std/crypto@1.0.3",
