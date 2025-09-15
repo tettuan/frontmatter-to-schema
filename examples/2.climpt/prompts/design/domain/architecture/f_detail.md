@@ -7,8 +7,8 @@ description: Detailed domain architecture design based on domain boundary inform
 usage: climpt-design domain architecture -a=detail -f domain_info.md -o detailed_design/
 options:
   input: ["detail"]
-  file: [true]
-  destination: [true]
+  file: true
+  destination: true
 ---
 
 # ドメイン設計

@@ -6,8 +6,8 @@ title: Document Fix Instructions
 description: Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.
 usage: climpt-git document fix-instruction -i="problem description and fix direction"
 options:
-  stdin: [true]
-  destination: [true]
+  stdin: true
+  destination: true
 ---
 
 # 指示:「修正指示を文書化しIssueへ登録する」

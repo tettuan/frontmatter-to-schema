@@ -22,15 +22,9 @@
         "description": "Constructs robust and resilient code/API based on domain-driven design and totality principles.",
         "usage": "climpt-build robust code -f requirements.md -i=additional_instructions -o code_output/",
         "options": {
-          "file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -41,15 +35,9 @@
         "description": "Constructs robust and resilient tests based on domain-driven design and totality principles.",
         "usage": "climpt-build robust test -f requirements.md -i=additional_instructions -o test_output/",
         "options": {
-          "file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -63,15 +51,9 @@
           "adaptation": [
             "strict"
           ],
-          "file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -82,9 +64,7 @@
         "description": "Conducts deep analysis of the entire project to identify refactoring challenges, duplicate code, and issues that need to be fixed.",
         "usage": "climpt-debug analyze-deep project-issues -o project_analysis.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -98,12 +78,8 @@
           "input": [
             "core"
           ],
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       },
       {
@@ -114,12 +90,8 @@
         "description": "Performs domain design based on domain boundary information and related materials.",
         "usage": "climpt-design domain architecture -f boundary_info.md -o design_output/",
         "options": {
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       },
       {
@@ -133,12 +105,8 @@
           "input": [
             "detail"
           ],
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       },
       {
@@ -152,15 +120,9 @@
           "input": [
             "code"
           ],
-          "file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -171,15 +133,9 @@
         "description": "粗い考えをもとに、ドメイン境界線を引いてみる。",
         "usage": "climpt-design domain boundary --input=\"原案テキスト\"\n原案をもとにドメイン駆動設計の境界線分析を行い、境界線を設計します。\n",
         "options": {
-          "file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -190,12 +146,8 @@
         "description": "Creates high-reproducibility instruction documents from brief descriptions by complementing existing information and following standard procedures and quality criteria.",
         "usage": "climpt-docs generate-robust instruction-doc -i=description -o instruction.md",
         "options": {
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -213,15 +165,9 @@
             "default",
             "simplified"
           ],
-          "input_file": [
-            true
-          ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            false
-          ]
+          "input_file": true,
+          "stdin": true,
+          "destination": false
         }
       },
       {
@@ -232,12 +178,8 @@
         "description": "Analyze git commit history and generate insights",
         "usage": "echo \"main..feature\" | climpt-git analyze commit-history",
         "options": {
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -248,12 +190,8 @@
         "description": "Create a refinement issue from requirements documentation",
         "usage": "climpt-git create refinement-issue -f requirements.md",
         "options": {
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       },
       {
@@ -264,9 +202,7 @@
         "description": "Determines appropriate Git branch strategy and creates new branches based on work similarity analysis.",
         "usage": "climpt-git decide-branch working-branch -i=\"work description within 30 chars\"",
         "options": {
-          "stdin": [
-            true
-          ]
+          "stdin": true
         }
       },
       {
@@ -277,12 +213,8 @@
         "description": "Documents problems and creates fix instructions for Git Issues based on identified issues and correction directions.",
         "usage": "climpt-git document fix-instruction -i=\"problem description and fix direction\"",
         "options": {
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -293,9 +225,7 @@
         "description": "Discovers related Git branches and executes merge processing based on branch relationships and age.",
         "usage": "climpt-git find-oldest descendant-branch -o merge_plan.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -306,9 +236,7 @@
         "description": "Groups Git commits based on semantic proximity of file changes and creates organized commit units.",
         "usage": "climpt-git group-commit unstaged-changes -o commit_plan.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -319,9 +247,7 @@
         "description": "Lists existing PRs and branches to help select the next work target based on priority and status.",
         "usage": "climpt-git list-select pr-branch -o selection_output.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -332,9 +258,7 @@
         "description": "Merges all unmerged branches into develop and deletes them after successful merge operations.",
         "usage": "climpt-git merge-cleanup develop-branches -o cleanup_report.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -345,9 +269,7 @@
         "description": "Merges derived working branches back into their original base working branches.",
         "usage": "climpt-git merge-up base-branch -o merge_status.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -361,9 +283,7 @@
           "input": [
             "claude"
           ],
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -374,9 +294,7 @@
         "description": "Creates a comprehensive list of available Climpt commands by scanning executable commands, configuration files, and prompt files.",
         "usage": "climpt-meta build-list command-registry -o registered-commands.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -390,9 +308,7 @@
           "adaptation": [
             "registry"
           ],
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -403,12 +319,8 @@
         "description": "Constructs and recommends appropriate climpt-* commands based on provided content and requirements.",
         "usage": "climpt-meta resolve registered-commands -i=content -o command_output.txt",
         "options": {
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -419,9 +331,7 @@
         "description": "Refactors current implementation based on domain-driven design and totality principles to achieve robust, type-safe code with clear domain understanding.",
         "usage": "climpt-refactor basedon ddd -o refactor_plan.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -435,12 +345,8 @@
           "input": [
             "nextaction"
           ],
-          "stdin": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -451,9 +357,7 @@
         "description": "Refactors project architecture based on domain-driven design principles and redesigns domain architecture.",
         "usage": "climpt-refactor ddd architecture --uv-scope=\"domain architecture redesign\"",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -464,9 +368,7 @@
         "description": "entry",
         "usage": "climpt-requirement basedon ddd -o refactor_plan.md",
         "options": {
-          "destination": [
-            true
-          ]
+          "destination": true
         }
       },
       {
@@ -484,15 +386,9 @@
             "comprehensive",
             "basic"
           ],
-          "input_file": [
-            true
-          ],
-          "stdin": [
-            false
-          ],
-          "destination": [
-            true
-          ]
+          "input_file": true,
+          "stdin": false,
+          "destination": true
         }
       },
       {
@@ -503,12 +399,8 @@
         "description": "Break down and structure requirements through process decomposition and user flow analysis.",
         "usage": "climpt-spec analyze-structure requirements -f requirements.md -o structured_output/",
         "options": {
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       },
       {
@@ -519,12 +411,8 @@
         "description": "Analyze specification quality and completeness metrics",
         "usage": "climpt-spec analyze quality-metrics -f spec.md -o report.json",
         "options": {
-          "file": [
-            true
-          ],
-          "destination": [
-            true
-          ]
+          "file": true,
+          "destination": true
         }
       }
     ]

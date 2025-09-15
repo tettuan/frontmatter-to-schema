@@ -7,8 +7,8 @@ description: Executes next actions derived from completed results while maintain
 usage: climpt-refactor basedon ddd -a=nextaction -i=next_action_instructions --uv-scope="execution scope"
 options:
   input: ["nextaction"]
-  stdin: [true]
-  destination: [true]
+  stdin: true
+  destination: true
 ---
 
 # プロジェクト: {uv-scope}のドメイン駆動設計と全域性（Totality）の融合完成

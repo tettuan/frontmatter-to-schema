@@ -8,9 +8,9 @@ usage: climpt-git commit refinement-issue
 options:
   input: [issue_content]
   adaptation: [default, simplified]
-  input_file: [true]
-  stdin: [true]
-  destination: [false]
+  input_file: true
+  stdin: true
+  destination: false
 ---
 
 # Git Commit Refinement Command

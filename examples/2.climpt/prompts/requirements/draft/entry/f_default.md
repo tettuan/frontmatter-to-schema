@@ -6,7 +6,7 @@ title: requirement
 description: entry
 usage: climpt-requirement basedon ddd -o refactor_plan.md
 options:
-  destination: [true]
+  destination: true
 ---
 
 # プロジェクト: ドメイン駆動設計と全域性（Totality）に基づくリファクタリング

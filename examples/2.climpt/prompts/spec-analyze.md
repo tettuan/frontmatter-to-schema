@@ -8,9 +8,9 @@ usage: climpt-spec analyze quality-metrics
 options:
   input: [spec_file]
   adaptation: [comprehensive, basic]
-  input_file: [true]
-  stdin: [false]
-  destination: [true]
+  input_file: true
+  stdin: false
+  destination: true
 ---
 
 # Spec Quality Analysis

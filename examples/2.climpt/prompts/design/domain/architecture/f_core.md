@@ -7,8 +7,8 @@ description: Core domain architecture design with focus on central concepts and 
 usage: climpt-design domain architecture -a=core -f domain_info.md -o core_design/
 options:
   input: ["core"]
-  file: [true]
-  destination: [true]
+  file: true
+  destination: true
 ---
 
 # ドメイン設計の中心設計
