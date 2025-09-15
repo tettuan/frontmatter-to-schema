@@ -15,7 +15,7 @@ import { Aggregator } from "../../domain/aggregation/aggregators/aggregator.ts";
 import { BasePropertyPopulator } from "../../domain/schema/services/base-property-populator.ts";
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
-import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import {
@@ -29,16 +29,19 @@ import {
 
 export class CLI {
   private orchestrator: PipelineOrchestrator;
-  private logger: DebugLogger;
+  private logger: EnhancedDebugLogger;
 
-  private constructor(orchestrator: PipelineOrchestrator, logger: DebugLogger) {
+  private constructor(
+    orchestrator: PipelineOrchestrator,
+    logger: EnhancedDebugLogger,
+  ) {
     this.orchestrator = orchestrator;
     this.logger = logger;
   }
 
   static create(): Result<CLI, DomainError> {
-    // Create default null logger for non-verbose mode
-    const loggerResult = DebugLoggerFactory.createFromEnvironment(false);
+    // Create enhanced logger for CLI with default non-verbose mode
+    const loggerResult = DebugLoggerFactory.createEnhancedForCLI(false);
     if (!loggerResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
@@ -54,7 +57,7 @@ export class CLI {
   }
 
   private static createOrchestrator(
-    logger: DebugLogger,
+    logger: EnhancedDebugLogger,
   ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
@@ -165,7 +168,12 @@ export class CLI {
 
     // Argument validation
     if (filteredArgs.length < 3) {
-      console.error("Error: Missing required arguments");
+      // Use errorOutput for user-facing errors that must be visible
+      const logResult = this.logger.errorOutput("Missing required arguments");
+      if (!logResult.ok) {
+        // Fallback to console.error if logger fails
+        console.error("Error: Missing required arguments");
+      }
       this.showUsage();
       return Promise.resolve(err(createError({
         kind: "MissingRequired",
@@ -185,7 +193,8 @@ export class CLI {
   }
 
   private showHelp(): void {
-    console.log(`
+    // Use output() for user-facing help text that should always be visible
+    const helpText = `
 frontmatter-to-schema - Generate JSON from Markdown frontmatter
 
 USAGE:
@@ -214,16 +223,32 @@ DESCRIPTION:
   - Template variable resolution ({version}, {description}, etc.)
   - Derived field processing (x-derived-from schema extensions)
   - Comprehensive error handling with detailed messages
-`);
+`;
+    const logResult = this.logger.output(helpText);
+    if (!logResult.ok) {
+      // Fallback to console.log if logger fails
+      console.log(helpText);
+    }
   }
 
   private showVersion(): void {
-    console.log("frontmatter-to-schema version 1.0.0");
+    const versionText = "frontmatter-to-schema version 1.0.0";
+    const logResult = this.logger.output(versionText);
+    if (!logResult.ok) {
+      // Fallback to console.log if logger fails
+      console.log(versionText);
+    }
   }
 
   private showUsage(): void {
-    console.log("Usage: frontmatter-to-schema <schema> <pattern> <output>");
-    console.log("Use --help for detailed information");
+    const usageText =
+      "Usage: frontmatter-to-schema <schema> <pattern> <output>\nUse --help for detailed information";
+    const logResult = this.logger.output(usageText);
+    if (!logResult.ok) {
+      // Fallback to console.log if logger fails
+      console.log("Usage: frontmatter-to-schema <schema> <pattern> <output>");
+      console.log("Use --help for detailed information");
+    }
   }
 
   private async executeCommand(
@@ -234,7 +259,7 @@ DESCRIPTION:
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Recreate orchestrator and logger with proper verbose configuration if needed
     if (verbose) {
-      const loggerResult = DebugLoggerFactory.createFromEnvironment(verbose);
+      const loggerResult = DebugLoggerFactory.createEnhancedForCLI(verbose);
       if (!loggerResult.ok) {
         return Promise.resolve(err(createError({
           kind: "ConfigurationError",
@@ -265,21 +290,33 @@ DESCRIPTION:
     };
 
     // Use proper logging instead of hardcoded verbose conditionals
-    this.logger.info("Starting pipeline with configuration", {
-      operation: "pipeline-start",
-      timestamp: new Date().toISOString(),
-      inputs: JSON.stringify({ schemaPath, outputPath, inputPattern }),
-    });
+    const _infoResult = this.logger.info(
+      "Starting pipeline with configuration",
+      {
+        operation: "pipeline-start",
+        timestamp: new Date().toISOString(),
+        inputs: JSON.stringify({ schemaPath, outputPath, inputPattern }),
+      },
+    );
+    // Note: info logs are filtered by output mode, no fallback needed
 
     const result = await this.orchestrator.execute(config);
     if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
+      const errorResult = this.logger.errorOutput(result.error.message);
+      if (!errorResult.ok) {
+        // Fallback to console.error if logger fails
+        console.error(`Error: ${result.error.message}`);
+      }
       return result;
     }
 
-    console.log(
-      `Processing completed successfully. Output written to: ${outputPath}`,
-    );
+    const successMessage =
+      `Processing completed successfully. Output written to: ${outputPath}`;
+    const outputResult = this.logger.output(successMessage);
+    if (!outputResult.ok) {
+      // Fallback to console.log if logger fails
+      console.log(successMessage);
+    }
     return ok(void 0);
   }
 }

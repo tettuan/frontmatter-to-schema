@@ -26,7 +26,7 @@ import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
-import { DebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 
 /**
@@ -96,7 +96,7 @@ export class PipelineOrchestrator {
     private readonly templatePathResolver: TemplatePathResolver,
     private readonly fileSystem: FileSystem,
     private readonly schemaCache: SchemaCache,
-    private readonly logger?: DebugLogger,
+    private readonly logger?: EnhancedDebugLogger,
   ) {}
 
   /**
@@ -368,9 +368,18 @@ export class PipelineOrchestrator {
     const cacheResult = await cache.get(schemaPath);
     if (!cacheResult.ok) {
       // Cache error - continue with normal loading but log the issue
-      console.warn(
-        `[CACHE] Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
-      );
+      if (this.logger) {
+        this.logger.warn(
+          `Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
+          {
+            operation: "schema-cache-lookup",
+            location: "PipelineOrchestrator.loadSchema",
+            schemaPath,
+            errorMessage: String(cacheResult.error),
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
     } else if (cacheResult.data) {
       // Cache hit - create Schema entity from cached definition
       const pathResult = SchemaPath.create(schemaPath);
@@ -412,9 +421,18 @@ export class PipelineOrchestrator {
       const setCacheResult = await cache.set(schemaPath, definitionResult.data);
       if (!setCacheResult.ok) {
         // Cache set error - continue but log the issue
-        console.warn(
-          `[CACHE] Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
-        );
+        if (this.logger) {
+          this.logger.warn(
+            `Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
+            {
+              operation: "schema-cache-set",
+              location: "PipelineOrchestrator.loadSchema",
+              schemaPath,
+              errorMessage: String(setCacheResult.error),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
       }
 
       // Create schema entity
@@ -568,10 +586,17 @@ export class PipelineOrchestrator {
       );
       if (noPathDecisionResult.ok) {
         const fallbackContext = context.withDecision(noPathDecisionResult.data);
-        console.log(
-          "[DEBUG] Frontmatter-part extraction context:",
-          fallbackContext.getDebugInfo(),
-        );
+        if (this.logger) {
+          this.logger.debug(
+            "Frontmatter-part extraction context - no path defined",
+            {
+              operation: "frontmatter-part-extraction",
+              location: "PipelineOrchestrator.extractFrontmatterPartData",
+              decision: fallbackContext.getDebugInfo(),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
       }
       return ok([data]);
     }
@@ -623,13 +648,29 @@ export class PipelineOrchestrator {
         return contextualErr(processingProgressResult.error, processingContext);
       }
 
-      const progressContext = processingContext.withProgress(
+      const _progressContext = processingContext.withProgress(
         processingProgressResult.data,
       );
-      console.log(
-        "[DEBUG] Array processing context:",
-        progressContext.getDebugInfo(),
-      );
+      if (this.logger) {
+        this.logger.debug(
+          "Array processing context",
+          {
+            operation: "Pipeline: Frontmatter-Part Extraction",
+            location: "PipelineOrchestrator.extractFrontmatterPartData:453",
+            inputs:
+              "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
+            decisions: [
+              "Array data processing strategy (alternatives: process-each-item, return-as-is, skip-processing) - Found array with " +
+              arrayLength +
+              " items at frontmatter-part path, processing each item individually",
+            ],
+            progress:
+              "Array Item Processing: Processing individual array items (0%)",
+            timestamp: new Date().toISOString(),
+            contextDepth: 1,
+          },
+        );
+      }
 
       const result: FrontmatterData[] = [];
       for (let i = 0; i < arrayDataResult.data.length; i++) {
@@ -642,20 +683,35 @@ export class PipelineOrchestrator {
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
           // Log the failure but continue processing other items gracefully
-          console.log(
-            `[DEBUG] Skipping invalid array item ${i}:`,
-            itemDataResult.error.message,
-          );
+          if (this.logger) {
+            this.logger.debug(
+              `Skipping invalid array item ${i}: ${itemDataResult.error.message}`,
+              {
+                operation: "array-item-processing",
+                location: "PipelineOrchestrator.extractFrontmatterPartData",
+                itemIndex: i,
+                errorType: itemDataResult.error.kind,
+                timestamp: new Date().toISOString(),
+              },
+            );
+          }
           continue;
         }
         result.push(itemDataResult.data);
       }
 
-      console.log(
-        "[DEBUG] Successfully extracted",
-        result.length,
-        "items from array",
-      );
+      if (this.logger) {
+        this.logger.debug(
+          `Successfully extracted ${result.length} items from array`,
+          {
+            operation: "array-extraction-complete",
+            location: "PipelineOrchestrator.extractFrontmatterPartData",
+            extractedCount: result.length,
+            totalItems: arrayLength,
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
       return ok(result);
     } else {
       // Default case: individual file contributes directly as one item
@@ -667,13 +723,26 @@ export class PipelineOrchestrator {
         "No array found at frontmatter-part path, using fallback single-item strategy",
       );
       if (fallbackDecisionResult.ok) {
-        const fallbackContext = analysisContext.withDecision(
+        const _fallbackContext = analysisContext.withDecision(
           fallbackDecisionResult.data,
         );
-        console.log(
-          "[DEBUG] Fallback extraction context:",
-          fallbackContext.getDebugInfo(),
-        );
+        if (this.logger) {
+          this.logger.debug(
+            "Fallback extraction context",
+            {
+              operation: "Pipeline: Frontmatter-Part Extraction",
+              location: "PipelineOrchestrator.extractFrontmatterPartData:453",
+              inputs:
+                "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
+              decisions: [
+                "Fallback extraction strategy (alternatives: single-item-array, empty-array, error) - No array found at frontmatter-part path, using fallback single-item strategy",
+              ],
+              progress: undefined,
+              timestamp: new Date().toISOString(),
+              contextDepth: 1,
+            },
+          );
+        }
       }
       return ok([data]);
     }

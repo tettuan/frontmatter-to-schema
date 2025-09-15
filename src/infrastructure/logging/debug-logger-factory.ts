@@ -1,12 +1,17 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import {
   DebugLogger,
+  EnhancedDebugLogger,
   LogContext,
   LogLevel,
   LogLevels,
 } from "../../domain/shared/services/debug-logger.ts";
 import { NullDebugLogger } from "./null-debug-logger.ts";
 import { ConsoleDebugLogger } from "./console-debug-logger.ts";
+import {
+  EnhancedConsoleDebugLogger,
+  OutputMode,
+} from "./enhanced-console-debug-logger.ts";
 
 /**
  * Factory error types
@@ -23,6 +28,19 @@ export type LoggerConfiguration =
   | {
     readonly kind: "console";
     readonly level: LogLevel;
+    readonly baseContext?: LogContext;
+  }
+  | { readonly kind: "null" };
+
+/**
+ * Enhanced configuration for logger creation with output mode control
+ */
+export type EnhancedLoggerConfiguration =
+  | { readonly kind: "disabled" }
+  | {
+    readonly kind: "console";
+    readonly level: LogLevel;
+    readonly outputMode: OutputMode;
     readonly baseContext?: LogContext;
   }
   | { readonly kind: "null" };
@@ -144,6 +162,134 @@ export class DebugLoggerFactory {
         kind: "CreationFailed",
         cause: result.error.message,
         message: `Failed to create console logger: ${result.error.message}`,
+      });
+    }
+
+    return ok(result.data);
+  }
+
+  /**
+   * Create enhanced logger with output mode control
+   */
+  static createEnhanced(
+    config: EnhancedLoggerConfiguration,
+  ): Result<
+    EnhancedDebugLogger,
+    DebugLoggerFactoryError & { message: string }
+  > {
+    switch (config.kind) {
+      case "disabled":
+      case "null":
+        return DebugLoggerFactory.createEnhancedNull();
+
+      case "console":
+        return DebugLoggerFactory.createEnhancedConsole(
+          config.level,
+          true,
+          config.outputMode,
+          config.baseContext,
+        );
+    }
+  }
+
+  /**
+   * Create enhanced logger for CLI usage
+   */
+  static createEnhancedForCLI(
+    verboseFlag: boolean,
+    debugLevel?: string,
+  ): Result<
+    EnhancedDebugLogger,
+    DebugLoggerFactoryError & { message: string }
+  > {
+    const levelResult = debugLevel
+      ? DebugLoggerFactory.parseLogLevel(debugLevel)
+      : ok(verboseFlag ? LogLevels.DEBUG : LogLevels.INFO);
+
+    if (!levelResult.ok) {
+      return err({
+        kind: "InvalidConfiguration",
+        reason: `Invalid log level: ${debugLevel}`,
+        message: `Invalid log level: ${debugLevel}`,
+      });
+    }
+
+    const result = EnhancedConsoleDebugLogger.createForCLI(
+      verboseFlag,
+      levelResult.data,
+    );
+    if (!result.ok) {
+      return err({
+        kind: "CreationFailed",
+        cause: result.error.message,
+        message: `Failed to create CLI logger: ${result.error.message}`,
+      });
+    }
+    return ok(result.data);
+  }
+
+  /**
+   * Create enhanced logger for service components
+   */
+  static createEnhancedForService(
+    serviceName: string,
+    parentLogger?: EnhancedDebugLogger,
+  ): Result<
+    EnhancedDebugLogger,
+    DebugLoggerFactoryError & { message: string }
+  > {
+    const result = EnhancedConsoleDebugLogger.createForService(
+      serviceName,
+      parentLogger,
+    );
+    if (!result.ok) {
+      return err({
+        kind: "CreationFailed",
+        cause: result.error.message,
+        message: `Failed to create service logger: ${result.error.message}`,
+      });
+    }
+    return ok(result.data);
+  }
+
+  private static createEnhancedNull(): Result<
+    EnhancedDebugLogger,
+    DebugLoggerFactoryError & { message: string }
+  > {
+    // For now, return a null logger cast to enhanced interface
+    // TODO: Create proper EnhancedNullDebugLogger if needed
+    const result = NullDebugLogger.create();
+    if (!result.ok) {
+      return err({
+        kind: "CreationFailed",
+        cause: "Failed to create null logger",
+        message: "Failed to create null logger",
+      });
+    }
+    return ok(result.data as unknown as EnhancedDebugLogger);
+  }
+
+  private static createEnhancedConsole(
+    level: LogLevel,
+    enabled: boolean,
+    outputMode: OutputMode,
+    baseContext?: LogContext,
+  ): Result<
+    EnhancedDebugLogger,
+    DebugLoggerFactoryError & { message: string }
+  > {
+    const result = EnhancedConsoleDebugLogger.create(
+      level,
+      enabled,
+      outputMode,
+      baseContext,
+    );
+    if (!result.ok) {
+      return err({
+        kind: "CreationFailed",
+        cause: result.error.message,
+        message:
+          `Failed to create enhanced console logger: ${result.error.message}`,
       });
     }
 
