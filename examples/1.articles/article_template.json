@@ -1,0 +1,10 @@
+{
+  "title": "{title}",
+  "emoji": "{emoji}",
+  "type": "{type}",
+  "topics": "{topics}",
+  "published": "{published}",
+  "published_at": "{published_at}",
+  "filename": "{filename}",
+  "created_date": "{created_date}"
+}
