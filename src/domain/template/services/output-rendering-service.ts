@@ -107,7 +107,7 @@ export class OutputRenderingService {
     mainData: FrontmatterData,
     itemsData: FrontmatterData[] | undefined,
     outputPath: string,
-    outputFormat: "json" | "yaml" | "toml" | "markdown" = "json",
+    outputFormat: "json" | "yaml" | "markdown" = "json",
   ): Result<void, DomainError & { message: string }> {
     // Create ErrorContext for output rendering operation
     const contextResult = ErrorContextFactory.forDomainService(
