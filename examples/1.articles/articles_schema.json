@@ -2,7 +2,9 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Articles Index Schema",
-  "x-template": "articles_template.yml",
+  "x-template": "articles_template.json",
+  "x-template-items": "article_template.json",
+  "x-template-format": "yaml",
   "description": "Schema for article index with publication status",
   "properties": {
     "generated_at": {
@@ -17,13 +19,13 @@
     "published_count": {
       "type": "number",
       "description": "Number of published articles",
-      "x-derived-from": "articles[?published==true]",
+      "x-derived-from": "articles[][?published==true]",
       "x-derived-count": true
     },
     "draft_count": {
       "type": "number",
       "description": "Number of draft articles",
-      "x-derived-from": "articles[?published==false]",
+      "x-derived-from": "articles[][?published==false]",
       "x-derived-count": true
     },
     "articles": {
@@ -37,7 +39,7 @@
     "topics": {
       "type": "array",
       "description": "All unique topics across articles",
-      "x-derived-from": "articles[].topics[]",
+      "x-derived-from": "articles[].topics",
       "x-derived-unique": true,
       "items": {
         "type": "string"

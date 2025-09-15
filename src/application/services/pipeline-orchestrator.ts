@@ -25,6 +25,7 @@ import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/front
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { SchemaCacheManager } from "../../infrastructure/caching/schema-cache.ts";
 
 /**
  * Template configuration using discriminated unions for type safety
@@ -462,7 +463,31 @@ export class PipelineOrchestrator {
   private async loadSchema(
     schemaPath: string,
   ): Promise<Result<Schema, DomainError & { message: string }>> {
-    // Read schema file
+    // Performance optimization: Check schema cache first
+    const cache = SchemaCacheManager.getInstance();
+
+    // Try to get from cache
+    const cacheResult = await cache.get(schemaPath);
+    if (!cacheResult.ok) {
+      // Cache error - continue with normal loading but log the issue
+      console.warn(
+        `[CACHE] Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
+      );
+    } else if (cacheResult.data) {
+      // Cache hit - create Schema entity from cached definition
+      const pathResult = SchemaPath.create(schemaPath);
+      if (!pathResult.ok) {
+        return pathResult;
+      }
+
+      const schemaResult = Schema.create(pathResult.data, cacheResult.data);
+      if (schemaResult.ok) {
+        return schemaResult;
+      }
+      // If Schema creation fails, continue with fresh load
+    }
+
+    // Cache miss or error - load from file system
     const contentResult = await Promise.resolve(
       this.fileSystem.read(schemaPath),
     );
@@ -483,6 +508,15 @@ export class PipelineOrchestrator {
       const definitionResult = SchemaDefinition.create(schemaData);
       if (!definitionResult.ok) {
         return definitionResult;
+      }
+
+      // Cache the schema definition for future use
+      const setCacheResult = await cache.set(schemaPath, definitionResult.data);
+      if (!setCacheResult.ok) {
+        // Cache set error - continue but log the issue
+        console.warn(
+          `[CACHE] Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
+        );
       }
 
       // Create schema entity

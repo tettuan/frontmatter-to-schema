@@ -62,12 +62,15 @@ export class Template {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function determineFormat(content: unknown, path: TemplatePath): OutputFormat {
-  if (typeof content === "object" && content !== null) {
-    const obj = content as Record<string, unknown>;
-    if (obj.format_type === "yaml") return "yaml";
-    if (obj.format_type === "markdown") return "markdown";
-    if (obj.format_type === "json") return "json";
+  if (isRecord(content)) {
+    if (content.format_type === "yaml") return "yaml";
+    if (content.format_type === "markdown") return "markdown";
+    if (content.format_type === "json") return "json";
   }
 
   const pathFormat = path.getFormat();
