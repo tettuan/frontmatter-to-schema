@@ -2,9 +2,9 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { Template } from "../entities/template.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
-import { JsonFormatter } from "../services/formatters/json-formatter.ts";
-import { YamlFormatter } from "../services/formatters/yaml-formatter.ts";
-import { MarkdownFormatter } from "../services/formatters/markdown-formatter.ts";
+import { JsonFormatter } from "../formatters/json-formatter.ts";
+import { YamlFormatter } from "../formatters/yaml-formatter.ts";
+import { MarkdownFormatter } from "../formatters/markdown-formatter.ts";
 import {
   UnifiedVariableReplacementStrategy,
   VariableReplacementStrategy,
@@ -29,16 +29,13 @@ export class TemplateRenderer {
     private readonly yamlFormatter: YamlFormatter,
     private readonly markdownFormatter: MarkdownFormatter,
     private readonly debugLogger?: DebugLogger,
-    private readonly verbose: boolean = false,
   ) {}
 
   /**
    * Smart Constructor for TemplateRenderer
-   * @param debugLogger - Optional debug logger for detailed logging
-   * @param verbose - Whether to run in verbose mode (affects null/undefined handling)
    * @returns Result containing TemplateRenderer instance or error
    */
-  static create(debugLogger?: DebugLogger, verbose: boolean = false): Result<
+  static create(debugLogger?: DebugLogger): Result<
     TemplateRenderer,
     TemplateError & { message: string }
   > {
@@ -61,7 +58,6 @@ export class TemplateRenderer {
         yamlFormatterResult.data,
         markdownFormatterResult.data,
         debugLogger,
-        verbose,
       ),
     );
   }
@@ -101,8 +97,10 @@ export class TemplateRenderer {
       "template-render",
       "Processing context determined",
       {
+        operation: "template-render",
         contextType: context.processingType,
         hasArrayData: context.hasArrayData,
+        timestamp: new Date().toISOString(),
       },
     );
 
@@ -119,7 +117,9 @@ export class TemplateRenderer {
         "template-render",
         replacementResult.error,
         {
+          operation: "template-render",
           templateFormat: template.getFormat(),
+          timestamp: new Date().toISOString(),
         },
       );
       return replacementResult;
@@ -129,7 +129,9 @@ export class TemplateRenderer {
       "template-render",
       "Variable replacement completed successfully",
       {
+        operation: "template-render",
         resultType: typeof replacementResult.data,
+        timestamp: new Date().toISOString(),
       },
     );
 
@@ -144,7 +146,9 @@ export class TemplateRenderer {
         "template-render",
         "Unified template rendering completed successfully",
         {
+          operation: "template-render",
           outputLength: formatResult.data.length,
+          timestamp: new Date().toISOString(),
         },
       );
     } else {
@@ -152,7 +156,9 @@ export class TemplateRenderer {
         "template-render",
         formatResult.error,
         {
+          operation: "template-render",
           templateFormat: template.getFormat(),
+          timestamp: new Date().toISOString(),
         },
       );
     }
@@ -181,16 +187,24 @@ export class TemplateRenderer {
       // Check if template has {@items} expansion markers
       if (contentStr.includes("{@items}")) {
         this.debugLogger?.logDebug(
-          "context-determination",
+          "template-context",
           "Determined array expansion context",
-          { arrayLength: plainDataArray.length },
+          {
+            operation: "context-determination",
+            arrayLength: plainDataArray.length,
+            timestamp: new Date().toISOString(),
+          },
         );
         return ProcessingContext.forArrayExpansion(plainDataArray);
       } else {
         this.debugLogger?.logDebug(
-          "context-determination",
+          "template-context",
           "Determined array processing context",
-          { arrayLength: plainDataArray.length },
+          {
+            operation: "context-determination",
+            arrayLength: plainDataArray.length,
+            timestamp: new Date().toISOString(),
+          },
         );
         return ProcessingContext.forArrayProcessing(plainDataArray);
       }
@@ -198,8 +212,12 @@ export class TemplateRenderer {
 
     // Single item processing
     this.debugLogger?.logDebug(
-      "context-determination",
+      "template-context",
       "Determined single item context",
+      {
+        operation: "context-determination",
+        timestamp: new Date().toISOString(),
+      },
     );
     return ProcessingContext.forSingleItem();
   }
@@ -213,12 +231,14 @@ export class TemplateRenderer {
     format: "json" | "yaml" | "markdown",
   ): Result<string, TemplateError & { message: string }> {
     this.debugLogger?.logDebug(
-      "output-formatting",
+      "template-format",
       `Formatting output as ${format}`,
       {
+        operation: "output-formatting",
         format,
         dataType: typeof data,
         isArray: Array.isArray(data),
+        timestamp: new Date().toISOString(),
       },
     );
 
@@ -242,21 +262,42 @@ export class TemplateRenderer {
           kind: "InvalidFormat",
           format,
         });
-        this.debugLogger?.logError("output-formatting", error, { format });
+        this.debugLogger?.logError(
+          "template-format",
+          createError({
+            kind: "InvalidTemplate",
+            message: `Invalid format: ${format}`,
+          }),
+          {
+            operation: "output-formatting",
+            format,
+            timestamp: new Date().toISOString(),
+          },
+        );
         return err(error);
       }
     }
 
     if (result.ok) {
       this.debugLogger?.logDebug(
-        "output-formatting",
+        "template-format",
         `Successfully formatted output as ${format}`,
         {
+          operation: "output-formatting",
           outputLength: result.data.length,
+          timestamp: new Date().toISOString(),
         },
       );
     } else {
-      this.debugLogger?.logError("output-formatting", result.error, { format });
+      this.debugLogger?.logError(
+        "template-format",
+        result.error,
+        {
+          operation: "output-formatting",
+          format,
+          timestamp: new Date().toISOString(),
+        },
+      );
     }
 
     return result;

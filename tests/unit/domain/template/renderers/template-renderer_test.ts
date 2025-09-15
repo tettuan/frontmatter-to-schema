@@ -420,7 +420,7 @@ Deno.test("TemplateRenderer - should handle boolean and number values", () => {
 
 Deno.test("TemplateRenderer - should handle null and undefined values in normal mode", () => {
   // Arrange
-  const rendererResult = TemplateRenderer.create(undefined, false); // normal mode
+  const rendererResult = TemplateRenderer.create(); // normal mode
   if (!rendererResult.ok) {
     throw new Error(
       `Failed to create renderer: ${rendererResult.error.message}`,
@@ -454,7 +454,7 @@ Deno.test("TemplateRenderer - should handle null and undefined values in normal 
 
 Deno.test("TemplateRenderer - should handle null/undefined values consistently", () => {
   // Arrange
-  const rendererResult = TemplateRenderer.create(undefined, true); // verbose flag for debugging only
+  const rendererResult = TemplateRenderer.create(); // debug logging handled via constructor
   if (!rendererResult.ok) {
     throw new Error(
       `Failed to create renderer: ${rendererResult.error.message}`,
@@ -488,7 +488,7 @@ Deno.test("TemplateRenderer - should handle null/undefined values consistently",
 
 Deno.test("TemplateRenderer - should handle null/undefined in string templates consistently", () => {
   // Arrange
-  const rendererResult = TemplateRenderer.create(undefined, false);
+  const rendererResult = TemplateRenderer.create();
   if (!rendererResult.ok) {
     throw new Error(
       `Failed to create renderer: ${rendererResult.error.message}`,

@@ -1,5 +1,5 @@
 import { Result } from "../../shared/types/result.ts";
-import { DomainError } from "../../shared/types/errors.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
 
 /**
  * Output format types supported by the system
@@ -15,7 +15,7 @@ export interface OutputFormatter {
    * @param data - The data to format
    * @returns Result containing formatted string or error
    */
-  format(data: unknown): Result<string, DomainError & { message: string }>;
+  format(data: unknown): Result<string, TemplateError & { message: string }>;
 
   /**
    * Get the format type this formatter handles
@@ -29,7 +29,7 @@ export interface OutputFormatter {
 export abstract class BaseFormatter implements OutputFormatter {
   abstract format(
     data: unknown,
-  ): Result<string, DomainError & { message: string }>;
+  ): Result<string, TemplateError & { message: string }>;
   abstract getFormat(): OutputFormat;
 
   /**

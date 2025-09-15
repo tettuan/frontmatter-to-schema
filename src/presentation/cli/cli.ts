@@ -40,7 +40,7 @@ export class CLI {
   }
 
   private static createOrchestrator(
-    verbose: boolean,
+    _verbose: boolean,
   ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
@@ -80,8 +80,8 @@ export class CLI {
       jmespathFilterServiceResult.data,
     );
 
-    // Create TemplateRenderer with verbose flag
-    const templateRendererResult = TemplateRenderer.create(undefined, verbose);
+    // Create TemplateRenderer
+    const templateRendererResult = TemplateRenderer.create();
     if (!templateRendererResult.ok) {
       return err(createError({
         kind: "ConfigurationError",

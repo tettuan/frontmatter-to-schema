@@ -17,7 +17,13 @@ import { YamlFormatter } from "../../../../../src/domain/template/formatters/yam
  * 6. Error handling for non-serializable data
  */
 describe("YamlFormatter", () => {
-  const formatter = new YamlFormatter();
+  const formatterResult = YamlFormatter.create();
+  if (!formatterResult.ok) {
+    throw new Error(
+      `Failed to create YamlFormatter: ${formatterResult.error.message}`,
+    );
+  }
+  const formatter = formatterResult.data;
 
   it("should return correct format type", () => {
     assertEquals(formatter.getFormat(), "yaml");

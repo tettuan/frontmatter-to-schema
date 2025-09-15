@@ -16,7 +16,13 @@ import { JsonFormatter } from "../../../../../src/domain/template/formatters/jso
  * 6. Error handling for non-serializable data
  */
 describe("JsonFormatter", () => {
-  const formatter = new JsonFormatter();
+  const formatterResult = JsonFormatter.create();
+  if (!formatterResult.ok) {
+    throw new Error(
+      `Failed to create JsonFormatter: ${formatterResult.error.message}`,
+    );
+  }
+  const formatter = formatterResult.data;
 
   it("should return correct format type", () => {
     assertEquals(formatter.getFormat(), "json");

@@ -2,7 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
-import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+// TODO: Fix boundary violation - import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 
 /**
@@ -13,7 +13,7 @@ export class VariableReplacer {
   private constructor(
     private readonly arrayExpansionStrategy: ArrayExpansionStrategy,
   ) {}
-  private debugLogger = DebugLoggerFactory.create();
+  // TODO: Fix boundary violation - private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor for VariableReplacer
@@ -46,71 +46,34 @@ export class VariableReplacer {
         return ok(template);
       }
 
-      this.debugLogger?.logDebug(
-        "variable-replacer",
-        "Starting variable replacement",
-        {
-          template: template.substring(0, 200) +
-            (template.length > 200 ? "..." : ""),
-          hasArrayData: !!arrayData,
-          arrayDataLength: arrayData?.length,
-        },
-      );
+      // TODO: Fix debug logging - starting variable replacement
 
       // Support both single and double brace syntax: {var} and {{var}}
       // Use more restrictive regex to avoid matching across JSON structure
       let result = template.replace(/\{\{([\w.@-]+)\}\}/g, (match, varName) => {
-        this.debugLogger?.logDebug(
-          "variable-replacer",
-          "Processing variable",
-          { varName, match },
-        );
+        // TODO: Fix debug logging - processing variable
 
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Processing @items array expansion",
-            { arrayDataLength: arrayData.length },
-          );
+          // TODO: Fix debug logging - processing @items array expansion
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Skipping @ variable",
-            { varName },
-          );
+          // TODO: Fix debug logging - skipping @ variable
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Variable not found - keeping placeholder",
-            { varName, error: valueResult.error },
-          );
+          // TODO: Fix debug logging
           return match; // Keep placeholder if value not found
         }
 
         const formattedValue = this.formatValue(valueResult.data);
-        this.debugLogger?.logDebug(
-          "variable-replacer",
-          "Variable resolved successfully",
-          {
-            varName,
-            rawDataType: typeof valueResult.data,
-            rawDataIsArray: Array.isArray(valueResult.data),
-            formattedValue: typeof formattedValue === "string"
-              ? formattedValue.substring(0, 100) +
-                (formattedValue.length > 100 ? "..." : "")
-              : formattedValue,
-          },
-        );
+        // TODO: Fix debug logging
 
         return formattedValue;
       });
@@ -118,57 +81,29 @@ export class VariableReplacer {
       // Also support single brace syntax: {var}
       // Use more restrictive regex to avoid matching across JSON structure
       result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
-        this.debugLogger?.logDebug(
-          "variable-replacer",
-          "Processing single-brace variable",
-          { varName, match },
-        );
+        // TODO: Fix debug logging
 
         // Handle {@items} array expansion
         if (varName === "@items" && arrayData) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Processing @items array expansion (single-brace)",
-            { arrayDataLength: arrayData.length },
-          );
+          // TODO: Fix debug logging
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
         }
 
         // Skip other @ variables (special processing markers)
         if (varName.startsWith("@")) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Skipping @ variable (single-brace)",
-            { varName },
-          );
+          // TODO: Fix debug logging
           return match;
         }
 
         const valueResult = data.get(varName);
         if (!valueResult.ok) {
-          this.debugLogger?.logDebug(
-            "variable-replacer",
-            "Single-brace variable not found - keeping placeholder",
-            { varName, error: valueResult.error },
-          );
+          // TODO: Fix debug logging
           return match; // Keep placeholder if value not found
         }
 
         const formattedValue = this.formatValue(valueResult.data);
-        this.debugLogger?.logDebug(
-          "variable-replacer",
-          "Single-brace variable resolved successfully",
-          {
-            varName,
-            rawDataType: typeof valueResult.data,
-            rawDataIsArray: Array.isArray(valueResult.data),
-            formattedValue: typeof formattedValue === "string"
-              ? formattedValue.substring(0, 100) +
-                (formattedValue.length > 100 ? "..." : "")
-              : formattedValue,
-          },
-        );
+        // TODO: Fix debug logging
 
         return formattedValue;
       });

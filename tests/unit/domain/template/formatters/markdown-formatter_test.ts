@@ -16,7 +16,13 @@ import { MarkdownFormatter } from "../../../../../src/domain/template/formatters
  * 6. Error handling for non-serializable data
  */
 describe("MarkdownFormatter", () => {
-  const formatter = new MarkdownFormatter();
+  const formatterResult = MarkdownFormatter.create();
+  if (!formatterResult.ok) {
+    throw new Error(
+      `Failed to create MarkdownFormatter: ${formatterResult.error.message}`,
+    );
+  }
+  const formatter = formatterResult.data;
 
   it("should return correct format type", () => {
     assertEquals(formatter.getFormat(), "markdown");

@@ -1,12 +1,24 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 
 /**
  * JSON formatter for template output
+ * Follows Totality principles with Smart Constructor pattern
  */
 export class JsonFormatter extends BaseFormatter {
-  format(data: unknown): Result<string, DomainError & { message: string }> {
+  private constructor() {
+    super();
+  }
+
+  /**
+   * Smart Constructor for JsonFormatter
+   * @returns Result containing JsonFormatter instance or error
+   */
+  static create(): Result<JsonFormatter, TemplateError & { message: string }> {
+    return ok(new JsonFormatter());
+  }
+  format(data: unknown): Result<string, TemplateError & { message: string }> {
     if (!this.isSerializable(data)) {
       return err(createError({
         kind: "InvalidTemplate",
