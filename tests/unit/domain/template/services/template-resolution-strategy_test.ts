@@ -114,7 +114,10 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     const result = strategy.resolve(context);
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error, "Schema does not contain x-template property");
+      assertEquals(
+        result.error,
+        "Schema does not contain valid x-template property",
+      );
     }
   });
 
