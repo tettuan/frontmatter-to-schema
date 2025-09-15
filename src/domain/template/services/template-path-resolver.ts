@@ -1,6 +1,11 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { Schema } from "../../schema/entities/schema.ts";
+import {
+  Decision,
+  ErrorContextFactory,
+  ProcessingProgress,
+} from "../../shared/types/error-context.ts";
 
 /**
  * Template path resolution configuration
@@ -38,10 +43,48 @@ export class TemplatePathResolver {
     schema: Schema,
     config: TemplatePathConfig,
   ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
+    // Create ErrorContext for template path resolution operation
+    const contextResult = ErrorContextFactory.forDomainService(
+      "TemplatePathResolver",
+      "Resolve template paths",
+      "resolveTemplatePaths",
+    );
+    if (!contextResult.ok) {
+      return contextResult;
+    }
+
+    const context = contextResult.data
+      .withInput("schemaPath", config.schemaPath)
+      .withInput("explicitTemplatePath", config.explicitTemplatePath);
+
+    // Create processing progress tracker
+    const progressResult = ProcessingProgress.create(
+      "Template Path Resolution",
+      "Resolving main template path",
+      [],
+      3,
+    );
+    if (!progressResult.ok) {
+      return progressResult;
+    }
+
+    let currentContext = context.withProgress(progressResult.data);
+
     // Resolve main template path
     const mainTemplateResult = this.resolveMainTemplatePath(schema, config);
     if (!mainTemplateResult.ok) {
       return mainTemplateResult;
+    }
+
+    // Update progress: Main template resolved
+    const progressAfterMain = ProcessingProgress.create(
+      "Template Path Resolution",
+      "Resolving items template path",
+      ["Resolving main template path"],
+      3,
+    );
+    if (progressAfterMain.ok) {
+      currentContext = currentContext.withProgress(progressAfterMain.data);
     }
 
     // Resolve items template path (optional)
@@ -50,9 +93,33 @@ export class TemplatePathResolver {
       return itemsTemplateResult;
     }
 
+    // Update progress: Items template resolved
+    const progressAfterItems = ProcessingProgress.create(
+      "Template Path Resolution",
+      "Determining output format",
+      ["Resolving main template path", "Resolving items template path"],
+      3,
+    );
+    if (progressAfterItems.ok) {
+      currentContext = currentContext.withProgress(progressAfterItems.data);
+    }
+
     // Stage 3: Extract output format using Schema entity or detect from template extension
     const outputFormatResult = schema.getTemplateFormat();
     let outputFormat: "json" | "yaml" | "toml" | "markdown";
+
+    // Create decision tracking for format determination
+    const formatDecisionResult = Decision.create(
+      "Output format determination",
+      ["schema-defined", "auto-detected"],
+      outputFormatResult.ok
+        ? "Schema contains x-template-format attribute"
+        : "Auto-detecting format from template file extension",
+    );
+
+    if (formatDecisionResult.ok) {
+      currentContext = currentContext.withDecision(formatDecisionResult.data);
+    }
 
     if (outputFormatResult.ok) {
       outputFormat = outputFormatResult.data;
