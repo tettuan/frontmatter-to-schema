@@ -22,9 +22,14 @@ import {
 } from "../../infrastructure/index.ts";
 
 export class CLI {
-  private readonly orchestrator: PipelineOrchestrator;
+  private orchestrator: PipelineOrchestrator;
 
   constructor() {
+    // Initialize with default (non-verbose) orchestrator
+    this.orchestrator = this.createOrchestrator(false);
+  }
+
+  private createOrchestrator(verbose: boolean): PipelineOrchestrator {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
     const fileLister = new DenoFileLister();
@@ -53,8 +58,8 @@ export class CLI {
       basePropertyPopulator,
     );
 
-    // Create TemplateRenderer for OutputRenderingService
-    const templateRendererResult = TemplateRenderer.create();
+    // Create TemplateRenderer with verbose flag
+    const templateRendererResult = TemplateRenderer.create(undefined, verbose);
     if (!templateRendererResult.ok) {
       throw new Error(
         `Failed to create TemplateRenderer: ${templateRendererResult.error.message}`,
@@ -79,7 +84,7 @@ export class CLI {
       list: (pattern: string) => fileLister.list(pattern),
     };
 
-    this.orchestrator = new PipelineOrchestrator(
+    return new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -176,6 +181,11 @@ DESCRIPTION:
     inputPattern: string,
     verbose: boolean = false,
   ): Promise<Result<void, DomainError & { message: string }>> {
+    // Recreate orchestrator with verbose flag if needed
+    if (verbose) {
+      this.orchestrator = this.createOrchestrator(verbose);
+    }
+
     const config: PipelineConfig = {
       schemaPath,
       outputPath,
