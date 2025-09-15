@@ -350,7 +350,6 @@ export class PipelineOrchestrator {
       config.verbosityConfig.kind === "verbose"
         ? { kind: "verbose" }
         : { kind: "normal" };
-
     const renderResult = this.outputRenderingService.renderOutput(
       templatePath,
       itemsTemplatePath,
