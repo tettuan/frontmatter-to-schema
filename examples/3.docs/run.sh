@@ -9,7 +9,7 @@ echo "=== Spec-Trace Index Generation ==="
 
 # Configuration
 SPEC_TRACE_DIR="./examples/3.docs"
-DOCS_PATTERN="./.agent/spec-trace/docs/**/*.md"
+DOCS_PATTERN="${SPEC_TRACE_DIR}/docs/**/*.md"
 
 # Ensure we're in the project root
 if [ ! -d "./examples/3.docs" ]; then

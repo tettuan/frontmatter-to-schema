@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { VariableContext } from "../../src/domain/template/value-objects/variable-context.ts";
-import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterTestFactory } from "../helpers/frontmatter-test-factory.ts";
 
 /**
  * INTEGRATION TEST: Template-Schema Binding Layer
@@ -16,7 +16,7 @@ describe("Template-Schema Binding Integration", () => {
   describe("Variable Context with Legacy Support", () => {
     it("should resolve regular variables in legacy mode", () => {
       // Arrange: Use legacy context creation
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         project: {
           name: "My Project",
           version: "2.0.0",
@@ -24,10 +24,7 @@ describe("Template-Schema Binding Integration", () => {
         description: "A test project",
       });
 
-      assertExists(data.ok, "Should create frontmatter data");
-      if (!data.ok) return;
-
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
       assertExists(contextResult.ok, "Should create legacy context");
       if (!contextResult.ok) return;
 
@@ -88,15 +85,12 @@ describe("Template-Schema Binding Integration", () => {
 
     it("should validate context capabilities", () => {
       // Arrange
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         title: "Test",
         items: [1, 2, 3],
       });
 
-      assertExists(data.ok, "Should create data");
-      if (!data.ok) return;
-
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
       assertExists(contextResult.ok, "Should create context");
       if (!contextResult.ok) return;
 
@@ -116,11 +110,9 @@ describe("Template-Schema Binding Integration", () => {
 
     it("should handle error cases gracefully", () => {
       // Arrange
-      const data = FrontmatterData.create({ title: "Test" });
-      assertExists(data.ok);
-      if (!data.ok) return;
+      const data = FrontmatterTestFactory.createMinimalData();
 
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
 
@@ -152,18 +144,15 @@ describe("Template-Schema Binding Integration", () => {
       // should be resolved from x-frontmatter-part hierarchy level.
       // In legacy mode, this fails as expected.
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         commands: [
           { name: "build", script: "npm run build" },
           { name: "test", script: "npm test" },
         ],
-        other_array: ["a", "b", "c"], // This should NOT be used for {@items}
+        other_array: ["a", "b", "c"], // This should NOT be used for {@items
       });
 
-      assertExists(data.ok);
-      if (!data.ok) return;
-
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
 

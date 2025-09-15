@@ -4,7 +4,7 @@ import { VariableContext } from "../../../../../src/domain/template/value-object
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
-import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterTestFactory } from "../../../../helpers/frontmatter-test-factory.ts";
 
 /**
  * COMPREHENSIVE TEST: Variable Context with Schema Hierarchy
@@ -67,7 +67,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       if (!schemaResult.ok) return;
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         title: "Test Project",
         metadata: {
           version: "1.0.0",
@@ -77,13 +77,11 @@ describe("VariableContext with Schema Hierarchy", () => {
           ],
         },
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       // Act
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
 
       // Assert
@@ -145,19 +143,17 @@ describe("VariableContext with Schema Hierarchy", () => {
       if (!schemaResult.ok) return;
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         project: {
           name: "My Project",
           version: "2.0.0",
         },
         tasks: [{ name: "task1" }],
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -212,17 +208,15 @@ describe("VariableContext with Schema Hierarchy", () => {
       if (!schemaResult.ok) return;
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         title: "Test Project",
         description: "A test project",
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       // Act
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
 
       // Assert
@@ -295,7 +289,7 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         config: {
           environments: ["dev", "staging", "prod"], // Should be ignored for {@items}
           scripts: [ // This should be used for {@items}
@@ -304,12 +298,10 @@ describe("VariableContext with Schema Hierarchy", () => {
           ],
         },
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -370,13 +362,11 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({ items: [] });
-      assertExists(data.ok);
-      if (!data.ok) return;
+      const data = FrontmatterTestFactory.createCustomData({ items: [] });
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -429,16 +419,14 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         // commands array is missing
         title: "Test",
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -486,15 +474,13 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         items: "not an array", // Should be array
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -543,15 +529,13 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         tasks: [{ name: "task1" }, { name: "task2" }],
       });
-      assertExists(data.ok);
-      if (!data.ok) return;
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -589,13 +573,11 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({ title: "Test" });
-      assertExists(data.ok);
-      if (!data.ok) return;
+      const data = FrontmatterTestFactory.createCustomData({ title: "Test" });
 
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       assertExists(contextResult.ok);
       if (!contextResult.ok) return;
@@ -645,32 +627,30 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(schemaResult.ok);
       if (!schemaResult.ok) return;
 
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         commands: [
           { name: "build", script: "npm run build" },
           { name: "test", script: "npm test" },
         ],
       });
-      assertExists(data.ok);
 
-      if (!schemaResult.ok || !data.ok) return;
+      if (!schemaResult.ok) return;
       const contextResult = VariableContext.create(
         schemaResult.data,
-        data.data,
+        data,
       );
       if (!contextResult.ok) return;
       const parentContext = contextResult.data;
 
       // Create item data
-      const itemData = FrontmatterData.create({
+      const itemData = FrontmatterTestFactory.createCustomData({
         name: "deploy",
         script: "npm run deploy",
       });
 
       // Act
-      if (!itemData.ok) return;
       const itemContext = parentContext.createItemContext(
-        itemData.data.getData(),
+        itemData.getData(),
       );
 
       // Assert
@@ -695,14 +675,13 @@ describe("VariableContext with Schema Hierarchy", () => {
   describe("Backward Compatibility", () => {
     it("should support legacy fromSingleData method", () => {
       // Arrange
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         title: "Legacy Test",
         version: "1.0.0",
       });
 
       // Act
-      if (!data.ok) return;
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
 
       // Assert
       assertExists(contextResult.ok, "Should create legacy context");
@@ -726,12 +705,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
     it("should support legacy getValue method", () => {
       // Arrange
-      const data = FrontmatterData.create({
+      const data = FrontmatterTestFactory.createCustomData({
         nested: { value: "test" },
       });
 
-      if (!data.ok) return;
-      const contextResult = VariableContext.fromSingleData(data.data);
+      const contextResult = VariableContext.fromSingleData(data);
       if (!contextResult.ok) return;
       const context = contextResult.data;
 
@@ -744,14 +722,13 @@ describe("VariableContext with Schema Hierarchy", () => {
 
     it("should support legacy array methods", () => {
       // Arrange
-      const data1 = FrontmatterData.create({ item: "first" });
-      const data2 = FrontmatterData.create({ item: "second" });
+      const data1 = FrontmatterTestFactory.createCustomData({ item: "first" });
+      const data2 = FrontmatterTestFactory.createCustomData({ item: "second" });
 
       // Act
-      if (!data1.ok || !data2.ok) return;
       const contextResult = VariableContext.fromArrayData([
-        data1.data,
-        data2.data,
+        data1,
+        data2,
       ]);
 
       // Assert

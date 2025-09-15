@@ -7,7 +7,7 @@ echo "=== Article Index Generation ==="
 
 # Configuration
 SCHEMA_FILE="./examples/1.articles/articles_schema.json"
-OUTPUT_FILE="./tmp/articles-index-output.yml"
+OUTPUT_FILE="./examples/1.articles/articles-index-output.yml"
 DOCS_DIR="./examples/1.articles/docs"
 
 # Create tmp directory if it doesn't exist
