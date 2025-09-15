@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { defaultSchemaExtensionRegistry } from "./schema-extension-registry.ts";
 
 /**
  * Extensions for schema properties following JSON Schema extension pattern
@@ -17,6 +18,8 @@ export interface SchemaExtensions {
   readonly "x-base-property"?: boolean; // Base property marker
   readonly "x-default-value"?: unknown; // Default value for base properties
   readonly description?: string;
+  // Allow dynamic access to extension properties
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -319,7 +322,8 @@ export class SchemaPropertyUtils {
    * Check if schema property has x-template-items directive
    */
   static hasTemplateItems(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-template-items"] !== undefined;
+    const key = defaultSchemaExtensionRegistry.getTemplateItemsKey().getValue();
+    return schema.extensions?.[key] !== undefined;
   }
 
   /**
@@ -328,7 +332,8 @@ export class SchemaPropertyUtils {
   static getTemplateItems(
     schema: SchemaProperty,
   ): Result<string, SchemaError & { message: string }> {
-    const templateItems = schema.extensions?.["x-template-items"];
+    const key = defaultSchemaExtensionRegistry.getTemplateItemsKey().getValue();
+    const templateItems = schema.extensions?.[key] as string | undefined;
     if (templateItems) {
       return { ok: true, data: templateItems };
     }
@@ -336,7 +341,7 @@ export class SchemaPropertyUtils {
       ok: false,
       error: {
         kind: "TemplateItemsNotDefined",
-        message: "x-template-items directive not found in schema extensions",
+        message: `${key} directive not found in schema extensions`,
       },
     };
   }
@@ -388,14 +393,17 @@ export class SchemaPropertyUtils {
    * Check if schema property has frontmatter part directive
    */
   static hasFrontmatterPart(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-frontmatter-part"] === true;
+    const key = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
+      .getValue();
+    return schema.extensions?.[key] === true;
   }
 
   /**
    * Check if schema property has template directive
    */
   static hasTemplate(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-template"] !== undefined;
+    const key = defaultSchemaExtensionRegistry.getTemplateKey().getValue();
+    return schema.extensions?.[key] !== undefined;
   }
 
   /**
@@ -404,7 +412,8 @@ export class SchemaPropertyUtils {
   static getTemplate(
     schema: SchemaProperty,
   ): Result<string, SchemaError & { message: string }> {
-    const template = schema.extensions?.["x-template"];
+    const key = defaultSchemaExtensionRegistry.getTemplateKey().getValue();
+    const template = schema.extensions?.[key] as string | undefined;
     if (template) {
       return { ok: true, data: template };
     }
@@ -412,7 +421,7 @@ export class SchemaPropertyUtils {
       ok: false,
       error: {
         kind: "TemplateNotDefined",
-        message: "x-template directive not found in schema extensions",
+        message: `${key} directive not found in schema extensions`,
       },
     };
   }
@@ -421,7 +430,8 @@ export class SchemaPropertyUtils {
    * Check if schema property has derived-from directive
    */
   static hasDerivedFrom(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-derived-from"] !== undefined;
+    const key = defaultSchemaExtensionRegistry.getDerivedFromKey().getValue();
+    return schema.extensions?.[key] !== undefined;
   }
 
   /**
@@ -430,7 +440,8 @@ export class SchemaPropertyUtils {
   static getDerivedFrom(
     schema: SchemaProperty,
   ): Result<string, SchemaError & { message: string }> {
-    const derivedFrom = schema.extensions?.["x-derived-from"];
+    const key = defaultSchemaExtensionRegistry.getDerivedFromKey().getValue();
+    const derivedFrom = schema.extensions?.[key] as string | undefined;
     if (derivedFrom) {
       return { ok: true, data: derivedFrom };
     }
@@ -438,7 +449,7 @@ export class SchemaPropertyUtils {
       ok: false,
       error: {
         kind: "DerivedFromNotDefined",
-        message: "x-derived-from directive not found in schema extensions",
+        message: `${key} directive not found in schema extensions`,
       },
     };
   }
@@ -447,14 +458,17 @@ export class SchemaPropertyUtils {
    * Check if schema property is marked as derived unique
    */
   static isDerivedUnique(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-derived-unique"] === true;
+    const key = defaultSchemaExtensionRegistry.getDerivedUniqueKey().getValue();
+    return schema.extensions?.[key] === true;
   }
 
   /**
    * Check if schema property has JMESPath filter directive
    */
   static hasJMESPathFilter(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-jmespath-filter"] !== undefined;
+    const key = defaultSchemaExtensionRegistry.getJmespathFilterKey()
+      .getValue();
+    return schema.extensions?.[key] !== undefined;
   }
 
   /**
@@ -463,7 +477,9 @@ export class SchemaPropertyUtils {
   static getJMESPathFilter(
     schema: SchemaProperty,
   ): Result<string, SchemaError & { message: string }> {
-    const jmespathFilter = schema.extensions?.["x-jmespath-filter"];
+    const key = defaultSchemaExtensionRegistry.getJmespathFilterKey()
+      .getValue();
+    const jmespathFilter = schema.extensions?.[key] as string | undefined;
     if (jmespathFilter) {
       return { ok: true, data: jmespathFilter };
     }
@@ -471,7 +487,7 @@ export class SchemaPropertyUtils {
       ok: false,
       error: {
         kind: "JMESPathFilterNotDefined",
-        message: "x-jmespath-filter directive not found in schema extensions",
+        message: `${key} directive not found in schema extensions`,
       },
     };
   }

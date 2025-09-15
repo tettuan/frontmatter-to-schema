@@ -30,3 +30,8 @@ export {
 export type { ValidationRule } from "./value-objects/validation-rules.ts";
 export type { ResolvedSchema } from "./entities/schema.ts";
 export type { SchemaLoader } from "./services/ref-resolver.ts";
+export {
+  defaultSchemaExtensionRegistry,
+  SchemaExtensionKey,
+  SchemaExtensionRegistry,
+} from "./value-objects/schema-extension-registry.ts";

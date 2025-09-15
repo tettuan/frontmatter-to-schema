@@ -1,3 +1,5 @@
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
+
 export type ValidationError =
   | {
     readonly kind: "OutOfRange";
@@ -195,19 +197,19 @@ const getDefaultMessage = (error: DomainError): string => {
     case "RefNotDefined":
       return "Schema does not define a $ref";
     case "DerivedFromNotDefined":
-      return "Schema does not define x-derived-from";
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`;
     case "ItemsNotDefined":
       return "Schema does not define items";
     case "PropertyNotFound":
       return `Property not found at path: ${error.path}`;
     case "TemplateItemsNotDefined":
-      return "Schema does not define x-template-items directive";
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getTemplateItemsKey().getValue()} directive`;
     case "TemplateFormatNotDefined":
       return "Schema does not define x-template-format directive";
     case "InvalidTemplateFormat":
       return "Invalid template format specified";
     case "JMESPathFilterNotDefined":
-      return "Schema does not define x-jmespath-filter directive";
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getJmespathFilterKey().getValue()} directive`;
     case "JMESPathCompilationFailed":
       return `JMESPath expression compilation failed: ${error.expression} - ${error.message}`;
     case "JMESPathExecutionFailed":

@@ -10,6 +10,7 @@ import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
@@ -354,16 +355,18 @@ export class FrontmatterTransformationService {
     data: FrontmatterData[],
     schema: Schema,
   ): FrontmatterData[] {
+    const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
+      .getValue();
     this.debugLogger?.logDebug(
       "frontmatter-parts",
-      "Checking for x-frontmatter-part schema definition",
+      `Checking for ${extensionKey} schema definition`,
     );
 
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (!frontmatterPartSchemaResult.ok) {
       this.debugLogger?.logDebug(
         "frontmatter-parts",
-        "No x-frontmatter-part schema found, returning original data",
+        `No ${extensionKey} schema found, returning original data`,
       );
       return data;
     }
@@ -373,7 +376,7 @@ export class FrontmatterTransformationService {
     if (!frontmatterPartPathResult.ok) {
       this.debugLogger?.logDebug(
         "frontmatter-parts",
-        "No x-frontmatter-part path found, returning original data",
+        `No ${extensionKey} path found, returning original data`,
       );
       return data;
     }

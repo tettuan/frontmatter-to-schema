@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -256,9 +257,11 @@ export class TemplateSchemaBindingService {
     // Check if schema has x-frontmatter-part
     const frontmatterPartResult = schema.findFrontmatterPartPath();
     if (!frontmatterPartResult.ok) {
+      const extensionKey = defaultSchemaExtensionRegistry
+        .getFrontmatterPartKey().getValue();
       return err(createError({
         kind: "RenderFailed",
-        message: "Schema must have x-frontmatter-part for {@items} binding",
+        message: `Schema must have ${extensionKey} for {@items} binding`,
       }));
     }
 
