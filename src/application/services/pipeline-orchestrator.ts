@@ -28,6 +28,7 @@ import { TemplatePath } from "../../domain/template/value-objects/template-path.
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
+import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 
 /**
  * Template configuration using discriminated unions for type safety
@@ -344,6 +345,12 @@ export class PipelineOrchestrator {
     }
 
     // Step 6: Use OutputRenderingService to render and write output
+    // Convert VerbosityConfig to VerbosityMode
+    const verbosityMode: VerbosityMode =
+      config.verbosityConfig.kind === "verbose"
+        ? { kind: "verbose" }
+        : { kind: "normal" };
+
     const renderResult = this.outputRenderingService.renderOutput(
       templatePath,
       itemsTemplatePath,
@@ -351,6 +358,7 @@ export class PipelineOrchestrator {
       itemsData,
       config.outputPath,
       outputFormat,
+      verbosityMode,
     );
     return renderResult;
   }

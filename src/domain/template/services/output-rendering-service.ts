@@ -4,6 +4,7 @@ import { Template } from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { VerbosityMode } from "../value-objects/processing-context.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 import { parse as parseYaml } from "jsr:@std/yaml@1.0.5";
 import { TemplateStructureAnalyzer } from "./template-structure-analyzer.ts";
@@ -108,6 +109,7 @@ export class OutputRenderingService {
     itemsData: FrontmatterData[] | undefined,
     outputPath: string,
     outputFormat: "json" | "yaml" | "markdown" = "json",
+    verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<void, DomainError & { message: string }> {
     // Create ErrorContext for output rendering operation
     const contextResult = ErrorContextFactory.forDomainService(
@@ -235,6 +237,7 @@ export class OutputRenderingService {
         const itemResult = this.templateRenderer.render(
           itemsTemplateResult.data,
           item,
+          verbosityMode,
         );
         if (!itemResult.ok) {
           this.debugLogger?.logError(
@@ -284,6 +287,7 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         finalFrontmatterResult.data,
+        verbosityMode,
       );
     } else if (itemsData) {
       // ✅ DDD Fix: Use dynamic data composition for array rendering
@@ -304,6 +308,7 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         itemsData,
+        verbosityMode,
       );
     } else {
       // ✅ DDD Fix: Single data rendering with proper context
@@ -319,6 +324,7 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         mainData,
+        verbosityMode,
       );
     }
 

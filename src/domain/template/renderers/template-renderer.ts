@@ -9,7 +9,10 @@ import {
   UnifiedVariableReplacementStrategy,
   VariableReplacementStrategy,
 } from "../services/variable-replacement-strategy.ts";
-import { ProcessingContext } from "../value-objects/processing-context.ts";
+import {
+  ProcessingContext,
+  VerbosityMode,
+} from "../value-objects/processing-context.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**
@@ -68,11 +71,13 @@ export class TemplateRenderer {
    *
    * @param template - Template to render
    * @param data - Single data source or array of data sources
+   * @param verbosityMode - Verbosity mode for null/undefined handling
    * @returns Result containing rendered string or error
    */
   render(
     template: Template,
     data: FrontmatterData | FrontmatterData[],
+    verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<string, TemplateError & { message: string }> {
     this.debugLogger?.logInfo(
       "template-render",
@@ -85,7 +90,11 @@ export class TemplateRenderer {
     );
 
     // Determine processing context based on data type and template content
-    const contextResult = this.determineProcessingContext(template, data);
+    const contextResult = this.determineProcessingContext(
+      template,
+      data,
+      verbosityMode,
+    );
     if (!contextResult.ok) {
       return contextResult;
     }
@@ -173,6 +182,7 @@ export class TemplateRenderer {
   private determineProcessingContext(
     template: Template,
     data: FrontmatterData | FrontmatterData[],
+    verbosityMode: VerbosityMode,
   ): Result<ProcessingContext, TemplateError & { message: string }> {
     const content = template.getContent();
     const contentStr = typeof content === "string"
@@ -195,7 +205,10 @@ export class TemplateRenderer {
             timestamp: new Date().toISOString(),
           },
         );
-        return ProcessingContext.forArrayExpansion(plainDataArray);
+        return ProcessingContext.forArrayExpansion(
+          plainDataArray,
+          verbosityMode,
+        );
       } else {
         this.debugLogger?.logDebug(
           "template-context",
@@ -206,7 +219,10 @@ export class TemplateRenderer {
             timestamp: new Date().toISOString(),
           },
         );
-        return ProcessingContext.forArrayProcessing(plainDataArray);
+        return ProcessingContext.forArrayProcessing(
+          plainDataArray,
+          verbosityMode,
+        );
       }
     }
 
@@ -219,7 +235,7 @@ export class TemplateRenderer {
         timestamp: new Date().toISOString(),
       },
     );
-    return ProcessingContext.forSingleItem();
+    return ProcessingContext.forSingleItem(verbosityMode);
   }
 
   /**
