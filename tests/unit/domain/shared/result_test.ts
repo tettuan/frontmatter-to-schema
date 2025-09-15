@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import {
   chain,
   combine,
@@ -7,7 +7,7 @@ import {
   isOk,
   map,
   ok,
-  unwrap,
+  unwrapOr,
 } from "../../../../src/domain/shared/types/result.ts";
 
 Deno.test("Result - ok creates success result", () => {
@@ -98,12 +98,15 @@ Deno.test("Result - combine fails with any error", () => {
   }
 });
 
-Deno.test("Result - unwrap returns value for success", () => {
+Deno.test("Result - unwrapOr returns value for success", () => {
   const result = ok("test");
-  assertEquals(unwrap(result), "test");
+  assertEquals(unwrapOr(result, "default"), "test");
 });
 
-Deno.test("Result - unwrap throws for error", () => {
+Deno.test("Result - unwrapOr returns default for error", () => {
   const result = err("error");
-  assertThrows(() => unwrap(result));
+  assertEquals(unwrapOr(result, "default"), "default");
 });
+
+// Note: unwrap function removed for Totality compliance (Issue #849)
+// Use unwrapOr, map, or proper Result handling instead of throwing exceptions

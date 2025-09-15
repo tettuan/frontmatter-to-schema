@@ -241,7 +241,10 @@ export class Schema {
           `unique=${def.isDerivedUnique()}`,
         );
       } else {
-        this.debugLogger?.logExtensionDetection("x-derived-from", false);
+        this.debugLogger?.logExtensionDetection(
+          defaultSchemaExtensionRegistry.getDerivedFromKey().getValue(),
+          false,
+        );
       }
 
       const propertiesResult = def.getProperties();

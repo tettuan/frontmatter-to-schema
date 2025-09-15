@@ -71,14 +71,8 @@ export const chain = <T, U, E>(
   return result;
 };
 
-export const unwrap = <T, E>(result: Result<T, E>): T => {
-  if (isOk(result)) {
-    return result.data;
-  }
-  throw new Error(
-    `Attempted to unwrap an error: ${JSON.stringify(result.error)}`,
-  );
-};
+// Note: unwrap function removed to comply with Totality principles
+// Use unwrapOr, map, or proper Result handling instead
 
 export const unwrapOr = <T, E>(result: Result<T, E>, defaultValue: T): T => {
   if (isOk(result)) {
