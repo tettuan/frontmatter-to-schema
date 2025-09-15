@@ -130,3 +130,71 @@ export function shouldLogLevel(
 ): boolean {
   return requestedLevel.priority <= configuredLevel.priority;
 }
+
+/**
+ * Processing details for progress logging
+ */
+export interface ProcessingDetails {
+  readonly operation: string;
+  readonly itemsProcessed: number;
+  readonly totalItems: number;
+  readonly currentItem?: string;
+  readonly elapsedMs?: number;
+}
+
+/**
+ * Performance metrics for operation logging
+ */
+export interface PerformanceMetrics {
+  readonly operation: string;
+  readonly duration: number;
+  readonly memoryUsed?: number;
+  readonly itemCount?: number;
+}
+
+/**
+ * Enhanced DebugLogger with specialized methods for unified logging architecture.
+ * Provides CLI-specific logging methods while maintaining DDD and Totality principles.
+ */
+export interface EnhancedDebugLogger extends DebugLogger {
+  /**
+   * Log CLI output that should always be visible (even when not verbose)
+   * Used for help text, version info, and user-facing output
+   */
+  output(
+    message: string,
+    context?: LogContext,
+  ): Result<void, LogError & { message: string }>;
+
+  /**
+   * Log CLI error output that should always be visible
+   * Used for error messages that must reach the user
+   */
+  errorOutput(
+    message: string,
+    context?: LogContext,
+  ): Result<void, LogError & { message: string }>;
+
+  /**
+   * Log processing progress with structured context
+   * Used for file processing and pipeline progress
+   */
+  progress(
+    stage: string,
+    details: ProcessingDetails,
+  ): Result<void, LogError & { message: string }>;
+
+  /**
+   * Log performance metrics
+   * Used for timing and resource usage reporting
+   */
+  metrics(
+    operation: string,
+    metrics: PerformanceMetrics,
+  ): Result<void, LogError & { message: string }>;
+
+  /**
+   * Get current logger context
+   */
+  getContext(): LogContext;
+}
