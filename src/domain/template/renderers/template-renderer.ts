@@ -29,13 +29,16 @@ export class TemplateRenderer {
     private readonly yamlFormatter: YamlFormatter,
     private readonly markdownFormatter: MarkdownFormatter,
     private readonly debugLogger?: DebugLogger,
+    private readonly verbose: boolean = false,
   ) {}
 
   /**
    * Smart Constructor for TemplateRenderer
+   * @param debugLogger - Optional debug logger for detailed logging
+   * @param verbose - Whether to run in verbose mode (affects null/undefined handling)
    * @returns Result containing TemplateRenderer instance or error
    */
-  static create(debugLogger?: DebugLogger): Result<
+  static create(debugLogger?: DebugLogger, verbose: boolean = false): Result<
     TemplateRenderer,
     TemplateError & { message: string }
   > {
@@ -58,6 +61,7 @@ export class TemplateRenderer {
         yamlFormatterResult.data,
         markdownFormatterResult.data,
         debugLogger,
+        verbose,
       ),
     );
   }
@@ -108,6 +112,7 @@ export class TemplateRenderer {
       content,
       effectiveData,
       context,
+      this.verbose,
     );
 
     if (!replacementResult.ok) {
