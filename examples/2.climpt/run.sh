@@ -22,8 +22,8 @@ echo
 # Execute frontmatter-to-schema command with new CLI interface
 FRONTMATTER_TO_SCHEMA_TEST_MODE=true ./frontmatter-to-schema \
   "$REGISTRY_SCHEMA" \
-  "$OUTPUT_FILE" \
   "$PROMPTS_DIR/**/*.md" \
+  "$OUTPUT_FILE" \
   --verbose
 
 # Capture the exit status
@@ -40,7 +40,7 @@ if [ $EXIT_STATUS -eq 0 ]; then
         echo "=== Generated Registry Summary ==="
         # Extract number of commands if possible
         if command -v jq >/dev/null 2>&1; then
-            COMMAND_COUNT=$(jq '.commands | length' "$OUTPUT_FILE" 2>/dev/null || echo "N/A")
+            COMMAND_COUNT=$(jq '.tools.commands | length' "$OUTPUT_FILE" 2>/dev/null || echo "N/A")
             echo "Commands found: $COMMAND_COUNT"
         fi
     fi
