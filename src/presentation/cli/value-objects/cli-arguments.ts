@@ -15,17 +15,20 @@ export class CLIArguments {
   readonly inputPattern: string;
   readonly outputPath: string;
   readonly verbose: boolean;
+  readonly generatePrompt: boolean;
 
   private constructor(
     schemaPath: string,
     inputPattern: string,
     outputPath: string,
     verbose: boolean,
+    generatePrompt: boolean,
   ) {
     this.schemaPath = schemaPath;
     this.inputPattern = inputPattern;
     this.outputPath = outputPath;
     this.verbose = verbose;
+    this.generatePrompt = generatePrompt;
   }
 
   /**
@@ -35,15 +38,67 @@ export class CLIArguments {
   static create(
     args: string[],
   ): Result<CLIArguments, ValidationError & { message: string }> {
-    // Extract verbose flag
+    // Extract flags
     const verbose = args.includes("--verbose");
+    const generatePrompt = args.includes("--generate-prompt");
     const filteredArgs = args.filter((arg) =>
-      arg !== "--verbose" && !arg.startsWith("--help") &&
-      !arg.startsWith("-h") &&
+      arg !== "--verbose" && arg !== "--generate-prompt" &&
+      !arg.startsWith("--help") && !arg.startsWith("-h") &&
       !arg.startsWith("--version") && !arg.startsWith("-v")
     );
 
-    // Validate minimum argument count
+    // When using --generate-prompt, only 2 arguments are needed (schema and input)
+    if (generatePrompt) {
+      if (filteredArgs.length < 2) {
+        return err(createError({
+          kind: "MissingRequired",
+          field: "arguments",
+          message:
+            `Expected 2 arguments (schema, input) when using --generate-prompt, but got ${filteredArgs.length}. ` +
+            `Usage: frontmatter-to-schema <schema> <input> --generate-prompt`,
+        }));
+      }
+      if (filteredArgs.length > 2) {
+        // Allow 3 arguments but use dummy output path
+        if (filteredArgs.length > 3) {
+          return err(createError({
+            kind: "TooManyArguments",
+            field: "arguments",
+            message:
+              `Expected 2-3 arguments with --generate-prompt, but got ${filteredArgs.length}. ` +
+              `Extra arguments: ${filteredArgs.slice(3).join(", ")}`,
+          }));
+        }
+      }
+      const [schemaPath, inputPattern] = filteredArgs;
+      // Use dummy output path when --generate-prompt is used
+      const outputPath = filteredArgs[2] || "output.json";
+
+      // Validate schema path
+      const schemaValidation = CLIArguments.validateSchemaPath(schemaPath);
+      if (!schemaValidation.ok) {
+        return schemaValidation;
+      }
+
+      // Validate input pattern
+      const inputValidation = CLIArguments.validateInputPattern(inputPattern);
+      if (!inputValidation.ok) {
+        return inputValidation;
+      }
+
+      // Skip output validation for --generate-prompt
+      return ok(
+        new CLIArguments(
+          schemaPath,
+          inputPattern,
+          outputPath,
+          verbose,
+          generatePrompt,
+        ),
+      );
+    }
+
+    // Normal mode: Validate for exactly 3 arguments
     if (filteredArgs.length < 3) {
       return err(createError({
         kind: "MissingRequired",
@@ -83,7 +138,15 @@ export class CLIArguments {
       return outputValidation;
     }
 
-    return ok(new CLIArguments(schemaPath, inputPattern, outputPath, verbose));
+    return ok(
+      new CLIArguments(
+        schemaPath,
+        inputPattern,
+        outputPath,
+        verbose,
+        generatePrompt,
+      ),
+    );
   }
 
   /**
