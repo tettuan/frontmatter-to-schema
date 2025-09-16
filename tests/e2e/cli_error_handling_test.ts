@@ -1,5 +1,6 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { join } from "@std/path";
+import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 
 /**
  * CLI Error Handling E2E Tests
@@ -53,7 +54,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
       const schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         "properties": { "title": { "type": "string" } },
       };
       await Deno.writeTextFile(schemaPath, JSON.stringify(schema));
@@ -99,7 +100,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
       const schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         "properties": {
           "self": { "$ref": "#" }, // Circular reference to root
         },
@@ -137,7 +138,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
       const schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "nonexistent_template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "nonexistent_template.json",
         "properties": { "title": { "type": "string" } },
       };
       await Deno.writeTextFile(schemaPath, JSON.stringify(schema));
@@ -169,7 +170,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
     const schema = {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "x-template": "template.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "template.json",
       "properties": { "title": { "type": "string" } },
     };
     await Deno.writeTextFile(schemaPath, JSON.stringify(schema));
@@ -215,7 +216,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
     const schema = {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "x-template": "template.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "template.json",
       "properties": { "title": { "type": "string" } },
     };
     await Deno.writeTextFile(schemaPath, JSON.stringify(schema));
@@ -257,7 +258,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
       const schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         "properties": { "title": { "type": "string" } },
       };
       await Deno.writeTextFile(schemaPath, JSON.stringify(schema));

@@ -5,6 +5,7 @@ import {
   writeTestFile,
 } from "./helpers/e2e_test_helper.ts";
 import { join } from "@std/path";
+import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 
 /**
  * E2E Tests for CLI Argument Validation
@@ -113,7 +114,7 @@ Deno.test("CLI Argument Validation", async (t) => {
       const basicSchema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         "properties": {
           "title": { "type": "string" },
         },
@@ -165,7 +166,7 @@ Deno.test("CLI Argument Validation", async (t) => {
         const basicSchema = {
           "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
-          "x-template": "template.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "template.json",
           "properties": {
             "title": { "type": "string" },
           },

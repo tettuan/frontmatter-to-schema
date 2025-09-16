@@ -5,6 +5,7 @@ import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
+import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
 
 /**
  * COMPREHENSIVE TEST: Template-Schema Binding Service
@@ -39,7 +40,7 @@ describe("TemplateSchemaBindingService", () => {
           commands: {
             type: "array",
             items: { type: "object" },
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -235,7 +236,7 @@ describe("TemplateSchemaBindingService", () => {
           commands: {
             type: "array",
             items: { type: "object" },
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -369,7 +370,7 @@ describe("TemplateSchemaBindingService", () => {
           title: { type: "string" },
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -435,7 +436,7 @@ describe("TemplateSchemaBindingService", () => {
         properties: {
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -504,7 +505,7 @@ describe("TemplateSchemaBindingService", () => {
                 script: { type: "string" },
               },
             },
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -576,7 +577,7 @@ describe("TemplateSchemaBindingService", () => {
         properties: {
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -632,7 +633,7 @@ describe("TemplateSchemaBindingService", () => {
           title: { type: "string" },
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
