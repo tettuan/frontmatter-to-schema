@@ -11,8 +11,8 @@
  * - Verbose mode performance impact
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";

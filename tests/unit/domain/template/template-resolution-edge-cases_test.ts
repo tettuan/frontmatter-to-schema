@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { TEST_EXTENSIONS } from "../../../helpers/test-extensions.ts";
 
 /**

@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { PathParser } from "../../../../../src/domain/frontmatter/services/path-parser.ts";
 import { isOk } from "../../../../../src/domain/shared/types/result.ts";
 

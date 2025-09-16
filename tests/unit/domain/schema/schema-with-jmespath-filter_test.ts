@@ -1,5 +1,5 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { SchemaDefinition } from "../../../../src/domain/schema/value-objects/schema-definition.ts";
 import { SchemaPropertyUtils } from "../../../../src/domain/schema/value-objects/schema-property-types.ts";
 import { TEST_EXTENSIONS } from "../../../helpers/test-extensions.ts";

@@ -12,8 +12,8 @@
  * - Regression detection capabilities
  */
 
-import { assert, assertEquals } from "@std/assert";
-import { beforeEach, describe, it } from "@std/testing/bdd";
+import { assert, assertEquals } from "jsr:@std/assert";
+import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { err, ok, Result } from "../../src/domain/shared/types/result.ts";
 import { DomainError } from "../../src/domain/shared/types/errors.ts";
 import { MemoryMonitor } from "./memory-monitor.ts";

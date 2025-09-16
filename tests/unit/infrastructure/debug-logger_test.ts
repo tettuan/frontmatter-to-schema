@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { afterEach, describe, it } from "@std/testing/bdd";
+import { afterEach, describe, it } from "jsr:@std/testing/bdd";
 import {
   ConsoleDebugLogger,
   DebugLevel,

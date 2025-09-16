@@ -1,4 +1,4 @@
-import { JmesPath } from "@halvardm/jmespath";
+import { JmesPath } from "jsr:@halvardm/jmespath@^0.17.0";
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";

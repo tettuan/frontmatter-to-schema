@@ -1,4 +1,4 @@
-import { assert } from "@std/assert";
+import { assert } from "jsr:@std/assert";
 import {
   assertFileExists,
   assertValidJson,
@@ -9,7 +9,7 @@ import {
   readTestFile,
   writeTestFile,
 } from "./helpers/e2e_test_helper.ts";
-import { join } from "@std/path";
+import { join } from "jsr:@std/path";
 
 /**
  * E2E Tests for Basic CLI Functionality

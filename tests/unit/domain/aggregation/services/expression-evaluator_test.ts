@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import { ExpressionEvaluator } from "../../../../../src/domain/aggregation/services/expression-evaluator.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 

@@ -1,10 +1,10 @@
-import { assert } from "@std/assert";
+import { assert } from "jsr:@std/assert";
 import {
   createTestEnvironment,
   executeCliCommand,
   writeTestFile,
 } from "./helpers/e2e_test_helper.ts";
-import { join } from "@std/path";
+import { join } from "jsr:@std/path";
 import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 
 /**

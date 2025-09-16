@@ -5,7 +5,7 @@
  * Now uses FrontmatterDataCreationService for centralized creation.
  * Applies Smart Constructor pattern with Result types for type safety.
  */
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Result } from "../../src/domain/shared/types/result.ts";
 import { defaultFrontmatterDataCreationService } from "../../src/domain/frontmatter/services/frontmatter-data-creation-service.ts";

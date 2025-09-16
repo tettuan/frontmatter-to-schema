@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import { ErrorContextFactory } from "../../../../src/application/services/error-context-factory.ts";
 
 /**

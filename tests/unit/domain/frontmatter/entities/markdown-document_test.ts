@@ -1,5 +1,5 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { MarkdownDocument } from "../../../../../src/domain/frontmatter/entities/markdown-document.ts";
 import { FilePath } from "../../../../../src/domain/frontmatter/value-objects/file-path.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
