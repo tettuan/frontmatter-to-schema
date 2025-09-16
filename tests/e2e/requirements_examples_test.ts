@@ -37,8 +37,8 @@ Deno.test("Requirements Examples E2E", async (t) => {
       // Act: Execute CLI command with missing schema
       const result = await executeCliCommand([
         nonExistentSchemaPath,
-        outputPath,
         "*.md",
+        outputPath,
       ], { cwd: tempDir });
 
       // Assert: Should fail gracefully
@@ -88,8 +88,8 @@ Deno.test("Requirements Examples E2E", async (t) => {
       // Act: Execute CLI command
       const _result = await executeCliCommand([
         schemaPath,
-        outputPath,
         markdownPath,
+        outputPath,
       ], { cwd: tempDir });
 
       // Assert: Should handle gracefully (may succeed with empty data or fail appropriately)
@@ -167,8 +167,8 @@ This tests complex nested schema handling.
       // Act: Execute CLI command
       const result = await executeCliCommand([
         schemaPath,
-        outputPath,
         markdownPath,
+        outputPath,
       ], { cwd: tempDir });
 
       // Assert: Basic structure validation

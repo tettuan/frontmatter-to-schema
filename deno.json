@@ -7,6 +7,15 @@
   "exclude": [
     "tests/e2e/test-output/"
   ],
+  "publish": {
+    "exclude": [
+      "tests/**/*",
+      "tmp/**/*",
+      ".agent/**/*",
+      "scripts/**/*",
+      "examples/**/*"
+    ]
+  },
   "lint": {
     "exclude": [
       "tests/integration/process-documents.orchestrator.test.ts"
@@ -26,8 +35,13 @@
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
-    "test:performance": "deno test --allow-all tests/performance/",
-    "test:coverage": "deno test --allow-all --coverage=tmp/coverage",
+    "test": "deno run --allow-all scripts/robust-test-runner.ts",
+    "test:legacy": "deno test --allow-all --config=deno.test.json --jobs=4",
+    "test:unit": "deno test --allow-all tests/unit/ --jobs=8",
+    "test:integration": "deno test --allow-all tests/integration/ --jobs=4",
+    "test:e2e": "deno test --allow-all tests/e2e/ --jobs=1",
+    "test:performance": "deno test --allow-all tests/performance/ --jobs=1",
+    "test:coverage": "deno test --allow-all --coverage=tmp/coverage --config=deno.test.json",
     "coverage:report": "deno coverage tmp/coverage --lcov --output=tmp/coverage.lcov"
   },
   "imports": {

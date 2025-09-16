@@ -27,7 +27,15 @@ export class FileSystemSchemaRepository implements SchemaRepository {
         "schema-cache",
         `Schema cache hit for: ${pathStr}`,
       );
-      return ok(this.schemaCache.get(pathStr)!);
+      const cachedSchema = this.schemaCache.get(pathStr);
+      if (cachedSchema) {
+        return ok(cachedSchema);
+      }
+      // Handle theoretical race condition where cache entry was removed between has() and get()
+      this.debugLogger?.logDebug(
+        "schema-cache",
+        `Schema cache entry unexpectedly missing for: ${pathStr}`,
+      );
     }
 
     this.debugLogger?.logDebug(

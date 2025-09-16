@@ -329,7 +329,13 @@ export class NoOpDebugLogger implements DebugLogger {
  */
 export class DebugLoggerFactory {
   static create(): DebugLogger {
-    const debugEnabled = Deno.env.get("DEBUG_LEVEL") !== undefined;
-    return debugEnabled ? new ConsoleDebugLogger() : new NoOpDebugLogger();
+    try {
+      const debugEnabled = Deno.env.get("DEBUG_LEVEL") !== undefined;
+      return debugEnabled ? new ConsoleDebugLogger() : new NoOpDebugLogger();
+    } catch (_error) {
+      // If environment access is not permitted, default to NoOpDebugLogger
+      // This prevents permission errors from breaking the application
+      return new NoOpDebugLogger();
+    }
   }
 }

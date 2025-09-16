@@ -23,8 +23,8 @@ echo
 echo "2. Testing climpt registry example..."
 deno run --allow-all cli.ts \
     examples/2.climpt/registry_schema.json \
-    examples/2.climpt/climpt-registry-output.json \
     "examples/2.climpt/prompts/**/*.md" \
+    examples/2.climpt/climpt-registry-output.json \
     --verbose
 
 if [ $? -eq 0 ]; then

@@ -4,7 +4,35 @@ import { Template } from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
-import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { VerbosityMode } from "../value-objects/processing-context.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
+// Configuration types for discriminated union approach
+export type TemplateConfiguration =
+  | { readonly kind: "SingleTemplate"; readonly path: string }
+  | {
+    readonly kind: "DualTemplate";
+    readonly mainPath: string;
+    readonly itemsPath: string;
+  };
+
+export type DataConfiguration =
+  | { readonly kind: "SingleData"; readonly data: FrontmatterData }
+  | {
+    readonly kind: "ArrayData";
+    readonly mainData: FrontmatterData;
+    readonly itemsData: FrontmatterData[];
+  };
+
+export interface RenderingConfiguration {
+  readonly templateConfig: TemplateConfiguration;
+  readonly dataConfig: DataConfiguration;
+  readonly outputPath: string;
+  readonly outputFormat: "json" | "yaml" | "markdown";
+  readonly verbosityMode: VerbosityMode;
+}
 import { parse as parseYaml } from "jsr:@std/yaml@1.0.5";
 import { TemplateStructureAnalyzer } from "./template-structure-analyzer.ts";
 import { DynamicDataComposer } from "./dynamic-data-composer.ts";
@@ -50,7 +78,7 @@ export class OutputRenderingService {
     private readonly fileWriter: FileWriter,
     private readonly structureAnalyzerInstance: TemplateStructureAnalyzer,
     private readonly dataComposerInstance: DynamicDataComposer,
-    private readonly debugLogger?: DebugLogger,
+    private readonly domainLogger: DomainLogger = new NullDomainLogger(),
   ) {
     this.structureAnalyzer = structureAnalyzerInstance;
     this.dataComposer = dataComposerInstance;
@@ -60,7 +88,7 @@ export class OutputRenderingService {
     templateRenderer: TemplateRenderer,
     fileReader: FileReader,
     fileWriter: FileWriter,
-    debugLogger?: DebugLogger,
+    domainLogger?: DomainLogger,
   ): Result<OutputRenderingService, DomainError> {
     // Initialize DDD services following Totality pattern
     const analyzerResult = TemplateStructureAnalyzer.create();
@@ -86,12 +114,84 @@ export class OutputRenderingService {
         fileWriter,
         analyzerResult.data,
         composerResult.data,
-        debugLogger,
+        domainLogger ?? new NullDomainLogger(),
       ),
     );
   }
 
   /**
+   * Render data using template and write to output file using discriminated unions.
+   * Follows Totality principle - all error paths handled explicitly.
+   * This method replaces optional parameters with type-safe discriminated unions.
+   *
+   * @param config - Complete rendering configuration with template and data specifications
+   */
+  renderOutputWithConfiguration(
+    config: RenderingConfiguration,
+  ): Result<void, DomainError & { message: string }> {
+    // Create ErrorContext for output rendering operation
+    const contextResult = ErrorContextFactory.forDomainService(
+      "OutputRenderingService",
+      "Render output with configuration",
+      "renderOutputWithConfiguration",
+    );
+    if (!contextResult.ok) {
+      return err(contextResult.error);
+    }
+
+    const progressResult = ProcessingProgress.create(
+      "template-rendering",
+      "configuration-processing",
+      [],
+      3, // Total steps: config processing, template processing, data processing, rendering
+    );
+    if (!progressResult.ok) {
+      return err(progressResult.error);
+    }
+
+    const currentContext = contextResult.data.withProgress(progressResult.data);
+
+    this.domainLogger.logInfo(
+      "template-rendering",
+      `Starting template rendering with configuration`,
+      {
+        templateKind: config.templateConfig.kind,
+        dataKind: config.dataConfig.kind,
+        outputPath: config.outputPath,
+        outputFormat: config.outputFormat,
+        verbosityMode: config.verbosityMode.kind,
+      },
+    );
+
+    // Process template configuration
+    const templateResult = this.processTemplateConfiguration(
+      config.templateConfig,
+    );
+    if (!templateResult.ok) {
+      return err(templateResult.error);
+    }
+
+    // Process data configuration
+    const dataResult = this.processDataConfiguration(config.dataConfig);
+    if (!dataResult.ok) {
+      return err(dataResult.error);
+    }
+
+    // Render using the processed configuration
+    return this.executeRendering(
+      templateResult.data,
+      dataResult.data,
+      config.outputPath,
+      config.outputFormat,
+      config.verbosityMode,
+      currentContext,
+    );
+  }
+
+  /**
+   * Legacy render method using optional parameters.
+   * @deprecated Use renderOutputWithConfiguration for better type safety
+   *
    * Render data using template and write to output file.
    * Follows Totality principle - all error paths handled explicitly.
    * @param templatePath - Main template path (x-template)
@@ -108,6 +208,7 @@ export class OutputRenderingService {
     itemsData: FrontmatterData[] | undefined,
     outputPath: string,
     outputFormat: "json" | "yaml" | "markdown" = "json",
+    verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<void, DomainError & { message: string }> {
     // Create ErrorContext for output rendering operation
     const contextResult = ErrorContextFactory.forDomainService(
@@ -139,7 +240,7 @@ export class OutputRenderingService {
 
     const currentContext = context.withProgress(progressResult.data);
 
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-rendering",
       `Starting template rendering pipeline`,
       {
@@ -153,20 +254,20 @@ export class OutputRenderingService {
     );
 
     // Stage 1: Load and create template(s)
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-loading",
       `Loading template from: ${templatePath}`,
     );
     const templateResult = this.loadTemplate(templatePath);
     if (!templateResult.ok) {
-      this.debugLogger?.logError("template-loading", templateResult.error, {
+      this.domainLogger.logError("template-loading", templateResult.error, {
         templatePath,
         context: currentContext.getDebugInfo(),
       });
       return templateResult;
     }
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-loading",
       `Successfully loaded template: ${templatePath}`,
     );
@@ -176,13 +277,13 @@ export class OutputRenderingService {
       | Result<Template, DomainError & { message: string }>
       | undefined;
     if (itemsTemplatePath) {
-      this.debugLogger?.logDebug(
+      this.domainLogger.logDebug(
         "template-loading",
         `Loading items template from: ${itemsTemplatePath}`,
       );
       itemsTemplateResult = this.loadTemplate(itemsTemplatePath);
       if (!itemsTemplateResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "template-loading",
           itemsTemplateResult.error,
           {
@@ -191,14 +292,14 @@ export class OutputRenderingService {
         );
         return itemsTemplateResult;
       }
-      this.debugLogger?.logDebug(
+      this.domainLogger.logDebug(
         "template-loading",
         `Successfully loaded items template: ${itemsTemplatePath}`,
       );
     }
 
     // Stage 2: Render data with template
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-rendering-stage",
       `Starting template rendering`,
       {
@@ -215,7 +316,7 @@ export class OutputRenderingService {
       templateResult.data,
     );
     if (!structureResult.ok) {
-      this.debugLogger?.logError(
+      this.domainLogger.logError(
         "template-structure-analysis",
         structureResult.error,
       );
@@ -235,9 +336,10 @@ export class OutputRenderingService {
         const itemResult = this.templateRenderer.render(
           itemsTemplateResult.data,
           item,
+          verbosityMode,
         );
         if (!itemResult.ok) {
-          this.debugLogger?.logError(
+          this.domainLogger.logError(
             "template-rendering-stage",
             itemResult.error,
             {
@@ -255,7 +357,7 @@ export class OutputRenderingService {
         renderedItems,
       );
       if (!composedDataResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "data-composition",
           composedDataResult.error,
         );
@@ -267,7 +369,7 @@ export class OutputRenderingService {
         composedDataResult.data,
       );
       if (!contextResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "variable-context-creation",
           contextResult.error,
         );
@@ -284,6 +386,7 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         finalFrontmatterResult.data,
+        verbosityMode,
       );
     } else if (itemsData) {
       // ✅ DDD Fix: Use dynamic data composition for array rendering
@@ -293,7 +396,7 @@ export class OutputRenderingService {
         templateStructure.getArrayExpansionKeys(),
       );
       if (!composedDataResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "array-data-composition",
           composedDataResult.error,
         );
@@ -304,12 +407,13 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         itemsData,
+        verbosityMode,
       );
     } else {
       // ✅ DDD Fix: Single data rendering with proper context
       const composedDataResult = this.dataComposer.composeSingle(mainData);
       if (!composedDataResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "single-data-composition",
           composedDataResult.error,
         );
@@ -319,11 +423,12 @@ export class OutputRenderingService {
       renderResult = this.templateRenderer.render(
         templateResult.data,
         mainData,
+        verbosityMode,
       );
     }
 
     if (!renderResult.ok) {
-      this.debugLogger?.logError(
+      this.domainLogger.logError(
         "template-rendering-stage",
         renderResult.error,
         {
@@ -334,7 +439,7 @@ export class OutputRenderingService {
       return renderResult;
     }
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-rendering-stage",
       `Template rendering successful`,
       {
@@ -345,7 +450,7 @@ export class OutputRenderingService {
     // Stage 3: Format the rendered output
     let finalOutput: string;
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "output-formatting",
       `Formatting output as ${outputFormat}`,
       { outputFormat },
@@ -353,7 +458,7 @@ export class OutputRenderingService {
 
     const formatterResult = FormatterFactory.createFormatter(outputFormat);
     if (!formatterResult.ok) {
-      this.debugLogger?.logError("output-formatting", formatterResult.error, {
+      this.domainLogger.logError("output-formatting", formatterResult.error, {
         outputFormat,
       });
       return formatterResult;
@@ -370,7 +475,7 @@ export class OutputRenderingService {
       // Successfully parsed as JSON, format with the target formatter
       const formatResult = formatterResult.data.format(parsedOutput);
       if (!formatResult.ok) {
-        this.debugLogger?.logError("output-formatting", formatResult.error, {
+        this.domainLogger.logError("output-formatting", formatResult.error, {
           outputFormat,
         });
         return formatResult;
@@ -380,7 +485,7 @@ export class OutputRenderingService {
       // If parsing as JSON fails, check if it's already in the target format
       if (outputFormat === "json") {
         // Expected JSON but couldn't parse - this is an error
-        this.debugLogger?.logError("output-parsing", {
+        this.domainLogger.logError("output-parsing", {
           kind: "InvalidTemplate",
           message: `Failed to parse rendered output: ${error}`,
         }, { renderResult: renderResult.data });
@@ -392,7 +497,7 @@ export class OutputRenderingService {
         }));
       } else {
         // Non-JSON format - assume template already produces correct format
-        this.debugLogger?.logDebug(
+        this.domainLogger.logDebug(
           "output-direct-use",
           `Using rendered output directly for ${outputFormat}`,
           { outputFormat },
@@ -402,14 +507,14 @@ export class OutputRenderingService {
     }
 
     // Stage 4: Write formatted output to file
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "output-writing",
       `Writing formatted output to: ${outputPath}`,
     );
     const writeResult = this.fileWriter.write(outputPath, finalOutput);
 
     if (writeResult.ok) {
-      this.debugLogger?.logInfo(
+      this.domainLogger.logInfo(
         "template-rendering",
         `Template rendering pipeline completed successfully`,
         {
@@ -419,7 +524,7 @@ export class OutputRenderingService {
         },
       );
     } else {
-      this.debugLogger?.logError("output-writing", writeResult.error, {
+      this.domainLogger.logError("output-writing", writeResult.error, {
         outputPath,
       });
     }
@@ -474,7 +579,7 @@ export class OutputRenderingService {
     content: string,
     templatePath: string,
   ): Result<unknown, { message: string }> {
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-parsing",
       `Attempting to parse template: ${templatePath}`,
       {
@@ -487,14 +592,14 @@ export class OutputRenderingService {
     // Try JSON parsing first
     const jsonResult = this.safeJsonParse(content);
     if (jsonResult.ok) {
-      this.debugLogger?.logDebug(
+      this.domainLogger.logDebug(
         "template-parsing",
         `Successfully parsed template as JSON: ${templatePath}`,
       );
       return jsonResult;
     }
 
-    this.debugLogger?.logDebug(
+    this.domainLogger.logDebug(
       "template-parsing",
       `JSON parsing failed, attempting YAML: ${templatePath}`,
       {
@@ -505,7 +610,7 @@ export class OutputRenderingService {
     // Try YAML parsing as fallback
     const yamlResult = this.safeYamlParse(content);
     if (yamlResult.ok) {
-      this.debugLogger?.logDebug(
+      this.domainLogger.logDebug(
         "template-parsing",
         `Successfully parsed template as YAML: ${templatePath}`,
       );
@@ -519,7 +624,7 @@ export class OutputRenderingService {
       message: `Failed to parse template as JSON or YAML: ${templatePath}`,
     });
 
-    this.debugLogger?.logError("template-parsing", parseError, {
+    this.domainLogger.logError("template-parsing", parseError, {
       jsonError: jsonResult.error.message,
       yamlError: yamlResult.error.message,
     });
@@ -591,5 +696,90 @@ export class OutputRenderingService {
           : "Unknown YAML parsing error",
       });
     }
+  }
+
+  /**
+   * Process template configuration using discriminated union patterns.
+   * Follows Totality principle with exhaustive case handling.
+   */
+  private processTemplateConfiguration(
+    config: TemplateConfiguration,
+  ): Result<
+    { mainPath: string; itemsPath?: string },
+    DomainError & { message: string }
+  > {
+    switch (config.kind) {
+      case "SingleTemplate":
+        this.domainLogger.logDebug(
+          "template-configuration",
+          "Processing single template configuration",
+          { path: config.path },
+        );
+        return ok({ mainPath: config.path });
+
+      case "DualTemplate":
+        this.domainLogger.logDebug(
+          "template-configuration",
+          "Processing dual template configuration",
+          { mainPath: config.mainPath, itemsPath: config.itemsPath },
+        );
+        return ok({ mainPath: config.mainPath, itemsPath: config.itemsPath });
+    }
+  }
+
+  /**
+   * Process data configuration using discriminated union patterns.
+   * Follows Totality principle with exhaustive case handling.
+   */
+  private processDataConfiguration(
+    config: DataConfiguration,
+  ): Result<
+    { mainData: FrontmatterData; itemsData?: FrontmatterData[] },
+    DomainError & { message: string }
+  > {
+    switch (config.kind) {
+      case "SingleData":
+        this.domainLogger.logDebug(
+          "data-configuration",
+          "Processing single data configuration",
+        );
+        return ok({ mainData: config.data });
+
+      case "ArrayData":
+        this.domainLogger.logDebug(
+          "data-configuration",
+          "Processing array data configuration",
+          {
+            mainDataKeys: config.mainData.getAllKeys().length,
+            itemsCount: config.itemsData.length,
+          },
+        );
+        return ok({ mainData: config.mainData, itemsData: config.itemsData });
+    }
+  }
+
+  /**
+   * Execute the rendering with processed configuration.
+   * This is the core rendering logic extracted from the legacy method.
+   */
+  private executeRendering(
+    templateConfig: { mainPath: string; itemsPath?: string },
+    dataConfig: { mainData: FrontmatterData; itemsData?: FrontmatterData[] },
+    outputPath: string,
+    outputFormat: "json" | "yaml" | "markdown",
+    verbosityMode: VerbosityMode,
+    _context: any,
+  ): Result<void, DomainError & { message: string }> {
+    // Use the existing renderOutput method implementation
+    // This delegates to the legacy method while we transition
+    return this.renderOutput(
+      templateConfig.mainPath,
+      templateConfig.itemsPath,
+      dataConfig.mainData,
+      dataConfig.itemsData,
+      outputPath,
+      outputFormat,
+      verbosityMode,
+    );
   }
 }

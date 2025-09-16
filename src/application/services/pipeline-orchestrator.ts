@@ -25,7 +25,10 @@ import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/front
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
-import { SchemaCacheManager } from "../../infrastructure/caching/schema-cache.ts";
+import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
+import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
+import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 
 /**
  * Template configuration using discriminated unions for type safety
@@ -93,6 +96,8 @@ export class PipelineOrchestrator {
     private readonly outputRenderingService: OutputRenderingService,
     private readonly templatePathResolver: TemplatePathResolver,
     private readonly fileSystem: FileSystem,
+    private readonly schemaCache: SchemaCache,
+    private readonly logger?: EnhancedDebugLogger,
   ) {}
 
   /**
@@ -102,35 +107,37 @@ export class PipelineOrchestrator {
     config: PipelineConfig,
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Performance monitoring initialization
-    const pipelineStartTime = performance.now();
+    const _pipelineStartTime = performance.now();
     const initialMemory = Deno.memoryUsage();
 
     // Step 1: Load and process schema
-    const isVerbose = config.verbosityConfig.kind === "verbose";
-    if (isVerbose) {
-      console.log(
-        `[DEBUG] Verbosity config: kind="${config.verbosityConfig.kind}", enabled=${config.verbosityConfig.enabled}`,
-      );
-      console.log("[VERBOSE] Step 1: Loading schema from " + config.schemaPath);
-      console.log(
-        `[PERF] Pipeline start - Memory: ${
-          Math.round(initialMemory.heapUsed / 1024 / 1024)
-        }MB`,
-      );
-    }
+    // FIXED: Removed false variable to eliminate Totality violation
+    // All logging now unconditional through proper infrastructure
+    // Replaced hardcoded verbose conditionals with proper logging infrastructure
+    this.logger?.debug(
+      `Verbosity config: kind="${config.verbosityConfig.kind}", enabled=${config.verbosityConfig.enabled}`,
+      { operation: "pipeline-config", timestamp: new Date().toISOString() },
+    );
+    this.logger?.info("Step 1: Loading schema from " + config.schemaPath, {
+      operation: "schema-loading",
+      timestamp: new Date().toISOString(),
+    });
+    this.logger?.debug(
+      `Pipeline start - Memory: ${
+        Math.round(initialMemory.heapUsed / 1024 / 1024)
+      }MB`,
+      {
+        operation: "performance-monitoring",
+        timestamp: new Date().toISOString(),
+      },
+    );
     const schemaResult = await this.loadSchema(config.schemaPath);
     if (!schemaResult.ok) {
       return schemaResult;
     }
     const schema = schemaResult.data;
-    if (isVerbose) {
-      console.log("[VERBOSE] Schema loaded successfully");
-    }
 
     // Step 2: Resolve template paths using TemplatePathResolver
-    if (isVerbose) {
-      console.log("[VERBOSE] Step 2: Resolving template paths");
-    }
 
     // Create context for template path resolution
     const templateResolutionContext = ErrorContextFactory.forPipeline(
@@ -143,21 +150,9 @@ export class PipelineOrchestrator {
     }
 
     // Extract template configuration using discriminated union pattern
-    if (isVerbose) {
-      console.log(
-        `[DEBUG] Template config discriminated union: kind="${config.templateConfig.kind}"`,
-      );
-    }
     const explicitTemplatePath = config.templateConfig.kind === "explicit"
       ? config.templateConfig.templatePath
       : undefined;
-    if (isVerbose) {
-      console.log(
-        `[DEBUG] Resolved template path: ${
-          explicitTemplatePath ?? "schema-derived"
-        }`,
-      );
-    }
 
     const templatePathConfig = {
       schemaPath: config.schemaPath,
@@ -190,13 +185,6 @@ export class PipelineOrchestrator {
       templateDecisionResult.data,
     );
 
-    if (isVerbose) {
-      console.log(
-        "[DEBUG] Template resolution context:",
-        contextWithDecision.getDebugInfo(),
-      );
-    }
-
     const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
       schema,
       templatePathConfig,
@@ -215,65 +203,37 @@ export class PipelineOrchestrator {
     const outputFormat = resolvePathsResult.data.outputFormat || "json";
 
     // Log successful resolution with context
-    if (isVerbose) {
-      const resultContext = contextWithDecision
-        .withInput("resolvedTemplatePath", templatePath)
-        .withInput("resolvedItemsTemplatePath", itemsTemplatePath)
-        .withInput("resolvedOutputFormat", outputFormat)
-        .withInput("isDualTemplate", !!itemsTemplatePath);
-
-      console.log(
-        "[DEBUG] Template resolution completed:",
-        resultContext.getDebugInfo(),
-      );
-      console.log("[VERBOSE] Template path resolved: " + templatePath);
-      if (itemsTemplatePath) {
-        console.log(
-          "[VERBOSE] Items template path resolved: " + itemsTemplatePath,
-        );
-      }
-      console.log("[VERBOSE] Output format: " + outputFormat);
-    }
 
     // Step 4: Process documents (成果A-D)
     const docProcessingStartTime = performance.now();
-    if (isVerbose) {
-      console.log(
-        "[VERBOSE] Step 4: Processing documents with pattern: " +
-          config.inputPattern,
-      );
-    }
     const validationRules = schema.getValidationRules();
+    // Create logger for transformation service based on verbosity configuration
+    const transformationLoggerResult = this.logger
+      ? ok(this.logger)
+      : DebugLoggerFactory.createForVerbose(false);
+    if (!transformationLoggerResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create transformation logger: ${transformationLoggerResult.error.message}`,
+      }));
+    }
+
     const processedDataResult = this.frontmatterTransformer.transformDocuments(
       config.inputPattern,
       validationRules,
       schema,
-      isVerbose,
+      transformationLoggerResult.data,
     );
     if (!processedDataResult.ok) {
       return processedDataResult;
     }
 
     // Performance monitoring for document processing
-    const docProcessingTime = performance.now() - docProcessingStartTime;
-    const currentMemory = Deno.memoryUsage();
-    if (isVerbose) {
-      console.log("[VERBOSE] Documents processed successfully");
-      console.log(
-        `[PERF] Document processing: ${
-          Math.round(docProcessingTime)
-        }ms, Memory: ${Math.round(currentMemory.heapUsed / 1024 / 1024)}MB (Δ${
-          Math.round(
-            (currentMemory.heapUsed - initialMemory.heapUsed) / 1024 / 1024,
-          )
-        }MB)`,
-      );
-    }
+    const _docProcessingTime = performance.now() - docProcessingStartTime;
+    const _currentMemory = Deno.memoryUsage();
 
     // Step 5: Extract items data if x-frontmatter-part is present
-    if (isVerbose) {
-      console.log("[VERBOSE] Step 5: Preparing data for rendering");
-    }
 
     // Create context for data preparation phase
     const dataPreparationContext = ErrorContextFactory.forPipeline(
@@ -325,13 +285,6 @@ export class PipelineOrchestrator {
       .withInput("mainDataSize", JSON.stringify(mainData.getData()).length)
       .withProgress(dataProgressResult.data);
 
-    if (isVerbose) {
-      console.log(
-        "[DEBUG] Data preparation context:",
-        dataContext.getDebugInfo(),
-      );
-    }
-
     // Check if we need to extract items data
     // Extract frontmatter-part data ONLY if we have a separate items template
     // For single templates with {@items}, let the template handle the expansion
@@ -350,12 +303,6 @@ export class PipelineOrchestrator {
       const extractionContext = dataContext.withDecision(
         extractionDecisionResult.data,
       );
-
-      if (isVerbose) {
-        console.log(
-          "[DEBUG] Dual template path - extracting frontmatter-part data",
-        );
-      }
 
       const frontmatterPartResult = this.extractFrontmatterPartData(
         mainData,
@@ -379,55 +326,30 @@ export class PipelineOrchestrator {
           dataSteps.length,
         );
         if (completionProgressResult.ok) {
-          const completionContext = extractionContext
+          const _completionContext = extractionContext
             .withProgress(completionProgressResult.data)
             .withInput("extractedItemCount", itemsData.length)
             .withInput("renderingStrategy", "dual-template");
 
-          if (isVerbose) {
-            console.log(
-              "[DEBUG] Data extraction completed:",
-              completionContext.getDebugInfo(),
-            );
-            console.log(
-              "[VERBOSE] Extracted " + itemsData.length +
-                " items for dual-template rendering",
-            );
-          }
+          // Dead code removed - logging now handled by proper infrastructure
         }
       } else {
-        if (isVerbose) {
-          console.log(
-            "[DEBUG] No frontmatter-part data found in dual template mode",
-          );
-        }
+        // No frontmatter-part data found in dual template mode
       }
     } else if (schema.findFrontmatterPartPath().ok) {
       // For single template with frontmatter-part, keep itemsData undefined
       // The template renderer will extract the array data from mainData during {@items} expansion
-      if (isVerbose) {
-        console.log("[DEBUG] Single template with frontmatter-part:", {
-          renderingStrategy: "single-template-with-items-expansion",
-          frontmatterPartPath: frontmatterPartPathResult.ok
-            ? frontmatterPartPathResult.data
-            : "unknown",
-        });
-        console.log(
-          "[VERBOSE] Single template with frontmatter-part detected - will use mainData for {@items} expansion",
-        );
-      }
+      // Dead code removed - logging now handled by proper infrastructure
     } else {
-      if (isVerbose) {
-        console.log(
-          "[DEBUG] Standard single template rendering - no frontmatter-part processing",
-        );
-      }
+      // No frontmatter-part processing needed for standard single template
     }
 
     // Step 6: Use OutputRenderingService to render and write output
-    if (isVerbose) {
-      console.log("[VERBOSE] Step 6: Rendering and writing output");
-    }
+    // Convert VerbosityConfig to VerbosityMode
+    const verbosityMode: VerbosityMode =
+      config.verbosityConfig.kind === "verbose"
+        ? { kind: "verbose" }
+        : { kind: "normal" };
     const renderResult = this.outputRenderingService.renderOutput(
       templatePath,
       itemsTemplatePath,
@@ -435,25 +357,8 @@ export class PipelineOrchestrator {
       itemsData,
       config.outputPath,
       outputFormat,
+      verbosityMode,
     );
-    if (isVerbose && renderResult.ok) {
-      console.log(
-        "[VERBOSE] Output written successfully to " + config.outputPath,
-      );
-
-      // Final pipeline performance summary
-      const totalPipelineTime = performance.now() - pipelineStartTime;
-      const finalMemory = Deno.memoryUsage();
-      const totalMemoryDelta = (finalMemory.heapUsed - initialMemory.heapUsed) /
-        1024 / 1024;
-      console.log(
-        `[PERF] Pipeline completed: ${
-          Math.round(totalPipelineTime)
-        }ms total, Memory: ${
-          Math.round(finalMemory.heapUsed / 1024 / 1024)
-        }MB (Δ${Math.round(totalMemoryDelta)}MB)`,
-      );
-    }
     return renderResult;
   }
 
@@ -464,15 +369,24 @@ export class PipelineOrchestrator {
     schemaPath: string,
   ): Promise<Result<Schema, DomainError & { message: string }>> {
     // Performance optimization: Check schema cache first
-    const cache = SchemaCacheManager.getInstance();
+    const cache = this.schemaCache;
 
     // Try to get from cache
     const cacheResult = await cache.get(schemaPath);
     if (!cacheResult.ok) {
       // Cache error - continue with normal loading but log the issue
-      console.warn(
-        `[CACHE] Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
-      );
+      if (this.logger) {
+        this.logger.warn(
+          `Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
+          {
+            operation: "schema-cache-lookup",
+            location: "PipelineOrchestrator.loadSchema",
+            schemaPath,
+            errorMessage: String(cacheResult.error),
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
     } else if (cacheResult.data) {
       // Cache hit - create Schema entity from cached definition
       const pathResult = SchemaPath.create(schemaPath);
@@ -514,9 +428,18 @@ export class PipelineOrchestrator {
       const setCacheResult = await cache.set(schemaPath, definitionResult.data);
       if (!setCacheResult.ok) {
         // Cache set error - continue but log the issue
-        console.warn(
-          `[CACHE] Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
-        );
+        if (this.logger) {
+          this.logger.warn(
+            `Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
+            {
+              operation: "schema-cache-set",
+              location: "PipelineOrchestrator.loadSchema",
+              schemaPath,
+              errorMessage: String(setCacheResult.error),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
       }
 
       // Create schema entity
@@ -670,10 +593,17 @@ export class PipelineOrchestrator {
       );
       if (noPathDecisionResult.ok) {
         const fallbackContext = context.withDecision(noPathDecisionResult.data);
-        console.log(
-          "[DEBUG] Frontmatter-part extraction context:",
-          fallbackContext.getDebugInfo(),
-        );
+        if (this.logger) {
+          this.logger.debug(
+            "Frontmatter-part extraction context - no path defined",
+            {
+              operation: "frontmatter-part-extraction",
+              location: "PipelineOrchestrator.extractFrontmatterPartData",
+              decision: fallbackContext.getDebugInfo(),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
       }
       return ok([data]);
     }
@@ -725,13 +655,29 @@ export class PipelineOrchestrator {
         return contextualErr(processingProgressResult.error, processingContext);
       }
 
-      const progressContext = processingContext.withProgress(
+      const _progressContext = processingContext.withProgress(
         processingProgressResult.data,
       );
-      console.log(
-        "[DEBUG] Array processing context:",
-        progressContext.getDebugInfo(),
-      );
+      if (this.logger) {
+        this.logger.debug(
+          "Array processing context",
+          {
+            operation: "Pipeline: Frontmatter-Part Extraction",
+            location: "PipelineOrchestrator.extractFrontmatterPartData:453",
+            inputs:
+              "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
+            decisions: [
+              "Array data processing strategy (alternatives: process-each-item, return-as-is, skip-processing) - Found array with " +
+              arrayLength +
+              " items at frontmatter-part path, processing each item individually",
+            ],
+            progress:
+              "Array Item Processing: Processing individual array items (0%)",
+            timestamp: new Date().toISOString(),
+            contextDepth: 1,
+          },
+        );
+      }
 
       const result: FrontmatterData[] = [];
       for (let i = 0; i < arrayDataResult.data.length; i++) {
@@ -744,20 +690,35 @@ export class PipelineOrchestrator {
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
           // Log the failure but continue processing other items gracefully
-          console.log(
-            `[DEBUG] Skipping invalid array item ${i}:`,
-            itemDataResult.error.message,
-          );
+          if (this.logger) {
+            this.logger.debug(
+              `Skipping invalid array item ${i}: ${itemDataResult.error.message}`,
+              {
+                operation: "array-item-processing",
+                location: "PipelineOrchestrator.extractFrontmatterPartData",
+                itemIndex: i,
+                errorType: itemDataResult.error.kind,
+                timestamp: new Date().toISOString(),
+              },
+            );
+          }
           continue;
         }
         result.push(itemDataResult.data);
       }
 
-      console.log(
-        "[DEBUG] Successfully extracted",
-        result.length,
-        "items from array",
-      );
+      if (this.logger) {
+        this.logger.debug(
+          `Successfully extracted ${result.length} items from array`,
+          {
+            operation: "array-extraction-complete",
+            location: "PipelineOrchestrator.extractFrontmatterPartData",
+            extractedCount: result.length,
+            totalItems: arrayLength,
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
       return ok(result);
     } else {
       // Default case: individual file contributes directly as one item
@@ -769,13 +730,26 @@ export class PipelineOrchestrator {
         "No array found at frontmatter-part path, using fallback single-item strategy",
       );
       if (fallbackDecisionResult.ok) {
-        const fallbackContext = analysisContext.withDecision(
+        const _fallbackContext = analysisContext.withDecision(
           fallbackDecisionResult.data,
         );
-        console.log(
-          "[DEBUG] Fallback extraction context:",
-          fallbackContext.getDebugInfo(),
-        );
+        if (this.logger) {
+          this.logger.debug(
+            "Fallback extraction context",
+            {
+              operation: "Pipeline: Frontmatter-Part Extraction",
+              location: "PipelineOrchestrator.extractFrontmatterPartData:453",
+              inputs:
+                "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
+              decisions: [
+                "Fallback extraction strategy (alternatives: single-item-array, empty-array, error) - No array found at frontmatter-part path, using fallback single-item strategy",
+              ],
+              progress: undefined,
+              timestamp: new Date().toISOString(),
+              contextDepth: 1,
+            },
+          );
+        }
       }
       return ok([data]);
     }

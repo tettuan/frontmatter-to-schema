@@ -1,0 +1,40 @@
+{
+  "test": {
+    "include": [
+      "tests/**/*_test.ts"
+    ],
+    "exclude": [
+      "tests/e2e/test-output/**/*",
+      "tests/**/*.disabled.ts",
+      "tmp/**/*"
+    ],
+    "parallel": true,
+    "shuffle": false,
+    "jobs": 4,
+    "failFast": false,
+    "filter": "",
+    "timeout": 30000
+  },
+  "testSuites": {
+    "unit": {
+      "include": ["tests/unit/**/*_test.ts"],
+      "parallel": true,
+      "jobs": 8
+    },
+    "integration": {
+      "include": ["tests/integration/**/*_test.ts"],
+      "parallel": true,
+      "jobs": 4
+    },
+    "e2e": {
+      "include": ["tests/e2e/**/*_test.ts"],
+      "parallel": false,
+      "jobs": 1
+    },
+    "performance": {
+      "include": ["tests/performance/**/*_test.ts"],
+      "parallel": false,
+      "jobs": 1
+    }
+  }
+}

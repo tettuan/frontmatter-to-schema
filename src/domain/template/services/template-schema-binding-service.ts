@@ -4,7 +4,10 @@ import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schem
 import { Schema } from "../../schema/entities/schema.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
-import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { SchemaProcessingService } from "../../schema/services/schema-processing-service.ts";
 
 /**
@@ -18,20 +21,27 @@ import { SchemaProcessingService } from "../../schema/services/schema-processing
 export class TemplateSchemaBindingService {
   private constructor(
     private readonly schemaProcessingService?: SchemaProcessingService,
+    private readonly domainLogger: DomainLogger = new NullDomainLogger(),
   ) {}
-  private debugLogger = DebugLoggerFactory.create();
 
   /**
    * Smart Constructor following Totality principles.
    * @param schemaProcessingService - Optional service for JMESPath filtering support
+   * @param domainLogger - Optional domain logger for operation logging
    */
   static create(
     schemaProcessingService?: SchemaProcessingService,
+    domainLogger?: DomainLogger,
   ): Result<
     TemplateSchemaBindingService,
     TemplateError & { message: string }
   > {
-    return ok(new TemplateSchemaBindingService(schemaProcessingService));
+    return ok(
+      new TemplateSchemaBindingService(
+        schemaProcessingService,
+        domainLogger ?? new NullDomainLogger(),
+      ),
+    );
   }
 
   /**
@@ -43,7 +53,7 @@ export class TemplateSchemaBindingService {
     schema: Schema,
     data: FrontmatterData,
   ): Result<VariableContext, TemplateError & { message: string }> {
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-schema-binding",
       "Creating schema-aware variable context",
     );
@@ -54,7 +64,7 @@ export class TemplateSchemaBindingService {
       const filteredDataResult = this.schemaProcessingService
         .applyJMESPathFiltering(data, schema);
       if (!filteredDataResult.ok) {
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "template-schema-binding",
           filteredDataResult.error,
           { context: "JMESPath filtering failed" },
@@ -68,7 +78,7 @@ export class TemplateSchemaBindingService {
       processedData = filteredDataResult.data;
 
       if (processedData !== data) {
-        this.debugLogger?.logInfo(
+        this.domainLogger.logInfo(
           "template-schema-binding",
           "Applied JMESPath filtering to data",
           {
@@ -95,14 +105,14 @@ export class TemplateSchemaBindingService {
           kind: "DataCompositionFailed",
           reason: "Items resolution validation failed",
         });
-        this.debugLogger?.logError(
+        this.domainLogger.logError(
           "template-schema-binding",
           error,
         );
         return err(error);
       }
 
-      this.debugLogger?.logInfo(
+      this.domainLogger.logInfo(
         "template-schema-binding",
         "Variable context validated for {@items} resolution",
         {
@@ -123,7 +133,7 @@ export class TemplateSchemaBindingService {
     templateContent: string,
     data: FrontmatterData,
   ): Result<BindingValidationReport, TemplateError & { message: string }> {
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-schema-binding",
       "Starting binding validation",
     );
@@ -172,7 +182,7 @@ export class TemplateSchemaBindingService {
       }
     }
 
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-schema-binding",
       "Binding validation completed",
       {
@@ -321,7 +331,7 @@ export class TemplateSchemaBindingService {
       contexts.push(contextResult.data);
     }
 
-    this.debugLogger?.logInfo(
+    this.domainLogger.logInfo(
       "template-schema-binding",
       "Created item contexts for array expansion",
       {

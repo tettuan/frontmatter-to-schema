@@ -320,21 +320,28 @@ export class SchemaCache {
 }
 
 /**
- * Schema Cache Manager
- * Provides singleton access to schema cache with configuration
+ * Schema Cache Factory
+ * Creates SchemaCache instances with proper configuration
+ * Following DDD principles with explicit dependency injection
  */
-export class SchemaCacheManager {
-  private static instance: SchemaCache;
-
-  static getInstance(config?: Partial<SchemaCacheConfig>): SchemaCache {
-    if (!SchemaCacheManager.instance) {
-      SchemaCacheManager.instance = new SchemaCache(config);
-    }
-    return SchemaCacheManager.instance;
+export class SchemaCacheFactory {
+  /**
+   * Create a new SchemaCache instance with default configuration
+   */
+  static create(config?: Partial<SchemaCacheConfig>): SchemaCache {
+    return new SchemaCache(config);
   }
 
-  static resetInstance(): void {
-    SchemaCacheManager.instance?.clear();
-    SchemaCacheManager.instance = null as any;
+  /**
+   * Create a SchemaCache instance optimized for testing
+   * with disabled caching and minimal configuration
+   */
+  static createForTesting(): SchemaCache {
+    return new SchemaCache({
+      maxEntries: 10,
+      ttlMs: 1000, // Short TTL for tests
+      enableFileWatching: false,
+      enableLRUEviction: true,
+    });
   }
 }

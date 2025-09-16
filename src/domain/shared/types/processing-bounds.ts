@@ -108,6 +108,11 @@ export class ProcessingBoundsFactory {
       }));
     }
 
+    // Special case: 0 files found - use unbounded processing (nothing to process)
+    if (fileCount === 0) {
+      return ok(ProcessingBoundsFactory.createUnbounded());
+    }
+
     // Default bounds based on Issue #838 SLA targets (relaxed for practical usage)
     if (fileCount < 100) {
       // Small dataset: <10s, <500MB (relaxed for development/testing)

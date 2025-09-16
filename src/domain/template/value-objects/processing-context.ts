@@ -2,12 +2,20 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 
 /**
+ * Verbosity mode configuration for template variable processing
+ */
+export type VerbosityMode =
+  | { readonly kind: "normal" } // Replace null/undefined with empty strings
+  | { readonly kind: "verbose" }; // Preserve template variables for debugging
+
+/**
  * ProcessingContext encapsulates the context information needed for template variable processing.
  * Follows DDD Value Object pattern with immutability and validation.
  */
 export class ProcessingContext {
   private constructor(
     private readonly _processingType: "single" | "array" | "expansion",
+    private readonly _verbosityMode: VerbosityMode = { kind: "normal" },
     private readonly _arrayData?: unknown[],
     private readonly _itemTemplate?: unknown,
   ) {}
@@ -15,11 +23,13 @@ export class ProcessingContext {
   /**
    * Smart Constructor for single item processing context
    */
-  static forSingleItem(): Result<
+  static forSingleItem(
+    verbosityMode: VerbosityMode = { kind: "normal" },
+  ): Result<
     ProcessingContext,
     TemplateError & { message: string }
   > {
-    return ok(new ProcessingContext("single"));
+    return ok(new ProcessingContext("single", verbosityMode));
   }
 
   /**
@@ -27,6 +37,7 @@ export class ProcessingContext {
    */
   static forArrayProcessing(
     arrayData: unknown[],
+    verbosityMode: VerbosityMode = { kind: "normal" },
     itemTemplate?: unknown,
   ): Result<ProcessingContext, TemplateError & { message: string }> {
     if (!Array.isArray(arrayData)) {
@@ -36,7 +47,9 @@ export class ProcessingContext {
       }));
     }
 
-    return ok(new ProcessingContext("array", arrayData, itemTemplate));
+    return ok(
+      new ProcessingContext("array", verbosityMode, arrayData, itemTemplate),
+    );
   }
 
   /**
@@ -44,6 +57,7 @@ export class ProcessingContext {
    */
   static forArrayExpansion(
     arrayData: unknown[],
+    verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<ProcessingContext, TemplateError & { message: string }> {
     if (!Array.isArray(arrayData)) {
       return err(createError({
@@ -52,12 +66,16 @@ export class ProcessingContext {
       }));
     }
 
-    return ok(new ProcessingContext("expansion", arrayData));
+    return ok(new ProcessingContext("expansion", verbosityMode, arrayData));
   }
 
   // Accessors following immutable value object pattern
   get processingType(): "single" | "array" | "expansion" {
     return this._processingType;
+  }
+
+  get verbosityMode(): VerbosityMode {
+    return this._verbosityMode;
   }
 
   get arrayData(): readonly unknown[] | undefined {
@@ -91,7 +109,11 @@ export class ProcessingContext {
     ProcessingContext,
     TemplateError & { message: string }
   > {
-    return ProcessingContext.forArrayProcessing(arrayData, this._itemTemplate);
+    return ProcessingContext.forArrayProcessing(
+      arrayData,
+      this._verbosityMode,
+      this._itemTemplate,
+    );
   }
 
   /**
@@ -99,6 +121,7 @@ export class ProcessingContext {
    */
   equals(other: ProcessingContext): boolean {
     if (this._processingType !== other._processingType) return false;
+    if (this._verbosityMode.kind !== other._verbosityMode.kind) return false;
 
     if (this._arrayData?.length !== other._arrayData?.length) return false;
 
@@ -115,7 +138,7 @@ export class ProcessingContext {
    * String representation for debugging
    */
   toString(): string {
-    return `ProcessingContext(${this._processingType}, arrayLength=${
+    return `ProcessingContext(${this._processingType}, ${this._verbosityMode.kind}, arrayLength=${
       this._arrayData?.length ?? 0
     })`;
   }

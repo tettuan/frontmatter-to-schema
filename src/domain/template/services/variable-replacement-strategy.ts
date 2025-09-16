@@ -12,18 +12,17 @@ export interface VariableReplacementStrategy {
   /**
    * Replace variables in template content using the provided data and context.
    * This is the core method that all strategies must implement.
+   * Follows Totality principles - always performs complete variable replacement.
    *
    * @param content - Template content (string, object, or array)
    * @param data - Frontmatter data containing variable values
    * @param context - Processing context determining replacement behavior
-   * @param verbose - Whether to run in verbose mode (affects null/undefined handling)
    * @returns Result containing processed content or error
    */
   replaceVariables(
     content: unknown,
     data: FrontmatterData,
     context: ProcessingContext,
-    verbose?: boolean,
   ): Result<unknown, TemplateError & { message: string }>;
 
   /**
@@ -75,33 +74,33 @@ export class UnifiedVariableReplacementStrategy
     content: unknown,
     data: FrontmatterData,
     context: ProcessingContext,
-    verbose: boolean = false,
   ): Result<unknown, TemplateError & { message: string }> {
     // Route to appropriate processing method based on context
     if (context.isArrayExpansion) {
-      return this.processArrayExpansion(content, context, data, verbose);
+      return this.processArrayExpansion(content, context, data);
     }
 
     if (context.isArrayProcessing) {
-      return this.processArrayItems(content, context, data, verbose);
+      return this.processArrayItems(content, context, data);
     }
 
     // Default to single item processing
-    return this.processSingleItem(content, data, context, verbose);
+    return this.processSingleItem(content, data, context);
   }
 
   private processSingleItem(
     content: unknown,
     data: FrontmatterData,
     context?: ProcessingContext,
-    verbose: boolean = false,
   ): Result<unknown, TemplateError & { message: string }> {
+    const verbosityMode = context?.verbosityMode ?? { kind: "normal" };
+
     if (typeof content === "string") {
-      return this.replaceStringVariables(content, data, verbose);
+      return this.replaceStringVariables(content, data, verbosityMode);
     }
 
     if (Array.isArray(content)) {
-      return this.processArray(content, data, context, verbose);
+      return this.processArray(content, data, context);
     }
 
     if (content && typeof content === "object") {
@@ -109,7 +108,6 @@ export class UnifiedVariableReplacementStrategy
         content as Record<string, unknown>,
         data,
         context,
-        verbose,
       );
     }
 
@@ -121,7 +119,6 @@ export class UnifiedVariableReplacementStrategy
     content: unknown,
     context: ProcessingContext,
     data: FrontmatterData,
-    verbose: boolean = false,
   ): Result<unknown, TemplateError & { message: string }> {
     const arrayData = context.arrayData;
     if (!arrayData) {
@@ -137,19 +134,22 @@ export class UnifiedVariableReplacementStrategy
       if (content.includes("{@items}")) {
         const itemsJson = JSON.stringify(arrayData);
         const expanded = content.replace("{@items}", itemsJson);
-        return this.replaceStringVariables(expanded, data, verbose);
+        return this.replaceStringVariables(
+          expanded,
+          data,
+          context.verbosityMode,
+        );
       }
     }
 
     // For non-string templates, process recursively
-    return this.processSingleItem(content, data, context, verbose);
+    return this.processSingleItem(content, data, context);
   }
 
   private processArrayItems(
     content: unknown,
     context: ProcessingContext,
     _data: FrontmatterData,
-    verbose: boolean = false,
   ): Result<unknown, TemplateError & { message: string }> {
     const arrayData = context.arrayData;
     if (!arrayData) {
@@ -179,7 +179,6 @@ export class UnifiedVariableReplacementStrategy
         content,
         itemDataResult.data,
         undefined,
-        verbose,
       );
       if (!itemResult.ok) {
         return itemResult;
@@ -193,7 +192,8 @@ export class UnifiedVariableReplacementStrategy
   private replaceStringVariables(
     template: string,
     data: FrontmatterData,
-    verbose: boolean = false,
+    verbosityMode: { readonly kind: "normal" } | { readonly kind: "verbose" } =
+      { kind: "normal" },
   ): Result<string, TemplateError & { message: string }> {
     if (!template.includes("{")) {
       return ok(template);
@@ -202,11 +202,11 @@ export class UnifiedVariableReplacementStrategy
     try {
       // Use the fixed restrictive regex pattern to avoid matching across JSON structure
       let result = template.replace(/\{\{([\w.@-]+)\}\}/g, (match, varName) => {
-        return this.getVariableValue(varName, data, match, verbose);
+        return this.getVariableValue(varName, data, match, verbosityMode);
       });
 
       result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
-        return this.getVariableValue(varName, data, match, verbose);
+        return this.getVariableValue(varName, data, match, verbosityMode);
       });
 
       return ok(result);
@@ -224,7 +224,8 @@ export class UnifiedVariableReplacementStrategy
     varName: string,
     data: FrontmatterData,
     originalMatch: string,
-    verbose: boolean = false,
+    verbosityMode: { readonly kind: "normal" } | { readonly kind: "verbose" } =
+      { kind: "normal" },
   ): string {
     // Skip @ variables (special processing markers) except @items
     if (varName.startsWith("@") && varName !== "@items") {
@@ -233,16 +234,18 @@ export class UnifiedVariableReplacementStrategy
 
     const valueResult = data.get(varName);
     if (!valueResult.ok) {
-      // In verbose mode, keep the template variable as-is for debugging
-      // In normal mode, replace with empty string for cleaner output
-      return verbose ? originalMatch : "";
+      // In verbose mode: preserve template variables for debugging
+      // In normal mode: replace with empty string for clean output (Totality compliance)
+      return verbosityMode.kind === "verbose" ? originalMatch : "";
     }
 
     const value = valueResult.data;
 
-    // Handle null/undefined values based on mode
+    // Handle null/undefined values based on verbosity mode
     if (value === null || value === undefined) {
-      return verbose ? originalMatch : "";
+      // In verbose mode: preserve template variables for debugging
+      // In normal mode: replace with empty string
+      return verbosityMode.kind === "verbose" ? originalMatch : "";
     }
 
     return this.formatValue(value);
@@ -275,11 +278,10 @@ export class UnifiedVariableReplacementStrategy
     array: unknown[],
     data: FrontmatterData,
     context?: ProcessingContext,
-    verbose: boolean = false,
   ): Result<unknown[], TemplateError & { message: string }> {
     const results: unknown[] = [];
     for (const item of array) {
-      const itemResult = this.processSingleItem(item, data, context, verbose);
+      const itemResult = this.processSingleItem(item, data, context);
       if (!itemResult.ok) {
         return itemResult;
       }
@@ -292,13 +294,17 @@ export class UnifiedVariableReplacementStrategy
     obj: Record<string, unknown>,
     data: FrontmatterData,
     context?: ProcessingContext,
-    verbose: boolean = false,
   ): Result<Record<string, unknown>, TemplateError & { message: string }> {
     const result: Record<string, unknown> = {};
+    const verbosityMode = context?.verbosityMode ?? { kind: "normal" };
 
     for (const [key, val] of Object.entries(obj)) {
       // Process the key itself for variable substitution
-      const renderedKeyResult = this.replaceStringVariables(key, data, verbose);
+      const renderedKeyResult = this.replaceStringVariables(
+        key,
+        data,
+        verbosityMode,
+      );
       if (!renderedKeyResult.ok) {
         return renderedKeyResult;
       }
@@ -331,25 +337,36 @@ export class UnifiedVariableReplacementStrategy
           const valueResult = data.get(varName);
           if (valueResult.ok) {
             const value = valueResult.data;
-            // In verbose mode, keep template variable for null/undefined
-            // In normal mode, use empty string
+            // Handle null/undefined based on verbosity mode (Totality compliance)
             if (value === null || value === undefined) {
-              result[renderedKey] = verbose ? val : "";
+              if (verbosityMode.kind === "verbose") {
+                // In verbose mode: preserve template variable for debugging
+                result[renderedKey] = val; // Keep original template variable
+              } else {
+                // In normal mode: replace with empty string for clean output
+                result[renderedKey] = "";
+              }
             } else {
               // Preserve original data type for JSON context
               result[renderedKey] = value;
             }
             continue;
           } else {
-            // Variable not found - handle based on mode
-            result[renderedKey] = verbose ? val : "";
+            // Variable not found - handle based on verbosity mode
+            if (verbosityMode.kind === "verbose") {
+              // In verbose mode: preserve template variable for debugging
+              result[renderedKey] = val; // Keep original template variable
+            } else {
+              // In normal mode: use empty string for clean output
+              result[renderedKey] = "";
+            }
             continue;
           }
         }
       }
 
       // Process the value normally
-      const valueResult = this.processSingleItem(val, data, context, verbose);
+      const valueResult = this.processSingleItem(val, data, context);
       if (!valueResult.ok) {
         return valueResult;
       }

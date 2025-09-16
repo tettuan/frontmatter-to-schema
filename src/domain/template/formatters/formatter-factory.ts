@@ -1,4 +1,4 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
+import { err, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { OutputFormat, OutputFormatter } from "./output-formatter.ts";
 import { JsonFormatter } from "./json-formatter.ts";
@@ -11,11 +11,11 @@ import { MarkdownFormatter } from "./markdown-formatter.ts";
 export class FormatterFactory {
   private static readonly formatters = new Map<
     OutputFormat,
-    () => OutputFormatter
+    () => Result<OutputFormatter, DomainError & { message: string }>
   >([
-    ["json", () => new JsonFormatter()],
-    ["yaml", () => new YamlFormatter()],
-    ["markdown", () => new MarkdownFormatter()],
+    ["json", () => JsonFormatter.create()],
+    ["yaml", () => YamlFormatter.create()],
+    ["markdown", () => MarkdownFormatter.create()],
   ]);
 
   /**
@@ -35,17 +35,7 @@ export class FormatterFactory {
       }));
     }
 
-    try {
-      const formatter = formatterFactory();
-      return ok(formatter);
-    } catch (error) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `Failed to create formatter for ${format}: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      }));
-    }
+    return formatterFactory();
   }
 
   /**
