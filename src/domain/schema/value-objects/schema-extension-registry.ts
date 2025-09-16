@@ -57,6 +57,27 @@ export class SchemaExtensionKey {
   }
 
   /**
+   * Smart Constructor for template-format extension key
+   */
+  static templateFormat(): SchemaExtensionKey {
+    return new SchemaExtensionKey("x-template-format");
+  }
+
+  /**
+   * Smart Constructor for base-property extension key
+   */
+  static baseProperty(): SchemaExtensionKey {
+    return new SchemaExtensionKey("x-base-property");
+  }
+
+  /**
+   * Smart Constructor for default-value extension key
+   */
+  static defaultValue(): SchemaExtensionKey {
+    return new SchemaExtensionKey("x-default-value");
+  }
+
+  /**
    * Get the string value of the extension key
    */
   getValue(): string {
@@ -91,6 +112,9 @@ export class SchemaExtensionRegistry {
     private readonly derivedFromKey: SchemaExtensionKey,
     private readonly derivedUniqueKey: SchemaExtensionKey,
     private readonly jmespathFilterKey: SchemaExtensionKey,
+    private readonly templateFormatKey: SchemaExtensionKey,
+    private readonly basePropertyKey: SchemaExtensionKey,
+    private readonly defaultValueKey: SchemaExtensionKey,
   ) {}
 
   /**
@@ -105,6 +129,9 @@ export class SchemaExtensionRegistry {
       SchemaExtensionKey.derivedFrom(),
       SchemaExtensionKey.derivedUnique(),
       SchemaExtensionKey.jmespathFilter(),
+      SchemaExtensionKey.templateFormat(),
+      SchemaExtensionKey.baseProperty(),
+      SchemaExtensionKey.defaultValue(),
     );
   }
 
@@ -151,6 +178,27 @@ export class SchemaExtensionRegistry {
   }
 
   /**
+   * Get template-format extension key
+   */
+  getTemplateFormatKey(): SchemaExtensionKey {
+    return this.templateFormatKey;
+  }
+
+  /**
+   * Get base-property extension key
+   */
+  getBasePropertyKey(): SchemaExtensionKey {
+    return this.basePropertyKey;
+  }
+
+  /**
+   * Get default-value extension key
+   */
+  getDefaultValueKey(): SchemaExtensionKey {
+    return this.defaultValueKey;
+  }
+
+  /**
    * Get all registered extension keys
    */
   getAllKeys(): SchemaExtensionKey[] {
@@ -161,6 +209,9 @@ export class SchemaExtensionRegistry {
       this.derivedFromKey,
       this.derivedUniqueKey,
       this.jmespathFilterKey,
+      this.templateFormatKey,
+      this.basePropertyKey,
+      this.defaultValueKey,
     ];
   }
 
