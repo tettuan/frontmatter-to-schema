@@ -12,21 +12,31 @@ variables:
 
 ## 0. Purpose and Scope
 
-- **Purpose**: Maintain exceptional DDD/Totality compliance in codebases that have already achieved gold standard architectural quality, ensuring continued excellence without architectural drift
-- **Scope**: Applicable to any project demonstrating sophisticated Smart Constructor patterns, comprehensive Result<T,E> usage, and advanced discriminated unions
-- **Non-applicable**: Major refactoring efforts, greenfield development, or codebases with significant architectural violations
+- **Purpose**: Maintain exceptional DDD/Totality compliance in codebases that
+  have already achieved gold standard architectural quality, ensuring continued
+  excellence without architectural drift
+- **Scope**: Applicable to any project demonstrating sophisticated Smart
+  Constructor patterns, comprehensive Result<T,E> usage, and advanced
+  discriminated unions
+- **Non-applicable**: Major refactoring efforts, greenfield development, or
+  codebases with significant architectural violations
 
 ## 1. Invariant Conditions
 
-1. **Architectural Quality Preservation**: Existing gold standard patterns must not degrade (compliance rate ≥ 95%)
-2. **Pattern Consistency**: All new code follows established architectural patterns without deviation
-3. **Documentation Alignment**: Code and documentation remain synchronized (drift ≤ 2%)
-4. **Test Coverage Maintenance**: Existing comprehensive test coverage preserved (≥ current baseline)
+1. **Architectural Quality Preservation**: Existing gold standard patterns must
+   not degrade (compliance rate ≥ 95%)
+2. **Pattern Consistency**: All new code follows established architectural
+   patterns without deviation
+3. **Documentation Alignment**: Code and documentation remain synchronized
+   (drift ≤ 2%)
+4. **Test Coverage Maintenance**: Existing comprehensive test coverage preserved
+   (≥ current baseline)
 5. **AI Complexity Control**: No entropy increase in system complexity
 
 ## 2. Prerequisites and Context
 
 ### Current Assessment Results
+
 - **DDD Compliance**: ★★★★★ (Reference Implementation Quality)
 - **Totality Compliance**: ★★★★★ (Textbook Implementation)
 - **Test Status**: 250 tests passing (1020 steps)
@@ -34,6 +44,7 @@ variables:
 - **Risk Level**: Low (maintenance mode appropriate)
 
 ### Architectural Foundation
+
 - **5 Bounded Contexts**: Schema, Frontmatter, Template, File, Aggregation
 - **Core Patterns**: Smart Constructors, Result<T,E>, Discriminated Unions
 - **Processing Pipeline**: Schema → Frontmatter → Validation → Template
@@ -46,6 +57,7 @@ variables:
 **Objective**: Ensure all changes maintain established architectural excellence
 
 **Steps**:
+
 1. **Pre-change Analysis**:
    - Identify affected bounded contexts
    - Validate change aligns with existing patterns
@@ -66,6 +78,7 @@ variables:
 **Objective**: Keep documentation aligned with actual implementation
 
 **Steps**:
+
 1. **Code Comment Review**:
    - Update comments to reflect totality principles
    - Ensure Smart Constructor patterns are documented
@@ -83,9 +96,11 @@ variables:
 
 ### 3.3 Quality Assurance Protocol
 
-**Objective**: Maintain exceptional quality standards through systematic validation
+**Objective**: Maintain exceptional quality standards through systematic
+validation
 
 **Steps**:
+
 1. **Automated Validation**:
    ```bash
    # Comprehensive CI validation
@@ -113,6 +128,7 @@ variables:
 **Objective**: Proactively maintain architectural quality over time
 
 **Steps**:
+
 1. **Regular Assessment Schedule**:
    - Weekly: Pattern compliance spot checks
    - Monthly: Comprehensive architectural review
@@ -132,26 +148,36 @@ variables:
 ## 4. Reference Implementation Examples
 
 ### 4.1 Smart Constructor Pattern (Exemplary)
+
 ```typescript
 // Reference: src/domain/shared/types/error-context.ts
 class SourceLocation {
   private constructor(readonly service: string, readonly method: string) {}
 
-  static create(service: string, method: string): Result<SourceLocation, DomainError> {
+  static create(
+    service: string,
+    method: string,
+  ): Result<SourceLocation, DomainError> {
     // Validation and Result<T,E> return
   }
 }
 ```
 
 ### 4.2 Discriminated Union Pattern (Advanced)
+
 ```typescript
 // Reference: src/domain/template/services/output-rendering-service.ts
 type TemplateConfiguration =
   | { readonly kind: "SingleTemplate"; readonly path: string }
-  | { readonly kind: "DualTemplate"; readonly mainPath: string; readonly itemsPath: string };
+  | {
+    readonly kind: "DualTemplate";
+    readonly mainPath: string;
+    readonly itemsPath: string;
+  };
 ```
 
 ### 4.3 Schema Migration (Complex Domain Logic)
+
 ```typescript
 // Reference: src/domain/schema/value-objects/schema-property-migration.ts
 export class SchemaPropertyMigration {
@@ -164,25 +190,32 @@ export class SchemaPropertyMigration {
 ## 5. Required Reference Materials
 
 ### Architectural Principles
+
 - **DDD Architecture**: `docs/domain/architecture.md`
 - **Domain Boundaries**: `docs/domain/domain-boundary.md`
 - **Totality Principles**: `docs/development/totality.ja.md`
-- **AI Complexity Control**: `docs/development/ai-complexity-control_compact.ja.md`
+- **AI Complexity Control**:
+  `docs/development/ai-complexity-control_compact.ja.md`
 
 ### Implementation References
+
 - **Error Context System**: `src/domain/shared/types/error-context.ts`
-- **Schema Migration**: `src/domain/schema/value-objects/schema-property-migration.ts`
-- **Template Configuration**: `src/domain/template/services/output-rendering-service.ts`
+- **Schema Migration**:
+  `src/domain/schema/value-objects/schema-property-migration.ts`
+- **Template Configuration**:
+  `src/domain/template/services/output-rendering-service.ts`
 
 ## 6. Quality Validation Framework
 
 ### Success Criteria
+
 - **Pattern Compliance**: 100% adherence to established patterns
 - **Test Coverage**: Maintain current baseline (250 tests, 1020 steps)
 - **CI Success**: Continuous 100% success rate
 - **Documentation Sync**: ≤2% drift between code and documentation
 
 ### Risk Indicators
+
 - **Pattern Deviation**: Introduction of non-Result<T,E> functions
 - **Boundary Violations**: Direct dependencies between bounded contexts
 - **Complexity Increase**: Addition of unnecessary abstractions
@@ -190,14 +223,18 @@ export class SchemaPropertyMigration {
 
 ## 7. Conclusion
 
-This codebase represents a **gold standard implementation** of DDD and Totality principles. The maintenance approach should focus on:
+This codebase represents a **gold standard implementation** of DDD and Totality
+principles. The maintenance approach should focus on:
 
-1. **Preservation over Innovation**: Maintain existing excellence rather than pursuing architectural changes
+1. **Preservation over Innovation**: Maintain existing excellence rather than
+   pursuing architectural changes
 2. **Pattern Consistency**: Ensure all modifications follow established patterns
-3. **Documentation Currency**: Keep all documentation synchronized with implementation
+3. **Documentation Currency**: Keep all documentation synchronized with
+   implementation
 4. **Continuous Monitoring**: Proactively detect and prevent architectural drift
 
-**The goal is to preserve and extend this exceptional architectural achievement for long-term sustainable excellence.**
+**The goal is to preserve and extend this exceptional architectural achievement
+for long-term sustainable excellence.**
 
 ## 8. Change History
 

@@ -44,18 +44,15 @@
         },
         "input_file": {
           "type": "boolean",
-          "description": "File input support",
-          "items": { "type": "boolean" }
+          "description": "File input support"
         },
         "stdin": {
           "type": "boolean",
-          "description": "Standard input support",
-          "items": { "type": "boolean" }
+          "description": "Standard input support"
         },
         "destination": {
           "type": "boolean",
-          "description": "Output destination support",
-          "items": { "type": "boolean" }
+          "description": "Output destination support"
         }
       },
       "additionalProperties": false
