@@ -4,6 +4,7 @@ import { Schema } from "../entities/schema.ts";
 import { SchemaProperty } from "../value-objects/schema-property-types.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
 
 export interface BasePropertyRule {
   readonly field: string;
@@ -78,10 +79,15 @@ export class BasePropertyPopulator {
           const fieldPath = path ? `${path}.${key}` : key;
 
           // Check if this is a base property (from extensions)
-          if (propertyDef.extensions?.["x-base-property"] === true) {
+          const registry = defaultSchemaExtensionRegistry;
+          if (
+            propertyDef.extensions
+              ?.[registry.getBasePropertyKey().getValue()] === true
+          ) {
             rules.push({
               field: fieldPath,
-              defaultValue: propertyDef.extensions?.["x-default-value"],
+              defaultValue: propertyDef.extensions
+                ?.[registry.getDefaultValueKey().getValue()],
             });
           } else if (propertyDef.default !== undefined) {
             // CRITICAL: Handle standard JSON Schema default properties

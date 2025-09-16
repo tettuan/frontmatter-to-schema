@@ -1,4 +1,5 @@
 import { assertEquals } from "@std/assert";
+import { TEST_EXTENSIONS } from "../../../helpers/test-extensions.ts";
 
 /**
  * Template Resolution Edge Cases Tests
@@ -10,11 +11,11 @@ Deno.test("Template Resolution Edge Cases", async (t) => {
     // Mock schema with nested x-template references
     const schema = {
       type: "object",
-      "x-template": "nested/deeply/buried/template.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "nested/deeply/buried/template.json",
       properties: {
         items: {
           type: "array",
-          "x-template-items": "nested/items/item_template.json",
+          [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "nested/items/item_template.json",
           items: { type: "object" },
         },
       },
@@ -32,28 +33,31 @@ Deno.test("Template Resolution Edge Cases", async (t) => {
     // Mock schema with template inheritance
     const baseSchema = {
       type: "object",
-      "x-template": "base_template.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "base_template.json",
       properties: { title: { type: "string" } },
     };
 
     const extendedSchema = {
       ...baseSchema,
-      "x-template": "extended_template.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "extended_template.json",
       properties: {
         ...baseSchema.properties,
         description: { type: "string" },
         metadata: {
           type: "object",
-          "x-template": "metadata_template.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "metadata_template.json",
           properties: { author: { type: "string" } },
         },
       },
     };
 
     // Verify inheritance structure
-    assertEquals(extendedSchema["x-template"], "extended_template.json");
     assertEquals(
-      extendedSchema.properties.metadata["x-template"],
+      extendedSchema[TEST_EXTENSIONS.TEMPLATE],
+      "extended_template.json",
+    );
+    assertEquals(
+      extendedSchema.properties.metadata[TEST_EXTENSIONS.TEMPLATE],
       "metadata_template.json",
     );
   });
@@ -62,20 +66,20 @@ Deno.test("Template Resolution Edge Cases", async (t) => {
     // Mock circular reference scenario
     const circularSchema = {
       type: "object",
-      "x-template": "self_referencing.json",
+      [TEST_EXTENSIONS.TEMPLATE]: "self_referencing.json",
       properties: {
         children: {
           type: "array",
-          "x-template-items": "self_referencing.json", // Circular reference
+          [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "self_referencing.json", // Circular reference
           items: { "$ref": "#" },
         },
       },
     };
 
     // Template resolution should detect and handle circular references
-    const templatePath = circularSchema["x-template"];
-    const itemsTemplatePath =
-      circularSchema.properties.children["x-template-items"];
+    const templatePath = circularSchema[TEST_EXTENSIONS.TEMPLATE] as string;
+    const itemsTemplatePath = circularSchema.properties
+      .children[TEST_EXTENSIONS.TEMPLATE_ITEMS] as string;
 
     // In a real implementation, this would be detected as circular
     assertEquals(templatePath, itemsTemplatePath);

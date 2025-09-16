@@ -2,6 +2,7 @@ import { assertEquals, assertExists } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { SchemaDefinition } from "../../../../src/domain/schema/value-objects/schema-definition.ts";
 import { SchemaPropertyUtils } from "../../../../src/domain/schema/value-objects/schema-property-types.ts";
+import { TEST_EXTENSIONS } from "../../../helpers/test-extensions.ts";
 
 describe("Schema with x-jmespath-filter extension", () => {
   describe("Schema property JMESPath filter detection", () => {
@@ -11,7 +12,7 @@ describe("Schema with x-jmespath-filter extension", () => {
         properties: {
           commands: {
             type: "array",
-            "x-jmespath-filter": "commands[?c1 == 'git']",
+            [TEST_EXTENSIONS.JMESPATH_FILTER]: "commands[?c1 == 'git']",
             items: {
               type: "object",
               properties: {
@@ -109,7 +110,8 @@ describe("Schema with x-jmespath-filter extension", () => {
             properties: {
               dependencies: {
                 type: "array",
-                "x-jmespath-filter": "project.dependencies[?type == 'prod']",
+                [TEST_EXTENSIONS.JMESPATH_FILTER]:
+                  "project.dependencies[?type == 'prod']",
                 items: {
                   type: "object",
                   properties: {
@@ -193,7 +195,7 @@ describe("Schema with x-jmespath-filter extension", () => {
           properties: {
             testProperty: {
               type: "array",
-              "x-jmespath-filter": testCase.expression,
+              [TEST_EXTENSIONS.JMESPATH_FILTER]: testCase.expression,
               items: { type: "string" },
             },
           },
@@ -244,7 +246,7 @@ describe("Schema with x-jmespath-filter extension", () => {
     it("should detect JMESPath filter at schema root level", () => {
       const schemaData = {
         type: "object",
-        "x-jmespath-filter": "commands[?active == true]",
+        [TEST_EXTENSIONS.JMESPATH_FILTER]: "commands[?active == true]",
         properties: {
           commands: {
             type: "array",

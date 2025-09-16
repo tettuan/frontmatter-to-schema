@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
+import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
 
 describe("SchemaDefinition Value Object", () => {
   describe("create", () => {
@@ -266,7 +267,7 @@ describe("SchemaDefinition Value Object", () => {
       const schema = SchemaDefinition.fromSchemaProperty({
         kind: "string",
         extensions: {
-          "x-template": "template.md",
+          [TEST_EXTENSIONS.TEMPLATE]: "template.md",
         },
       });
 
@@ -285,7 +286,7 @@ describe("SchemaDefinition Value Object", () => {
         kind: "array",
         items: { kind: "string" },
         extensions: {
-          "x-template-items": "item.md",
+          [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "item.md",
         },
       });
 
@@ -303,7 +304,7 @@ describe("SchemaDefinition Value Object", () => {
       const schema = SchemaDefinition.fromSchemaProperty({
         kind: "string",
         extensions: {
-          "x-template-format": "yaml",
+          [TEST_EXTENSIONS.TEMPLATE_FORMAT]: "yaml",
         },
       });
 
@@ -337,7 +338,7 @@ describe("SchemaDefinition Value Object", () => {
         properties: {},
         required: [],
         extensions: {
-          "x-jmespath-filter": "items[?status == 'active']",
+          [TEST_EXTENSIONS.JMESPATH_FILTER]: "items[?status == 'active']",
         },
       });
 
@@ -402,7 +403,7 @@ describe("SchemaDefinition Value Object", () => {
       const schema = SchemaDefinition.fromSchemaProperty({
         kind: "string",
         extensions: {
-          "x-frontmatter-part": true,
+          [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
         },
       });
 
@@ -415,7 +416,7 @@ describe("SchemaDefinition Value Object", () => {
       const schema = SchemaDefinition.fromSchemaProperty({
         kind: "string",
         extensions: {
-          "x-derived-from": "content.title",
+          [TEST_EXTENSIONS.DERIVED_FROM]: "content.title",
         },
       });
 
@@ -433,7 +434,7 @@ describe("SchemaDefinition Value Object", () => {
       const schema = SchemaDefinition.fromSchemaProperty({
         kind: "string",
         extensions: {
-          "x-derived-unique": true,
+          [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
         },
       });
 

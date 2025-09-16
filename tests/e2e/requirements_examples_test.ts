@@ -1,5 +1,6 @@
 import { assert } from "@std/assert";
 import { join } from "@std/path";
+import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 import {
   createTestEnvironment,
   executeCliCommand,
@@ -71,7 +72,7 @@ Deno.test("Requirements Examples E2E", async (t) => {
       // Create minimal valid schema and template
       const schemaContent = JSON.stringify({
         type: "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         properties: {
           title: { type: "string" },
         },
@@ -120,7 +121,7 @@ Deno.test("Requirements Examples E2E", async (t) => {
       // Create complex schema with nested structures
       const schemaContent = JSON.stringify({
         type: "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         properties: {
           metadata: {
             type: "object",

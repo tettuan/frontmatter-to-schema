@@ -4,6 +4,7 @@ import { TemplatePathResolver } from "../../../../../src/domain/template/service
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
+import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
 
 /**
  * CRITICAL SPECIFICATION TEST: Template Path Resolution
@@ -49,7 +50,7 @@ describe("TemplatePathResolver", () => {
     it("should resolve x-template from schema", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
         "properties": {},
       });
 
@@ -72,7 +73,7 @@ describe("TemplatePathResolver", () => {
     it("should resolve relative x-template paths", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "./templates/main.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./templates/main.json",
         "properties": {},
       });
 
@@ -95,7 +96,7 @@ describe("TemplatePathResolver", () => {
     it("should prefer explicit template path over schema", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "schema-template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "schema-template.json",
         "properties": {},
       });
 
@@ -139,7 +140,7 @@ describe("TemplatePathResolver", () => {
     it("should handle schema with no path separator", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "./template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./template.json",
         "properties": {},
       });
 
@@ -164,8 +165,8 @@ describe("TemplatePathResolver", () => {
     it("should resolve x-template-items from schema", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "main.json",
-        "x-template-items": "items.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "main.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "items.json",
         "properties": {},
       });
 
@@ -188,8 +189,8 @@ describe("TemplatePathResolver", () => {
     it("should resolve relative x-template-items paths", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "main.json",
-        "x-template-items": "./templates/item.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "main.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "./templates/item.json",
         "properties": {},
       });
 
@@ -215,7 +216,7 @@ describe("TemplatePathResolver", () => {
     it("should return undefined when x-template-items is not specified", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "main.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "main.json",
         "properties": {},
         // No x-template-items
       });
@@ -241,8 +242,8 @@ describe("TemplatePathResolver", () => {
     it("should resolve both template and items template paths", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "./templates/main.json",
-        "x-template-items": "./templates/item.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./templates/main.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "./templates/item.json",
         "properties": {},
       });
 
@@ -270,7 +271,7 @@ describe("TemplatePathResolver", () => {
     it("should resolve only main template when items template is not specified", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "main.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "main.json",
         "properties": {},
       });
 
@@ -319,8 +320,8 @@ describe("TemplatePathResolver", () => {
     it("should handle absolute template paths", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "/absolute/path/template.json",
-        "x-template-items": "/absolute/path/items.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "/absolute/path/template.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "/absolute/path/items.json",
         "properties": {},
       });
 
@@ -348,7 +349,7 @@ describe("TemplatePathResolver", () => {
     it("should handle empty schema directory", () => {
       const schema = createTestSchema({
         "type": "object",
-        "x-template": "./template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./template.json",
         "properties": {},
       });
 

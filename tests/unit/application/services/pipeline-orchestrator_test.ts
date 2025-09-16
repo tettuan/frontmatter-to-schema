@@ -17,6 +17,7 @@ import {
   createError,
   DomainError,
 } from "../../../../src/domain/shared/types/errors.ts";
+import { TEST_EXTENSIONS } from "../../../helpers/test-extensions.ts";
 
 describe("PipelineOrchestrator", () => {
   // Helper function to create test configurations with discriminated unions
@@ -494,7 +495,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             items: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {
@@ -552,7 +553,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             items: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {
@@ -795,7 +796,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             commands: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {
@@ -858,7 +859,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             commands: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {
@@ -916,7 +917,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             commands: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {
@@ -973,7 +974,7 @@ describe("PipelineOrchestrator", () => {
           properties: {
             commands: {
               type: "array",
-              "x-frontmatter-part": true,
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               items: {
                 type: "object",
                 properties: {

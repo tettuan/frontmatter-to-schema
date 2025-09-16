@@ -7,6 +7,7 @@ import {
   TemplateResolutionOrchestrator,
 } from "../../../../../src/domain/template/services/template-resolution-strategy.ts";
 import { Result } from "../../../../../src/domain/shared/types/result.ts";
+import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
 
 /**
  * Template Resolution Strategy Tests
@@ -64,8 +65,8 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const context: TemplateResolutionContext = {
         schemaPath: "/path/to/schema.json",
         schemaDefinition: {
-          "x-template": "template.json",
-          "x-template-items": "items.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "template.json",
+          [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "items.json",
         },
         baseDirectory: "/base",
       };
@@ -88,7 +89,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     const context: TemplateResolutionContext = {
       schemaPath: "/path/to/schema.json",
       schemaDefinition: {
-        "x-template": "/absolute/template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "/absolute/template.json",
       },
       baseDirectory: "/base",
     };
@@ -151,7 +152,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
         schemaPath: "/path/to/schema.json",
         explicitTemplatePath: "/explicit/template.json",
         schemaDefinition: {
-          "x-template": "schema-template.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "schema-template.json",
         },
         baseDirectory: "/base",
       };
@@ -173,7 +174,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const context: TemplateResolutionContext = {
         schemaPath: "/path/to/schema.json",
         schemaDefinition: {
-          "x-template": "schema-template.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "schema-template.json",
         },
         baseDirectory: "/base",
       };
@@ -262,7 +263,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const context: TemplateResolutionContext = {
         schemaPath: "C:\\path\\to\\schema.json",
         schemaDefinition: {
-          "x-template": "C:\\absolute\\template.json",
+          [TEST_EXTENSIONS.TEMPLATE]: "C:\\absolute\\template.json",
         },
         baseDirectory: "C:\\base",
       };

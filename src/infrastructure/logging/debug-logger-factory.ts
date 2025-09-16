@@ -12,6 +12,7 @@ import {
   EnhancedConsoleDebugLogger,
   OutputMode,
 } from "./enhanced-console-debug-logger.ts";
+import { EnhancedNullDebugLogger } from "./enhanced-null-debug-logger.ts";
 
 /**
  * Factory error types
@@ -256,17 +257,15 @@ export class DebugLoggerFactory {
     EnhancedDebugLogger,
     DebugLoggerFactoryError & { message: string }
   > {
-    // For now, return a null logger cast to enhanced interface
-    // TODO: Create proper EnhancedNullDebugLogger if needed
-    const result = NullDebugLogger.create();
+    const result = EnhancedNullDebugLogger.createDisabled();
     if (!result.ok) {
       return err({
         kind: "CreationFailed",
-        cause: "Failed to create null logger",
-        message: "Failed to create null logger",
+        cause: "Failed to create enhanced null logger",
+        message: "Failed to create enhanced null logger",
       });
     }
-    return ok(result.data as unknown as EnhancedDebugLogger);
+    return ok(result.data);
   }
 
   private static createEnhancedConsole(

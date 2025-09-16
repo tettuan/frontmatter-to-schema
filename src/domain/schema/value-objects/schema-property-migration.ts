@@ -140,9 +140,9 @@ export class SchemaPropertyMigration {
       [registry.getDerivedFromKey().getValue()]: legacy["x-derived-from"],
       [registry.getDerivedUniqueKey().getValue()]: legacy["x-derived-unique"],
       [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
-      "x-template-format": legacy["x-template-format"], // User-requested: output format specification
-      "x-base-property": legacy["x-base-property"], // Base property marker
-      "x-default-value": legacy["x-default-value"], // Default value for base properties
+      [registry.getTemplateFormatKey().getValue()]: legacy["x-template-format"], // User-requested: output format specification
+      [registry.getBasePropertyKey().getValue()]: legacy["x-base-property"], // Base property marker
+      [registry.getDefaultValueKey().getValue()]: legacy["x-default-value"], // Default value for base properties
       [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression
       description: legacy.description,
     };
@@ -385,10 +385,18 @@ export class SchemaPropertyLegacyAdapter {
         ?.[registry.getDerivedUniqueKey().getValue()] as boolean | undefined,
       "x-template-items": schema.extensions
         ?.[registry.getTemplateItemsKey().getValue()] as string | undefined,
-      "x-base-property": schema.extensions?.["x-base-property"] as
-        | boolean
-        | undefined,
-      "x-default-value": schema.extensions?.["x-default-value"],
+      "x-template-format": schema.extensions
+        ?.[registry.getTemplateFormatKey().getValue()] as
+          | "json"
+          | "yaml"
+          | "markdown"
+          | undefined,
+      "x-base-property": schema.extensions
+        ?.[registry.getBasePropertyKey().getValue()] as boolean | undefined,
+      "x-default-value": schema.extensions
+        ?.[registry.getDefaultValueKey().getValue()],
+      "x-jmespath-filter": schema.extensions
+        ?.[registry.getJmespathFilterKey().getValue()] as string | undefined,
     };
 
     switch (schema.kind) {

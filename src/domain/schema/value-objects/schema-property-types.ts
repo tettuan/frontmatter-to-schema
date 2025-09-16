@@ -4,21 +4,13 @@ import { defaultSchemaExtensionRegistry } from "./schema-extension-registry.ts";
 
 /**
  * Extensions for schema properties following JSON Schema extension pattern
- * Incorporates x-template-items directive for explicit array item templating
- * Incorporates x-jmespath-filter directive for JMESPath-based data filtering
+ * Uses dynamic property access to avoid hardcoding extension keys
+ * All extension keys should be managed through SchemaExtensionRegistry
  */
 export interface SchemaExtensions {
-  readonly "x-template"?: string;
-  readonly "x-frontmatter-part"?: boolean;
-  readonly "x-derived-from"?: string;
-  readonly "x-derived-unique"?: boolean;
-  readonly "x-template-items"?: string; // User-requested: explicit template for array items
-  readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
-  readonly "x-jmespath-filter"?: string; // User-requested: JMESPath expression for data filtering
-  readonly "x-base-property"?: boolean; // Base property marker
-  readonly "x-default-value"?: unknown; // Default value for base properties
   readonly description?: string;
-  // Allow dynamic access to extension properties
+  // Dynamic access for all extension properties
+  // Extension keys are managed by SchemaExtensionRegistry
   readonly [key: string]: unknown;
 }
 
@@ -350,7 +342,9 @@ export class SchemaPropertyUtils {
    * Check if schema property has x-template-format directive
    */
   static hasTemplateFormat(schema: SchemaProperty): boolean {
-    return schema.extensions?.["x-template-format"] !== undefined;
+    const registry = defaultSchemaExtensionRegistry;
+    return schema.extensions?.[registry.getTemplateFormatKey().getValue()] !==
+      undefined;
   }
 
   /**
@@ -362,7 +356,9 @@ export class SchemaPropertyUtils {
     "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
-    const templateFormat = schema.extensions?.["x-template-format"];
+    const registry = defaultSchemaExtensionRegistry;
+    const templateFormat = schema.extensions
+      ?.[registry.getTemplateFormatKey().getValue()];
     if (templateFormat) {
       // Validate format and ensure type safety
       if (
