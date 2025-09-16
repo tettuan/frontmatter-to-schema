@@ -1,8 +1,5 @@
 {
   "generated_at": "{generated_at}",
-  "total_articles": "{total_articles}",
-  "published_count": "{published_count}",
-  "draft_count": "{draft_count}",
   "articles": "{@items}",
   "topics": "{topics}",
   "types": "{types}"

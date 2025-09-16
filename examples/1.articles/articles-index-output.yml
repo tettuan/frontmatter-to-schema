@@ -1,5 +1,5 @@
-generated_at: "{generated_at}"
-total_articles: "{total_articles}"
+generated_at: '{generated_at}'
+total_articles: '{total_articles}'
 published_count:
   - title: AI自動開発は、YouTuber型とNetflixオリジナル型に分かれそう
     emoji: "\U0001F4DD"
@@ -11,7 +11,7 @@ published_count:
       - Cline
       - Devin
     published: false
-  - title: "[実験的]AI自動開発のための開発指示書作成"
+  - title: '[実験的]AI自動開発のための開発指示書作成'
     emoji: "\U0001F63D"
     type: tech
     topics:
@@ -34,7 +34,7 @@ published_count:
       - AI開発
       - Deno
     published: true
-    published_at: "2025-04-21 07:00"
+    published_at: '2025-04-21 07:00'
   - title: Claude Codeで活躍！プロンプト連鎖を生み出す Deno CLI `breakdown`
     emoji: "\U0001F425"
     type: tech
@@ -44,7 +44,7 @@ published_count:
       - Claude
       - Deno
     published: true
-    published_at: "2025-06-23 11:30"
+    published_at: '2025-06-23 11:30'
   - title: AI出力コードを収束させる方法： ドメイン駆動設計 & 全域性 & テスト駆動 & Claude Code Company
     emoji: "\U0001F4D8"
     type: tech
@@ -53,15 +53,15 @@ published_count:
       - ドメイン駆動設計
       - 全域関数
     published: true
-    published_at: "2025-07-07 11:30"
-  - title: "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]"
+    published_at: '2025-07-07 11:30'
+  - title: '5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]'
     emoji: "\U0001F697"
     type: idea
     topics:
       - tmux
       - claudecode
     published: true
-    published_at: "2025-07-12 11:30"
+    published_at: '2025-07-12 11:30'
   - title: Sub Agentsにも最適。Claude Codeから動的にプロンプト実行する CLI Prompt 管理ツール - Climpt
     emoji: "\U0001F4DA"
     type: tech
@@ -78,7 +78,7 @@ published_count:
       - claudecode
       - hooks
     published: true
-    published_at: "2025-08-16 18:30"
+    published_at: '2025-08-16 18:30'
   - title: 第二幕：Agentic Coding 完全自動化 → 要件定義の自動化へ
     emoji: "\U0001F425"
     type: idea
@@ -126,7 +126,7 @@ published_count:
       - claudecode
       - docs
     published: true
-    published_at: "2025-09-08 09:30"
+    published_at: '2025-09-08 09:30'
   - title: 1行もコードを書かずにAIだけで作れた先に思う事
     emoji: "\U0001F680"
     type: idea
@@ -151,13 +151,13 @@ published_count:
       - claudecode
       - C3L
     published: true
-    published_at: "2025-08-15 09:30"
+    published_at: '2025-08-15 09:30'
   - title: 要求を仕様化することは、発見のプロセスである
-    emoji: ""
+    emoji: ''
     type: tech
     topics: []
     published: false
-  - title: "[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題"
+  - title: '[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題'
     emoji: "\U0001F437"
     type: tech
     topics:
@@ -176,7 +176,7 @@ draft_count:
       - Cline
       - Devin
     published: false
-  - title: "[実験的]AI自動開発のための開発指示書作成"
+  - title: '[実験的]AI自動開発のための開発指示書作成'
     emoji: "\U0001F63D"
     type: tech
     topics:
@@ -199,7 +199,7 @@ draft_count:
       - AI開発
       - Deno
     published: true
-    published_at: "2025-04-21 07:00"
+    published_at: '2025-04-21 07:00'
   - title: Claude Codeで活躍！プロンプト連鎖を生み出す Deno CLI `breakdown`
     emoji: "\U0001F425"
     type: tech
@@ -209,7 +209,7 @@ draft_count:
       - Claude
       - Deno
     published: true
-    published_at: "2025-06-23 11:30"
+    published_at: '2025-06-23 11:30'
   - title: AI出力コードを収束させる方法： ドメイン駆動設計 & 全域性 & テスト駆動 & Claude Code Company
     emoji: "\U0001F4D8"
     type: tech
@@ -218,15 +218,15 @@ draft_count:
       - ドメイン駆動設計
       - 全域関数
     published: true
-    published_at: "2025-07-07 11:30"
-  - title: "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]"
+    published_at: '2025-07-07 11:30'
+  - title: '5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]'
     emoji: "\U0001F697"
     type: idea
     topics:
       - tmux
       - claudecode
     published: true
-    published_at: "2025-07-12 11:30"
+    published_at: '2025-07-12 11:30'
   - title: Sub Agentsにも最適。Claude Codeから動的にプロンプト実行する CLI Prompt 管理ツール - Climpt
     emoji: "\U0001F4DA"
     type: tech
@@ -243,7 +243,7 @@ draft_count:
       - claudecode
       - hooks
     published: true
-    published_at: "2025-08-16 18:30"
+    published_at: '2025-08-16 18:30'
   - title: 第二幕：Agentic Coding 完全自動化 → 要件定義の自動化へ
     emoji: "\U0001F425"
     type: idea
@@ -291,7 +291,7 @@ draft_count:
       - claudecode
       - docs
     published: true
-    published_at: "2025-09-08 09:30"
+    published_at: '2025-09-08 09:30'
   - title: 1行もコードを書かずにAIだけで作れた先に思う事
     emoji: "\U0001F680"
     type: idea
@@ -316,13 +316,13 @@ draft_count:
       - claudecode
       - C3L
     published: true
-    published_at: "2025-08-15 09:30"
+    published_at: '2025-08-15 09:30'
   - title: 要求を仕様化することは、発見のプロセスである
-    emoji: ""
+    emoji: ''
     type: tech
     topics: []
     published: false
-  - title: "[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題"
+  - title: '[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題'
     emoji: "\U0001F437"
     type: tech
     topics:
@@ -341,10 +341,10 @@ articles:
       - Cline
       - Devin
     published: false
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
-  - title: "[実験的]AI自動開発のための開発指示書作成"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
+  - title: '[実験的]AI自動開発のための開発指示書作成'
     emoji: "\U0001F63D"
     type: tech
     topics:
@@ -352,9 +352,9 @@ articles:
       - Cursor
       - Cline
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: Cursor、テストコードでログ出力しまくって上手くいった話
     emoji: "\U0001F60A"
     type: tech
@@ -362,9 +362,9 @@ articles:
       - cursor
       - ai自動開発
     published: false
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: 100%ピュアAI開発の成果物から学んだ20のこと
     emoji: "\U0001F3C6"
     type: tech
@@ -373,9 +373,9 @@ articles:
       - AI開発
       - Deno
     published: true
-    published_at: "2025-04-21 07:00"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-04-21 07:00'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: Claude Codeで活躍！プロンプト連鎖を生み出す Deno CLI `breakdown`
     emoji: "\U0001F425"
     type: tech
@@ -385,9 +385,9 @@ articles:
       - Claude
       - Deno
     published: true
-    published_at: "2025-06-23 11:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-06-23 11:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: AI出力コードを収束させる方法： ドメイン駆動設計 & 全域性 & テスト駆動 & Claude Code Company
     emoji: "\U0001F4D8"
     type: tech
@@ -396,19 +396,19 @@ articles:
       - ドメイン駆動設計
       - 全域関数
     published: true
-    published_at: "2025-07-07 11:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
-  - title: "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]"
+    published_at: '2025-07-07 11:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
+  - title: '5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]'
     emoji: "\U0001F697"
     type: idea
     topics:
       - tmux
       - claudecode
     published: true
-    published_at: "2025-07-12 11:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-07-12 11:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: Sub Agentsにも最適。Claude Codeから動的にプロンプト実行する CLI Prompt 管理ツール - Climpt
     emoji: "\U0001F4DA"
     type: tech
@@ -417,9 +417,9 @@ articles:
       - codingagents
       - aidevtool
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: C3LとClaude hooksの破壊力 - 永久開発機関の完成
     emoji: "\U0001F31F"
     type: tech
@@ -428,9 +428,9 @@ articles:
       - claudecode
       - hooks
     published: true
-    published_at: "2025-08-16 18:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-08-16 18:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: 第二幕：Agentic Coding 完全自動化 → 要件定義の自動化へ
     emoji: "\U0001F425"
     type: idea
@@ -439,9 +439,9 @@ articles:
       - claudecode
       - climpt
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: MCP対応 - プロンプト呼び出しのClimpt
     emoji: "\U0001F4AD"
     type: tech
@@ -450,9 +450,9 @@ articles:
       - MCP
       - Climpt
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: プロジェクトごとの「自然文な開発言語」を作る
     emoji: "\U0001F48E"
     type: idea
@@ -460,9 +460,9 @@ articles:
       - codingagents
       - claudecode
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: 課題発見と実装修正を並行実行するClaude Code活用術
     emoji: ⛳
     type: tech
@@ -471,9 +471,9 @@ articles:
       - c3l
       - climpt
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: Agentの自然言語を多言語化する - 開発と仕様とテストとetc
     emoji: ⛳
     type: tech
@@ -482,9 +482,9 @@ articles:
       - c3l
       - climpt
     published: false
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: アプリケーションを意味的にアップデートし続ける「仕様書言語」の案
     emoji: "\U0001F4D5"
     type: idea
@@ -493,9 +493,9 @@ articles:
       - claudecode
       - docs
     published: true
-    published_at: "2025-09-08 09:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-09-08 09:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: 1行もコードを書かずにAIだけで作れた先に思う事
     emoji: "\U0001F680"
     type: idea
@@ -503,9 +503,9 @@ articles:
       - Cursor
       - AI開発
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: Claude Code Company 組成で、Cursor辞めた
     emoji: "\U0001F4AC"
     type: tech
@@ -515,9 +515,9 @@ articles:
       - claudecode
       - automation
     published: true
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: プロジェクト固有のAI呼び出し言語 - C3L
     emoji: "\U0001F5E3️"
     type: tech
@@ -526,18 +526,18 @@ articles:
       - claudecode
       - C3L
     published: true
-    published_at: "2025-08-15 09:30"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '2025-08-15 09:30'
+    filename: '{filename}'
+    created_date: '{created_date}'
   - title: 要求を仕様化することは、発見のプロセスである
-    emoji: ""
+    emoji: ''
     type: tech
     topics: []
     published: false
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
-  - title: "[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
+  - title: '[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題'
     emoji: "\U0001F437"
     type: tech
     topics:
@@ -545,9 +545,9 @@ articles:
       - Cursor
       - Cline
     published: false
-    published_at: "{published_at}"
-    filename: "{filename}"
-    created_date: "{created_date}"
+    published_at: '{published_at}'
+    filename: '{filename}'
+    created_date: '{created_date}'
 topics:
   - - AI
     - Cursor

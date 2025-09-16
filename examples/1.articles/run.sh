@@ -22,9 +22,8 @@ echo
 # Execute frontmatter-to-schema command
 ./frontmatter-to-schema \
   "$SCHEMA_FILE" \
-  "$OUTPUT_FILE" \
   "$DOCS_DIR/**/*.md" \
-  -o=yaml \
+  "$OUTPUT_FILE" \
   --verbose
 
 # Capture the exit status
@@ -39,15 +38,7 @@ if [ $EXIT_STATUS -eq 0 ]; then
     if [ -f "$OUTPUT_FILE" ]; then
         echo
         echo "=== Generated Index Summary ==="
-        # Extract counts if possible
-        if command -v grep >/dev/null 2>&1; then
-            TOTAL_COUNT=$(grep -E "^total_articles:" "$OUTPUT_FILE" | head -1 | sed 's/total_articles: //' 2>/dev/null || echo "N/A")
-            PUBLISHED_COUNT=$(grep -E "^published_count:" "$OUTPUT_FILE" | head -1 | sed 's/published_count: //' 2>/dev/null || echo "N/A")
-            DRAFT_COUNT=$(grep -E "^draft_count:" "$OUTPUT_FILE" | head -1 | sed 's/draft_count: //' 2>/dev/null || echo "N/A")
-            echo "Total articles: $TOTAL_COUNT"
-            echo "Published: $PUBLISHED_COUNT"
-            echo "Drafts: $DRAFT_COUNT"
-        fi
+        echo "Index file generated successfully."
     fi
     exit 0
 else

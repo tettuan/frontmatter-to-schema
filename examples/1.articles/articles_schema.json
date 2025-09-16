@@ -12,22 +12,6 @@
       "description": "Timestamp when the index was generated",
       "format": "date-time"
     },
-    "total_articles": {
-      "type": "number",
-      "description": "Total number of articles processed"
-    },
-    "published_count": {
-      "type": "number",
-      "description": "Number of published articles",
-      "x-derived-from": "articles[][?published==true]",
-      "x-derived-count": true
-    },
-    "draft_count": {
-      "type": "number",
-      "description": "Number of draft articles",
-      "x-derived-from": "articles[][?published==false]",
-      "x-derived-count": true
-    },
     "articles": {
       "type": "array",
       "description": "List of all articles",
@@ -55,6 +39,6 @@
       }
     }
   },
-  "required": ["generated_at", "total_articles", "articles"],
+  "required": ["generated_at", "articles"],
   "additionalProperties": false
 }
