@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import { DerivationRule } from "../../../../../src/domain/aggregation/value-objects/derivation-rule.ts";
 
 Deno.test("DerivationRule - should create valid rule with required parameters", () => {

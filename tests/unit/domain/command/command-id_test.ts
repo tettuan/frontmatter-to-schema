@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { CommandId } from "../../../../src/domain/command/value-objects/command-id.ts";
 import { isErr, isOk } from "../../../../src/domain/shared/types/result.ts";
 

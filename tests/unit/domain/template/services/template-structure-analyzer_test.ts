@@ -11,8 +11,8 @@
  * - Pattern detection for different template types
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { TemplateStructureAnalyzer } from "../../../../../src/domain/template/services/template-structure-analyzer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";

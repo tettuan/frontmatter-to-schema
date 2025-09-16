@@ -10,8 +10,8 @@
  * - Structured expansion requirements determination
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { ArrayExpansionStrategy } from "../../../../../src/domain/template/services/array-expansion-strategy.ts";
 
 describe("ArrayExpansionStrategy", () => {

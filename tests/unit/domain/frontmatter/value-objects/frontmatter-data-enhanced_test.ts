@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { isOk } from "../../../../../src/domain/shared/types/result.ts";

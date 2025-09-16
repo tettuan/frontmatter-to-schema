@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { VariableReplacer } from "../../../../../src/domain/template/services/variable-replacer.ts";
 import {
   assertResultSuccess,

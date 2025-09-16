@@ -1,5 +1,5 @@
-import { assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { TemplateSchemaBindingService } from "../../../../../src/domain/template/services/template-schema-binding-service.ts";
 
 /**

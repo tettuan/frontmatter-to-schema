@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";

@@ -1,5 +1,5 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { beforeEach, describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { OutputRenderingService } from "../../../../../src/domain/template/services/output-rendering-service.ts";
 import { TemplateRenderer } from "../../../../../src/domain/template/renderers/template-renderer.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";

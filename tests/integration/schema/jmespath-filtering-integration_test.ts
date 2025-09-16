@@ -1,5 +1,5 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { JMESPathFilterService } from "../../../src/domain/schema/services/jmespath-filter-service.ts";
 import { BasePropertyPopulator } from "../../../src/domain/schema/services/base-property-populator.ts";

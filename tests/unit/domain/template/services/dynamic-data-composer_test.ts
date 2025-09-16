@@ -12,8 +12,8 @@
  * - Dynamic key determination and conflict resolution
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { DynamicDataComposer } from "../../../../../src/domain/template/services/dynamic-data-composer.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ArrayExpansionKey } from "../../../../../src/domain/template/value-objects/template-structure.ts";

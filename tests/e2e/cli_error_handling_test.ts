@@ -1,5 +1,5 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
-import { join } from "@std/path";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
+import { join } from "jsr:@std/path";
 import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 
 /**

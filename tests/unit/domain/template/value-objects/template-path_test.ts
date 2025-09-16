@@ -10,8 +10,8 @@
  * - Error handling following Totality principles
  */
 
-import { assertEquals } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 
 describe("TemplatePath", () => {

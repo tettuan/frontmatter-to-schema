@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import { Aggregator } from "../../../../../src/domain/aggregation/aggregators/aggregator.ts";
 import { DerivationRule } from "../../../../../src/domain/aggregation/value-objects/derivation-rule.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
