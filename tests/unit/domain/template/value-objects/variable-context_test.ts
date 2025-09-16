@@ -5,6 +5,7 @@ import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../../../../src/domain/schema/value-objects/schema-definition.ts";
 import { FrontmatterTestFactory } from "../../../../helpers/frontmatter-test-factory.ts";
+import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
 
 /**
  * COMPREHENSIVE TEST: Variable Context with Schema Hierarchy
@@ -42,7 +43,7 @@ describe("VariableContext with Schema Hierarchy", () => {
                     script: { type: "string" },
                   },
                 },
-                "x-frontmatter-part": true, // This becomes the hierarchy root
+                [TEST_EXTENSIONS.FRONTMATTER_PART]: true, // This becomes the hierarchy root
               },
             },
           },
@@ -120,7 +121,7 @@ describe("VariableContext with Schema Hierarchy", () => {
           },
           tasks: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -267,7 +268,7 @@ describe("VariableContext with Schema Hierarchy", () => {
                     command: { type: "string" },
                   },
                 },
-                "x-frontmatter-part": true,
+                [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
               },
             },
           },
@@ -342,7 +343,7 @@ describe("VariableContext with Schema Hierarchy", () => {
         properties: {
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -399,7 +400,7 @@ describe("VariableContext with Schema Hierarchy", () => {
         properties: {
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -454,7 +455,7 @@ describe("VariableContext with Schema Hierarchy", () => {
         properties: {
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -509,7 +510,7 @@ describe("VariableContext with Schema Hierarchy", () => {
         properties: {
           tasks: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };
@@ -607,7 +608,7 @@ describe("VariableContext with Schema Hierarchy", () => {
                 script: { type: "string" },
               },
             },
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
           },
         },
       };

@@ -34,6 +34,7 @@ import {
   createError,
   DomainError,
 } from "../../src/domain/shared/types/errors.ts";
+import { TEST_EXTENSIONS } from "../helpers/test-extensions.ts";
 
 // Helper function to create test configurations with discriminated unions
 function createTestConfig(overrides: {
@@ -328,7 +329,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         properties: {
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -338,7 +339,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
             },
           },
         },
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
       };
       fileSystem.setFile(
         "/test/schema.json",
@@ -390,7 +391,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         properties: {
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -401,8 +402,8 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
             },
           },
         },
-        "x-template": "registry_template.json",
-        "x-template-items": "registry_command_template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "registry_template.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "registry_command_template.json",
       };
       fileSystem.setFile(
         "/test/schema.json",
@@ -464,12 +465,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         properties: {
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
+            [TEST_EXTENSIONS.DERIVED_FROM]: "commands[].c1",
             items: { type: "string" },
           },
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -479,7 +480,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
             },
           },
         },
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
       };
       fileSystem.setFile("/test/schema.json", JSON.stringify(derivedSchema));
 
@@ -527,13 +528,13 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         properties: {
           uniqueCategories: {
             type: "array",
-            "x-derived-from": "items[].category",
-            "x-derived-unique": true,
+            [TEST_EXTENSIONS.DERIVED_FROM]: "items[].category",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
             items: { type: "string" },
           },
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -543,7 +544,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
             },
           },
         },
-        "x-template": "template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "template.json",
       };
       fileSystem.setFile("/test/schema.json", JSON.stringify(uniqueSchema));
 
@@ -1095,7 +1096,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         properties: {
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -1173,13 +1174,13 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
           version: { type: "string" },
           availableConfigs: {
             type: "array",
-            "x-derived-from": "commands[].c1",
-            "x-derived-unique": true,
+            [TEST_EXTENSIONS.DERIVED_FROM]: "commands[].c1",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
             items: { type: "string" },
           },
           commands: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -1191,8 +1192,8 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
             },
           },
         },
-        "x-template": "registry_template.json",
-        "x-template-items": "registry_command_template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "registry_template.json",
+        [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "registry_command_template.json",
       };
       fileSystem.setFile("/test/schema.json", JSON.stringify(fullSchema));
 
@@ -1264,7 +1265,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
           totalItems: { type: "number" },
           items: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {
@@ -1329,7 +1330,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
           },
           entries: {
             type: "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             items: {
               type: "object",
               properties: {

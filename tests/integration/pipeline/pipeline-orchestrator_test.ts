@@ -20,6 +20,7 @@ import {
   FrontmatterError,
 } from "../../../src/domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { TEST_EXTENSIONS } from "../../helpers/test-extensions.ts";
 
 // Helper function to create test configurations with discriminated unions
 function createTestConfig(overrides: {
@@ -56,11 +57,11 @@ class MockFileSystem {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "./template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./template.json",
         "properties": {
           "items": {
             "type": "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             "items": {
               "type": "object",
               "properties": {
@@ -285,11 +286,11 @@ describe("PipelineOrchestrator Integration Tests", () => {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "./template_with_items.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./template_with_items.json",
         "properties": {
           "documents": {
             "type": "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             "items": {
               "type": "object",
             },
@@ -449,7 +450,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "non_existent_template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "non_existent_template.json",
         "properties": {},
       }),
     );
@@ -530,17 +531,17 @@ describe("PipelineOrchestrator Integration Tests", () => {
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "x-template": "./template.json",
+        [TEST_EXTENSIONS.TEMPLATE]: "./template.json",
         "properties": {
           "allAuthors": {
             "type": "array",
             "items": { "type": "string" },
-            "x-derived-from": "items[].author",
-            "x-derived-unique": true,
+            [TEST_EXTENSIONS.DERIVED_FROM]: "items[].author",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
           },
           "items": {
             "type": "array",
-            "x-frontmatter-part": true,
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             "items": {
               "type": "object",
               "properties": {
