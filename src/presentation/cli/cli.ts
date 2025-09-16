@@ -21,6 +21,7 @@ import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts
 import { CLIArguments } from "./value-objects/cli-arguments.ts";
 import { PathExpansionService } from "./services/path-expansion-service.ts";
 import { CLIErrorMessageService } from "./services/cli-error-message-service.ts";
+import { PromptGeneratorService } from "./services/prompt-generator-service.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -35,17 +36,20 @@ export class CLI {
   private logger: EnhancedDebugLogger;
   private pathExpansionService: PathExpansionService;
   private errorMessageService: CLIErrorMessageService;
+  private promptGeneratorService: PromptGeneratorService;
 
   private constructor(
     orchestrator: PipelineOrchestrator,
     logger: EnhancedDebugLogger,
     pathExpansionService: PathExpansionService,
     errorMessageService: CLIErrorMessageService,
+    promptGeneratorService: PromptGeneratorService,
   ) {
     this.orchestrator = orchestrator;
     this.logger = logger;
     this.pathExpansionService = pathExpansionService;
     this.errorMessageService = errorMessageService;
+    this.promptGeneratorService = promptGeneratorService;
   }
 
   static create(): Result<CLI, DomainError> {
@@ -75,6 +79,14 @@ export class CLI {
       }));
     }
 
+    const promptGeneratorResult = PromptGeneratorService.create();
+    if (!promptGeneratorResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Failed to create prompt generator service",
+      }));
+    }
+
     const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
     if (!orchestratorResult.ok) {
       return err(orchestratorResult.error);
@@ -86,6 +98,7 @@ export class CLI {
         loggerResult.data,
         pathExpansionResult.data,
         errorMessageResult.data,
+        promptGeneratorResult.data,
       ),
     );
   }
@@ -212,6 +225,34 @@ export class CLI {
 
     const cliArgs = cliArgsResult.data;
 
+    // Handle --generate-prompt option
+    if (cliArgs.generatePrompt) {
+      const expandedPatternResult = this.pathExpansionService
+        .expandInputPattern(
+          cliArgs.inputPattern,
+        );
+      if (!expandedPatternResult.ok) {
+        const errorMessage = this.errorMessageService.generateErrorMessage(
+          expandedPatternResult.error,
+        );
+        const logResult = this.logger.errorOutput(errorMessage);
+        if (!logResult.ok) {
+          console.error(errorMessage);
+        }
+        return Promise.resolve(err(expandedPatternResult.error));
+      }
+
+      const prompt = this.promptGeneratorService.generateSchemaTemplatePrompt(
+        cliArgs.schemaPath,
+        expandedPatternResult.data,
+      );
+      const outputResult = this.logger.output(prompt);
+      if (!outputResult.ok) {
+        console.log(prompt);
+      }
+      return Promise.resolve(ok(void 0));
+    }
+
     // Expand input pattern (directory → glob pattern)
     const expandedPatternResult = this.pathExpansionService.expandInputPattern(
       cliArgs.inputPattern,
@@ -253,9 +294,10 @@ ARGUMENTS:
   <output>   Output file path (e.g., output.json, result.yaml)
 
 OPTIONS:
-  -h, --help     Show this help message
-  -v, --version  Show version information
-  --verbose      Enable verbose logging
+  -h, --help           Show this help message
+  -v, --version        Show version information
+  --verbose            Enable verbose logging
+  --generate-prompt    Generate prompt for creating schema and template files
 
 REQUIRED PERMISSIONS:
   --allow-read   Read schema files and markdown documents
@@ -358,6 +400,14 @@ TROUBLESHOOTING:
         })));
       }
 
+      const promptGeneratorResult = PromptGeneratorService.create();
+      if (!promptGeneratorResult.ok) {
+        return Promise.resolve(err(createError({
+          kind: "ConfigurationError",
+          message: "Failed to create prompt generator service",
+        })));
+      }
+
       const orchestratorResult = CLI.createOrchestrator(loggerResult.data);
       if (!orchestratorResult.ok) {
         return Promise.resolve(err(createError(orchestratorResult.error)));
@@ -367,6 +417,7 @@ TROUBLESHOOTING:
       this.logger = loggerResult.data;
       this.pathExpansionService = pathExpansionResult.data;
       this.errorMessageService = errorMessageResult.data;
+      this.promptGeneratorService = promptGeneratorResult.data;
     }
 
     // Create discriminated union configurations following Totality principles
