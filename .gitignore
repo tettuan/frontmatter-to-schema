@@ -152,3 +152,4 @@ tests/integration/claude-api-integration.test.ts
 tmp/
 # frontmatter-to-schema binary is now a shell script, not ignored
 cov_profile/
+.DS_Store
