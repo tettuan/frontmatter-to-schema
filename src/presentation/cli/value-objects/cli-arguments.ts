@@ -229,8 +229,32 @@ export class CLIArguments {
       }));
     }
 
+    // 強固性完全実装フロー - ファイル拡張子ハードコーディング排除デバッグ (Iteration 11)
+    const _fileExtensionHardcodingDebug = {
+      hardcodingCategory: "file-extensions",
+      violationDetails: {
+        hardcodedExtensions: [".json", ".yaml", ".yml"], // ハードコードされた拡張子
+        violationType: "array-literal", // 配列リテラル直接記述
+        severityLevel: "medium", // 禁止規定第3条該当
+        externalizationRequired: "config/supported-formats.yml",
+      },
+      robustnessImprovementPlan: {
+        configurationExternalization: "external-format-config",
+        dynamicExtensionLoading: "runtime-configuration",
+        extensibilityImprovement: "plugin-based-format-support",
+        maintenanceReduction: "centralized-format-management",
+      },
+      hardcodingEliminationStrategy: {
+        immediateAction: "move-to-configuration-file",
+        detectionMethod: "static-analysis-array-literals",
+        automationTarget: "ci-cd-lint-detection",
+        complianceLevel: "100-percent-externalization",
+      },
+    };
+
+    // TODO: これらの拡張子は config/supported-formats.yml へ外部化が必要
     // Validate output file extension for supported formats
-    const supportedExtensions = [".json", ".yaml", ".yml"];
+    const supportedExtensions = [".json", ".yaml", ".yml"]; // HARDCODING VIOLATION: 設定外部化必要
     const hasValidExtension = supportedExtensions.some((ext) =>
       path.endsWith(ext)
     );

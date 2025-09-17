@@ -14,7 +14,40 @@
  * - With/without template arrays ({@items})
  * - Error handling scenarios
  * - Edge cases (empty files, invalid schemas, etc)
+ *
+ * 仕様駆動強化フロー - デバッグ情報 (Iteration 8)
+ * Mock依存から仕様駆動テストへの移行における振れ幅分析
  */
+
+// 仕様テスト実装移行点デバッグ情報
+const _specificationTestDebugInfo = {
+  migrationTarget: "mock-to-specification",
+  currentImplementationStatus: {
+    totalPatterns: 24,
+    implementedPatterns: 6,
+    specificationDrivenPatterns: 2,
+    mockDependentPatterns: 4,
+    missingPatterns: 18,
+  },
+  varianceFactors: {
+    mockToSpecificationComplexity: "high",
+    specificationClarificationEffort: "medium",
+    testInfrastructureChanges: "low",
+    regressionRisk: "medium",
+  },
+  migrationStrategy: {
+    approach: "gradual-specification-implementation",
+    priorityOrder: [
+      "basic-patterns",
+      "advanced-patterns",
+      "complex-patterns",
+      "integration-patterns",
+    ],
+    qualityGate: "specification-compliance-80-percent",
+  },
+  debugLogLevel: "verbose",
+  varianceTrackingEnabled: true,
+};
 
 import { assertEquals } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";

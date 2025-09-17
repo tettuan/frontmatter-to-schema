@@ -135,7 +135,7 @@ const createTestSchema = (
 
 describe("FrontmatterTransformationService", () => {
   describe("transformDocuments - Complete Pipeline", () => {
-    it("should execute complete transformation pipeline successfully", () => {
+    it("should execute complete transformation pipeline successfully", async () => {
       // Arrange
       const service = new FrontmatterTransformationService(
         new MockFrontmatterProcessor() as any,
@@ -148,7 +148,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -158,7 +158,7 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, true);
     });
 
-    it("should handle verbose mode with detailed logging", () => {
+    it("should handle verbose mode with detailed logging", async () => {
       // Arrange
       const service = new FrontmatterTransformationService(
         new MockFrontmatterProcessor() as any,
@@ -177,7 +177,7 @@ describe("FrontmatterTransformationService", () => {
         ? verboseLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -188,7 +188,7 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, true);
     });
 
-    it("should handle custom processing bounds", () => {
+    it("should handle custom processing bounds", async () => {
       // Arrange
       const service = new FrontmatterTransformationService(
         new MockFrontmatterProcessor() as any,
@@ -210,7 +210,7 @@ describe("FrontmatterTransformationService", () => {
         ? nullLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -224,7 +224,7 @@ describe("FrontmatterTransformationService", () => {
   });
 
   describe("Error Path Testing - Totality Principles", () => {
-    it("should handle file listing failure", () => {
+    it("should handle file listing failure", async () => {
       // Arrange
       const fileListError = createError({
         kind: "FileNotFound",
@@ -241,7 +241,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "invalid-pattern",
         validationRules,
         schema,
@@ -254,7 +254,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle processing bounds creation failure", () => {
+    it("should handle processing bounds creation failure", async () => {
       // Arrange
       const service = new FrontmatterTransformationService(
         new MockFrontmatterProcessor() as any,
@@ -269,7 +269,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -279,7 +279,7 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, true);
     });
 
-    it("should handle memory bounds violation", () => {
+    it("should handle memory bounds violation", async () => {
       // Arrange
       const strictBounds = ProcessingBoundsFactory.createBounded(1, 1, 1); // Very small limits
       assertEquals(strictBounds.ok, true);
@@ -302,7 +302,7 @@ describe("FrontmatterTransformationService", () => {
         ? nullLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -318,7 +318,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle no valid documents found", () => {
+    it("should handle no valid documents found", async () => {
       // Arrange
       const extractError = createError({
         kind: "InvalidFormat",
@@ -336,7 +336,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -350,7 +350,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle file reading errors gracefully", () => {
+    it("should handle file reading errors gracefully", async () => {
       // Arrange
       const readError = createError({
         kind: "FileNotFound",
@@ -367,7 +367,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -381,7 +381,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle frontmatter extraction errors", () => {
+    it("should handle frontmatter extraction errors", async () => {
       // Arrange
       const extractError = createError({
         kind: "InvalidFormat",
@@ -399,7 +399,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -413,7 +413,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle frontmatter validation errors", () => {
+    it("should handle frontmatter validation errors", async () => {
       // Arrange
       const validationError = createError({
         kind: "MissingRequired",
@@ -433,7 +433,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -447,7 +447,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle aggregation failure", () => {
+    it("should handle aggregation failure", async () => {
       // Arrange
       const aggregationError = createError({
         kind: "AggregationFailed",
@@ -468,7 +468,7 @@ describe("FrontmatterTransformationService", () => {
       }]);
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -482,7 +482,7 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle base property population failure", () => {
+    it("should handle base property population failure", async () => {
       // Arrange
       const populationError = createError({
         kind: "MissingRequired",
@@ -499,7 +499,7 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,

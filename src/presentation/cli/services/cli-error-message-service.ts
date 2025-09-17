@@ -113,13 +113,32 @@ export class CLIErrorMessageService {
 
   /**
    * Get base error message without formatting
+   * Following Totality principles - exhaustive switch without default clause
    */
   private getBaseErrorMessage(error: DomainError): string {
     if ("message" in error && typeof error.message === "string") {
       return error.message;
     }
 
+    // Exhaustive switch following Totality principles - no default clause
     switch (error.kind) {
+      // ValidationError cases
+      case "OutOfRange":
+        return `Value ${error.value} is out of range ${error.min ?? "?"}-${
+          error.max ?? "?"
+        }`;
+      case "InvalidRegex":
+        return `Invalid regex pattern: ${error.pattern}`;
+      case "PatternMismatch":
+        return `Value "${error.value}" does not match pattern ${error.pattern}`;
+      case "ParseError":
+        return `Cannot parse "${error.input}"`;
+      case "EmptyInput":
+        return "Input cannot be empty";
+      case "TooLong":
+        return `Value "${error.value}" exceeds maximum length of ${error.maxLength}`;
+      case "InvalidType":
+        return `Expected type ${error.expected}, got ${error.actual}`;
       case "MissingRequired":
         return `Missing required ${error.field}`;
       case "TooManyArguments":
@@ -128,14 +147,150 @@ export class CLIErrorMessageService {
         return `Invalid format for ${
           "field" in error && error.field ? error.field : "input"
         }`;
-      case "EmptyInput":
-        return "Input cannot be empty";
+      case "FieldNotFound":
+        return `Field not found: ${error.path}`;
+      case "ValidationRuleNotFound":
+        return `Validation rule not found for path: ${error.path}`;
+
+      // SchemaError cases
+      case "SchemaNotFound":
+        return `Schema not found: ${error.path}`;
+      case "InvalidSchema":
+        return `Invalid schema: ${error.message}`;
+      case "RefResolutionFailed":
+        return `Failed to resolve $ref "${error.ref}": ${error.message}`;
+      case "CircularReference":
+        return `Circular reference detected: ${error.refs.join(" -> ")}`;
+      case "InvalidTemplate":
+        return `Invalid template: ${
+          "template" in error ? error.template : error.message
+        }`;
+      case "TemplateNotDefined":
+        return "Schema does not define a template path";
+      case "TemplateItemsNotDefined":
+        return "Schema does not define template items directive";
+      case "TemplateFormatNotDefined":
+        return "Schema does not define template format directive";
+      case "InvalidTemplateFormat":
+        return "Invalid template format specified";
+      case "JMESPathFilterNotDefined":
+        return "Schema does not define JMESPath filter directive";
+      case "JMESPathCompilationFailed":
+        return `JMESPath expression compilation failed: ${error.expression} - ${error.message}`;
+      case "JMESPathExecutionFailed":
+        return `JMESPath expression execution failed: ${error.expression} - ${error.message}`;
+      case "InvalidJMESPathResult":
+        return `Invalid JMESPath result for expression: ${error.expression}`;
+      case "FrontmatterPartNotFound":
+        return "No frontmatter-part directive found in schema";
+      case "SchemaNotResolved":
+        return "Schema references have not been resolved";
+      case "TypeNotDefined":
+        return "Schema does not define a type";
+      case "PropertiesNotDefined":
+        return "Schema does not define properties";
+      case "RefNotDefined":
+        return "Schema does not define a $ref";
+      case "DerivedFromNotDefined":
+        return "Schema does not define derived-from directive";
+      case "ItemsNotDefined":
+        return "Schema does not define items";
+      case "EnumNotDefined":
+        return "Schema is not an enum type";
+      case "PropertyNotFound":
+        return `Property not found at path: ${error.path}`;
+
+      // FrontmatterError cases
+      case "ExtractionFailed":
+        return `Frontmatter extraction failed: ${error.message}`;
+      case "InvalidYaml":
+        return `Invalid YAML: ${error.message}`;
+      case "NoFrontmatter":
+        return "No frontmatter found in document";
+      case "MalformedFrontmatter":
+        return `Malformed frontmatter: ${error.content}`;
+
+      // TemplateError cases
+      case "TemplateNotFound":
+        return `Template not found: ${error.path}`;
+      case "VariableNotFound":
+        return `Variable not found: ${error.variable}`;
+      case "RenderFailed":
+        return `Template render failed: ${error.message}`;
+      case "TemplateStructureInvalid":
+        return `Invalid template structure in ${error.template}: ${error.issue}`;
+      case "VariableResolutionFailed":
+        return `Failed to resolve variable ${error.variable}: ${error.reason}`;
+      case "DataCompositionFailed":
+        return `Data composition failed: ${error.reason}`;
+
+      // AggregationError cases
+      case "InvalidExpression":
+        return `Invalid expression: ${error.expression}`;
+      case "PathNotFound":
+        return `Path not found in data: ${error.path}`;
+      case "AggregationFailed":
+        return `Aggregation failed: ${error.message}`;
+      case "MergeFailed":
+        return `Merge failed: ${error.message}`;
+
+      // FileSystemError cases
       case "FileNotFound":
-        return `File not found: ${("path" in error) ? error.path : "unknown"}`;
+        return `File not found: ${error.path}`;
+      case "ReadFailed":
+        return `Failed to read file ${error.path}: ${error.message}`;
+      case "WriteFailed":
+        return `Failed to write file ${error.path}: ${error.message}`;
+      case "InvalidPath":
+        return `Invalid path: ${error.path}`;
+      case "PermissionDenied":
+        return `Permission denied: ${error.path}`;
+
+      // SystemError cases
+      case "InitializationError":
+        return `Initialization error: ${error.message}`;
       case "ConfigurationError":
-        return "Configuration error occurred";
-      default:
-        return `Error: ${error.kind}`;
+        return `Configuration error: ${error.message}`;
+
+      // PerformanceError cases
+      case "BenchmarkError":
+        return `Benchmark error: ${error.content}`;
+      case "PerformanceViolation":
+        return `Performance violation: ${error.content}`;
+      case "MemoryMonitorError":
+        return `Memory monitor error: ${error.content}`;
+      case "InvalidMemoryComparison":
+        return `Invalid memory comparison: ${error.content}`;
+      case "MemoryBoundsViolation":
+        return `Memory bounds violation: ${error.content}`;
+      case "InsufficientData":
+        return `Insufficient data: ${error.content}`;
+      case "TestScenarioError":
+        return `Test scenario error: ${error.content}`;
+      case "PipelineExecutionError":
+        return `Pipeline execution error: ${error.content}`;
+      case "DirectoryCreationError":
+        return `Directory creation error: ${error.content}`;
+      case "FileWriteError":
+        return `File write error: ${error.content}`;
+      case "SchemaWriteError":
+        return `Schema write error: ${error.content}`;
+      case "TemplateWriteError":
+        return `Template write error: ${error.content}`;
+      case "CleanupError":
+        return `Cleanup error: ${error.content}`;
+      case "CircuitBreakerError":
+        return `Circuit breaker error: ${error.content}`;
+      case "ComplexityThresholdExceeded":
+        return `Complexity threshold exceeded: ${error.content}`;
+      case "CircuitBreakerOpen":
+        return `Circuit breaker open: ${error.content}`;
+      case "StreamingTimeout":
+        return `Streaming timeout: ${error.content}`;
+      case "StreamingError":
+        return `Streaming error: ${error.content}`;
+      case "MemoryBoundsExceeded":
+        return `Memory bounds exceeded: ${error.content}`;
     }
   }
 

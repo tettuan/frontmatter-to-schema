@@ -75,13 +75,17 @@ export class FrontmatterTransformationService {
    * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
    * Includes memory bounds monitoring following Totality principles
    */
-  transformDocuments(
+  async transformDocuments(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
     logger?: DebugLogger,
     processingBounds?: ProcessingBounds,
-  ): Result<FrontmatterData, DomainError & { message: string }> {
+    options?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
     // Stage 1: List matching files
     const activeLogger = logger || this.logger;
     activeLogger?.info(
@@ -145,93 +149,129 @@ export class FrontmatterTransformationService {
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
 
-    // Stage 2: Process each file
-    for (const filePath of filesResult.data) {
-      // Memory bounds monitoring - check state before processing each file
-      const state = boundsMonitor.checkState(processedData.length);
-      if (state.kind === "exceeded_limit") {
-        return err(createError({
-          kind: "MemoryBoundsViolation",
-          content: `Processing exceeded bounds: ${state.limit}`,
-        }));
-      }
+    // Stage 2: Process files (parallel or sequential based on options)
+    const useParallel = options?.parallel === true &&
+      filesResult.data.length > 1;
+    const maxWorkers = options?.maxWorkers || 4;
 
-      if (state.kind === "approaching_limit") {
-        activeLogger?.warn(
-          `Approaching memory limit: ${
-            Math.round(state.usage.heapUsed / 1024 / 1024)
-          }MB used, threshold: ${
-            Math.round(state.warningThreshold / 1024 / 1024)
-          }MB`,
-          {
-            operation: "memory-monitoring",
-            heapUsed: state.usage.heapUsed,
-            warningThreshold: state.warningThreshold,
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
-
-      activeLogger?.debug(
-        `Processing file: ${filePath}`,
+    if (useParallel) {
+      activeLogger?.info(
+        `Using parallel processing with ${maxWorkers} workers for ${filesResult.data.length} files`,
         {
-          operation: "file-processing",
-          filePath,
+          operation: "parallel-processing",
+          workerCount: maxWorkers,
+          fileCount: filesResult.data.length,
           timestamp: new Date().toISOString(),
         },
       );
-      const documentResult = this.processDocument(filePath, validationRules);
-      if (documentResult.ok) {
-        processedData.push(documentResult.data.frontmatterData);
-        documents.push(documentResult.data.document);
 
-        activeLogger?.debug(
-          `Successfully processed: ${filePath}`,
-          {
-            operation: "file-processing",
-            filePath,
-            timestamp: new Date().toISOString(),
-          },
-        );
+      // Parallel processing implementation (Issue #545)
+      const results = await this.processFilesInParallel(
+        filesResult.data,
+        validationRules,
+        maxWorkers,
+        boundsMonitor,
+        activeLogger,
+      );
 
-        // Periodic O(log n) memory growth validation
-        if (processedData.length % 100 === 0 && processedData.length > 0) {
-          const growthResult = boundsMonitor.validateMemoryGrowth(
-            processedData.length,
+      if (!results.ok) {
+        return results;
+      }
+
+      // Collect results from parallel processing
+      for (const result of results.data) {
+        processedData.push(result.frontmatterData);
+        documents.push(result.document);
+      }
+    } else {
+      // Sequential processing (original implementation)
+      for (const filePath of filesResult.data) {
+        // Memory bounds monitoring - check state before processing each file
+        const state = boundsMonitor.checkState(processedData.length);
+        if (state.kind === "exceeded_limit") {
+          return err(createError({
+            kind: "MemoryBoundsViolation",
+            content: `Processing exceeded bounds: ${state.limit}`,
+          }));
+        }
+
+        if (state.kind === "approaching_limit") {
+          activeLogger?.warn(
+            `Approaching memory limit: ${
+              Math.round(state.usage.heapUsed / 1024 / 1024)
+            }MB used, threshold: ${
+              Math.round(state.warningThreshold / 1024 / 1024)
+            }MB`,
+            {
+              operation: "memory-monitoring",
+              heapUsed: state.usage.heapUsed,
+              warningThreshold: state.warningThreshold,
+              timestamp: new Date().toISOString(),
+            },
           );
-          if (!growthResult.ok) {
-            activeLogger?.warn(
-              `Memory growth validation warning: ${growthResult.error.message}`,
-              {
-                operation: "memory-monitoring",
-                processedCount: processedData.length,
-                timestamp: new Date().toISOString(),
-              },
-            );
-          }
         }
 
         activeLogger?.debug(
-          "File processed successfully",
-          {
-            operation: "file-processing",
-            status: "success",
-            timestamp: new Date().toISOString(),
-          },
-        );
-      } else {
-        activeLogger?.error(
-          `Failed to process file: ${filePath}`,
+          `Processing file: ${filePath}`,
           {
             operation: "file-processing",
             filePath,
-            stage: "individual-file-processing",
-            error: documentResult.error,
             timestamp: new Date().toISOString(),
           },
         );
+        const documentResult = this.processDocument(filePath, validationRules);
+        if (documentResult.ok) {
+          processedData.push(documentResult.data.frontmatterData);
+          documents.push(documentResult.data.document);
+
+          activeLogger?.debug(
+            `Successfully processed: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              timestamp: new Date().toISOString(),
+            },
+          );
+
+          // Periodic O(log n) memory growth validation
+          if (processedData.length % 100 === 0 && processedData.length > 0) {
+            const growthResult = boundsMonitor.validateMemoryGrowth(
+              processedData.length,
+            );
+            if (!growthResult.ok) {
+              activeLogger?.warn(
+                `Memory growth validation warning: ${growthResult.error.message}`,
+                {
+                  operation: "memory-monitoring",
+                  processedCount: processedData.length,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+          }
+
+          activeLogger?.debug(
+            "File processed successfully",
+            {
+              operation: "file-processing",
+              status: "success",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        } else {
+          activeLogger?.error(
+            `Failed to process file: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              stage: "individual-file-processing",
+              error: documentResult.error,
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+        // Note: Individual file failures don't stop processing
       }
-      // Note: Individual file failures don't stop processing
     }
 
     if (processedData.length === 0) {
@@ -503,6 +543,190 @@ export class FrontmatterTransformationService {
       document: docResult.data,
       frontmatterData: validationResult.data,
     });
+  }
+
+  /**
+   * Process files in parallel using a worker pool pattern.
+   * Implements Issue #545: Parallel processing capability with configurable workers.
+   */
+  private async processFilesInParallel(
+    filePaths: string[],
+    validationRules: ValidationRules,
+    maxWorkers: number,
+    boundsMonitor: ProcessingBoundsMonitor,
+    logger?: DebugLogger,
+  ): Promise<
+    Result<
+      Array<{ document: MarkdownDocument; frontmatterData: FrontmatterData }>,
+      DomainError & { message: string }
+    >
+  > {
+    const activeLogger = logger || this.logger;
+    const results: Array<
+      { document: MarkdownDocument; frontmatterData: FrontmatterData }
+    > = [];
+    const errors: Array<DomainError & { message: string }> = [];
+
+    // Create batches for worker processing
+    const batchSize = Math.max(1, Math.ceil(filePaths.length / maxWorkers));
+    const batches: string[][] = [];
+
+    for (let i = 0; i < filePaths.length; i += batchSize) {
+      batches.push(filePaths.slice(i, i + batchSize));
+    }
+
+    activeLogger?.debug(
+      `Created ${batches.length} batches with batch size ${batchSize}`,
+      {
+        operation: "parallel-batch-creation",
+        batchCount: batches.length,
+        batchSize,
+        totalFiles: filePaths.length,
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    // Process batches in parallel using Promise.all
+    try {
+      const batchPromises = batches.map((batch, batchIndex) => {
+        return new Promise<
+          {
+            batchResults: Array<
+              { document: MarkdownDocument; frontmatterData: FrontmatterData }
+            >;
+            batchErrors: Array<DomainError & { message: string }>;
+          }
+        >((resolve) => {
+          const batchResults: Array<
+            { document: MarkdownDocument; frontmatterData: FrontmatterData }
+          > = [];
+          const batchErrors: Array<DomainError & { message: string }> = [];
+
+          activeLogger?.debug(
+            `Processing batch ${
+              batchIndex + 1
+            }/${batches.length} with ${batch.length} files`,
+            {
+              operation: "parallel-batch-processing",
+              batchIndex: batchIndex + 1,
+              batchSize: batch.length,
+              timestamp: new Date().toISOString(),
+            },
+          );
+
+          for (const filePath of batch) {
+            // Memory bounds monitoring for each file
+            const state = boundsMonitor.checkState(
+              results.length + batchResults.length,
+            );
+            if (state.kind === "exceeded_limit") {
+              batchErrors.push(createError({
+                kind: "MemoryBoundsViolation",
+                content: `Processing exceeded bounds: ${state.limit}`,
+              }));
+              break;
+            }
+
+            if (state.kind === "approaching_limit") {
+              activeLogger?.warn(
+                `Approaching memory limit in batch ${batchIndex + 1}: ${
+                  Math.round(state.usage.heapUsed / 1024 / 1024)
+                }MB used, threshold: ${
+                  Math.round(state.warningThreshold / 1024 / 1024)
+                }MB`,
+                {
+                  operation: "parallel-memory-monitoring",
+                  batchIndex: batchIndex + 1,
+                  heapUsed: state.usage.heapUsed,
+                  warningThreshold: state.warningThreshold,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+
+            const documentResult = this.processDocument(
+              filePath,
+              validationRules,
+            );
+            if (documentResult.ok) {
+              batchResults.push(documentResult.data);
+              activeLogger?.debug(
+                `Successfully processed file in batch ${
+                  batchIndex + 1
+                }: ${filePath}`,
+                {
+                  operation: "parallel-file-processing",
+                  batchIndex: batchIndex + 1,
+                  filePath,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            } else {
+              batchErrors.push(documentResult.error);
+              activeLogger?.error(
+                `Failed to process file in batch ${
+                  batchIndex + 1
+                }: ${filePath}`,
+                {
+                  operation: "parallel-file-processing",
+                  batchIndex: batchIndex + 1,
+                  filePath,
+                  error: documentResult.error,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+          }
+
+          resolve({ batchResults, batchErrors });
+        });
+      });
+
+      // Wait for all batches to complete
+      const batchOutputs = await Promise.all(batchPromises);
+
+      // Collect all results and errors
+      for (const { batchResults, batchErrors } of batchOutputs) {
+        results.push(...batchResults);
+        errors.push(...batchErrors);
+      }
+
+      activeLogger?.info(
+        `Parallel processing completed: ${results.length} successful, ${errors.length} errors`,
+        {
+          operation: "parallel-processing-completion",
+          successCount: results.length,
+          errorCount: errors.length,
+          totalFiles: filePaths.length,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      // Return results even if some files failed (matching sequential behavior)
+      if (results.length === 0 && errors.length > 0) {
+        return err(errors[0]);
+      }
+
+      return ok(results);
+    } catch (error) {
+      const processingError = createError({
+        kind: "AggregationFailed",
+        message: `Parallel processing failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+
+      activeLogger?.error(
+        "Parallel processing encountered an unexpected error",
+        {
+          operation: "parallel-processing-error",
+          error: processingError,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      return err(processingError);
+    }
   }
 
   /**

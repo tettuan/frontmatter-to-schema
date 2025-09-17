@@ -201,6 +201,14 @@ export const createEnhancedError = <T extends DomainError>(
 };
 
 const getDefaultMessage = (error: DomainError): string => {
+  // 全域性デバッグ: error.kind別の完全性確認
+  const _errorKindDebugInfo = {
+    errorKind: error.kind,
+    totalErrorTypes: 58, // DomainErrorの全型数
+    exhaustivenessCheck: "required",
+    partialFunctionRisk: "eliminated",
+  };
+
   switch (error.kind) {
     case "OutOfRange":
       return `Value ${error.value} is out of range ${error.min ?? "?"}-${
@@ -357,7 +365,13 @@ const getDefaultMessage = (error: DomainError): string => {
     case "MemoryBoundsExceeded":
       return `Memory bounds exceeded: ${error.content}`;
     default: {
+      // 全域性保証: 到達不可能な分岐 - TypeScriptコンパイル時エラーで保証
       const _exhaustive: never = error;
+      // デバッグ情報: この分岐に到達した場合は型安全性の破綻を意味する
+      console.error(
+        "[TOTALITY-VIOLATION] Unreachable error type detected:",
+        error,
+      );
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
     }
   }

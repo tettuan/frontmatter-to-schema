@@ -1,7 +1,9 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { CircuitBreakerConfig } from "../value-objects/circuit-breaker-config.ts";
 
-export interface CircuitBreakerConfig {
+// Legacy interface for backward compatibility - will be removed in next version
+export interface LegacyCircuitBreakerConfig {
   readonly maxComplexity: number;
   readonly maxMemoryMB: number;
   readonly maxProcessingTimeMs: number;
@@ -41,14 +43,32 @@ export class CircuitBreaker {
   };
 
   constructor(
-    private readonly config: CircuitBreakerConfig = {
-      maxComplexity: 10000,
-      maxMemoryMB: 512,
-      maxProcessingTimeMs: 60000,
-      maxDatasetSize: 5000,
-      cooldownPeriodMs: 30000,
-    },
-  ) {}
+    config?: CircuitBreakerConfig | LegacyCircuitBreakerConfig,
+  ) {
+    if (!config) {
+      this.config = CircuitBreakerConfig.forStandardProcessing();
+    } else if ("getThresholds" in config) {
+      // New CircuitBreakerConfig
+      this.config = config;
+    } else {
+      // Legacy configuration - convert to new format
+      const result = CircuitBreakerConfig.create({
+        maxComplexity: config.maxComplexity,
+        maxMemoryMB: config.maxMemoryMB,
+        maxProcessingTimeMs: config.maxProcessingTimeMs,
+        maxDatasetSize: config.maxDatasetSize,
+        cooldownPeriodMs: config.cooldownPeriodMs,
+      });
+      if (!result.ok) {
+        throw new Error(
+          `Invalid legacy configuration: ${result.error.message}`,
+        );
+      }
+      this.config = result.data;
+    }
+  }
+
+  private readonly config: CircuitBreakerConfig;
 
   canProcess(
     datasetSize: number,
@@ -59,13 +79,16 @@ export class CircuitBreaker {
     if (this.state.status === "open") {
       const now = Date.now();
       const timeSinceFailure = now - (this.state.lastFailureTime || 0);
+      const cooldownPeriod = this.config.calculateDynamicCooldown(
+        this.state.failures,
+      );
 
-      if (timeSinceFailure < this.config.cooldownPeriodMs) {
+      if (timeSinceFailure < cooldownPeriod) {
         this.recordRejection();
         return err(createError({
           kind: "AggregationFailed",
           message: `Circuit breaker is open. Please wait ${
-            Math.ceil((this.config.cooldownPeriodMs - timeSinceFailure) / 1000)
+            Math.ceil((cooldownPeriod - timeSinceFailure) / 1000)
           } seconds before retrying.`,
         }));
       }
@@ -73,33 +96,35 @@ export class CircuitBreaker {
       this.state = { ...this.state, status: "half-open" };
     }
 
-    if (datasetSize > this.config.maxDatasetSize) {
+    const thresholds = this.config.getThresholds();
+
+    if (datasetSize > thresholds.maxDatasetSize) {
       this.recordRejection();
       return err(createError({
         kind: "AggregationFailed",
         message:
-          `Dataset size ${datasetSize} exceeds maximum allowed ${this.config.maxDatasetSize}`,
+          `Dataset size ${datasetSize} exceeds maximum allowed ${thresholds.maxDatasetSize}`,
       }));
     }
 
-    if (complexity > this.config.maxComplexity) {
+    if (complexity > thresholds.maxComplexity) {
       this.recordRejection();
       return err(createError({
         kind: "AggregationFailed",
         message:
-          `Processing complexity ${complexity} exceeds maximum allowed ${this.config.maxComplexity}`,
+          `Processing complexity ${complexity} exceeds maximum allowed ${thresholds.maxComplexity}`,
       }));
     }
 
     const currentMemoryMB = Math.round(
       Deno.memoryUsage().heapUsed / 1024 / 1024,
     );
-    if (currentMemoryMB > this.config.maxMemoryMB * 0.8) {
+    if (currentMemoryMB > thresholds.maxMemoryMB * 0.8) {
       this.recordRejection();
       return err(createError({
         kind: "AggregationFailed",
         message:
-          `Current memory usage ${currentMemoryMB}MB is too high (limit: ${this.config.maxMemoryMB}MB)`,
+          `Current memory usage ${currentMemoryMB}MB is too high (limit: ${thresholds.maxMemoryMB}MB)`,
       }));
     }
 
@@ -134,7 +159,9 @@ export class CircuitBreaker {
   recordFailure(_reason: string): void {
     const metrics = this.state.metrics;
     const newFailures = this.state.failures + 1;
-    const shouldOpen = newFailures >= 3 || this.state.status === "half-open";
+    const failureThreshold = this.config.getFailureThreshold();
+    const shouldOpen = newFailures >= failureThreshold ||
+      this.state.status === "half-open";
 
     this.state = {
       status: shouldOpen ? "open" : this.state.status,
@@ -182,7 +209,8 @@ export class CircuitBreaker {
 
   suggestBatchSize(datasetSize: number, rulesCount: number): number {
     const complexity = datasetSize * rulesCount;
-    const maxBatchComplexity = this.config.maxComplexity * 0.5;
+    const thresholds = this.config.getThresholds();
+    const maxBatchComplexity = thresholds.maxComplexity * 0.5;
 
     if (complexity <= maxBatchComplexity) {
       return datasetSize;

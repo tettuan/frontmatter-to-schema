@@ -1,13 +1,32 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import {
   CircuitBreaker,
-  CircuitBreakerConfig,
 } from "../../../../../src/domain/aggregation/services/circuit-breaker.ts";
+import { CircuitBreakerConfig } from "../../../../../src/domain/aggregation/value-objects/circuit-breaker-config.ts";
 
 /**
  * CircuitBreaker Unit Tests
  * Following DDD and Totality principles with comprehensive state transition coverage
  */
+
+// Helper function to create test config
+function createTestConfig(
+  overrides?: Partial<
+    {
+      maxComplexity: number;
+      maxMemoryMB: number;
+      maxProcessingTimeMs: number;
+      maxDatasetSize: number;
+      cooldownPeriodMs: number;
+    }
+  >,
+): CircuitBreakerConfig {
+  const result = CircuitBreakerConfig.create(overrides);
+  if (!result.ok) {
+    throw new Error(`Failed to create test config: ${result.error.message}`);
+  }
+  return result.data;
+}
 Deno.test("CircuitBreaker", async (t) => {
   await t.step("should initialize with closed state", () => {
     const breaker = new CircuitBreaker();
@@ -32,13 +51,9 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should reject when dataset size exceeds limit", () => {
-    const config: CircuitBreakerConfig = {
-      maxComplexity: 10000,
-      maxMemoryMB: 512,
-      maxProcessingTimeMs: 60000,
+    const config = createTestConfig({
       maxDatasetSize: 1000,
-      cooldownPeriodMs: 30000,
-    };
+    });
     const breaker = new CircuitBreaker(config);
     const result = breaker.canProcess(1001, 1);
 
@@ -59,13 +74,15 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should reject when complexity exceeds limit", () => {
-    const config: CircuitBreakerConfig = {
+    const configResult = CircuitBreakerConfig.create({
       maxComplexity: 1000,
       maxMemoryMB: 512,
       maxProcessingTimeMs: 60000,
       maxDatasetSize: 5000,
       cooldownPeriodMs: 30000,
-    };
+    });
+    assert(configResult.ok);
+    const config = configResult.data;
     const breaker = new CircuitBreaker(config);
     const result = breaker.canProcess(100, 20); // 100 * 20 = 2000 > 1000
 
@@ -83,7 +100,11 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should transition from CLOSED to OPEN after 3 failures", () => {
-    const breaker = new CircuitBreaker();
+    const configResult = CircuitBreakerConfig.create({
+      failureThreshold: 3,
+    });
+    assert(configResult.ok);
+    const breaker = new CircuitBreaker(configResult.data);
 
     // Start in closed state
     assertEquals(breaker.getState().status, "closed");
@@ -109,13 +130,16 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should reject requests when in OPEN state", () => {
-    const config: CircuitBreakerConfig = {
+    const configResult = CircuitBreakerConfig.create({
       maxComplexity: 10000,
       maxMemoryMB: 512,
       maxProcessingTimeMs: 60000,
       maxDatasetSize: 5000,
       cooldownPeriodMs: 30000,
-    };
+      failureThreshold: 3,
+    });
+    assert(configResult.ok);
+    const config = configResult.data;
     const breaker = new CircuitBreaker(config);
 
     // Force open state
@@ -145,13 +169,16 @@ Deno.test("CircuitBreaker", async (t) => {
   await t.step(
     "should transition from OPEN to HALF-OPEN after cooldown",
     async () => {
-      const config: CircuitBreakerConfig = {
+      const configResult = CircuitBreakerConfig.create({
         maxComplexity: 10000,
         maxMemoryMB: 512,
         maxProcessingTimeMs: 60000,
         maxDatasetSize: 5000,
         cooldownPeriodMs: 100, // Short cooldown for testing
-      };
+        failureThreshold: 3,
+      });
+      assert(configResult.ok);
+      const config = configResult.data;
       const breaker = new CircuitBreaker(config);
 
       // Force open state
@@ -173,13 +200,16 @@ Deno.test("CircuitBreaker", async (t) => {
   await t.step(
     "should transition from HALF-OPEN to CLOSED on success",
     async () => {
-      const config: CircuitBreakerConfig = {
+      const configResult = CircuitBreakerConfig.create({
         maxComplexity: 10000,
         maxMemoryMB: 512,
         maxProcessingTimeMs: 60000,
         maxDatasetSize: 5000,
         cooldownPeriodMs: 100,
-      };
+        failureThreshold: 3,
+      });
+      assert(configResult.ok);
+      const config = configResult.data;
       const breaker = new CircuitBreaker(config);
 
       // Force open state
@@ -209,13 +239,16 @@ Deno.test("CircuitBreaker", async (t) => {
   await t.step(
     "should transition from HALF-OPEN to OPEN on failure",
     async () => {
-      const config: CircuitBreakerConfig = {
+      const configResult = CircuitBreakerConfig.create({
         maxComplexity: 10000,
         maxMemoryMB: 512,
         maxProcessingTimeMs: 60000,
         maxDatasetSize: 5000,
         cooldownPeriodMs: 100,
-      };
+        failureThreshold: 3,
+      });
+      assert(configResult.ok);
+      const config = configResult.data;
       const breaker = new CircuitBreaker(config);
 
       // Force open state
@@ -266,13 +299,15 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should suggest appropriate batch size", () => {
-    const config: CircuitBreakerConfig = {
+    const configResult = CircuitBreakerConfig.create({
       maxComplexity: 1000,
       maxMemoryMB: 512,
       maxProcessingTimeMs: 60000,
       maxDatasetSize: 5000,
       cooldownPeriodMs: 30000,
-    };
+    });
+    assert(configResult.ok);
+    const config = configResult.data;
     const breaker = new CircuitBreaker(config);
 
     // Under limit - return full size
@@ -327,13 +362,15 @@ Deno.test("CircuitBreaker", async (t) => {
   await t.step("should handle memory pressure correctly", () => {
     // This test simulates high memory usage scenario
     // Note: Can't easily control actual memory usage in tests, but we can test the logic
-    const config: CircuitBreakerConfig = {
+    const configResult = CircuitBreakerConfig.create({
       maxComplexity: 10000,
       maxMemoryMB: 1, // Very low limit to trigger rejection
       maxProcessingTimeMs: 60000,
       maxDatasetSize: 5000,
       cooldownPeriodMs: 30000,
-    };
+    });
+    assert(configResult.ok);
+    const config = configResult.data;
     const breaker = new CircuitBreaker(config);
 
     // Current memory will likely be > 0.8MB, triggering rejection
