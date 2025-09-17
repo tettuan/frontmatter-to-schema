@@ -122,4 +122,70 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
     assertEquals(suggestions.length > 0, true);
     assertEquals(suggestions[0], "Try: frontmatter-to-schema --help");
   });
+
+  await t.step("should handle template option with long form", () => {
+    const result = CLIArguments.create([
+      "schema.json",
+      "input.md",
+      "output.json",
+      "--template",
+      "template.json",
+    ]);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data.schemaPath, "schema.json");
+      assertEquals(result.data.inputPattern, "input.md");
+      assertEquals(result.data.outputPath, "output.json");
+      assertEquals(result.data.templatePath, "template.json");
+    }
+  });
+
+  await t.step("should handle template option with short form", () => {
+    const result = CLIArguments.create([
+      "schema.json",
+      "input.md",
+      "output.json",
+      "-t",
+      "template.json",
+    ]);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data.schemaPath, "schema.json");
+      assertEquals(result.data.inputPattern, "input.md");
+      assertEquals(result.data.outputPath, "output.json");
+      assertEquals(result.data.templatePath, "template.json");
+    }
+  });
+
+  await t.step("should handle template option with verbose flag", () => {
+    const result = CLIArguments.create([
+      "schema.json",
+      "input.md",
+      "output.json",
+      "--verbose",
+      "--template",
+      "template.json",
+    ]);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data.verbose, true);
+      assertEquals(result.data.templatePath, "template.json");
+    }
+  });
+
+  await t.step("should work without template option", () => {
+    const result = CLIArguments.create([
+      "schema.json",
+      "input.md",
+      "output.json",
+    ]);
+
+    assertEquals(result.ok, true);
+    if (result.ok) {
+      assertEquals(result.data.templatePath, undefined);
+    }
+  });
 });

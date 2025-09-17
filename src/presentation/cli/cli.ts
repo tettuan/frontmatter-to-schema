@@ -274,6 +274,7 @@ export class CLI {
       expandedPatternResult.data,
       cliArgs.outputPath,
       cliArgs.verbose,
+      cliArgs.templatePath,
     );
   }
 
@@ -298,6 +299,7 @@ OPTIONS:
   -v, --version        Show version information
   --verbose            Enable verbose logging
   --generate-prompt    Generate prompt for creating schema and template files
+  --template, -t       Path to custom template file (e.g., template.json)
 
 REQUIRED PERMISSIONS:
   --allow-read   Read schema files and markdown documents
@@ -318,6 +320,9 @@ EXAMPLES:
 
   # With verbose logging
   deno run --allow-read --allow-write cli.ts schema.json docs/ output.json --verbose
+
+  # With custom template
+  deno run --allow-read --allow-write cli.ts schema.json docs/ output.json --template template.json
 
   # Advanced debug logging (optional --allow-env)
   deno run --allow-read --allow-write --allow-env cli.ts schema.json docs/ output.json
@@ -372,6 +377,7 @@ TROUBLESHOOTING:
     inputPattern: string,
     outputPath: string,
     verbose: boolean = false,
+    templatePath?: string,
   ): Promise<Result<void, DomainError & { message: string }>> {
     // Recreate orchestrator and logger with proper verbose configuration if needed
     if (verbose) {
@@ -421,7 +427,9 @@ TROUBLESHOOTING:
     }
 
     // Create discriminated union configurations following Totality principles
-    const templateConfig: TemplateConfig = { kind: "schema-derived" };
+    const templateConfig: TemplateConfig = templatePath
+      ? { kind: "explicit", templatePath: templatePath }
+      : { kind: "schema-derived" };
     const verbosityConfig: VerbosityConfig = verbose
       ? { kind: "verbose", enabled: true }
       : { kind: "quiet", enabled: false };
