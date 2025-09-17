@@ -14,6 +14,7 @@ export class CLIArguments {
   readonly schemaPath: string;
   readonly inputPattern: string;
   readonly outputPath: string;
+  readonly templatePath?: string;
   readonly verbose: boolean;
   readonly generatePrompt: boolean;
 
@@ -23,12 +24,14 @@ export class CLIArguments {
     outputPath: string,
     verbose: boolean,
     generatePrompt: boolean,
+    templatePath?: string,
   ) {
     this.schemaPath = schemaPath;
     this.inputPattern = inputPattern;
     this.outputPath = outputPath;
     this.verbose = verbose;
     this.generatePrompt = generatePrompt;
+    this.templatePath = templatePath;
   }
 
   /**
@@ -38,13 +41,25 @@ export class CLIArguments {
   static create(
     args: string[],
   ): Result<CLIArguments, ValidationError & { message: string }> {
-    // Extract flags
+    // Extract flags and template option
     const verbose = args.includes("--verbose");
     const generatePrompt = args.includes("--generate-prompt");
-    const filteredArgs = args.filter((arg) =>
+
+    // Extract template path if provided
+    let templatePath: string | undefined;
+    const templateIndex = args.findIndex((arg) =>
+      arg === "--template" || arg === "-t"
+    );
+    if (templateIndex !== -1 && templateIndex + 1 < args.length) {
+      templatePath = args[templateIndex + 1];
+    }
+
+    const filteredArgs = args.filter((arg, index) =>
       arg !== "--verbose" && arg !== "--generate-prompt" &&
       !arg.startsWith("--help") && !arg.startsWith("-h") &&
-      !arg.startsWith("--version") && !arg.startsWith("-v")
+      !arg.startsWith("--version") && !arg.startsWith("-v") &&
+      !(arg === "--template" || arg === "-t") &&
+      !(templateIndex !== -1 && index === templateIndex + 1)
     );
 
     // When using --generate-prompt, only 2 arguments are needed (schema and input)
@@ -94,6 +109,7 @@ export class CLIArguments {
           outputPath,
           verbose,
           generatePrompt,
+          templatePath,
         ),
       );
     }
@@ -145,6 +161,7 @@ export class CLIArguments {
         outputPath,
         verbose,
         generatePrompt,
+        templatePath,
       ),
     );
   }

@@ -48,7 +48,10 @@ Deno.test("SchemaPath - rejects unsupported extension", () => {
   assertEquals(isErr(result), true);
 
   if (isErr(result)) {
-    assertEquals(result.error.message.includes(".json, .yaml, or .yml"), true);
+    assertEquals(
+      result.error.message.includes("Unsupported schema format"),
+      true,
+    );
   }
 });
 

@@ -1,5 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { FileExtension } from "../../shared/value-objects/file-extension.ts";
+import { SupportedFormats } from "../../shared/value-objects/supported-formats.ts";
 
 export class FilePath {
   private constructor(private readonly value: string) {}
@@ -42,9 +44,11 @@ export class FilePath {
   }
 
   getExtension(): string {
-    const fileName = this.getFileName();
-    const lastDot = fileName.lastIndexOf(".");
-    return lastDot === -1 ? "" : fileName.substring(lastDot + 1);
+    const ext = FileExtension.fromPath(this.value);
+    if (ext.ok) {
+      return ext.data.getValue().substring(1); // Remove leading dot
+    }
+    return "";
   }
 
   getDirectory(): string {
@@ -53,8 +57,11 @@ export class FilePath {
   }
 
   isMarkdown(): boolean {
-    const ext = this.getExtension().toLowerCase();
-    return ext === "md" || ext === "markdown";
+    const ext = FileExtension.fromPath(this.value);
+    if (ext.ok) {
+      return SupportedFormats.isSupported(ext.data, "markdown");
+    }
+    return false;
   }
 
   resolve(basePath: string): FilePath {

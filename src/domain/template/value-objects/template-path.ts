@@ -1,5 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { FileExtension } from "../../shared/value-objects/file-extension.ts";
+import { SupportedFormats } from "../../shared/value-objects/supported-formats.ts";
 
 export class TemplatePath {
   private constructor(private readonly value: string) {}
@@ -12,15 +14,13 @@ export class TemplatePath {
     }
 
     const trimmed = path.trim();
-    if (
-      !trimmed.endsWith(".json") && !trimmed.endsWith(".yaml") &&
-      !trimmed.endsWith(".yml")
-    ) {
+    const validationResult = SupportedFormats.validatePath(trimmed, "template");
+    if (!validationResult.ok) {
       return err(createError({
         kind: "InvalidFormat",
         format: "template path",
         value: trimmed,
-      }, "Template path must end with .json, .yaml, or .yml"));
+      }, validationResult.error.message));
     }
 
     return ok(new TemplatePath(trimmed));
@@ -49,6 +49,11 @@ export class TemplatePath {
   }
 
   getFormat(): "json" | "yaml" {
+    const ext = FileExtension.fromPath(this.value);
+    if (ext.ok) {
+      return ext.data.getValue() === ".json" ? "json" : "yaml";
+    }
+    // Fallback for safety, though this should not happen due to validation
     return this.value.endsWith(".json") ? "json" : "yaml";
   }
 
