@@ -134,6 +134,68 @@ export class FrontmatterTransformationService {
       actualBounds = defaultBoundsResult.data;
     }
 
+    // メモリ境界監視振れ幅デバッグ情報 (メモリ管理変動制御フロー Iteration 15)
+    const memoryBoundsVarianceDebug = {
+      varianceTarget: "memory-bounds-monitoring-variance-control",
+      boundsConfiguration: {
+        providedBounds: !!processingBounds,
+        boundsType: actualBounds.kind,
+        fileCount: filesResult.data.length,
+        boundsCreationMethod: processingBounds
+          ? "external-provided"
+          : "factory-generated",
+      },
+      memoryMonitoringVarianceFactors: {
+        dynamicBoundsCalculation: !processingBounds,
+        fileCountImpact: filesResult.data.length,
+        expectedMemoryGrowthPattern: actualBounds.kind === "bounded"
+          ? "bounded-growth"
+          : "unlimited-growth",
+        monitoringOverhead: "per-file-check",
+        boundsCheckingFrequency: "every-100-files",
+      },
+      memoryVariancePrediction: {
+        estimatedPeakMemory: `${filesResult.data.length * 2}MB`,
+        memoryGrowthRate: "O(n)-linear",
+        monitoringImpact: `${Math.ceil(filesResult.data.length / 100) * 5}ms`,
+        boundsViolationRisk: actualBounds.kind === "unbounded"
+          ? "low"
+          : "medium",
+      },
+      memoryVarianceRisks: {
+        boundsCreationVariance: !processingBounds ? "high" : "none",
+        monitoringOverheadVariance: "medium", // 監視オーバーヘッド変動
+        memoryGrowthPredictionVariance: "high", // メモリ成長予測変動
+        boundsViolationHandlingVariance: "low", // 境界違反処理変動
+      },
+      varianceReductionStrategy: {
+        targetReduction: "predictive-bounds-optimization",
+        recommendedApproach: "adaptive-bounds-scaling",
+        monitoringOptimization: "threshold-based-checking",
+        memoryPredictionImprovement: "learning-based-estimation",
+      },
+      debugLogLevel: "memory-bounds-variance", // メモリ境界変動詳細ログ
+      memoryVarianceTrackingEnabled: true, // メモリ変動追跡有効
+    };
+
+    const currentMemory = Deno.memoryUsage();
+    activeLogger?.debug("メモリ境界監視振れ幅デバッグ情報", {
+      ...memoryBoundsVarianceDebug,
+      currentSystemState: {
+        heapUsedMB: Math.round(currentMemory.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(currentMemory.heapTotal / 1024 / 1024),
+        systemMemoryPressure:
+          currentMemory.heapUsed / currentMemory.heapTotal > 0.8
+            ? "high"
+            : "normal",
+        estimatedMemoryAfterProcessing: Math.round(
+          (currentMemory.heapUsed + filesResult.data.length * 2 * 1024 * 1024) /
+            1024 / 1024,
+        ),
+      },
+      timestamp: new Date().toISOString(),
+    });
+
     const boundsMonitor = ProcessingBoundsMonitor.create(actualBounds);
 
     activeLogger?.debug(
@@ -153,6 +215,71 @@ export class FrontmatterTransformationService {
     const useParallel = options?.parallel === true &&
       filesResult.data.length > 1;
     const maxWorkers = options?.maxWorkers || 4;
+
+    // 処理戦略切り替え振れ幅デバッグ情報 (高変動箇所特定フロー Iteration 13)
+    const processingStrategyVarianceDebug = {
+      varianceTarget: "processing-strategy-switch-variance-reduction",
+      strategySelectionVariance: {
+        parallelThreshold: 1, // useParallel条件: filesResult.data.length > 1
+        workerCountVariance: `1-${maxWorkers}`, // 1～maxWorkers の変動範囲
+        fileCountImpact: filesResult.data.length, // ファイル数による戦略影響
+        binaryDecisionVariance: useParallel
+          ? "parallel-selected"
+          : "sequential-selected",
+      },
+      processingVarianceFactors: {
+        memoryAllocationPattern: useParallel
+          ? "batch-concurrent"
+          : "sequential-accumulative",
+        workerPoolOverhead: useParallel
+          ? `${maxWorkers}-workers`
+          : "no-workers",
+        coordinationComplexity: useParallel
+          ? "high-sync-overhead"
+          : "linear-processing",
+        errorHandlingStrategy: useParallel
+          ? "batch-aggregation"
+          : "immediate-propagation",
+      },
+      predictedVarianceImpact: {
+        memoryVarianceRisk: useParallel ? "high-burst" : "gradual-growth",
+        processingTimeVariability: useParallel
+          ? `${maxWorkers}x-speedup-variance`
+          : "linear-time",
+        resourceUtilizationVariance: useParallel
+          ? "cpu-intensive-burst"
+          : "memory-steady",
+        errorRecoveryVariance: useParallel
+          ? "batch-failure-impact"
+          : "single-file-failure",
+      },
+      varianceReductionStrategy: {
+        targetVarianceReduction: "binary-to-adaptive", // 二元選択 → 適応的調整
+        recommendedApproach: "dynamic-worker-scaling", // 動的ワーカー調整
+        memoryVarianceControl: "adaptive-batch-sizing", // 適応的バッチサイズ
+        performanceVarianceStabilization: "predictive-strategy-selection", // 予測的戦略選択
+      },
+      debugLogLevel: "processing-strategy-variance", // 処理戦略変動詳細ログ
+      varianceTrackingEnabled: true, // 変動追跡有効
+    };
+
+    activeLogger?.debug("処理戦略切り替え振れ幅デバッグ情報", {
+      ...processingStrategyVarianceDebug,
+      strategySelection: {
+        useParallel,
+        maxWorkers,
+        fileCount: filesResult.data.length,
+        estimatedMemoryImpact: useParallel
+          ? `${maxWorkers * 50}MB-burst`
+          : `${filesResult.data.length * 2}MB-gradual`,
+        estimatedTimeRange: useParallel
+          ? `${
+            Math.ceil(filesResult.data.length / maxWorkers) * 50
+          }ms-optimistic`
+          : `${filesResult.data.length * 50}ms-linear`,
+      },
+      timestamp: new Date().toISOString(),
+    });
 
     if (useParallel) {
       activeLogger?.info(
@@ -566,6 +693,63 @@ export class FrontmatterTransformationService {
       { document: MarkdownDocument; frontmatterData: FrontmatterData }
     > = [];
     const errors: Array<DomainError & { message: string }> = [];
+
+    // ワーカープール振れ幅デバッグ情報 (並列処理変動制御フロー Iteration 14)
+    const workerPoolVarianceDebug = {
+      varianceTarget: "worker-pool-variance-control",
+      workerPoolConfiguration: {
+        maxWorkers,
+        fileCount: filePaths.length,
+        optimalWorkerCount: Math.min(maxWorkers, filePaths.length),
+        workerUtilizationRatio: filePaths.length / maxWorkers,
+        parallelEfficiencyPredictiion: maxWorkers > filePaths.length
+          ? "over-provisioned"
+          : "optimal-or-under-provisioned",
+      },
+      batchingVarianceFactors: {
+        calculatedBatchSize: Math.max(
+          1,
+          Math.ceil(filePaths.length / maxWorkers),
+        ),
+        batchCountVariance: Math.ceil(filePaths.length / maxWorkers),
+        batchBalancing: (filePaths.length % maxWorkers) === 0
+          ? "perfect"
+          : "unbalanced",
+        lastBatchSize: filePaths.length %
+          Math.max(1, Math.ceil(filePaths.length / maxWorkers)),
+        workerLoadDistribution: "round-robin-batching",
+      },
+      coordinationVarianceRisks: {
+        promiseAllSynchronization: "high-variance", // Promise.all 同期オーバーヘッド
+        batchResultAggregation: "medium-variance", // バッチ結果集約の複雑性
+        errorHandlingComplexity: "high-variance", // 並列エラーハンドリング複雑性
+        memoryCoordinationOverhead: "medium-variance", // メモリ協調オーバーヘッド
+      },
+      workerPoolVarianceMetrics: {
+        estimatedMemoryPerWorker: `${
+          Math.ceil(filePaths.length / maxWorkers) * 2
+        }MB`,
+        estimatedCpuUtilization: `${Math.min(100, maxWorkers * 25)}%`,
+        estimatedCoordinationLatency: `${maxWorkers * 5}ms`,
+        estimatedVarianceRange: `${maxWorkers}x-${
+          Math.ceil(maxWorkers * 1.5)
+        }x-speedup`,
+      },
+      debugLogLevel: "worker-pool-variance", // ワーカープール変動詳細ログ
+      parallelVarianceTrackingEnabled: true, // 並列変動追跡有効
+    };
+
+    activeLogger?.debug("ワーカープール振れ幅デバッグ情報", {
+      ...workerPoolVarianceDebug,
+      realTimeMetrics: {
+        currentMemoryMB: Math.round(Deno.memoryUsage().heapUsed / 1024 / 1024),
+        processingStartTime: performance.now(),
+        expectedFinishTime: `+${
+          Math.ceil(filePaths.length / maxWorkers) * 100
+        }ms`,
+      },
+      timestamp: new Date().toISOString(),
+    });
 
     // Create batches for worker processing
     const batchSize = Math.max(1, Math.ceil(filePaths.length / maxWorkers));
