@@ -133,7 +133,7 @@ Deno.test("Requirements Examples E2E", async (t) => {
           content: {
             type: "object",
             properties: {
-              articles: { type: "array" },
+              articles: { type: "array", items: { type: "object" } },
             },
           },
         },
