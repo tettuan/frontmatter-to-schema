@@ -7,13 +7,7 @@
       "tests/e2e/test-output/**/*",
       "tests/**/*.disabled.ts",
       "tmp/**/*"
-    ],
-    "parallel": true,
-    "shuffle": false,
-    "jobs": 4,
-    "failFast": false,
-    "filter": "",
-    "timeout": 30000
+    ]
   },
   "testSuites": {
     "unit": {
