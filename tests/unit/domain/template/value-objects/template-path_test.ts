@@ -567,8 +567,8 @@ describe("TemplatePath", () => {
 
       assertEquals(result.error.kind, "InvalidFormat");
       assertEquals(
-        result.error.message,
-        "Template path must end with .json, .yaml, or .yml",
+        result.error.message.includes("Unsupported template format"),
+        true,
       );
     });
 

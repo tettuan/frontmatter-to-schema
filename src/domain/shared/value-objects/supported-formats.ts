@@ -29,7 +29,7 @@ export class SupportedFormats {
   private static readonly FORMATS: readonly FormatCategory[] = [
     {
       kind: "schema",
-      extensions: [".json", ".jsonschema"],
+      extensions: [".json", ".jsonschema", ".yaml", ".yml"],
     },
     {
       kind: "template",

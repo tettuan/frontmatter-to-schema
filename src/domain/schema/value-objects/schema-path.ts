@@ -1,5 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { FileExtension } from "../../shared/value-objects/file-extension.ts";
+import { SupportedFormats } from "../../shared/value-objects/supported-formats.ts";
 
 export class SchemaPath {
   private constructor(private readonly value: string) {}
@@ -12,21 +14,16 @@ export class SchemaPath {
     }
 
     const trimmed = path.trim();
-    if (!this.isSupportedSchemaFormat(trimmed)) {
+    const validationResult = SupportedFormats.validatePath(trimmed, "schema");
+    if (!validationResult.ok) {
       return err(createError({
         kind: "InvalidFormat",
         format: "schema path",
         value: trimmed,
-      }, "Schema path must end with .json, .yaml, or .yml"));
+      }, validationResult.error.message));
     }
 
     return ok(new SchemaPath(trimmed));
-  }
-
-  private static isSupportedSchemaFormat(path: string): boolean {
-    return path.endsWith(".json") ||
-      path.endsWith(".yaml") ||
-      path.endsWith(".yml");
   }
 
   getValue(): string {
@@ -62,10 +59,12 @@ export class SchemaPath {
   }
 
   getFormat(): "json" | "yaml" {
-    if (this.value.endsWith(".json")) {
-      return "json";
+    const ext = FileExtension.fromPath(this.value);
+    if (ext.ok) {
+      return ext.data.getValue() === ".json" ? "json" : "yaml";
     }
-    return "yaml"; // .yaml or .yml both map to yaml format
+    // Fallback for safety, though this should not happen due to validation
+    return this.value.endsWith(".json") ? "json" : "yaml";
   }
 
   toString(): string {
