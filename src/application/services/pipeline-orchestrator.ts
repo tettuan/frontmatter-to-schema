@@ -762,7 +762,11 @@ export class PipelineOrchestrator {
     // Step 4: Process documents (成果A-D) - Enhanced with batch processing debug
     const docProcessingStartTime = performance.now();
     const initialDocMemory = Deno.memoryUsage();
-    const validationRules = schema.getValidationRules();
+    const validationRulesResult = schema.getValidationRules();
+    if (!validationRulesResult.ok) {
+      return err(validationRulesResult.error);
+    }
+    const validationRules = validationRulesResult.data;
 
     // Calculate optimal batch configuration based on strategy
     const estimatedDocumentCount = 100; // Will be determined by file listing
