@@ -22,7 +22,6 @@ import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmat
 import { TemplateCoordinator } from "../coordinators/template-coordinator.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import {
-  createLogContext,
   EnhancedDebugLogger,
 } from "../../domain/shared/services/debug-logger.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
@@ -37,6 +36,10 @@ import {
 } from "../../domain/configuration/services/configuration-loader.ts";
 import { ComplexityMetricsService } from "../../domain/monitoring/services/complexity-metrics-service.ts";
 import { EntropyManagementService } from "../../domain/monitoring/services/entropy-management-service.ts";
+import {
+  LoggingService,
+  LoggingServiceFactory,
+} from "../../infrastructure/logging/logging-service.ts";
 import {
   PipelineExecutionConfig,
   PipelineExecutionService,
@@ -165,6 +168,7 @@ export class PipelineOrchestrator {
   private readonly templateCoordinator: TemplateCoordinator;
   private readonly complexityMetricsService: ComplexityMetricsService;
   private readonly entropyManagementService: EntropyManagementService;
+  private readonly loggingService: LoggingService;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
@@ -237,6 +241,11 @@ export class PipelineOrchestrator {
       );
     }
     this.entropyManagementService = entropyManagementResult.data;
+
+    // Initialize logging service from processing logger state
+    this.loggingService = LoggingServiceFactory.fromProcessingLoggerState(
+      this.processingLoggerState,
+    );
 
     // DDD境界統合点デバッグ情報 (仕様駆動強化フロー Iteration 8)
     const dddBoundaryIntegrationDebug = {
@@ -338,39 +347,31 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Helper method to log debug messages using discriminated union pattern
+   * Helper method to log debug messages - delegates to LoggingService
    */
   private logDebug(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.debug(message, logContext);
+    this.loggingService.debug(message, context);
   }
 
   /**
-   * Helper method to log info messages using discriminated union pattern
+   * Helper method to log info messages - delegates to LoggingService
    */
   private logInfo(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.info(message, logContext);
+    this.loggingService.info(message, context);
   }
 
   /**
-   * Helper method to log warning messages using discriminated union pattern
+   * Helper method to log warning messages - delegates to LoggingService
    */
   private logWarn(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.warn(message, logContext);
+    this.loggingService.warn(message, context);
   }
 
   /**
-   * Helper method to log error messages using discriminated union pattern
+   * Helper method to log error messages - delegates to LoggingService
    */
   private logError(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.error(message, logContext);
+    this.loggingService.error(message, context);
   }
 
   /**
