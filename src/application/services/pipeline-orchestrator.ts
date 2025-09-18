@@ -18,13 +18,8 @@ import { FrontmatterTransformationService } from "../../domain/frontmatter/servi
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
-import { Schema } from "../../domain/schema/entities/schema.ts";
-import { Template } from "../../domain/template/entities/template.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
-import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
-import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
-import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
-import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { TemplateCoordinator } from "../coordinators/template-coordinator.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import {
   createLogContext,
@@ -32,15 +27,21 @@ import {
 } from "../../domain/shared/services/debug-logger.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import { ProcessingCoordinator } from "../coordinators/processing-coordinator.ts";
 import {
   ComplexityFactors,
   EntropyReductionService,
 } from "../../domain/shared/services/entropy-reduction-service.ts";
 import {
+  ComplexityMetricsConfiguration,
+  ConfigurationLoader,
+} from "../../domain/configuration/services/configuration-loader.ts";
+import {
   PipelineExecutionConfig,
   PipelineExecutionService,
-} from "../../domain/pipeline/services/pipeline-execution-service.ts";
-import { PipelineOrchestratorContext } from "../../domain/pipeline/services/pipeline-orchestrator-context.ts";
+} from "../pipeline/services/pipeline-execution-service.ts";
+import { PipelineOrchestratorContext } from "../pipeline/services/pipeline-orchestrator-context.ts";
+import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
 
 /**
  * Processing logger state using discriminated union for enhanced and debug loggers
@@ -158,6 +159,10 @@ export interface FileSystem {
  * 6. Generate final output (成果Z)
  */
 export class PipelineOrchestrator {
+  private readonly schemaCoordinator: SchemaCoordinator;
+  private readonly processingCoordinator: ProcessingCoordinator;
+  private readonly templateCoordinator: TemplateCoordinator;
+
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
@@ -175,7 +180,44 @@ export class PipelineOrchestrator {
       }
       return result.data;
     })(),
+    private readonly complexityMetricsConfig?: ComplexityMetricsConfiguration,
   ) {
+    // Initialize SchemaCoordinator for domain service extraction (Phase C.1)
+    const schemaCoordinatorResult = SchemaCoordinator.create(
+      this.fileSystem,
+      this.schemaCache,
+    );
+    if (!schemaCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create SchemaCoordinator: ${schemaCoordinatorResult.error.message}`,
+      );
+    }
+    this.schemaCoordinator = schemaCoordinatorResult.data;
+
+    // Initialize ProcessingCoordinator for domain service extraction (Phase C.2)
+    const processingCoordinatorResult = ProcessingCoordinator.create(
+      this.frontmatterTransformer,
+    );
+    if (!processingCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create ProcessingCoordinator: ${processingCoordinatorResult.error.message}`,
+      );
+    }
+    this.processingCoordinator = processingCoordinatorResult.data;
+
+    // Initialize TemplateCoordinator for domain service extraction (Phase C.3)
+    const templateCoordinatorResult = TemplateCoordinator.create(
+      this.templatePathResolver,
+      this.outputRenderingService,
+      this.fileSystem,
+    );
+    if (!templateCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create TemplateCoordinator: ${templateCoordinatorResult.error.message}`,
+      );
+    }
+    this.templateCoordinator = templateCoordinatorResult.data;
+
     // DDD境界統合点デバッグ情報 (仕様駆動強化フロー Iteration 8)
     const dddBoundaryIntegrationDebug = {
       contextBoundaries: {
@@ -216,6 +258,63 @@ export class PipelineOrchestrator {
       ...dddBoundaryIntegrationDebug,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  /**
+   * Factory method to create PipelineOrchestrator with external configuration
+   * Follows Totality principles with Result<T,E> error handling
+   */
+  static async createWithConfiguration(
+    frontmatterTransformer: FrontmatterTransformationService,
+    schemaProcessor: SchemaProcessingService,
+    outputRenderingService: OutputRenderingService,
+    templatePathResolver: TemplatePathResolver,
+    fileSystem: FileSystem,
+    schemaCache: SchemaCache,
+    processingLoggerState: ProcessingLoggerState,
+    configPath: string = "./config/complexity-metrics.yml",
+    defaultStrategyConfig?: PipelineStrategyConfig,
+  ): Promise<Result<PipelineOrchestrator, DomainError & { message: string }>> {
+    // Load configuration from external file
+    const configResult = await ConfigurationLoader.loadFromFile(configPath);
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message:
+            `Failed to load complexity metrics configuration: ${configResult.error.message}`,
+        }),
+      };
+    }
+
+    // Create PipelineOrchestrator with configuration
+    try {
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer,
+        schemaProcessor,
+        outputRenderingService,
+        templatePathResolver,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+        defaultStrategyConfig,
+        undefined, // entropyReductionService - use default
+        configResult.data,
+      );
+
+      return { ok: true, data: orchestrator };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `Failed to create PipelineOrchestrator: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        }),
+      };
+    }
   }
 
   /**
@@ -415,6 +514,29 @@ export class PipelineOrchestrator {
   }
 
   /**
+   * Get complexity factors from configuration or default hardcoded values
+   * Follows Totality principles by handling both configured and fallback scenarios
+   */
+  private getComplexityFactors(): ComplexityFactors {
+    if (this.complexityMetricsConfig) {
+      return this.complexityMetricsConfig.complexityFactors
+        .toComplexityFactors();
+    }
+
+    // Fallback to hardcoded values for backward compatibility
+    // TODO: Remove this fallback once all instances use external configuration
+    return {
+      classCount: 45,
+      interfaceCount: 12,
+      abstractionLayers: 4,
+      cyclomaticComplexity: 257,
+      dependencyDepth: 6,
+      conditionalBranches: 35,
+      genericTypeParameters: 8,
+    };
+  }
+
+  /**
    * Calculates system entropy for AI complexity control
    * Based on entropy formula from ai-complexity-control_compact.ja.md
    * Now uses EntropyReductionService for accurate calculation
@@ -456,16 +578,8 @@ export class PipelineOrchestrator {
       robustnessTrackingEnabled: true, // 強固性進捗追跡有効
     };
 
-    // 警告: これらの値は設定外部化が必要（ハードコーディング禁止規定違反）
-    const complexityFactors: ComplexityFactors = {
-      classCount: 45, // TODO: config/complexity-metrics.yml へ外部化必要
-      interfaceCount: 12, // TODO: config/complexity-metrics.yml へ外部化必要
-      abstractionLayers: 4, // TODO: config/complexity-metrics.yml へ外部化必要
-      cyclomaticComplexity: 257, // TODO: config/complexity-metrics.yml へ外部化必要
-      dependencyDepth: 6, // TODO: config/complexity-metrics.yml へ外部化必要
-      conditionalBranches: 35, // TODO: config/complexity-metrics.yml へ外部化必要
-      genericTypeParameters: 8, // TODO: config/complexity-metrics.yml へ外部化必要
-    };
+    // Get complexity factors from configuration (externalized) or fallback defaults
+    const complexityFactors = this.getComplexityFactors();
 
     this.logDebug("ハードコーディング排除デバッグ情報", {
       ...hardcodingEliminationDebug,
@@ -487,15 +601,7 @@ export class PipelineOrchestrator {
     reductionPlan: any;
     isAcceptable: boolean;
   } {
-    const complexityFactors: ComplexityFactors = {
-      classCount: 45,
-      interfaceCount: 12,
-      abstractionLayers: 4,
-      cyclomaticComplexity: 257,
-      dependencyDepth: 6,
-      conditionalBranches: 35,
-      genericTypeParameters: 8,
-    };
+    const complexityFactors = this.getComplexityFactors();
 
     const currentEntropy = this.entropyReductionService.calculateSystemEntropy(
       complexityFactors,
@@ -896,7 +1002,9 @@ export class PipelineOrchestrator {
         timestamp: new Date().toISOString(),
       },
     );
-    const schemaResult = await this.loadSchema(config.schemaPath);
+    const schemaResult = await this.schemaCoordinator.loadSchema(
+      config.schemaPath,
+    );
     if (!schemaResult.ok) {
       return schemaResult;
     }
@@ -918,11 +1026,6 @@ export class PipelineOrchestrator {
     const explicitTemplatePath = config.templateConfig.kind === "explicit"
       ? config.templateConfig.templatePath
       : undefined;
-
-    const templatePathConfig = {
-      schemaPath: config.schemaPath,
-      explicitTemplatePath,
-    };
 
     // Enhance context with input parameters and decision logic
     const enhancedContext = templateResolutionContext.data
@@ -950,9 +1053,10 @@ export class PipelineOrchestrator {
       templateDecisionResult.data,
     );
 
-    const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
+    const resolvePathsResult = this.templateCoordinator.resolveTemplatePaths(
       schema,
-      templatePathConfig,
+      config.templateConfig,
+      config.schemaPath,
     );
     if (!resolvePathsResult.ok) {
       const enhancedError = createEnhancedError(
@@ -1048,16 +1152,14 @@ export class PipelineOrchestrator {
       ? effectiveStrategy.getConcurrencyLevel()
       : 1;
 
-    const processedDataResult = await this.frontmatterTransformer
-      .transformDocuments(
+    const processedDataResult = await this.processingCoordinator
+      .processDocuments(
         config.inputPattern,
         validationRules,
         schema,
-        undefined, // processingBounds - using default
-        {
-          parallel: shouldUseParallel,
-          maxWorkers: maxWorkers,
-        },
+        shouldUseParallel
+          ? { kind: "parallel", maxWorkers: maxWorkers }
+          : { kind: "sequential" },
       );
     if (!processedDataResult.ok) {
       return processedDataResult;
@@ -1183,10 +1285,11 @@ export class PipelineOrchestrator {
         extractionDecisionResult.data,
       );
 
-      const frontmatterPartResult = this.extractFrontmatterPartData(
-        mainData,
-        schema,
-      );
+      const frontmatterPartResult = this.processingCoordinator
+        .extractFrontmatterPartData(
+          mainData,
+          schema,
+        );
       if (!frontmatterPartResult.ok) {
         const enhancedError = createEnhancedError(
           frontmatterPartResult.error,
@@ -1223,13 +1326,13 @@ export class PipelineOrchestrator {
       // No frontmatter-part processing needed for standard single template
     }
 
-    // Step 6: Use OutputRenderingService to render and write output
+    // Step 6: Use TemplateCoordinator to render and write output
     // Convert VerbosityConfig to VerbosityMode
     const verbosityMode: VerbosityMode =
       config.verbosityConfig.kind === "verbose"
         ? { kind: "verbose" }
         : { kind: "normal" };
-    const renderResult = this.outputRenderingService.renderOutput(
+    const renderResult = this.templateCoordinator.renderOutput(
       templatePath,
       itemsTemplatePath,
       mainData,
@@ -1239,398 +1342,5 @@ export class PipelineOrchestrator {
       verbosityMode,
     );
     return renderResult;
-  }
-
-  /**
-   * Load schema from file system
-   * CPS-style debugging: monitoring continuation-passing variance
-   */
-  private async loadSchema(
-    schemaPath: string,
-  ): Promise<Result<Schema, DomainError & { message: string }>> {
-    // CPS Debug: Track continuation execution variance
-    const cpsMetrics = {
-      continuationStyle: "async-await", // vs "generator" | "promise-chain"
-      memoryFootprint: "high", // due to Promise accumulation
-      errorPropagation: "try-catch-boundary", // vs "yield-immediate"
-      debuggability: "stack-trace-obscured", // vs "step-debuggable"
-    };
-
-    this.logDebug("CPS execution variance tracking", {
-      operation: "schema-loading-continuation",
-      cpsMetrics,
-      timestamp: new Date().toISOString(),
-    });
-    // Performance optimization: Check schema cache first
-    const cache = this.schemaCache;
-
-    // Try to get from cache
-    const cacheResult = await cache.get(schemaPath);
-    if (!cacheResult.ok) {
-      // Cache error - continue with normal loading but log the issue
-      this.logWarn(
-        `Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
-        {
-          operation: "schema-cache-lookup",
-          location: "PipelineOrchestrator.loadSchema",
-          schemaPath,
-          errorMessage: String(cacheResult.error),
-          timestamp: new Date().toISOString(),
-        },
-      );
-    } else if (cacheResult.data) {
-      // Cache hit - create Schema entity from cached definition
-      const pathResult = SchemaPath.create(schemaPath);
-      if (!pathResult.ok) {
-        return pathResult;
-      }
-
-      const schemaResult = Schema.create(pathResult.data, cacheResult.data);
-      if (schemaResult.ok) {
-        return schemaResult;
-      }
-      // If Schema creation fails, continue with fresh load
-    }
-
-    // Cache miss or error - load from file system
-    const contentResult = await Promise.resolve(
-      this.fileSystem.read(schemaPath),
-    );
-    if (!contentResult.ok) {
-      return contentResult;
-    }
-
-    try {
-      const schemaData = JSON.parse(contentResult.data);
-
-      // Create schema path
-      const pathResult = SchemaPath.create(schemaPath);
-      if (!pathResult.ok) {
-        return pathResult;
-      }
-
-      // Create schema definition
-      const definitionResult = SchemaDefinition.create(schemaData);
-      if (!definitionResult.ok) {
-        return definitionResult;
-      }
-
-      // Cache the schema definition for future use
-      const setCacheResult = await cache.set(schemaPath, definitionResult.data);
-      if (!setCacheResult.ok) {
-        // Cache set error - continue but log the issue
-        this.logWarn(
-          `Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
-          {
-            operation: "schema-cache-set",
-            location: "PipelineOrchestrator.loadSchema",
-            schemaPath,
-            errorMessage: String(setCacheResult.error),
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
-
-      // Create schema entity
-      return Schema.create(pathResult.data, definitionResult.data);
-    } catch (error) {
-      // Create error context for schema loading failure
-      const schemaErrorContext = ErrorContextFactory.forSchema(
-        "Schema Loading",
-        schemaPath,
-        "loadSchema",
-      );
-
-      if (!schemaErrorContext.ok) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message: `Failed to parse schema: ${error}`,
-        }));
-      }
-
-      const enhancedContext = schemaErrorContext.data
-        .withInput("filePath", schemaPath)
-        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
-        .withInput("errorMessage", String(error));
-
-      const baseError = createError({
-        kind: "InvalidSchema",
-        message: `Failed to parse schema: ${error}`,
-      });
-
-      return err(createEnhancedError(
-        baseError,
-        enhancedContext,
-        `Schema parsing failed for ${schemaPath}`,
-      ));
-    }
-  }
-
-  /**
-   * Load template from file system
-   */
-  private async loadTemplate(
-    templatePath: string,
-  ): Promise<Result<Template, DomainError & { message: string }>> {
-    // Read template file
-    const contentResult = await Promise.resolve(
-      this.fileSystem.read(templatePath),
-    );
-    if (!contentResult.ok) {
-      return contentResult;
-    }
-
-    // Determine format from extension
-    const format = this.getTemplateFormat(templatePath);
-
-    // Create template path
-    const pathResult = TemplatePath.create(templatePath);
-    if (!pathResult.ok) {
-      return pathResult;
-    }
-
-    // Parse template content based on format
-    let templateData: unknown;
-    try {
-      if (format === "json") {
-        templateData = JSON.parse(contentResult.data);
-      } else if (format === "yaml") {
-        // For YAML, keep as string for now (would need YAML parser)
-        templateData = contentResult.data;
-      } else {
-        templateData = contentResult.data;
-      }
-    } catch (error) {
-      // Create error context for template loading failure
-      const templateErrorContext = ErrorContextFactory.forTemplate(
-        "Template Loading",
-        templatePath,
-        "loadTemplate",
-      );
-
-      if (!templateErrorContext.ok) {
-        return err(createError({
-          kind: "InvalidTemplate",
-          message: `Failed to parse template: ${error}`,
-        }));
-      }
-
-      const enhancedContext = templateErrorContext.data
-        .withInput("filePath", templatePath)
-        .withInput("templateFormat", format)
-        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
-        .withInput("errorMessage", String(error));
-
-      const baseError = createError({
-        kind: "InvalidTemplate",
-        message: `Failed to parse template: ${error}`,
-      });
-
-      return err(createEnhancedError(
-        baseError,
-        enhancedContext,
-        `Template parsing failed for ${templatePath}`,
-      ));
-    }
-
-    // Create template entity
-    return Template.create(pathResult.data, templateData);
-  }
-
-  /**
-   * Determine template format from file extension
-   */
-  private getTemplateFormat(path: string): "json" | "yaml" | "markdown" {
-    if (path.endsWith(".json")) return "json";
-    if (path.endsWith(".yml") || path.endsWith(".yaml")) return "yaml";
-    return "markdown";
-  }
-
-  /**
-   * Extract frontmatter-part data as array for {@items} expansion.
-   *
-   * Key insight: frontmatter-part path in schema indicates where aggregated
-   * data will be placed in final output, NOT where it exists in individual files.
-   * Individual markdown files contribute directly to the array items.
-   */
-  private extractFrontmatterPartData(
-    data: FrontmatterData,
-    schema: Schema,
-  ): Result<FrontmatterData[], DomainError & { message: string }> {
-    // Create context for frontmatter-part extraction
-    const extractionContext = ErrorContextFactory.forPipeline(
-      "Frontmatter-Part Extraction",
-      "extractFrontmatterPartData",
-      453,
-    );
-    if (!extractionContext.ok) {
-      return extractionContext;
-    }
-
-    const context = extractionContext.data
-      .withInput("inputDataKeys", Object.keys(data.getData()))
-      .withInput("inputDataSize", JSON.stringify(data.getData()).length);
-
-    // Check if schema has frontmatter-part definition
-    const pathResult = schema.findFrontmatterPartPath();
-    if (!pathResult.ok) {
-      // No frontmatter-part defined, return data as single item array
-      const noPathDecisionResult = Decision.create(
-        "Frontmatter-part path handling strategy",
-        ["return-single-item", "return-empty", "return-error"],
-        "No frontmatter-part path defined in schema, using fallback single-item strategy",
-      );
-      if (noPathDecisionResult.ok) {
-        const fallbackContext = context.withDecision(noPathDecisionResult.data);
-        this.logDebug(
-          "Frontmatter-part extraction context - no path defined",
-          {
-            operation: "frontmatter-part-extraction",
-            location: "PipelineOrchestrator.extractFrontmatterPartData",
-            decision: fallbackContext.getDebugInfo(),
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
-      return ok([data]);
-    }
-
-    const frontmatterPartPath = pathResult.data;
-    const pathContext = context.withInput(
-      "frontmatterPartPath",
-      frontmatterPartPath,
-    );
-
-    // Check if this data already contains an array at the frontmatter-part path
-    // This handles cases where a single file contains multiple items
-    const arrayDataResult = data.get(frontmatterPartPath);
-    const hasArrayData = arrayDataResult.ok &&
-      Array.isArray(arrayDataResult.data);
-    const arrayLength = hasArrayData ? arrayDataResult.data.length : 0;
-
-    const analysisContext = pathContext
-      .withInput("pathAccessSuccess", arrayDataResult.ok)
-      .withInput("isArrayData", hasArrayData)
-      .withInput("arrayLength", arrayLength);
-
-    if (hasArrayData) {
-      // File contains array at target path - extract individual items
-      const arrayProcessingDecisionResult = Decision.create(
-        "Array data processing strategy",
-        ["process-each-item", "return-as-is", "skip-processing"],
-        `Found array with ${arrayLength} items at frontmatter-part path, processing each item individually`,
-      );
-      if (!arrayProcessingDecisionResult.ok) {
-        return contextualErr(
-          arrayProcessingDecisionResult.error,
-          analysisContext,
-        );
-      }
-
-      const processingContext = analysisContext.withDecision(
-        arrayProcessingDecisionResult.data,
-      );
-
-      // Create processing progress for array items
-      const processingProgressResult = ProcessingProgress.create(
-        "Array Item Processing",
-        "Processing individual array items",
-        [],
-        arrayLength,
-      );
-      if (!processingProgressResult.ok) {
-        return contextualErr(processingProgressResult.error, processingContext);
-      }
-
-      const _progressContext = processingContext.withProgress(
-        processingProgressResult.data,
-      );
-      this.logDebug(
-        "Array processing context",
-        {
-          operation: "Pipeline: Frontmatter-Part Extraction",
-          location: "PipelineOrchestrator.extractFrontmatterPartData:453",
-          inputs:
-            "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
-          decisions: [
-            "Array data processing strategy (alternatives: process-each-item, return-as-is, skip-processing) - Found array with " +
-            arrayLength +
-            " items at frontmatter-part path, processing each item individually",
-          ],
-          progress:
-            "Array Item Processing: Processing individual array items (0%)",
-          timestamp: new Date().toISOString(),
-          contextDepth: 1,
-        },
-      );
-
-      const result: FrontmatterData[] = [];
-      for (let i = 0; i < arrayDataResult.data.length; i++) {
-        const item = arrayDataResult.data[i];
-        // Skip invalid items gracefully (null, primitives, etc.)
-        if (!item || typeof item !== "object") {
-          continue;
-        }
-
-        const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
-        if (!itemDataResult.ok) {
-          // Log the failure but continue processing other items gracefully
-          this.logDebug(
-            `Skipping invalid array item ${i}: ${itemDataResult.error.message}`,
-            {
-              operation: "array-item-processing",
-              location: "PipelineOrchestrator.extractFrontmatterPartData",
-              itemIndex: i,
-              errorType: itemDataResult.error.kind,
-              timestamp: new Date().toISOString(),
-            },
-          );
-          continue;
-        }
-        result.push(itemDataResult.data);
-      }
-
-      this.logDebug(
-        `Successfully extracted ${result.length} items from array`,
-        {
-          operation: "array-extraction-complete",
-          location: "PipelineOrchestrator.extractFrontmatterPartData",
-          extractedCount: result.length,
-          totalItems: arrayLength,
-          timestamp: new Date().toISOString(),
-        },
-      );
-      return ok(result);
-    } else {
-      // Default case: individual file contributes directly as one item
-      // This is the typical scenario for frontmatter-part processing
-      // Each markdown file's frontmatter becomes one item in the final array
-      const fallbackDecisionResult = Decision.create(
-        "Fallback extraction strategy",
-        ["single-item-array", "empty-array", "error"],
-        "No array found at frontmatter-part path, using fallback single-item strategy",
-      );
-      if (fallbackDecisionResult.ok) {
-        const _fallbackContext = analysisContext.withDecision(
-          fallbackDecisionResult.data,
-        );
-        this.logDebug(
-          "Fallback extraction context",
-          {
-            operation: "Pipeline: Frontmatter-Part Extraction",
-            location: "PipelineOrchestrator.extractFrontmatterPartData:453",
-            inputs:
-              "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
-            decisions: [
-              "Fallback extraction strategy (alternatives: single-item-array, empty-array, error) - No array found at frontmatter-part path, using fallback single-item strategy",
-            ],
-            progress: undefined,
-            timestamp: new Date().toISOString(),
-            contextDepth: 1,
-          },
-        );
-      }
-      return ok([data]);
-    }
   }
 }
