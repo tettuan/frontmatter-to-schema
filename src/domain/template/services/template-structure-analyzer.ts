@@ -1,11 +1,12 @@
-import { chain, ok, Result } from "../../shared/types/result.ts";
-import { TemplateError } from "../../shared/types/errors.ts";
+import { chain, err, ok, Result } from "../../shared/types/result.ts";
+import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { Template } from "../entities/template.ts";
 import {
   ArrayExpansionKey,
   TemplateStructure,
   VariableReference,
 } from "../value-objects/template-structure.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Analyzes template structure to identify dynamic keys and variable patterns
@@ -58,7 +59,14 @@ export class TemplateStructureAnalyzer {
     }
 
     if (content && typeof content === "object") {
-      return this.analyzeObjectContent(content as Record<string, unknown>);
+      const objResult = SafePropertyAccess.asRecord(content);
+      if (!objResult.ok) {
+        return err(createError({
+          kind: "InvalidTemplate",
+          message: "Content is not a valid object for structure analysis",
+        }));
+      }
+      return this.analyzeObjectContent(objResult.data);
     }
 
     // Handle primitive content

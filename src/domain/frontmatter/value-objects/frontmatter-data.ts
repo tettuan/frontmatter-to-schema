@@ -5,6 +5,7 @@ import {
   ValidationError,
 } from "../../shared/types/errors.ts";
 import { PathParser, PathSegment } from "../services/path-parser.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 export type FrontmatterContent = Record<string, unknown>;
 
@@ -18,14 +19,16 @@ export class FrontmatterData {
       return err(createError({ kind: "NoFrontmatter" }));
     }
 
-    if (typeof data !== "object" || Array.isArray(data)) {
+    // Use SafePropertyAccess to eliminate type assertion
+    const recordResult = SafePropertyAccess.asRecord(data);
+    if (!recordResult.ok) {
       return err(createError({
         kind: "MalformedFrontmatter",
         content: JSON.stringify(data).substring(0, 100),
       }));
     }
 
-    return ok(new FrontmatterData(data as FrontmatterContent));
+    return ok(new FrontmatterData(recordResult.data));
   }
 
   static empty(): FrontmatterData {
@@ -81,7 +84,17 @@ export class FrontmatterData {
         return ok(current);
       }
 
-      current = (current as Record<string, unknown>)[part];
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.getProperty(current, part);
+      if (!propertyResult.ok) {
+        return err(createError({
+          kind: "InvalidType",
+          expected: "object",
+          actual: typeof current,
+        }, `Expected object at path: ${path}`));
+      }
+
+      current = propertyResult.data;
     }
 
     if (current === undefined) {
@@ -130,7 +143,23 @@ export class FrontmatterData {
             ));
           }
 
-          current = (current as Record<string, unknown>)[segment.value];
+          // Use SafePropertyAccess to eliminate type assertion
+          const propertyResult = SafePropertyAccess.getProperty(
+            current,
+            segment.value,
+          );
+          if (!propertyResult.ok) {
+            return err(createError(
+              {
+                kind: "InvalidType",
+                expected: "object",
+                actual: typeof current,
+              },
+              `Cannot access property '${segment.value}' on non-object in path: ${originalPath}`,
+            ));
+          }
+
+          current = propertyResult.data;
           break;
         }
         case "arrayIndex": {
@@ -209,9 +238,14 @@ export class FrontmatterData {
     }
 
     const keys: string[] = [];
-    const record = obj as Record<string, unknown>;
 
-    for (const [key, value] of Object.entries(record)) {
+    // Use SafePropertyAccess to eliminate type assertion
+    const recordResult = SafePropertyAccess.asRecord(obj);
+    if (!recordResult.ok) {
+      return [];
+    }
+
+    for (const [key, value] of Object.entries(recordResult.data)) {
       const currentPath = prefix ? `${prefix}.${key}` : key;
 
       if (

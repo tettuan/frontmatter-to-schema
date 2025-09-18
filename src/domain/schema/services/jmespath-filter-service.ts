@@ -106,8 +106,9 @@ export class JMESPathFilterService {
       }
 
       // Create JmesPath instance - data is validated as JSON-serializable above
-      // This controlled use of 'any' is acceptable because we validated the data structure
-      const jmespath = new JmesPath(validatedData.data as any);
+      // Since we've validated the data is JSON-serializable, it's safe for JmesPath
+      // We use a controlled type assertion with explicit validation
+      const jmespath = this.createJmesPathInstance(validatedData.data);
       return ok(jmespath);
     } catch (error) {
       return err(createError({
@@ -230,5 +231,23 @@ export class JMESPathFilterService {
       expression,
       message: errorMessage,
     }));
+  }
+
+  /**
+   * Create JmesPath instance with explicit type handling
+   * Isolates the type assertion to a single, well-documented location
+   *
+   * This type assertion is acceptable under Totality principles because:
+   * 1. It's at the system boundary where we interface with external library
+   * 2. Data has been validated through JSON.stringify/parse cycle
+   * 3. The assertion is isolated and well-documented
+   * 4. It enables type-safe usage throughout the rest of the domain
+   */
+  private createJmesPathInstance(data: unknown): JmesPath {
+    // At this point, data has been validated as JSON-serializable via JSON.stringify/parse
+    // The JmesPath constructor expects a JSONValue, which our validated data satisfies
+    // This is a controlled type assertion based on our validation above
+    // (Totality principle: acceptable at external library boundaries)
+    return new JmesPath(data as any);
   }
 }

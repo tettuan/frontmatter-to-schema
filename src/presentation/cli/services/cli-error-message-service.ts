@@ -151,6 +151,16 @@ export class CLIErrorMessageService {
         return `Field not found: ${error.path}`;
       case "ValidationRuleNotFound":
         return `Validation rule not found for path: ${error.path}`;
+      case "DuplicateValue":
+        return `Duplicate value found in field: ${error.field}`;
+      case "ConfigNotFound":
+        return `Configuration not found: ${error.path}`;
+      case "ConfigReadError":
+        return `Configuration read error in field: ${error.field}`;
+      case "InvalidStructure":
+        return `Invalid structure in field: ${error.field}`;
+      case "UnknownError":
+        return `Unknown error in field: ${error.field}`;
 
       // SchemaError cases
       case "SchemaNotFound":

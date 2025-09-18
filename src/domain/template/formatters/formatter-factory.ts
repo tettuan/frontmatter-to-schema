@@ -49,6 +49,7 @@ export class FormatterFactory {
    * Check if a format is supported
    */
   static isFormatSupported(format: string): format is OutputFormat {
-    return this.formatters.has(format as OutputFormat);
+    // Safe type checking without type assertion
+    return format === "json" || format === "yaml" || format === "markdown";
   }
 }

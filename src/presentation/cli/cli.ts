@@ -23,6 +23,8 @@ import { CLIArguments } from "./value-objects/cli-arguments.ts";
 import { PathExpansionService } from "./services/path-expansion-service.ts";
 import { CLIErrorMessageService } from "./services/cli-error-message-service.ts";
 import { PromptGeneratorService } from "./services/prompt-generator-service.ts";
+import { SupportedFormats } from "../../domain/configuration/value-objects/supported-formats.ts";
+import { FormatConfigLoaderFactory } from "../../domain/configuration/services/format-config-loader.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -38,6 +40,7 @@ export class CLI {
   private pathExpansionService: PathExpansionService;
   private errorMessageService: CLIErrorMessageService;
   private promptGeneratorService: PromptGeneratorService;
+  private supportedFormats: SupportedFormats;
 
   private constructor(
     orchestrator: PipelineOrchestrator,
@@ -45,15 +48,17 @@ export class CLI {
     pathExpansionService: PathExpansionService,
     errorMessageService: CLIErrorMessageService,
     promptGeneratorService: PromptGeneratorService,
+    supportedFormats: SupportedFormats,
   ) {
     this.orchestrator = orchestrator;
     this.logger = logger;
     this.pathExpansionService = pathExpansionService;
     this.errorMessageService = errorMessageService;
     this.promptGeneratorService = promptGeneratorService;
+    this.supportedFormats = supportedFormats;
   }
 
-  static create(): Result<CLI, DomainError> {
+  static async create(): Promise<Result<CLI, DomainError>> {
     // Create enhanced logger for CLI with default non-verbose mode
     const loggerResult = DebugLoggerFactory.createEnhancedForCLI(false);
     if (!loggerResult.ok) {
@@ -62,6 +67,12 @@ export class CLI {
         message: "Failed to create logger",
       }));
     }
+
+    // Load supported formats configuration
+    const formatConfigLoader = FormatConfigLoaderFactory
+      .createWithDenoAdapters();
+    const supportedFormats = await formatConfigLoader
+      .loadConfigurationWithFallback();
 
     // Create CLI services
     const pathExpansionResult = PathExpansionService.create();
@@ -100,6 +111,7 @@ export class CLI {
         pathExpansionResult.data,
         errorMessageResult.data,
         promptGeneratorResult.data,
+        supportedFormats,
       ),
     );
   }
@@ -216,7 +228,7 @@ export class CLI {
     }
 
     // Parse and validate CLI arguments using new CLIArguments value object
-    const cliArgsResult = CLIArguments.create(args);
+    const cliArgsResult = CLIArguments.create(args, this.supportedFormats);
     if (!cliArgsResult.ok) {
       const errorMessage = this.errorMessageService.generateErrorMessage(
         cliArgsResult.error,

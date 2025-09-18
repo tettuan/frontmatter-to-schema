@@ -1,5 +1,5 @@
-import { ok, Result } from "../../shared/types/result.ts";
-import { TemplateError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, TemplateError } from "../../shared/types/errors.ts";
 
 /**
  * Domain configuration for template format detection
@@ -61,31 +61,41 @@ export class TemplateFormatConfig {
 
   /**
    * Detect format from content using domain rules
+   * Following Totality principles - total function returning Result<T,E>
    */
   detectFormatFromContent(
     content: Record<string, unknown>,
-  ): TemplateFormatType | null {
+  ): Result<TemplateFormatType, TemplateError & { message: string }> {
     if (!this.detectionStrategy.contentBased) {
-      return null;
+      return err(createError({
+        kind: "DataCompositionFailed",
+        reason: "Content-based detection is disabled in strategy configuration",
+      }));
     }
 
     const formatType = content.format_type;
     if (typeof formatType !== "string") {
-      return null;
+      return err(createError({
+        kind: "InvalidTemplate",
+        message: "format_type property must be a string",
+      }));
     }
 
     // Use domain-configured keys instead of hardcoded strings
     if (formatType === this.yamlFormatKey) {
-      return "yaml";
+      return ok("yaml");
     }
     if (formatType === this.markdownFormatKey) {
-      return "markdown";
+      return ok("markdown");
     }
     if (formatType === this.jsonFormatKey) {
-      return "json";
+      return ok("json");
     }
 
-    return null;
+    return err(createError({
+      kind: "InvalidFormat",
+      format: formatType,
+    }));
   }
 
   /**

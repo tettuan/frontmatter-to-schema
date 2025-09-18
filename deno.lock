@@ -657,6 +657,7 @@
       "jsr:@std/fs@1.0.8",
       "jsr:@std/path@^1.1.2",
       "jsr:@std/testing@^1.0.15",
+      "jsr:@std/yaml@1.0.5",
       "jsr:@tettuan/breakdownlogger@1",
       "npm:@anthropic-ai/claude-code@^1.0.89"
     ]

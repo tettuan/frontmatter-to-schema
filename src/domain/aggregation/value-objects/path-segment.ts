@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Value object representing a single segment of a property path.
@@ -72,10 +73,29 @@ export class PathSegment {
       }));
     }
 
-    const objectTarget = target as Record<string, unknown>;
-    const value = objectTarget[this.segment];
+    const objectResult = SafePropertyAccess.asRecord(target);
+    if (!objectResult.ok) {
+      return err(createError({
+        kind: "PathNotFound",
+        path: this.segment,
+        message:
+          `Target is not a valid object for property access: ${this.segment}`,
+      }));
+    }
 
-    return ok(value);
+    const valueResult = SafePropertyAccess.getProperty(
+      objectResult.data,
+      this.segment,
+    );
+    if (!valueResult.ok) {
+      return err(createError({
+        kind: "PathNotFound",
+        path: this.segment,
+        message: `Property '${this.segment}' not found or not accessible`,
+      }));
+    }
+
+    return ok(valueResult.data);
   }
 
   private isValidObjectForPropertyAccess(value: unknown): boolean {

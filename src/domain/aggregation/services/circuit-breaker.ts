@@ -78,10 +78,15 @@ export interface LegacyCircuitBreakerConfig {
 
 export type CircuitBreakerState =
   | {
-    kind: "closed";
+    kind: "closed-initial";
     failures: number;
     metrics: CircuitBreakerMetrics;
-    lastSuccessTime: number | null;
+  }
+  | {
+    kind: "closed-with-success";
+    failures: number;
+    metrics: CircuitBreakerMetrics;
+    lastSuccessTime: number;
   }
   | {
     kind: "open";
@@ -107,9 +112,8 @@ export interface CircuitBreakerMetrics {
 
 export class CircuitBreaker {
   private state: CircuitBreakerState = {
-    kind: "closed",
+    kind: "closed-initial",
     failures: 0,
-    lastSuccessTime: null,
     metrics: {
       totalAttempts: 0,
       successfulAttempts: 0,
@@ -225,7 +229,7 @@ export class CircuitBreaker {
     ) / newSuccessfulAttempts;
 
     this.state = {
-      kind: "closed",
+      kind: "closed-with-success",
       failures: 0,
       lastSuccessTime: Date.now(),
       metrics: {
@@ -260,9 +264,21 @@ export class CircuitBreaker {
     } else {
       // Stay in current state but update data
       switch (this.state.kind) {
-        case "closed": {
+        case "closed-initial": {
           this.state = {
-            kind: "closed",
+            kind: "closed-initial",
+            failures: newFailures,
+            metrics: {
+              ...metrics,
+              totalAttempts: metrics.totalAttempts + 1,
+              failedAttempts: metrics.failedAttempts + 1,
+            },
+          };
+          break;
+        }
+        case "closed-with-success": {
+          this.state = {
+            kind: "closed-with-success",
             failures: newFailures,
             lastSuccessTime: this.state.lastSuccessTime,
             metrics: {
@@ -313,9 +329,17 @@ export class CircuitBreaker {
     };
 
     switch (this.state.kind) {
-      case "closed": {
+      case "closed-initial": {
         this.state = {
-          kind: "closed",
+          kind: "closed-initial",
+          failures: this.state.failures,
+          metrics: newMetrics,
+        };
+        break;
+      }
+      case "closed-with-success": {
+        this.state = {
+          kind: "closed-with-success",
           failures: this.state.failures,
           lastSuccessTime: this.state.lastSuccessTime,
           metrics: newMetrics,
@@ -352,12 +376,21 @@ export class CircuitBreaker {
   } {
     // Backwards compatibility: provide the old interface shape for existing consumers
     switch (this.state.kind) {
-      case "closed": {
+      case "closed-initial": {
         return {
           status: "closed" as const,
           failures: this.state.failures,
           lastFailureTime: undefined,
-          lastSuccessTime: this.state.lastSuccessTime ?? undefined,
+          lastSuccessTime: undefined,
+          metrics: this.state.metrics,
+        };
+      }
+      case "closed-with-success": {
+        return {
+          status: "closed" as const,
+          failures: this.state.failures,
+          lastFailureTime: undefined,
+          lastSuccessTime: this.state.lastSuccessTime,
           metrics: this.state.metrics,
         };
       }
@@ -384,9 +417,8 @@ export class CircuitBreaker {
 
   reset(): void {
     this.state = {
-      kind: "closed",
+      kind: "closed-initial",
       failures: 0,
-      lastSuccessTime: null,
       metrics: {
         totalAttempts: 0,
         successfulAttempts: 0,

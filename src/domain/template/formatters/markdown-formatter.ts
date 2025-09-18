@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Markdown formatter for template output
@@ -69,7 +70,11 @@ export class MarkdownFormatter extends BaseFormatter {
     }
 
     if (typeof data === "object" && data !== null) {
-      const obj = data as Record<string, unknown>;
+      const objResult = SafePropertyAccess.asRecord(data);
+      if (!objResult.ok) {
+        return ""; // Fail gracefully for non-object data
+      }
+      const obj = objResult.data;
       const lines: string[] = [];
 
       for (const [key, value] of Object.entries(obj)) {

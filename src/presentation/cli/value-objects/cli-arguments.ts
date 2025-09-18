@@ -3,6 +3,7 @@ import {
   createError,
   ValidationError,
 } from "../../../domain/shared/types/errors.ts";
+import { SupportedFormats } from "../../../domain/configuration/value-objects/supported-formats.ts";
 
 /**
  * Template path configuration state using discriminated union for enhanced type safety
@@ -54,6 +55,7 @@ export class CLIArguments {
   readonly templatePathState: TemplatePathState;
   readonly verbose: boolean;
   readonly generatePrompt: boolean;
+  readonly supportedFormats: SupportedFormats;
 
   private constructor(
     schemaPath: string,
@@ -62,6 +64,7 @@ export class CLIArguments {
     verbose: boolean,
     generatePrompt: boolean,
     templatePathState: TemplatePathState,
+    supportedFormats: SupportedFormats,
   ) {
     this.schemaPath = schemaPath;
     this.inputPattern = inputPattern;
@@ -69,6 +72,7 @@ export class CLIArguments {
     this.verbose = verbose;
     this.generatePrompt = generatePrompt;
     this.templatePathState = templatePathState;
+    this.supportedFormats = supportedFormats;
   }
 
   /**
@@ -87,6 +91,7 @@ export class CLIArguments {
    */
   static create(
     args: string[],
+    supportedFormats: SupportedFormats,
   ): Result<CLIArguments, ValidationError & { message: string }> {
     // Extract flags and template option
     const verbose = args.includes("--verbose");
@@ -158,6 +163,7 @@ export class CLIArguments {
           verbose,
           generatePrompt,
           templatePathState,
+          supportedFormats,
         ),
       );
     }
@@ -197,7 +203,10 @@ export class CLIArguments {
     }
 
     // Validate output path
-    const outputValidation = CLIArguments.validateOutputPath(outputPath);
+    const outputValidation = CLIArguments.validateOutputPath(
+      outputPath,
+      supportedFormats,
+    );
     if (!outputValidation.ok) {
       return outputValidation;
     }
@@ -211,6 +220,7 @@ export class CLIArguments {
         verbose,
         generatePrompt,
         templatePathState,
+        supportedFormats,
       ),
     );
   }
@@ -264,10 +274,12 @@ export class CLIArguments {
   }
 
   /**
-   * Validate output path
+   * Validate output path using external configuration
+   * No longer uses hardcoded file extensions - follows AI complexity control principles
    */
   private static validateOutputPath(
     path: string,
+    supportedFormats: SupportedFormats,
   ): Result<void, ValidationError & { message: string }> {
     if (!path || path.trim().length === 0) {
       return err(createError({
@@ -278,41 +290,16 @@ export class CLIArguments {
       }));
     }
 
-    // 強固性完全実装フロー - ファイル拡張子ハードコーディング排除デバッグ (Iteration 11)
-    const _fileExtensionHardcodingDebug = {
-      hardcodingCategory: "file-extensions",
-      violationDetails: {
-        hardcodedExtensions: [".json", ".yaml", ".yml"], // ハードコードされた拡張子
-        violationType: "array-literal", // 配列リテラル直接記述
-        severityLevel: "medium", // 禁止規定第3条該当
-        externalizationRequired: "config/supported-formats.yml",
-      },
-      robustnessImprovementPlan: {
-        configurationExternalization: "external-format-config",
-        dynamicExtensionLoading: "runtime-configuration",
-        extensibilityImprovement: "plugin-based-format-support",
-        maintenanceReduction: "centralized-format-management",
-      },
-      hardcodingEliminationStrategy: {
-        immediateAction: "move-to-configuration-file",
-        detectionMethod: "static-analysis-array-literals",
-        automationTarget: "ci-cd-lint-detection",
-        complianceLevel: "100-percent-externalization",
-      },
-    };
-
-    // TODO: これらの拡張子は config/supported-formats.yml へ外部化が必要
-    // Validate output file extension for supported formats
-    const supportedExtensions = [".json", ".yaml", ".yml"]; // HARDCODING VIOLATION: 設定外部化必要
-    const hasValidExtension = supportedExtensions.some((ext) =>
-      path.endsWith(ext)
-    );
+    // Use external configuration instead of hardcoded extensions
+    // This eliminates the hardcoding violation identified in Phase 6
+    const hasValidExtension = supportedFormats.validateOutputPath(path);
 
     if (!hasValidExtension) {
+      const supportedExtensions = supportedFormats.getSupportedExtensions();
       return err(createError({
         kind: "InvalidFormat",
         field: "outputPath",
-        format: "JSON/YAML",
+        format: "configured formats",
         message: `Output file must have supported extension (${
           supportedExtensions.join(", ")
         }), got: ${path}`,

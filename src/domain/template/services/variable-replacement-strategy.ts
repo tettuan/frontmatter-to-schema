@@ -2,6 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ProcessingContext } from "../value-objects/processing-context.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * VariableReplacementStrategy defines the contract for template variable replacement.
@@ -104,8 +105,15 @@ export class UnifiedVariableReplacementStrategy
     }
 
     if (content && typeof content === "object") {
+      const objResult = SafePropertyAccess.asRecord(content);
+      if (!objResult.ok) {
+        return err(createError({
+          kind: "RenderFailed",
+          message: "Content is not a valid object for processing",
+        }));
+      }
       return this.processObject(
-        content as Record<string, unknown>,
+        objResult.data,
         data,
         context,
       );

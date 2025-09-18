@@ -13,7 +13,11 @@ export type ValidationError =
     readonly value: string;
     readonly pattern: string;
   }
-  | { readonly kind: "ParseError"; readonly input: string }
+  | {
+    readonly kind: "ParseError";
+    readonly input: string;
+    readonly field?: string;
+  }
   | { readonly kind: "EmptyInput" }
   | {
     readonly kind: "TooLong";
@@ -34,7 +38,16 @@ export type ValidationError =
     readonly field?: string;
   }
   | { readonly kind: "FieldNotFound"; readonly path: string }
-  | { readonly kind: "ValidationRuleNotFound"; readonly path: string };
+  | { readonly kind: "ValidationRuleNotFound"; readonly path: string }
+  | { readonly kind: "DuplicateValue"; readonly field: string }
+  | {
+    readonly kind: "ConfigNotFound";
+    readonly path: string;
+    readonly field?: string;
+  }
+  | { readonly kind: "ConfigReadError"; readonly field: string }
+  | { readonly kind: "InvalidStructure"; readonly field: string }
+  | { readonly kind: "UnknownError"; readonly field: string };
 
 export type SchemaError =
   | { readonly kind: "SchemaNotFound"; readonly path: string }
@@ -238,6 +251,16 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Field not found: ${error.path}`;
     case "ValidationRuleNotFound":
       return `Validation rule not found for path: ${error.path}`;
+    case "DuplicateValue":
+      return `Duplicate value found in field: ${error.field}`;
+    case "ConfigNotFound":
+      return `Configuration not found: ${error.path}`;
+    case "ConfigReadError":
+      return `Configuration read error in field: ${error.field}`;
+    case "InvalidStructure":
+      return `Invalid structure in field: ${error.field}`;
+    case "UnknownError":
+      return `Unknown error in field: ${error.field}`;
     case "SchemaNotFound":
       return `Schema not found: ${error.path}`;
     case "InvalidSchema":

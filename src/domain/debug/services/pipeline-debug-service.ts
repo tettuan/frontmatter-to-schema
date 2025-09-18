@@ -162,7 +162,9 @@ export class PipelineDebugService {
     );
 
     if (!entropyReportResult.ok) {
-      this.state = DebugStateFactory.createFailed(entropyReportResult.error);
+      this.state = DebugStateFactory.createFailedWithoutData(
+        entropyReportResult.error,
+      );
       return err(entropyReportResult.error);
     }
 
@@ -210,10 +212,17 @@ export class PipelineDebugService {
     );
 
     if (!totalityReportResult.ok) {
-      this.state = DebugStateFactory.createFailed(
-        totalityReportResult.error,
-        { entropyReport: this.state.entropyReport },
-      );
+      // At this point, we should have an entropy report from the previous state
+      if ("entropyReport" in this.state) {
+        this.state = DebugStateFactory.createFailedWithEntropy(
+          totalityReportResult.error,
+          this.state.entropyReport,
+        );
+      } else {
+        this.state = DebugStateFactory.createFailedWithoutData(
+          totalityReportResult.error,
+        );
+      }
       return err(totalityReportResult.error);
     }
 
@@ -302,7 +311,14 @@ export class PipelineDebugService {
    * Get error if service has failed
    */
   getError(): DomainError | undefined {
-    return DebugStateGuards.isFailed(this.state) ? this.state.error : undefined;
+    switch (this.state.kind) {
+      case "failed-without-data":
+      case "failed-with-entropy":
+      case "failed-with-both":
+        return this.state.error;
+      default:
+        return undefined;
+    }
   }
 
   /**
@@ -319,7 +335,7 @@ export class PipelineDebugService {
 
     if (
       DebugStateGuards.hasEntropyReport(this.state) &&
-      this.state.kind !== "failed"
+      !DebugStateGuards.isFailed(this.state)
     ) {
       if (
         this.state.kind === "totality-analyzing" ||
@@ -336,7 +352,7 @@ export class PipelineDebugService {
 
     if (
       DebugStateGuards.hasTotalityReport(this.state) &&
-      this.state.kind !== "failed"
+      !DebugStateGuards.isFailed(this.state)
     ) {
       if (
         this.state.kind === "compliance-checking" ||
@@ -351,11 +367,26 @@ export class PipelineDebugService {
     }
 
     if (DebugStateGuards.isFailed(this.state)) {
-      return {
+      const errorInfo = {
         ...baseInfo,
-        error: this.state.error,
-        partialData: this.state.partialData,
+        error: this.getError(),
       };
+
+      switch (this.state.kind) {
+        case "failed-with-entropy":
+          return {
+            ...errorInfo,
+            entropyReport: this.state.entropyReport.toLogSummary(),
+          };
+        case "failed-with-both":
+          return {
+            ...errorInfo,
+            entropyReport: this.state.entropyReport.toLogSummary(),
+            totalityReport: this.state.totalityReport.toLogSummary(),
+          };
+        default:
+          return errorInfo;
+      }
     }
 
     return baseInfo;

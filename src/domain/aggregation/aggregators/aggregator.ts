@@ -9,6 +9,7 @@ import {
   CircuitBreakerConfigurationState,
   CircuitBreakerFactory,
 } from "../services/circuit-breaker.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 export interface AggregatedResult {
   readonly baseData: FrontmatterData;
@@ -143,10 +144,23 @@ export class Aggregator {
     };
 
     // Log performance data for analysis (conditional on debug mode)
-    if (
-      typeof globalThis !== "undefined" && (globalThis as any).DEBUG_PERFORMANCE
-    ) {
-      console.debug("[PERF-AGGREGATION]", JSON.stringify(performanceMetrics));
+    if (typeof globalThis !== "undefined") {
+      const globalResult = SafePropertyAccess.asRecord(globalThis);
+      if (
+        globalResult.ok &&
+        SafePropertyAccess.hasProperty(
+          globalResult.data,
+          "DEBUG_PERFORMANCE",
+        ) &&
+        Boolean(
+          SafePropertyAccess.getProperty(
+            globalResult.data,
+            "DEBUG_PERFORMANCE",
+          ),
+        )
+      ) {
+        console.debug("[PERF-AGGREGATION]", JSON.stringify(performanceMetrics));
+      }
     }
 
     // Record success in circuit breaker (only if enabled)
