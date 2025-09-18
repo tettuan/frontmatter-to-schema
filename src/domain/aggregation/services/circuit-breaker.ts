@@ -2,6 +2,71 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
 import { CircuitBreakerConfig } from "../value-objects/circuit-breaker-config.ts";
 
+/**
+ * Circuit breaker configuration state using discriminated union for enhanced type safety
+ * Follows Totality principles by eliminating optional dependencies
+ */
+export type CircuitBreakerConfigurationState =
+  | { readonly kind: "disabled" }
+  | { readonly kind: "standard"; readonly config: CircuitBreakerConfig }
+  | { readonly kind: "high-throughput"; readonly config: CircuitBreakerConfig }
+  | { readonly kind: "low-latency"; readonly config: CircuitBreakerConfig }
+  | { readonly kind: "custom"; readonly config: CircuitBreakerConfig };
+
+/**
+ * Factory for creating CircuitBreakerConfigurationState instances following Totality principles
+ */
+export class CircuitBreakerFactory {
+  /**
+   * Create disabled circuit breaker state - no circuit breaking applied
+   */
+  static createDisabled(): CircuitBreakerConfigurationState {
+    return { kind: "disabled" };
+  }
+
+  /**
+   * Create standard circuit breaker state with default configuration
+   */
+  static createStandard(): CircuitBreakerConfigurationState {
+    return {
+      kind: "standard",
+      config: CircuitBreakerConfig.forStandardProcessing(),
+    };
+  }
+
+  /**
+   * Create high-throughput circuit breaker state for intensive processing
+   */
+  static createHighThroughput(): CircuitBreakerConfigurationState {
+    return {
+      kind: "high-throughput",
+      config: CircuitBreakerConfig.forHighThroughput(),
+    };
+  }
+
+  /**
+   * Create low-latency circuit breaker state for quick processing
+   */
+  static createLowLatency(): CircuitBreakerConfigurationState {
+    return {
+      kind: "low-latency",
+      config: CircuitBreakerConfig.forLowLatency(),
+    };
+  }
+
+  /**
+   * Create custom circuit breaker state with explicit configuration
+   */
+  static createCustom(
+    config: CircuitBreakerConfig,
+  ): CircuitBreakerConfigurationState {
+    return {
+      kind: "custom",
+      config,
+    };
+  }
+}
+
 // Legacy interface for backward compatibility - will be removed in next version
 export interface LegacyCircuitBreakerConfig {
   readonly maxComplexity: number;

@@ -5,6 +5,43 @@ import {
 } from "../../../domain/shared/types/errors.ts";
 
 /**
+ * Template path configuration state using discriminated union for enhanced type safety
+ * Follows Totality principles by eliminating optional dependencies
+ */
+export type TemplatePathState =
+  | { readonly kind: "provided"; readonly path: string }
+  | { readonly kind: "default" };
+
+/**
+ * Factory for creating TemplatePathState instances following Totality principles
+ */
+export class TemplatePathFactory {
+  /**
+   * Create template path state with provided path
+   */
+  static createProvided(path: string): TemplatePathState {
+    return { kind: "provided", path };
+  }
+
+  /**
+   * Create default template path state (no custom template)
+   */
+  static createDefault(): TemplatePathState {
+    return { kind: "default" };
+  }
+
+  /**
+   * Create template path state from optional string (for backward compatibility)
+   * @deprecated Use explicit factory methods instead
+   */
+  static fromOptional(templatePath?: string): TemplatePathState {
+    return templatePath
+      ? TemplatePathFactory.createProvided(templatePath)
+      : TemplatePathFactory.createDefault();
+  }
+}
+
+/**
  * CLI Arguments Value Object following DDD and Totality principles
  *
  * Smart constructor for CLI argument validation and processing
@@ -14,7 +51,7 @@ export class CLIArguments {
   readonly schemaPath: string;
   readonly inputPattern: string;
   readonly outputPath: string;
-  readonly templatePath?: string;
+  readonly templatePathState: TemplatePathState;
   readonly verbose: boolean;
   readonly generatePrompt: boolean;
 
@@ -24,14 +61,24 @@ export class CLIArguments {
     outputPath: string,
     verbose: boolean,
     generatePrompt: boolean,
-    templatePath?: string,
+    templatePathState: TemplatePathState,
   ) {
     this.schemaPath = schemaPath;
     this.inputPattern = inputPattern;
     this.outputPath = outputPath;
     this.verbose = verbose;
     this.generatePrompt = generatePrompt;
-    this.templatePath = templatePath;
+    this.templatePathState = templatePathState;
+  }
+
+  /**
+   * Get template path if provided, undefined if default
+   * @deprecated Use templatePathState discriminated union instead
+   */
+  get templatePath(): string | undefined {
+    return this.templatePathState.kind === "provided"
+      ? this.templatePathState.path
+      : undefined;
   }
 
   /**
@@ -102,6 +149,7 @@ export class CLIArguments {
       }
 
       // Skip output validation for --generate-prompt
+      const templatePathState = TemplatePathFactory.fromOptional(templatePath);
       return ok(
         new CLIArguments(
           schemaPath,
@@ -109,7 +157,7 @@ export class CLIArguments {
           outputPath,
           verbose,
           generatePrompt,
-          templatePath,
+          templatePathState,
         ),
       );
     }
@@ -154,6 +202,7 @@ export class CLIArguments {
       return outputValidation;
     }
 
+    const templatePathState = TemplatePathFactory.fromOptional(templatePath);
     return ok(
       new CLIArguments(
         schemaPath,
@@ -161,7 +210,7 @@ export class CLIArguments {
         outputPath,
         verbose,
         generatePrompt,
-        templatePath,
+        templatePathState,
       ),
     );
   }

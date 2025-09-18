@@ -1,6 +1,7 @@
 import {
   PipelineConfig,
   PipelineOrchestrator,
+  ProcessingLoggerFactory,
   TemplateConfig,
   VerbosityConfig,
 } from "../../application/services/pipeline-orchestrator.ts";
@@ -118,16 +119,18 @@ export class CLI {
       frontmatterParser,
     );
 
-    const aggregator = new Aggregator();
+    const aggregator = Aggregator.createWithStandardCircuitBreaker();
     const basePropertyPopulator = new BasePropertyPopulator();
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      aggregator,
-      basePropertyPopulator,
-      fileReader,
-      fileLister,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithEnabledLogging(
+        frontmatterProcessor,
+        aggregator,
+        basePropertyPopulator,
+        fileReader,
+        fileLister,
+        logger,
+      );
 
     // Create JMESPath Filter Service
     const jmespathFilterServiceResult = JMESPathFilterService.create();
@@ -181,16 +184,19 @@ export class CLI {
       list: (pattern: string) => fileLister.list(pattern),
     };
 
-    return ok(
-      new PipelineOrchestrator(
-        documentProcessor,
-        schemaProcessor,
-        outputRenderingService,
-        templatePathResolver,
-        fileSystem,
-        schemaCache,
-        logger,
-      ),
+    // Create processing logger state for pipeline orchestrator
+    const processingLoggerState = ProcessingLoggerFactory.createEnhancedEnabled(
+      logger,
+    );
+
+    return PipelineOrchestrator.create(
+      documentProcessor,
+      schemaProcessor,
+      outputRenderingService,
+      templatePathResolver,
+      fileSystem,
+      schemaCache,
+      processingLoggerState,
     );
   }
 

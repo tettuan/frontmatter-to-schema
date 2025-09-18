@@ -4,7 +4,11 @@ import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-dat
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DerivationRule } from "../value-objects/derivation-rule.ts";
 import { ExpressionEvaluator } from "../services/expression-evaluator.ts";
-import { CircuitBreaker } from "../services/circuit-breaker.ts";
+import {
+  CircuitBreaker,
+  CircuitBreakerConfigurationState,
+  CircuitBreakerFactory,
+} from "../services/circuit-breaker.ts";
 
 export interface AggregatedResult {
   readonly baseData: FrontmatterData;
@@ -13,20 +17,78 @@ export interface AggregatedResult {
 
 export class Aggregator {
   private readonly evaluator = new ExpressionEvaluator();
-  private readonly circuitBreaker = new CircuitBreaker();
+  private readonly circuitBreakerState: CircuitBreakerConfigurationState;
+  private readonly circuitBreaker?: CircuitBreaker;
+
+  constructor(circuitBreakerState?: CircuitBreakerConfigurationState) {
+    this.circuitBreakerState = circuitBreakerState ??
+      CircuitBreakerFactory.createStandard();
+
+    // Only create CircuitBreaker if not disabled
+    if (this.circuitBreakerState.kind !== "disabled") {
+      this.circuitBreaker = new CircuitBreaker(this.circuitBreakerState.config);
+    }
+  }
+
+  /**
+   * Factory method for creating Aggregator with disabled circuit breaker
+   */
+  static createWithDisabledCircuitBreaker(): Aggregator {
+    return new Aggregator(CircuitBreakerFactory.createDisabled());
+  }
+
+  /**
+   * Factory method for creating Aggregator with standard circuit breaker configuration
+   */
+  static createWithStandardCircuitBreaker(): Aggregator {
+    return new Aggregator(CircuitBreakerFactory.createStandard());
+  }
+
+  /**
+   * Factory method for creating Aggregator with high-throughput circuit breaker configuration
+   */
+  static createWithHighThroughputCircuitBreaker(): Aggregator {
+    return new Aggregator(CircuitBreakerFactory.createHighThroughput());
+  }
+
+  /**
+   * Factory method for creating Aggregator with low-latency circuit breaker configuration
+   */
+  static createWithLowLatencyCircuitBreaker(): Aggregator {
+    return new Aggregator(CircuitBreakerFactory.createLowLatency());
+  }
+
+  /**
+   * Factory method for creating Aggregator with custom circuit breaker configuration
+   */
+  static createWithCustomCircuitBreaker(
+    circuitBreakerState: CircuitBreakerConfigurationState,
+  ): Aggregator {
+    return new Aggregator(circuitBreakerState);
+  }
+
+  /**
+   * @deprecated Use factory methods instead. This constructor will be removed in the next version.
+   * Use Aggregator.createWithStandardCircuitBreaker() for equivalent behavior.
+   */
+  static create(): Aggregator {
+    return new Aggregator(CircuitBreakerFactory.createStandard());
+  }
 
   aggregate(
     data: FrontmatterData[],
     rules: DerivationRule[],
     baseData?: FrontmatterData,
   ): Result<AggregatedResult, AggregationError & { message: string }> {
-    // Circuit breaker check before processing
-    const canProcessResult = this.circuitBreaker.canProcess(
-      data.length,
-      rules.length,
-    );
-    if (!canProcessResult.ok) {
-      return canProcessResult;
+    // Circuit breaker check before processing (only if enabled)
+    if (this.circuitBreaker) {
+      const canProcessResult = this.circuitBreaker.canProcess(
+        data.length,
+        rules.length,
+      );
+      if (!canProcessResult.ok) {
+        return canProcessResult;
+      }
     }
 
     // Performance variance monitoring for aggregation
@@ -53,7 +115,9 @@ export class Aggregator {
       if (!evaluationResult.ok) {
         const errorMessage =
           `Failed to evaluate rule ${rule.toString()}: ${evaluationResult.error.message}`;
-        this.circuitBreaker.recordFailure(errorMessage);
+        if (this.circuitBreaker) {
+          this.circuitBreaker.recordFailure(errorMessage);
+        }
         return err(createError({
           kind: "AggregationFailed",
           message: errorMessage,
@@ -85,11 +149,13 @@ export class Aggregator {
       console.debug("[PERF-AGGREGATION]", JSON.stringify(performanceMetrics));
     }
 
-    // Record success in circuit breaker
-    this.circuitBreaker.recordSuccess(
-      processingTime,
-      Math.round(memoryDelta / 1024 / 1024 * 100) / 100,
-    );
+    // Record success in circuit breaker (only if enabled)
+    if (this.circuitBreaker) {
+      this.circuitBreaker.recordSuccess(
+        processingTime,
+        Math.round(memoryDelta / 1024 / 1024 * 100) / 100,
+      );
+    }
 
     return ok({
       baseData: base,

@@ -55,6 +55,7 @@ import {
   FileSystem,
   PipelineConfig,
   PipelineOrchestrator,
+  ProcessingLoggerFactory,
   TemplateConfig,
   VerbosityConfig,
 } from "../../src/application/services/pipeline-orchestrator.ts";
@@ -280,6 +281,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -287,6 +289,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -336,6 +339,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -343,6 +347,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -396,6 +401,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -403,6 +409,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -472,6 +479,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -479,6 +487,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -535,6 +544,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -542,6 +552,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -600,6 +611,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -607,6 +619,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -631,6 +644,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -638,6 +652,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -663,6 +678,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -670,6 +686,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -708,6 +725,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       );
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -715,6 +733,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -754,6 +773,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -761,6 +781,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -802,6 +823,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -809,6 +831,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -846,6 +869,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -853,6 +877,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -887,6 +912,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -894,6 +920,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -942,6 +969,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -949,6 +977,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1045,6 +1074,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1052,6 +1082,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1103,6 +1134,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1110,6 +1142,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1178,6 +1211,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1185,6 +1219,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1269,6 +1304,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1276,6 +1312,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1330,6 +1367,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1337,6 +1375,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({
@@ -1396,6 +1435,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
       const orchestrator = new PipelineOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
@@ -1403,6 +1443,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         templateResolver as any,
         fileSystem,
         schemaCache,
+        processingLoggerState,
       );
 
       const config: PipelineConfig = createTestConfig({

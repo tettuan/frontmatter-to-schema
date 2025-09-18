@@ -9,20 +9,81 @@ import {
 
 export type OutputFormat = TemplateFormatType;
 
+/**
+ * Template configuration state using discriminated union pattern
+ * Eliminates optional formatConfig in favor of explicit states
+ */
+export type TemplateConfigurationState =
+  | {
+    kind: "default";
+    config: TemplateFormatConfig;
+  }
+  | {
+    kind: "custom";
+    config: TemplateFormatConfig;
+  };
+
 export class Template {
   private constructor(
     private readonly path: TemplatePath,
     private readonly content: unknown,
     private readonly format: OutputFormat,
     private readonly variables: VariableMapping,
-    private readonly formatConfig: TemplateFormatConfig = TemplateFormatConfig
-      .default(),
+    private readonly configurationState: TemplateConfigurationState,
   ) {}
 
+  /**
+   * Create template with default configuration
+   */
+  static createWithDefaultConfig(
+    path: TemplatePath,
+    content: unknown,
+  ): Result<Template, TemplateError & { message: string }> {
+    const configState: TemplateConfigurationState = {
+      kind: "default",
+      config: TemplateFormatConfig.default(),
+    };
+    return Template.createInternal(path, content, configState);
+  }
+
+  /**
+   * Create template with custom configuration
+   */
+  static createWithCustomConfig(
+    path: TemplatePath,
+    content: unknown,
+    formatConfig: TemplateFormatConfig,
+  ): Result<Template, TemplateError & { message: string }> {
+    const configState: TemplateConfigurationState = {
+      kind: "custom",
+      config: formatConfig,
+    };
+    return Template.createInternal(path, content, configState);
+  }
+
+  /**
+   * Create template with optional configuration (Legacy compatibility)
+   * @deprecated Use createWithDefaultConfig() or createWithCustomConfig() instead
+   */
   static create(
     path: TemplatePath,
     content: unknown,
     formatConfig?: TemplateFormatConfig,
+  ): Result<Template, TemplateError & { message: string }> {
+    if (formatConfig) {
+      return Template.createWithCustomConfig(path, content, formatConfig);
+    } else {
+      return Template.createWithDefaultConfig(path, content);
+    }
+  }
+
+  /**
+   * Internal template creation logic shared by all factory methods
+   */
+  private static createInternal(
+    path: TemplatePath,
+    content: unknown,
+    configurationState: TemplateConfigurationState,
   ): Result<Template, TemplateError & { message: string }> {
     if (!content) {
       return err(createError({
@@ -31,15 +92,20 @@ export class Template {
       }));
     }
 
-    const config = formatConfig || TemplateFormatConfig.default();
-    const format = determineFormat(content, path, config);
+    const format = determineFormat(content, path, configurationState.config);
     const variablesResult = VariableMapping.create(content);
     if (!variablesResult.ok) {
       return variablesResult;
     }
 
     return ok(
-      new Template(path, content, format, variablesResult.data, config),
+      new Template(
+        path,
+        content,
+        format,
+        variablesResult.data,
+        configurationState,
+      ),
     );
   }
 
@@ -59,6 +125,20 @@ export class Template {
     return this.variables;
   }
 
+  /**
+   * Get the configuration state (replaces direct formatConfig access)
+   */
+  getConfigurationState(): TemplateConfigurationState {
+    return this.configurationState;
+  }
+
+  /**
+   * Get the format configuration from the current state
+   */
+  getFormatConfig(): TemplateFormatConfig {
+    return this.configurationState.config;
+  }
+
   hasArrayVariables(): boolean {
     return this.variables.getArrayVariables().length > 0;
   }
@@ -73,7 +153,7 @@ export class Template {
       this.content,
       format,
       this.variables,
-      this.formatConfig,
+      this.configurationState,
     );
   }
 }

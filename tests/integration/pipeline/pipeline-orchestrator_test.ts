@@ -3,6 +3,7 @@ import { describe, it } from "jsr:@std/testing/bdd";
 import {
   PipelineConfig,
   PipelineOrchestrator,
+  ProcessingLoggerFactory,
   TemplateConfig,
   VerbosityConfig,
 } from "../../../src/application/services/pipeline-orchestrator.ts";
@@ -209,13 +210,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      mockAggregator,
-      mockBasePropertyPopulator,
-      fileSystem,
-      fileSystem,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        frontmatterProcessor,
+        mockAggregator,
+        mockBasePropertyPopulator,
+        fileSystem,
+        fileSystem,
+      );
 
     // Schema processor needs repository - mock it
     const schemaProcessor = {} as SchemaProcessingService;
@@ -238,6 +240,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templatePathResolver = new TemplatePathResolver();
     const schemaCache = SchemaCacheFactory.createForTesting();
 
+    const processingLoggerState = ProcessingLoggerFactory.createDisabled();
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
@@ -245,6 +248,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       templatePathResolver,
       fileSystem,
       schemaCache,
+      processingLoggerState,
     );
 
     // Execute pipeline
@@ -316,13 +320,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      mockAggregator,
-      mockBasePropertyPopulator,
-      fileSystem,
-      fileSystem,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        frontmatterProcessor,
+        mockAggregator,
+        mockBasePropertyPopulator,
+        fileSystem,
+        fileSystem,
+      );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -343,6 +348,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templatePathResolver = new TemplatePathResolver();
     const schemaCache = SchemaCacheFactory.createForTesting();
 
+    const processingLoggerState = ProcessingLoggerFactory.createDisabled();
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
@@ -350,6 +356,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       templatePathResolver,
       fileSystem,
       schemaCache,
+      processingLoggerState,
     );
 
     // Execute
@@ -389,13 +396,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      mockAggregator,
-      mockBasePropertyPopulator,
-      fileSystem,
-      fileSystem,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        frontmatterProcessor,
+        mockAggregator,
+        mockBasePropertyPopulator,
+        fileSystem,
+        fileSystem,
+      );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -416,6 +424,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templatePathResolver = new TemplatePathResolver();
     const schemaCache = SchemaCacheFactory.createForTesting();
 
+    const processingLoggerState = ProcessingLoggerFactory.createDisabled();
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
@@ -423,6 +432,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       templatePathResolver,
       fileSystem,
       schemaCache,
+      processingLoggerState,
     );
 
     // Execute with non-existent schema
@@ -472,13 +482,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      mockAggregator,
-      mockBasePropertyPopulator,
-      fileSystem,
-      fileSystem,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        frontmatterProcessor,
+        mockAggregator,
+        mockBasePropertyPopulator,
+        fileSystem,
+        fileSystem,
+      );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -499,6 +510,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templatePathResolver = new TemplatePathResolver();
     const schemaCache = SchemaCacheFactory.createForTesting();
 
+    const processingLoggerState = ProcessingLoggerFactory.createDisabled();
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
@@ -506,6 +518,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       templatePathResolver,
       fileSystem,
       schemaCache,
+      processingLoggerState,
     );
 
     // Execute
@@ -570,13 +583,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = new FrontmatterTransformationService(
-      frontmatterProcessor,
-      mockAggregator,
-      mockBasePropertyPopulator,
-      fileSystem,
-      fileSystem,
-    );
+    const documentProcessor = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        frontmatterProcessor,
+        mockAggregator,
+        mockBasePropertyPopulator,
+        fileSystem,
+        fileSystem,
+      );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -597,6 +611,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const templatePathResolver = new TemplatePathResolver();
     const schemaCache = SchemaCacheFactory.createForTesting();
 
+    const processingLoggerState = ProcessingLoggerFactory.createDisabled();
     const orchestrator = new PipelineOrchestrator(
       documentProcessor,
       schemaProcessor,
@@ -604,6 +619,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
       templatePathResolver,
       fileSystem,
       schemaCache,
+      processingLoggerState,
     );
 
     // Execute

@@ -37,8 +37,8 @@ import {
   EntropyReductionService,
 } from "../../domain/shared/services/entropy-reduction-service.ts";
 import {
-  PipelineExecutionConfig,
   PipelineExecutionService,
+  PipelineExecutionConfig,
 } from "../../domain/pipeline/services/pipeline-execution-service.ts";
 import { PipelineOrchestratorContext } from "../../domain/pipeline/services/pipeline-orchestrator-context.ts";
 
@@ -252,98 +252,6 @@ export class PipelineOrchestrator {
     if (this.processingLoggerState.kind === "disabled") return;
     const logContext = context ? createLogContext(context) : undefined;
     this.processingLoggerState.logger.error(message, logContext);
-  }
-
-  /**
-   * New DDD/Totality compliant execution method using command pattern state machine
-   * Replaces the legacy execute method with clean separation of concerns
-   */
-  async executeWithNewArchitecture(
-    config: PipelineConfig,
-  ): Promise<Result<void, DomainError & { message: string }>> {
-    // Get strategy configuration for execution config mapping
-    const strategyConfig = config.strategyConfig || this.defaultStrategyConfig;
-    const thresholds = strategyConfig.getPerformanceThresholds();
-
-    // Log pipeline execution start with DDD/Totality refactoring info
-    this.logInfo(
-      "Pipeline execution starting with new DDD/Totality architecture",
-      {
-        architecture: "command-pattern-state-machine",
-        totalityCompliance: "discriminated-unions-result-types",
-        dddBoundaries: "pipeline-domain-extracted",
-        timestamp: new Date().toISOString(),
-      },
-    );
-
-    // Create execution context that bridges existing services to new command interface
-    const context = new PipelineOrchestratorContext(
-      this.schemaProcessor,
-      this.frontmatterTransformer,
-      this.templatePathResolver,
-      this.outputRenderingService,
-      this.fileSystem,
-      this.schemaCache,
-    );
-
-    // Create execution configuration based on strategy
-    const executionConfig: PipelineExecutionConfig = {
-      maxExecutionTime: thresholds.maxErrorRecoveryTimeMs || 60000,
-      enableDetailedLogging: this.processingLoggerState.kind !== "disabled",
-      errorRecoveryEnabled: true,
-    };
-
-    // Create and execute pipeline using new DDD/Totality architecture
-    const pipelineServiceResult = PipelineExecutionService.create(
-      config,
-      executionConfig,
-      context,
-    );
-
-    if (!pipelineServiceResult.ok) {
-      this.logError("Failed to create pipeline execution service", {
-        error: pipelineServiceResult.error,
-        config: config,
-      });
-      return err(pipelineServiceResult.error);
-    }
-
-    const pipelineService = pipelineServiceResult.data;
-
-    // Execute the complete pipeline using state machine pattern
-    const executionResult = await pipelineService.executePipeline();
-
-    if (!executionResult.ok) {
-      this.logError("Pipeline execution failed", {
-        error: executionResult.error,
-      });
-      return err(executionResult.error);
-    }
-
-    const result = executionResult.data;
-
-    // Log execution metrics and state machine completion
-    this.logInfo("Pipeline execution completed successfully", {
-      finalState: result.finalState.kind,
-      executionTime: result.executionTime,
-      commandsExecuted: result.commandsExecuted,
-      stagesCompleted: result.stagesCompleted,
-      isComplete: pipelineService.isComplete(),
-      hasFailed: pipelineService.hasFailed(),
-      metrics: result.metrics,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Check if pipeline completed successfully
-    if (!pipelineService.isComplete()) {
-      return err(createError({
-        kind: "PipelineExecutionError",
-        content:
-          `Pipeline did not complete successfully. Final state: ${result.finalState.kind}`,
-      }));
-    }
-
-    return ok(void 0);
   }
 
   /**
@@ -987,7 +895,7 @@ export class PipelineOrchestrator {
     const shouldUseParallelProcessing = strategyConfig
       .shouldUseParallelProcessing(
         estimatedDocumentCount,
-        validationRules.getCount(),
+        validationRules.length,
       );
 
     // Document processing variance debug information
@@ -1001,9 +909,9 @@ export class PipelineOrchestrator {
       },
       varianceRiskFactors: {
         documentCountEstimate: estimatedDocumentCount,
-        validationRulesCount: validationRules.getCount(),
+        validationRulesCount: validationRules.length,
         availableMemoryMB: Math.floor(initialDocMemory.heapTotal / 1024 / 1024),
-        complexityScore: estimatedDocumentCount * validationRules.getCount(),
+        complexityScore: estimatedDocumentCount * validationRules.length,
       },
       processingTimePrediction: {
         sequentialEstimate: `${estimatedDocumentCount * 50}ms`, // 50ms per doc

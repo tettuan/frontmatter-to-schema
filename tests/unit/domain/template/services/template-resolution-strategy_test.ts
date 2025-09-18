@@ -5,6 +5,7 @@ import {
   SchemaBasedResolution,
   TemplateResolutionContext,
   TemplateResolutionOrchestrator,
+  toLegacyResult,
 } from "../../../../../src/domain/template/services/template-resolution-strategy.ts";
 import { Result } from "../../../../../src/domain/shared/types/result.ts";
 import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
@@ -20,6 +21,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const strategy = new ExplicitPathResolution();
       const context: TemplateResolutionContext = {
+        kind: "explicit-path",
         schemaPath: "/path/to/schema.json",
         explicitTemplatePath: "/path/to/template.json",
         schemaDefinition: {},
@@ -31,9 +33,10 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const result = strategy.resolve(context);
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data.mainTemplatePath, "/path/to/template.json");
-        assertEquals(result.data.hasDualTemplate, false);
-        assertEquals(result.data.resolutionStrategy, "explicit-path");
+        const legacy = toLegacyResult(result.data);
+        assertEquals(legacy.mainTemplatePath, "/path/to/template.json");
+        assertEquals(legacy.hasDualTemplate, false);
+        assertEquals(legacy.resolutionStrategy, "explicit-path");
       }
     },
   );
@@ -43,6 +46,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const strategy = new ExplicitPathResolution();
       const context: TemplateResolutionContext = {
+        kind: "schema-based",
         schemaPath: "/path/to/schema.json",
         schemaDefinition: {},
         baseDirectory: "/base",
@@ -53,7 +57,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const result = strategy.resolve(context);
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error, "Explicit template path not provided");
+        assertEquals(result.error, "Context is not explicit-path type");
       }
     },
   );
@@ -63,6 +67,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const strategy = new SchemaBasedResolution();
       const context: TemplateResolutionContext = {
+        kind: "schema-based",
         schemaPath: "/path/to/schema.json",
         schemaDefinition: {
           [TEST_EXTENSIONS.TEMPLATE]: "template.json",
@@ -76,10 +81,12 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const result = strategy.resolve(context);
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data.mainTemplatePath, "/base/template.json");
-        assertEquals(result.data.itemsTemplatePath, "/base/items.json");
-        assertEquals(result.data.hasDualTemplate, true);
-        assertEquals(result.data.resolutionStrategy, "schema-derived");
+        assertEquals(result.data.kind, "dual");
+        if (result.data.kind === "dual") {
+          assertEquals(result.data.mainTemplatePath, "/base/template.json");
+          assertEquals(result.data.itemsTemplatePath, "/base/items.json");
+          assertEquals(result.data.resolutionStrategy, "schema-derived");
+        }
       }
     },
   );
@@ -87,6 +94,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
   await t.step("SchemaBasedResolution should handle absolute paths", () => {
     const strategy = new SchemaBasedResolution();
     const context: TemplateResolutionContext = {
+      kind: "schema-based",
       schemaPath: "/path/to/schema.json",
       schemaDefinition: {
         [TEST_EXTENSIONS.TEMPLATE]: "/absolute/template.json",
@@ -97,14 +105,17 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     const result = strategy.resolve(context);
     assertEquals(result.ok, true);
     if (result.ok) {
-      assertEquals(result.data.mainTemplatePath, "/absolute/template.json");
-      assertEquals(result.data.hasDualTemplate, false);
+      assertEquals(result.data.kind, "single");
+      if (result.data.kind === "single") {
+        assertEquals(result.data.templatePath, "/absolute/template.json");
+      }
     }
   });
 
   await t.step("SchemaBasedResolution should fail without x-template", () => {
     const strategy = new SchemaBasedResolution();
     const context: TemplateResolutionContext = {
+      kind: "schema-based",
       schemaPath: "/path/to/schema.json",
       schemaDefinition: {},
       baseDirectory: "/base",
@@ -125,6 +136,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
   await t.step("AutoDetectResolution should generate candidate paths", () => {
     const strategy = new AutoDetectResolution();
     const context: TemplateResolutionContext = {
+      kind: "schema-based",
       schemaPath: "/path/to/my-schema.json",
       schemaDefinition: {},
       baseDirectory: "/base",
@@ -136,11 +148,16 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     assertEquals(result.ok, true);
     if (result.ok) {
       assertEquals(
-        result.data.mainTemplatePath,
-        "/base/my-schema_template.json",
+        result.data.kind,
+        "single",
       );
-      assertEquals(result.data.hasDualTemplate, false);
-      assertEquals(result.data.resolutionStrategy, "auto-detect");
+      if (result.data.kind === "single") {
+        assertEquals(
+          result.data.templatePath,
+          "/base/my-schema_template.json",
+        );
+        assertEquals(result.data.resolutionStrategy, "auto-detect");
+      }
     }
   });
 
@@ -149,6 +166,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const orchestrator = new TemplateResolutionOrchestrator();
       const context: TemplateResolutionContext = {
+        kind: "explicit-path",
         schemaPath: "/path/to/schema.json",
         explicitTemplatePath: "/explicit/template.json",
         schemaDefinition: {
@@ -161,8 +179,11 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       assertEquals(result.ok, true);
       if (result.ok) {
         // Should use explicit path strategy first
-        assertEquals(result.data.mainTemplatePath, "/explicit/template.json");
-        assertEquals(result.data.resolutionStrategy, "explicit-path");
+        assertEquals(result.data.kind, "single");
+        if (result.data.kind === "single") {
+          assertEquals(result.data.templatePath, "/explicit/template.json");
+          assertEquals(result.data.resolutionStrategy, "explicit-path");
+        }
       }
     },
   );
@@ -172,6 +193,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const orchestrator = new TemplateResolutionOrchestrator();
       const context: TemplateResolutionContext = {
+        kind: "schema-based",
         schemaPath: "/path/to/schema.json",
         schemaDefinition: {
           [TEST_EXTENSIONS.TEMPLATE]: "schema-template.json",
@@ -183,11 +205,14 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       assertEquals(result.ok, true);
       if (result.ok) {
         // Should use schema-based strategy
-        assertEquals(
-          result.data.mainTemplatePath,
-          "/base/schema-template.json",
-        );
-        assertEquals(result.data.resolutionStrategy, "schema-derived");
+        assertEquals(result.data.kind, "single");
+        if (result.data.kind === "single") {
+          assertEquals(
+            result.data.templatePath,
+            "/base/schema-template.json",
+          );
+          assertEquals(result.data.resolutionStrategy, "schema-derived");
+        }
       }
     },
   );
@@ -197,6 +222,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const orchestrator = new TemplateResolutionOrchestrator();
       const context: TemplateResolutionContext = {
+        kind: "schema-based",
         schemaPath: "/path/to/fallback-schema.json",
         schemaDefinition: {},
         baseDirectory: "/base",
@@ -206,11 +232,14 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       assertEquals(result.ok, true);
       if (result.ok) {
         // Should use auto-detect strategy
-        assertEquals(
-          result.data.mainTemplatePath,
-          "/base/fallback-schema_template.json",
-        );
-        assertEquals(result.data.resolutionStrategy, "auto-detect");
+        assertEquals(result.data.kind, "single");
+        if (result.data.kind === "single") {
+          assertEquals(
+            result.data.templatePath,
+            "/base/fallback-schema_template.json",
+          );
+          assertEquals(result.data.resolutionStrategy, "auto-detect");
+        }
       }
     },
   );
@@ -228,18 +257,17 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
           _context: TemplateResolutionContext,
         ): Result<
           {
-            mainTemplatePath: string;
-            hasDualTemplate: boolean;
+            kind: "single";
+            templatePath: string;
             resolutionStrategy: string;
-            itemsTemplatePath?: string;
           },
           string
         > => {
           return {
             ok: true,
             data: {
-              mainTemplatePath: "/custom/template.json",
-              hasDualTemplate: false,
+              kind: "single",
+              templatePath: "/custom/template.json",
               resolutionStrategy: "custom-test",
             },
           } as const;
@@ -261,6 +289,7 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
     () => {
       const strategy = new SchemaBasedResolution();
       const context: TemplateResolutionContext = {
+        kind: "schema-based",
         schemaPath: "C:\\path\\to\\schema.json",
         schemaDefinition: {
           [TEST_EXTENSIONS.TEMPLATE]: "C:\\absolute\\template.json",
@@ -271,10 +300,13 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const result = strategy.resolve(context);
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(
-          result.data.mainTemplatePath,
-          "C:\\absolute\\template.json",
-        );
+        assertEquals(result.data.kind, "single");
+        if (result.data.kind === "single") {
+          assertEquals(
+            result.data.templatePath,
+            "C:\\absolute\\template.json",
+          );
+        }
       }
     },
   );
