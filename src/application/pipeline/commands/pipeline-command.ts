@@ -1,6 +1,7 @@
-import { Result } from "../../shared/types/result.ts";
-import { DomainError } from "../../shared/types/errors.ts";
+import { Result } from "../../../domain/shared/types/result.ts";
+import { DomainError } from "../../../domain/shared/types/errors.ts";
 import { PipelineState } from "../types/pipeline-state.ts";
+import { Schema } from "../../../domain/schema/entities/schema.ts";
 
 /**
  * Base interface for pipeline commands following command pattern
@@ -31,7 +32,7 @@ export interface PipelineCommand {
  */
 export interface CommandExecutionContext {
   // Schema operations
-  loadSchema(schemaPath: string): Promise<Result<unknown, DomainError>>;
+  loadSchema(schemaPath: string): Promise<Result<Schema, DomainError>>;
 
   // Template operations
   resolveTemplatePaths(

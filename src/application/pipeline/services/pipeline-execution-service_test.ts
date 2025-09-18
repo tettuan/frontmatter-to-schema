@@ -1,9 +1,12 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { PipelineExecutionService } from "./pipeline-execution-service.ts";
 import { CommandExecutionContext } from "../commands/pipeline-command.ts";
-import { err, ok } from "../../shared/types/result.ts";
-import { createError } from "../../shared/types/errors.ts";
+import { err, ok } from "../../../domain/shared/types/result.ts";
+import { createError } from "../../../domain/shared/types/errors.ts";
 import { PipelineStateGuards } from "../types/pipeline-state.ts";
+import { Schema } from "../../../domain/schema/entities/schema.ts";
+import { SchemaPath } from "../../../domain/schema/value-objects/schema-path.ts";
+import { SchemaDefinition } from "../../../domain/schema/value-objects/schema-definition.ts";
 
 // Mock implementation of CommandExecutionContext for testing
 class MockCommandExecutionContext implements CommandExecutionContext {
@@ -14,7 +17,30 @@ class MockCommandExecutionContext implements CommandExecutionContext {
         path: schemaPath,
       })));
     }
-    return await Promise.resolve(ok({ type: "object", properties: {} })); // Mock schema
+
+    // Create a proper Schema object for testing
+    const schemaPathResult = SchemaPath.create(schemaPath);
+    if (!schemaPathResult.ok) {
+      return await Promise.resolve(err(schemaPathResult.error));
+    }
+
+    const schemaDefinitionResult = SchemaDefinition.create({
+      type: "object",
+      properties: {},
+    });
+    if (!schemaDefinitionResult.ok) {
+      return await Promise.resolve(err(schemaDefinitionResult.error));
+    }
+
+    const schemaResult = Schema.create(
+      schemaPathResult.data,
+      schemaDefinitionResult.data,
+    );
+    if (!schemaResult.ok) {
+      return await Promise.resolve(err(schemaResult.error));
+    }
+
+    return await Promise.resolve(ok(schemaResult.data));
   }
 
   resolveTemplatePaths(_schema: unknown, _config: unknown) {

@@ -1,5 +1,9 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
+import { SafePropertyAccess } from "../../../domain/shared/utils/safe-property-access.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -39,10 +43,14 @@ export class ResolveTemplateCommand implements PipelineCommand {
     }
 
     // State is template-resolving, so we can safely access config and schema
-    const templateResolvingState = currentState as Extract<
-      PipelineState,
-      { kind: "template-resolving" }
-    >;
+    // Use type guard to ensure proper state access
+    if (!PipelineStateGuards.isTemplateResolving(currentState)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Invalid state for template resolution",
+      }));
+    }
+    const templateResolvingState = currentState;
 
     try {
       // Extract config and schema from current state
@@ -62,11 +70,24 @@ export class ResolveTemplateCommand implements PipelineCommand {
         return ok(failedState);
       }
 
-      const templateConfig = templateResult.data as {
-        templatePath: string;
-        itemsTemplatePath?: string;
-        outputFormat: string;
-      };
+      // Safely convert template result to expected structure
+      const templateConfigResult = SafePropertyAccess.asRecord(
+        templateResult.data,
+      );
+      if (!templateConfigResult.ok) {
+        const failedState = PipelineStateFactory.createFailed(
+          config,
+          createError({
+            kind: "ConfigurationError",
+            message:
+              `Template configuration is not a valid object: ${templateConfigResult.error.message}`,
+          }),
+          "template-resolving",
+          { schema },
+        );
+        return ok(failedState);
+      }
+      const templateConfig = templateConfigResult.data;
 
       // Validate template configuration
       const templateValidation = await Promise.resolve(
@@ -84,10 +105,7 @@ export class ResolveTemplateCommand implements PipelineCommand {
 
       // Calculate resolution time
       const resolutionTime = Date.now() -
-        (templateResolvingState as Extract<
-          PipelineState,
-          { kind: "template-resolving" }
-        >).resolutionStartTime;
+        templateResolvingState.resolutionStartTime;
 
       // Log template resolution success
       const _resolutionMetrics = {
@@ -97,13 +115,24 @@ export class ResolveTemplateCommand implements PipelineCommand {
         resolutionTime,
       };
 
-      // Transition to document processing state
+      // Transition to document processing state - safely extract string values
+      const templatePath = typeof templateConfig.templatePath === "string"
+        ? templateConfig.templatePath
+        : "";
+      const itemsTemplatePath =
+        typeof templateConfig.itemsTemplatePath === "string"
+          ? templateConfig.itemsTemplatePath
+          : undefined;
+      const outputFormat = typeof templateConfig.outputFormat === "string"
+        ? templateConfig.outputFormat
+        : "";
+
       const newState = PipelineStateFactory.createDocumentProcessing(
         config,
         schema,
-        templateConfig.templatePath,
-        templateConfig.itemsTemplatePath,
-        templateConfig.outputFormat,
+        templatePath,
+        itemsTemplatePath,
+        outputFormat,
       );
 
       return ok(newState);
@@ -136,7 +165,15 @@ export class ResolveTemplateCommand implements PipelineCommand {
       }));
     }
 
-    const typedConfig = templateConfig as Record<string, unknown>;
+    const configResult = SafePropertyAccess.asRecord(templateConfig);
+    if (!configResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Template configuration is not a valid object: ${configResult.error.message}`,
+      }));
+    }
+    const typedConfig = configResult.data;
 
     // Validate required fields
     if (

@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -9,6 +12,7 @@ import {
   PipelineStateFactory,
   PipelineStateGuards,
 } from "../types/pipeline-state.ts";
+import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
 
 /**
  * Initialize command - Sets up strategy and configuration
@@ -38,7 +42,13 @@ export class InitializeCommand implements PipelineCommand {
       })));
     }
 
-    // State is initializing, so we can safely access config
+    // Use type guard to ensure proper state access
+    if (!PipelineStateGuards.isInitializing(currentState)) {
+      return Promise.resolve(err(createError({
+        kind: "ConfigurationError",
+        message: "Invalid state for initialization",
+      })));
+    }
     const initializingState = currentState;
 
     try {
@@ -60,11 +70,7 @@ export class InitializeCommand implements PipelineCommand {
       const _initializationMetrics = {
         configValidated: true,
         hasStrategyConfig,
-        initializationTime: Date.now() -
-          (initializingState as Extract<
-            PipelineState,
-            { kind: "initializing" }
-          >).startTime,
+        initializationTime: Date.now() - initializingState.startTime,
       };
 
       // Transition to schema loading state
@@ -84,34 +90,25 @@ export class InitializeCommand implements PipelineCommand {
   private validatePipelineConfig(
     config: unknown,
   ): Result<void, DomainError & { message: string }> {
-    // Basic configuration validation
-    if (!config || typeof config !== "object") {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: "Pipeline configuration is required and must be an object",
-      }));
-    }
-
-    const typedConfig = config as Record<string, unknown>;
-
-    // Validate required fields
-    if (!typedConfig.schemaPath || typeof typedConfig.schemaPath !== "string") {
+    // Validate required fields using safe accessors
+    const schemaPathResult = PipelineConfigAccessor.getSchemaPath(config);
+    if (!schemaPathResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
         message: "Pipeline configuration must include a valid schemaPath",
       }));
     }
 
-    if (
-      !typedConfig.inputPattern || typeof typedConfig.inputPattern !== "string"
-    ) {
+    const inputPatternResult = PipelineConfigAccessor.getInputPattern(config);
+    if (!inputPatternResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
         message: "Pipeline configuration must include a valid inputPattern",
       }));
     }
 
-    if (!typedConfig.outputPath || typeof typedConfig.outputPath !== "string") {
+    const outputPathResult = PipelineConfigAccessor.getOutputPath(config);
+    if (!outputPathResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
         message: "Pipeline configuration must include a valid outputPath",

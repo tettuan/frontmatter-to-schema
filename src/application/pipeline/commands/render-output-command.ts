@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -9,6 +12,7 @@ import {
   PipelineStateFactory,
   PipelineStateGuards,
 } from "../types/pipeline-state.ts";
+import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
 
 /**
  * Render Output command - Renders final output using templates and data
@@ -39,10 +43,14 @@ export class RenderOutputCommand implements PipelineCommand {
     }
 
     // State is output-rendering, so we can safely access all required fields
-    const outputRenderingState = currentState as Extract<
-      PipelineState,
-      { kind: "output-rendering" }
-    >;
+    // Use type guard to ensure proper state access
+    if (!PipelineStateGuards.isOutputRendering(currentState)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Invalid state for output rendering",
+      }));
+    }
+    const outputRenderingState = currentState;
 
     try {
       // Extract required data from current state
@@ -53,12 +61,32 @@ export class RenderOutputCommand implements PipelineCommand {
       const mainData = outputRenderingState.mainData;
       const itemsData = outputRenderingState.itemsData;
 
-      // Extract output path from config
-      const outputPath = (config as any).outputPath as string;
+      // Extract output path from config using safe accessor
+      const outputPathResult = PipelineConfigAccessor.getOutputPath(config);
+      if (!outputPathResult.ok) {
+        const failedState = PipelineStateFactory.createFailed(
+          config,
+          outputPathResult.error,
+          "output-rendering",
+        );
+        return ok(failedState);
+      }
+      const outputPath = outputPathResult.data;
 
-      // Extract verbosity configuration
-      const verbosityConfig = (config as any).verbosityConfig;
-      const verbosityMode = verbosityConfig?.enabled ? "verbose" : "quiet";
+      // Extract verbosity enabled flag using safe accessor
+      const verbosityEnabledResult = PipelineConfigAccessor.getVerbosityEnabled(
+        config,
+      );
+      if (!verbosityEnabledResult.ok) {
+        const failedState = PipelineStateFactory.createFailed(
+          config,
+          verbosityEnabledResult.error,
+          "output-rendering",
+        );
+        return ok(failedState);
+      }
+      const verbosityEnabled = verbosityEnabledResult.data;
+      const verbosityMode = verbosityEnabled ? "verbose" : "quiet";
 
       // Render output using context
       const renderResult = await this.context.renderOutput(
@@ -89,10 +117,7 @@ export class RenderOutputCommand implements PipelineCommand {
 
       // Calculate rendering time
       const renderingTime = Date.now() -
-        (outputRenderingState as Extract<
-          PipelineState,
-          { kind: "output-rendering" }
-        >).renderingStartTime;
+        outputRenderingState.renderingStartTime;
 
       // Calculate total execution time from initial state start time
       // This would need to be tracked through the pipeline, for now use rendering time

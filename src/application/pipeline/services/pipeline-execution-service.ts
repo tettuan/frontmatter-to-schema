@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -15,7 +18,7 @@ import { ResolveTemplateCommand } from "../commands/resolve-template-command.ts"
 import { ProcessDocumentsCommand } from "../commands/process-documents-command.ts";
 import { PrepareDataCommand } from "../commands/prepare-data-command.ts";
 import { RenderOutputCommand } from "../commands/render-output-command.ts";
-import { PipelineConfig } from "../../../application/services/pipeline-orchestrator.ts";
+import { PipelineConfig } from "../../services/pipeline-orchestrator.ts";
 
 /**
  * Pipeline execution configuration

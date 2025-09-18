@@ -1,6 +1,6 @@
-import { DomainError } from "../../shared/types/errors.ts";
-import { PipelineConfig } from "../../../application/services/pipeline-orchestrator.ts";
-import { Schema } from "../../schema/entities/schema.ts";
+import { DomainError } from "../../../domain/shared/types/errors.ts";
+import { PipelineConfig } from "../../services/pipeline-orchestrator.ts";
+import { Schema } from "../../../domain/schema/entities/schema.ts";
 
 /**
  * Pipeline state discriminated union following Totality principles
