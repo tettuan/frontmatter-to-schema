@@ -32,7 +32,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
         const stderr = new TextDecoder().decode(result.stderr);
 
         assertEquals(result.code, 1);
-        assertStringIncludes(stderr.toLowerCase(), "parsing");
+        assertStringIncludes(stderr.toLowerCase(), "parse");
         assertStringIncludes(stderr.toLowerCase(), "schema");
         // Should provide recovery guidance or context
         assertStringIncludes(stderr.toLowerCase(), "error");

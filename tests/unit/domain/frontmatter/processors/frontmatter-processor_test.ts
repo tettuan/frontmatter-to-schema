@@ -6,7 +6,10 @@ import {
   FrontmatterProcessor,
 } from "../../../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
-import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
+import {
+  ValidationRuleFactory,
+  ValidationRules,
+} from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
 import {
   err,
   ok,
@@ -244,8 +247,8 @@ describe("FrontmatterProcessor", () => {
       if (!dataResult.ok) throw new Error("Failed to create test data");
 
       const rules = ValidationRules.create([
-        { path: "title", type: "string" },
-        { path: "count", type: "number" },
+        ValidationRuleFactory.createStringRule("title", false),
+        ValidationRuleFactory.createNumberRule("count", false),
       ]);
 
       const result = processor.validate(dataResult.data, rules);
@@ -265,7 +268,7 @@ describe("FrontmatterProcessor", () => {
       if (!dataResult.ok) throw new Error("Failed to create test data");
 
       const rules = ValidationRules.create([
-        { path: "title", type: "string" },
+        ValidationRuleFactory.createStringRule("title", false),
       ]);
 
       const result = processor.validate(dataResult.data, rules);
@@ -283,7 +286,7 @@ describe("FrontmatterProcessor", () => {
       if (!dataResult.ok) throw new Error("Failed to create test data");
 
       const rules = ValidationRules.create([
-        { path: "title", type: "string", required: true },
+        ValidationRuleFactory.createStringRule("title", true),
       ]);
 
       const result = processor.validate(dataResult.data, rules);
@@ -307,10 +310,10 @@ describe("FrontmatterProcessor", () => {
       if (!dataResult.ok) throw new Error("Failed to create test data");
 
       const rules = ValidationRules.create([
-        { path: "title", type: "string" },
-        { path: "metadata", type: "object" },
-        { path: "metadata.author", type: "string" },
-        { path: "metadata.tags", type: "array" },
+        ValidationRuleFactory.createStringRule("title", false),
+        ValidationRuleFactory.createObjectRule("metadata", false),
+        ValidationRuleFactory.createStringRule("metadata.author", false),
+        ValidationRuleFactory.createArrayRule("metadata.tags", false),
       ]);
 
       const result = processor.validate(dataResult.data, rules);
@@ -484,8 +487,11 @@ describe("FrontmatterProcessor", () => {
       if (extractResult.ok) {
         // Validate
         const rules = ValidationRules.create([
-          { path: "title", type: "string" },
-          { path: "count", type: "number", minimum: 0, maximum: 10 },
+          ValidationRuleFactory.createStringRule("title", false),
+          ValidationRuleFactory.createNumberRule("count", false, {
+            minimum: 0,
+            maximum: 10,
+          }),
         ]);
 
         const validateResult = processor.validate(

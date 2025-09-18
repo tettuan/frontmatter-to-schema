@@ -6,6 +6,7 @@
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Result } from "../../src/domain/shared/types/result.ts";
 import { DomainError } from "../../src/domain/shared/types/errors.ts";
+import { SafePropertyAccess } from "../../src/domain/shared/utils/safe-property-access.ts";
 
 /**
  * TestDataFactory provides convenient methods for creating test data objects
@@ -192,7 +193,23 @@ export class TestDataBuilder {
       if (!(part in current)) {
         current[part] = {};
       }
-      current = current[part] as Record<string, unknown>;
+
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.asRecord(current[part]);
+      if (!propertyResult.ok) {
+        // If property is not a record, create a new one
+        current[part] = {};
+        // SafePropertyAccess the newly created object
+        const newRecordResult = SafePropertyAccess.asRecord(current[part]);
+        if (newRecordResult.ok) {
+          current = newRecordResult.data;
+        } else {
+          // This should never happen since we just created an empty object
+          throw new Error("Failed to create record for nested path");
+        }
+      } else {
+        current = propertyResult.data;
+      }
     }
 
     current[parts[parts.length - 1]] = value;
