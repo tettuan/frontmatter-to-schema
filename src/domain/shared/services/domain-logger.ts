@@ -1,6 +1,19 @@
 import { createLogContext, DebugLogger } from "./debug-logger.ts";
 
 /**
+ * Logger state using discriminated union for explicit logging capabilities
+ * Follows Totality principle - eliminates optional logger dependencies
+ */
+export type LoggerState =
+  | {
+    readonly kind: "enabled";
+    readonly logger: DebugLogger;
+  }
+  | {
+    readonly kind: "disabled";
+  };
+
+/**
  * Domain-level logging adapter that provides simple methods for domain services.
  * This adapter wraps the existing DebugLogger to maintain DDD boundaries.
  */
@@ -44,16 +57,17 @@ export interface DomainLogger {
 
 /**
  * Adapter implementation that wraps DebugLogger for domain use
+ * Uses discriminated union for explicit logger state management
  */
 export class DomainLoggerAdapter implements DomainLogger {
-  constructor(private readonly debugLogger?: DebugLogger) {}
+  constructor(private readonly loggerState: LoggerState) {}
 
   logInfo(
     operation: string,
     message: string,
     context?: Record<string, unknown>,
   ): void {
-    if (!this.debugLogger) return;
+    if (this.loggerState.kind === "disabled") return;
 
     const logContext = createLogContext({
       operation,
@@ -61,7 +75,7 @@ export class DomainLoggerAdapter implements DomainLogger {
     });
 
     // Result is intentionally ignored to maintain simple domain interface
-    this.debugLogger.info(message, logContext);
+    this.loggerState.logger.info(message, logContext);
   }
 
   logDebug(
@@ -69,14 +83,14 @@ export class DomainLoggerAdapter implements DomainLogger {
     message: string,
     context?: Record<string, unknown>,
   ): void {
-    if (!this.debugLogger) return;
+    if (this.loggerState.kind === "disabled") return;
 
     const logContext = createLogContext({
       operation,
       ...context,
     });
 
-    this.debugLogger.debug(message, logContext);
+    this.loggerState.logger.debug(message, logContext);
   }
 
   logError(
@@ -84,7 +98,7 @@ export class DomainLoggerAdapter implements DomainLogger {
     error: unknown,
     context?: Record<string, unknown>,
   ): void {
-    if (!this.debugLogger) return;
+    if (this.loggerState.kind === "disabled") return;
 
     const logContext = createLogContext({
       operation,
@@ -92,7 +106,7 @@ export class DomainLoggerAdapter implements DomainLogger {
     });
 
     const errorMessage = error instanceof Error ? error.message : String(error);
-    this.debugLogger.error(errorMessage, logContext);
+    this.loggerState.logger.error(errorMessage, logContext);
   }
 
   logWarning(
@@ -100,14 +114,14 @@ export class DomainLoggerAdapter implements DomainLogger {
     message: string,
     context?: Record<string, unknown>,
   ): void {
-    if (!this.debugLogger) return;
+    if (this.loggerState.kind === "disabled") return;
 
     const logContext = createLogContext({
       operation,
       ...context,
     });
 
-    this.debugLogger.warn(message, logContext);
+    this.loggerState.logger.warn(message, logContext);
   }
 }
 
@@ -145,5 +159,35 @@ export class NullDomainLogger implements DomainLogger {
     _context?: Record<string, unknown>,
   ): void {
     // No-op
+  }
+}
+
+/**
+ * Factory for creating DomainLogger instances with explicit logger states
+ * Follows Totality principle with discriminated union approach
+ */
+export class DomainLoggerFactory {
+  /**
+   * Create a logger with enabled debug logging
+   */
+  static createEnabled(debugLogger: DebugLogger): DomainLoggerAdapter {
+    return new DomainLoggerAdapter({ kind: "enabled", logger: debugLogger });
+  }
+
+  /**
+   * Create a logger with disabled logging (no-op)
+   */
+  static createDisabled(): DomainLoggerAdapter {
+    return new DomainLoggerAdapter({ kind: "disabled" });
+  }
+
+  /**
+   * Backward compatibility helper - converts optional logger to discriminated union
+   * @deprecated Use createEnabled() or createDisabled() for explicit state management
+   */
+  static fromOptional(debugLogger?: DebugLogger): DomainLoggerAdapter {
+    return debugLogger
+      ? this.createEnabled(debugLogger)
+      : this.createDisabled();
   }
 }

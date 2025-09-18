@@ -742,20 +742,6 @@ commands, their directives, layers, and adaptations.
 - **Usage**: ドメイン駆動設計の設計自体を堅牢になるようリファクタリングします。
   docs/domain/architecture.mdをシンプルで骨格の中心線が通った設計へ再設計します。
 
-## climpt-requirements
-
-| directive | layer | input(-i) | adaptation(-a) | input_text_file(-f) | input_text (STDIN) | destination(-o) |
-| --------- | ----- | --------- | -------------- | ------------------- | ------------------ | --------------- |
-| draft     | entry | -         | default        | -                   | -                  | ✓               |
-
-### Command Details
-
-**climpt-requirements draft entry --adaptation=default**:
-
-- **Title**: requirement
-- **Description**: entry
-- **Usage**: climpt-requirement basedon ddd -o refactor_plan.md
-
 ## climpt-spec
 
 | directive         | layer           | input(-i) | adaptation(-a) | input_text_file(-f) | input_text (STDIN) | destination(-o) |

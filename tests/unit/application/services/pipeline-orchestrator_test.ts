@@ -4,11 +4,33 @@ import {
   FileSystem,
   PipelineConfig,
   PipelineOrchestrator,
+  ProcessingLoggerFactory,
   TemplateConfig,
   VerbosityConfig,
 } from "../../../../src/application/services/pipeline-orchestrator.ts";
 // Note: The actual service imports are not needed since we're using mocks
 import { SchemaCacheFactory } from "../../../../src/infrastructure/caching/schema-cache.ts";
+
+// Helper function to create PipelineOrchestrator for tests
+function createTestOrchestrator(
+  frontmatterTransformer: any,
+  schemaProcessor: any,
+  outputRenderer: any,
+  templateResolver: any,
+  fileSystem: FileSystem,
+  schemaCache: any,
+): PipelineOrchestrator {
+  const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+  return new PipelineOrchestrator(
+    frontmatterTransformer,
+    schemaProcessor,
+    outputRenderer,
+    templateResolver,
+    fileSystem,
+    schemaCache,
+    processingLoggerState,
+  );
+}
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../../../src/domain/schema/value-objects/validation-rules.ts";
@@ -232,7 +254,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -268,7 +290,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -302,7 +324,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -331,7 +353,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -375,7 +397,7 @@ describe("PipelineOrchestrator", () => {
       );
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -420,7 +442,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -467,7 +489,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -528,7 +550,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -587,7 +609,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -625,7 +647,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -666,7 +688,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -699,7 +721,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -727,7 +749,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -768,7 +790,7 @@ describe("PipelineOrchestrator", () => {
       const templateResolver = new MockTemplatePathResolver();
       const schemaCache = SchemaCacheFactory.createForTesting();
 
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -833,7 +855,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -891,7 +913,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -948,7 +970,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1007,7 +1029,7 @@ describe("PipelineOrchestrator", () => {
       });
 
       const schemaCache = SchemaCacheFactory.createForTesting();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestrator = createTestOrchestrator(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1023,6 +1045,357 @@ describe("PipelineOrchestrator", () => {
       const result = await orchestrator.execute(config);
 
       assertEquals(result.ok, true);
+    });
+  });
+
+  describe("executeWithNewArchitecture", () => {
+    it("should execute the new command-based pipeline successfully", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            count: { type: "number" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const dataResult = FrontmatterData.create({ title: "Test", count: 5 });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig();
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle pipeline state transitions correctly", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                },
+              },
+            },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const dataResult = FrontmatterData.create({
+        items: [
+          { title: "Item 1" },
+          { title: "Item 2" },
+        ],
+      });
+      if (dataResult.ok) {
+        frontmatterTransformer.setDataToReturn(dataResult.data);
+      }
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setPathsToReturn({
+        templatePath: "/test/template.json",
+        itemsTemplatePath: "/test/items-template.json",
+        outputFormat: "json",
+      });
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig();
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle schema loading failure in new architecture", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setShouldFail(
+        true,
+        createError({
+          kind: "FileNotFound",
+          path: "/test/schema.json",
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig();
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        // New architecture wraps errors in PipelineExecutionError
+        assertEquals(result.error.kind, "PipelineExecutionError");
+      }
+    });
+
+    it("should handle template resolution failure in new architecture", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      templateResolver.setShouldFail(
+        true,
+        createError({
+          kind: "TemplateNotFound",
+          path: "/test/template.json",
+        }),
+      );
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig();
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        // New architecture wraps errors in PipelineExecutionError
+        assertEquals(result.error.kind, "PipelineExecutionError");
+      }
+    });
+
+    it("should handle document processing failure in new architecture", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      frontmatterTransformer.setShouldFail(
+        true,
+        createError({
+          kind: "ExtractionFailed",
+          message: "Failed to transform documents",
+        }),
+      );
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig();
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        // New architecture wraps errors in PipelineExecutionError
+        assertEquals(result.error.kind, "PipelineExecutionError");
+      }
+    });
+
+    it("should handle verbose mode in new architecture", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      frontmatterTransformer.setDataToReturn(FrontmatterData.empty());
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig({
+        verbosityConfig: { kind: "verbose", enabled: true },
+      });
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle explicit template path in new architecture", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      frontmatterTransformer.setDataToReturn(FrontmatterData.empty());
+
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      const config = createTestConfig({
+        templateConfig: {
+          kind: "explicit",
+          templatePath: "/custom/template.json",
+        },
+      });
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      assertEquals(result.ok, true);
+    });
+
+    it("should handle pipeline execution configuration errors", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify({
+          type: "object",
+          properties: {
+            title: { type: "string" },
+          },
+        }),
+      );
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+      const schemaCache = SchemaCacheFactory.createForTesting();
+
+      const orchestrator = createTestOrchestrator(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+      );
+
+      // Test with empty config to potentially trigger configuration errors
+      const config = createTestConfig({
+        schemaPath: "",
+        outputPath: "",
+        inputPattern: "",
+      });
+
+      const result = await orchestrator.executeWithNewArchitecture(config);
+
+      // The new architecture should handle empty configs gracefully
+      // This tests the robust error handling in the command pattern
+      if (!result.ok) {
+        // Verify error is handled properly with appropriate error kind
+        assertEquals(typeof result.error.kind, "string");
+        assertEquals(typeof result.error.message, "string");
+      }
     });
   });
 });

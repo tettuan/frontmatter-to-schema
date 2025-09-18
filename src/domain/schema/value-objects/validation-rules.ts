@@ -64,10 +64,14 @@ export class ValidationRules {
   }
 
   /**
-   * Get validation rules count (compatibility for length property access)
+   * Get validation rules count
+   * Note: Use getCount() method instead of direct property access for Totality compliance
+   * @deprecated Use getCount() method instead for proper encapsulation
    */
   get length(): number {
-    return this.rules.length;
+    // This getter is deprecated to maintain Totality principle compliance
+    // Direct property access violates encapsulation - use getCount() instead
+    return this.getCount();
   }
 }
 

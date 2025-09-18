@@ -18,11 +18,79 @@ import {
   createLogContext,
   DebugLogger,
 } from "../../shared/services/debug-logger.ts";
+import {
+  DomainLogger,
+  DomainLoggerFactory,
+} from "../../shared/services/domain-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import {
   defaultFrontmatterDataCreationService,
   FrontmatterDataCreationService,
 } from "./frontmatter-data-creation-service.ts";
+
+/**
+ * Processing options state using discriminated union for enhanced type safety
+ * Follows Totality principles by eliminating optional dependencies
+ */
+export type ProcessingOptionsState =
+  | { readonly kind: "sequential" }
+  | { readonly kind: "parallel"; readonly maxWorkers: number }
+  | {
+    readonly kind: "adaptive";
+    readonly baseWorkers: number;
+    readonly maxFileThreshold: number;
+  };
+
+/**
+ * Factory for creating ProcessingOptionsState instances following Totality principles
+ */
+export class ProcessingOptionsFactory {
+  /**
+   * Create sequential processing state - processes one file at a time
+   */
+  static createSequential(): ProcessingOptionsState {
+    return { kind: "sequential" };
+  }
+
+  /**
+   * Create parallel processing state with fixed worker count
+   */
+  static createParallel(maxWorkers: number = 4): ProcessingOptionsState {
+    return { kind: "parallel", maxWorkers: Math.max(1, maxWorkers) };
+  }
+
+  /**
+   * Create adaptive processing state - switches based on file count
+   */
+  static createAdaptive(
+    baseWorkers: number = 4,
+    maxFileThreshold: number = 1,
+  ): ProcessingOptionsState {
+    return {
+      kind: "adaptive",
+      baseWorkers: Math.max(1, baseWorkers),
+      maxFileThreshold: Math.max(1, maxFileThreshold),
+    };
+  }
+
+  /**
+   * Create processing options state from legacy optional object (for backward compatibility)
+   * @deprecated Use explicit factory methods instead
+   */
+  static fromOptional(
+    options?: { parallel?: boolean; maxWorkers?: number },
+  ): ProcessingOptionsState {
+    if (!options) {
+      return ProcessingOptionsFactory.createSequential();
+    }
+
+    if (options.parallel === true) {
+      return ProcessingOptionsFactory.createParallel(options.maxWorkers || 4);
+    }
+
+    return ProcessingOptionsFactory.createSequential();
+  }
+}
 
 export interface FileReader {
   read(path: string): Result<string, DomainError & { message: string }>;
@@ -67,27 +135,148 @@ export class FrontmatterTransformationService {
     private readonly fileLister: FileLister,
     private readonly frontmatterDataCreationService:
       FrontmatterDataCreationService = defaultFrontmatterDataCreationService,
-    private readonly logger?: DebugLogger,
+    private readonly domainLogger: DomainLogger,
   ) {}
+
+  /**
+   * Helper method to create an activeLogger compatible with existing logging patterns
+   * This provides backward compatibility while transitioning to DomainLogger
+   */
+  private createActiveLogger(): DebugLogger | undefined {
+    // Create a bridge logger that translates DebugLogger calls to DomainLogger calls
+    const domainLogger = this.domainLogger;
+    return {
+      info: (message: string, context?: Record<string, unknown>) => {
+        domainLogger.logInfo("transformation", message, context);
+      },
+      debug: (message: string, context?: Record<string, unknown>) => {
+        domainLogger.logDebug("transformation", message, context);
+      },
+      warn: (message: string, context?: Record<string, unknown>) => {
+        domainLogger.logWarning("transformation", message, context);
+      },
+      error: (message: string, context?: Record<string, unknown>) => {
+        domainLogger.logError("transformation", message, context);
+      },
+    } as DebugLogger;
+  }
 
   /**
    * Transform multiple frontmatter documents into integrated domain data.
    * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
    * Includes memory bounds monitoring following Totality principles
    */
-  async transformDocuments(
+  /**
+   * Transform documents with explicit processing options state (Totality-compliant)
+   */
+  async transformDocumentsWithProcessingOptions(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
-    logger?: DebugLogger,
+    processingBounds?: ProcessingBounds,
+    processingOptionsState?: ProcessingOptionsState,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    const optionsState = processingOptionsState ??
+      ProcessingOptionsFactory.createSequential();
+
+    // Convert discriminated union to legacy format for internal processing
+    let legacyOptions: { parallel?: boolean; maxWorkers?: number } | undefined;
+
+    switch (optionsState.kind) {
+      case "sequential":
+        legacyOptions = { parallel: false };
+        break;
+      case "parallel":
+        legacyOptions = { parallel: true, maxWorkers: optionsState.maxWorkers };
+        break;
+      case "adaptive":
+        // For adaptive, we'll need to check file count later to decide
+        legacyOptions = {
+          parallel: true,
+          maxWorkers: optionsState.baseWorkers,
+        };
+        break;
+    }
+
+    return await this.transformDocumentsInternal(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      legacyOptions,
+      optionsState,
+    );
+  }
+
+  /**
+   * Transform documents with optional logger for backward compatibility
+   * @deprecated Use transformDocumentsWithProcessingOptions() method instead
+   */
+  async transformDocumentsWithOptionalLogger(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    _logger?: DebugLogger,
     processingBounds?: ProcessingBounds,
     options?: {
       parallel?: boolean;
       maxWorkers?: number;
     },
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // For backward compatibility, we'll temporarily support the old signature
+    // but the service now uses explicit domain logger state
+    return await this.transformDocuments(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      options,
+    );
+  }
+
+  /**
+   * Transform documents with optional options (backward compatibility)
+   * @deprecated Use transformDocumentsWithProcessingOptions() instead
+   */
+  async transformDocuments(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    processingBounds?: ProcessingBounds,
+    options?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    const processingOptionsState = ProcessingOptionsFactory.fromOptional(
+      options,
+    );
+    return await this.transformDocumentsWithProcessingOptions(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      processingOptionsState,
+    );
+  }
+
+  /**
+   * Internal implementation that handles the actual document transformation logic
+   */
+  private async transformDocumentsInternal(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    processingBounds?: ProcessingBounds,
+    legacyOptions?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+    processingOptionsState?: ProcessingOptionsState,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
     // Stage 1: List matching files
-    const activeLogger = logger || this.logger;
+    // Create activeLogger for backward compatibility within this method
+    const activeLogger = this.createActiveLogger();
     activeLogger?.info(
       `Starting document processing with pattern: ${inputPattern}`,
       {
@@ -211,10 +400,17 @@ export class FrontmatterTransformationService {
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
 
-    // Stage 2: Process files (parallel or sequential based on options)
-    const useParallel = options?.parallel === true &&
+    // Stage 2: Process files (parallel or sequential based on processing options state)
+    let useParallel = legacyOptions?.parallel === true &&
       filesResult.data.length > 1;
-    const maxWorkers = options?.maxWorkers || 4;
+    let maxWorkers = legacyOptions?.maxWorkers || 4;
+
+    // Handle adaptive strategy if provided
+    if (processingOptionsState?.kind === "adaptive") {
+      const fileCount = filesResult.data.length;
+      useParallel = fileCount > processingOptionsState.maxFileThreshold;
+      maxWorkers = processingOptionsState.baseWorkers;
+    }
 
     // 処理戦略切り替え振れ幅デバッグ情報 (高変動箇所特定フロー Iteration 13)
     const processingStrategyVarianceDebug = {
@@ -528,7 +724,7 @@ export class FrontmatterTransformationService {
     { document: MarkdownDocument; frontmatterData: FrontmatterData },
     DomainError & { message: string }
   > {
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       `Starting processing of document: ${filePath}`,
       createLogContext({
@@ -681,14 +877,14 @@ export class FrontmatterTransformationService {
     validationRules: ValidationRules,
     maxWorkers: number,
     boundsMonitor: ProcessingBoundsMonitor,
-    logger?: DebugLogger,
+    _logger?: DebugLogger,
   ): Promise<
     Result<
       Array<{ document: MarkdownDocument; frontmatterData: FrontmatterData }>,
       DomainError & { message: string }
     >
   > {
-    const activeLogger = logger || this.logger;
+    const activeLogger = this.createActiveLogger();
     const results: Array<
       { document: MarkdownDocument; frontmatterData: FrontmatterData }
     > = [];
@@ -923,7 +1119,7 @@ export class FrontmatterTransformationService {
   ): FrontmatterData[] {
     const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
       .getValue();
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       `Checking for ${extensionKey} schema definition`,
       createLogContext({
@@ -1091,7 +1287,7 @@ export class FrontmatterTransformationService {
     // Use SchemaPathResolver instead of hardcoded structure creation
     const commandsArray = data.map((item) => item.getData());
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Creating data structure using SchemaPathResolver",
       createLogContext({
@@ -1203,7 +1399,7 @@ export class FrontmatterTransformationService {
     // For backward compatibility, we continue processing even with failed rules
     const rules = ruleConversion.successfulRules;
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Applying derivation rules while preserving frontmatter-part data",
       createLogContext({
@@ -1253,7 +1449,7 @@ export class FrontmatterTransformationService {
   ): Result<FrontmatterData, DomainError & { message: string }> {
     const derivedFields: Record<string, unknown> = {};
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Calculating derived fields",
       createLogContext({
@@ -1493,5 +1689,80 @@ export class FrontmatterTransformationService {
 
     // Set the final property
     current[parts[parts.length - 1]] = value;
+  }
+
+  /**
+   * Factory method for creating FrontmatterTransformationService with enabled logging
+   */
+  static createWithEnabledLogging(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    debugLogger: DebugLogger,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.createEnabled(debugLogger);
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
+  }
+
+  /**
+   * Factory method for creating FrontmatterTransformationService with disabled logging
+   */
+  static createWithDisabledLogging(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.createDisabled();
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
+  }
+
+  /**
+   * Backward compatibility factory method for optional logger
+   * @deprecated Use createWithEnabledLogging() or createWithDisabledLogging() for explicit state management
+   */
+  static createWithOptionalLogger(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    logger?: DebugLogger,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.fromOptional(logger);
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
   }
 }
