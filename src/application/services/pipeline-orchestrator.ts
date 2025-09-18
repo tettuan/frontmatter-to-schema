@@ -46,6 +46,7 @@ import {
 } from "../pipeline/services/pipeline-execution-service.ts";
 import { PipelineOrchestratorContext } from "../pipeline/services/pipeline-orchestrator-context.ts";
 import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
+import { ProcessingStateMachine } from "./processing-state-machine.ts";
 
 /**
  * Processing logger state using discriminated union for enhanced and debug loggers
@@ -169,6 +170,7 @@ export class PipelineOrchestrator {
   private readonly complexityMetricsService: ComplexityMetricsService;
   private readonly entropyManagementService: EntropyManagementService;
   private readonly loggingService: LoggingService;
+  private readonly stateMachine: ProcessingStateMachine;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
@@ -246,6 +248,17 @@ export class PipelineOrchestrator {
     this.loggingService = LoggingServiceFactory.fromProcessingLoggerState(
       this.processingLoggerState,
     );
+
+    // Initialize processing state machine
+    const stateMachineResult = ProcessingStateMachine.create(
+      this.loggingService,
+    );
+    if (!stateMachineResult.ok) {
+      throw new Error(
+        `Failed to create ProcessingStateMachine: ${stateMachineResult.error.message}`,
+      );
+    }
+    this.stateMachine = stateMachineResult.data;
 
     // DDD境界統合点デバッグ情報 (仕様駆動強化フロー Iteration 8)
     const dddBoundaryIntegrationDebug = {
