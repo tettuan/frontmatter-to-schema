@@ -159,6 +159,46 @@ export class PipelineOrchestrator {
   }
 
   /**
+   * Smart Constructor factory method for PipelineOrchestrator
+   * Follows Totality principles by returning Result<T,E> instead of throwing exceptions
+   */
+  static create(
+    frontmatterTransformer: FrontmatterTransformationService,
+    schemaProcessor: SchemaProcessingService,
+    outputRenderingService: OutputRenderingService,
+    templatePathResolver: TemplatePathResolver,
+    fileSystem: FileSystem,
+    schemaCache: SchemaCache,
+    logger?: EnhancedDebugLogger,
+    defaultStrategyConfig: PipelineStrategyConfig = PipelineStrategyConfig
+      .forBalanced(),
+  ): Result<PipelineOrchestrator, DomainError & { message: string }> {
+    // Create EntropyReductionService with proper error handling
+    const entropyServiceResult = EntropyReductionService.create();
+    if (!entropyServiceResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          "Failed to create EntropyReductionService for PipelineOrchestrator",
+      }));
+    }
+
+    return ok(
+      new PipelineOrchestrator(
+        frontmatterTransformer,
+        schemaProcessor,
+        outputRenderingService,
+        templatePathResolver,
+        fileSystem,
+        schemaCache,
+        logger,
+        defaultStrategyConfig,
+        entropyServiceResult.data,
+      ),
+    );
+  }
+
+  /**
    * Calculates system entropy for AI complexity control
    * Based on entropy formula from ai-complexity-control_compact.ja.md
    * Now uses EntropyReductionService for accurate calculation
