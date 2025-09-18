@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -9,6 +12,7 @@ import {
   PipelineStateFactory,
   PipelineStateGuards,
 } from "../types/pipeline-state.ts";
+import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
 
 /**
  * Process Documents command - Transforms and validates input documents
@@ -39,10 +43,14 @@ export class ProcessDocumentsCommand implements PipelineCommand {
     }
 
     // State is document-processing, so we can safely access all required fields
-    const documentProcessingState = currentState as Extract<
-      PipelineState,
-      { kind: "document-processing" }
-    >;
+    // Use type guard to ensure proper state access
+    if (!PipelineStateGuards.isDocumentProcessing(currentState)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Invalid state for document processing",
+      }));
+    }
+    const documentProcessingState = currentState;
 
     try {
       // Extract required data from current state
@@ -52,8 +60,21 @@ export class ProcessDocumentsCommand implements PipelineCommand {
       const itemsTemplatePath = documentProcessingState.itemsTemplatePath;
       const outputFormat = documentProcessingState.outputFormat;
 
-      // Extract input pattern from config
-      const inputPattern = (config as any).inputPattern as string;
+      // Extract input pattern from config using safe accessor
+      const inputPatternResult = PipelineConfigAccessor.getInputPattern(config);
+      if (!inputPatternResult.ok) {
+        const failedState = PipelineStateFactory.createFailed(
+          config,
+          inputPatternResult.error,
+          "document-processing",
+          {
+            schema,
+            templatePath,
+          },
+        );
+        return ok(failedState);
+      }
+      const inputPattern = inputPatternResult.data;
 
       // Create validation rules (in real implementation, these would come from schema)
       const validationRules: unknown[] = [];
@@ -100,10 +121,7 @@ export class ProcessDocumentsCommand implements PipelineCommand {
 
       // Calculate processing time
       const processingTime = Date.now() -
-        (documentProcessingState as Extract<
-          PipelineState,
-          { kind: "document-processing" }
-        >).processingStartTime;
+        documentProcessingState.processingStartTime;
 
       // Log document processing success
       const _processingMetrics = {

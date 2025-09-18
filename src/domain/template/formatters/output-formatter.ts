@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Output format types supported by the system
@@ -59,11 +60,18 @@ export abstract class BaseFormatter implements OutputFormatter {
     }
 
     if (typeof data === "object") {
-      if (visited.has(data as object)) {
+      // Use SafePropertyAccess to eliminate type assertions
+      const recordResult = SafePropertyAccess.asRecord(data);
+      if (!recordResult.ok) {
+        // If data cannot be converted to a record, it's not serializable
+        return false;
+      }
+
+      if (visited.has(data)) {
         return false; // Circular reference detected
       }
-      visited.add(data as object);
-      return Object.values(data as Record<string, unknown>).every((value) =>
+      visited.add(data);
+      return Object.values(recordResult.data).every((value) =>
         this.isSerializable(value, visited)
       );
     }

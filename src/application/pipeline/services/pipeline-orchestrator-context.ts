@@ -1,16 +1,23 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import { CommandExecutionContext } from "../commands/pipeline-command.ts";
-import { Schema } from "../../schema/entities/schema.ts";
-import { SchemaProcessingService } from "../../schema/services/schema-processing-service.ts";
-import { FrontmatterTransformationService } from "../../frontmatter/services/frontmatter-transformation-service.ts";
-import { TemplatePathResolver } from "../../template/services/template-path-resolver.ts";
-import { OutputRenderingService } from "../../template/services/output-rendering-service.ts";
-import { SchemaPath } from "../../schema/value-objects/schema-path.ts";
-import { SchemaDefinition } from "../../schema/value-objects/schema-definition.ts";
+import { Schema } from "../../../domain/schema/entities/schema.ts";
+import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
+import { SafePropertyAccess } from "../../../domain/shared/utils/safe-property-access.ts";
+import { SchemaProcessingService } from "../../../domain/schema/services/schema-processing-service.ts";
+import { FrontmatterTransformationService } from "../../../domain/frontmatter/services/frontmatter-transformation-service.ts";
+import { TemplatePathResolver } from "../../../domain/template/services/template-path-resolver.ts";
+import { OutputRenderingService } from "../../../domain/template/services/output-rendering-service.ts";
+import { SchemaPath } from "../../../domain/schema/value-objects/schema-path.ts";
+import { SchemaDefinition } from "../../../domain/schema/value-objects/schema-definition.ts";
 import { SchemaCache } from "../../../infrastructure/caching/schema-cache.ts";
-import { VerbosityMode } from "../../template/value-objects/processing-context.ts";
-import { FileSystem } from "../../../application/services/pipeline-orchestrator.ts";
+import { VerbosityMode } from "../../../domain/template/value-objects/processing-context.ts";
+import { FileSystem } from "../../services/pipeline-orchestrator.ts";
+import { TemplatePathConfig } from "../../../domain/template/services/template-path-resolver.ts";
+import { FrontmatterData } from "../../../domain/frontmatter/value-objects/frontmatter-data.ts";
 
 /**
  * Context implementation that adapts existing services to the pipeline command interface
@@ -83,9 +90,24 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
     DomainError & { message: string }
   > {
     try {
-      // Extract template config from pipeline config
-      const typedConfig = config as any;
-      const templateConfig = typedConfig.templateConfig;
+      // Extract template config from pipeline config using safe accessor
+      const templateConfigResult = PipelineConfigAccessor.getTemplateConfig(
+        config,
+      );
+      if (!templateConfigResult.ok) {
+        return err(templateConfigResult.error);
+      }
+      const rawTemplateConfig = templateConfigResult.data;
+
+      // Convert to TemplatePathConfig safely
+      const templateConfigConvertResult = this.convertToTemplatePathConfig(
+        rawTemplateConfig,
+        schema,
+      );
+      if (!templateConfigConvertResult.ok) {
+        return err(templateConfigConvertResult.error);
+      }
+      const templateConfig = templateConfigConvertResult.data;
 
       // Resolve template paths using template path resolver
       const resolveResult = this.templatePathResolver.resolveTemplatePaths(
@@ -100,11 +122,11 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
       const resolvedPaths = resolveResult.data;
 
       return ok({
-        templatePath: (resolvedPaths.templatePath as any)?.getPath?.() ||
-          String(resolvedPaths.templatePath),
+        templatePath: PipelineConfigAccessor.extractPath(
+          resolvedPaths.templatePath,
+        ),
         itemsTemplatePath: resolvedPaths.itemsTemplatePath
-          ? ((resolvedPaths.itemsTemplatePath as any)?.getPath?.() ||
-            String(resolvedPaths.itemsTemplatePath))
+          ? PipelineConfigAccessor.extractPath(resolvedPaths.itemsTemplatePath)
           : undefined,
         outputFormat: resolvedPaths.outputFormat || "json",
       });
@@ -156,8 +178,8 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         : [transformResult.data];
 
       // Extract data from FrontmatterData array
-      const processedData = frontmatterDataArray.map((frontmatterData: any) =>
-        frontmatterData.getData()
+      const processedData = frontmatterDataArray.map((frontmatterData) =>
+        this.extractDataFromFrontmatterData(frontmatterData)
       );
 
       return ok(processedData);
@@ -189,8 +211,9 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
       const itemsData: unknown[] = [];
 
       for (const document of processedData) {
-        if (document && typeof document === "object") {
-          const docObj = document as Record<string, unknown>;
+        const docObjResult = SafePropertyAccess.asRecord(document);
+        if (docObjResult.ok) {
+          const docObj = docObjResult.data;
           // Look for array properties that might be items data
           for (const [_key, value] of Object.entries(docObj)) {
             if (Array.isArray(value)) {
@@ -224,7 +247,11 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
       // Convert mainData array to single FrontmatterData object
       // The renderOutput method expects a single aggregated FrontmatterData object
       const aggregatedData = mainData.length > 0 ? mainData[0] : {};
-      const frontmatterData = { getData: () => aggregatedData } as any;
+      const frontmatterDataResult = this.createFrontmatterData(aggregatedData);
+      if (!frontmatterDataResult.ok) {
+        return err(frontmatterDataResult.error);
+      }
+      const frontmatterData = frontmatterDataResult.data;
 
       // Convert verbosity mode
       const verbosity: VerbosityMode = verbosityMode === "verbose"
@@ -232,9 +259,29 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         : { kind: "normal" };
 
       // Convert itemsData to FrontmatterData array if needed
-      const convertedItemsData = itemsData?.map((item: any) => ({
-        getData: () => item,
-      })) as any;
+      let convertedItemsData: FrontmatterData[] | undefined;
+      if (itemsData) {
+        const itemsConversionResults = await Promise.all(
+          itemsData.map((item) => this.createFrontmatterData(item)),
+        );
+
+        // Check if any conversion failed
+        for (const result of itemsConversionResults) {
+          if (!result.ok) {
+            return err(result.error);
+          }
+        }
+
+        // All results are successful, extract data safely
+        convertedItemsData = itemsConversionResults.map((result) => {
+          if (result.ok) {
+            return result.data;
+          }
+          throw new Error(
+            "This should never happen - all results were checked to be ok",
+          );
+        });
+      }
 
       // Render output using output rendering service
       const validOutputFormat =
@@ -266,5 +313,86 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         }`,
       }));
     }
+  }
+
+  /**
+   * Creates a proper FrontmatterData object from unknown data
+   * Replaces `as any` patterns for mock creation
+   */
+  private createFrontmatterData(
+    data: unknown,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const result = FrontmatterData.create(data);
+    if (!result.ok) {
+      // Convert FrontmatterError to DomainError
+      return err(createError({
+        kind: "PipelineExecutionError",
+        content: `Failed to create FrontmatterData: ${result.error.message}`,
+      }));
+    }
+    return ok(result.data);
+  }
+
+  /**
+   * Safely extracts data from FrontmatterData objects
+   * Replaces `(frontmatterData: any) => frontmatterData.getData()` patterns
+   */
+  private extractDataFromFrontmatterData(frontmatterData: unknown): unknown {
+    if (frontmatterData && typeof frontmatterData === "object") {
+      const objResult = SafePropertyAccess.asRecord(frontmatterData);
+      if (objResult.ok) {
+        const obj = objResult.data;
+        if (typeof obj.getData === "function") {
+          try {
+            return obj.getData();
+          } catch {
+            // Fall through to return the object itself
+          }
+        }
+      }
+    }
+    return frontmatterData;
+  }
+
+  /**
+   * Converts raw template config to TemplatePathConfig
+   * Provides type-safe conversion with fallback to schema path
+   */
+  private convertToTemplatePathConfig(
+    rawConfig: unknown,
+    schema: Schema,
+  ): Result<TemplatePathConfig, DomainError & { message: string }> {
+    // Get schema path as fallback
+    const schemaPathObj = schema.getPath();
+    const schemaPath = schemaPathObj.getValue();
+
+    // If rawConfig is null/undefined, use default
+    if (rawConfig == null) {
+      return ok({
+        schemaPath,
+      });
+    }
+
+    // Try to access as record
+    const configResult = SafePropertyAccess.asRecord(rawConfig);
+    if (!configResult.ok) {
+      // If not an object, use default
+      return ok({
+        schemaPath,
+      });
+    }
+
+    const configRecord = configResult.data;
+
+    // Extract explicit template path if available
+    const explicitTemplatePath =
+      typeof configRecord.explicitTemplatePath === "string"
+        ? configRecord.explicitTemplatePath
+        : undefined;
+
+    return ok({
+      schemaPath,
+      explicitTemplatePath,
+    });
   }
 }

@@ -2,6 +2,8 @@ import { Result } from "../../domain/shared/types/result.ts";
 import { DomainError } from "../../domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
+import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
+import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 
 /**
  * Pipeline State Machine - Replaces monolithic execute() method
@@ -91,13 +93,15 @@ function handleInitialState(
   command: PipelineCommand,
 ): Result<PipelineState, PipelineError> {
   if (command.kind === "ParseFrontmatter") {
-    // This would delegate to actual frontmatter parsing service
+    // Create empty frontmatter data using static empty method
+    const emptyData = FrontmatterData.empty();
+
     return {
       ok: true,
       data: {
         kind: "FrontmatterParsed",
         context: state.context,
-        data: {} as FrontmatterData,
+        data: emptyData,
       },
     };
   }
@@ -121,14 +125,57 @@ function handleFrontmatterParsedState(
   command: PipelineCommand,
 ): Result<PipelineState, PipelineError> {
   if (command.kind === "LoadSchema") {
-    // This would delegate to schema loading service
+    // Create a minimal schema for prototype state machine testing
+    // This is a placeholder - in real implementation, this would load from file
+    const schemaPath = SchemaPath.create(command.schemaPath);
+    if (!schemaPath.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "PipelineExecutionError",
+          content: "Invalid schema path",
+          phase: "FrontmatterParsed",
+          originalError: schemaPath.error,
+        },
+      };
+    }
+
+    const schemaDefinition = SchemaDefinition.create({
+      type: "object",
+      properties: {},
+    });
+    if (!schemaDefinition.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "PipelineExecutionError",
+          content: "Failed to create schema definition",
+          phase: "FrontmatterParsed",
+          originalError: schemaDefinition.error,
+        },
+      };
+    }
+
+    const schema = Schema.create(schemaPath.data, schemaDefinition.data);
+    if (!schema.ok) {
+      return {
+        ok: false,
+        error: {
+          kind: "PipelineExecutionError",
+          content: "Failed to create schema",
+          phase: "FrontmatterParsed",
+          originalError: schema.error,
+        },
+      };
+    }
+
     return {
       ok: true,
       data: {
         kind: "SchemaLoaded",
         context: state.context,
         data: state.data,
-        schema: {} as Schema,
+        schema: schema.data,
       },
     };
   }

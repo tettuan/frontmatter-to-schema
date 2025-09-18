@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -39,10 +42,14 @@ export class PrepareDataCommand implements PipelineCommand {
     }
 
     // State is data-preparing, so we can safely access all required fields
-    const dataPreparingState = currentState as Extract<
-      PipelineState,
-      { kind: "data-preparing" }
-    >;
+    // Use type guard to ensure proper state access
+    if (!PipelineStateGuards.isDataPreparing(currentState)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Invalid state for data preparation",
+      }));
+    }
+    const dataPreparingState = currentState;
 
     try {
       // Extract required data from current state
@@ -120,10 +127,7 @@ export class PrepareDataCommand implements PipelineCommand {
 
       // Calculate preparation time
       const preparationTime = Date.now() -
-        (dataPreparingState as Extract<
-          PipelineState,
-          { kind: "data-preparing" }
-        >).preparationStartTime;
+        dataPreparingState.preparationStartTime;
 
       // Log data preparation success
       const _preparationMetrics = {

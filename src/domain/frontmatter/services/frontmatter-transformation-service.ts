@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
   ProcessingBounds,
   ProcessingBoundsFactory,
@@ -17,6 +18,7 @@ import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.t
 import {
   createLogContext,
   DebugLogger,
+  LogContext,
 } from "../../shared/services/debug-logger.ts";
 import {
   DomainLogger,
@@ -145,20 +147,50 @@ export class FrontmatterTransformationService {
   private createActiveLogger(): DebugLogger | undefined {
     // Create a bridge logger that translates DebugLogger calls to DomainLogger calls
     const domainLogger = this.domainLogger;
-    return {
-      info: (message: string, context?: Record<string, unknown>) => {
+
+    // Return proper DebugLogger implementation following Totality principles
+    const debugLogger: DebugLogger = {
+      info: (message: string, context?: LogContext) => {
         domainLogger.logInfo("transformation", message, context);
+        return ok(void 0);
       },
-      debug: (message: string, context?: Record<string, unknown>) => {
+      debug: (message: string, context?: LogContext) => {
         domainLogger.logDebug("transformation", message, context);
+        return ok(void 0);
       },
-      warn: (message: string, context?: Record<string, unknown>) => {
+      trace: (message: string, context?: LogContext) => {
+        domainLogger.logDebug("transformation", message, context); // Use debug level for trace
+        return ok(void 0);
+      },
+      warn: (message: string, context?: LogContext) => {
         domainLogger.logWarning("transformation", message, context);
+        return ok(void 0);
       },
-      error: (message: string, context?: Record<string, unknown>) => {
+      error: (message: string, context?: LogContext) => {
         domainLogger.logError("transformation", message, context);
+        return ok(void 0);
       },
-    } as DebugLogger;
+      log: (level, message, context?) => {
+        // Delegate to appropriate method based on level
+        switch (level.kind) {
+          case "error":
+            return debugLogger.error(message, context);
+          case "warn":
+            return debugLogger.warn(message, context);
+          case "info":
+            return debugLogger.info(message, context);
+          case "debug":
+          case "trace":
+            return debugLogger.debug(message, context);
+        }
+      },
+      withContext: (_baseContext: LogContext) => {
+        // For simplicity, return the same logger (could be enhanced to merge contexts)
+        return debugLogger;
+      },
+    };
+
+    return debugLogger;
   }
 
   /**
@@ -1472,11 +1504,15 @@ export class FrontmatterTransformationService {
           }),
         );
 
-        const values = sourceResult.data.map((item) =>
-          typeof item === "object" && item !== null
-            ? (item as Record<string, unknown>)[rule.getPropertyPath()]
-            : item
-        ).filter((value) => value !== undefined);
+        const values = sourceResult.data.map((item) => {
+          if (typeof item === "object" && item !== null) {
+            const itemResult = SafePropertyAccess.asRecord(item);
+            if (itemResult.ok) {
+              return itemResult.data[rule.getPropertyPath()];
+            }
+          }
+          return item;
+        }).filter((value) => value !== undefined);
 
         const finalValues = rule.isUnique() ? [...new Set(values)] : values;
 
@@ -1558,10 +1594,18 @@ export class FrontmatterTransformationService {
           !Array.isArray(result[key])
         ) {
           // Both are objects - merge recursively
-          result[key] = this.deepMergeObjects(
-            result[key] as Record<string, unknown>,
-            source[key] as Record<string, unknown>,
-          );
+          const resultValueResult = SafePropertyAccess.asRecord(result[key]);
+          const sourceValueResult = SafePropertyAccess.asRecord(source[key]);
+
+          if (resultValueResult.ok && sourceValueResult.ok) {
+            result[key] = this.deepMergeObjects(
+              resultValueResult.data,
+              sourceValueResult.data,
+            );
+          } else {
+            // Fallback to source value if type conversion fails
+            result[key] = source[key];
+          }
         } else {
           // Replace value (for arrays, primitives, or when target is not object)
           result[key] = source[key];
@@ -1588,7 +1632,22 @@ export class FrontmatterTransformationService {
       if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
         current[parts[i]] = {};
       }
-      current = current[parts[i]] as Record<string, unknown>;
+
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.asRecord(current[parts[i]]);
+      if (!propertyResult.ok) {
+        // If property is not a record, create a new one
+        current[parts[i]] = {};
+        const newRecordResult = SafePropertyAccess.asRecord(current[parts[i]]);
+        if (newRecordResult.ok) {
+          current = newRecordResult.data;
+        } else {
+          // This should never happen since we just created an empty object
+          throw new Error("Failed to create record for nested path");
+        }
+      } else {
+        current = propertyResult.data;
+      }
     }
 
     current[parts[parts.length - 1]] = value;
@@ -1654,11 +1713,13 @@ export class FrontmatterTransformationService {
     let current: unknown = obj;
 
     for (const part of parts) {
-      if (
-        current && typeof current === "object" &&
-        part in (current as Record<string, unknown>)
-      ) {
-        current = (current as Record<string, unknown>)[part];
+      if (current && typeof current === "object") {
+        const currentResult = SafePropertyAccess.asRecord(current);
+        if (currentResult.ok && part in currentResult.data) {
+          current = currentResult.data[part];
+        } else {
+          return undefined;
+        }
       } else {
         return undefined;
       }
@@ -1684,7 +1745,22 @@ export class FrontmatterTransformationService {
       if (!current[part] || typeof current[part] !== "object") {
         current[part] = {};
       }
-      current = current[part] as Record<string, unknown>;
+
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.asRecord(current[part]);
+      if (!propertyResult.ok) {
+        // If property is not a record, create a new one
+        current[part] = {};
+        const newRecordResult = SafePropertyAccess.asRecord(current[part]);
+        if (newRecordResult.ok) {
+          current = newRecordResult.data;
+        } else {
+          // This should never happen since we just created an empty object
+          throw new Error("Failed to create record for nested path");
+        }
+      } else {
+        current = propertyResult.data;
+      }
     }
 
     // Set the final property

@@ -1,5 +1,8 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { err, ok, Result } from "../../../domain/shared/types/result.ts";
+import {
+  createError,
+  DomainError,
+} from "../../../domain/shared/types/errors.ts";
 import {
   CommandExecutionContext,
   PipelineCommand,
@@ -9,7 +12,8 @@ import {
   PipelineStateFactory,
   PipelineStateGuards,
 } from "../types/pipeline-state.ts";
-import { Schema } from "../../schema/entities/schema.ts";
+import { Schema } from "../../../domain/schema/entities/schema.ts";
+import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
 
 /**
  * Load Schema command - Loads and validates schema from file system
@@ -43,9 +47,18 @@ export class LoadSchemaCommand implements PipelineCommand {
     const schemaLoadingState = currentState;
 
     try {
-      // Extract schema path from config
+      // Extract schema path from config using safe accessor
       const config = schemaLoadingState.config;
-      const schemaPath = (config as any).schemaPath as string;
+      const schemaPathResult = PipelineConfigAccessor.getSchemaPath(config);
+      if (!schemaPathResult.ok) {
+        const failedState = PipelineStateFactory.createFailed(
+          config,
+          schemaPathResult.error,
+          "schema-loading",
+        );
+        return ok(failedState);
+      }
+      const schemaPath = schemaPathResult.data;
 
       // Load schema using context
       const schemaResult = await this.context.loadSchema(schemaPath);
@@ -59,8 +72,8 @@ export class LoadSchemaCommand implements PipelineCommand {
         return ok(failedState);
       }
 
-      // Cast to Schema entity (in real implementation, this would be proper validation)
-      const schema = schemaResult.data as Schema;
+      // schemaResult.data is already typed as Schema from loadSchema method
+      const schema = schemaResult.data;
 
       // Validate schema is properly loaded
       const schemaValidation = this.validateLoadedSchema(schema);
@@ -73,12 +86,14 @@ export class LoadSchemaCommand implements PipelineCommand {
         return ok(failedState);
       }
 
-      // Calculate loading time
-      const loadingTime = Date.now() -
-        (schemaLoadingState as Extract<
-          PipelineState,
-          { kind: "schema-loading" }
-        >).loadingStartTime;
+      // Calculate loading time using safe state access
+      let loadingTime = 0;
+      if (PipelineStateGuards.isSchemaLoading(schemaLoadingState)) {
+        loadingTime = Date.now() - schemaLoadingState.loadingStartTime;
+      } else {
+        // Fallback if state is not schema-loading (shouldn't happen in normal flow)
+        loadingTime = 0;
+      }
 
       // Log schema loading success
       const _loadingMetrics = {
@@ -95,12 +110,20 @@ export class LoadSchemaCommand implements PipelineCommand {
 
       return ok(newState);
     } catch (error) {
+      // Use safe accessor for error reporting
+      const schemaPathResult = PipelineConfigAccessor.getSchemaPath(
+        schemaLoadingState.config,
+      );
+      const schemaPath = schemaPathResult.ok
+        ? schemaPathResult.data
+        : "unknown";
+
       const failedState = PipelineStateFactory.createFailed(
         schemaLoadingState.config,
         createError(
           {
             kind: "SchemaNotFound",
-            path: (schemaLoadingState.config as any).schemaPath,
+            path: schemaPath,
           },
           `Schema loading failed: ${
             error instanceof Error ? error.message : String(error)

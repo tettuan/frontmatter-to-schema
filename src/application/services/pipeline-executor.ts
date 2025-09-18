@@ -18,8 +18,117 @@ import {
  * with clean DDD and Totality principles
  */
 
+/**
+ * Pipeline executor configuration using discriminated union for Totality compliance
+ * Eliminates optional dependencies in favor of explicit configuration states
+ */
+export type PipelineExecutorConfig =
+  | {
+    readonly kind: "mock";
+    readonly mockLevel: "minimal" | "complete";
+  }
+  | {
+    readonly kind: "testing";
+    readonly enabledServices: readonly string[];
+  }
+  | {
+    readonly kind: "production";
+    readonly frontmatterParser: unknown;
+    readonly schemaLoader: unknown;
+    readonly validator: unknown;
+    readonly templateGenerator: unknown;
+  };
+
+/**
+ * Factory for creating PipelineExecutorConfig instances following Smart Constructor pattern
+ */
+export class PipelineExecutorConfigFactory {
+  /**
+   * Create mock configuration for development/testing
+   */
+  static createMock(
+    mockLevel: "minimal" | "complete" = "minimal",
+  ): PipelineExecutorConfig {
+    return {
+      kind: "mock",
+      mockLevel,
+    };
+  }
+
+  /**
+   * Create testing configuration with selective service enablement
+   */
+  static createTesting(
+    enabledServices: readonly string[],
+  ): PipelineExecutorConfig {
+    return {
+      kind: "testing",
+      enabledServices,
+    };
+  }
+
+  /**
+   * Create production configuration with all services injected
+   */
+  static createProduction(
+    frontmatterParser: unknown,
+    schemaLoader: unknown,
+    validator: unknown,
+    templateGenerator: unknown,
+  ): PipelineExecutorConfig {
+    return {
+      kind: "production",
+      frontmatterParser,
+      schemaLoader,
+      validator,
+      templateGenerator,
+    };
+  }
+
+  /**
+   * Backward compatibility helper - converts legacy interface
+   * @deprecated Use explicit configuration factory methods for better type safety
+   */
+  static fromLegacy(
+    dependencies: PipelineExecutorDependencies,
+  ): PipelineExecutorConfig {
+    if (
+      dependencies.frontmatterParser &&
+      dependencies.schemaLoader &&
+      dependencies.validator &&
+      dependencies.templateGenerator
+    ) {
+      return PipelineExecutorConfigFactory.createProduction(
+        dependencies.frontmatterParser,
+        dependencies.schemaLoader,
+        dependencies.validator,
+        dependencies.templateGenerator,
+      );
+    }
+
+    const enabledServices: string[] = [];
+    if (dependencies.frontmatterParser) {
+      enabledServices.push("frontmatterParser");
+    }
+    if (dependencies.schemaLoader) enabledServices.push("schemaLoader");
+    if (dependencies.validator) enabledServices.push("validator");
+    if (dependencies.templateGenerator) {
+      enabledServices.push("templateGenerator");
+    }
+
+    if (enabledServices.length > 0) {
+      return PipelineExecutorConfigFactory.createTesting(enabledServices);
+    }
+
+    return PipelineExecutorConfigFactory.createMock("minimal");
+  }
+}
+
+/**
+ * Legacy interface for backward compatibility
+ * @deprecated Use PipelineExecutorConfig discriminated union for type safety
+ */
 export interface PipelineExecutorDependencies {
-  // Dependencies will be injected here when implementing actual service calls
   readonly frontmatterParser?: unknown;
   readonly schemaLoader?: unknown;
   readonly validator?: unknown;
@@ -27,9 +136,21 @@ export interface PipelineExecutorDependencies {
 }
 
 export class PipelineExecutor {
+  private readonly config: PipelineExecutorConfig;
+
   constructor(
-    private readonly dependencies: PipelineExecutorDependencies = {},
-  ) {}
+    config?: PipelineExecutorConfig | PipelineExecutorDependencies,
+  ) {
+    if (!config) {
+      this.config = PipelineExecutorConfigFactory.createMock("minimal");
+    } else if ("kind" in config) {
+      // New discriminated union config
+      this.config = config;
+    } else {
+      // Legacy dependencies interface - convert to new format
+      this.config = PipelineExecutorConfigFactory.fromLegacy(config);
+    }
+  }
 
   /**
    * Execute pipeline with new state machine architecture
@@ -255,6 +376,34 @@ export class PipelineExecutor {
       supportsTemplateGeneration: true,
       supportsJMESPathFilters: true,
     };
+  }
+
+  /**
+   * Get current configuration type
+   */
+  getConfigKind(): "mock" | "testing" | "production" {
+    return this.config.kind;
+  }
+
+  /**
+   * Check if executor is running in production mode
+   */
+  isProductionMode(): boolean {
+    return this.config.kind === "production";
+  }
+
+  /**
+   * Check if executor is running in mock mode
+   */
+  isMockMode(): boolean {
+    return this.config.kind === "mock";
+  }
+
+  /**
+   * Get configuration for debugging purposes
+   */
+  getConfiguration(): PipelineExecutorConfig {
+    return this.config;
   }
 }
 

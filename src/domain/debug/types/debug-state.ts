@@ -41,13 +41,22 @@ export type DebugState =
     readonly processingTimeMs: number;
   }
   | {
-    readonly kind: "failed";
+    readonly kind: "failed-without-data";
     readonly error: DomainError;
     readonly failedAt: number;
-    readonly partialData?: {
-      entropyReport?: EntropyAnalysisReport;
-      totalityReport?: TotalityComplianceReport;
-    };
+  }
+  | {
+    readonly kind: "failed-with-entropy";
+    readonly error: DomainError;
+    readonly failedAt: number;
+    readonly entropyReport: EntropyAnalysisReport;
+  }
+  | {
+    readonly kind: "failed-with-both";
+    readonly error: DomainError;
+    readonly failedAt: number;
+    readonly entropyReport: EntropyAnalysisReport;
+    readonly totalityReport: TotalityComplianceReport;
   };
 
 /**
@@ -122,18 +131,37 @@ export class DebugStateFactory {
     };
   }
 
-  static createFailed(
-    error: DomainError,
-    partialData?: {
-      entropyReport?: EntropyAnalysisReport;
-      totalityReport?: TotalityComplianceReport;
-    },
-  ): DebugState {
+  static createFailedWithoutData(error: DomainError): DebugState {
     return {
-      kind: "failed",
+      kind: "failed-without-data",
       error,
       failedAt: Date.now(),
-      partialData,
+    };
+  }
+
+  static createFailedWithEntropy(
+    error: DomainError,
+    entropyReport: EntropyAnalysisReport,
+  ): DebugState {
+    return {
+      kind: "failed-with-entropy",
+      error,
+      failedAt: Date.now(),
+      entropyReport,
+    };
+  }
+
+  static createFailedWithBoth(
+    error: DomainError,
+    entropyReport: EntropyAnalysisReport,
+    totalityReport: TotalityComplianceReport,
+  ): DebugState {
+    return {
+      kind: "failed-with-both",
+      error,
+      failedAt: Date.now(),
+      entropyReport,
+      totalityReport,
     };
   }
 }
@@ -172,25 +200,43 @@ export const DebugStateGuards = {
   ): state is Extract<DebugState, { kind: "completed" }> =>
     state.kind === "completed",
 
-  isFailed: (
+  isFailedWithoutData: (
     state: DebugState,
-  ): state is Extract<DebugState, { kind: "failed" }> =>
-    state.kind === "failed",
+  ): state is Extract<DebugState, { kind: "failed-without-data" }> =>
+    state.kind === "failed-without-data",
+
+  isFailedWithEntropy: (
+    state: DebugState,
+  ): state is Extract<DebugState, { kind: "failed-with-entropy" }> =>
+    state.kind === "failed-with-entropy",
+
+  isFailedWithBoth: (
+    state: DebugState,
+  ): state is Extract<DebugState, { kind: "failed-with-both" }> =>
+    state.kind === "failed-with-both",
+
+  isFailed: (state: DebugState): boolean =>
+    state.kind === "failed-without-data" ||
+    state.kind === "failed-with-entropy" ||
+    state.kind === "failed-with-both",
 
   isTerminal: (state: DebugState): boolean =>
-    state.kind === "completed" || state.kind === "failed",
+    state.kind === "completed" ||
+    state.kind === "failed-without-data" ||
+    state.kind === "failed-with-entropy" ||
+    state.kind === "failed-with-both",
 
   hasEntropyReport: (state: DebugState): boolean =>
     state.kind === "totality-analyzing" ||
     state.kind === "compliance-checking" ||
     state.kind === "reporting" ||
     state.kind === "completed" ||
-    (state.kind === "failed" && state.partialData?.entropyReport !== undefined),
+    state.kind === "failed-with-entropy" ||
+    state.kind === "failed-with-both",
 
   hasTotalityReport: (state: DebugState): boolean =>
     state.kind === "compliance-checking" ||
     state.kind === "reporting" ||
     state.kind === "completed" ||
-    (state.kind === "failed" &&
-      state.partialData?.totalityReport !== undefined),
+    state.kind === "failed-with-both",
 };

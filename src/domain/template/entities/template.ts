@@ -169,10 +169,11 @@ function determineFormat(
 ): OutputFormat {
   // Content-based detection using domain configuration
   if (isRecord(content)) {
-    const detectedFormat = config.detectFormatFromContent(content);
-    if (detectedFormat) {
-      return detectedFormat;
+    const detectedFormatResult = config.detectFormatFromContent(content);
+    if (detectedFormatResult.ok) {
+      return detectedFormatResult.data;
     }
+    // Continue to fallback if detection fails (following graceful degradation)
   }
 
   // Path-based detection as fallback

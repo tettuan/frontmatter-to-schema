@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Represents the context for variable resolution in templates
@@ -175,8 +176,11 @@ export class VariableContext {
    * @deprecated Will be removed in future versions
    */
   createItemContext(item: unknown): VariableContext {
+    const itemObjResult = SafePropertyAccess.asRecord(item);
+    const itemData = itemObjResult.ok ? itemObjResult.data : {};
+
     return new VariableContext(
-      item as Record<string, unknown>,
+      itemData,
       undefined,
       this.hierarchyRoot,
     );

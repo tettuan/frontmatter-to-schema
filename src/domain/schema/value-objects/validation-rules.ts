@@ -2,18 +2,142 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
 import type { SchemaProperty } from "./schema-property-types.ts";
 import { isRefSchema } from "./schema-property-types.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
-export interface ValidationRule {
-  readonly path: string;
-  readonly type?: string;
-  readonly required?: boolean;
-  readonly enum?: readonly unknown[];
-  readonly pattern?: string;
-  readonly minimum?: number;
-  readonly maximum?: number;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly format?: string;
+/**
+ * Validation rules following Totality principles with discriminated unions
+ * Eliminates optional properties in favor of explicit rule types
+ */
+export type ValidationRule =
+  | {
+    readonly kind: "string";
+    readonly path: string;
+    readonly required: boolean;
+    readonly pattern?: string;
+    readonly minLength?: number;
+    readonly maxLength?: number;
+    readonly format?: string;
+  }
+  | {
+    readonly kind: "number";
+    readonly path: string;
+    readonly required: boolean;
+    readonly minimum?: number;
+    readonly maximum?: number;
+  }
+  | {
+    readonly kind: "integer";
+    readonly path: string;
+    readonly required: boolean;
+    readonly minimum?: number;
+    readonly maximum?: number;
+  }
+  | {
+    readonly kind: "boolean";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "array";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "object";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "enum";
+    readonly path: string;
+    readonly required: boolean;
+    readonly baseType: string;
+    readonly values: readonly unknown[];
+  }
+  | { readonly kind: "ref"; readonly path: string; readonly required: boolean }
+  | { readonly kind: "null"; readonly path: string; readonly required: boolean }
+  | { readonly kind: "any"; readonly path: string; readonly required: boolean };
+
+/**
+ * Smart constructors for validation rules following Totality principles
+ */
+export class ValidationRuleFactory {
+  static createStringRule(
+    path: string,
+    required: boolean,
+    constraints?: {
+      pattern?: string;
+      minLength?: number;
+      maxLength?: number;
+      format?: string;
+    },
+  ): ValidationRule {
+    return {
+      kind: "string",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createNumberRule(
+    path: string,
+    required: boolean,
+    constraints?: { minimum?: number; maximum?: number },
+  ): ValidationRule {
+    return {
+      kind: "number",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createIntegerRule(
+    path: string,
+    required: boolean,
+    constraints?: { minimum?: number; maximum?: number },
+  ): ValidationRule {
+    return {
+      kind: "integer",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createBooleanRule(path: string, required: boolean): ValidationRule {
+    return { kind: "boolean", path, required };
+  }
+
+  static createArrayRule(path: string, required: boolean): ValidationRule {
+    return { kind: "array", path, required };
+  }
+
+  static createObjectRule(path: string, required: boolean): ValidationRule {
+    return { kind: "object", path, required };
+  }
+
+  static createEnumRule(
+    path: string,
+    required: boolean,
+    baseType: string,
+    values: readonly unknown[],
+  ): ValidationRule {
+    return { kind: "enum", path, required, baseType, values };
+  }
+
+  static createRefRule(path: string, required: boolean): ValidationRule {
+    return { kind: "ref", path, required };
+  }
+
+  static createNullRule(path: string, required: boolean): ValidationRule {
+    return { kind: "null", path, required };
+  }
+
+  static createAnyRule(path: string, required: boolean): ValidationRule {
+    return { kind: "any", path, required };
+  }
 }
 
 export class ValidationRules {
@@ -99,7 +223,13 @@ function extractRules(
     hardcodingPatterns: {
       switchStatementBranches: 10, // 10種類のschema.kind分岐
       specialHandlingRequired: ["ref", "any"], // 特殊処理が必要な型
-      constraintHandling: (schema as any).constraints ? "dynamic" : "none",
+      constraintHandling: (() => {
+        const schemaObjResult = SafePropertyAccess.asRecord(schema);
+        if (schemaObjResult.ok && "constraints" in schemaObjResult.data) {
+          return "dynamic";
+        }
+        return "none";
+      })(),
     },
     entropyContribution: {
       branchingFactor: 10, // switch文の分岐数
@@ -112,54 +242,54 @@ function extractRules(
   // Exhaustive switch based on schema kind - 全域性原則適用
   switch (schema.kind) {
     case "string": {
-      const stringRule: ValidationRule = {
+      const stringRule = ValidationRuleFactory.createStringRule(
         path,
-        type: "string",
-        pattern: schema.constraints?.pattern,
-        minLength: schema.constraints?.minLength,
-        maxLength: schema.constraints?.maxLength,
-        format: schema.constraints?.format,
-      };
+        false, // Will be updated later for required properties
+        {
+          pattern: schema.constraints?.pattern,
+          minLength: schema.constraints?.minLength,
+          maxLength: schema.constraints?.maxLength,
+          format: schema.constraints?.format,
+        },
+      );
       rules.push(stringRule);
       break;
     }
 
     case "number": {
-      const numberRule: ValidationRule = {
+      const numberRule = ValidationRuleFactory.createNumberRule(
         path,
-        type: "number",
-        minimum: schema.constraints?.minimum,
-        maximum: schema.constraints?.maximum,
-      };
+        false, // Will be updated later for required properties
+        {
+          minimum: schema.constraints?.minimum,
+          maximum: schema.constraints?.maximum,
+        },
+      );
       rules.push(numberRule);
       break;
     }
 
     case "integer": {
-      const integerRule: ValidationRule = {
+      const integerRule = ValidationRuleFactory.createIntegerRule(
         path,
-        type: "integer",
-        minimum: schema.constraints?.minimum,
-        maximum: schema.constraints?.maximum,
-      };
+        false, // Will be updated later for required properties
+        {
+          minimum: schema.constraints?.minimum,
+          maximum: schema.constraints?.maximum,
+        },
+      );
       rules.push(integerRule);
       break;
     }
 
     case "boolean": {
-      const booleanRule: ValidationRule = {
-        path,
-        type: "boolean",
-      };
+      const booleanRule = ValidationRuleFactory.createBooleanRule(path, false);
       rules.push(booleanRule);
       break;
     }
 
     case "array": {
-      const arrayRule: ValidationRule = {
-        path,
-        type: "array",
-      };
+      const arrayRule = ValidationRuleFactory.createArrayRule(path, false);
       rules.push(arrayRule);
 
       // Extract rules for array items
@@ -170,62 +300,54 @@ function extractRules(
     }
 
     case "object": {
-      const objectRule: ValidationRule = {
-        path,
-        type: "object",
-      };
+      const objectRule = ValidationRuleFactory.createObjectRule(path, false);
       rules.push(objectRule);
 
       // Extract rules for object properties
       for (const [key, prop] of Object.entries(schema.properties)) {
         const propPath = path ? `${path}.${key}` : key;
-        if (schema.required.includes(key)) {
+        const isRequired = schema.required.includes(key);
+        extractRules(prop, propPath, rules);
+
+        // Update the rule to mark as required if needed
+        if (isRequired) {
           const propRule = rules.find((r) => r.path === propPath);
           if (propRule) {
-            Object.assign(propRule, { required: true });
-          } else {
-            rules.push({ path: propPath, required: true });
+            // Create a new rule with required=true following immutability
+            const index = rules.indexOf(propRule);
+            rules[index] = { ...propRule, required: true };
           }
         }
-        extractRules(prop, propPath, rules);
       }
       break;
     }
 
     case "enum": {
-      const enumRule: ValidationRule = {
+      const enumRule = ValidationRuleFactory.createEnumRule(
         path,
-        type: schema.baseType || "string",
-        enum: schema.values,
-      };
+        false, // Will be updated later for required properties
+        schema.baseType || "string",
+        schema.values,
+      );
       rules.push(enumRule);
       break;
     }
 
     case "ref": {
       // References should be resolved before validation rule extraction
-      const refRule: ValidationRule = {
-        path,
-        type: "object", // Default assumption for refs
-      };
+      const refRule = ValidationRuleFactory.createRefRule(path, false);
       rules.push(refRule);
       break;
     }
 
     case "null": {
-      const nullRule: ValidationRule = {
-        path,
-        type: "null",
-      };
+      const nullRule = ValidationRuleFactory.createNullRule(path, false);
       rules.push(nullRule);
       break;
     }
 
     case "any": {
-      const anyRule: ValidationRule = {
-        path,
-        // No specific type for any
-      };
+      const anyRule = ValidationRuleFactory.createAnyRule(path, false);
       rules.push(anyRule);
       break;
     }
@@ -259,37 +381,35 @@ function validateWithRules(
       continue;
     }
 
-    // Type validation
-    if (rule.type) {
-      const actualType = getDataType(data);
-      if (rule.type !== actualType) {
-        // Special case: number can be integer
-        if (
-          !(rule.type === "integer" && actualType === "number" &&
-            Number.isInteger(data))
-        ) {
-          return err(createError({
-            kind: "InvalidType",
-            expected: rule.type,
-            actual: actualType,
-          }));
-        }
+    // Type validation using discriminated union
+    const actualType = getDataType(data);
+    if (rule.kind !== actualType) {
+      // Special case: number can be integer
+      if (
+        !(rule.kind === "integer" && actualType === "number" &&
+          Number.isInteger(data))
+      ) {
+        return err(createError({
+          kind: "InvalidType",
+          expected: rule.kind,
+          actual: actualType,
+        }));
       }
     }
 
-    // Enum validation
-    if (rule.enum && rule.enum.length > 0) {
-      if (!rule.enum.includes(data)) {
+    // Enum validation using discriminated union
+    if (rule.kind === "enum") {
+      if (!rule.values.includes(data)) {
         return err(createError({
           kind: "InvalidType",
-          expected: `enum: [${rule.enum.join(", ")}]`,
+          expected: `enum: [${rule.values.join(", ")}]`,
           actual: String(data),
         }));
       }
     }
 
-    // String-specific validations
-    if (typeof data === "string") {
+    // String-specific validations using discriminated union
+    if (rule.kind === "string" && typeof data === "string") {
       // Pattern validation
       if (rule.pattern) {
         try {
@@ -327,8 +447,11 @@ function validateWithRules(
       }
     }
 
-    // Number-specific validations
-    if (typeof data === "number") {
+    // Number-specific validations using discriminated union
+    if (
+      (rule.kind === "number" || rule.kind === "integer") &&
+      typeof data === "number"
+    ) {
       if (rule.minimum !== undefined && data < rule.minimum) {
         return err(createError({
           kind: "OutOfRange",
