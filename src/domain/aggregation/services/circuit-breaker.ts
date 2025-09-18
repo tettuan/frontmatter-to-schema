@@ -11,13 +11,25 @@ export interface LegacyCircuitBreakerConfig {
   readonly cooldownPeriodMs: number;
 }
 
-export interface CircuitBreakerState {
-  readonly status: "closed" | "open" | "half-open";
-  readonly failures: number;
-  readonly lastFailureTime?: number;
-  readonly lastSuccessTime?: number;
-  readonly metrics: CircuitBreakerMetrics;
-}
+export type CircuitBreakerState =
+  | {
+    kind: "closed";
+    failures: number;
+    metrics: CircuitBreakerMetrics;
+    lastSuccessTime: number | null;
+  }
+  | {
+    kind: "open";
+    failures: number;
+    lastFailureTime: number;
+    metrics: CircuitBreakerMetrics;
+  }
+  | {
+    kind: "half-open";
+    failures: number;
+    lastFailureTime: number;
+    metrics: CircuitBreakerMetrics;
+  };
 
 export interface CircuitBreakerMetrics {
   readonly totalAttempts: number;
@@ -30,8 +42,9 @@ export interface CircuitBreakerMetrics {
 
 export class CircuitBreaker {
   private state: CircuitBreakerState = {
-    status: "closed",
+    kind: "closed",
     failures: 0,
+    lastSuccessTime: null,
     metrics: {
       totalAttempts: 0,
       successfulAttempts: 0,
@@ -76,9 +89,9 @@ export class CircuitBreaker {
   ): Result<boolean, AggregationError & { message: string }> {
     const complexity = datasetSize * rulesCount;
 
-    if (this.state.status === "open") {
+    if (this.state.kind === "open") {
       const now = Date.now();
-      const timeSinceFailure = now - (this.state.lastFailureTime || 0);
+      const timeSinceFailure = now - this.state.lastFailureTime;
       const cooldownPeriod = this.config.calculateDynamicCooldown(
         this.state.failures,
       );
@@ -93,7 +106,12 @@ export class CircuitBreaker {
         }));
       }
 
-      this.state = { ...this.state, status: "half-open" };
+      this.state = {
+        kind: "half-open",
+        failures: this.state.failures,
+        lastFailureTime: this.state.lastFailureTime,
+        metrics: this.state.metrics,
+      };
     }
 
     const thresholds = this.config.getThresholds();
@@ -142,10 +160,9 @@ export class CircuitBreaker {
     ) / newSuccessfulAttempts;
 
     this.state = {
-      status: "closed",
+      kind: "closed",
       failures: 0,
       lastSuccessTime: Date.now(),
-      lastFailureTime: this.state.lastFailureTime,
       metrics: {
         ...metrics,
         totalAttempts: newTotalAttempts,
@@ -161,41 +178,150 @@ export class CircuitBreaker {
     const newFailures = this.state.failures + 1;
     const failureThreshold = this.config.getFailureThreshold();
     const shouldOpen = newFailures >= failureThreshold ||
-      this.state.status === "half-open";
+      this.state.kind === "half-open";
+    const now = Date.now();
 
-    this.state = {
-      status: shouldOpen ? "open" : this.state.status,
-      failures: newFailures,
-      lastFailureTime: Date.now(),
-      lastSuccessTime: this.state.lastSuccessTime,
-      metrics: {
-        ...metrics,
-        totalAttempts: metrics.totalAttempts + 1,
-        failedAttempts: metrics.failedAttempts + 1,
-      },
-    };
+    if (shouldOpen) {
+      this.state = {
+        kind: "open",
+        failures: newFailures,
+        lastFailureTime: now,
+        metrics: {
+          ...metrics,
+          totalAttempts: metrics.totalAttempts + 1,
+          failedAttempts: metrics.failedAttempts + 1,
+        },
+      };
+    } else {
+      // Stay in current state but update data
+      switch (this.state.kind) {
+        case "closed": {
+          this.state = {
+            kind: "closed",
+            failures: newFailures,
+            lastSuccessTime: this.state.lastSuccessTime,
+            metrics: {
+              ...metrics,
+              totalAttempts: metrics.totalAttempts + 1,
+              failedAttempts: metrics.failedAttempts + 1,
+            },
+          };
+          break;
+        }
+        case "open": {
+          this.state = {
+            kind: "open",
+            failures: newFailures,
+            lastFailureTime: this.state.lastFailureTime,
+            metrics: {
+              ...metrics,
+              totalAttempts: metrics.totalAttempts + 1,
+              failedAttempts: metrics.failedAttempts + 1,
+            },
+          };
+          break;
+        }
+        case "half-open": {
+          // This case should not happen due to shouldOpen logic above
+          this.state = {
+            kind: "half-open",
+            failures: newFailures,
+            lastFailureTime: this.state.lastFailureTime,
+            metrics: {
+              ...metrics,
+              totalAttempts: metrics.totalAttempts + 1,
+              failedAttempts: metrics.failedAttempts + 1,
+            },
+          };
+          break;
+        }
+      }
+    }
   }
 
   private recordRejection(): void {
     const metrics = this.state.metrics;
-    this.state = {
-      ...this.state,
-      metrics: {
-        ...metrics,
-        totalAttempts: metrics.totalAttempts + 1,
-        rejectedAttempts: metrics.rejectedAttempts + 1,
-      },
+    const newMetrics = {
+      ...metrics,
+      totalAttempts: metrics.totalAttempts + 1,
+      rejectedAttempts: metrics.rejectedAttempts + 1,
     };
+
+    switch (this.state.kind) {
+      case "closed": {
+        this.state = {
+          kind: "closed",
+          failures: this.state.failures,
+          lastSuccessTime: this.state.lastSuccessTime,
+          metrics: newMetrics,
+        };
+        break;
+      }
+      case "open": {
+        this.state = {
+          kind: "open",
+          failures: this.state.failures,
+          lastFailureTime: this.state.lastFailureTime,
+          metrics: newMetrics,
+        };
+        break;
+      }
+      case "half-open": {
+        this.state = {
+          kind: "half-open",
+          failures: this.state.failures,
+          lastFailureTime: this.state.lastFailureTime,
+          metrics: newMetrics,
+        };
+        break;
+      }
+    }
   }
 
-  getState(): CircuitBreakerState {
-    return { ...this.state };
+  getState(): {
+    status: "closed" | "open" | "half-open";
+    failures: number;
+    lastFailureTime?: number;
+    lastSuccessTime?: number;
+    metrics: CircuitBreakerMetrics;
+  } {
+    // Backwards compatibility: provide the old interface shape for existing consumers
+    switch (this.state.kind) {
+      case "closed": {
+        return {
+          status: "closed" as const,
+          failures: this.state.failures,
+          lastFailureTime: undefined,
+          lastSuccessTime: this.state.lastSuccessTime ?? undefined,
+          metrics: this.state.metrics,
+        };
+      }
+      case "open": {
+        return {
+          status: "open" as const,
+          failures: this.state.failures,
+          lastFailureTime: this.state.lastFailureTime,
+          lastSuccessTime: undefined,
+          metrics: this.state.metrics,
+        };
+      }
+      case "half-open": {
+        return {
+          status: "half-open" as const,
+          failures: this.state.failures,
+          lastFailureTime: this.state.lastFailureTime,
+          lastSuccessTime: undefined,
+          metrics: this.state.metrics,
+        };
+      }
+    }
   }
 
   reset(): void {
     this.state = {
-      status: "closed",
+      kind: "closed",
       failures: 0,
+      lastSuccessTime: null,
       metrics: {
         totalAttempts: 0,
         successfulAttempts: 0,

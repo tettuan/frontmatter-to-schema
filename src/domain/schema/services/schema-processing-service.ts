@@ -1,4 +1,4 @@
-import { ok, Result } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { Schema } from "../entities/schema.ts";
 import { SchemaPath } from "../value-objects/schema-path.ts";
@@ -130,7 +130,11 @@ export class SchemaProcessingService {
     }
 
     // Stage 4: Extract validation rules
-    const validationRules = schema.getValidationRules();
+    const validationRulesResult = schema.getValidationRules();
+    if (!validationRulesResult.ok) {
+      return err(validationRulesResult.error);
+    }
+    const validationRules = validationRulesResult.data;
 
     // Stage 5: Extract template path and create appropriate discriminated union
     const templatePathResult = schema.getTemplatePath();

@@ -11,103 +11,184 @@ export interface ResolvedSchema {
   readonly referencedSchemas: Map<string, SchemaDefinition>;
 }
 
-export class Schema {
-  private constructor(
-    private readonly path: SchemaPath,
-    private readonly definition: SchemaDefinition,
-    private readonly validationRules?: ValidationRules,
-    private readonly resolved?: ResolvedSchema,
-    private readonly debugLogger?: DebugLogger,
-  ) {}
+// Totality: Convert optional properties to discriminated union state
+export type SchemaState =
+  | {
+    kind: "initial";
+    path: SchemaPath;
+    definition: SchemaDefinition;
+    logger: DebugLogger | null;
+  }
+  | {
+    kind: "resolved";
+    path: SchemaPath;
+    definition: SchemaDefinition;
+    resolved: ResolvedSchema;
+    logger: DebugLogger | null;
+  }
+  | {
+    kind: "validated";
+    path: SchemaPath;
+    definition: SchemaDefinition;
+    validationRules: ValidationRules;
+    logger: DebugLogger | null;
+  }
+  | {
+    kind: "complete";
+    path: SchemaPath;
+    definition: SchemaDefinition;
+    validationRules: ValidationRules;
+    resolved: ResolvedSchema;
+    logger: DebugLogger | null;
+  };
 
+export class Schema {
+  private constructor(private readonly state: SchemaState) {}
+
+  // Smart Constructor pattern
   static create(
     path: SchemaPath,
     definition: SchemaDefinition,
     debugLogger?: DebugLogger,
   ): Result<Schema, SchemaError & { message: string }> {
-    debugLogger?.logInfo("schema-creation", "Creating Schema instance", {
+    const logger = debugLogger || null;
+    logger?.logInfo("schema-creation", "Creating Schema instance", {
       path: path.toString(),
     });
-    return ok(new Schema(path, definition, undefined, undefined, debugLogger));
+
+    const initialState: SchemaState = {
+      kind: "initial",
+      path,
+      definition,
+      logger,
+    };
+
+    return ok(new Schema(initialState));
   }
 
   getPath(): SchemaPath {
-    return this.path;
+    return this.state.path;
   }
 
   getDefinition(): SchemaDefinition {
-    return this.definition;
+    return this.state.definition;
   }
 
-  getValidationRules(): ValidationRules {
-    if (!this.validationRules) {
-      return ValidationRules.fromSchema(this.definition.getRawSchema());
+  // Totality: Replace partial function with total function using Result pattern
+  getValidationRules(): Result<
+    ValidationRules,
+    SchemaError & { message: string }
+  > {
+    switch (this.state.kind) {
+      case "validated":
+      case "complete": {
+        return ok(this.state.validationRules);
+      }
+      case "initial":
+      case "resolved": {
+        // Generate rules on-demand for backwards compatibility
+        const rules = ValidationRules.fromSchema(
+          this.state.definition.getRawSchema(),
+        );
+        return ok(rules);
+      }
     }
-    return this.validationRules;
   }
 
+  // Totality: Clear state checking through discriminated union
   isResolved(): boolean {
-    return this.resolved !== undefined;
+    return this.state.kind === "resolved" || this.state.kind === "complete";
   }
 
   getResolved(): Result<ResolvedSchema, SchemaError & { message: string }> {
-    if (this.resolved) {
-      return ok(this.resolved);
+    switch (this.state.kind) {
+      case "resolved":
+      case "complete": {
+        return ok(this.state.resolved);
+      }
+      case "initial":
+      case "validated": {
+        return err(createError({ kind: "SchemaNotResolved" }));
+      }
     }
-    return err(createError({ kind: "SchemaNotResolved" }));
   }
 
+  // Totality: State transitions create new instances with proper state
   withResolved(resolved: ResolvedSchema): Schema {
-    this.debugLogger?.logInfo(
+    this.state.logger?.logInfo(
       "schema-resolution",
       "Schema resolved with external references",
       {
         referencedSchemas: resolved.referencedSchemas.size,
       },
     );
-    return new Schema(
-      this.path,
-      this.definition,
-      this.validationRules,
-      resolved,
-      this.debugLogger,
-    );
+
+    const newState: SchemaState = this.state.kind === "validated"
+      ? {
+        kind: "complete",
+        path: this.state.path,
+        definition: this.state.definition,
+        validationRules: this.state.validationRules,
+        resolved,
+        logger: this.state.logger,
+      }
+      : {
+        kind: "resolved",
+        path: this.state.path,
+        definition: this.state.definition,
+        resolved,
+        logger: this.state.logger,
+      };
+
+    return new Schema(newState);
   }
 
   withValidationRules(rules: ValidationRules): Schema {
-    this.debugLogger?.logInfo(
+    this.state.logger?.logInfo(
       "schema-validation",
       "Schema updated with validation rules",
     );
-    return new Schema(
-      this.path,
-      this.definition,
-      rules,
-      this.resolved,
-      this.debugLogger,
-    );
+
+    const newState: SchemaState = this.state.kind === "resolved"
+      ? {
+        kind: "complete",
+        path: this.state.path,
+        definition: this.state.definition,
+        validationRules: rules,
+        resolved: this.state.resolved,
+        logger: this.state.logger,
+      }
+      : {
+        kind: "validated",
+        path: this.state.path,
+        definition: this.state.definition,
+        validationRules: rules,
+        logger: this.state.logger,
+      };
+
+    return new Schema(newState);
   }
 
   getTemplatePath(): Result<string, SchemaError & { message: string }> {
-    return this.definition.getTemplatePath();
+    return this.state.definition.getTemplatePath();
   }
 
   getTemplateFormat(): Result<
     "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
-    return this.definition.getTemplateFormat();
+    return this.state.definition.getTemplateFormat();
   }
 
   hasFrontmatterPart(): boolean {
-    return this.definition.hasFrontmatterPart();
+    return this.state.definition.hasFrontmatterPart();
   }
 
   findFrontmatterPartSchema(): Result<
     SchemaDefinition,
     SchemaError & { message: string }
   > {
-    this.debugLogger?.logDebug(
+    this.state.logger?.logDebug(
       "schema-analysis",
       "Searching for frontmatter-part schema",
     );
@@ -116,7 +197,7 @@ export class Schema {
       def: SchemaDefinition,
     ): Result<SchemaDefinition, SchemaError & { message: string }> => {
       if (def.hasFrontmatterPart()) {
-        this.debugLogger?.logExtensionDetection(
+        this.state.logger?.logExtensionDetection(
           defaultSchemaExtensionRegistry.getFrontmatterPartKey().getValue(),
           true,
           true,
@@ -127,7 +208,7 @@ export class Schema {
       const propertiesResult = def.getProperties();
       if (propertiesResult.ok) {
         for (const [key, prop] of Object.entries(propertiesResult.data)) {
-          this.debugLogger?.logDebug(
+          this.state.logger?.logDebug(
             "schema-traversal",
             `Checking property: ${key}`,
           );
@@ -141,16 +222,16 @@ export class Schema {
       return err(createError({ kind: "FrontmatterPartNotFound" }));
     };
 
-    const foundResult = findInProperties(this.definition);
+    const foundResult = findInProperties(this.state.definition);
     if (foundResult.ok) {
-      this.debugLogger?.logInfo(
+      this.state.logger?.logInfo(
         "schema-analysis",
         "Found frontmatter-part schema",
       );
       return foundResult;
     }
 
-    this.debugLogger?.logInfo(
+    this.state.logger?.logInfo(
       "schema-analysis",
       "No frontmatter-part schema found",
     );
@@ -158,7 +239,7 @@ export class Schema {
   }
 
   findFrontmatterPartPath(): Result<string, SchemaError & { message: string }> {
-    this.debugLogger?.logDebug(
+    this.state.logger?.logDebug(
       "schema-path-analysis",
       "Searching for frontmatter-part path",
     );
@@ -168,7 +249,7 @@ export class Schema {
       currentPath: string = "",
     ): Result<string, SchemaError & { message: string }> => {
       if (def.hasFrontmatterPart()) {
-        this.debugLogger?.logDebug(
+        this.state.logger?.logDebug(
           "schema-path-analysis",
           `Found frontmatter-part at path: ${currentPath || "root"}`,
         );
@@ -181,7 +262,7 @@ export class Schema {
           // Use fromSchemaProperty since prop is already migrated
           const propDef = SchemaDefinition.fromSchemaProperty(prop);
           const newPath = currentPath ? `${currentPath}.${propName}` : propName;
-          this.debugLogger?.logDebug(
+          this.state.logger?.logDebug(
             "schema-path-traversal",
             `Checking path: ${newPath}`,
           );
@@ -193,16 +274,16 @@ export class Schema {
       return err(createError({ kind: "FrontmatterPartNotFound" }));
     };
 
-    const pathResult = findPath(this.definition);
+    const pathResult = findPath(this.state.definition);
     if (pathResult.ok) {
-      this.debugLogger?.logInfo(
+      this.state.logger?.logInfo(
         "schema-path-analysis",
         `Frontmatter-part path found: ${pathResult.data}`,
       );
       return pathResult;
     }
 
-    this.debugLogger?.logInfo(
+    this.state.logger?.logInfo(
       "schema-path-analysis",
       "No frontmatter-part path found",
     );
@@ -214,7 +295,7 @@ export class Schema {
     targetField: string;
     unique: boolean;
   }> {
-    this.debugLogger?.logDebug(
+    this.state.logger?.logDebug(
       "derivation-rules",
       "Extracting derivation rules from schema",
     );
@@ -234,14 +315,14 @@ export class Schema {
           unique: def.isDerivedUnique(),
         };
         rules.push(rule);
-        this.debugLogger?.logDerivationRule(
+        this.state.logger?.logDerivationRule(
           derivedFromResult.data,
           path,
           true,
           `unique=${def.isDerivedUnique()}`,
         );
       } else {
-        this.debugLogger?.logExtensionDetection(
+        this.state.logger?.logExtensionDetection(
           defaultSchemaExtensionRegistry.getDerivedFromKey().getValue(),
           false,
         );
@@ -251,7 +332,7 @@ export class Schema {
       if (propertiesResult.ok) {
         for (const [key, prop] of Object.entries(propertiesResult.data)) {
           const propPath = path ? `${path}.${key}` : key;
-          this.debugLogger?.logDebug(
+          this.state.logger?.logDebug(
             "derivation-rule-traversal",
             `Checking property: ${propPath}`,
           );
@@ -262,9 +343,9 @@ export class Schema {
       }
     };
 
-    extractRules(this.definition);
+    extractRules(this.state.definition);
 
-    this.debugLogger?.logInfo(
+    this.state.logger?.logInfo(
       "derivation-rules",
       `Extracted ${rules.length} derivation rules`,
       {
