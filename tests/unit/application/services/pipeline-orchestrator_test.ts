@@ -32,7 +32,7 @@ function createTestOrchestrator(
   );
   if (!result.ok) {
     throw new Error(
-      `Failed to create test orchestrator: ${result.error.message}`,
+      `Failed to create PipelineOrchestrator: ${result.error.message}`,
     );
   }
   return result.data;
@@ -195,11 +195,10 @@ describe("PipelineOrchestrator", () => {
   class MockTemplatePathResolver {
     private shouldFail = false;
     private errorToReturn?: DomainError & { message: string };
-    private pathsToReturn: any = {
+    private pathsToReturn = {
       templatePath: "/test/template.json",
-      itemsTemplatePath: undefined,
-      itemsTemplate: { kind: "not-defined" },
-      outputFormat: { kind: "specified", format: "json" },
+      itemsTemplatePath: undefined as string | undefined,
+      outputFormat: "json",
     };
 
     setShouldFail(fail: boolean, error?: DomainError & { message: string }) {
@@ -215,15 +214,6 @@ describe("PipelineOrchestrator", () => {
       this.pathsToReturn = {
         ...this.pathsToReturn,
         ...paths,
-        itemsTemplate: paths.itemsTemplatePath
-          ? { kind: "defined" as const, path: paths.itemsTemplatePath }
-          : { kind: "not-defined" as const },
-        outputFormat: paths.outputFormat
-          ? {
-            kind: "specified" as const,
-            format: paths.outputFormat as "json" | "yaml" | "markdown",
-          }
-          : { kind: "specified" as const, format: "json" as const },
       };
     }
 
@@ -1194,8 +1184,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Schema loading failure is returned directly
+        assertEquals(result.error.kind, "FileNotFound");
       }
     });
 
@@ -1239,8 +1229,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Template resolution failure is returned directly
+        assertEquals(result.error.kind, "TemplateNotFound");
       }
     });
 
@@ -1285,8 +1275,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Document processing failure is returned directly
+        assertEquals(result.error.kind, "ExtractionFailed");
       }
     });
 

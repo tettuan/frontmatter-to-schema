@@ -157,6 +157,18 @@ export class DebugMetricsService {
     };
   }
 
+  /**
+   * Get processing strategy metrics
+   */
+  getProcessingStrategyMetrics(
+    strategyConfig: PipelineStrategyConfig,
+    initialMemory: Deno.MemoryUsage,
+  ): Result<ProcessingStrategyMetrics, DomainError & { message: string }> {
+    return ok(
+      this.generateProcessingStrategyMetrics(strategyConfig, initialMemory),
+    );
+  }
+
   private generateProcessingStrategyMetrics(
     strategyConfig: PipelineStrategyConfig,
     initialMemory: Deno.MemoryUsage,
@@ -179,6 +191,30 @@ export class DebugMetricsService {
         : "medium",
       errorRecoveryLatency: `${thresholds.maxErrorRecoveryTimeMs}ms`,
     };
+  }
+
+  /**
+   * Get pipeline processing metrics
+   */
+  getPipelineProcessingMetrics(
+    strategyConfig: PipelineStrategyConfig,
+    documentCount: number,
+  ): Result<PipelineProcessingMetrics, DomainError & { message: string }> {
+    const processingStrategyMetrics = this.generateProcessingStrategyMetrics(
+      strategyConfig,
+      {
+        heapTotal: documentCount * 1024 * 1024,
+        heapUsed: 0,
+        external: 0,
+        rss: 0,
+      },
+    );
+    return ok(
+      this.generatePipelineProcessingMetrics(
+        strategyConfig,
+        processingStrategyMetrics,
+      ),
+    );
   }
 
   private generatePipelineProcessingMetrics(
@@ -223,6 +259,16 @@ export class DebugMetricsService {
         "adaptive-scaling": strategyConfig.isAdaptiveScalingEnabled(),
       },
     };
+  }
+
+  /**
+   * Get entropy control metrics
+   */
+  getEntropyControlMetrics(): Result<
+    EntropyControlMetrics,
+    DomainError & { message: string }
+  > {
+    return ok(this.generateEntropyControlMetrics());
   }
 
   private generateEntropyControlMetrics(): EntropyControlMetrics {
@@ -289,6 +335,16 @@ export class DebugMetricsService {
     };
   }
 
+  /**
+   * Get totality control metrics
+   */
+  getTotalityControlMetrics(): Result<
+    TotalityControlMetrics,
+    DomainError & { message: string }
+  > {
+    return ok(this.generateTotalityControlMetrics());
+  }
+
   private generateTotalityControlMetrics(): TotalityControlMetrics {
     return {
       currentExhaustiveControlLevel: 0.75,
@@ -315,6 +371,16 @@ export class DebugMetricsService {
         "default-clause-elimination": "low",
       },
     };
+  }
+
+  /**
+   * Get integrated control metrics
+   */
+  getIntegratedControlMetrics(): Result<
+    IntegratedControlMetrics,
+    DomainError & { message: string }
+  > {
+    return ok(this.generateIntegratedControlMetrics());
   }
 
   private generateIntegratedControlMetrics(): IntegratedControlMetrics {

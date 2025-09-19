@@ -163,4 +163,13 @@ export class SchemaCoordinator {
       validationRules: validationRulesResult.data,
     });
   }
+
+  /**
+   * Load and process schema - alias for loadSchema for compatibility
+   */
+  async loadAndProcessSchema(
+    schemaPath: string,
+  ): Promise<Result<Schema, DomainError & { message: string }>> {
+    return await this.loadSchema(schemaPath);
+  }
 }
