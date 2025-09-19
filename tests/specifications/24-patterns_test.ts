@@ -282,7 +282,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -291,6 +291,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -340,7 +346,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -349,6 +355,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -402,7 +414,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -411,6 +423,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -480,7 +498,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -489,6 +507,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -545,7 +569,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -554,6 +578,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -612,7 +642,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -621,6 +651,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -645,7 +681,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -654,6 +690,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -679,7 +721,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -688,6 +730,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -726,7 +774,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -735,6 +783,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -774,7 +828,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -783,6 +837,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -824,7 +884,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -833,6 +893,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -870,7 +936,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -879,6 +945,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -913,7 +985,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -922,6 +994,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -970,7 +1048,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -979,6 +1057,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1075,7 +1159,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1084,6 +1168,12 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1135,7 +1225,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1144,6 +1234,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1212,7 +1308,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1221,6 +1317,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1305,7 +1407,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1314,6 +1416,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1368,7 +1476,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1377,6 +1485,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",
@@ -1436,7 +1550,7 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-      const orchestrator = new PipelineOrchestrator(
+      const orchestratorResult = PipelineOrchestrator.create(
         frontmatterTransformer as any,
         schemaProcessor as any,
         outputRenderer as any,
@@ -1445,6 +1559,12 @@ special: "Special chars: @#$%^&*()+={}[]|\\:;\"'<>,.?/"
         schemaCache,
         processingLoggerState,
       );
+      if (!orchestratorResult.ok) {
+        throw new Error(
+          `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+        );
+      }
+      const orchestrator = orchestratorResult.data;
 
       const config: PipelineConfig = createTestConfig({
         inputPattern: "**/*.md",

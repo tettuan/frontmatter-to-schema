@@ -31,7 +31,9 @@ function createTestOrchestrator(
     processingLoggerState,
   );
   if (!result.ok) {
-    throw new Error(`Failed to create PipelineOrchestrator: ${result.error.message}`);
+    throw new Error(
+      `Failed to create PipelineOrchestrator: ${result.error.message}`,
+    );
   }
   return result.data;
 }
@@ -1182,8 +1184,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Schema loading failure is returned directly
+        assertEquals(result.error.kind, "FileNotFound");
       }
     });
 
@@ -1227,8 +1229,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Template resolution failure is returned directly
+        assertEquals(result.error.kind, "TemplateNotFound");
       }
     });
 
@@ -1273,8 +1275,8 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        // New architecture wraps errors in PipelineExecutionError
-        assertEquals(result.error.kind, "PipelineExecutionError");
+        // Document processing failure is returned directly
+        assertEquals(result.error.kind, "ExtractionFailed");
       }
     });
 

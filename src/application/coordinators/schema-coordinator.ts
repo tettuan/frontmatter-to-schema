@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { DomainError, createError } from "../../domain/shared/types/errors.ts";
+import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";

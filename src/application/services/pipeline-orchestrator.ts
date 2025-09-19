@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { DomainError } from "../../domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
