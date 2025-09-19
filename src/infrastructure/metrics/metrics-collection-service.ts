@@ -191,6 +191,35 @@ export class MetricsCollectionService {
   }
 
   /**
+   * Start pipeline execution tracking (alias for startPipelineMetrics)
+   */
+  startPipelineExecution(
+    executionId: string,
+  ): Result<PipelinePerformanceMetrics, DomainError & { message: string }> {
+    return this.startPipelineMetrics(executionId);
+  }
+
+  /**
+   * Complete pipeline execution tracking
+   */
+  completePipelineExecution(
+    executionId: string,
+    documentsProcessed: number,
+    errorsEncountered: number,
+  ): Result<PipelinePerformanceMetrics, DomainError & { message: string }> {
+    const result = this.updatePipelineMetrics(executionId, {
+      documentsProcessed,
+      errorsEncountered,
+      endTime: performance.now(),
+    });
+    if (!result.ok) return result;
+
+    const metrics = result.data;
+    const duration = (metrics.endTime || performance.now()) - metrics.startTime;
+    return ok({ ...metrics, duration });
+  }
+
+  /**
    * Complete pipeline metrics tracking
    */
   completePipelineMetrics(
@@ -216,6 +245,52 @@ export class MetricsCollectionService {
 
     this.performanceMetrics.set(executionId, completed);
     return ok(completed);
+  }
+
+  /**
+   * Collect all metrics for a pipeline execution
+   */
+  collectAllMetrics(
+    executionId: string,
+  ): Result<CollectedPipelineMetrics, DomainError & { message: string }> {
+    const performanceMetrics = this.performanceMetrics.get(executionId);
+    if (!performanceMetrics) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `No metrics found for execution ${executionId}`,
+        }),
+      };
+    }
+
+    const documentMetrics = this.documentMetrics.get(executionId);
+    const memoryUsage = Deno.memoryUsage();
+    const processingStrategy = this.debugMetricsService
+      .getProcessingStrategyMetrics(this.strategyConfig, memoryUsage);
+    const pipelineProcessing = this.debugMetricsService
+      .getPipelineProcessingMetrics(this.strategyConfig, 100);
+    const entropyControl = this.debugMetricsService.getEntropyControlMetrics();
+    const totalityControl = this.debugMetricsService
+      .getTotalityControlMetrics();
+    const integratedControl = this.debugMetricsService
+      .getIntegratedControlMetrics();
+
+    return ok({
+      performance: performanceMetrics,
+      documentProcessing: documentMetrics,
+      processingStrategy: processingStrategy.ok
+        ? processingStrategy.data
+        : {} as any,
+      pipelineProcessing: pipelineProcessing.ok
+        ? pipelineProcessing.data
+        : {} as any,
+      entropyControl: entropyControl.ok ? entropyControl.data : {} as any,
+      totalityControl: totalityControl.ok ? totalityControl.data : {} as any,
+      integratedControl: integratedControl.ok
+        ? integratedControl.data
+        : {} as any,
+    });
   }
 
   /**

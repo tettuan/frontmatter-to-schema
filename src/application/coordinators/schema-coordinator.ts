@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { DomainError, createError } from "../../domain/shared/types/errors.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
@@ -162,5 +162,14 @@ export class SchemaCoordinator {
       schema,
       validationRules: validationRulesResult.data,
     });
+  }
+
+  /**
+   * Load and process schema - alias for loadSchema for compatibility
+   */
+  async loadAndProcessSchema(
+    schemaPath: string,
+  ): Promise<Result<Schema, DomainError & { message: string }>> {
+    return await this.loadSchema(schemaPath);
   }
 }

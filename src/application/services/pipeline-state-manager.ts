@@ -128,6 +128,22 @@ export class PipelineStateManager {
   }
 
   /**
+   * Get execution ID
+   */
+  getExecutionId(): string {
+    return this.currentContext.executionId;
+  }
+
+  /**
+   * Generic transition method for simplified orchestrator
+   */
+  transitionTo(
+    newState: PipelineExecutionState,
+  ): Result<StateTransitionResult, DomainError & { message: string }> {
+    return this.updateState(newState);
+  }
+
+  /**
    * Transition to initializing state
    */
   transitionToInitializing(): Result<

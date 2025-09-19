@@ -21,7 +21,7 @@ function createTestOrchestrator(
   schemaCache: any,
 ): PipelineOrchestrator {
   const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-  return new PipelineOrchestrator(
+  const result = PipelineOrchestrator.create(
     frontmatterTransformer,
     schemaProcessor,
     outputRenderer,
@@ -30,6 +30,10 @@ function createTestOrchestrator(
     schemaCache,
     processingLoggerState,
   );
+  if (!result.ok) {
+    throw new Error(`Failed to create PipelineOrchestrator: ${result.error.message}`);
+  }
+  return result.data;
 }
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
