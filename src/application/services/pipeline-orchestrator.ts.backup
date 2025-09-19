@@ -18,29 +18,35 @@ import { FrontmatterTransformationService } from "../../domain/frontmatter/servi
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
-import { Schema } from "../../domain/schema/entities/schema.ts";
-import { Template } from "../../domain/template/entities/template.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
-import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
-import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
-import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
-import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { TemplateCoordinator } from "../coordinators/template-coordinator.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import {
-  createLogContext,
   EnhancedDebugLogger,
 } from "../../domain/shared/services/debug-logger.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import { ProcessingCoordinator } from "../coordinators/processing-coordinator.ts";
 import {
-  ComplexityFactors,
   EntropyReductionService,
 } from "../../domain/shared/services/entropy-reduction-service.ts";
 import {
-  PipelineExecutionService,
+  ComplexityMetricsConfiguration,
+  ConfigurationLoader,
+} from "../../domain/configuration/services/configuration-loader.ts";
+import { ComplexityMetricsService } from "../../domain/monitoring/services/complexity-metrics-service.ts";
+import { EntropyManagementService } from "../../domain/monitoring/services/entropy-management-service.ts";
+import {
+  LoggingService,
+  LoggingServiceFactory,
+} from "../../infrastructure/logging/logging-service.ts";
+import {
   PipelineExecutionConfig,
-} from "../../domain/pipeline/services/pipeline-execution-service.ts";
-import { PipelineOrchestratorContext } from "../../domain/pipeline/services/pipeline-orchestrator-context.ts";
+  PipelineExecutionService,
+} from "../pipeline/services/pipeline-execution-service.ts";
+import { PipelineOrchestratorContext } from "../pipeline/services/pipeline-orchestrator-context.ts";
+import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
+import { ProcessingStateMachine } from "./processing-state-machine.ts";
 
 /**
  * Processing logger state using discriminated union for enhanced and debug loggers
@@ -158,6 +164,14 @@ export interface FileSystem {
  * 6. Generate final output (成果Z)
  */
 export class PipelineOrchestrator {
+  private readonly schemaCoordinator: SchemaCoordinator;
+  private readonly processingCoordinator: ProcessingCoordinator;
+  private readonly templateCoordinator: TemplateCoordinator;
+  private readonly complexityMetricsService: ComplexityMetricsService;
+  private readonly entropyManagementService: EntropyManagementService;
+  private readonly loggingService: LoggingService;
+  private readonly stateMachine: ProcessingStateMachine;
+
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
@@ -175,7 +189,77 @@ export class PipelineOrchestrator {
       }
       return result.data;
     })(),
+    private readonly complexityMetricsConfig?: ComplexityMetricsConfiguration,
   ) {
+    // Initialize SchemaCoordinator for domain service extraction (Phase C.1)
+    const schemaCoordinatorResult = SchemaCoordinator.create(
+      this.fileSystem,
+      this.schemaCache,
+    );
+    if (!schemaCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create SchemaCoordinator: ${schemaCoordinatorResult.error.message}`,
+      );
+    }
+    this.schemaCoordinator = schemaCoordinatorResult.data;
+
+    // Initialize ProcessingCoordinator for domain service extraction (Phase C.2)
+    const processingCoordinatorResult = ProcessingCoordinator.create(
+      this.frontmatterTransformer,
+    );
+    if (!processingCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create ProcessingCoordinator: ${processingCoordinatorResult.error.message}`,
+      );
+    }
+    this.processingCoordinator = processingCoordinatorResult.data;
+
+    // Initialize TemplateCoordinator for domain service extraction (Phase C.3)
+    const templateCoordinatorResult = TemplateCoordinator.create(
+      this.templatePathResolver,
+      this.outputRenderingService,
+      this.fileSystem,
+    );
+    if (!templateCoordinatorResult.ok) {
+      throw new Error(
+        `Failed to create TemplateCoordinator: ${templateCoordinatorResult.error.message}`,
+      );
+    }
+    this.templateCoordinator = templateCoordinatorResult.data;
+
+    // Initialize monitoring services for complexity management
+    const complexityMetricsResult = ComplexityMetricsService.create();
+    if (!complexityMetricsResult.ok) {
+      throw new Error(
+        `Failed to create ComplexityMetricsService: ${complexityMetricsResult.error.message}`,
+      );
+    }
+    this.complexityMetricsService = complexityMetricsResult.data;
+
+    const entropyManagementResult = EntropyManagementService.create();
+    if (!entropyManagementResult.ok) {
+      throw new Error(
+        `Failed to create EntropyManagementService: ${entropyManagementResult.error.message}`,
+      );
+    }
+    this.entropyManagementService = entropyManagementResult.data;
+
+    // Initialize logging service from processing logger state
+    this.loggingService = LoggingServiceFactory.fromProcessingLoggerState(
+      this.processingLoggerState,
+    );
+
+    // Initialize processing state machine
+    const stateMachineResult = ProcessingStateMachine.create(
+      this.loggingService,
+    );
+    if (!stateMachineResult.ok) {
+      throw new Error(
+        `Failed to create ProcessingStateMachine: ${stateMachineResult.error.message}`,
+      );
+    }
+    this.stateMachine = stateMachineResult.data;
+
     // DDD境界統合点デバッグ情報 (仕様駆動強化フロー Iteration 8)
     const dddBoundaryIntegrationDebug = {
       contextBoundaries: {
@@ -219,39 +303,180 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Helper method to log debug messages using discriminated union pattern
+   * Factory method to create PipelineOrchestrator with external configuration
+   * Follows Totality principles with Result<T,E> error handling
+   */
+  static async createWithConfiguration(
+    frontmatterTransformer: FrontmatterTransformationService,
+    schemaProcessor: SchemaProcessingService,
+    outputRenderingService: OutputRenderingService,
+    templatePathResolver: TemplatePathResolver,
+    fileSystem: FileSystem,
+    schemaCache: SchemaCache,
+    processingLoggerState: ProcessingLoggerState,
+    configPath: string = "./config/complexity-metrics.yml",
+    defaultStrategyConfig?: PipelineStrategyConfig,
+  ): Promise<Result<PipelineOrchestrator, DomainError & { message: string }>> {
+    // Load configuration from external file
+    const configResult = await ConfigurationLoader.loadFromFile(configPath);
+    if (!configResult.ok) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message:
+            `Failed to load complexity metrics configuration: ${configResult.error.message}`,
+        }),
+      };
+    }
+
+    // Create PipelineOrchestrator with configuration
+    try {
+      const orchestrator = new PipelineOrchestrator(
+        frontmatterTransformer,
+        schemaProcessor,
+        outputRenderingService,
+        templatePathResolver,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+        defaultStrategyConfig,
+        undefined, // entropyReductionService - use default
+        configResult.data,
+      );
+
+      return { ok: true, data: orchestrator };
+    } catch (error) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `Failed to create PipelineOrchestrator: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        }),
+      };
+    }
+  }
+
+  /**
+   * Helper method to log debug messages - delegates to LoggingService
    */
   private logDebug(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.debug(message, logContext);
+    this.loggingService.debug(message, context);
   }
 
   /**
-   * Helper method to log info messages using discriminated union pattern
+   * Helper method to log info messages - delegates to LoggingService
    */
   private logInfo(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.info(message, logContext);
+    this.loggingService.info(message, context);
   }
 
   /**
-   * Helper method to log warning messages using discriminated union pattern
+   * Helper method to log warning messages - delegates to LoggingService
    */
   private logWarn(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.warn(message, logContext);
+    this.loggingService.warn(message, context);
   }
 
   /**
-   * Helper method to log error messages using discriminated union pattern
+   * Helper method to log error messages - delegates to LoggingService
    */
   private logError(message: string, context?: Record<string, unknown>): void {
-    if (this.processingLoggerState.kind === "disabled") return;
-    const logContext = context ? createLogContext(context) : undefined;
-    this.processingLoggerState.logger.error(message, logContext);
+    this.loggingService.error(message, context);
+  }
+
+  /**
+   * New DDD/Totality compliant execution method using command pattern state machine
+   * Replaces the legacy execute method with clean separation of concerns
+   */
+  async executeWithNewArchitecture(
+    config: PipelineConfig,
+  ): Promise<Result<void, DomainError & { message: string }>> {
+    // Get strategy configuration for execution config mapping
+    const strategyConfig = config.strategyConfig || this.defaultStrategyConfig;
+    const thresholds = strategyConfig.getPerformanceThresholds();
+
+    // Log pipeline execution start with DDD/Totality refactoring info
+    this.logInfo(
+      "Pipeline execution starting with new DDD/Totality architecture",
+      {
+        architecture: "command-pattern-state-machine",
+        totalityCompliance: "discriminated-unions-result-types",
+        dddBoundaries: "pipeline-domain-extracted",
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    // Create execution context that bridges existing services to new command interface
+    const context = new PipelineOrchestratorContext(
+      this.schemaProcessor,
+      this.frontmatterTransformer,
+      this.templatePathResolver,
+      this.outputRenderingService,
+      this.fileSystem,
+      this.schemaCache,
+    );
+
+    // Create execution configuration based on strategy
+    const executionConfig: PipelineExecutionConfig = {
+      maxExecutionTime: thresholds.maxErrorRecoveryTimeMs || 60000,
+      enableDetailedLogging: this.processingLoggerState.kind !== "disabled",
+      errorRecoveryEnabled: true,
+    };
+
+    // Create and execute pipeline using new DDD/Totality architecture
+    const pipelineServiceResult = PipelineExecutionService.create(
+      config,
+      executionConfig,
+      context,
+    );
+
+    if (!pipelineServiceResult.ok) {
+      this.logError("Failed to create pipeline execution service", {
+        error: pipelineServiceResult.error,
+        config: config,
+      });
+      return err(pipelineServiceResult.error);
+    }
+
+    const pipelineService = pipelineServiceResult.data;
+
+    // Execute the complete pipeline using state machine pattern
+    const executionResult = await pipelineService.executePipeline();
+
+    if (!executionResult.ok) {
+      this.logError("Pipeline execution failed", {
+        error: executionResult.error,
+      });
+      return err(executionResult.error);
+    }
+
+    const result = executionResult.data;
+
+    // Log execution metrics and state machine completion
+    this.logInfo("Pipeline execution completed successfully", {
+      finalState: result.finalState.kind,
+      executionTime: result.executionTime,
+      commandsExecuted: result.commandsExecuted,
+      stagesCompleted: result.stagesCompleted,
+      isComplete: pipelineService.isComplete(),
+      hasFailed: pipelineService.hasFailed(),
+      metrics: result.metrics,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Check if pipeline completed successfully
+    if (!pipelineService.isComplete()) {
+      return err(createError({
+        kind: "PipelineExecutionError",
+        content:
+          `Pipeline did not complete successfully. Final state: ${result.finalState.kind}`,
+      }));
+    }
+
+    return ok(void 0);
   }
 
   /**
@@ -323,260 +548,9 @@ export class PipelineOrchestrator {
   }
 
   /**
-   * Calculates system entropy for AI complexity control
-   * Based on entropy formula from ai-complexity-control_compact.ja.md
-   * Now uses EntropyReductionService for accurate calculation
+   * Get complexity factors from configuration or default hardcoded values
+   * Follows Totality principles by handling both configured and fallback scenarios
    */
-  private calculateSystemEntropy(): number {
-    // 強固性完全実装フロー - ハードコーディング完全排除デバッグ (Iteration 11)
-    const hardcodingEliminationDebug = {
-      eliminationTarget: "complete-robustness-implementation",
-      hardcodingViolationDetection: {
-        magicNumbersIdentified: [45, 12, 4, 257, 6, 35, 8], // ハードコードされた数値
-        configurationExternalizationRequired: true,
-        severityLevel: "critical", // 禁止規定第3条違反
-        violationType: "magic-numbers", // マジックナンバー直接記述
-      },
-      robustnessTransformationTargets: {
-        complexityConfigExternalization: "config/complexity-metrics.yml", // 設定外部化対象
-        environmentVariableInjection: "COMPLEXITY_*", // 環境変数注入対象
-        configurationManagement: "external-injection", // 外部注入システム
-        cicdDetectionIntegration: "lint-rules", // CI/CD自動検出統合
-      },
-      hardcodingEliminationVariance: {
-        configurationComplexity: "medium-variance", // 設定管理の複雑性
-        environmentDependency: "low-variance", // 環境依存性の影響
-        deploymentFlexibility: "high-variance", // デプロイメント柔軟性向上
-        maintenanceComplexity: "low-variance", // 保守性向上
-      },
-      robustnessImplementationStrategy: {
-        priorityOrder: [
-          "security-secrets",
-          "magic-numbers",
-          "urls-paths",
-          "configuration-values",
-        ],
-        detectionAutomation: "static-analysis", // 静的解析による自動検出
-        enforcementMechanism: "ci-cd-gate", // CI/CDゲートによる強制
-        complianceVerification: "100-percent", // 100%準拠検証
-      },
-      debugLogLevel: "detailed", // ハードコーディング排除詳細ログ
-      robustnessTrackingEnabled: true, // 強固性進捗追跡有効
-    };
-
-    // 警告: これらの値は設定外部化が必要（ハードコーディング禁止規定違反）
-    const complexityFactors: ComplexityFactors = {
-      classCount: 45, // TODO: config/complexity-metrics.yml へ外部化必要
-      interfaceCount: 12, // TODO: config/complexity-metrics.yml へ外部化必要
-      abstractionLayers: 4, // TODO: config/complexity-metrics.yml へ外部化必要
-      cyclomaticComplexity: 257, // TODO: config/complexity-metrics.yml へ外部化必要
-      dependencyDepth: 6, // TODO: config/complexity-metrics.yml へ外部化必要
-      conditionalBranches: 35, // TODO: config/complexity-metrics.yml へ外部化必要
-      genericTypeParameters: 8, // TODO: config/complexity-metrics.yml へ外部化必要
-    };
-
-    this.logDebug("ハードコーディング排除デバッグ情報", {
-      ...hardcodingEliminationDebug,
-      currentFactors: complexityFactors,
-      timestamp: new Date().toISOString(),
-    });
-
-    return this.entropyReductionService.calculateSystemEntropy(
-      complexityFactors,
-    );
-  }
-
-  /**
-   * Generate entropy reduction plan for system optimization
-   */
-  private generateEntropyReductionPlan(): {
-    currentEntropy: number;
-    targetEntropy: number;
-    reductionPlan: any;
-    isAcceptable: boolean;
-  } {
-    const complexityFactors: ComplexityFactors = {
-      classCount: 45,
-      interfaceCount: 12,
-      abstractionLayers: 4,
-      cyclomaticComplexity: 257,
-      dependencyDepth: 6,
-      conditionalBranches: 35,
-      genericTypeParameters: 8,
-    };
-
-    const currentEntropy = this.entropyReductionService.calculateSystemEntropy(
-      complexityFactors,
-    );
-    const planResult = this.entropyReductionService
-      .analyzeEntropyAndCreateReductionPlan(complexityFactors);
-
-    if (!planResult.ok) {
-      return {
-        currentEntropy,
-        targetEntropy: this.entropyReductionService.getEntropyThreshold(),
-        reductionPlan: null,
-        isAcceptable: false,
-      };
-    }
-
-    const plan = planResult.data;
-    return {
-      currentEntropy,
-      targetEntropy: plan.targetEntropy,
-      reductionPlan: plan,
-      isAcceptable: this.entropyReductionService.isEntropyAcceptable(
-        currentEntropy,
-      ),
-    };
-  }
-
-  /**
-   * Calculates exhaustiveness level for totality principle compliance
-   * Based on totality.ja.md discriminated union and switch statement analysis
-   */
-  private calculateExhaustiveness(): number {
-    // 全域性完全実現フロー - 振れ幅最大箇所デバッグ情報 (Iteration 10)
-    const totalityVarianceDebug = {
-      varianceTarget: "complete-totality-realization",
-      currentTotalityState: {
-        partialFunctionCount: 15, // 推定残存部分関数数
-        optionalTypeUsage: 25, // 推定Optional型使用箇所
-        switchWithDefaultCount: 8, // default句付きswitch文数
-        directExceptionThrowCount: 3, // 直接例外throw箇所
-        nullUndefinedCheckCount: 42, // null/undefined check箇所
-      },
-      totalityTransformationTargets: {
-        resultTypeConversion: 87, // Result型変換対象箇所数
-        smartConstructorImplementation: 23, // Smart Constructor実装対象数
-        discriminatedUnionMigration: 12, // Discriminated Union移行対象数
-        exhaustiveSwitchConversion: 8, // Exhaustive switch変換対象数
-      },
-      totalityImplementationVariance: {
-        gradualVsBulkTransformation: "high-variance", // 段階的 vs 一括変換の振れ幅
-        typeInferenceComplexity: "very-high", // 型推論連鎖の複雑性
-        testAdaptationRequired: true, // 既存テストの全域化適応必要
-        compilerIntegrationChallenges: "medium", // TypeScriptコンパイラとの統合課題
-      },
-      totalityVerificationChallenges: {
-        compileTimeVerification: "critical", // コンパイル時検証の重要性
-        runtimeMonitoring: "optional", // ランタイム監視の位置付け
-        mathematicalProofRequirement: "high", // 数学的証明要求度
-        exhaustivenessAutomation: "medium", // 網羅性自動化の困難度
-      },
-      debugLogLevel: "verbose", // 全域性実装の詳細ログ
-      totalityTrackingEnabled: true, // 全域性進捗追跡有効
-    };
-
-    // Simplified exhaustiveness calculation based on pattern matching usage
-    const totalityMetrics = {
-      discriminatedUnionUsage: 0.8, // 80% of state represented as tagged unions
-      switchExhaustiveness: 0.7, // 70% of switch statements are exhaustive (no default)
-      resultTypeUsage: 0.9, // 90% of functions return Result<T,E>
-      smartConstructorUsage: 0.6, // 60% of value objects use smart constructors
-      typeSafetyLevel: 0.75, // 75% of potential runtime errors caught at compile time
-    };
-
-    this.logDebug("全域性実装振れ幅デバッグ情報", {
-      ...totalityVarianceDebug,
-      currentMetrics: totalityMetrics,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Weighted average of totality compliance factors
-    return (
-      totalityMetrics.discriminatedUnionUsage * 0.25 +
-      totalityMetrics.switchExhaustiveness * 0.25 +
-      totalityMetrics.resultTypeUsage * 0.2 +
-      totalityMetrics.smartConstructorUsage * 0.15 +
-      totalityMetrics.typeSafetyLevel * 0.15
-    );
-  }
-
-  /**
-   * Calculates integrated control level for comprehensive system health
-   * Based on all patterns analysis: Pipeline, Entropy, Totality, DDD
-   */
-  private calculateIntegratedControl(): number {
-    // 統合品質達成フロー - 全要素統合評価デバッグ (Iteration 12)
-    const integratedQualityAchievementDebug = {
-      integrationTarget: "integrated-quality-achievement",
-      elevenIterationsIntegration: {
-        totalityAchievement: "100%", // 第10回: 全域性完全実現
-        robustnessAchievement: "100%", // 第11回: 強固性完全実装
-        aiComplexityControl: "12.0bits", // エントロピー科学的制御達成
-        hardcodingElimination: "100%", // ハードコーディング完全排除
-        testDrivenTransformation: "進行中", // Mock依存 → 仕様駆動転換
-        dddBoundaryImplementation: "60% → 95%目標", // DDD境界完全分離
-      },
-      integratedQualityTargets: {
-        overallQualityScore: 95, // % 統合品質目標
-        enterpriseGradeCompliance: "エンタープライズ認証", // 企業グレード達成
-        continuousAssuranceLevel: 95, // % 継続保証レベル
-        qualityRegressionTolerance: 0, // % 品質退行許容度
-      },
-      integrationVarianceFactors: {
-        multiComponentIntegration: "very-high-variance", // 多要素統合の複雑性
-        enterpriseGradeRequirements: "high-variance", // 企業グレード要求の厳格性
-        continuousAssuranceComplexity: "medium-variance", // 継続保証の実装複雑性
-        qualityRegressionDetection: "high-variance", // 品質退行検出の精度
-        automaticRemediationCapability: "very-high-variance", // 自動修正能力の実装
-      },
-      integrationImplementationStrategy: {
-        approach: "comprehensive-integrated-assessment", // 包括的統合評価
-        qualityGateEnforcement: "95-percent-threshold", // 95%品質ゲート強制
-        enterpriseCertificationPath: "automated-compliance-verification", // 自動コンプライアンス検証
-        continuousImprovementMechanism: "real-time-monitoring-auto-fix", // リアルタイム監視・自動修正
-      },
-      qualityComponentWeights: {
-        totalityWeight: 0.25, // 全域性重み (25%)
-        robustnessWeight: 0.20, // 強固性重み (20%)
-        complexityControlWeight: 0.20, // AI複雑化制御重み (20%)
-        testQualityWeight: 0.20, // テスト品質重み (20%)
-        hardcodingEliminationWeight: 0.15, // ハードコーディング排除重み (15%)
-      },
-      debugLogLevel: "comprehensive", // 統合品質包括ログ
-      integratedQualityTrackingEnabled: true, // 統合品質追跡有効
-    };
-
-    // 警告: これらのメトリクスは統合品質評価の基盤データ
-    // Comprehensive system health based on all analyzed patterns
-    const systemMetrics = {
-      entropyHealth: 0.49, // TODO: エントロピー制御統合評価要改善
-      pipelineHealth: 0.17, // TODO: パイプライン健全性統合評価要改善
-      totalityHealth: 0.758, // TODO: 全域性統合評価要改善
-      dddHealth: 0.6, // TODO: DDD境界統合評価要改善
-      testHealth: 0.8, // TODO: テスト品質統合評価要改善
-      architectureHealth: 0.7, // TODO: アーキテクチャ統合評価要改善
-    };
-
-    // 統合品質スコア算出（重み付き平均）
-    const integratedScore = systemMetrics.entropyHealth * 0.2 +
-      systemMetrics.pipelineHealth * 0.2 +
-      systemMetrics.totalityHealth * 0.15 +
-      systemMetrics.dddHealth * 0.15 +
-      systemMetrics.testHealth * 0.15 +
-      systemMetrics.architectureHealth * 0.15;
-
-    this.logDebug("統合品質達成デバッグ情報", {
-      ...integratedQualityAchievementDebug,
-      currentSystemMetrics: systemMetrics,
-      calculatedIntegratedScore: integratedScore,
-      enterpriseGradeEligible: integratedScore >= 0.95,
-      qualityGapAnalysis: {
-        currentScore: Math.round(integratedScore * 100),
-        targetScore: 95,
-        improvementRequired: Math.max(
-          0,
-          95 - Math.round(integratedScore * 100),
-        ),
-      },
-      timestamp: new Date().toISOString(),
-    });
-
-    // Weighted average emphasizing critical system aspects
-    return integratedScore;
-  }
 
   /**
    * Execute the complete pipeline processing
@@ -653,8 +627,29 @@ export class PipelineOrchestrator {
       },
     };
 
-    // AI Complexity Control Debug Information (Pattern A Analysis) - Enhanced with reduction service
-    const entropyAnalysis = this.generateEntropyReductionPlan();
+    // AI Complexity Control Debug Information (Pattern A Analysis) - Using monitoring services
+    const complexityFactors = this.complexityMetricsService
+      .getComplexityFactors();
+    const entropyResult = this.entropyManagementService.calculateSystemEntropy(
+      complexityFactors,
+    );
+    const entropyPlanResult = this.entropyManagementService
+      .generateReductionPlan(complexityFactors);
+    const entropyAnalysis = entropyPlanResult.ok
+      ? {
+        currentEntropy: entropyPlanResult.data.currentEntropy,
+        targetEntropy: entropyPlanResult.data.targetEntropy,
+        reductionPlan: entropyPlanResult.data,
+        isAcceptable: this.entropyManagementService.isAcceptable(
+          entropyResult.ok ? entropyResult.data : 100,
+        ),
+      }
+      : {
+        currentEntropy: entropyResult.ok ? entropyResult.data : 100,
+        targetEntropy: 12.0,
+        reductionPlan: null,
+        isAcceptable: false,
+      };
     const entropyControlMetrics = {
       // System entropy measurement with reduction plan
       currentSystemEntropy: entropyAnalysis.currentEntropy,
@@ -664,28 +659,23 @@ export class PipelineOrchestrator {
         entropyAnalysis.currentEntropy > entropyAnalysis.targetEntropy,
 
       // Entropy reduction strategy (no longer "not-implemented")
-      entropyControlStrategy:
-        entropyAnalysis.reductionPlan?.riskAssessment === "low"
-          ? "gradual-control"
-          : "aggressive-reduction",
+      entropyControlStrategy: entropyAnalysis.reductionPlan?.priority === "low"
+        ? "gradual-control"
+        : "aggressive-reduction",
       reductionStepsCount:
-        entropyAnalysis.reductionPlan?.reductionSteps?.length || 0,
-      expectedEntropyAfterReduction:
-        entropyAnalysis.reductionPlan?.expectedFinalEntropy ||
-        entropyAnalysis.currentEntropy,
-      entropyReductionPercentage: this.entropyReductionService
-        .calculateReductionPercentage(
-          entropyAnalysis.currentEntropy,
-          entropyAnalysis.reductionPlan?.expectedFinalEntropy ||
-            entropyAnalysis.currentEntropy,
-        ),
+        entropyAnalysis.reductionPlan?.reductionStrategies?.length || 0,
+      expectedEntropyAfterReduction: entropyAnalysis.targetEntropy,
+      entropyReductionPercentage: entropyAnalysis.currentEntropy > 0
+        ? ((entropyAnalysis.currentEntropy - entropyAnalysis.targetEntropy) /
+          entropyAnalysis.currentEntropy) * 100
+        : 0,
 
       // Implementation estimates
-      implementationTimeEstimate: entropyAnalysis.reductionPlan
-        ? this.entropyReductionService.estimateImplementationTime(
-          entropyAnalysis.reductionPlan,
-        )
-        : { lowEstimate: 0, highEstimate: 0, unit: "days" },
+      implementationTimeEstimate: {
+        lowEstimate: 7,
+        highEstimate: 14,
+        unit: "days",
+      },
 
       // Entropy control stage debugging with actual progress
       entropyControlStages: [
@@ -708,7 +698,7 @@ export class PipelineOrchestrator {
     // Totality Principle Debug Information (Pattern C Analysis)
     const totalityControlMetrics = {
       // Exhaustive control analysis
-      currentExhaustiveControlLevel: this.calculateExhaustiveness(),
+      currentExhaustiveControlLevel: 0.75, // Default exhaustiveness estimate
       totalityComplianceRatio: 0.75, // 75% compliance estimated
       typeSafetyGuarantee: "partial", // vs "complete" | "minimal"
 
@@ -740,7 +730,7 @@ export class PipelineOrchestrator {
     // Integrated Issue Control Debug Information (Pattern A Analysis)
     const integratedControlMetrics = {
       // Comprehensive system analysis
-      integratedIssueControlLevel: this.calculateIntegratedControl(),
+      integratedIssueControlLevel: 0.62, // Default integrated control estimate
       systemHealthScore: 0.62, // 62% overall health based on all metrics
       criticalIssueCount: 3, // Entropy, Pipeline, Totality issues
 
@@ -804,7 +794,9 @@ export class PipelineOrchestrator {
         timestamp: new Date().toISOString(),
       },
     );
-    const schemaResult = await this.loadSchema(config.schemaPath);
+    const schemaResult = await this.schemaCoordinator.loadSchema(
+      config.schemaPath,
+    );
     if (!schemaResult.ok) {
       return schemaResult;
     }
@@ -826,11 +818,6 @@ export class PipelineOrchestrator {
     const explicitTemplatePath = config.templateConfig.kind === "explicit"
       ? config.templateConfig.templatePath
       : undefined;
-
-    const templatePathConfig = {
-      schemaPath: config.schemaPath,
-      explicitTemplatePath,
-    };
 
     // Enhance context with input parameters and decision logic
     const enhancedContext = templateResolutionContext.data
@@ -858,9 +845,10 @@ export class PipelineOrchestrator {
       templateDecisionResult.data,
     );
 
-    const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
+    const resolvePathsResult = this.templateCoordinator.resolveTemplatePaths(
       schema,
-      templatePathConfig,
+      config.templateConfig,
+      config.schemaPath,
     );
     if (!resolvePathsResult.ok) {
       const enhancedError = createEnhancedError(
@@ -895,7 +883,7 @@ export class PipelineOrchestrator {
     const shouldUseParallelProcessing = strategyConfig
       .shouldUseParallelProcessing(
         estimatedDocumentCount,
-        validationRules.length,
+        validationRules.getCount(),
       );
 
     // Document processing variance debug information
@@ -909,9 +897,9 @@ export class PipelineOrchestrator {
       },
       varianceRiskFactors: {
         documentCountEstimate: estimatedDocumentCount,
-        validationRulesCount: validationRules.length,
+        validationRulesCount: validationRules.getCount(),
         availableMemoryMB: Math.floor(initialDocMemory.heapTotal / 1024 / 1024),
-        complexityScore: estimatedDocumentCount * validationRules.length,
+        complexityScore: estimatedDocumentCount * validationRules.getCount(),
       },
       processingTimePrediction: {
         sequentialEstimate: `${estimatedDocumentCount * 50}ms`, // 50ms per doc
@@ -956,16 +944,14 @@ export class PipelineOrchestrator {
       ? effectiveStrategy.getConcurrencyLevel()
       : 1;
 
-    const processedDataResult = await this.frontmatterTransformer
-      .transformDocuments(
+    const processedDataResult = await this.processingCoordinator
+      .processDocuments(
         config.inputPattern,
         validationRules,
         schema,
-        undefined, // processingBounds - using default
-        {
-          parallel: shouldUseParallel,
-          maxWorkers: maxWorkers,
-        },
+        shouldUseParallel
+          ? { kind: "parallel", maxWorkers: maxWorkers }
+          : { kind: "sequential" },
       );
     if (!processedDataResult.ok) {
       return processedDataResult;
@@ -1091,10 +1077,11 @@ export class PipelineOrchestrator {
         extractionDecisionResult.data,
       );
 
-      const frontmatterPartResult = this.extractFrontmatterPartData(
-        mainData,
-        schema,
-      );
+      const frontmatterPartResult = this.processingCoordinator
+        .extractFrontmatterPartData(
+          mainData,
+          schema,
+        );
       if (!frontmatterPartResult.ok) {
         const enhancedError = createEnhancedError(
           frontmatterPartResult.error,
@@ -1131,13 +1118,13 @@ export class PipelineOrchestrator {
       // No frontmatter-part processing needed for standard single template
     }
 
-    // Step 6: Use OutputRenderingService to render and write output
+    // Step 6: Use TemplateCoordinator to render and write output
     // Convert VerbosityConfig to VerbosityMode
     const verbosityMode: VerbosityMode =
       config.verbosityConfig.kind === "verbose"
         ? { kind: "verbose" }
         : { kind: "normal" };
-    const renderResult = this.outputRenderingService.renderOutput(
+    const renderResult = this.templateCoordinator.renderOutput(
       templatePath,
       itemsTemplatePath,
       mainData,
@@ -1147,398 +1134,5 @@ export class PipelineOrchestrator {
       verbosityMode,
     );
     return renderResult;
-  }
-
-  /**
-   * Load schema from file system
-   * CPS-style debugging: monitoring continuation-passing variance
-   */
-  private async loadSchema(
-    schemaPath: string,
-  ): Promise<Result<Schema, DomainError & { message: string }>> {
-    // CPS Debug: Track continuation execution variance
-    const cpsMetrics = {
-      continuationStyle: "async-await", // vs "generator" | "promise-chain"
-      memoryFootprint: "high", // due to Promise accumulation
-      errorPropagation: "try-catch-boundary", // vs "yield-immediate"
-      debuggability: "stack-trace-obscured", // vs "step-debuggable"
-    };
-
-    this.logDebug("CPS execution variance tracking", {
-      operation: "schema-loading-continuation",
-      cpsMetrics,
-      timestamp: new Date().toISOString(),
-    });
-    // Performance optimization: Check schema cache first
-    const cache = this.schemaCache;
-
-    // Try to get from cache
-    const cacheResult = await cache.get(schemaPath);
-    if (!cacheResult.ok) {
-      // Cache error - continue with normal loading but log the issue
-      this.logWarn(
-        `Cache lookup failed for ${schemaPath}: ${cacheResult.error}`,
-        {
-          operation: "schema-cache-lookup",
-          location: "PipelineOrchestrator.loadSchema",
-          schemaPath,
-          errorMessage: String(cacheResult.error),
-          timestamp: new Date().toISOString(),
-        },
-      );
-    } else if (cacheResult.data) {
-      // Cache hit - create Schema entity from cached definition
-      const pathResult = SchemaPath.create(schemaPath);
-      if (!pathResult.ok) {
-        return pathResult;
-      }
-
-      const schemaResult = Schema.create(pathResult.data, cacheResult.data);
-      if (schemaResult.ok) {
-        return schemaResult;
-      }
-      // If Schema creation fails, continue with fresh load
-    }
-
-    // Cache miss or error - load from file system
-    const contentResult = await Promise.resolve(
-      this.fileSystem.read(schemaPath),
-    );
-    if (!contentResult.ok) {
-      return contentResult;
-    }
-
-    try {
-      const schemaData = JSON.parse(contentResult.data);
-
-      // Create schema path
-      const pathResult = SchemaPath.create(schemaPath);
-      if (!pathResult.ok) {
-        return pathResult;
-      }
-
-      // Create schema definition
-      const definitionResult = SchemaDefinition.create(schemaData);
-      if (!definitionResult.ok) {
-        return definitionResult;
-      }
-
-      // Cache the schema definition for future use
-      const setCacheResult = await cache.set(schemaPath, definitionResult.data);
-      if (!setCacheResult.ok) {
-        // Cache set error - continue but log the issue
-        this.logWarn(
-          `Failed to cache schema ${schemaPath}: ${setCacheResult.error}`,
-          {
-            operation: "schema-cache-set",
-            location: "PipelineOrchestrator.loadSchema",
-            schemaPath,
-            errorMessage: String(setCacheResult.error),
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
-
-      // Create schema entity
-      return Schema.create(pathResult.data, definitionResult.data);
-    } catch (error) {
-      // Create error context for schema loading failure
-      const schemaErrorContext = ErrorContextFactory.forSchema(
-        "Schema Loading",
-        schemaPath,
-        "loadSchema",
-      );
-
-      if (!schemaErrorContext.ok) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message: `Failed to parse schema: ${error}`,
-        }));
-      }
-
-      const enhancedContext = schemaErrorContext.data
-        .withInput("filePath", schemaPath)
-        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
-        .withInput("errorMessage", String(error));
-
-      const baseError = createError({
-        kind: "InvalidSchema",
-        message: `Failed to parse schema: ${error}`,
-      });
-
-      return err(createEnhancedError(
-        baseError,
-        enhancedContext,
-        `Schema parsing failed for ${schemaPath}`,
-      ));
-    }
-  }
-
-  /**
-   * Load template from file system
-   */
-  private async loadTemplate(
-    templatePath: string,
-  ): Promise<Result<Template, DomainError & { message: string }>> {
-    // Read template file
-    const contentResult = await Promise.resolve(
-      this.fileSystem.read(templatePath),
-    );
-    if (!contentResult.ok) {
-      return contentResult;
-    }
-
-    // Determine format from extension
-    const format = this.getTemplateFormat(templatePath);
-
-    // Create template path
-    const pathResult = TemplatePath.create(templatePath);
-    if (!pathResult.ok) {
-      return pathResult;
-    }
-
-    // Parse template content based on format
-    let templateData: unknown;
-    try {
-      if (format === "json") {
-        templateData = JSON.parse(contentResult.data);
-      } else if (format === "yaml") {
-        // For YAML, keep as string for now (would need YAML parser)
-        templateData = contentResult.data;
-      } else {
-        templateData = contentResult.data;
-      }
-    } catch (error) {
-      // Create error context for template loading failure
-      const templateErrorContext = ErrorContextFactory.forTemplate(
-        "Template Loading",
-        templatePath,
-        "loadTemplate",
-      );
-
-      if (!templateErrorContext.ok) {
-        return err(createError({
-          kind: "InvalidTemplate",
-          message: `Failed to parse template: ${error}`,
-        }));
-      }
-
-      const enhancedContext = templateErrorContext.data
-        .withInput("filePath", templatePath)
-        .withInput("templateFormat", format)
-        .withInput("errorType", error instanceof Error ? error.name : "Unknown")
-        .withInput("errorMessage", String(error));
-
-      const baseError = createError({
-        kind: "InvalidTemplate",
-        message: `Failed to parse template: ${error}`,
-      });
-
-      return err(createEnhancedError(
-        baseError,
-        enhancedContext,
-        `Template parsing failed for ${templatePath}`,
-      ));
-    }
-
-    // Create template entity
-    return Template.create(pathResult.data, templateData);
-  }
-
-  /**
-   * Determine template format from file extension
-   */
-  private getTemplateFormat(path: string): "json" | "yaml" | "markdown" {
-    if (path.endsWith(".json")) return "json";
-    if (path.endsWith(".yml") || path.endsWith(".yaml")) return "yaml";
-    return "markdown";
-  }
-
-  /**
-   * Extract frontmatter-part data as array for {@items} expansion.
-   *
-   * Key insight: frontmatter-part path in schema indicates where aggregated
-   * data will be placed in final output, NOT where it exists in individual files.
-   * Individual markdown files contribute directly to the array items.
-   */
-  private extractFrontmatterPartData(
-    data: FrontmatterData,
-    schema: Schema,
-  ): Result<FrontmatterData[], DomainError & { message: string }> {
-    // Create context for frontmatter-part extraction
-    const extractionContext = ErrorContextFactory.forPipeline(
-      "Frontmatter-Part Extraction",
-      "extractFrontmatterPartData",
-      453,
-    );
-    if (!extractionContext.ok) {
-      return extractionContext;
-    }
-
-    const context = extractionContext.data
-      .withInput("inputDataKeys", Object.keys(data.getData()))
-      .withInput("inputDataSize", JSON.stringify(data.getData()).length);
-
-    // Check if schema has frontmatter-part definition
-    const pathResult = schema.findFrontmatterPartPath();
-    if (!pathResult.ok) {
-      // No frontmatter-part defined, return data as single item array
-      const noPathDecisionResult = Decision.create(
-        "Frontmatter-part path handling strategy",
-        ["return-single-item", "return-empty", "return-error"],
-        "No frontmatter-part path defined in schema, using fallback single-item strategy",
-      );
-      if (noPathDecisionResult.ok) {
-        const fallbackContext = context.withDecision(noPathDecisionResult.data);
-        this.logDebug(
-          "Frontmatter-part extraction context - no path defined",
-          {
-            operation: "frontmatter-part-extraction",
-            location: "PipelineOrchestrator.extractFrontmatterPartData",
-            decision: fallbackContext.getDebugInfo(),
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
-      return ok([data]);
-    }
-
-    const frontmatterPartPath = pathResult.data;
-    const pathContext = context.withInput(
-      "frontmatterPartPath",
-      frontmatterPartPath,
-    );
-
-    // Check if this data already contains an array at the frontmatter-part path
-    // This handles cases where a single file contains multiple items
-    const arrayDataResult = data.get(frontmatterPartPath);
-    const hasArrayData = arrayDataResult.ok &&
-      Array.isArray(arrayDataResult.data);
-    const arrayLength = hasArrayData ? arrayDataResult.data.length : 0;
-
-    const analysisContext = pathContext
-      .withInput("pathAccessSuccess", arrayDataResult.ok)
-      .withInput("isArrayData", hasArrayData)
-      .withInput("arrayLength", arrayLength);
-
-    if (hasArrayData) {
-      // File contains array at target path - extract individual items
-      const arrayProcessingDecisionResult = Decision.create(
-        "Array data processing strategy",
-        ["process-each-item", "return-as-is", "skip-processing"],
-        `Found array with ${arrayLength} items at frontmatter-part path, processing each item individually`,
-      );
-      if (!arrayProcessingDecisionResult.ok) {
-        return contextualErr(
-          arrayProcessingDecisionResult.error,
-          analysisContext,
-        );
-      }
-
-      const processingContext = analysisContext.withDecision(
-        arrayProcessingDecisionResult.data,
-      );
-
-      // Create processing progress for array items
-      const processingProgressResult = ProcessingProgress.create(
-        "Array Item Processing",
-        "Processing individual array items",
-        [],
-        arrayLength,
-      );
-      if (!processingProgressResult.ok) {
-        return contextualErr(processingProgressResult.error, processingContext);
-      }
-
-      const _progressContext = processingContext.withProgress(
-        processingProgressResult.data,
-      );
-      this.logDebug(
-        "Array processing context",
-        {
-          operation: "Pipeline: Frontmatter-Part Extraction",
-          location: "PipelineOrchestrator.extractFrontmatterPartData:453",
-          inputs:
-            "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
-          decisions: [
-            "Array data processing strategy (alternatives: process-each-item, return-as-is, skip-processing) - Found array with " +
-            arrayLength +
-            " items at frontmatter-part path, processing each item individually",
-          ],
-          progress:
-            "Array Item Processing: Processing individual array items (0%)",
-          timestamp: new Date().toISOString(),
-          contextDepth: 1,
-        },
-      );
-
-      const result: FrontmatterData[] = [];
-      for (let i = 0; i < arrayDataResult.data.length; i++) {
-        const item = arrayDataResult.data[i];
-        // Skip invalid items gracefully (null, primitives, etc.)
-        if (!item || typeof item !== "object") {
-          continue;
-        }
-
-        const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
-        if (!itemDataResult.ok) {
-          // Log the failure but continue processing other items gracefully
-          this.logDebug(
-            `Skipping invalid array item ${i}: ${itemDataResult.error.message}`,
-            {
-              operation: "array-item-processing",
-              location: "PipelineOrchestrator.extractFrontmatterPartData",
-              itemIndex: i,
-              errorType: itemDataResult.error.kind,
-              timestamp: new Date().toISOString(),
-            },
-          );
-          continue;
-        }
-        result.push(itemDataResult.data);
-      }
-
-      this.logDebug(
-        `Successfully extracted ${result.length} items from array`,
-        {
-          operation: "array-extraction-complete",
-          location: "PipelineOrchestrator.extractFrontmatterPartData",
-          extractedCount: result.length,
-          totalItems: arrayLength,
-          timestamp: new Date().toISOString(),
-        },
-      );
-      return ok(result);
-    } else {
-      // Default case: individual file contributes directly as one item
-      // This is the typical scenario for frontmatter-part processing
-      // Each markdown file's frontmatter becomes one item in the final array
-      const fallbackDecisionResult = Decision.create(
-        "Fallback extraction strategy",
-        ["single-item-array", "empty-array", "error"],
-        "No array found at frontmatter-part path, using fallback single-item strategy",
-      );
-      if (fallbackDecisionResult.ok) {
-        const _fallbackContext = analysisContext.withDecision(
-          fallbackDecisionResult.data,
-        );
-        this.logDebug(
-          "Fallback extraction context",
-          {
-            operation: "Pipeline: Frontmatter-Part Extraction",
-            location: "PipelineOrchestrator.extractFrontmatterPartData:453",
-            inputs:
-              "6 parameters: inputDataKeys, inputDataSize, frontmatterPartPath...",
-            decisions: [
-              "Fallback extraction strategy (alternatives: single-item-array, empty-array, error) - No array found at frontmatter-part path, using fallback single-item strategy",
-            ],
-            progress: undefined,
-            timestamp: new Date().toISOString(),
-            contextDepth: 1,
-          },
-        );
-      }
-      return ok([data]);
-    }
   }
 }
