@@ -21,7 +21,7 @@ function createTestOrchestrator(
   schemaCache: any,
 ): PipelineOrchestrator {
   const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-  return new PipelineOrchestrator(
+  const result = PipelineOrchestrator.create(
     frontmatterTransformer,
     schemaProcessor,
     outputRenderer,
@@ -30,6 +30,12 @@ function createTestOrchestrator(
     schemaCache,
     processingLoggerState,
   );
+  if (!result.ok) {
+    throw new Error(
+      `Failed to create test orchestrator: ${result.error.message}`,
+    );
+  }
+  return result.data;
 }
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -189,10 +195,11 @@ describe("PipelineOrchestrator", () => {
   class MockTemplatePathResolver {
     private shouldFail = false;
     private errorToReturn?: DomainError & { message: string };
-    private pathsToReturn = {
+    private pathsToReturn: any = {
       templatePath: "/test/template.json",
-      itemsTemplatePath: undefined as string | undefined,
-      outputFormat: "json",
+      itemsTemplatePath: undefined,
+      itemsTemplate: { kind: "not-defined" },
+      outputFormat: { kind: "specified", format: "json" },
     };
 
     setShouldFail(fail: boolean, error?: DomainError & { message: string }) {
@@ -208,6 +215,15 @@ describe("PipelineOrchestrator", () => {
       this.pathsToReturn = {
         ...this.pathsToReturn,
         ...paths,
+        itemsTemplate: paths.itemsTemplatePath
+          ? { kind: "defined" as const, path: paths.itemsTemplatePath }
+          : { kind: "not-defined" as const },
+        outputFormat: paths.outputFormat
+          ? {
+            kind: "specified" as const,
+            format: paths.outputFormat as "json" | "yaml" | "markdown",
+          }
+          : { kind: "specified" as const, format: "json" as const },
       };
     }
 

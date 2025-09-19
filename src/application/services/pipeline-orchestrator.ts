@@ -1,19 +1,5 @@
-import {
-  contextualErr,
-  err,
-  ok,
-  Result,
-} from "../../domain/shared/types/result.ts";
-import {
-  createEnhancedError,
-  createError,
-  DomainError,
-} from "../../domain/shared/types/errors.ts";
-import {
-  Decision,
-  ErrorContextFactory,
-  ProcessingProgress,
-} from "../../domain/shared/types/error-context.ts";
+import { err, ok, Result } from "../../domain/shared/types/result.ts";
+import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
@@ -47,6 +33,7 @@ import {
 import { PipelineOrchestratorContext } from "../pipeline/services/pipeline-orchestrator-context.ts";
 import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
 import { ProcessingStateMachine } from "./processing-state-machine.ts";
+import { DebugMetricsService } from "../../infrastructure/metrics/debug-metrics-service.ts";
 
 /**
  * Processing logger state using discriminated union for enhanced and debug loggers
@@ -171,8 +158,9 @@ export class PipelineOrchestrator {
   private readonly entropyManagementService: EntropyManagementService;
   private readonly loggingService: LoggingService;
   private readonly stateMachine: ProcessingStateMachine;
+  private readonly debugMetricsService: DebugMetricsService;
 
-  constructor(
+  private constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     private readonly schemaProcessor: SchemaProcessingService,
     private readonly outputRenderingService: OutputRenderingService,
@@ -260,6 +248,18 @@ export class PipelineOrchestrator {
     }
     this.stateMachine = stateMachineResult.data;
 
+    // Initialize debug metrics service
+    const debugMetricsResult = DebugMetricsService.create(
+      this.complexityMetricsService,
+      this.entropyManagementService,
+    );
+    if (!debugMetricsResult.ok) {
+      throw new Error(
+        `Failed to create DebugMetricsService: ${debugMetricsResult.error.message}`,
+      );
+    }
+    this.debugMetricsService = debugMetricsResult.data;
+
     // DDD境界統合点デバッグ情報 (仕様駆動強化フロー Iteration 8)
     const dddBoundaryIntegrationDebug = {
       contextBoundaries: {
@@ -330,33 +330,30 @@ export class PipelineOrchestrator {
       };
     }
 
-    // Create PipelineOrchestrator with configuration
-    try {
-      const orchestrator = new PipelineOrchestrator(
-        frontmatterTransformer,
-        schemaProcessor,
-        outputRenderingService,
-        templatePathResolver,
-        fileSystem,
-        schemaCache,
-        processingLoggerState,
-        defaultStrategyConfig,
-        undefined, // entropyReductionService - use default
-        configResult.data,
-      );
+    // Create PipelineOrchestrator with configuration using Smart Constructor
+    const orchestratorResult = PipelineOrchestrator.create(
+      frontmatterTransformer,
+      schemaProcessor,
+      outputRenderingService,
+      templatePathResolver,
+      fileSystem,
+      schemaCache,
+      processingLoggerState,
+      defaultStrategyConfig,
+    );
 
-      return { ok: true, data: orchestrator };
-    } catch (error) {
+    if (!orchestratorResult.ok) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message: `Failed to create PipelineOrchestrator: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
+          message:
+            `Failed to create PipelineOrchestrator: ${orchestratorResult.error.message}`,
         }),
       };
     }
+
+    return { ok: true, data: orchestratorResult.data };
   }
 
   /**
@@ -558,390 +555,96 @@ export class PipelineOrchestrator {
   async execute(
     config: PipelineConfig,
   ): Promise<Result<void, DomainError & { message: string }>> {
-    // Get strategy configuration (use provided or default)
+    // Initialize strategy configuration
     const strategyConfig = config.strategyConfig || this.defaultStrategyConfig;
-    const thresholds = strategyConfig.getPerformanceThresholds();
-
-    // Performance monitoring initialization with strategy-aware logging
-    const _pipelineStartTime = performance.now();
     const initialMemory = Deno.memoryUsage();
-    const processingStrategyMetrics = {
-      processingMode: strategyConfig.getProcessingStrategy(), // No longer hardcoded "sequential"
-      expectedConcurrency: strategyConfig.getConcurrencyLevel(),
-      memoryBudgetMB: Math.floor(initialMemory.heapTotal / 1024 / 1024 * 0.8),
-      timeoutMs: 60000,
-      memoryStrategy: strategyConfig.getMemoryStrategy(),
-      adaptiveScaling: strategyConfig.isAdaptiveScalingEnabled(),
-      // Variance targets from strategy config
-      targetMemoryVariancePct: thresholds.maxMemoryVariancePct,
-      targetThroughputVariancePct: thresholds.maxThroughputVariancePct,
-      expectedVarianceReduction: strategyConfig
-        .calculateExpectedVarianceReduction(),
-      // Real-time variance tracking
-      memoryVarianceRisk: thresholds.maxMemoryVariancePct > 300
-        ? "high"
-        : "medium",
-      errorRecoveryLatency: `${thresholds.maxErrorRecoveryTimeMs}ms`, // Now properly configured
-    };
 
-    // Pipeline Processing Debug Information (Pattern B Analysis) - Strategy-based
-    const pipelineProcessingMetrics = {
-      // Strategy-driven architecture variance tracking
-      pipelineArchitecture: strategyConfig.getProcessingStrategy(),
-      currentMemoryVariance: `${thresholds.maxMemoryVariancePct}%`, // Target: reduced from 600%
-      currentThroughputVariance: `${thresholds.maxThroughputVariancePct}%`, // Target: reduced from 650%
-      cpuUtilizationTarget: `${thresholds.maxCpuUtilizationPct}%`,
-      errorRecoveryTarget: `${thresholds.maxErrorRecoveryTimeMs}ms`, // No longer infinite
+    // Initialize state machine
+    const initResult = this.stateMachine.initialize(config, strategyConfig);
+    if (!initResult.ok) {
+      return initResult;
+    }
 
-      // Strategy-based variance improvement
-      varianceImprovements: {
-        memoryVarianceReduction: `${600 - thresholds.maxMemoryVariancePct}%`, // e.g. 350% reduction
-        throughputVarianceReduction: `${
-          650 - thresholds.maxThroughputVariancePct
-        }%`, // e.g. 370% reduction
-        errorRecoveryImprovement:
-          `finite: ${thresholds.maxErrorRecoveryTimeMs}ms`, // finite vs infinite
-      },
-
-      // Pipeline stage debugging with strategy awareness
-      pipelineStages: [
-        "strategy-selection",
-        "input-stream-creation",
-        "parallel-frontmatter-extraction",
-        "concurrent-schema-validation",
-        "batched-data-transformation",
-        "optimized-template-processing",
-        "streaming-output-generation",
-      ],
-      currentStage: "strategy-selection",
-      strategyOptimizations: {
-        "parallel-frontmatter-extraction": strategyConfig
-          .shouldUseParallelProcessing(100, 5),
-        "concurrent-schema-validation":
-          strategyConfig.getConcurrencyLevel() > 1,
-        "batched-data-transformation": strategyConfig.calculateOptimalBatchSize(
-          100,
-          processingStrategyMetrics.memoryBudgetMB,
-        ),
-        "adaptive-scaling": strategyConfig.isAdaptiveScalingEnabled(),
-      },
-    };
-
-    // AI Complexity Control Debug Information (Pattern A Analysis) - Using monitoring services
-    const complexityFactors = this.complexityMetricsService
-      .getComplexityFactors();
-    const entropyResult = this.entropyManagementService.calculateSystemEntropy(
-      complexityFactors,
+    // Generate debug metrics if needed
+    const debugMetrics = this.debugMetricsService.generateMetrics(
+      strategyConfig,
+      initialMemory,
     );
-    const entropyPlanResult = this.entropyManagementService
-      .generateReductionPlan(complexityFactors);
-    const entropyAnalysis = entropyPlanResult.ok
-      ? {
-        currentEntropy: entropyPlanResult.data.currentEntropy,
-        targetEntropy: entropyPlanResult.data.targetEntropy,
-        reductionPlan: entropyPlanResult.data,
-        isAcceptable: this.entropyManagementService.isAcceptable(
-          entropyResult.ok ? entropyResult.data : 100,
-        ),
-      }
-      : {
-        currentEntropy: entropyResult.ok ? entropyResult.data : 100,
-        targetEntropy: 12.0,
-        reductionPlan: null,
-        isAcceptable: false,
-      };
-    const entropyControlMetrics = {
-      // System entropy measurement with reduction plan
-      currentSystemEntropy: entropyAnalysis.currentEntropy,
-      entropyThreshold: entropyAnalysis.targetEntropy,
-      entropyAcceptable: entropyAnalysis.isAcceptable,
-      reductionRequired:
-        entropyAnalysis.currentEntropy > entropyAnalysis.targetEntropy,
 
-      // Entropy reduction strategy (no longer "not-implemented")
-      entropyControlStrategy: entropyAnalysis.reductionPlan?.priority === "low"
-        ? "gradual-control"
-        : "aggressive-reduction",
-      reductionStepsCount:
-        entropyAnalysis.reductionPlan?.reductionStrategies?.length || 0,
-      expectedEntropyAfterReduction: entropyAnalysis.targetEntropy,
-      entropyReductionPercentage: entropyAnalysis.currentEntropy > 0
-        ? ((entropyAnalysis.currentEntropy - entropyAnalysis.targetEntropy) /
-          entropyAnalysis.currentEntropy) * 100
-        : 0,
-
-      // Implementation estimates
-      implementationTimeEstimate: {
-        lowEstimate: 7,
-        highEstimate: 14,
-        unit: "days",
-      },
-
-      // Entropy control stage debugging with actual progress
-      entropyControlStages: [
-        "system-entropy-measurement", // ✅ COMPLETED
-        "complexity-threshold-evaluation", // ✅ COMPLETED
-        "reduction-plan-generation", // ✅ COMPLETED
-        "strategy-selection", // ✅ COMPLETED
-        "reduction-execution", // 🔄 IN PROGRESS
-        "entropy-validation",
-      ],
-      currentEntropyStage: "reduction-execution",
-      entropyVarianceReductions: {
-        "complexity-threshold-evaluation": "resolved", // Now using EntropyReductionService
-        "impact-prediction-execution": "calculated", // Actual estimates provided
-        "pre-control-gate": "implemented", // Acceptable threshold checking
-        "entropy-reduction-execution": "planned", // Concrete reduction steps available
-      },
-    };
-
-    // Totality Principle Debug Information (Pattern C Analysis)
-    const totalityControlMetrics = {
-      // Exhaustive control analysis
-      currentExhaustiveControlLevel: 0.75, // Default exhaustiveness estimate
-      totalityComplianceRatio: 0.75, // 75% compliance estimated
-      typeSafetyGuarantee: "partial", // vs "complete" | "minimal"
-
-      // Strict vs Pragmatic exhaustive control variance tracking
-      exhaustiveControlStrategy: "pragmatic-mixed", // vs "strict-exhaustive" | "pragmatic-exhaustive"
-      estimatedTypeSafetyVariance: "11%", // Strict(100%) vs Pragmatic(90%)
-      estimatedDevelopmentEfficiencyVariance: "qualitative-medium", // Strict(low) vs Pragmatic(efficient)
-      compileTimeVerificationVariance: "20%", // Strict(complete) vs Pragmatic(partial)
-      maintainabilityVariance: "qualitative-medium", // Strict(high) vs Pragmatic(medium)
-
-      // Totality control stage debugging
-      totalityControlStages: [
-        "pattern-matching",
-        "switch-exhaustiveness",
-        "default-clause-elimination",
-        "type-system-verification",
-        "compile-time-guarantee",
-        "runtime-safety",
-      ],
-      currentTotalityStage: "initialization",
-      totalityVarianceRisks: {
-        "switch-exhaustiveness": "medium", // discriminated union coverage variance
-        "pattern-matching": "medium", // Result<T,E> handling variance
-        "type-system-verification": "high", // state transition safety variance
-        "default-clause-elimination": "low", // most switch statements properly exhaustive
-      },
-    };
-
-    // Integrated Issue Control Debug Information (Pattern A Analysis)
-    const integratedControlMetrics = {
-      // Comprehensive system analysis
-      integratedIssueControlLevel: 0.62, // Default integrated control estimate
-      systemHealthScore: 0.62, // 62% overall health based on all metrics
-      criticalIssueCount: 3, // Entropy, Pipeline, Totality issues
-
-      // Gradual vs Radical integration variance tracking
-      integrationStrategy: "gradual-recommended", // vs "radical-reconstruction" | "gradual-improvement"
-      estimatedEntropyReductionVariance: "104%", // Gradual(24%) vs Radical(49%)
-      estimatedPipelineImprovementVariance: "84%", // Gradual(50%) vs Radical(92%)
-      estimatedTotalityImprovementVariance: "109%", // Gradual(9.2%) vs Radical(19.2%)
-      estimatedImplementationTimeVariance: "100%", // Gradual(7weeks) vs Radical(14weeks)
-      riskAssessmentVariance: "qualitative-high", // Medium vs High risk
-
-      // Integration control stage debugging
-      integrationStages: [
-        "entropy-excess-response",
-        "pipeline-variance-control",
-        "totality-principle-application",
-        "ddd-boundary-strengthening",
-        "hardcode-elimination",
-        "integrated-validation-execution",
-      ],
-      currentIntegrationStage: "initialization",
-      integrationVarianceRisks: {
-        "entropy-excess-response": "critical", // 23.67 bits vs 12.0 threshold
-        "pipeline-variance-control": "high", // 600% variance needs reduction
-        "totality-principle-application": "medium", // 75.8% vs 80% target
-        "ddd-boundary-strengthening": "medium", // Repository/Aggregate patterns missing
-        "hardcode-elimination": "low", // Most patterns identified
-        "integrated-validation-execution": "high", // Comprehensive validation complexity
-      },
-    };
-
+    // Log pipeline initialization with debug metrics
     this.logInfo("Pipeline execution starting", {
       operation: "pipeline-initialization",
-      processingStrategy: processingStrategyMetrics,
-      pipelineProcessing: pipelineProcessingMetrics,
-      entropyControl: entropyControlMetrics,
-      totalityControl: totalityControlMetrics,
-      integratedControl: integratedControlMetrics,
+      processingStrategy: debugMetrics.processingStrategy,
+      pipelineProcessing: debugMetrics.pipelineProcessing,
+      entropyControl: debugMetrics.entropyControl,
+      totalityControl: debugMetrics.totalityControl,
+      integratedControl: debugMetrics.integratedControl,
       initialMemoryMB: Math.round(initialMemory.heapUsed / 1024 / 1024),
       timestamp: new Date().toISOString(),
     });
 
     // Step 1: Load and process schema
-    // FIXED: Removed false variable to eliminate Totality violation
-    // All logging now unconditional through proper infrastructure
-    // Replaced hardcoded verbose conditionals with proper logging infrastructure
-    this.logDebug(
-      `Verbosity config: kind="${config.verbosityConfig.kind}", enabled=${config.verbosityConfig.enabled}`,
-      { operation: "pipeline-config", timestamp: new Date().toISOString() },
-    );
-    this.logInfo("Step 1: Loading schema from " + config.schemaPath, {
+    const schemaTransitionResult = this.stateMachine.transition({
+      kind: "LoadSchema",
+      path: config.schemaPath,
+    });
+    if (!schemaTransitionResult.ok) {
+      return schemaTransitionResult;
+    }
+
+    this.logInfo("Loading schema from " + config.schemaPath, {
       operation: "schema-loading",
       timestamp: new Date().toISOString(),
     });
-    this.logDebug(
-      `Pipeline start - Memory: ${
-        Math.round(initialMemory.heapUsed / 1024 / 1024)
-      }MB`,
-      {
-        operation: "performance-monitoring",
-        timestamp: new Date().toISOString(),
-      },
-    );
     const schemaResult = await this.schemaCoordinator.loadSchema(
       config.schemaPath,
     );
     if (!schemaResult.ok) {
+      const failureResult = this.stateMachine.transition({
+        kind: "Fail",
+        error: {
+          phase: "schema-loading",
+          message: schemaResult.error.message,
+          cause: schemaResult.error,
+          timestamp: new Date(),
+        },
+      });
+      if (!failureResult.ok) {
+        return failureResult;
+      }
       return schemaResult;
     }
     const schema = schemaResult.data;
 
-    // Step 2: Resolve template paths using TemplatePathResolver
-
-    // Create context for template path resolution
-    const templateResolutionContext = ErrorContextFactory.forPipeline(
-      "Template Resolution",
-      "resolveTemplatePaths",
-      106,
-    );
-    if (!templateResolutionContext.ok) {
-      return templateResolutionContext;
+    const schemaSuccessResult = this.stateMachine.transition({
+      kind: "SchemaLoadComplete",
+      schema: schema,
+    });
+    if (!schemaSuccessResult.ok) {
+      return schemaSuccessResult;
     }
 
-    // Extract template configuration using discriminated union pattern
-    const explicitTemplatePath = config.templateConfig.kind === "explicit"
-      ? config.templateConfig.templatePath
-      : undefined;
-
-    // Enhance context with input parameters and decision logic
-    const enhancedContext = templateResolutionContext.data
-      .withInput("schemaPath", config.schemaPath)
-      .withInput("explicitTemplatePath", explicitTemplatePath)
-      .withInput(
-        "hasExplicitTemplate",
-        config.templateConfig.kind === "explicit",
-      );
-
-    // Create decision record for template resolution strategy
-    const resolutionStrategy = config.templateConfig.kind;
-    const templateDecisionResult = Decision.create(
-      "Template path resolution strategy selection",
-      ["explicit", "schema-derived", "auto-detect"],
-      resolutionStrategy === "explicit"
-        ? "Explicit template path provided in configuration"
-        : "No explicit template, deriving from schema definition",
-    );
-    if (!templateDecisionResult.ok) {
-      return contextualErr(templateDecisionResult.error, enhancedContext);
+    // Step 2: Process documents first (before template resolution)
+    const docProcessingResult = this.stateMachine.transition({
+      kind: "ParseFrontmatter",
+      content: "", // Content will be loaded from files
+    });
+    if (!docProcessingResult.ok) {
+      return docProcessingResult;
     }
 
-    const contextWithDecision = enhancedContext.withDecision(
-      templateDecisionResult.data,
-    );
-
-    const resolvePathsResult = this.templateCoordinator.resolveTemplatePaths(
-      schema,
-      config.templateConfig,
-      config.schemaPath,
-    );
-    if (!resolvePathsResult.ok) {
-      const enhancedError = createEnhancedError(
-        resolvePathsResult.error,
-        contextWithDecision,
-        "Template path resolution failed during pipeline execution",
-      );
-      return err(enhancedError);
-    }
-
-    const templatePath = resolvePathsResult.data.templatePath;
-    const itemsTemplatePath = resolvePathsResult.data.itemsTemplatePath;
-    const outputFormat = resolvePathsResult.data.outputFormat || "json";
-
-    // Log successful resolution with context
-
-    // Step 4: Process documents (成果A-D) - Enhanced with batch processing debug
-    const docProcessingStartTime = performance.now();
-    const initialDocMemory = Deno.memoryUsage();
     const validationRulesResult = schema.getValidationRules();
     if (!validationRulesResult.ok) {
       return err(validationRulesResult.error);
     }
     const validationRules = validationRulesResult.data;
 
-    // Calculate optimal batch configuration based on strategy
-    const estimatedDocumentCount = 100; // Will be determined by file listing
-    const optimalBatchSize = strategyConfig.calculateOptimalBatchSize(
-      estimatedDocumentCount,
-      Math.floor(initialDocMemory.heapTotal / 1024 / 1024 * 0.6),
-    );
-    const shouldUseParallelProcessing = strategyConfig
-      .shouldUseParallelProcessing(
-        estimatedDocumentCount,
-        validationRules.getCount(),
-      );
-
-    // Document processing variance debug information
-    const docProcessingDebugMetrics = {
-      batchProcessingStrategy: {
-        currentStrategy: strategyConfig.getProcessingStrategy(),
-        optimalBatchSize,
-        shouldUseParallelProcessing,
-        concurrencyLevel: strategyConfig.getConcurrencyLevel(),
-        memoryStrategy: strategyConfig.getMemoryStrategy(),
-      },
-      varianceRiskFactors: {
-        documentCountEstimate: estimatedDocumentCount,
-        validationRulesCount: validationRules.getCount(),
-        availableMemoryMB: Math.floor(initialDocMemory.heapTotal / 1024 / 1024),
-        complexityScore: estimatedDocumentCount * validationRules.getCount(),
-      },
-      processingTimePrediction: {
-        sequentialEstimate: `${estimatedDocumentCount * 50}ms`, // 50ms per doc
-        parallelEstimate: shouldUseParallelProcessing
-          ? `${
-            Math.ceil(
-              estimatedDocumentCount / strategyConfig.getConcurrencyLevel(),
-            ) * 50
-          }ms`
-          : "not-applicable",
-        expectedSpeedup: shouldUseParallelProcessing
-          ? `${strategyConfig.getConcurrencyLevel()}x`
-          : "1x",
-      },
-      memoryUsagePrediction: {
-        sequentialPeakMB: Math.floor(estimatedDocumentCount * 0.5), // 0.5MB per doc
-        parallelPeakMB: shouldUseParallelProcessing
-          ? Math.floor(
-            optimalBatchSize * strategyConfig.getConcurrencyLevel() * 0.5,
-          )
-          : "not-applicable",
-        varianceRisk: shouldUseParallelProcessing ? "medium-to-high" : "low",
-      },
-    };
-
-    this.logDebug("Document processing strategy selected", {
-      operation: "document-batch-processing",
-      debugMetrics: docProcessingDebugMetrics,
-      timestamp: new Date().toISOString(),
-    });
-
-    // FrontmatterTransformationService now uses explicit DomainLogger state
-    // No need to create transformation logger - service has its own logger state
-
-    // Determine parallel processing options from strategy configuration
-    const effectiveStrategy = config.strategyConfig ||
-      this.defaultStrategyConfig;
-    const processingStrategy = effectiveStrategy.getProcessingStrategy();
+    // Determine processing strategy
+    const processingStrategy = strategyConfig.getProcessingStrategy();
     const shouldUseParallel = processingStrategy === "concurrent-parallel" ||
       processingStrategy === "adaptive";
     const maxWorkers = shouldUseParallel
-      ? effectiveStrategy.getConcurrencyLevel()
+      ? strategyConfig.getConcurrencyLevel()
       : 1;
 
     const processedDataResult = await this.processingCoordinator
@@ -954,185 +657,199 @@ export class PipelineOrchestrator {
           : { kind: "sequential" },
       );
     if (!processedDataResult.ok) {
+      const failureResult = this.stateMachine.transition({
+        kind: "Fail",
+        error: {
+          phase: "document-processing",
+          message: processedDataResult.error.message,
+          cause: processedDataResult.error,
+          timestamp: new Date(),
+        },
+      });
+      if (!failureResult.ok) {
+        return failureResult;
+      }
       return processedDataResult;
     }
 
-    // Performance monitoring for document processing with variance analysis
-    const docProcessingTime = performance.now() - docProcessingStartTime;
-    const currentMemory = Deno.memoryUsage();
-    const actualMemoryUsageMB = Math.floor(
-      currentMemory.heapUsed / 1024 / 1024,
-    );
-    const initialMemoryUsageMB = Math.floor(
-      initialDocMemory.heapUsed / 1024 / 1024,
-    );
-    const memoryGrowthMB = actualMemoryUsageMB - initialMemoryUsageMB;
-
-    // Real-time variance analysis
-    const actualProcessingVariance = {
-      memoryUsageGrowth: memoryGrowthMB,
-      processingTimeMs: Math.floor(docProcessingTime),
-      actualVsPredicted: {
-        memoryVariance:
-          docProcessingDebugMetrics.memoryUsagePrediction.sequentialPeakMB > 0
-            ? Math.floor(
-              (memoryGrowthMB /
-                docProcessingDebugMetrics.memoryUsagePrediction
-                  .sequentialPeakMB) * 100,
-            )
-            : 0,
-        timeVariance:
-          docProcessingDebugMetrics.processingTimePrediction.sequentialEstimate
-            ? Math.floor(
-              (docProcessingTime /
-                parseInt(
-                  docProcessingDebugMetrics.processingTimePrediction
-                    .sequentialEstimate,
-                )) * 100,
-            )
-            : 0,
-      },
-      varianceRiskLevel: memoryGrowthMB >
-          docProcessingDebugMetrics.memoryUsagePrediction.sequentialPeakMB *
-            1.5
-        ? "high"
-        : "acceptable",
-    };
-
-    this.logInfo("Document processing completed with variance analysis", {
-      operation: "document-processing-complete",
-      actualVariance: actualProcessingVariance,
-      predictedMetrics: docProcessingDebugMetrics,
-      timestamp: new Date().toISOString(),
+    const docSuccessResult = this.stateMachine.transition({
+      kind: "FrontmatterParseComplete",
+      data: processedDataResult.data,
     });
-
-    // Step 5: Extract items data if x-frontmatter-part is present
-
-    // Create context for data preparation phase
-    const dataPreparationContext = ErrorContextFactory.forPipeline(
-      "Data Preparation",
-      "prepareDataForRendering",
-      193,
-    );
-    if (!dataPreparationContext.ok) {
-      return dataPreparationContext;
+    if (!docSuccessResult.ok) {
+      return docSuccessResult;
     }
 
+    // Step 3: Validate data
     const mainData = processedDataResult.data;
     let itemsData: FrontmatterData[] | undefined;
 
-    // Analyze frontmatter-part requirements and create processing progress
-    const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-    const hasFrontmatterPart = frontmatterPartPathResult.ok;
-    const frontmatterPartPath = hasFrontmatterPart
-      ? frontmatterPartPathResult.data
-      : null;
-
-    // Create processing progress for data preparation
-    const dataSteps = [
-      "Schema analysis",
-      "Frontmatter-part detection",
-      "Template strategy determination",
-      "Data extraction",
-    ];
-    const completedSteps = ["Schema analysis", "Frontmatter-part detection"];
-    const dataProgressResult = ProcessingProgress.create(
-      "Data Preparation",
-      "Template strategy determination",
-      completedSteps,
-      dataSteps.length,
-    );
-    if (!dataProgressResult.ok) {
-      return contextualErr(
-        dataProgressResult.error,
-        dataPreparationContext.data,
-      );
+    const dataTransitionResult = this.stateMachine.transition({
+      kind: "ValidateData",
+    });
+    if (!dataTransitionResult.ok) {
+      return dataTransitionResult;
     }
 
-    // Enhance context with analysis results
-    const dataContext = dataPreparationContext.data
-      .withInput("hasFrontmatterPart", hasFrontmatterPart)
-      .withInput("frontmatterPartPath", frontmatterPartPath)
-      .withInput("hasDualTemplate", !!itemsTemplatePath)
-      .withInput("mainDataKeys", Object.keys(mainData.getData()))
-      .withInput("mainDataSize", JSON.stringify(mainData.getData()).length)
-      .withProgress(dataProgressResult.data);
+    const dataSuccessResult = this.stateMachine.transition({
+      kind: "ValidationComplete",
+      validatedData: mainData,
+    });
+    if (!dataSuccessResult.ok) {
+      return dataSuccessResult;
+    }
 
-    // Check if we need to extract items data
-    // Extract frontmatter-part data ONLY if we have a separate items template
-    // For single templates with {@items}, let the template handle the expansion
-    // using the full mainData which includes base properties
-    if (itemsTemplatePath) {
-      // Create decision for dual template data extraction
-      const extractionDecisionResult = Decision.create(
-        "Data extraction strategy for dual template",
-        ["extract-frontmatter-part", "use-main-data", "skip-extraction"],
-        "Dual template requires frontmatter-part data extraction for items template",
-      );
-      if (!extractionDecisionResult.ok) {
-        return contextualErr(extractionDecisionResult.error, dataContext);
+    // Step 4: Resolve and load templates
+    const resolvePathsResult = this.templateCoordinator.resolveTemplatePaths(
+      schema,
+      config.templateConfig,
+      config.schemaPath,
+    );
+    if (!resolvePathsResult.ok) {
+      const failureResult = this.stateMachine.transition({
+        kind: "Fail",
+        error: {
+          phase: "template-resolution",
+          message: resolvePathsResult.error.message,
+          cause: resolvePathsResult.error,
+          timestamp: new Date(),
+        },
+      });
+      if (!failureResult.ok) {
+        return failureResult;
       }
+      return resolvePathsResult;
+    }
 
-      const extractionContext = dataContext.withDecision(
-        extractionDecisionResult.data,
-      );
+    const resolvedPaths = resolvePathsResult.data;
+    const templatePath = resolvedPaths.templatePath;
 
+    // Use backward compatibility property if available, otherwise extract from ItemsTemplateState
+    const itemsTemplatePath = resolvedPaths.itemsTemplatePath !== undefined
+      ? resolvedPaths.itemsTemplatePath
+      : resolvedPaths.itemsTemplate &&
+          resolvedPaths.itemsTemplate.kind === "defined"
+      ? resolvedPaths.itemsTemplate.path
+      : undefined;
+
+    // Extract output format from OutputFormatState
+    const outputFormat = resolvedPaths.outputFormat &&
+        resolvedPaths.outputFormat.kind === "specified"
+      ? resolvedPaths.outputFormat.format
+      : "json";
+
+    const templateTransitionResult = this.stateMachine.transition({
+      kind: "LoadTemplate",
+      path: templatePath,
+    });
+    if (!templateTransitionResult.ok) {
+      return templateTransitionResult;
+    }
+
+    // Log current state before TemplateLoadComplete
+    this.logDebug("About to transition TemplateLoadComplete", {
+      currentState: this.stateMachine.getCurrentState().kind,
+    });
+
+    const templateSuccessResult = this.stateMachine.transition({
+      kind: "TemplateLoadComplete",
+      template: { templatePath: templatePath } as any, // Type cast for now
+    });
+    if (!templateSuccessResult.ok) {
+      this.logError("Template load complete transition failed", {
+        error: templateSuccessResult.error,
+        currentState: this.stateMachine.getCurrentState().kind,
+      });
+      return templateSuccessResult;
+    }
+
+    // Extract frontmatter-part data if we have a separate items template
+    if (itemsTemplatePath) {
       const frontmatterPartResult = this.processingCoordinator
         .extractFrontmatterPartData(
           mainData,
           schema,
         );
       if (!frontmatterPartResult.ok) {
-        const enhancedError = createEnhancedError(
-          frontmatterPartResult.error,
-          extractionContext,
-          "Frontmatter-part data extraction failed in dual template mode",
-        );
-        return err(enhancedError);
-      } else if (frontmatterPartResult.data.length > 0) {
-        itemsData = frontmatterPartResult.data;
-
-        // Update progress to completion
-        const completionProgressResult = ProcessingProgress.create(
-          "Data Preparation",
-          "Data extraction completed",
-          dataSteps,
-          dataSteps.length,
-        );
-        if (completionProgressResult.ok) {
-          const _completionContext = extractionContext
-            .withProgress(completionProgressResult.data)
-            .withInput("extractedItemCount", itemsData.length)
-            .withInput("renderingStrategy", "dual-template");
-
-          // Dead code removed - logging now handled by proper infrastructure
+        const failureResult = this.stateMachine.transition({
+          kind: "Fail",
+          error: {
+            phase: "data-preparation",
+            message: frontmatterPartResult.error.message,
+            cause: frontmatterPartResult.error,
+            timestamp: new Date(),
+          },
+        });
+        if (!failureResult.ok) {
+          return failureResult;
         }
-      } else {
-        // No frontmatter-part data found in dual template mode
+        return frontmatterPartResult;
       }
-    } else if (schema.findFrontmatterPartPath().ok) {
-      // For single template with frontmatter-part, keep itemsData undefined
-      // The template renderer will extract the array data from mainData during {@items} expansion
-      // Dead code removed - logging now handled by proper infrastructure
-    } else {
-      // No frontmatter-part processing needed for standard single template
+      if (frontmatterPartResult.data.length > 0) {
+        itemsData = frontmatterPartResult.data;
+      }
     }
 
-    // Step 6: Use TemplateCoordinator to render and write output
-    // Convert VerbosityConfig to VerbosityMode
+    // Step 5: Generate output
+    const renderTransitionResult = this.stateMachine.transition({
+      kind: "GenerateOutput",
+    });
+    if (!renderTransitionResult.ok) {
+      return renderTransitionResult;
+    }
+
     const verbosityMode: VerbosityMode =
       config.verbosityConfig.kind === "verbose"
         ? { kind: "verbose" }
         : { kind: "normal" };
+
     const renderResult = this.templateCoordinator.renderOutput(
       templatePath,
       itemsTemplatePath,
       mainData,
       itemsData,
       config.outputPath,
-      outputFormat,
+      outputFormat as "markdown" | "json" | "yaml",
       verbosityMode,
     );
+
+    if (!renderResult.ok) {
+      const failureResult = this.stateMachine.transition({
+        kind: "Fail",
+        error: {
+          phase: "rendering",
+          message: renderResult.error.message,
+          cause: renderResult.error,
+          timestamp: new Date(),
+        },
+      });
+      if (!failureResult.ok) {
+        return failureResult;
+      }
+      return renderResult;
+    }
+
+    const renderSuccessResult = this.stateMachine.transition({
+      kind: "OutputGenerationComplete",
+      output: config.outputPath,
+    });
+    if (!renderSuccessResult.ok) {
+      return renderSuccessResult;
+    }
+
+    // Complete the pipeline
+    const completeResult = this.stateMachine.transition({
+      kind: "Complete",
+    });
+    if (!completeResult.ok) {
+      return completeResult;
+    }
+
+    this.logInfo("Pipeline execution completed successfully", {
+      operation: "pipeline-completion",
+      timestamp: new Date().toISOString(),
+    });
+
     return renderResult;
   }
 }

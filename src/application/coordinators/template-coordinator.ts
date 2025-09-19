@@ -4,7 +4,10 @@ import { Template } from "../../domain/template/entities/template.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
-import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
+import {
+  ResolvedTemplatePaths,
+  TemplatePathResolver,
+} from "../../domain/template/services/template-path-resolver.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 
@@ -97,11 +100,7 @@ export class TemplateCoordinator {
     schema: Schema,
     templateConfig: TemplateConfig,
     schemaPath: string,
-  ): Result<{
-    templatePath: string;
-    itemsTemplatePath?: string;
-    outputFormat: "json" | "yaml" | "markdown";
-  }, DomainError & { message: string }> {
+  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
     // Create template path configuration based on discriminated union
     const explicitTemplatePath = templateConfig.kind === "explicit"
       ? templateConfig.templatePath
@@ -120,15 +119,8 @@ export class TemplateCoordinator {
       return resolvePathsResult;
     }
 
-    const templatePath = resolvePathsResult.data.templatePath;
-    const itemsTemplatePath = resolvePathsResult.data.itemsTemplatePath;
-    const outputFormat = resolvePathsResult.data.outputFormat || "json";
-
-    return ok({
-      templatePath,
-      itemsTemplatePath,
-      outputFormat: outputFormat as "json" | "yaml" | "markdown",
-    });
+    // Return the resolved paths directly as they already match the expected interface
+    return resolvePathsResult;
   }
 
   /**
@@ -235,11 +227,25 @@ export class TemplateCoordinator {
       return pathsResult;
     }
 
-    const { templatePath, itemsTemplatePath, outputFormat } = pathsResult.data;
+    const resolvedPaths = pathsResult.data;
+
+    // Use backward compatibility property if available, otherwise extract from ItemsTemplateState
+    const itemsTemplatePath = resolvedPaths.itemsTemplatePath !== undefined
+      ? resolvedPaths.itemsTemplatePath
+      : resolvedPaths.itemsTemplate &&
+          resolvedPaths.itemsTemplate.kind === "defined"
+      ? resolvedPaths.itemsTemplate.path
+      : undefined;
+
+    // Extract output format from OutputFormatState
+    const outputFormat = resolvedPaths.outputFormat &&
+        resolvedPaths.outputFormat.kind === "specified"
+      ? resolvedPaths.outputFormat.format
+      : "json";
 
     // Render output directly (OutputRenderingService handles template loading)
     return this.renderOutput(
-      templatePath,
+      resolvedPaths.templatePath,
       itemsTemplatePath,
       mainData,
       itemsData,
