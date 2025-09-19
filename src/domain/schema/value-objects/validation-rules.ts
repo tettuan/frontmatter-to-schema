@@ -367,9 +367,21 @@ function validateWithRules(
     return ok(data);
   }
 
+  let normalizedData = data;
+
+  // Normalize boolean arrays to single boolean value (frontmatter may emit `[true]`)
+  if (
+    pathRules.some((rule) => rule.kind === "boolean") &&
+    Array.isArray(normalizedData)
+  ) {
+    normalizedData = normalizedData.length > 0 ? normalizedData[0] : undefined;
+  }
+
   for (const rule of pathRules) {
     // Check required fields
-    if (rule.required && (data === undefined || data === null)) {
+    if (
+      rule.required && (normalizedData === undefined || normalizedData === null)
+    ) {
       return err(createError({
         kind: "MissingRequired",
         field: path,
@@ -377,17 +389,17 @@ function validateWithRules(
     }
 
     // Skip further validation if data is null/undefined and not required
-    if (data === undefined || data === null) {
+    if (normalizedData === undefined || normalizedData === null) {
       continue;
     }
 
     // Type validation using discriminated union
-    const actualType = getDataType(data);
+    const actualType = getDataType(normalizedData);
     if (rule.kind !== actualType) {
       // Special case: number can be integer
       if (
         !(rule.kind === "integer" && actualType === "number" &&
-          Number.isInteger(data))
+          Number.isInteger(normalizedData))
       ) {
         return err(createError({
           kind: "InvalidType",
@@ -399,25 +411,25 @@ function validateWithRules(
 
     // Enum validation using discriminated union
     if (rule.kind === "enum") {
-      if (!rule.values.includes(data)) {
+      if (!rule.values.includes(normalizedData)) {
         return err(createError({
           kind: "InvalidType",
           expected: `enum: [${rule.values.join(", ")}]`,
-          actual: String(data),
+          actual: String(normalizedData),
         }));
       }
     }
 
     // String-specific validations using discriminated union
-    if (rule.kind === "string" && typeof data === "string") {
+    if (rule.kind === "string" && typeof normalizedData === "string") {
       // Pattern validation
       if (rule.pattern) {
         try {
           const regex = new RegExp(rule.pattern);
-          if (!regex.test(data)) {
+          if (!regex.test(normalizedData)) {
             return err(createError({
               kind: "PatternMismatch",
-              value: data,
+              value: normalizedData,
               pattern: rule.pattern,
             }));
           }
@@ -430,18 +442,24 @@ function validateWithRules(
       }
 
       // Length validations
-      if (rule.minLength !== undefined && data.length < rule.minLength) {
+      if (
+        rule.minLength !== undefined &&
+        normalizedData.length < rule.minLength
+      ) {
         return err(createError({
           kind: "InvalidType",
           expected: `string with minimum length ${rule.minLength}`,
-          actual: `string with length ${data.length}`,
+          actual: `string with length ${normalizedData.length}`,
         }));
       }
 
-      if (rule.maxLength !== undefined && data.length > rule.maxLength) {
+      if (
+        rule.maxLength !== undefined &&
+        normalizedData.length > rule.maxLength
+      ) {
         return err(createError({
           kind: "TooLong",
-          value: data,
+          value: normalizedData,
           maxLength: rule.maxLength,
         }));
       }
@@ -450,21 +468,21 @@ function validateWithRules(
     // Number-specific validations using discriminated union
     if (
       (rule.kind === "number" || rule.kind === "integer") &&
-      typeof data === "number"
+      typeof normalizedData === "number"
     ) {
-      if (rule.minimum !== undefined && data < rule.minimum) {
+      if (rule.minimum !== undefined && normalizedData < rule.minimum) {
         return err(createError({
           kind: "OutOfRange",
-          value: data,
+          value: normalizedData,
           min: rule.minimum,
           max: rule.maximum,
         }));
       }
 
-      if (rule.maximum !== undefined && data > rule.maximum) {
+      if (rule.maximum !== undefined && normalizedData > rule.maximum) {
         return err(createError({
           kind: "OutOfRange",
-          value: data,
+          value: normalizedData,
           min: rule.minimum,
           max: rule.maximum,
         }));
@@ -472,7 +490,54 @@ function validateWithRules(
     }
   }
 
-  return ok(data);
+  if (normalizedData === undefined || normalizedData === null) {
+    return ok(normalizedData);
+  }
+
+  if (Array.isArray(normalizedData)) {
+    const normalizedArray = normalizedData;
+    const itemPath = path ? `${path}[]` : "[]";
+
+    for (let i = 0; i < normalizedArray.length; i++) {
+      const itemResult = validateWithRules(normalizedArray[i], rules, itemPath);
+      if (!itemResult.ok) {
+        return itemResult;
+      }
+      normalizedArray[i] = itemResult.data;
+    }
+
+    return ok(normalizedArray);
+  }
+
+  if (typeof normalizedData === "object") {
+    const recordResult = SafePropertyAccess.asRecord(normalizedData);
+    if (!recordResult.ok) {
+      return err(recordResult.error);
+    }
+
+    const record = recordResult.data;
+    const keysToValidate = getDirectChildKeys(rules, path);
+    for (const key of Object.keys(record)) {
+      keysToValidate.add(key);
+    }
+
+    for (const key of keysToValidate) {
+      const childPath = path ? `${path}.${key}` : key;
+      const childValue = record[key];
+      const childResult = validateWithRules(childValue, rules, childPath);
+      if (!childResult.ok) {
+        return childResult;
+      }
+
+      if (childResult.data !== childValue && childResult.data !== undefined) {
+        record[key] = childResult.data;
+      }
+    }
+
+    return ok(record);
+  }
+
+  return ok(normalizedData);
 }
 
 function getDataType(data: unknown): string {
@@ -481,4 +546,39 @@ function getDataType(data: unknown): string {
   const type = typeof data;
   if (type === "object") return "object";
   return type;
+}
+
+function getDirectChildKeys(
+  rules: readonly ValidationRule[],
+  parentPath: string,
+): Set<string> {
+  const keys = new Set<string>();
+  const prefix = parentPath ? `${parentPath}.` : "";
+
+  for (const rule of rules) {
+    if (rule.path === parentPath) {
+      continue;
+    }
+
+    if (!rule.path.startsWith(prefix)) {
+      continue;
+    }
+
+    const remainder = rule.path.slice(prefix.length);
+    if (remainder.length === 0) {
+      continue;
+    }
+
+    if (remainder.includes(".")) {
+      continue;
+    }
+
+    if (remainder.endsWith("[]")) {
+      continue;
+    }
+
+    keys.add(remainder);
+  }
+
+  return keys;
 }

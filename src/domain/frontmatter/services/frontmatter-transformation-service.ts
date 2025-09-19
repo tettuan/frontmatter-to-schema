@@ -302,9 +302,151 @@ export class FrontmatterTransformationService {
     },
     processingOptionsState?: ProcessingOptionsState,
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
-    // Stage 1: List matching files
+    // Stage 0: Check for x-frontmatter-part and adjust validation rules if needed
     // Create activeLogger for backward compatibility within this method
     const activeLogger = this.createActiveLogger();
+
+    // When x-frontmatter-part is defined, individual files should be validated
+    // against the array element schema, not the top-level schema
+    let effectiveValidationRules = validationRules;
+
+    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
+    if (frontmatterPartSchemaResult.ok) {
+      activeLogger?.debug(
+        "x-frontmatter-part detected, adjusting validation rules for array element schema",
+        {
+          operation: "validation-adjustment",
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      // The frontmatterPartSchemaResult.data is the array schema with x-frontmatter-part
+      // We need to get its items schema for validating individual elements
+      const arraySchema = frontmatterPartSchemaResult.data;
+
+      // Check if arraySchema has getItems method
+      if (typeof arraySchema.getItems !== "function") {
+        activeLogger?.debug(
+          "frontmatterPartSchema does not have getItems method, skipping validation adjustment",
+          createLogContext({
+            operation: "validation-adjustment",
+          }),
+        );
+      } else {
+        const itemsResult = arraySchema.getItems();
+
+        if (itemsResult.ok) {
+          // The items schema might be wrapped or might be a direct SchemaProperty
+          const itemsSchema = itemsResult.data;
+
+          // Check if it's wrapped in a 'schema' property
+          let actualItemsSchema = (itemsSchema as any).schema || itemsSchema;
+
+          // If the items schema is a $ref, we need to resolve it
+          if ((actualItemsSchema as any).$ref) {
+            // If the schema is resolved, we can get the resolved schema
+            if (schema.isResolved()) {
+              const resolvedResult = schema.getResolved();
+              if (resolvedResult.ok) {
+                const refName = (actualItemsSchema as any).$ref;
+                const resolvedSchema = resolvedResult.data.referencedSchemas
+                  .get(refName);
+                if (resolvedSchema) {
+                  actualItemsSchema = resolvedSchema.getRawSchema();
+                }
+              }
+            } else {
+              // Schema is not resolved, try to load the referenced schema directly
+              const refPath = (actualItemsSchema as any).$ref;
+
+              // Try to load the referenced schema from the same directory as the main schema
+              const schemaPath = schema.getPath().toString();
+              const schemaDir = schemaPath.substring(
+                0,
+                schemaPath.lastIndexOf("/"),
+              );
+              const refFullPath = `${schemaDir}/${refPath}`;
+
+              try {
+                const refContent = await Deno.readTextFile(refFullPath);
+                const refSchema = JSON.parse(refContent);
+
+                // Apply migration if needed
+                const { SchemaPropertyMigration } = await import(
+                  "../../schema/value-objects/schema-property-migration.ts"
+                );
+                const migrationResult = SchemaPropertyMigration.migrate(
+                  refSchema,
+                );
+
+                if (migrationResult.ok) {
+                  actualItemsSchema = migrationResult.data;
+
+                  // Create validation rules from the loaded schema
+                  effectiveValidationRules = ValidationRules.fromSchema(
+                    actualItemsSchema,
+                    "",
+                  );
+                } else {
+                  activeLogger?.warn(
+                    "Cannot adjust validation: failed to migrate referenced schema",
+                    createLogContext({
+                      operation: "validation-adjustment",
+                      inputs:
+                        `ref: ${refPath}, error: ${migrationResult.error}`,
+                    }),
+                  );
+                }
+              } catch (error) {
+                activeLogger?.warn(
+                  "Cannot adjust validation for x-frontmatter-part: failed to load referenced schema",
+                  createLogContext({
+                    operation: "validation-adjustment",
+                    inputs: `ref: ${refPath}, error: ${String(error)}`,
+                  }),
+                );
+                // Don't change effectiveValidationRules, keep using the original
+              }
+            }
+          } else {
+            // Create validation rules from the array items schema
+            effectiveValidationRules = ValidationRules.fromSchema(
+              actualItemsSchema,
+              "",
+            );
+          }
+
+          const frontmatterPartPath = schema.findFrontmatterPartPath();
+
+          // Debug: Check what rules were generated
+          const allRules = effectiveValidationRules.getRules();
+          const booleanRules = allRules.filter((r) => r.kind === "boolean");
+          activeLogger?.info(
+            `Generated validation rules from array items schema`,
+            {
+              operation: "validation-adjustment",
+              path: frontmatterPartPath.ok
+                ? frontmatterPartPath.data
+                : "unknown",
+              totalRules: allRules.length,
+              booleanRules: booleanRules.map((r) => r.path),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        } else {
+          activeLogger?.warn(
+            "Could not extract items schema from frontmatter-part array",
+            {
+              error: itemsResult.error,
+              operation: "validation-adjustment",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+      }
+    }
+
+    // Stage 1: List matching files
     activeLogger?.info(
       `Starting document processing with pattern: ${inputPattern}`,
       {
@@ -519,7 +661,7 @@ export class FrontmatterTransformationService {
       // Parallel processing implementation (Issue #545)
       const results = await this.processFilesInParallel(
         filesResult.data,
-        validationRules,
+        effectiveValidationRules,
         maxWorkers,
         boundsMonitor,
         activeLogger,
@@ -570,7 +712,10 @@ export class FrontmatterTransformationService {
             timestamp: new Date().toISOString(),
           },
         );
-        const documentResult = this.processDocument(filePath, validationRules);
+        const documentResult = this.processDocument(
+          filePath,
+          effectiveValidationRules,
+        );
         if (documentResult.ok) {
           processedData.push(documentResult.data.frontmatterData);
           documents.push(documentResult.data.document);
@@ -834,6 +979,27 @@ export class FrontmatterTransformationService {
         location: filePath,
       }),
     );
+
+    // Debug: Check options before validation
+    if ((frontmatter as any).options) {
+      const options = (frontmatter as any).options;
+      activeLogger?.debug(
+        `Pre-validation options check`,
+        createLogContext({
+          operation: "options-check-pre",
+          location: filePath,
+          inputs: JSON.stringify({
+            file: { type: typeof options.file, value: options.file },
+            stdin: { type: typeof options.stdin, value: options.stdin },
+            destination: {
+              type: typeof options.destination,
+              value: options.destination,
+            },
+          }),
+        }),
+      );
+    }
+
     const validationResult = this.frontmatterProcessor.validate(
       frontmatter,
       validationRules,
@@ -847,6 +1013,26 @@ export class FrontmatterTransformationService {
         }),
       );
       return validationResult;
+    }
+
+    // Debug: Check options after validation
+    if ((validationResult.data as any).options) {
+      const options = (validationResult.data as any).options;
+      activeLogger?.debug(
+        `Post-validation options check`,
+        createLogContext({
+          operation: "options-check-post",
+          location: filePath,
+          inputs: JSON.stringify({
+            file: { type: typeof options.file, value: options.file },
+            stdin: { type: typeof options.stdin, value: options.stdin },
+            destination: {
+              type: typeof options.destination,
+              value: options.destination,
+            },
+          }),
+        }),
+      );
     }
 
     activeLogger?.debug(
