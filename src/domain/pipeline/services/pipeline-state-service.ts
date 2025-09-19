@@ -200,6 +200,16 @@ export class PipelineStateService {
   }
 
   /**
+   * Reset state machine to idle
+   */
+  reset(): void {
+    this.currentState = { kind: "Idle" };
+    this.stateHistory.length = 0;
+    this.stateHistory.push(this.currentState);
+    this.transitionLog.length = 0;
+  }
+
+  /**
    * Process state transition
    */
   transition(
@@ -585,15 +595,5 @@ export class PipelineStateService {
     timestamp: Date;
   }> {
     return this.transitionLog;
-  }
-
-  /**
-   * Reset to idle state
-   */
-  reset(): void {
-    this.currentState = { kind: "Idle" };
-    this.stateHistory.length = 0;
-    this.stateHistory.push(this.currentState);
-    this.transitionLog.length = 0;
   }
 }

@@ -77,6 +77,9 @@ export class ProcessingStateMachine {
     config: PipelineConfig,
     strategyConfig: PipelineStrategyConfig,
   ): Result<void, DomainError & { message: string }> {
+    // Reset state machine to idle for new execution
+    this.stateService.reset();
+
     // Create pipeline configuration from app config
     const templatePath = config.templateConfig.kind === "explicit"
       ? config.templateConfig.templatePath
@@ -302,13 +305,15 @@ export class ProcessingStateMachine {
   private determineMode(
     config: PipelineConfig,
   ): "standard" | "validation-only" | "template-only" {
-    const hasTemplate = config.templateConfig.kind === "explicit";
+    // Check if we have a template (either explicit or will be derived from schema)
+    const hasTemplate = config.templateConfig.kind === "explicit" ||
+      config.templateConfig.kind === "schema-derived";
 
-    if (!hasTemplate) {
-      return "validation-only";
-    }
     if (!config.schemaPath) {
       return "template-only";
+    }
+    if (!hasTemplate) {
+      return "validation-only";
     }
     return "standard";
   }

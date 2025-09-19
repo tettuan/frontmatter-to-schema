@@ -3,7 +3,7 @@ import {
   createError,
   FileSystemError,
 } from "../../domain/shared/types/errors.ts";
-import type { FileReader as FileReaderInterface } from "../../application/index.ts";
+import type { FileReader as FileReaderInterface } from "../../application/interfaces/file-system-interfaces.ts";
 
 export class DenoFileReader implements FileReaderInterface {
   read(path: string): Result<string, FileSystemError & { message: string }> {

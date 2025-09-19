@@ -105,7 +105,7 @@ export interface DebugMetrics {
  * Centralizes all debug metric calculations
  */
 export class DebugMetricsService {
-  private constructor(
+  constructor(
     private readonly complexityMetricsService: ComplexityMetricsService,
     private readonly entropyManagementService: EntropyManagementService,
   ) {}

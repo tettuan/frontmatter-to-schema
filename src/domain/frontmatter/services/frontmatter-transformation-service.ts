@@ -29,6 +29,10 @@ import {
   defaultFrontmatterDataCreationService,
   FrontmatterDataCreationService,
 } from "./frontmatter-data-creation-service.ts";
+import type {
+  FileLister,
+  FileReader,
+} from "../../../application/interfaces/file-system-interfaces.ts";
 
 /**
  * Processing options state using discriminated union for enhanced type safety
@@ -92,14 +96,6 @@ export class ProcessingOptionsFactory {
 
     return ProcessingOptionsFactory.createSequential();
   }
-}
-
-export interface FileReader {
-  read(path: string): Result<string, DomainError & { message: string }>;
-}
-
-export interface FileLister {
-  list(pattern: string): Result<string[], DomainError & { message: string }>;
 }
 
 export interface ProcessedDocuments {
