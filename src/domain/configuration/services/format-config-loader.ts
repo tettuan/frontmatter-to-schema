@@ -68,18 +68,111 @@ function toRawFormatConfig(
     ));
   }
 
-  // Create a properly typed RawFormatConfig object
+  // Validate each format object structure
+  const formatEntries = Object.entries(formatsResult.data);
+  for (const [formatName, formatConfig] of formatEntries) {
+    if (typeof formatConfig !== "object" || !formatConfig) {
+      return err(createConfigLoadError(
+        "InvalidStructure",
+        `Format '${formatName}' must be an object`,
+        { configPath, field: `formats.${formatName}` },
+      ));
+    }
+
+    const formatObjResult = SafePropertyAccess.asRecord(formatConfig);
+    if (!formatObjResult.ok) {
+      return err(createConfigLoadError(
+        "InvalidStructure",
+        `Format '${formatName}' is not a valid object: ${formatObjResult.error.message}`,
+        { configPath, field: `formats.${formatName}` },
+      ));
+    }
+
+    const formatObj = formatObjResult.data;
+
+    // Validate required properties
+    if (!Array.isArray(formatObj.extensions)) {
+      return err(createConfigLoadError(
+        "MissingRequired",
+        `Format '${formatName}' must have 'extensions' array`,
+        { configPath, field: `formats.${formatName}.extensions` },
+      ));
+    }
+
+    if (typeof formatObj.description !== "string") {
+      return err(createConfigLoadError(
+        "MissingRequired",
+        `Format '${formatName}' must have 'description' string`,
+        { configPath, field: `formats.${formatName}.description` },
+      ));
+    }
+
+    if (typeof formatObj.mimeType !== "string") {
+      return err(createConfigLoadError(
+        "MissingRequired",
+        `Format '${formatName}' must have 'mimeType' string`,
+        { configPath, field: `formats.${formatName}.mimeType` },
+      ));
+    }
+
+    if (typeof formatObj.default !== "boolean") {
+      return err(createConfigLoadError(
+        "MissingRequired",
+        `Format '${formatName}' must have 'default' boolean`,
+        { configPath, field: `formats.${formatName}.default` },
+      ));
+    }
+  }
+
+  // Validate validation property if present
+  let validationData: RawFormatConfig["validation"] = undefined;
+  if (configData.validation) {
+    if (typeof configData.validation !== "object") {
+      return err(createConfigLoadError(
+        "InvalidStructure",
+        "Validation property must be an object",
+        { configPath, field: "validation" },
+      ));
+    }
+
+    const validationResult = SafePropertyAccess.asRecord(configData.validation);
+    if (!validationResult.ok) {
+      return err(createConfigLoadError(
+        "InvalidStructure",
+        `Validation is not a valid object: ${validationResult.error.message}`,
+        { configPath, field: "validation" },
+      ));
+    }
+
+    validationData = validationResult.data;
+  }
+
+  // Create a properly typed formats object after validation
+  const validatedFormats: Record<string, {
+    readonly extensions: string[];
+    readonly description: string;
+    readonly mimeType: string;
+    readonly default: boolean;
+  }> = {};
+
+  // Copy validated format data with proper typing
+  for (const [formatName, formatConfig] of formatEntries) {
+    const formatObjResult = SafePropertyAccess.asRecord(formatConfig);
+    if (formatObjResult.ok) {
+      const formatObj = formatObjResult.data;
+      validatedFormats[formatName] = {
+        extensions: formatObj.extensions as string[],
+        description: formatObj.description as string,
+        mimeType: formatObj.mimeType as string,
+        default: formatObj.default as boolean,
+      };
+    }
+  }
+
+  // Create a properly typed RawFormatConfig object with validated data
   const rawConfig: RawFormatConfig = {
-    formats: formatsResult.data as Record<string, {
-      readonly extensions: string[];
-      readonly description: string;
-      readonly mimeType: string;
-      readonly default: boolean;
-    }>,
-    validation:
-      configData.validation && typeof configData.validation === "object"
-        ? configData.validation as RawFormatConfig["validation"]
-        : undefined,
+    formats: validatedFormats,
+    validation: validationData,
   };
 
   return ok(rawConfig);

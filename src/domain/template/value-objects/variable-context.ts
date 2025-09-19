@@ -4,14 +4,28 @@ import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-dat
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
+ * Hierarchy root state using discriminated union for Totality
+ */
+export type HierarchyRootState =
+  | { readonly kind: "defined"; readonly value: string }
+  | { readonly kind: "not-defined" };
+
+/**
+ * Array data state using discriminated union for Totality
+ */
+export type ArrayDataState =
+  | { readonly kind: "available"; readonly data: unknown[] }
+  | { readonly kind: "not-available" };
+
+/**
  * Represents the context for variable resolution in templates
  * Following DDD value object pattern with Totality principles
  */
 export class VariableContext {
   private constructor(
     private readonly data: Record<string, unknown>,
-    private readonly arrayData?: unknown[],
-    private readonly hierarchyRoot?: string | null,
+    private readonly arrayDataState: ArrayDataState,
+    private readonly hierarchyRootState: HierarchyRootState,
   ) {}
 
   /**
@@ -24,20 +38,20 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       // Extract hierarchy root from schema if it has x-frontmatter-part
-      let hierarchyRoot: string | null = null;
+      let hierarchyRootState: HierarchyRootState = { kind: "not-defined" };
       if (schema && schema.findFrontmatterPartPath) {
         const pathResult = schema.findFrontmatterPartPath();
         if (pathResult && pathResult.ok && pathResult.data) {
-          hierarchyRoot = pathResult.data;
+          hierarchyRootState = { kind: "defined", value: pathResult.data };
         }
       }
 
       const contextData = data.getData();
 
       // If we have a hierarchy root, extract the array data from that path
-      let arrayData: unknown[] | undefined;
-      if (hierarchyRoot) {
-        const parts = hierarchyRoot.split(".");
+      let arrayDataState: ArrayDataState = { kind: "not-available" };
+      if (hierarchyRootState.kind === "defined") {
+        const parts = hierarchyRootState.value.split(".");
         let current: any = contextData;
         for (const part of parts) {
           if (current && typeof current === "object" && part in current) {
@@ -48,11 +62,13 @@ export class VariableContext {
           }
         }
         if (Array.isArray(current)) {
-          arrayData = current;
+          arrayDataState = { kind: "available", data: current };
         }
       }
 
-      return ok(new VariableContext(contextData, arrayData, hierarchyRoot));
+      return ok(
+        new VariableContext(contextData, arrayDataState, hierarchyRootState),
+      );
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -71,7 +87,13 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       const contextData = data.getData();
-      return ok(new VariableContext(contextData, undefined, null));
+      return ok(
+        new VariableContext(
+          contextData,
+          { kind: "not-available" },
+          { kind: "not-defined" },
+        ),
+      );
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -88,11 +110,15 @@ export class VariableContext {
   static fromComposedData(
     composedData: ComposedData,
   ): Result<VariableContext, TemplateError & { message: string }> {
+    const arrayDataState: ArrayDataState = composedData.arrayData
+      ? { kind: "available", data: composedData.arrayData }
+      : { kind: "not-available" };
+
     return ok(
       new VariableContext(
         composedData.mainData,
-        composedData.arrayData,
-        null,
+        arrayDataState,
+        { kind: "not-defined" },
       ),
     );
   }
@@ -105,7 +131,13 @@ export class VariableContext {
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
       const plainData = arrayData.map((item) => item.getData());
-      return ok(new VariableContext({}, plainData, null));
+      return ok(
+        new VariableContext(
+          {},
+          { kind: "available", data: plainData },
+          { kind: "not-defined" },
+        ),
+      );
     } catch (error) {
       return err(createError({
         kind: "DataCompositionFailed",
@@ -156,16 +188,32 @@ export class VariableContext {
   }
 
   /**
+   * Get hierarchy root state using Totality principles
+   */
+  getHierarchyRootState(): HierarchyRootState {
+    return this.hierarchyRootState;
+  }
+
+  /**
    * Get hierarchy root (for legacy compatibility)
-   * @deprecated Will be removed in future versions
+   * @deprecated Use getHierarchyRootState instead
    */
   getHierarchyRoot(): string | null {
-    return this.hierarchyRoot || null;
+    return this.hierarchyRootState.kind === "defined"
+      ? this.hierarchyRootState.value
+      : null;
+  }
+
+  /**
+   * Get array data state using Totality principles
+   */
+  getArrayDataState(): ArrayDataState {
+    return this.arrayDataState;
   }
 
   /**
    * Validate items resolution (for legacy compatibility)
-   * @deprecated Will be removed in future versions
+   * @deprecated Use getArrayDataState instead
    */
   validateItemsResolution(): boolean {
     return this.hasArrayData();
@@ -181,8 +229,8 @@ export class VariableContext {
 
     return new VariableContext(
       itemData,
-      undefined,
-      this.hierarchyRoot,
+      { kind: "not-available" },
+      this.hierarchyRootState,
     );
   }
 
@@ -190,21 +238,24 @@ export class VariableContext {
    * Check if array data is available
    */
   hasArrayData(): boolean {
-    return this.arrayData !== undefined && this.arrayData.length > 0;
+    return this.arrayDataState.kind === "available" &&
+      this.arrayDataState.data.length > 0;
   }
 
   /**
    * Get array data for expansion
    */
   getArrayData(): unknown[] {
-    return this.arrayData ? [...this.arrayData] : [];
+    return this.arrayDataState.kind === "available"
+      ? [...this.arrayDataState.data]
+      : [];
   }
 
   private resolveArrayMarker(
     marker: string,
   ): Result<unknown, TemplateError & { message: string }> {
-    if (marker === "@items" && this.arrayData) {
-      return ok(this.arrayData);
+    if (marker === "@items" && this.arrayDataState.kind === "available") {
+      return ok(this.arrayDataState.data);
     }
 
     return err(createError({
