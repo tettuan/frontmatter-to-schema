@@ -13,23 +13,31 @@ status: complete
 
 ## 概要
 
-本指示書は、TypeScript/Denoプロジェクトにおけるドメイン駆動設計（DDD）と全域性（Totality）原則に基づく包括的なリファクタリング手法を記載する。型安全性の強化、unsafe type assertionの体系的除去、Result<T,E>パターンの一貫適用により、堅牢で保守性の高いアーキテクチャを実現する。
+本指示書は、TypeScript/Denoプロジェクトにおけるドメイン駆動設計（DDD）と全域性（Totality）原則に基づく包括的なリファクタリング手法を記載する。型安全性の強化、unsafe
+type
+assertionの体系的除去、Result<T,E>パターンの一貫適用により、堅牢で保守性の高いアーキテクチャを実現する。
 
 ## 前提情報リスト
 
 ### プロジェクト構造
-- **ドメイン**: `src/domain/` - 純粋なビジネスロジック、エンティティ、値オブジェクト
-- **アプリケーション**: `src/application/` - ユースケース、パイプライン、コマンド
-- **インフラストラクチャ**: `src/infrastructure/` - 外部システム連携、ファイルI/O
+
+- **ドメイン**: `src/domain/` -
+  純粋なビジネスロジック、エンティティ、値オブジェクト
+- **アプリケーション**: `src/application/` -
+  ユースケース、パイプライン、コマンド
+- **インフラストラクチャ**: `src/infrastructure/` -
+  外部システム連携、ファイルI/O
 - **プレゼンテーション**: `src/presentation/` - CLI、HTTP等のインターフェース
 
 ### 技術スタック
+
 - **言語**: TypeScript with Deno runtime
 - **テスト**: Deno標準テストフレームワーク（283テストケース）
 - **CI/CD**: 5段階パイプライン（TypeCheck, JSR互換性, テスト実行, Lint, Format）
 - **品質管理**: 100%型安全性、Result<T,E>パターン、discriminated unions
 
 ### 全域性原則
+
 - **部分関数の排除**: すべての関数は全ての入力に対して適切な出力を返す
 - **Optional撲滅**: `undefined | T` 型をdiscriminated unionで置換
 - **型安全性**: `as` type assertionの体系的除去
@@ -66,7 +74,7 @@ status: complete
    if (!objResult.ok) {
      return err(createError({
        kind: "InvalidType",
-       message: "Expected object type"
+       message: "Expected object type",
      }));
    }
    const obj = objResult.data;
@@ -112,13 +120,13 @@ status: complete
 1. **Discriminated Union強化**
    ```typescript
    // Before: Extract型assertionの使用
-   const state = currentState as Extract<PipelineState, {kind: "processing"}>;
+   const state = currentState as Extract<PipelineState, { kind: "processing" }>;
 
    // After: State guardの使用
    if (!PipelineStateGuards.isProcessing(currentState)) {
      return err(createError({
        kind: "ConfigurationError",
-       message: "Invalid state for processing"
+       message: "Invalid state for processing",
      }));
    }
    const state = currentState; // 型安全に確定
@@ -165,11 +173,13 @@ status: complete
 ## 成果物
 
 ### 主成果物
+
 - **型安全化されたソースコード**: 全architectural layerの変換完了
 - **統一的なエラーハンドリング**: Result<T,E>パターンの一貫適用
 - **保守性向上**: SafePropertyAccessによる再利用可能なパターン確立
 
 ### 付録
+
 - **変更ファイル一覧**: 優先度別整理された修正対象リスト
 - **パターンカタログ**: 再現可能な変換パターン集
 - **品質検証結果**: CI実行ログとテスト結果
@@ -177,12 +187,15 @@ status: complete
 ## 参照資料
 
 ### 必須参照資料
+
 - **全域性原則**: `docs/development/totality.ja.md`
-- **AI複雑化防止（科学的制御）**: `docs/development/ai-complexity-control_compact.ja.md`
+- **AI複雑化防止（科学的制御）**:
+  `docs/development/ai-complexity-control_compact.ja.md`
 - **ドメイン境界**: `docs/domain/domain_boundary.md`
 - **アーキテクチャ**: `docs/domain/architecture.md`
 
 ### 技術参照資料
+
 - **テスト戦略**: `docs/testing.md`
 - **DDD実装ガイド**: プロジェクト内実装例
 - **TypeScript公式ドキュメント**: 型安全性best practices

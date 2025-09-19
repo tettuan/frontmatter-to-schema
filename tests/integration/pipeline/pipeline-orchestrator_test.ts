@@ -241,7 +241,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const schemaCache = SchemaCacheFactory.createForTesting();
 
     const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-    const orchestrator = new PipelineOrchestrator(
+    const orchestratorResult = PipelineOrchestrator.create(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -250,6 +250,12 @@ describe("PipelineOrchestrator Integration Tests", () => {
       schemaCache,
       processingLoggerState,
     );
+    if (!orchestratorResult.ok) {
+      throw new Error(
+        `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+      );
+    }
+    const orchestrator = orchestratorResult.data;
 
     // Execute pipeline
     const config = createTestConfig({
@@ -349,7 +355,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const schemaCache = SchemaCacheFactory.createForTesting();
 
     const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-    const orchestrator = new PipelineOrchestrator(
+    const orchestratorResult = PipelineOrchestrator.create(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -358,6 +364,12 @@ describe("PipelineOrchestrator Integration Tests", () => {
       schemaCache,
       processingLoggerState,
     );
+    if (!orchestratorResult.ok) {
+      throw new Error(
+        `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+      );
+    }
+    const orchestrator = orchestratorResult.data;
 
     // Execute
     const config = createTestConfig({
@@ -425,7 +437,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const schemaCache = SchemaCacheFactory.createForTesting();
 
     const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-    const orchestrator = new PipelineOrchestrator(
+    const orchestratorResult = PipelineOrchestrator.create(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -434,6 +446,12 @@ describe("PipelineOrchestrator Integration Tests", () => {
       schemaCache,
       processingLoggerState,
     );
+    if (!orchestratorResult.ok) {
+      throw new Error(
+        `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+      );
+    }
+    const orchestrator = orchestratorResult.data;
 
     // Execute with non-existent schema
     const config = createTestConfig({
@@ -511,7 +529,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const schemaCache = SchemaCacheFactory.createForTesting();
 
     const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-    const orchestrator = new PipelineOrchestrator(
+    const orchestratorResult = PipelineOrchestrator.create(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -520,6 +538,12 @@ describe("PipelineOrchestrator Integration Tests", () => {
       schemaCache,
       processingLoggerState,
     );
+    if (!orchestratorResult.ok) {
+      throw new Error(
+        `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+      );
+    }
+    const orchestrator = orchestratorResult.data;
 
     // Execute
     const config = createTestConfig({
@@ -612,7 +636,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     const schemaCache = SchemaCacheFactory.createForTesting();
 
     const processingLoggerState = ProcessingLoggerFactory.createDisabled();
-    const orchestrator = new PipelineOrchestrator(
+    const orchestratorResult = PipelineOrchestrator.create(
       documentProcessor,
       schemaProcessor,
       outputRenderingService,
@@ -621,6 +645,12 @@ describe("PipelineOrchestrator Integration Tests", () => {
       schemaCache,
       processingLoggerState,
     );
+    if (!orchestratorResult.ok) {
+      throw new Error(
+        `Failed to create orchestrator: ${orchestratorResult.error.message}`,
+      );
+    }
+    const orchestrator = orchestratorResult.data;
 
     // Execute
     const config = createTestConfig({

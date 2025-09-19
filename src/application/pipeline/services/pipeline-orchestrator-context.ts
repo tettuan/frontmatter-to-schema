@@ -121,14 +121,26 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
 
       const resolvedPaths = resolveResult.data;
 
+      // Use backward compatibility property if available, otherwise extract from ItemsTemplateState
+      const itemsTemplatePath = resolvedPaths.itemsTemplatePath !== undefined
+        ? PipelineConfigAccessor.extractPath(resolvedPaths.itemsTemplatePath)
+        : resolvedPaths.itemsTemplate &&
+            resolvedPaths.itemsTemplate.kind === "defined"
+        ? PipelineConfigAccessor.extractPath(resolvedPaths.itemsTemplate.path)
+        : undefined;
+
+      // Extract the output format from OutputFormatState
+      const outputFormat = resolvedPaths.outputFormat &&
+          resolvedPaths.outputFormat.kind === "specified"
+        ? resolvedPaths.outputFormat.format
+        : "json";
+
       return ok({
         templatePath: PipelineConfigAccessor.extractPath(
           resolvedPaths.templatePath,
         ),
-        itemsTemplatePath: resolvedPaths.itemsTemplatePath
-          ? PipelineConfigAccessor.extractPath(resolvedPaths.itemsTemplatePath)
-          : undefined,
-        outputFormat: resolvedPaths.outputFormat || "json",
+        itemsTemplatePath,
+        outputFormat,
       });
     } catch (error) {
       return err(createError({

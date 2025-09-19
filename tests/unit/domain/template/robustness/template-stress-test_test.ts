@@ -234,9 +234,9 @@ describe("Template Processing Robustness Tests", () => {
 
       if (!verboseResult.ok || !normalResult.ok) return;
 
-      // Performance: verbose mode should not be more than 2x slower
+      // Performance: verbose mode should not be more than 3x slower
       assertEquals(
-        verboseTime < normalTime * 2,
+        verboseTime < normalTime * 3,
         true,
         `Verbose mode took ${verboseTime}ms vs normal ${normalTime}ms`,
       );

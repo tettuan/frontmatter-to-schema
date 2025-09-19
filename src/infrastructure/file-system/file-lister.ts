@@ -3,7 +3,7 @@ import {
   createError,
   FileSystemError,
 } from "../../domain/shared/types/errors.ts";
-import type { FileLister as FileListerInterface } from "../../application/index.ts";
+import type { FileLister as FileListerInterface } from "../../application/interfaces/file-system-interfaces.ts";
 import { expandGlobSync } from "jsr:@std/fs";
 
 export class DenoFileLister implements FileListerInterface {

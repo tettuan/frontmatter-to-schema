@@ -16,12 +16,31 @@ export interface TemplatePathConfig {
 }
 
 /**
- * Resolved template paths
+ * Items template path state using discriminated union for Totality
+ */
+export type ItemsTemplateState =
+  | { readonly kind: "defined"; readonly path: string }
+  | { readonly kind: "not-defined" };
+
+/**
+ * Output format state using discriminated union for Totality
+ */
+export type OutputFormatState =
+  | {
+    readonly kind: "specified";
+    readonly format: "json" | "yaml" | "markdown";
+  }
+  | { readonly kind: "default" };
+
+/**
+ * Resolved template paths using Totality principles
  */
 export interface ResolvedTemplatePaths {
   readonly templatePath: string;
+  readonly itemsTemplate: ItemsTemplateState;
+  readonly outputFormat: OutputFormatState;
+  // Backward compatibility - will be removed in next major version
   readonly itemsTemplatePath?: string;
-  readonly outputFormat?: "json" | "yaml" | "markdown";
 }
 
 /**
@@ -128,10 +147,24 @@ export class TemplatePathResolver {
       outputFormat = this.detectFormatFromExtension(mainTemplateResult.data);
     }
 
+    // Create ItemsTemplateState based on whether items template exists
+    const itemsTemplate: ItemsTemplateState = itemsTemplateResult.data
+      ? { kind: "defined", path: itemsTemplateResult.data }
+      : { kind: "not-defined" };
+
+    // Create OutputFormatState based on output format
+    const outputFormatState: OutputFormatState =
+      outputFormat === "json" || outputFormat === "yaml" ||
+        outputFormat === "markdown"
+        ? { kind: "specified", format: outputFormat }
+        : { kind: "default" };
+
     return ok({
       templatePath: mainTemplateResult.data,
+      itemsTemplate,
+      outputFormat: outputFormatState,
+      // Backward compatibility - provide the old property
       itemsTemplatePath: itemsTemplateResult.data,
-      outputFormat,
     });
   }
 
