@@ -1,0 +1,48 @@
+# Complexity Metrics Configuration
+# These metrics control the complexity analysis and entropy reduction system
+# Values are used for AI complexity control as defined in ai-complexity-control.ja.md
+
+# Core complexity factors for entropy calculation
+complexity_factors:
+  # Number of classes in the codebase
+  class_count: 45
+
+  # Number of interfaces defined
+  interface_count: 12
+
+  # Depth of abstraction layers
+  abstraction_layers: 4
+
+  # Cyclomatic complexity threshold
+  cyclomatic_complexity: 257
+
+  # Dependency injection depth
+  dependency_depth: 6
+
+  # Number of conditional branches
+  conditional_branches: 35
+
+  # Generic type parameter complexity
+  generic_type_parameters: 8
+
+# Entropy thresholds for complexity control
+entropy_thresholds:
+  # Maximum allowed system entropy
+  max_entropy: 25.0
+
+  # Warning threshold for entropy
+  warning_entropy: 20.0
+
+  # Target entropy for optimization
+  target_entropy: 15.0
+
+# Quality gates for complexity monitoring
+quality_gates:
+  # Maximum file size in lines
+  max_file_size: 140
+
+  # Maximum function complexity
+  max_function_complexity: 10
+
+  # Maximum class complexity
+  max_class_complexity: 20

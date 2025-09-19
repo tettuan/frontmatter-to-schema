@@ -1,0 +1,35 @@
+# Supported Output Formats Configuration
+# Following AI complexity control principles - externalized from hardcoded arrays
+
+version: "1.0.0"
+description: "Configuration for supported output file formats in frontmatter-to-schema"
+
+formats:
+  json:
+    extensions: [".json"]
+    description: "JavaScript Object Notation - structured data format"
+    mimeType: "application/json"
+    default: true
+
+  yaml:
+    extensions: [".yaml", ".yml"]
+    description: "YAML Ain't Markup Language - human-readable data serialization"
+    mimeType: "application/x-yaml"
+    default: false
+
+# Validation rules
+validation:
+  requireExtension: true
+  caseSensitive: true
+  allowMultipleExtensions: true
+
+# Feature flags
+features:
+  enableFormatDetection: true
+  enableMimeTypeValidation: false
+  enableCustomFormats: false
+
+# Default behavior when configuration loading fails
+fallback:
+  extensions: [".json", ".yaml", ".yml"]
+  defaultFormat: "json"

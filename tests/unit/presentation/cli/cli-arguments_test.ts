@@ -1,13 +1,26 @@
 import { assertEquals } from "https://deno.land/std@0.202.0/testing/asserts.ts";
 import { CLIArguments } from "../../../../src/presentation/cli/value-objects/cli-arguments.ts";
+import { SupportedFormats } from "../../../../src/domain/configuration/value-objects/supported-formats.ts";
+
+// Test helper to create SupportedFormats instance
+function createTestSupportedFormats(): SupportedFormats {
+  const result = SupportedFormats.createFallback();
+  if (!result.ok) {
+    throw new Error(
+      `Failed to create test SupportedFormats: ${result.error.message}`,
+    );
+  }
+  return result.data;
+}
 
 Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
+  const supportedFormats = createTestSupportedFormats();
   await t.step("should create valid CLI arguments", () => {
     const result = CLIArguments.create([
       "schema.json",
       "input.md",
       "output.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -24,7 +37,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "input.md",
       "output.json",
       "--verbose",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -33,7 +46,10 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
   });
 
   await t.step("should reject missing arguments", () => {
-    const result = CLIArguments.create(["schema.json", "input.md"]);
+    const result = CLIArguments.create(
+      ["schema.json", "input.md"],
+      supportedFormats,
+    );
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -50,7 +66,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "input.md",
       "output.json",
       "extra",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -63,7 +79,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "schema.txt",
       "input.md",
       "output.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -79,7 +95,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "schema.json",
       "input.md",
       "output.txt",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, false);
     if (!result.ok) {
@@ -91,7 +107,10 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
   });
 
   await t.step("should detect directory patterns", () => {
-    const result = CLIArguments.create(["schema.json", "docs/", "output.json"]);
+    const result = CLIArguments.create(
+      ["schema.json", "docs/", "output.json"],
+      supportedFormats,
+    );
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -106,7 +125,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "schema.json",
       "**/*.md",
       "output.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -130,7 +149,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "output.json",
       "--template",
       "template.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -148,7 +167,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "output.json",
       "-t",
       "template.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -167,7 +186,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "--verbose",
       "--template",
       "template.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {
@@ -181,7 +200,7 @@ Deno.test("CLIArguments - Smart Constructor Tests", async (t) => {
       "schema.json",
       "input.md",
       "output.json",
-    ]);
+    ], supportedFormats);
 
     assertEquals(result.ok, true);
     if (result.ok) {

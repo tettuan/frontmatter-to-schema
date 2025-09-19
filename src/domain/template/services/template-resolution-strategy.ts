@@ -2,10 +2,46 @@ import { Result } from "../../shared/types/result.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 
 /**
- * Template Resolution Context
- * Provides all necessary information for template path resolution
+ * Template Resolution Context using discriminated union pattern
+ * Eliminates optional explicitTemplatePath in favor of explicit context types
  */
-export interface TemplateResolutionContext {
+export type TemplateResolutionContext =
+  | {
+    kind: "schema-based";
+    schemaPath: string;
+    schemaDefinition: Record<string, unknown>;
+    baseDirectory: string;
+  }
+  | {
+    kind: "explicit-path";
+    schemaPath: string;
+    explicitTemplatePath: string;
+    schemaDefinition: Record<string, unknown>;
+    baseDirectory: string;
+  };
+
+/**
+ * Resolved Template Information using discriminated union pattern
+ * Eliminates optional itemsTemplatePath in favor of explicit template types
+ */
+export type ResolvedTemplate =
+  | {
+    kind: "single";
+    templatePath: string;
+    resolutionStrategy: string;
+  }
+  | {
+    kind: "dual";
+    mainTemplatePath: string;
+    itemsTemplatePath: string;
+    resolutionStrategy: string;
+  };
+
+/**
+ * Legacy Template Resolution Context for backward compatibility
+ * @deprecated Use TemplateResolutionContext discriminated union instead
+ */
+export interface LegacyTemplateResolutionContext {
   schemaPath: string;
   explicitTemplatePath?: string;
   schemaDefinition: Record<string, unknown>;
@@ -13,10 +49,10 @@ export interface TemplateResolutionContext {
 }
 
 /**
- * Resolved Template Information
- * Contains all resolved template paths and metadata
+ * Legacy Resolved Template for backward compatibility
+ * @deprecated Use ResolvedTemplate discriminated union instead
  */
-export interface ResolvedTemplate {
+export interface LegacyResolvedTemplate {
   mainTemplatePath: string;
   itemsTemplatePath?: string;
   hasDualTemplate: boolean;
@@ -24,7 +60,7 @@ export interface ResolvedTemplate {
 }
 
 /**
- * Template Resolution Strategy Interface
+ * Template Resolution Strategy Interface (New discriminated union version)
  * Defines contract for different template resolution approaches
  * Follows Strategy Pattern for extensible resolution logic
  */
@@ -35,29 +71,40 @@ export interface TemplateResolutionStrategy {
 }
 
 /**
- * Explicit Path Resolution Strategy
+ * Legacy Template Resolution Strategy Interface
+ * @deprecated Use TemplateResolutionStrategy with discriminated unions instead
+ */
+export interface LegacyTemplateResolutionStrategy {
+  readonly name: string;
+  canResolve(context: LegacyTemplateResolutionContext): boolean;
+  resolve(
+    context: LegacyTemplateResolutionContext,
+  ): Result<LegacyResolvedTemplate, string>;
+}
+
+/**
+ * Explicit Path Resolution Strategy (Updated for discriminated union)
  * Handles cases where template path is explicitly provided
  */
 export class ExplicitPathResolution implements TemplateResolutionStrategy {
   readonly name = "explicit-path";
 
   canResolve(context: TemplateResolutionContext): boolean {
-    return !!context.explicitTemplatePath;
+    return context.kind === "explicit-path";
   }
 
   resolve(
     context: TemplateResolutionContext,
   ): Result<ResolvedTemplate, string> {
-    if (!context.explicitTemplatePath) {
-      return { ok: false, error: "Explicit template path not provided" };
+    if (context.kind !== "explicit-path") {
+      return { ok: false, error: "Context is not explicit-path type" };
     }
 
     return {
       ok: true,
       data: {
-        mainTemplatePath: context.explicitTemplatePath,
-        itemsTemplatePath: undefined,
-        hasDualTemplate: false,
+        kind: "single",
+        templatePath: context.explicitTemplatePath,
         resolutionStrategy: this.name,
       },
     };
@@ -72,6 +119,8 @@ export class SchemaBasedResolution implements TemplateResolutionStrategy {
   readonly name = "schema-derived";
 
   canResolve(context: TemplateResolutionContext): boolean {
+    if (context.kind !== "schema-based") return false;
+
     const templateKey = defaultSchemaExtensionRegistry.getTemplateKey()
       .getValue();
     return !!context.schemaDefinition[templateKey];
@@ -80,6 +129,10 @@ export class SchemaBasedResolution implements TemplateResolutionStrategy {
   resolve(
     context: TemplateResolutionContext,
   ): Result<ResolvedTemplate, string> {
+    if (context.kind !== "schema-based") {
+      return { ok: false, error: "Context is not schema-based type" };
+    }
+
     const templateKey = defaultSchemaExtensionRegistry.getTemplateKey()
       .getValue();
     const mainTemplate = context.schemaDefinition[templateKey];
@@ -100,20 +153,33 @@ export class SchemaBasedResolution implements TemplateResolutionStrategy {
     const templateItemsKey = defaultSchemaExtensionRegistry
       .getTemplateItemsKey().getValue();
     const itemsTemplate = context.schemaDefinition[templateItemsKey];
-    const itemsTemplatePath =
-      (itemsTemplate && typeof itemsTemplate === "string")
-        ? this.resolvePath(itemsTemplate, context.baseDirectory)
-        : undefined;
 
-    return {
-      ok: true,
-      data: {
-        mainTemplatePath,
-        itemsTemplatePath,
-        hasDualTemplate: !!itemsTemplatePath,
-        resolutionStrategy: this.name,
-      },
-    };
+    if (itemsTemplate && typeof itemsTemplate === "string") {
+      // Dual template case
+      const itemsTemplatePath = this.resolvePath(
+        itemsTemplate,
+        context.baseDirectory,
+      );
+      return {
+        ok: true,
+        data: {
+          kind: "dual",
+          mainTemplatePath,
+          itemsTemplatePath,
+          resolutionStrategy: this.name,
+        },
+      };
+    } else {
+      // Single template case
+      return {
+        ok: true,
+        data: {
+          kind: "single",
+          templatePath: mainTemplatePath,
+          resolutionStrategy: this.name,
+        },
+      };
+    }
   }
 
   private resolvePath(templatePath: string, baseDirectory: string): string {
@@ -155,14 +221,13 @@ export class AutoDetectResolution implements TemplateResolutionStrategy {
 
     // For now, use the first candidate
     // In a real implementation, we would check file existence
-    const mainTemplatePath = candidatePaths[0];
+    const templatePath = candidatePaths[0];
 
     return {
       ok: true,
       data: {
-        mainTemplatePath,
-        itemsTemplatePath: undefined,
-        hasDualTemplate: false,
+        kind: "single",
+        templatePath,
         resolutionStrategy: this.name,
       },
     };
@@ -171,6 +236,102 @@ export class AutoDetectResolution implements TemplateResolutionStrategy {
   private extractBaseName(filePath: string): string {
     const fileName = filePath.split("/").pop() || filePath;
     return fileName.replace(/\.[^.]+$/, ""); // Remove extension
+  }
+}
+
+/**
+ * Helper functions for backward compatibility between legacy and new discriminated union types
+ */
+
+/**
+ * Convert legacy context to new discriminated union context
+ */
+export function toLegacyContext(
+  context: TemplateResolutionContext,
+): LegacyTemplateResolutionContext {
+  switch (context.kind) {
+    case "schema-based":
+      return {
+        schemaPath: context.schemaPath,
+        schemaDefinition: context.schemaDefinition,
+        baseDirectory: context.baseDirectory,
+      };
+    case "explicit-path":
+      return {
+        schemaPath: context.schemaPath,
+        explicitTemplatePath: context.explicitTemplatePath,
+        schemaDefinition: context.schemaDefinition,
+        baseDirectory: context.baseDirectory,
+      };
+  }
+}
+
+/**
+ * Convert new discriminated union context to legacy context
+ */
+export function fromLegacyContext(
+  context: LegacyTemplateResolutionContext,
+): TemplateResolutionContext {
+  if (context.explicitTemplatePath) {
+    return {
+      kind: "explicit-path",
+      schemaPath: context.schemaPath,
+      explicitTemplatePath: context.explicitTemplatePath,
+      schemaDefinition: context.schemaDefinition,
+      baseDirectory: context.baseDirectory,
+    };
+  } else {
+    return {
+      kind: "schema-based",
+      schemaPath: context.schemaPath,
+      schemaDefinition: context.schemaDefinition,
+      baseDirectory: context.baseDirectory,
+    };
+  }
+}
+
+/**
+ * Convert new discriminated union result to legacy result
+ */
+export function toLegacyResult(
+  result: ResolvedTemplate,
+): LegacyResolvedTemplate {
+  switch (result.kind) {
+    case "single":
+      return {
+        mainTemplatePath: result.templatePath,
+        hasDualTemplate: false,
+        resolutionStrategy: result.resolutionStrategy,
+      };
+    case "dual":
+      return {
+        mainTemplatePath: result.mainTemplatePath,
+        itemsTemplatePath: result.itemsTemplatePath,
+        hasDualTemplate: true,
+        resolutionStrategy: result.resolutionStrategy,
+      };
+  }
+}
+
+/**
+ * Convert legacy result to new discriminated union result
+ */
+export function fromLegacyResult(
+  result: LegacyResolvedTemplate,
+): ResolvedTemplate {
+  if (result.hasDualTemplate && result.itemsTemplatePath) {
+    return {
+      kind: "dual",
+      mainTemplatePath: result.mainTemplatePath,
+      itemsTemplatePath: result.itemsTemplatePath,
+      resolutionStrategy: result.resolutionStrategy,
+    };
+  } else {
+    return {
+      kind: "single",
+      templatePath: result.mainTemplatePath,
+      resolutionStrategy: result.resolutionStrategy,
+    };
   }
 }
 

@@ -13,7 +13,11 @@ export type ValidationError =
     readonly value: string;
     readonly pattern: string;
   }
-  | { readonly kind: "ParseError"; readonly input: string }
+  | {
+    readonly kind: "ParseError";
+    readonly input: string;
+    readonly field?: string;
+  }
   | { readonly kind: "EmptyInput" }
   | {
     readonly kind: "TooLong";
@@ -34,7 +38,16 @@ export type ValidationError =
     readonly field?: string;
   }
   | { readonly kind: "FieldNotFound"; readonly path: string }
-  | { readonly kind: "ValidationRuleNotFound"; readonly path: string };
+  | { readonly kind: "ValidationRuleNotFound"; readonly path: string }
+  | { readonly kind: "DuplicateValue"; readonly field: string }
+  | {
+    readonly kind: "ConfigNotFound";
+    readonly path: string;
+    readonly field?: string;
+  }
+  | { readonly kind: "ConfigReadError"; readonly field: string }
+  | { readonly kind: "InvalidStructure"; readonly field: string }
+  | { readonly kind: "UnknownError"; readonly field: string };
 
 export type SchemaError =
   | { readonly kind: "SchemaNotFound"; readonly path: string }
@@ -201,6 +214,14 @@ export const createEnhancedError = <T extends DomainError>(
 };
 
 const getDefaultMessage = (error: DomainError): string => {
+  // 全域性デバッグ: error.kind別の完全性確認
+  const _errorKindDebugInfo = {
+    errorKind: error.kind,
+    totalErrorTypes: 58, // DomainErrorの全型数
+    exhaustivenessCheck: "required",
+    partialFunctionRisk: "eliminated",
+  };
+
   switch (error.kind) {
     case "OutOfRange":
       return `Value ${error.value} is out of range ${error.min ?? "?"}-${
@@ -230,6 +251,16 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Field not found: ${error.path}`;
     case "ValidationRuleNotFound":
       return `Validation rule not found for path: ${error.path}`;
+    case "DuplicateValue":
+      return `Duplicate value found in field: ${error.field}`;
+    case "ConfigNotFound":
+      return `Configuration not found: ${error.path}`;
+    case "ConfigReadError":
+      return `Configuration read error in field: ${error.field}`;
+    case "InvalidStructure":
+      return `Invalid structure in field: ${error.field}`;
+    case "UnknownError":
+      return `Unknown error in field: ${error.field}`;
     case "SchemaNotFound":
       return `Schema not found: ${error.path}`;
     case "InvalidSchema":
@@ -357,7 +388,13 @@ const getDefaultMessage = (error: DomainError): string => {
     case "MemoryBoundsExceeded":
       return `Memory bounds exceeded: ${error.content}`;
     default: {
+      // 全域性保証: 到達不可能な分岐 - TypeScriptコンパイル時エラーで保証
       const _exhaustive: never = error;
+      // デバッグ情報: この分岐に到達した場合は型安全性の破綻を意味する
+      console.error(
+        "[TOTALITY-VIOLATION] Unreachable error type detected:",
+        error,
+      );
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
     }
   }

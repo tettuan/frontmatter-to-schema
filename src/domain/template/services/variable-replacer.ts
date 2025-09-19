@@ -7,6 +7,7 @@ import {
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -182,8 +183,15 @@ export class VariableReplacer {
       }
 
       if (value && typeof value === "object") {
+        const objResult = SafePropertyAccess.asRecord(value);
+        if (!objResult.ok) {
+          return err(createError({
+            kind: "RenderFailed",
+            message: "Value is not a valid object for processing",
+          }));
+        }
         return this.processObject(
-          value as Record<string, unknown>,
+          objResult.data,
           data,
           arrayData,
         );
@@ -449,12 +457,16 @@ export class VariableReplacer {
 
     // If template is an object, recursively process it
     if (template && typeof template === "object") {
+      const templateObjResult = SafePropertyAccess.asRecord(template);
+      if (!templateObjResult.ok) {
+        return err(createError({
+          kind: "RenderFailed",
+          message: "Template is not a valid object for array expansion",
+        }));
+      }
+
       const result: Record<string, unknown> = {};
-      for (
-        const [key, value] of Object.entries(
-          template as Record<string, unknown>,
-        )
-      ) {
+      for (const [key, value] of Object.entries(templateObjResult.data)) {
         const processedResult = this.processArrayExpansion(
           value,
           dataArray,

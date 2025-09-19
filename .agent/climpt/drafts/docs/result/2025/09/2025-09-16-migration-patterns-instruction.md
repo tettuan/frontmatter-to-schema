@@ -11,8 +11,11 @@ variables:
 
 ## 0. 目的・適用範囲
 
-- **目的**: テストコード内のハードコードされたスキーマ拡張文字列を中央管理された TEST_EXTENSIONS 定数に置き換え、DDD および Totality 原則に従った堅牢なテストコードベースを実現
-- **適用範囲**: すべての `*_test.ts` ファイル内の `"x-"` プレフィックスを持つ拡張キー
+- **目的**: テストコード内のハードコードされたスキーマ拡張文字列を中央管理された
+  TEST_EXTENSIONS 定数に置き換え、DDD および Totality
+  原則に従った堅牢なテストコードベースを実現
+- **適用範囲**: すべての `*_test.ts` ファイル内の `"x-"`
+  プレフィックスを持つ拡張キー
 - **非適用範囲**: プロダクションコード、設定ファイル、ドキュメント内の拡張キー
 
 ## 1. 不変条件
@@ -26,12 +29,16 @@ variables:
 ## 2. 前提情報リスト
 
 ### プロジェクト情報
+
 - **言語**: TypeScript/Deno
 - **アーキテクチャ**: DDD（ドメイン駆動設計）
 - **テストファイル数**: 70ファイル
-- **対象拡張キー**: 9種類（x-frontmatter-part, x-template, x-template-items, x-derived-from, x-derived-unique, x-jmespath-filter, x-template-format, x-base-property, x-default-value）
+- **対象拡張キー**: 9種類（x-frontmatter-part, x-template, x-template-items,
+  x-derived-from, x-derived-unique, x-jmespath-filter, x-template-format,
+  x-base-property, x-default-value）
 
 ### 既存インフラ
+
 - `SchemaExtensionRegistry`: 拡張キーの中央管理クラス
 - `tests/helpers/test-extensions.ts`: TEST_EXTENSIONS 定数の定義
 - `tests/helpers/test-schema-builder.ts`: ビルダーパターンのヘルパー
@@ -40,7 +47,9 @@ variables:
 
 ### 3.1 事前準備
 
-- Gitブランチ準備: `echo "test-extensions-migration-patterns" | climpt-git decide-branch working-branch` を実行し、出力結果の指示に従う
+- Gitブランチ準備:
+  `echo "test-extensions-migration-patterns" | climpt-git decide-branch working-branch`
+  を実行し、出力結果の指示に従う
 
 ### 3.2 移行スクリプトの作成
 
@@ -100,25 +109,28 @@ variables:
 ```javascript
 module.exports = {
   rules: {
-    'no-restricted-syntax': [
-      'error',
+    "no-restricted-syntax": [
+      "error",
       {
-        selector: 'Literal[value=/^x-/]',
-        message: 'Use TEST_EXTENSIONS constants instead of hardcoded extension keys'
-      }
-    ]
-  }
+        selector: "Literal[value=/^x-/]",
+        message:
+          "Use TEST_EXTENSIONS constants instead of hardcoded extension keys",
+      },
+    ],
+  },
 };
 ```
 
 ## 4. 成果物
 
 ### 主成果物
+
 - 移行済みテストファイル（14ファイル、92+置換）
 - 自動移行スクリプト (`scripts/migrate-test-hardcoding.ts`)
 - インポート修正スクリプト (`scripts/fix-import-issues.ts`)
 
 ### 付録
+
 - 移行完了レポート (`tmp/test-helper-migration/robust-migration-complete.md`)
 - ESLint 設定の更新案
 
@@ -135,7 +147,8 @@ module.exports = {
 - **全域性原則**: `docs/development/totality.md`
 - **AI複雑化防止**: `docs/development/ai-complexity-control_compact.ja.md`
 - **DDD境界設計**: `docs/domain/boundary.md`
-- **SchemaExtensionRegistry実装**: `src/domain/schema/value-objects/schema-extension-registry.ts`
+- **SchemaExtensionRegistry実装**:
+  `src/domain/schema/value-objects/schema-extension-registry.ts`
 
 ## 7. 変更履歴
 

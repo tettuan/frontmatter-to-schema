@@ -42,6 +42,10 @@ import {
   ErrorContextFactory,
   ProcessingProgress,
 } from "../../shared/types/error-context.ts";
+import type {
+  FileReader,
+  FileWriter,
+} from "../../../application/interfaces/file-system-interfaces.ts";
 
 export type RenderingMode =
   | {
@@ -52,17 +56,6 @@ export type RenderingMode =
     readonly kind: "ArrayData";
     readonly dataArray: FrontmatterData[];
   };
-
-export interface FileReader {
-  read(path: string): Result<string, DomainError & { message: string }>;
-}
-
-export interface FileWriter {
-  write(
-    path: string,
-    content: string,
-  ): Result<void, DomainError & { message: string }>;
-}
 
 /**
  * Domain service responsible for Output rendering stage of the 3-stage pipeline.

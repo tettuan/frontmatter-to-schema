@@ -3,6 +3,78 @@
  * Standardizes error context creation with common patterns and recovery guidance
  * Follows Factory Pattern for consistent error context generation
  */
+
+/**
+ * Error context state using discriminated union for explicit completeness levels
+ * Follows Totality principle - eliminates optional properties with explicit states
+ */
+export type ErrorContextState =
+  | {
+    readonly kind: "minimal";
+    readonly operation: string;
+    readonly location: string;
+  }
+  | {
+    readonly kind: "standard";
+    readonly operation: string;
+    readonly location: string;
+    readonly inputs: string;
+    readonly errorType: string;
+  }
+  | {
+    readonly kind: "detailed";
+    readonly operation: string;
+    readonly location: string;
+    readonly inputs: string;
+    readonly errorType: string;
+    readonly decisions: string[];
+    readonly progress: string;
+    readonly recoveryGuidance: string[];
+  }
+  | {
+    readonly kind: "comprehensive";
+    readonly operation: string;
+    readonly location: string;
+    readonly inputs: string;
+    readonly errorType: string;
+    readonly decisions: string[];
+    readonly progress: string;
+    readonly recoveryGuidance: string[];
+    readonly additionalData: Record<string, unknown>;
+    readonly contextDepth: number;
+    readonly parentContext: ErrorContextState;
+  };
+
+/**
+ * Performance metrics state using discriminated union for measurement completeness
+ * Eliminates optional measurement properties with explicit measurement levels
+ */
+export type PerformanceMetricsState =
+  | {
+    readonly kind: "none";
+  }
+  | {
+    readonly kind: "basic";
+    readonly duration: number;
+  }
+  | {
+    readonly kind: "throughput";
+    readonly duration: number;
+    readonly filesPerSecond: number;
+  }
+  | {
+    readonly kind: "comprehensive";
+    readonly duration: number;
+    readonly filesPerSecond: number;
+    readonly memoryPeakMB: number;
+    readonly currentBatchSize: number;
+    readonly recommendedBatchSize: number;
+  };
+
+/**
+ * Legacy interface for backward compatibility
+ * @deprecated Use ErrorContextState discriminated union for type safety
+ */
 export interface ErrorContextData {
   operation: string;
   location: string;
@@ -16,6 +88,10 @@ export interface ErrorContextData {
   parentContext?: ErrorContextData;
 }
 
+/**
+ * Legacy interface for backward compatibility
+ * @deprecated Use PerformanceMetricsState discriminated union for type safety
+ */
 export interface PerformanceMetrics {
   filesPerSecond?: number;
   memoryPeakMB?: number;
@@ -30,6 +106,180 @@ export interface PerformanceMetrics {
  */
 export class ErrorContextFactory {
   /**
+   * Create minimal error context for simple cases
+   * Follows Totality principle with explicit state creation
+   */
+  static createMinimal(operation: string, location: string): ErrorContextState {
+    return {
+      kind: "minimal",
+      operation,
+      location,
+    };
+  }
+
+  /**
+   * Create standard error context with basic error information
+   * Includes input details and error type classification
+   */
+  static createStandard(
+    operation: string,
+    location: string,
+    inputs: string,
+    errorType: string,
+  ): ErrorContextState {
+    return {
+      kind: "standard",
+      operation,
+      location,
+      inputs,
+      errorType,
+    };
+  }
+
+  /**
+   * Create detailed error context with recovery guidance
+   * Includes decisions, progress tracking, and recovery instructions
+   */
+  static createDetailed(
+    operation: string,
+    location: string,
+    inputs: string,
+    errorType: string,
+    decisions: string[],
+    progress: string,
+    recoveryGuidance: string[],
+  ): ErrorContextState {
+    return {
+      kind: "detailed",
+      operation,
+      location,
+      inputs,
+      errorType,
+      decisions,
+      progress,
+      recoveryGuidance,
+    };
+  }
+
+  /**
+   * Create comprehensive error context with full debugging information
+   * Includes hierarchical context and additional debugging data
+   */
+  static createComprehensive(
+    operation: string,
+    location: string,
+    inputs: string,
+    errorType: string,
+    decisions: string[],
+    progress: string,
+    recoveryGuidance: string[],
+    additionalData: Record<string, unknown>,
+    contextDepth: number,
+    parentContext: ErrorContextState,
+  ): ErrorContextState {
+    return {
+      kind: "comprehensive",
+      operation,
+      location,
+      inputs,
+      errorType,
+      decisions,
+      progress,
+      recoveryGuidance,
+      additionalData,
+      contextDepth,
+      parentContext,
+    };
+  }
+
+  /**
+   * Performance metrics factory methods
+   */
+  static createNoMetrics(): PerformanceMetricsState {
+    return { kind: "none" };
+  }
+
+  static createBasicMetrics(duration: number): PerformanceMetricsState {
+    return {
+      kind: "basic",
+      duration,
+    };
+  }
+
+  static createThroughputMetrics(
+    duration: number,
+    filesPerSecond: number,
+  ): PerformanceMetricsState {
+    return {
+      kind: "throughput",
+      duration,
+      filesPerSecond,
+    };
+  }
+
+  static createComprehensiveMetrics(
+    duration: number,
+    filesPerSecond: number,
+    memoryPeakMB: number,
+    currentBatchSize: number,
+    recommendedBatchSize: number,
+  ): PerformanceMetricsState {
+    return {
+      kind: "comprehensive",
+      duration,
+      filesPerSecond,
+      memoryPeakMB,
+      currentBatchSize,
+      recommendedBatchSize,
+    };
+  }
+
+  /**
+   * Backward compatibility helper - converts legacy interface
+   * @deprecated Use explicit state creation methods for better type safety
+   */
+  static fromLegacy(data: ErrorContextData): ErrorContextState {
+    if (
+      data.additionalData && data.contextDepth !== undefined &&
+      data.parentContext
+    ) {
+      return this.createComprehensive(
+        data.operation,
+        data.location,
+        data.inputs || "",
+        data.errorType || "unknown",
+        data.decisions || [],
+        data.progress || "",
+        data.recoveryGuidance || [],
+        data.additionalData,
+        data.contextDepth,
+        this.fromLegacy(data.parentContext),
+      );
+    }
+    if (data.decisions && data.progress && data.recoveryGuidance) {
+      return this.createDetailed(
+        data.operation,
+        data.location,
+        data.inputs || "",
+        data.errorType || "unknown",
+        data.decisions,
+        data.progress,
+        data.recoveryGuidance,
+      );
+    }
+    if (data.inputs && data.errorType) {
+      return this.createStandard(
+        data.operation,
+        data.location,
+        data.inputs,
+        data.errorType,
+      );
+    }
+    return this.createMinimal(data.operation, data.location);
+  }
+
+  /**
+   * Legacy Methods - Maintaining backward compatibility
    * Creates a schema-related error context with standard recovery guidance
    */
   static createSchemaError(

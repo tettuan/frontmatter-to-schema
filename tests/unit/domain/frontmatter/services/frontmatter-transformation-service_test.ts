@@ -135,20 +135,21 @@ const createTestSchema = (
 
 describe("FrontmatterTransformationService", () => {
   describe("transformDocuments - Complete Pipeline", () => {
-    it("should execute complete transformation pipeline successfully", () => {
+    it("should execute complete transformation pipeline successfully", async () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -158,45 +159,46 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, true);
     });
 
-    it("should handle verbose mode with detailed logging", () => {
+    it("should handle verbose mode with detailed logging", async () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
       // Create verbose logger for test
       const verboseLoggerResult = DebugLoggerFactory.createForVerbose(true);
-      const verboseLogger = verboseLoggerResult.ok
+      const _verboseLogger = verboseLoggerResult.ok
         ? verboseLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        verboseLogger,
       );
 
       // Assert
       assertEquals(result.ok, true);
     });
 
-    it("should handle custom processing bounds", () => {
+    it("should handle custom processing bounds", async () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
       const boundsResult = ProcessingBoundsFactory.createDefault(10);
@@ -206,15 +208,14 @@ describe("FrontmatterTransformationService", () => {
       // Act
       // Create null logger for quiet mode test
       const nullLoggerResult = NullDebugLogger.create();
-      const nullLogger = nullLoggerResult.ok
+      const _nullLogger = nullLoggerResult.ok
         ? nullLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        nullLogger,
         boundsResult.data,
       );
 
@@ -224,24 +225,25 @@ describe("FrontmatterTransformationService", () => {
   });
 
   describe("Error Path Testing - Totality Principles", () => {
-    it("should handle file listing failure", () => {
+    it("should handle file listing failure", async () => {
       // Arrange
       const fileListError = createError({
         kind: "FileNotFound",
         path: "invalid-pattern",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister(err(fileListError)) as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister(err(fileListError)) as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "invalid-pattern",
         validationRules,
         schema,
@@ -254,22 +256,23 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle processing bounds creation failure", () => {
+    it("should handle processing bounds creation failure", async () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister(
-          ok([...Array(10000)].map((_, i) => `file${i}.md`)),
-        ) as any, // Too many files
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister(
+            ok([...Array(10000)].map((_, i) => `file${i}.md`)),
+          ) as any, // Too many files
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -279,34 +282,34 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, true);
     });
 
-    it("should handle memory bounds violation", () => {
+    it("should handle memory bounds violation", async () => {
       // Arrange
       const strictBounds = ProcessingBoundsFactory.createBounded(1, 1, 1); // Very small limits
       assertEquals(strictBounds.ok, true);
       if (!strictBounds.ok) return;
 
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister(ok(["file1.md", "file2.md", "file3.md"])) as any, // More files than limit
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister(ok(["file1.md", "file2.md", "file3.md"])) as any, // More files than limit
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
       // Create null logger for quiet mode test
       const nullLoggerResult = NullDebugLogger.create();
-      const nullLogger = nullLoggerResult.ok
+      const _nullLogger = nullLoggerResult.ok
         ? nullLoggerResult.data
         : undefined;
 
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
-        nullLogger,
         strictBounds.data,
       );
 
@@ -318,25 +321,26 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle no valid documents found", () => {
+    it("should handle no valid documents found", async () => {
       // Arrange
       const extractError = createError({
         kind: "InvalidFormat",
         format: "frontmatter",
         value: "invalid data",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor(err(extractError)) as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister(ok(["invalid1.md", "invalid2.md"])) as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor(err(extractError)) as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister(ok(["invalid1.md", "invalid2.md"])) as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -350,24 +354,25 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle file reading errors gracefully", () => {
+    it("should handle file reading errors gracefully", async () => {
       // Arrange
       const readError = createError({
         kind: "FileNotFound",
         path: "missing-file.md",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader(err(readError)) as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader(err(readError)) as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -381,25 +386,26 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle frontmatter extraction errors", () => {
+    it("should handle frontmatter extraction errors", async () => {
       // Arrange
       const extractError = createError({
         kind: "InvalidFormat",
         format: "YAML frontmatter",
         value: "malformed data",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor(err(extractError)) as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor(err(extractError)) as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -413,27 +419,28 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle frontmatter validation errors", () => {
+    it("should handle frontmatter validation errors", async () => {
       // Arrange
       const validationError = createError({
         kind: "MissingRequired",
         field: "required_field",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor(
-          ok({ frontmatter: {}, body: "" }),
-          err(validationError),
-        ) as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor(
+            ok({ frontmatter: {}, body: "" }),
+            err(validationError),
+          ) as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -447,19 +454,20 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle aggregation failure", () => {
+    it("should handle aggregation failure", async () => {
       // Arrange
       const aggregationError = createError({
         kind: "AggregationFailed",
         message: "Data aggregation failed",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator(err(aggregationError)) as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator(err(aggregationError)) as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema("commands", [{
         sourcePath: "commands[].name",
@@ -468,7 +476,7 @@ describe("FrontmatterTransformationService", () => {
       }]);
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -482,24 +490,25 @@ describe("FrontmatterTransformationService", () => {
       }
     });
 
-    it("should handle base property population failure", () => {
+    it("should handle base property population failure", async () => {
       // Arrange
       const populationError = createError({
         kind: "MissingRequired",
         field: "base_property",
       });
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator(err(populationError)) as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator(err(populationError)) as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const validationRules = createTestValidationRules();
       const schema = createTestSchema();
 
       // Act
-      const result = service.transformDocuments(
+      const result = await service.transformDocuments(
         "**/*.md",
         validationRules,
         schema,
@@ -518,13 +527,14 @@ describe("FrontmatterTransformationService", () => {
 
   describe("aggregateData method", () => {
     it("should handle simple frontmatter-part aggregation", () => {
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const schema = new MockSchema("commands") as unknown as Schema;
       const data = [
         createTestFrontmatterData({ c1: "git", c2: "commit" }),
@@ -543,13 +553,14 @@ describe("FrontmatterTransformationService", () => {
     });
 
     it("should handle nested frontmatter-part aggregation", () => {
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const schema = new MockSchema("tools.commands") as unknown as Schema;
       const data = [
         createTestFrontmatterData({ c1: "git", c2: "commit" }),
@@ -569,13 +580,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle derivation rules with frontmatter-part", () => {
       // Use real aggregator for this test
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new Aggregator(),
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          Aggregator.createWithDisabledCircuitBreaker(),
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
 
       const derivationRules = [
         {
@@ -608,13 +620,14 @@ describe("FrontmatterTransformationService", () => {
     });
 
     it("should handle no frontmatter-part schema", () => {
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const schema = new MockSchema(null) as unknown as Schema;
       const data = [
         createTestFrontmatterData({ field1: "value1" }),
@@ -628,13 +641,14 @@ describe("FrontmatterTransformationService", () => {
     });
 
     it("should handle empty data array", () => {
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const schema = new MockSchema("commands") as unknown as Schema;
       const data: FrontmatterData[] = [];
 
@@ -651,13 +665,14 @@ describe("FrontmatterTransformationService", () => {
     });
 
     it("should preserve data structure for backward compatibility", () => {
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const schema = new MockSchema(
         "registry.tools.commands",
       ) as unknown as Schema;
@@ -684,13 +699,14 @@ describe("FrontmatterTransformationService", () => {
   describe("Frontmatter Part Processing", () => {
     it("should handle frontmatter part extraction with nested paths", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const data = [
         createTestFrontmatterData({ name: "cmd1", type: "git" }),
         createTestFrontmatterData({ name: "cmd2", type: "spec" }),
@@ -708,13 +724,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle missing frontmatter part schema", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const data = [createTestFrontmatterData({ test: "value" })];
       const schema = createTestSchema(); // No frontmatter part
 
@@ -727,13 +744,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle invalid frontmatter part data", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const data = [createTestFrontmatterData({ invalid: null })];
       const schema = createTestSchema("commands");
 
@@ -748,13 +766,14 @@ describe("FrontmatterTransformationService", () => {
   describe("Deep Merge Operations", () => {
     it("should handle deep merge with nested objects", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const baseData = createTestFrontmatterData({
         config: { settings: { debug: true } },
         commands: ["git"],
@@ -780,18 +799,19 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle merge failure", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-        // Mock service that will fail
-        {
-          createFromRaw: () =>
-            err(createError({ kind: "MissingRequired", field: "test" })),
-        } as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+          // Mock service that will fail
+          {
+            createFromRaw: () =>
+              err(createError({ kind: "MissingRequired", field: "test" })),
+          } as any,
+        );
       const baseData = createTestFrontmatterData({ test: "value" });
       const derivedData = createTestFrontmatterData({ other: "value" });
 
@@ -809,13 +829,14 @@ describe("FrontmatterTransformationService", () => {
   describe("Nested Field Operations", () => {
     it("should set nested field with dot notation", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const obj = {};
 
       // Act
@@ -827,13 +848,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should extract nested property with dot notation", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const obj = {
         config: {
           settings: {
@@ -854,13 +876,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle missing nested property", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const obj = { config: {} };
 
       // Act
@@ -877,13 +900,14 @@ describe("FrontmatterTransformationService", () => {
   describe("Derivation Rules Conversion", () => {
     it("should convert valid derivation rules", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const rules = [
         { sourcePath: "commands[].name", targetField: "names", unique: true },
         { sourcePath: "commands[].type", targetField: "types", unique: false },
@@ -900,13 +924,14 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle invalid derivation rules", () => {
       // Arrange
-      const service = new FrontmatterTransformationService(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
+      const service = FrontmatterTransformationService
+        .createWithDisabledLogging(
+          new MockFrontmatterProcessor() as any,
+          new MockAggregator() as any,
+          new MockBasePropertyPopulator() as any,
+          new MockFileReader() as any,
+          new MockFileLister() as any,
+        );
       const rules = [
         { sourcePath: "", targetField: "names", unique: true }, // Invalid: empty source path
         { sourcePath: "commands[].name", targetField: "", unique: false }, // Invalid: empty target field

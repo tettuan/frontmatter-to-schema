@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
   ProcessingBounds,
   ProcessingBoundsFactory,
@@ -17,19 +18,84 @@ import { SchemaPathResolver } from "../../schema/services/schema-path-resolver.t
 import {
   createLogContext,
   DebugLogger,
+  LogContext,
 } from "../../shared/services/debug-logger.ts";
+import {
+  DomainLogger,
+  DomainLoggerFactory,
+} from "../../shared/services/domain-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import {
   defaultFrontmatterDataCreationService,
   FrontmatterDataCreationService,
 } from "./frontmatter-data-creation-service.ts";
+import type {
+  FileLister,
+  FileReader,
+} from "../../../application/interfaces/file-system-interfaces.ts";
 
-export interface FileReader {
-  read(path: string): Result<string, DomainError & { message: string }>;
-}
+/**
+ * Processing options state using discriminated union for enhanced type safety
+ * Follows Totality principles by eliminating optional dependencies
+ */
+export type ProcessingOptionsState =
+  | { readonly kind: "sequential" }
+  | { readonly kind: "parallel"; readonly maxWorkers: number }
+  | {
+    readonly kind: "adaptive";
+    readonly baseWorkers: number;
+    readonly maxFileThreshold: number;
+  };
 
-export interface FileLister {
-  list(pattern: string): Result<string[], DomainError & { message: string }>;
+/**
+ * Factory for creating ProcessingOptionsState instances following Totality principles
+ */
+export class ProcessingOptionsFactory {
+  /**
+   * Create sequential processing state - processes one file at a time
+   */
+  static createSequential(): ProcessingOptionsState {
+    return { kind: "sequential" };
+  }
+
+  /**
+   * Create parallel processing state with fixed worker count
+   */
+  static createParallel(maxWorkers: number = 4): ProcessingOptionsState {
+    return { kind: "parallel", maxWorkers: Math.max(1, maxWorkers) };
+  }
+
+  /**
+   * Create adaptive processing state - switches based on file count
+   */
+  static createAdaptive(
+    baseWorkers: number = 4,
+    maxFileThreshold: number = 1,
+  ): ProcessingOptionsState {
+    return {
+      kind: "adaptive",
+      baseWorkers: Math.max(1, baseWorkers),
+      maxFileThreshold: Math.max(1, maxFileThreshold),
+    };
+  }
+
+  /**
+   * Create processing options state from legacy optional object (for backward compatibility)
+   * @deprecated Use explicit factory methods instead
+   */
+  static fromOptional(
+    options?: { parallel?: boolean; maxWorkers?: number },
+  ): ProcessingOptionsState {
+    if (!options) {
+      return ProcessingOptionsFactory.createSequential();
+    }
+
+    if (options.parallel === true) {
+      return ProcessingOptionsFactory.createParallel(options.maxWorkers || 4);
+    }
+
+    return ProcessingOptionsFactory.createSequential();
+  }
 }
 
 export interface ProcessedDocuments {
@@ -67,23 +133,320 @@ export class FrontmatterTransformationService {
     private readonly fileLister: FileLister,
     private readonly frontmatterDataCreationService:
       FrontmatterDataCreationService = defaultFrontmatterDataCreationService,
-    private readonly logger?: DebugLogger,
+    private readonly domainLogger: DomainLogger,
   ) {}
+
+  /**
+   * Helper method to create an activeLogger compatible with existing logging patterns
+   * This provides backward compatibility while transitioning to DomainLogger
+   */
+  private createActiveLogger(): DebugLogger | undefined {
+    // Create a bridge logger that translates DebugLogger calls to DomainLogger calls
+    const domainLogger = this.domainLogger;
+
+    // Return proper DebugLogger implementation following Totality principles
+    const debugLogger: DebugLogger = {
+      info: (message: string, context?: LogContext) => {
+        domainLogger.logInfo("transformation", message, context);
+        return ok(void 0);
+      },
+      debug: (message: string, context?: LogContext) => {
+        domainLogger.logDebug("transformation", message, context);
+        return ok(void 0);
+      },
+      trace: (message: string, context?: LogContext) => {
+        domainLogger.logDebug("transformation", message, context); // Use debug level for trace
+        return ok(void 0);
+      },
+      warn: (message: string, context?: LogContext) => {
+        domainLogger.logWarning("transformation", message, context);
+        return ok(void 0);
+      },
+      error: (message: string, context?: LogContext) => {
+        domainLogger.logError("transformation", message, context);
+        return ok(void 0);
+      },
+      log: (level, message, context?) => {
+        // Delegate to appropriate method based on level
+        switch (level.kind) {
+          case "error":
+            return debugLogger.error(message, context);
+          case "warn":
+            return debugLogger.warn(message, context);
+          case "info":
+            return debugLogger.info(message, context);
+          case "debug":
+          case "trace":
+            return debugLogger.debug(message, context);
+        }
+      },
+      withContext: (_baseContext: LogContext) => {
+        // For simplicity, return the same logger (could be enhanced to merge contexts)
+        return debugLogger;
+      },
+    };
+
+    return debugLogger;
+  }
 
   /**
    * Transform multiple frontmatter documents into integrated domain data.
    * Follows transformation pipeline: Extract → Validate → Aggregate → Structure → Integrate
    * Includes memory bounds monitoring following Totality principles
    */
-  transformDocuments(
+  /**
+   * Transform documents with explicit processing options state (Totality-compliant)
+   */
+  async transformDocumentsWithProcessingOptions(
     inputPattern: string,
     validationRules: ValidationRules,
     schema: Schema,
-    logger?: DebugLogger,
     processingBounds?: ProcessingBounds,
-  ): Result<FrontmatterData, DomainError & { message: string }> {
+    processingOptionsState?: ProcessingOptionsState,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    const optionsState = processingOptionsState ??
+      ProcessingOptionsFactory.createSequential();
+
+    // Convert discriminated union to legacy format for internal processing
+    let legacyOptions: { parallel?: boolean; maxWorkers?: number } | undefined;
+
+    switch (optionsState.kind) {
+      case "sequential":
+        legacyOptions = { parallel: false };
+        break;
+      case "parallel":
+        legacyOptions = { parallel: true, maxWorkers: optionsState.maxWorkers };
+        break;
+      case "adaptive":
+        // For adaptive, we'll need to check file count later to decide
+        legacyOptions = {
+          parallel: true,
+          maxWorkers: optionsState.baseWorkers,
+        };
+        break;
+    }
+
+    return await this.transformDocumentsInternal(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      legacyOptions,
+      optionsState,
+    );
+  }
+
+  /**
+   * Transform documents with optional logger for backward compatibility
+   * @deprecated Use transformDocumentsWithProcessingOptions() method instead
+   */
+  async transformDocumentsWithOptionalLogger(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    _logger?: DebugLogger,
+    processingBounds?: ProcessingBounds,
+    options?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // For backward compatibility, we'll temporarily support the old signature
+    // but the service now uses explicit domain logger state
+    return await this.transformDocuments(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      options,
+    );
+  }
+
+  /**
+   * Transform documents with optional options (backward compatibility)
+   * @deprecated Use transformDocumentsWithProcessingOptions() instead
+   */
+  async transformDocuments(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    processingBounds?: ProcessingBounds,
+    options?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    const processingOptionsState = ProcessingOptionsFactory.fromOptional(
+      options,
+    );
+    return await this.transformDocumentsWithProcessingOptions(
+      inputPattern,
+      validationRules,
+      schema,
+      processingBounds,
+      processingOptionsState,
+    );
+  }
+
+  /**
+   * Internal implementation that handles the actual document transformation logic
+   */
+  private async transformDocumentsInternal(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    processingBounds?: ProcessingBounds,
+    legacyOptions?: {
+      parallel?: boolean;
+      maxWorkers?: number;
+    },
+    processingOptionsState?: ProcessingOptionsState,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // Stage 0: Check for x-frontmatter-part and adjust validation rules if needed
+    // Create activeLogger for backward compatibility within this method
+    const activeLogger = this.createActiveLogger();
+
+    // When x-frontmatter-part is defined, individual files should be validated
+    // against the array element schema, not the top-level schema
+    let effectiveValidationRules = validationRules;
+
+    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
+    if (frontmatterPartSchemaResult.ok) {
+      activeLogger?.debug(
+        "x-frontmatter-part detected, adjusting validation rules for array element schema",
+        {
+          operation: "validation-adjustment",
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      // The frontmatterPartSchemaResult.data is the array schema with x-frontmatter-part
+      // We need to get its items schema for validating individual elements
+      const arraySchema = frontmatterPartSchemaResult.data;
+
+      // Check if arraySchema has getItems method
+      if (typeof arraySchema.getItems !== "function") {
+        activeLogger?.debug(
+          "frontmatterPartSchema does not have getItems method, skipping validation adjustment",
+          createLogContext({
+            operation: "validation-adjustment",
+          }),
+        );
+      } else {
+        const itemsResult = arraySchema.getItems();
+
+        if (itemsResult.ok) {
+          // The items schema might be wrapped or might be a direct SchemaProperty
+          const itemsSchema = itemsResult.data;
+
+          // Check if it's wrapped in a 'schema' property
+          let actualItemsSchema = (itemsSchema as any).schema || itemsSchema;
+
+          // If the items schema is a $ref, we need to resolve it
+          if ((actualItemsSchema as any).$ref) {
+            // If the schema is resolved, we can get the resolved schema
+            if (schema.isResolved()) {
+              const resolvedResult = schema.getResolved();
+              if (resolvedResult.ok) {
+                const refName = (actualItemsSchema as any).$ref;
+                const resolvedSchema = resolvedResult.data.referencedSchemas
+                  .get(refName);
+                if (resolvedSchema) {
+                  actualItemsSchema = resolvedSchema.getRawSchema();
+                }
+              }
+            } else {
+              // Schema is not resolved, try to load the referenced schema directly
+              const refPath = (actualItemsSchema as any).$ref;
+
+              // Try to load the referenced schema from the same directory as the main schema
+              const schemaPath = schema.getPath().toString();
+              const schemaDir = schemaPath.substring(
+                0,
+                schemaPath.lastIndexOf("/"),
+              );
+              const refFullPath = `${schemaDir}/${refPath}`;
+
+              try {
+                const refContent = await Deno.readTextFile(refFullPath);
+                const refSchema = JSON.parse(refContent);
+
+                // Apply migration if needed
+                const { SchemaPropertyMigration } = await import(
+                  "../../schema/value-objects/schema-property-migration.ts"
+                );
+                const migrationResult = SchemaPropertyMigration.migrate(
+                  refSchema,
+                );
+
+                if (migrationResult.ok) {
+                  actualItemsSchema = migrationResult.data;
+
+                  // Create validation rules from the loaded schema
+                  effectiveValidationRules = ValidationRules.fromSchema(
+                    actualItemsSchema,
+                    "",
+                  );
+                } else {
+                  activeLogger?.warn(
+                    "Cannot adjust validation: failed to migrate referenced schema",
+                    createLogContext({
+                      operation: "validation-adjustment",
+                      inputs:
+                        `ref: ${refPath}, error: ${migrationResult.error}`,
+                    }),
+                  );
+                }
+              } catch (error) {
+                activeLogger?.warn(
+                  "Cannot adjust validation for x-frontmatter-part: failed to load referenced schema",
+                  createLogContext({
+                    operation: "validation-adjustment",
+                    inputs: `ref: ${refPath}, error: ${String(error)}`,
+                  }),
+                );
+                // Don't change effectiveValidationRules, keep using the original
+              }
+            }
+          } else {
+            // Create validation rules from the array items schema
+            effectiveValidationRules = ValidationRules.fromSchema(
+              actualItemsSchema,
+              "",
+            );
+          }
+
+          const frontmatterPartPath = schema.findFrontmatterPartPath();
+
+          // Debug: Check what rules were generated
+          const allRules = effectiveValidationRules.getRules();
+          const booleanRules = allRules.filter((r) => r.kind === "boolean");
+          activeLogger?.info(
+            `Generated validation rules from array items schema`,
+            {
+              operation: "validation-adjustment",
+              path: frontmatterPartPath.ok
+                ? frontmatterPartPath.data
+                : "unknown",
+              totalRules: allRules.length,
+              booleanRules: booleanRules.map((r) => r.path),
+              timestamp: new Date().toISOString(),
+            },
+          );
+        } else {
+          activeLogger?.warn(
+            "Could not extract items schema from frontmatter-part array",
+            {
+              error: itemsResult.error,
+              operation: "validation-adjustment",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+      }
+    }
+
     // Stage 1: List matching files
-    const activeLogger = logger || this.logger;
     activeLogger?.info(
       `Starting document processing with pattern: ${inputPattern}`,
       {
@@ -130,6 +493,68 @@ export class FrontmatterTransformationService {
       actualBounds = defaultBoundsResult.data;
     }
 
+    // メモリ境界監視振れ幅デバッグ情報 (メモリ管理変動制御フロー Iteration 15)
+    const memoryBoundsVarianceDebug = {
+      varianceTarget: "memory-bounds-monitoring-variance-control",
+      boundsConfiguration: {
+        providedBounds: !!processingBounds,
+        boundsType: actualBounds.kind,
+        fileCount: filesResult.data.length,
+        boundsCreationMethod: processingBounds
+          ? "external-provided"
+          : "factory-generated",
+      },
+      memoryMonitoringVarianceFactors: {
+        dynamicBoundsCalculation: !processingBounds,
+        fileCountImpact: filesResult.data.length,
+        expectedMemoryGrowthPattern: actualBounds.kind === "bounded"
+          ? "bounded-growth"
+          : "unlimited-growth",
+        monitoringOverhead: "per-file-check",
+        boundsCheckingFrequency: "every-100-files",
+      },
+      memoryVariancePrediction: {
+        estimatedPeakMemory: `${filesResult.data.length * 2}MB`,
+        memoryGrowthRate: "O(n)-linear",
+        monitoringImpact: `${Math.ceil(filesResult.data.length / 100) * 5}ms`,
+        boundsViolationRisk: actualBounds.kind === "unbounded"
+          ? "low"
+          : "medium",
+      },
+      memoryVarianceRisks: {
+        boundsCreationVariance: !processingBounds ? "high" : "none",
+        monitoringOverheadVariance: "medium", // 監視オーバーヘッド変動
+        memoryGrowthPredictionVariance: "high", // メモリ成長予測変動
+        boundsViolationHandlingVariance: "low", // 境界違反処理変動
+      },
+      varianceReductionStrategy: {
+        targetReduction: "predictive-bounds-optimization",
+        recommendedApproach: "adaptive-bounds-scaling",
+        monitoringOptimization: "threshold-based-checking",
+        memoryPredictionImprovement: "learning-based-estimation",
+      },
+      debugLogLevel: "memory-bounds-variance", // メモリ境界変動詳細ログ
+      memoryVarianceTrackingEnabled: true, // メモリ変動追跡有効
+    };
+
+    const currentMemory = Deno.memoryUsage();
+    activeLogger?.debug("メモリ境界監視振れ幅デバッグ情報", {
+      ...memoryBoundsVarianceDebug,
+      currentSystemState: {
+        heapUsedMB: Math.round(currentMemory.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(currentMemory.heapTotal / 1024 / 1024),
+        systemMemoryPressure:
+          currentMemory.heapUsed / currentMemory.heapTotal > 0.8
+            ? "high"
+            : "normal",
+        estimatedMemoryAfterProcessing: Math.round(
+          (currentMemory.heapUsed + filesResult.data.length * 2 * 1024 * 1024) /
+            1024 / 1024,
+        ),
+      },
+      timestamp: new Date().toISOString(),
+    });
+
     const boundsMonitor = ProcessingBoundsMonitor.create(actualBounds);
 
     activeLogger?.debug(
@@ -145,93 +570,204 @@ export class FrontmatterTransformationService {
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
 
-    // Stage 2: Process each file
-    for (const filePath of filesResult.data) {
-      // Memory bounds monitoring - check state before processing each file
-      const state = boundsMonitor.checkState(processedData.length);
-      if (state.kind === "exceeded_limit") {
-        return err(createError({
-          kind: "MemoryBoundsViolation",
-          content: `Processing exceeded bounds: ${state.limit}`,
-        }));
-      }
+    // Stage 2: Process files (parallel or sequential based on processing options state)
+    let useParallel = legacyOptions?.parallel === true &&
+      filesResult.data.length > 1;
+    let maxWorkers = legacyOptions?.maxWorkers || 4;
 
-      if (state.kind === "approaching_limit") {
-        activeLogger?.warn(
-          `Approaching memory limit: ${
-            Math.round(state.usage.heapUsed / 1024 / 1024)
-          }MB used, threshold: ${
-            Math.round(state.warningThreshold / 1024 / 1024)
-          }MB`,
-          {
-            operation: "memory-monitoring",
-            heapUsed: state.usage.heapUsed,
-            warningThreshold: state.warningThreshold,
-            timestamp: new Date().toISOString(),
-          },
-        );
-      }
+    // Handle adaptive strategy if provided
+    if (processingOptionsState?.kind === "adaptive") {
+      const fileCount = filesResult.data.length;
+      useParallel = fileCount > processingOptionsState.maxFileThreshold;
+      maxWorkers = processingOptionsState.baseWorkers;
+    }
 
-      activeLogger?.debug(
-        `Processing file: ${filePath}`,
+    // 処理戦略切り替え振れ幅デバッグ情報 (高変動箇所特定フロー Iteration 13)
+    const processingStrategyVarianceDebug = {
+      varianceTarget: "processing-strategy-switch-variance-reduction",
+      strategySelectionVariance: {
+        parallelThreshold: 1, // useParallel条件: filesResult.data.length > 1
+        workerCountVariance: `1-${maxWorkers}`, // 1～maxWorkers の変動範囲
+        fileCountImpact: filesResult.data.length, // ファイル数による戦略影響
+        binaryDecisionVariance: useParallel
+          ? "parallel-selected"
+          : "sequential-selected",
+      },
+      processingVarianceFactors: {
+        memoryAllocationPattern: useParallel
+          ? "batch-concurrent"
+          : "sequential-accumulative",
+        workerPoolOverhead: useParallel
+          ? `${maxWorkers}-workers`
+          : "no-workers",
+        coordinationComplexity: useParallel
+          ? "high-sync-overhead"
+          : "linear-processing",
+        errorHandlingStrategy: useParallel
+          ? "batch-aggregation"
+          : "immediate-propagation",
+      },
+      predictedVarianceImpact: {
+        memoryVarianceRisk: useParallel ? "high-burst" : "gradual-growth",
+        processingTimeVariability: useParallel
+          ? `${maxWorkers}x-speedup-variance`
+          : "linear-time",
+        resourceUtilizationVariance: useParallel
+          ? "cpu-intensive-burst"
+          : "memory-steady",
+        errorRecoveryVariance: useParallel
+          ? "batch-failure-impact"
+          : "single-file-failure",
+      },
+      varianceReductionStrategy: {
+        targetVarianceReduction: "binary-to-adaptive", // 二元選択 → 適応的調整
+        recommendedApproach: "dynamic-worker-scaling", // 動的ワーカー調整
+        memoryVarianceControl: "adaptive-batch-sizing", // 適応的バッチサイズ
+        performanceVarianceStabilization: "predictive-strategy-selection", // 予測的戦略選択
+      },
+      debugLogLevel: "processing-strategy-variance", // 処理戦略変動詳細ログ
+      varianceTrackingEnabled: true, // 変動追跡有効
+    };
+
+    activeLogger?.debug("処理戦略切り替え振れ幅デバッグ情報", {
+      ...processingStrategyVarianceDebug,
+      strategySelection: {
+        useParallel,
+        maxWorkers,
+        fileCount: filesResult.data.length,
+        estimatedMemoryImpact: useParallel
+          ? `${maxWorkers * 50}MB-burst`
+          : `${filesResult.data.length * 2}MB-gradual`,
+        estimatedTimeRange: useParallel
+          ? `${
+            Math.ceil(filesResult.data.length / maxWorkers) * 50
+          }ms-optimistic`
+          : `${filesResult.data.length * 50}ms-linear`,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    if (useParallel) {
+      activeLogger?.info(
+        `Using parallel processing with ${maxWorkers} workers for ${filesResult.data.length} files`,
         {
-          operation: "file-processing",
-          filePath,
+          operation: "parallel-processing",
+          workerCount: maxWorkers,
+          fileCount: filesResult.data.length,
           timestamp: new Date().toISOString(),
         },
       );
-      const documentResult = this.processDocument(filePath, validationRules);
-      if (documentResult.ok) {
-        processedData.push(documentResult.data.frontmatterData);
-        documents.push(documentResult.data.document);
 
-        activeLogger?.debug(
-          `Successfully processed: ${filePath}`,
-          {
-            operation: "file-processing",
-            filePath,
-            timestamp: new Date().toISOString(),
-          },
-        );
+      // Parallel processing implementation (Issue #545)
+      const results = await this.processFilesInParallel(
+        filesResult.data,
+        effectiveValidationRules,
+        maxWorkers,
+        boundsMonitor,
+        activeLogger,
+      );
 
-        // Periodic O(log n) memory growth validation
-        if (processedData.length % 100 === 0 && processedData.length > 0) {
-          const growthResult = boundsMonitor.validateMemoryGrowth(
-            processedData.length,
+      if (!results.ok) {
+        return results;
+      }
+
+      // Collect results from parallel processing
+      for (const result of results.data) {
+        processedData.push(result.frontmatterData);
+        documents.push(result.document);
+      }
+    } else {
+      // Sequential processing (original implementation)
+      for (const filePath of filesResult.data) {
+        // Memory bounds monitoring - check state before processing each file
+        const state = boundsMonitor.checkState(processedData.length);
+        if (state.kind === "exceeded_limit") {
+          return err(createError({
+            kind: "MemoryBoundsViolation",
+            content: `Processing exceeded bounds: ${state.limit}`,
+          }));
+        }
+
+        if (state.kind === "approaching_limit") {
+          activeLogger?.warn(
+            `Approaching memory limit: ${
+              Math.round(state.usage.heapUsed / 1024 / 1024)
+            }MB used, threshold: ${
+              Math.round(state.warningThreshold / 1024 / 1024)
+            }MB`,
+            {
+              operation: "memory-monitoring",
+              heapUsed: state.usage.heapUsed,
+              warningThreshold: state.warningThreshold,
+              timestamp: new Date().toISOString(),
+            },
           );
-          if (!growthResult.ok) {
-            activeLogger?.warn(
-              `Memory growth validation warning: ${growthResult.error.message}`,
-              {
-                operation: "memory-monitoring",
-                processedCount: processedData.length,
-                timestamp: new Date().toISOString(),
-              },
-            );
-          }
         }
 
         activeLogger?.debug(
-          "File processed successfully",
-          {
-            operation: "file-processing",
-            status: "success",
-            timestamp: new Date().toISOString(),
-          },
-        );
-      } else {
-        activeLogger?.error(
-          `Failed to process file: ${filePath}`,
+          `Processing file: ${filePath}`,
           {
             operation: "file-processing",
             filePath,
-            stage: "individual-file-processing",
-            error: documentResult.error,
             timestamp: new Date().toISOString(),
           },
         );
+        const documentResult = this.processDocument(
+          filePath,
+          effectiveValidationRules,
+        );
+        if (documentResult.ok) {
+          processedData.push(documentResult.data.frontmatterData);
+          documents.push(documentResult.data.document);
+
+          activeLogger?.debug(
+            `Successfully processed: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              timestamp: new Date().toISOString(),
+            },
+          );
+
+          // Periodic O(log n) memory growth validation
+          if (processedData.length % 100 === 0 && processedData.length > 0) {
+            const growthResult = boundsMonitor.validateMemoryGrowth(
+              processedData.length,
+            );
+            if (!growthResult.ok) {
+              activeLogger?.warn(
+                `Memory growth validation warning: ${growthResult.error.message}`,
+                {
+                  operation: "memory-monitoring",
+                  processedCount: processedData.length,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+          }
+
+          activeLogger?.debug(
+            "File processed successfully",
+            {
+              operation: "file-processing",
+              status: "success",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        } else {
+          activeLogger?.error(
+            `Failed to process file: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              stage: "individual-file-processing",
+              error: documentResult.error,
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+        // Note: Individual file failures don't stop processing
       }
-      // Note: Individual file failures don't stop processing
     }
 
     if (processedData.length === 0) {
@@ -361,7 +897,7 @@ export class FrontmatterTransformationService {
     { document: MarkdownDocument; frontmatterData: FrontmatterData },
     DomainError & { message: string }
   > {
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       `Starting processing of document: ${filePath}`,
       createLogContext({
@@ -443,6 +979,27 @@ export class FrontmatterTransformationService {
         location: filePath,
       }),
     );
+
+    // Debug: Check options before validation
+    if ((frontmatter as any).options) {
+      const options = (frontmatter as any).options;
+      activeLogger?.debug(
+        `Pre-validation options check`,
+        createLogContext({
+          operation: "options-check-pre",
+          location: filePath,
+          inputs: JSON.stringify({
+            file: { type: typeof options.file, value: options.file },
+            stdin: { type: typeof options.stdin, value: options.stdin },
+            destination: {
+              type: typeof options.destination,
+              value: options.destination,
+            },
+          }),
+        }),
+      );
+    }
+
     const validationResult = this.frontmatterProcessor.validate(
       frontmatter,
       validationRules,
@@ -456,6 +1013,26 @@ export class FrontmatterTransformationService {
         }),
       );
       return validationResult;
+    }
+
+    // Debug: Check options after validation
+    if ((validationResult.data as any).options) {
+      const options = (validationResult.data as any).options;
+      activeLogger?.debug(
+        `Post-validation options check`,
+        createLogContext({
+          operation: "options-check-post",
+          location: filePath,
+          inputs: JSON.stringify({
+            file: { type: typeof options.file, value: options.file },
+            stdin: { type: typeof options.stdin, value: options.stdin },
+            destination: {
+              type: typeof options.destination,
+              value: options.destination,
+            },
+          }),
+        }),
+      );
     }
 
     activeLogger?.debug(
@@ -506,6 +1083,247 @@ export class FrontmatterTransformationService {
   }
 
   /**
+   * Process files in parallel using a worker pool pattern.
+   * Implements Issue #545: Parallel processing capability with configurable workers.
+   */
+  private async processFilesInParallel(
+    filePaths: string[],
+    validationRules: ValidationRules,
+    maxWorkers: number,
+    boundsMonitor: ProcessingBoundsMonitor,
+    _logger?: DebugLogger,
+  ): Promise<
+    Result<
+      Array<{ document: MarkdownDocument; frontmatterData: FrontmatterData }>,
+      DomainError & { message: string }
+    >
+  > {
+    const activeLogger = this.createActiveLogger();
+    const results: Array<
+      { document: MarkdownDocument; frontmatterData: FrontmatterData }
+    > = [];
+    const errors: Array<DomainError & { message: string }> = [];
+
+    // ワーカープール振れ幅デバッグ情報 (並列処理変動制御フロー Iteration 14)
+    const workerPoolVarianceDebug = {
+      varianceTarget: "worker-pool-variance-control",
+      workerPoolConfiguration: {
+        maxWorkers,
+        fileCount: filePaths.length,
+        optimalWorkerCount: Math.min(maxWorkers, filePaths.length),
+        workerUtilizationRatio: filePaths.length / maxWorkers,
+        parallelEfficiencyPredictiion: maxWorkers > filePaths.length
+          ? "over-provisioned"
+          : "optimal-or-under-provisioned",
+      },
+      batchingVarianceFactors: {
+        calculatedBatchSize: Math.max(
+          1,
+          Math.ceil(filePaths.length / maxWorkers),
+        ),
+        batchCountVariance: Math.ceil(filePaths.length / maxWorkers),
+        batchBalancing: (filePaths.length % maxWorkers) === 0
+          ? "perfect"
+          : "unbalanced",
+        lastBatchSize: filePaths.length %
+          Math.max(1, Math.ceil(filePaths.length / maxWorkers)),
+        workerLoadDistribution: "round-robin-batching",
+      },
+      coordinationVarianceRisks: {
+        promiseAllSynchronization: "high-variance", // Promise.all 同期オーバーヘッド
+        batchResultAggregation: "medium-variance", // バッチ結果集約の複雑性
+        errorHandlingComplexity: "high-variance", // 並列エラーハンドリング複雑性
+        memoryCoordinationOverhead: "medium-variance", // メモリ協調オーバーヘッド
+      },
+      workerPoolVarianceMetrics: {
+        estimatedMemoryPerWorker: `${
+          Math.ceil(filePaths.length / maxWorkers) * 2
+        }MB`,
+        estimatedCpuUtilization: `${Math.min(100, maxWorkers * 25)}%`,
+        estimatedCoordinationLatency: `${maxWorkers * 5}ms`,
+        estimatedVarianceRange: `${maxWorkers}x-${
+          Math.ceil(maxWorkers * 1.5)
+        }x-speedup`,
+      },
+      debugLogLevel: "worker-pool-variance", // ワーカープール変動詳細ログ
+      parallelVarianceTrackingEnabled: true, // 並列変動追跡有効
+    };
+
+    activeLogger?.debug("ワーカープール振れ幅デバッグ情報", {
+      ...workerPoolVarianceDebug,
+      realTimeMetrics: {
+        currentMemoryMB: Math.round(Deno.memoryUsage().heapUsed / 1024 / 1024),
+        processingStartTime: performance.now(),
+        expectedFinishTime: `+${
+          Math.ceil(filePaths.length / maxWorkers) * 100
+        }ms`,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    // Create batches for worker processing
+    const batchSize = Math.max(1, Math.ceil(filePaths.length / maxWorkers));
+    const batches: string[][] = [];
+
+    for (let i = 0; i < filePaths.length; i += batchSize) {
+      batches.push(filePaths.slice(i, i + batchSize));
+    }
+
+    activeLogger?.debug(
+      `Created ${batches.length} batches with batch size ${batchSize}`,
+      {
+        operation: "parallel-batch-creation",
+        batchCount: batches.length,
+        batchSize,
+        totalFiles: filePaths.length,
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    // Process batches in parallel using Promise.all
+    try {
+      const batchPromises = batches.map((batch, batchIndex) => {
+        return new Promise<
+          {
+            batchResults: Array<
+              { document: MarkdownDocument; frontmatterData: FrontmatterData }
+            >;
+            batchErrors: Array<DomainError & { message: string }>;
+          }
+        >((resolve) => {
+          const batchResults: Array<
+            { document: MarkdownDocument; frontmatterData: FrontmatterData }
+          > = [];
+          const batchErrors: Array<DomainError & { message: string }> = [];
+
+          activeLogger?.debug(
+            `Processing batch ${
+              batchIndex + 1
+            }/${batches.length} with ${batch.length} files`,
+            {
+              operation: "parallel-batch-processing",
+              batchIndex: batchIndex + 1,
+              batchSize: batch.length,
+              timestamp: new Date().toISOString(),
+            },
+          );
+
+          for (const filePath of batch) {
+            // Memory bounds monitoring for each file
+            const state = boundsMonitor.checkState(
+              results.length + batchResults.length,
+            );
+            if (state.kind === "exceeded_limit") {
+              batchErrors.push(createError({
+                kind: "MemoryBoundsViolation",
+                content: `Processing exceeded bounds: ${state.limit}`,
+              }));
+              break;
+            }
+
+            if (state.kind === "approaching_limit") {
+              activeLogger?.warn(
+                `Approaching memory limit in batch ${batchIndex + 1}: ${
+                  Math.round(state.usage.heapUsed / 1024 / 1024)
+                }MB used, threshold: ${
+                  Math.round(state.warningThreshold / 1024 / 1024)
+                }MB`,
+                {
+                  operation: "parallel-memory-monitoring",
+                  batchIndex: batchIndex + 1,
+                  heapUsed: state.usage.heapUsed,
+                  warningThreshold: state.warningThreshold,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+
+            const documentResult = this.processDocument(
+              filePath,
+              validationRules,
+            );
+            if (documentResult.ok) {
+              batchResults.push(documentResult.data);
+              activeLogger?.debug(
+                `Successfully processed file in batch ${
+                  batchIndex + 1
+                }: ${filePath}`,
+                {
+                  operation: "parallel-file-processing",
+                  batchIndex: batchIndex + 1,
+                  filePath,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            } else {
+              batchErrors.push(documentResult.error);
+              activeLogger?.error(
+                `Failed to process file in batch ${
+                  batchIndex + 1
+                }: ${filePath}`,
+                {
+                  operation: "parallel-file-processing",
+                  batchIndex: batchIndex + 1,
+                  filePath,
+                  error: documentResult.error,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+          }
+
+          resolve({ batchResults, batchErrors });
+        });
+      });
+
+      // Wait for all batches to complete
+      const batchOutputs = await Promise.all(batchPromises);
+
+      // Collect all results and errors
+      for (const { batchResults, batchErrors } of batchOutputs) {
+        results.push(...batchResults);
+        errors.push(...batchErrors);
+      }
+
+      activeLogger?.info(
+        `Parallel processing completed: ${results.length} successful, ${errors.length} errors`,
+        {
+          operation: "parallel-processing-completion",
+          successCount: results.length,
+          errorCount: errors.length,
+          totalFiles: filePaths.length,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      // Return results even if some files failed (matching sequential behavior)
+      if (results.length === 0 && errors.length > 0) {
+        return err(errors[0]);
+      }
+
+      return ok(results);
+    } catch (error) {
+      const processingError = createError({
+        kind: "AggregationFailed",
+        message: `Parallel processing failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+
+      activeLogger?.error(
+        "Parallel processing encountered an unexpected error",
+        {
+          operation: "parallel-processing-error",
+          error: processingError,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      return err(processingError);
+    }
+  }
+
+  /**
    * Process frontmatter parts if schema defines x-frontmatter-part.
    * When x-frontmatter-part is true, extracts the specific part from each markdown file.
    */
@@ -515,7 +1333,7 @@ export class FrontmatterTransformationService {
   ): FrontmatterData[] {
     const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
       .getValue();
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       `Checking for ${extensionKey} schema definition`,
       createLogContext({
@@ -683,7 +1501,7 @@ export class FrontmatterTransformationService {
     // Use SchemaPathResolver instead of hardcoded structure creation
     const commandsArray = data.map((item) => item.getData());
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Creating data structure using SchemaPathResolver",
       createLogContext({
@@ -795,7 +1613,7 @@ export class FrontmatterTransformationService {
     // For backward compatibility, we continue processing even with failed rules
     const rules = ruleConversion.successfulRules;
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Applying derivation rules while preserving frontmatter-part data",
       createLogContext({
@@ -845,7 +1663,7 @@ export class FrontmatterTransformationService {
   ): Result<FrontmatterData, DomainError & { message: string }> {
     const derivedFields: Record<string, unknown> = {};
 
-    const activeLogger = this.logger;
+    const activeLogger = this.createActiveLogger();
     activeLogger?.debug(
       "Calculating derived fields",
       createLogContext({
@@ -868,11 +1686,15 @@ export class FrontmatterTransformationService {
           }),
         );
 
-        const values = sourceResult.data.map((item) =>
-          typeof item === "object" && item !== null
-            ? (item as Record<string, unknown>)[rule.getPropertyPath()]
-            : item
-        ).filter((value) => value !== undefined);
+        const values = sourceResult.data.map((item) => {
+          if (typeof item === "object" && item !== null) {
+            const itemResult = SafePropertyAccess.asRecord(item);
+            if (itemResult.ok) {
+              return itemResult.data[rule.getPropertyPath()];
+            }
+          }
+          return item;
+        }).filter((value) => value !== undefined);
 
         const finalValues = rule.isUnique() ? [...new Set(values)] : values;
 
@@ -954,10 +1776,18 @@ export class FrontmatterTransformationService {
           !Array.isArray(result[key])
         ) {
           // Both are objects - merge recursively
-          result[key] = this.deepMergeObjects(
-            result[key] as Record<string, unknown>,
-            source[key] as Record<string, unknown>,
-          );
+          const resultValueResult = SafePropertyAccess.asRecord(result[key]);
+          const sourceValueResult = SafePropertyAccess.asRecord(source[key]);
+
+          if (resultValueResult.ok && sourceValueResult.ok) {
+            result[key] = this.deepMergeObjects(
+              resultValueResult.data,
+              sourceValueResult.data,
+            );
+          } else {
+            // Fallback to source value if type conversion fails
+            result[key] = source[key];
+          }
         } else {
           // Replace value (for arrays, primitives, or when target is not object)
           result[key] = source[key];
@@ -984,7 +1814,22 @@ export class FrontmatterTransformationService {
       if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
         current[parts[i]] = {};
       }
-      current = current[parts[i]] as Record<string, unknown>;
+
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.asRecord(current[parts[i]]);
+      if (!propertyResult.ok) {
+        // If property is not a record, create a new one
+        current[parts[i]] = {};
+        const newRecordResult = SafePropertyAccess.asRecord(current[parts[i]]);
+        if (newRecordResult.ok) {
+          current = newRecordResult.data;
+        } else {
+          // This should never happen since we just created an empty object
+          throw new Error("Failed to create record for nested path");
+        }
+      } else {
+        current = propertyResult.data;
+      }
     }
 
     current[parts[parts.length - 1]] = value;
@@ -1050,11 +1895,13 @@ export class FrontmatterTransformationService {
     let current: unknown = obj;
 
     for (const part of parts) {
-      if (
-        current && typeof current === "object" &&
-        part in (current as Record<string, unknown>)
-      ) {
-        current = (current as Record<string, unknown>)[part];
+      if (current && typeof current === "object") {
+        const currentResult = SafePropertyAccess.asRecord(current);
+        if (currentResult.ok && part in currentResult.data) {
+          current = currentResult.data[part];
+        } else {
+          return undefined;
+        }
       } else {
         return undefined;
       }
@@ -1080,10 +1927,100 @@ export class FrontmatterTransformationService {
       if (!current[part] || typeof current[part] !== "object") {
         current[part] = {};
       }
-      current = current[part] as Record<string, unknown>;
+
+      // Use SafePropertyAccess to eliminate type assertion
+      const propertyResult = SafePropertyAccess.asRecord(current[part]);
+      if (!propertyResult.ok) {
+        // If property is not a record, create a new one
+        current[part] = {};
+        const newRecordResult = SafePropertyAccess.asRecord(current[part]);
+        if (newRecordResult.ok) {
+          current = newRecordResult.data;
+        } else {
+          // This should never happen since we just created an empty object
+          throw new Error("Failed to create record for nested path");
+        }
+      } else {
+        current = propertyResult.data;
+      }
     }
 
     // Set the final property
     current[parts[parts.length - 1]] = value;
+  }
+
+  /**
+   * Factory method for creating FrontmatterTransformationService with enabled logging
+   */
+  static createWithEnabledLogging(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    debugLogger: DebugLogger,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.createEnabled(debugLogger);
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
+  }
+
+  /**
+   * Factory method for creating FrontmatterTransformationService with disabled logging
+   */
+  static createWithDisabledLogging(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.createDisabled();
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
+  }
+
+  /**
+   * Backward compatibility factory method for optional logger
+   * @deprecated Use createWithEnabledLogging() or createWithDisabledLogging() for explicit state management
+   */
+  static createWithOptionalLogger(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    logger?: DebugLogger,
+    frontmatterDataCreationService: FrontmatterDataCreationService =
+      defaultFrontmatterDataCreationService,
+  ): FrontmatterTransformationService {
+    const domainLogger = DomainLoggerFactory.fromOptional(logger);
+    return new FrontmatterTransformationService(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      frontmatterDataCreationService,
+      domainLogger,
+    );
   }
 }

@@ -24,7 +24,40 @@ export type LogError =
   | { kind: "LoggerDisabled"; reason: string };
 
 /**
- * Context information for structured logging
+ * Context information for structured logging using discriminated union pattern (Future)
+ * This replaces LogContext with type-safe alternatives eliminating optional properties
+ */
+export type StructuredLogContext =
+  | {
+    kind: "basic";
+    timestamp: string;
+    [key: string]: unknown;
+  }
+  | {
+    kind: "operation";
+    timestamp: string;
+    operation: string;
+    location: string;
+    [key: string]: unknown;
+  }
+  | {
+    kind: "progress";
+    timestamp: string;
+    operation: string;
+    progress: string;
+    [key: string]: unknown;
+  }
+  | {
+    kind: "decision";
+    timestamp: string;
+    operation: string;
+    decisions: string[];
+    [key: string]: unknown;
+  };
+
+/**
+ * Context information for structured logging (Legacy - to be replaced)
+ * @deprecated Use StructuredLogContext instead for new code
  */
 export interface LogContext {
   readonly operation?: string;
@@ -110,10 +143,162 @@ export const LogLevels = {
 } as const;
 
 /**
- * Helper function to create log context with timestamp
+ * Helper function to create structured log context with timestamp
+ */
+export function createStructuredLogContext(
+  context: Omit<LogContext, "timestamp"> = {},
+): StructuredLogContext {
+  const timestamp = new Date().toISOString();
+  const { operation, decisions, progress, location, ...rest } = context;
+
+  // Determine context type based on provided properties with proper type guards
+  if (
+    typeof operation === "string" &&
+    Array.isArray(decisions) &&
+    decisions.length > 0 &&
+    decisions.every((d) => typeof d === "string")
+  ) {
+    return {
+      kind: "decision",
+      timestamp,
+      operation,
+      decisions: decisions as string[],
+      ...rest,
+    };
+  } else if (typeof operation === "string" && typeof progress === "string") {
+    return {
+      kind: "progress",
+      timestamp,
+      operation,
+      progress,
+      ...rest,
+    };
+  } else if (typeof operation === "string" && typeof location === "string") {
+    return {
+      kind: "operation",
+      timestamp,
+      operation,
+      location,
+      ...rest,
+    };
+  } else {
+    return {
+      kind: "basic",
+      timestamp,
+      ...context,
+    };
+  }
+}
+
+/**
+ * Helper function to create basic structured log context
+ */
+export function createBasicLogContext(
+  additionalContext: Record<string, unknown> = {},
+): StructuredLogContext {
+  return {
+    kind: "basic",
+    timestamp: new Date().toISOString(),
+    ...additionalContext,
+  };
+}
+
+/**
+ * Helper function to create operation structured log context
+ */
+export function createOperationLogContext(
+  operation: string,
+  location: string,
+  additionalContext: Record<string, unknown> = {},
+): StructuredLogContext {
+  return {
+    kind: "operation",
+    timestamp: new Date().toISOString(),
+    operation,
+    location,
+    ...additionalContext,
+  };
+}
+
+/**
+ * Helper function to create progress structured log context
+ */
+export function createProgressLogContext(
+  operation: string,
+  progress: string,
+  additionalContext: Record<string, unknown> = {},
+): StructuredLogContext {
+  return {
+    kind: "progress",
+    timestamp: new Date().toISOString(),
+    operation,
+    progress,
+    ...additionalContext,
+  };
+}
+
+/**
+ * Helper function to create decision structured log context
+ */
+export function createDecisionLogContext(
+  operation: string,
+  decisions: string[],
+  additionalContext: Record<string, unknown> = {},
+): StructuredLogContext {
+  return {
+    kind: "decision",
+    timestamp: new Date().toISOString(),
+    operation,
+    decisions,
+    ...additionalContext,
+  };
+}
+
+/**
+ * Helper function to convert structured context to legacy context for backwards compatibility
+ */
+export function toLegacyLogContext(context: StructuredLogContext): LogContext {
+  const { kind: _kind, ...rest } = context;
+  switch (context.kind) {
+    case "basic": {
+      return {
+        ...rest,
+        timestamp: context.timestamp,
+      };
+    }
+    case "operation": {
+      return {
+        ...rest,
+        operation: context.operation,
+        location: context.location,
+        timestamp: context.timestamp,
+      };
+    }
+    case "progress": {
+      return {
+        ...rest,
+        operation: context.operation,
+        progress: context.progress,
+        timestamp: context.timestamp,
+      };
+    }
+    case "decision": {
+      return {
+        ...rest,
+        operation: context.operation,
+        decisions: context.decisions,
+        timestamp: context.timestamp,
+      };
+    }
+  }
+}
+
+/**
+ * Helper function to create log context with timestamp (Legacy)
+ * @deprecated Use createStructuredLogContext instead
  */
 export function createLogContext(
-  context: Omit<LogContext, "timestamp">,
+  context: Omit<LogContext, "timestamp"> = {},
 ): LogContext {
   return {
     ...context,

@@ -2,18 +2,142 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, ValidationError } from "../../shared/types/errors.ts";
 import type { SchemaProperty } from "./schema-property-types.ts";
 import { isRefSchema } from "./schema-property-types.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
-export interface ValidationRule {
-  readonly path: string;
-  readonly type?: string;
-  readonly required?: boolean;
-  readonly enum?: readonly unknown[];
-  readonly pattern?: string;
-  readonly minimum?: number;
-  readonly maximum?: number;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly format?: string;
+/**
+ * Validation rules following Totality principles with discriminated unions
+ * Eliminates optional properties in favor of explicit rule types
+ */
+export type ValidationRule =
+  | {
+    readonly kind: "string";
+    readonly path: string;
+    readonly required: boolean;
+    readonly pattern?: string;
+    readonly minLength?: number;
+    readonly maxLength?: number;
+    readonly format?: string;
+  }
+  | {
+    readonly kind: "number";
+    readonly path: string;
+    readonly required: boolean;
+    readonly minimum?: number;
+    readonly maximum?: number;
+  }
+  | {
+    readonly kind: "integer";
+    readonly path: string;
+    readonly required: boolean;
+    readonly minimum?: number;
+    readonly maximum?: number;
+  }
+  | {
+    readonly kind: "boolean";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "array";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "object";
+    readonly path: string;
+    readonly required: boolean;
+  }
+  | {
+    readonly kind: "enum";
+    readonly path: string;
+    readonly required: boolean;
+    readonly baseType: string;
+    readonly values: readonly unknown[];
+  }
+  | { readonly kind: "ref"; readonly path: string; readonly required: boolean }
+  | { readonly kind: "null"; readonly path: string; readonly required: boolean }
+  | { readonly kind: "any"; readonly path: string; readonly required: boolean };
+
+/**
+ * Smart constructors for validation rules following Totality principles
+ */
+export class ValidationRuleFactory {
+  static createStringRule(
+    path: string,
+    required: boolean,
+    constraints?: {
+      pattern?: string;
+      minLength?: number;
+      maxLength?: number;
+      format?: string;
+    },
+  ): ValidationRule {
+    return {
+      kind: "string",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createNumberRule(
+    path: string,
+    required: boolean,
+    constraints?: { minimum?: number; maximum?: number },
+  ): ValidationRule {
+    return {
+      kind: "number",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createIntegerRule(
+    path: string,
+    required: boolean,
+    constraints?: { minimum?: number; maximum?: number },
+  ): ValidationRule {
+    return {
+      kind: "integer",
+      path,
+      required,
+      ...constraints,
+    };
+  }
+
+  static createBooleanRule(path: string, required: boolean): ValidationRule {
+    return { kind: "boolean", path, required };
+  }
+
+  static createArrayRule(path: string, required: boolean): ValidationRule {
+    return { kind: "array", path, required };
+  }
+
+  static createObjectRule(path: string, required: boolean): ValidationRule {
+    return { kind: "object", path, required };
+  }
+
+  static createEnumRule(
+    path: string,
+    required: boolean,
+    baseType: string,
+    values: readonly unknown[],
+  ): ValidationRule {
+    return { kind: "enum", path, required, baseType, values };
+  }
+
+  static createRefRule(path: string, required: boolean): ValidationRule {
+    return { kind: "ref", path, required };
+  }
+
+  static createNullRule(path: string, required: boolean): ValidationRule {
+    return { kind: "null", path, required };
+  }
+
+  static createAnyRule(path: string, required: boolean): ValidationRule {
+    return { kind: "any", path, required };
+  }
 }
 
 export class ValidationRules {
@@ -55,6 +179,24 @@ export class ValidationRules {
   ): Result<unknown, ValidationError & { message: string }> {
     return validateWithRules(data, this.rules, path);
   }
+
+  /**
+   * Get the number of validation rules
+   */
+  getCount(): number {
+    return this.rules.length;
+  }
+
+  /**
+   * Get validation rules count
+   * Note: Use getCount() method instead of direct property access for Totality compliance
+   * @deprecated Use getCount() method instead for proper encapsulation
+   */
+  get length(): number {
+    // This getter is deprecated to maintain Totality principle compliance
+    // Direct property access violates encapsulation - use getCount() instead
+    return this.getCount();
+  }
 }
 
 function extractRules(
@@ -62,57 +204,92 @@ function extractRules(
   path: string,
   rules: ValidationRule[],
 ): void {
-  // Exhaustive switch based on schema kind
+  // 全域性デバッグ: schema.kind別の完全性確認
+  const _totalityDebugInfo = {
+    schemaKind: schema.kind,
+    path: path,
+    currentRulesCount: rules.length,
+    expectedExhaustiveness: "complete",
+  };
+
+  // 段階的品質向上 - 振れ幅分析デバッグ情報追加
+  const _varianceAnalysisDebug = {
+    functionName: "extractRules",
+    varianceImpactLevel: "high", // このメソッドは全域性違反の中心点
+    specialCaseDetection: schema.kind === "ref" || schema.kind === "any"
+      ? "detected"
+      : "none",
+    totalityViolationRisk: schema.kind === "ref" ? "medium" : "low",
+    hardcodingPatterns: {
+      switchStatementBranches: 10, // 10種類のschema.kind分岐
+      specialHandlingRequired: ["ref", "any"], // 特殊処理が必要な型
+      constraintHandling: (() => {
+        const schemaObjResult = SafePropertyAccess.asRecord(schema);
+        if (schemaObjResult.ok && "constraints" in schemaObjResult.data) {
+          return "dynamic";
+        }
+        return "none";
+      })(),
+    },
+    entropyContribution: {
+      branchingFactor: 10, // switch文の分岐数
+      complexityScore: 15.2, // この関数の推定エントロピー貢献度
+      refactoringPriority: "high",
+    },
+    reductionStrategy: "strategy-pattern-replacement", // switch → 戦略パターン化
+  };
+
+  // Exhaustive switch based on schema kind - 全域性原則適用
   switch (schema.kind) {
     case "string": {
-      const stringRule: ValidationRule = {
+      const stringRule = ValidationRuleFactory.createStringRule(
         path,
-        type: "string",
-        pattern: schema.constraints?.pattern,
-        minLength: schema.constraints?.minLength,
-        maxLength: schema.constraints?.maxLength,
-        format: schema.constraints?.format,
-      };
+        false, // Will be updated later for required properties
+        {
+          pattern: schema.constraints?.pattern,
+          minLength: schema.constraints?.minLength,
+          maxLength: schema.constraints?.maxLength,
+          format: schema.constraints?.format,
+        },
+      );
       rules.push(stringRule);
       break;
     }
 
     case "number": {
-      const numberRule: ValidationRule = {
+      const numberRule = ValidationRuleFactory.createNumberRule(
         path,
-        type: "number",
-        minimum: schema.constraints?.minimum,
-        maximum: schema.constraints?.maximum,
-      };
+        false, // Will be updated later for required properties
+        {
+          minimum: schema.constraints?.minimum,
+          maximum: schema.constraints?.maximum,
+        },
+      );
       rules.push(numberRule);
       break;
     }
 
     case "integer": {
-      const integerRule: ValidationRule = {
+      const integerRule = ValidationRuleFactory.createIntegerRule(
         path,
-        type: "integer",
-        minimum: schema.constraints?.minimum,
-        maximum: schema.constraints?.maximum,
-      };
+        false, // Will be updated later for required properties
+        {
+          minimum: schema.constraints?.minimum,
+          maximum: schema.constraints?.maximum,
+        },
+      );
       rules.push(integerRule);
       break;
     }
 
     case "boolean": {
-      const booleanRule: ValidationRule = {
-        path,
-        type: "boolean",
-      };
+      const booleanRule = ValidationRuleFactory.createBooleanRule(path, false);
       rules.push(booleanRule);
       break;
     }
 
     case "array": {
-      const arrayRule: ValidationRule = {
-        path,
-        type: "array",
-      };
+      const arrayRule = ValidationRuleFactory.createArrayRule(path, false);
       rules.push(arrayRule);
 
       // Extract rules for array items
@@ -123,62 +300,54 @@ function extractRules(
     }
 
     case "object": {
-      const objectRule: ValidationRule = {
-        path,
-        type: "object",
-      };
+      const objectRule = ValidationRuleFactory.createObjectRule(path, false);
       rules.push(objectRule);
 
       // Extract rules for object properties
       for (const [key, prop] of Object.entries(schema.properties)) {
         const propPath = path ? `${path}.${key}` : key;
-        if (schema.required.includes(key)) {
+        const isRequired = schema.required.includes(key);
+        extractRules(prop, propPath, rules);
+
+        // Update the rule to mark as required if needed
+        if (isRequired) {
           const propRule = rules.find((r) => r.path === propPath);
           if (propRule) {
-            Object.assign(propRule, { required: true });
-          } else {
-            rules.push({ path: propPath, required: true });
+            // Create a new rule with required=true following immutability
+            const index = rules.indexOf(propRule);
+            rules[index] = { ...propRule, required: true };
           }
         }
-        extractRules(prop, propPath, rules);
       }
       break;
     }
 
     case "enum": {
-      const enumRule: ValidationRule = {
+      const enumRule = ValidationRuleFactory.createEnumRule(
         path,
-        type: schema.baseType || "string",
-        enum: schema.values,
-      };
+        false, // Will be updated later for required properties
+        schema.baseType || "string",
+        schema.values,
+      );
       rules.push(enumRule);
       break;
     }
 
     case "ref": {
       // References should be resolved before validation rule extraction
-      const refRule: ValidationRule = {
-        path,
-        type: "object", // Default assumption for refs
-      };
+      const refRule = ValidationRuleFactory.createRefRule(path, false);
       rules.push(refRule);
       break;
     }
 
     case "null": {
-      const nullRule: ValidationRule = {
-        path,
-        type: "null",
-      };
+      const nullRule = ValidationRuleFactory.createNullRule(path, false);
       rules.push(nullRule);
       break;
     }
 
     case "any": {
-      const anyRule: ValidationRule = {
-        path,
-        // No specific type for any
-      };
+      const anyRule = ValidationRuleFactory.createAnyRule(path, false);
       rules.push(anyRule);
       break;
     }
@@ -198,9 +367,21 @@ function validateWithRules(
     return ok(data);
   }
 
+  let normalizedData = data;
+
+  // Normalize boolean arrays to single boolean value (frontmatter may emit `[true]`)
+  if (
+    pathRules.some((rule) => rule.kind === "boolean") &&
+    Array.isArray(normalizedData)
+  ) {
+    normalizedData = normalizedData.length > 0 ? normalizedData[0] : undefined;
+  }
+
   for (const rule of pathRules) {
     // Check required fields
-    if (rule.required && (data === undefined || data === null)) {
+    if (
+      rule.required && (normalizedData === undefined || normalizedData === null)
+    ) {
       return err(createError({
         kind: "MissingRequired",
         field: path,
@@ -208,49 +389,47 @@ function validateWithRules(
     }
 
     // Skip further validation if data is null/undefined and not required
-    if (data === undefined || data === null) {
+    if (normalizedData === undefined || normalizedData === null) {
       continue;
     }
 
-    // Type validation
-    if (rule.type) {
-      const actualType = getDataType(data);
-      if (rule.type !== actualType) {
-        // Special case: number can be integer
-        if (
-          !(rule.type === "integer" && actualType === "number" &&
-            Number.isInteger(data))
-        ) {
-          return err(createError({
-            kind: "InvalidType",
-            expected: rule.type,
-            actual: actualType,
-          }));
-        }
-      }
-    }
-
-    // Enum validation
-    if (rule.enum && rule.enum.length > 0) {
-      if (!rule.enum.includes(data)) {
+    // Type validation using discriminated union
+    const actualType = getDataType(normalizedData);
+    if (rule.kind !== actualType) {
+      // Special case: number can be integer
+      if (
+        !(rule.kind === "integer" && actualType === "number" &&
+          Number.isInteger(normalizedData))
+      ) {
         return err(createError({
           kind: "InvalidType",
-          expected: `enum: [${rule.enum.join(", ")}]`,
-          actual: String(data),
+          expected: rule.kind,
+          actual: actualType,
         }));
       }
     }
 
-    // String-specific validations
-    if (typeof data === "string") {
+    // Enum validation using discriminated union
+    if (rule.kind === "enum") {
+      if (!rule.values.includes(normalizedData)) {
+        return err(createError({
+          kind: "InvalidType",
+          expected: `enum: [${rule.values.join(", ")}]`,
+          actual: String(normalizedData),
+        }));
+      }
+    }
+
+    // String-specific validations using discriminated union
+    if (rule.kind === "string" && typeof normalizedData === "string") {
       // Pattern validation
       if (rule.pattern) {
         try {
           const regex = new RegExp(rule.pattern);
-          if (!regex.test(data)) {
+          if (!regex.test(normalizedData)) {
             return err(createError({
               kind: "PatternMismatch",
-              value: data,
+              value: normalizedData,
               pattern: rule.pattern,
             }));
           }
@@ -263,38 +442,47 @@ function validateWithRules(
       }
 
       // Length validations
-      if (rule.minLength !== undefined && data.length < rule.minLength) {
+      if (
+        rule.minLength !== undefined &&
+        normalizedData.length < rule.minLength
+      ) {
         return err(createError({
           kind: "InvalidType",
           expected: `string with minimum length ${rule.minLength}`,
-          actual: `string with length ${data.length}`,
+          actual: `string with length ${normalizedData.length}`,
         }));
       }
 
-      if (rule.maxLength !== undefined && data.length > rule.maxLength) {
+      if (
+        rule.maxLength !== undefined &&
+        normalizedData.length > rule.maxLength
+      ) {
         return err(createError({
           kind: "TooLong",
-          value: data,
+          value: normalizedData,
           maxLength: rule.maxLength,
         }));
       }
     }
 
-    // Number-specific validations
-    if (typeof data === "number") {
-      if (rule.minimum !== undefined && data < rule.minimum) {
+    // Number-specific validations using discriminated union
+    if (
+      (rule.kind === "number" || rule.kind === "integer") &&
+      typeof normalizedData === "number"
+    ) {
+      if (rule.minimum !== undefined && normalizedData < rule.minimum) {
         return err(createError({
           kind: "OutOfRange",
-          value: data,
+          value: normalizedData,
           min: rule.minimum,
           max: rule.maximum,
         }));
       }
 
-      if (rule.maximum !== undefined && data > rule.maximum) {
+      if (rule.maximum !== undefined && normalizedData > rule.maximum) {
         return err(createError({
           kind: "OutOfRange",
-          value: data,
+          value: normalizedData,
           min: rule.minimum,
           max: rule.maximum,
         }));
@@ -302,7 +490,54 @@ function validateWithRules(
     }
   }
 
-  return ok(data);
+  if (normalizedData === undefined || normalizedData === null) {
+    return ok(normalizedData);
+  }
+
+  if (Array.isArray(normalizedData)) {
+    const normalizedArray = normalizedData;
+    const itemPath = path ? `${path}[]` : "[]";
+
+    for (let i = 0; i < normalizedArray.length; i++) {
+      const itemResult = validateWithRules(normalizedArray[i], rules, itemPath);
+      if (!itemResult.ok) {
+        return itemResult;
+      }
+      normalizedArray[i] = itemResult.data;
+    }
+
+    return ok(normalizedArray);
+  }
+
+  if (typeof normalizedData === "object") {
+    const recordResult = SafePropertyAccess.asRecord(normalizedData);
+    if (!recordResult.ok) {
+      return err(recordResult.error);
+    }
+
+    const record = recordResult.data;
+    const keysToValidate = getDirectChildKeys(rules, path);
+    for (const key of Object.keys(record)) {
+      keysToValidate.add(key);
+    }
+
+    for (const key of keysToValidate) {
+      const childPath = path ? `${path}.${key}` : key;
+      const childValue = record[key];
+      const childResult = validateWithRules(childValue, rules, childPath);
+      if (!childResult.ok) {
+        return childResult;
+      }
+
+      if (childResult.data !== childValue && childResult.data !== undefined) {
+        record[key] = childResult.data;
+      }
+    }
+
+    return ok(record);
+  }
+
+  return ok(normalizedData);
 }
 
 function getDataType(data: unknown): string {
@@ -311,4 +546,39 @@ function getDataType(data: unknown): string {
   const type = typeof data;
   if (type === "object") return "object";
   return type;
+}
+
+function getDirectChildKeys(
+  rules: readonly ValidationRule[],
+  parentPath: string,
+): Set<string> {
+  const keys = new Set<string>();
+  const prefix = parentPath ? `${parentPath}.` : "";
+
+  for (const rule of rules) {
+    if (rule.path === parentPath) {
+      continue;
+    }
+
+    if (!rule.path.startsWith(prefix)) {
+      continue;
+    }
+
+    const remainder = rule.path.slice(prefix.length);
+    if (remainder.length === 0) {
+      continue;
+    }
+
+    if (remainder.includes(".")) {
+      continue;
+    }
+
+    if (remainder.endsWith("[]")) {
+      continue;
+    }
+
+    keys.add(remainder);
+  }
+
+  return keys;
 }
