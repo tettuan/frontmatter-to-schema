@@ -391,3 +391,306 @@ Deno.test("Aggregator - should handle evaluation errors gracefully", () => {
     assertEquals(derivedFields.target, []);
   }
 });
+
+// Issue #527: Missing test for multiple registry merge functionality
+Deno.test("Aggregator - Multiple Registry Merge - should merge commands from multiple registries and derive availableConfigs", () => {
+  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+
+  // Simulate Registry 1: meta and spec commands
+  const registry1Result = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        {
+          c1: "meta",
+          c2: "resolve",
+          c3: "registered-commands",
+          title: "Resolve Registered Commands",
+          description: "Resolve and display all registered commands",
+        },
+        {
+          c1: "spec",
+          c2: "analyze",
+          c3: "quality-metrics",
+          title: "Analyze Quality Metrics",
+          description: "Analyze specification quality and completeness metrics",
+        },
+      ],
+    },
+  });
+
+  // Simulate Registry 2: git and build commands
+  const registry2Result = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        {
+          c1: "git",
+          c2: "commit",
+          c3: "changes",
+          title: "Commit Changes",
+          description: "Create a git commit with changes",
+        },
+        {
+          c1: "build",
+          c2: "robust",
+          c3: "code",
+          title: "Build Robust Code",
+          description: "Build robust and reliable code",
+        },
+      ],
+    },
+  });
+
+  // Simulate Registry 3: additional meta and debug commands (with duplicates)
+  const registry3Result = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        {
+          c1: "meta",
+          c2: "build-list",
+          c3: "command-registry",
+          title: "Build Command Registry",
+          description: "Build list of available commands",
+        },
+        {
+          c1: "debug",
+          c2: "analyze-deep",
+          c3: "project-issues",
+          title: "Deep Project Analysis",
+          description: "Analyze project issues in depth",
+        },
+      ],
+    },
+  });
+
+  assert(registry1Result.ok && registry2Result.ok && registry3Result.ok);
+
+  // Create derivation rules matching the registry schema pattern
+  const availableConfigsRule = DerivationRule.create(
+    "tools.commands[].c1",
+    "tools.availableConfigs",
+    true, // x-derived-unique: true
+  );
+  assert(availableConfigsRule.ok);
+
+  // Act: Aggregate multiple registries
+  const result = aggregator.aggregate(
+    [registry1Result.data, registry2Result.data, registry3Result.data],
+    [availableConfigsRule.data!],
+  );
+
+  // Assert: Successful aggregation
+  assert(result.ok);
+  if (result.ok) {
+    const derivedFields = result.data.derivedFields;
+
+    // Verify availableConfigs contains unique c1 values from all registries
+    const availableConfigs =
+      derivedFields["tools.availableConfigs"] as string[];
+    assert(Array.isArray(availableConfigs));
+
+    // Should contain all unique c1 values: meta, spec, git, build, debug
+    const expectedConfigs = ["build", "debug", "git", "meta", "spec"];
+    assertEquals(availableConfigs.sort(), expectedConfigs);
+
+    // Verify no duplicates (meta appears in both registry1 and registry3)
+    const duplicateCount = availableConfigs.filter((config) =>
+      config === "meta"
+    ).length;
+    assertEquals(
+      duplicateCount,
+      1,
+      "meta should appear only once despite being in multiple registries",
+    );
+  }
+});
+
+Deno.test("Aggregator - Multiple Registry Merge - should handle empty registries gracefully", () => {
+  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+
+  // Registry with commands
+  const fullRegistryResult = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        { c1: "git", c2: "commit", c3: "changes" },
+        { c1: "spec", c2: "analyze", c3: "quality" },
+      ],
+    },
+  });
+
+  // Empty registry
+  const emptyRegistryResult = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [],
+    },
+  });
+
+  // Registry with no commands property
+  const noCommandsRegistryResult = TestDataFactory.createFrontmatterData({
+    tools: {
+      other: "value",
+    },
+  });
+
+  assert(
+    fullRegistryResult.ok && emptyRegistryResult.ok &&
+      noCommandsRegistryResult.ok,
+  );
+
+  const availableConfigsRule = DerivationRule.create(
+    "tools.commands[].c1",
+    "tools.availableConfigs",
+    true,
+  );
+  assert(availableConfigsRule.ok);
+
+  const result = aggregator.aggregate(
+    [
+      fullRegistryResult.data,
+      emptyRegistryResult.data,
+      noCommandsRegistryResult.data,
+    ],
+    [availableConfigsRule.data!],
+  );
+
+  assert(result.ok);
+  if (result.ok) {
+    const derivedFields = result.data.derivedFields;
+    const availableConfigs =
+      derivedFields["tools.availableConfigs"] as string[];
+
+    // Should only contain configs from the non-empty registry
+    assertEquals(availableConfigs.sort(), ["git", "spec"]);
+  }
+});
+
+Deno.test("Aggregator - Multiple Registry Merge - should preserve latest version in base data", () => {
+  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+
+  // Base data with version and description
+  const baseDataResult = TestDataFactory.createFrontmatterData({
+    version: "1.0.0",
+    description: "Command Registry",
+  });
+
+  // Registry data to merge
+  const registryDataResult = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        { c1: "meta", c2: "resolve", c3: "commands" },
+        { c1: "git", c2: "commit", c3: "changes" },
+      ],
+    },
+  });
+
+  assert(baseDataResult.ok && registryDataResult.ok);
+
+  const availableConfigsRule = DerivationRule.create(
+    "tools.commands[].c1",
+    "availableConfigs",
+    true,
+  );
+  assert(availableConfigsRule.ok);
+
+  // Aggregate with base data
+  const aggregateResult = aggregator.aggregate(
+    [registryDataResult.data],
+    [availableConfigsRule.data!],
+    baseDataResult.data,
+  );
+  assert(aggregateResult.ok);
+
+  if (aggregateResult.ok) {
+    // Merge with base data
+    const mergeResult = aggregator.mergeWithBase(aggregateResult.data);
+    assert(mergeResult.ok);
+
+    if (mergeResult.ok) {
+      const finalData = mergeResult.data.getData();
+
+      // Verify base data is preserved
+      assertEquals(finalData.version, "1.0.0");
+      assertEquals(finalData.description, "Command Registry");
+
+      // Verify derived fields are added
+      assertEquals((finalData.availableConfigs as string[]).sort(), [
+        "git",
+        "meta",
+      ]);
+    }
+  }
+});
+
+Deno.test("Aggregator - Multiple Registry Merge - should handle conflicting command data", () => {
+  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+
+  // Registry 1: meta command with one description
+  const registry1Result = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        {
+          c1: "meta",
+          c2: "resolve",
+          c3: "commands",
+          title: "Original Meta Command",
+          description: "Original description",
+        },
+      ],
+    },
+  });
+
+  // Registry 2: different meta command (same c1, different details)
+  const registry2Result = TestDataFactory.createFrontmatterData({
+    tools: {
+      commands: [
+        {
+          c1: "meta",
+          c2: "build-list",
+          c3: "registry",
+          title: "Updated Meta Command",
+          description: "Updated description",
+        },
+        {
+          c1: "git",
+          c2: "commit",
+          c3: "changes",
+          title: "Git Commit",
+          description: "Commit changes",
+        },
+      ],
+    },
+  });
+
+  assert(registry1Result.ok && registry2Result.ok);
+
+  // Test both command aggregation and config derivation
+  const commandsRule = DerivationRule.create(
+    "tools.commands[]",
+    "aggregatedCommands",
+    false, // Don't unique - keep all commands
+  );
+  const availableConfigsRule = DerivationRule.create(
+    "tools.commands[].c1",
+    "tools.availableConfigs",
+    true, // Unique c1 values only
+  );
+  assert(commandsRule.ok && availableConfigsRule.ok);
+
+  const result = aggregator.aggregate(
+    [registry1Result.data, registry2Result.data],
+    [commandsRule.data!, availableConfigsRule.data!],
+  );
+
+  assert(result.ok);
+  if (result.ok) {
+    const derivedFields = result.data.derivedFields;
+
+    // All commands should be aggregated (3 total)
+    const aggregatedCommands = derivedFields.aggregatedCommands as any[];
+    assertEquals(aggregatedCommands.length, 3);
+
+    // But availableConfigs should be unique (only 'git' and 'meta')
+    const availableConfigs =
+      derivedFields["tools.availableConfigs"] as string[];
+    assertEquals(availableConfigs.sort(), ["git", "meta"]);
+  }
+});

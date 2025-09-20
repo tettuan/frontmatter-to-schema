@@ -10,6 +10,11 @@ import {
 } from "../../domain/template/services/template-path-resolver.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
+import {
+  ProcessingHints,
+  SchemaStructureDetector,
+} from "../../domain/schema/services/schema-structure-detector.ts";
+import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 
 /**
  * Template configuration using discriminated unions (Totality principle)
@@ -195,6 +200,120 @@ export class TemplateCoordinator {
   ): Result<void, DomainError & { message: string }> {
     return this.outputRenderingService.renderOutput(
       templatePath,
+      itemsTemplatePath,
+      mainData,
+      itemsData,
+      outputPath,
+      outputFormat,
+      verbosityMode,
+    );
+  }
+
+  /**
+   * Resolve template paths with StructureType awareness
+   * Enhances template selection based on detected structure type
+   * Following DDD - coordination with structure intelligence
+   */
+  resolveTemplatePathsWithStructureType(
+    schema: Schema,
+    structureType: StructureType,
+    templateConfig: TemplateConfig,
+    schemaPath: string,
+  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
+    // Get processing hints for structure-specific handling
+    const hints = SchemaStructureDetector.getProcessingHints(structureType);
+
+    // Adjust template configuration based on structure type
+    const adjustedConfig = this.adjustTemplateConfigForStructure(
+      templateConfig,
+      structureType,
+      hints,
+    );
+
+    return this.resolveTemplatePaths(schema, adjustedConfig, schemaPath);
+  }
+
+  /**
+   * Adjust template configuration based on structure type and processing hints
+   * Following Totality principles - exhaustive pattern matching
+   */
+  private adjustTemplateConfigForStructure(
+    config: TemplateConfig,
+    structureType: StructureType,
+    _hints: ProcessingHints,
+  ): TemplateConfig {
+    if (config.kind === "explicit") {
+      // For explicit templates, no adjustment needed
+      return config;
+    }
+
+    // For schema-derived templates, consider structure type
+    switch (structureType.kind) {
+      case "registry":
+        // Registry structures typically use JSON templates for structured output
+        return config; // Keep schema-derived behavior for now
+      case "collection":
+        // Collection structures may benefit from auto-format selection
+        return config; // Keep schema-derived behavior for now
+      case "custom":
+        // Custom structures use schema-derived approach
+        return config;
+    }
+  }
+
+  /**
+   * Process template with StructureType awareness
+   * Enhanced workflow combining structure detection with template processing
+   * Following DDD - coordination of domain operations with structure intelligence
+   */
+  processTemplateWithStructureAwareness(
+    schema: Schema,
+    structureType: StructureType,
+    templateConfig: TemplateConfig,
+    schemaPath: string,
+    mainData: FrontmatterData,
+    itemsData: FrontmatterData[] | undefined,
+    outputPath: string,
+    verbosityMode: VerbosityMode,
+  ): Result<void, DomainError & { message: string }> {
+    // Resolve template paths with structure awareness
+    const pathsResult = this.resolveTemplatePathsWithStructureType(
+      schema,
+      structureType,
+      templateConfig,
+      schemaPath,
+    );
+    if (!pathsResult.ok) {
+      return pathsResult;
+    }
+
+    const resolvedPaths = pathsResult.data;
+    const processingHints = SchemaStructureDetector.getProcessingHints(
+      structureType,
+    );
+
+    // Use backward compatibility property if available, otherwise extract from ItemsTemplateState
+    const itemsTemplatePath = resolvedPaths.itemsTemplatePath !== undefined
+      ? resolvedPaths.itemsTemplatePath
+      : resolvedPaths.itemsTemplate &&
+          resolvedPaths.itemsTemplate.kind === "defined"
+      ? resolvedPaths.itemsTemplate.path
+      : undefined;
+
+    // Extract output format with structure type awareness
+    let outputFormat = resolvedPaths.outputFormat &&
+        resolvedPaths.outputFormat.kind === "specified"
+      ? resolvedPaths.outputFormat.format
+      : "json";
+
+    // Apply structure-specific format preferences
+    if (processingHints.templateFormat !== "auto") {
+      outputFormat = processingHints.templateFormat;
+    }
+
+    // Render output with structure-aware configuration
+    return this.renderOutput(
+      resolvedPaths.templatePath,
       itemsTemplatePath,
       mainData,
       itemsData,
