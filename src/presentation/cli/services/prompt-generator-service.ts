@@ -37,12 +37,19 @@ Target schema file: ${schemaPath}
    - Identify common patterns and field types
    - Determine required vs optional fields
    - Detect nested structures and arrays
+   - Note field frequency and variations
 
 2. **Define JSON Schema Properties**
    - Set appropriate data types (string, number, boolean, array, object)
-   - Add field descriptions and examples
-   - Define validation rules (pattern, minLength, maxLength, etc.)
+   - Add field descriptions for documentation
+   - Define validation rules:
+     * enum for restricted values
+     * pattern for regex validation
+     * minLength/maxLength for strings
+     * minimum/maximum for numbers
+     * minItems/maxItems for arrays
    - Set default values where appropriate
+   - Use additionalProperties: false for strict validation
 
 3. **Schema Extensions (x-* Properties)**
    The schema uses custom extensions for enhanced functionality:
@@ -63,13 +70,35 @@ Target schema file: ${schemaPath}
 
    d) **x-derived-from** (Property-level):
       - Creates derived fields by aggregating from nested properties
-      - Uses dot-path expressions: "commands[].propertyName"
+      - Uses simple array notation: "commands[].propertyName"
+      - Supports nested paths: "nested.items[].deep.property"
       - Example: "x-derived-from": "commands[].c1"
+      - Note: Complex JMESPath filters are not supported
 
    e) **x-derived-unique** (Property-level):
       - Used with x-derived-from to ensure unique values
       - Removes duplicates from derived arrays
       - Example: "x-derived-unique": true
+
+   f) **x-jmespath-filter** (Property-level):
+      - Applies JMESPath expressions for advanced filtering
+      - Supports complex queries and transformations
+      - Example: "x-jmespath-filter": "items[?status=='active'].name"
+
+   g) **x-template-format** (Schema-level):
+      - Specifies the output format (json, yaml)
+      - Overrides file extension detection
+      - Example: "x-template-format": "yaml"
+
+   h) **x-base-property** (Property-level):
+      - Marks properties for base value population
+      - Values are inherited from schema defaults
+      - Example: "x-base-property": true
+
+   i) **x-default-value** (Property-level):
+      - Provides default values when not in frontmatter
+      - Alternative to JSON Schema's "default" keyword
+      - Example: "x-default-value": "default-config"
 
 4. **Template Variable Resolution**
    Variables in templates (e.g., {version}, {name}) are resolved from:
@@ -116,26 +145,47 @@ Target schema file: ${schemaPath}
   "type": "object",
   "x-template": "registry_template.json",
   "x-template-items": "command_template.json",
+  "x-template-format": "json",
   "properties": {
     "version": {
       "type": "string",
-      "default": "1.0.0"
+      "default": "1.0.0",
+      "description": "Registry version"
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "x-base-property": true,
+      "x-default-value": "Command Registry"
     },
     "commands": {
       "type": "array",
       "x-frontmatter-part": true,
+      "description": "Each item represents a separate markdown file",
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "c1": { "type": "string" },
+          "id": {
+            "type": "string",
+            "description": "Unique command identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Command display name"
+          },
+          "c1": {
+            "type": "string",
+            "description": "Configuration type",
+            "enum": ["basic", "advanced", "expert"]
+          },
+          "status": {
+            "type": "string",
+            "default": "active",
+            "enum": ["active", "deprecated", "experimental"]
+          },
           "tags": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": { "type": "string" },
+            "default": []
           }
         },
         "required": ["id", "name"]
@@ -145,10 +195,30 @@ Target schema file: ${schemaPath}
       "type": "array",
       "x-derived-from": "commands[].c1",
       "x-derived-unique": true,
+      "description": "Unique list of all configuration types",
+      "items": { "type": "string" }
+    },
+    "activeCommands": {
+      "type": "array",
+      "x-jmespath-filter": "commands[?status=='active']",
+      "description": "Filtered list of active commands only",
+      "items": { "type": "object" }
+    },
+    "commandCount": {
+      "type": "number",
+      "x-jmespath-filter": "length(commands)",
+      "description": "Total number of commands"
+    },
+    "tagCloud": {
+      "type": "array",
+      "x-derived-from": "commands[].tags[]",
+      "x-derived-unique": true,
+      "description": "All unique tags across commands",
       "items": { "type": "string" }
     }
   },
-  "required": ["version", "commands"]
+  "required": ["version", "commands"],
+  "additionalProperties": false
 }
 \`\`\`
 
@@ -162,9 +232,14 @@ Target schema file: ${schemaPath}
   "version": "{version}",
   "description": "{description}",
   "tools": {
-    "commands": "{@items}"
+    "commands": "{@items}",
+    "activeCommands": "{activeCommands}"
   },
-  "availableConfigs": "{availableConfigs}"
+  "metadata": {
+    "availableConfigs": "{availableConfigs}",
+    "generatedAt": "{generatedAt}",
+    "totalCommands": "{totalCommands}"
+  }
 }
 \`\`\`
 
@@ -174,8 +249,25 @@ Target schema file: ${schemaPath}
   "id": "{id}",
   "name": "{name}",
   "config": "{c1}",
-  "tags": "{tags}"
+  "tags": "{tags}",
+  "status": "{status}",
+  "metadata": {
+    "source": "{sourceFile}",
+    "processedAt": "{processedAt}"
+  }
 }
+\`\`\`
+
+**YAML Template Example (template.yaml):**
+\`\`\`yaml
+version: "{version}"
+description: "{description}"
+tools:
+  commands: "{@items}"
+  count: "{commandCount}"
+metadata:
+  configs: "{availableConfigs}"
+  generated: "{timestamp}"
 \`\`\`
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -192,6 +284,10 @@ Target schema file: ${schemaPath}
    - x-frontmatter-part: Marks arrays of individual files
    - x-derived-from: Aggregate values from nested data
    - x-derived-unique: Remove duplicates
+   - x-jmespath-filter: Advanced JMESPath filtering
+   - x-template-format: Output format specification
+   - x-base-property: Base value inheritance
+   - x-default-value: Alternative default values
 
 3. **Template Variable Resolution**:
    - {fieldName}: Replaced with frontmatter field value
@@ -200,19 +296,23 @@ Target schema file: ${schemaPath}
 
 4. **Processing Flow**:
    \`\`\`
-   Markdown Files → Frontmatter Extraction → Schema Validation
-        ↓                                           ↓
-   Template Application ← Aggregation ← Default Population
-        ↓
-   Output (JSON/YAML)
+   1. Discovery → 2. Extraction → 3. Validation → 4. Transform → 5. Aggregate → 6. Render
+        ↓              ↓               ↓              ↓              ↓            ↓
+   Find files   Parse YAML     Schema check   Apply derived   Combine      Template
+   (glob/dir)   frontmatter    & defaults     fields         documents    output
+                                              (JMESPath)                  (JSON/YAML)
    \`\`\`
 
 5. **Best Practices**:
    - Analyze existing markdown files first
    - Define clear schema validation rules
    - Use x-frontmatter-part for multi-file arrays
+   - Apply x-derived-from for aggregated fields
+   - Use x-jmespath-filter for complex transformations
    - Test templates with sample data
    - Document custom extensions clearly
+   - Follow DDD and Totality principles
+   - Use discriminated unions for type safety
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -222,10 +322,69 @@ Target schema file: ${schemaPath}
 2. Extract and analyze frontmatter structures
 3. Identify common fields and patterns
 4. Design schema with appropriate types and validations
-5. Add template extensions where dynamic content is needed
-6. Define derived fields using JMESPath expressions
+5. Add x-* extensions for enhanced functionality:
+   - x-template/x-template-items for rendering
+   - x-frontmatter-part for multi-file arrays
+   - x-derived-from/x-derived-unique for aggregation
+   - x-jmespath-filter for advanced queries
+6. Create template files with variable placeholders
 7. Test schema against sample documents
-8. Refine based on edge cases and requirements
+8. Validate output format (JSON/YAML)
+9. Refine based on edge cases and requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 REAL-WORLD EXAMPLE:
+
+Given these markdown files with frontmatter:
+
+**command1.md:**
+\`\`\`yaml
+---
+id: cmd-001
+name: Build Project
+c1: advanced
+tags: [build, ci/cd]
+status: active
+---
+\`\`\`
+
+**command2.md:**
+\`\`\`yaml
+---
+id: cmd-002
+name: Run Tests
+c1: basic
+tags: [test, qa]
+status: active
+---
+\`\`\`
+
+The processing would:
+1. Extract frontmatter from both files
+2. Validate against the schema
+3. Apply x-frontmatter-part to create array items
+4. Process x-derived-from to extract unique configs: ["advanced", "basic"]
+5. Apply x-jmespath-filter for activeCommands
+6. Render using templates with {@items} expansion
+
+Final output would combine all data into structured JSON/YAML.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 ADDITIONAL RESOURCES:
+
+- Schema Specification: https://json-schema.org/draft-07/json-schema-release-notes.html
+- JMESPath Documentation: https://jmespath.org/
+- YAML Frontmatter Format: https://jekyllrb.com/docs/front-matter/
+- DDD Principles: docs/development/totality.md
+- Testing Strategy: docs/testing/comprehensive-test-strategy.md
+
+For complex schemas, consider:
+- Breaking into multiple schema files with $ref
+- Using definitions for reusable components
+- Implementing progressive validation
+- Testing with edge cases and malformed data
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
@@ -239,10 +398,14 @@ Target schema file: ${schemaPath}
 💡 Using --generate-prompt:
 
 This option outputs a comprehensive guide for creating:
-1. JSON Schema with validation rules
+1. JSON Schema with validation rules and x-* extensions
 2. Template definitions using x-template and x-template-items
 3. Variable resolution patterns with {variableName} syntax
 4. Array processing with {@items} placeholder
+5. Advanced filtering with x-jmespath-filter
+6. Derived fields with x-derived-from and x-derived-unique
+7. Format specification with x-template-format
+8. Default value handling with x-default-value and x-base-property
 
 Use this prompt with an AI assistant or as documentation
 to understand the schema and template creation process.

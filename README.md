@@ -5,13 +5,14 @@ transforming it into structured schemas using AI-powered analysis.
 
 ## Features
 
-- **Intelligent Processing**: Advanced frontmatter extraction and schema
-  generation
-- **Two-Stage Processing**: Extraction followed by template-based transformation
-- **Schema-Driven**: Define custom schemas for consistent data structures
-- **DDD Architecture**: Clean domain-driven design with clear boundaries
-- **Type-Safe**: Full TypeScript with Result pattern for error handling
-- **Extensible**: Adapter pattern for custom processing pipelines
+- **Schema-Driven Processing**: Validate frontmatter against JSON Schema with custom x-* extensions
+- **Template-Based Transformation**: Convert validated data using customizable JSON/YAML templates
+- **Flexible Input Patterns**: Support for directories, glob patterns, and single files
+- **DDD Architecture**: Clean domain-driven design with totality principles
+- **Type-Safe**: Full TypeScript with discriminated unions and Result pattern
+- **Multi-Format Output**: Generate JSON or YAML outputs with proper formatting
+- **Advanced Field Processing**: Derived fields, unique filtering, and JMESPath expressions
+- **Comprehensive Testing**: 80%+ coverage with TDD and specification-driven tests
 
 ## Installation
 
@@ -23,11 +24,12 @@ transforming it into structured schemas using AI-powered analysis.
 ### Quick Install
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/frontmatter-to-schema.git
-cd frontmatter-to-schema
+# Install from GitHub (installs to ~/.deno/bin/)
+curl -fsSL https://raw.githubusercontent.com/tettuan/frontmatter-to-schema/main/scripts/frontmatter-install.sh | bash
 
-# Run installation script
+# Or clone and install locally
+git clone https://github.com/tettuan/frontmatter-to-schema.git
+cd frontmatter-to-schema
 ./scripts/frontmatter-install.sh
 ```
 
@@ -35,10 +37,13 @@ cd frontmatter-to-schema
 
 ```bash
 # Install dependencies
-deno cache mod.ts
+deno cache --reload cli.ts
 
-# Set Claude API key
-export ANTHROPIC_API_KEY="your-api-key"
+# Or install as global command
+deno install --allow-read --allow-write --allow-env --allow-run \
+  --name frontmatter-to-schema \
+  --force \
+  https://raw.githubusercontent.com/tettuan/frontmatter-to-schema/main/cli.ts
 ```
 
 ## Usage
@@ -46,63 +51,68 @@ export ANTHROPIC_API_KEY="your-api-key"
 ### Basic CLI Usage
 
 ```bash
-# Process with default config
-deno run --allow-all src/main.ts
+# Basic usage: schema input output
+frontmatter-to-schema schema.json docs/ output.json
 
-# Use custom config
-deno run --allow-all src/main.ts --config path/to/config.json
+# With custom template
+frontmatter-to-schema schema.json docs/ output.json --template template.json
 
-# Process specific directory
-deno run --allow-all src/main.ts --input ./docs --output ./output
+# Process with glob pattern
+frontmatter-to-schema schema.json "**/*.md" output.yaml
+
+# Enable verbose logging
+frontmatter-to-schema schema.json docs/ output.json --verbose
+
+# Generate prompt for schema/template creation
+frontmatter-to-schema schema.json docs/ output.json --generate-prompt
 ```
 
 ### Programmatic Usage
 
 ```typescript
-import { FrontmatterProcessor } from "./mod.ts";
+import { PipelineOrchestrator, PipelineConfig } from "./mod.ts";
 
-const processor = new FrontmatterProcessor({
-  inputDir: "./docs",
-  outputDir: "./output",
-  schema: {
-    title: "string",
-    tags: "array",
-    date: "date",
-  },
-});
+const config: PipelineConfig = {
+  schemaPath: "./schema.json",
+  templatePath: "./template.json",
+  inputPattern: "./docs",
+  destinationPath: "./output.json",
+};
 
-const result = await processor.process();
-if (result.isOk()) {
-  console.log("Processing complete:", result.value);
+const orchestrator = await PipelineOrchestrator.create(config);
+const result = await orchestrator.execute();
+
+if (result.ok) {
+  console.log("Processing complete:", result.data);
+} else {
+  console.error("Error:", result.error);
 }
 ```
 
-### Configuration
+### Schema Configuration
 
-Create a `config.json` file:
+Create a JSON Schema file (`schema.json`):
 
 ```json
 {
-  "input": {
-    "directory": "./docs",
-    "patterns": ["**/*.md"],
-    "exclude": ["**/draft-*.md"]
-  },
-  "output": {
-    "directory": "./output",
-    "format": "json"
-  },
-  "schema": {
-    "required": ["title", "date"],
-    "properties": {
-      "title": { "type": "string" },
-      "date": { "type": "string", "format": "date" },
-      "tags": { "type": "array", "items": { "type": "string" } }
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "template.json",
+  "required": ["title", "date"],
+  "properties": {
+    "title": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "commands": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "command_schema.json" }
+    },
+    "availableConfigs": {
+      "type": "array",
+      "x-derived-from": "commands[].config",
+      "x-derived-unique": true
     }
-  },
-  "ai": {
-    "model": "claude-3-sonnet",
-    "temperature": 0.3
   }
 }
 ```
@@ -113,7 +123,12 @@ Create a `config.json` file:
 
 ```bash
 # Run basic example
-deno task example:articles
+cd examples/1.articles
+./run.sh
+
+# Or manually
+frontmatter-to-schema articles_schema.json docs/ articles-index-output.yml \
+  --template articles_template.json
 ```
 
 Input markdown:
@@ -145,40 +160,56 @@ Output JSON:
 ### Advanced Schema Mapping
 
 ```bash
-# Run advanced example with custom schema
-deno task example:climpt
+# Run Climpt registry example (complex nested schemas)
+cd examples/2.climpt
+./run.sh
+
+# Or manually
+frontmatter-to-schema registry_schema.json prompts/ climpt-registry-output.json \
+  --template registry_template.json
 ```
 
 ## Architecture
 
-### Domain-Driven Design
+### Domain-Driven Design with Totality
 
 ```
 src/
-├── domain/          # Core business logic
-│   ├── core/        # Value objects, entities
-│   ├── models/      # Domain models
-│   └── services/    # Domain services
-├── application/     # Use cases
-├── infrastructure/  # External adapters
-└── presentation/    # CLI, API interfaces
+├── domain/               # Core business logic (pure, no I/O)
+│   ├── frontmatter/      # Frontmatter processing domain
+│   ├── schema/           # Schema validation domain
+│   ├── template/         # Template rendering domain
+│   ├── aggregation/      # Data aggregation domain
+│   ├── configuration/    # Configuration management
+│   └── shared/           # Shared types, errors, utilities
+├── application/          # Use cases and orchestration
+│   ├── services/         # Pipeline orchestrator
+│   └── interfaces/       # Port definitions
+├── infrastructure/       # External adapters (I/O)
+│   ├── file-system/      # File operations
+│   ├── caching/          # Schema cache
+│   └── logging/          # Debug logging
+└── presentation/         # User interfaces
+    └── cli/              # Command-line interface
 ```
 
 ### Key Components
 
-- **FrontMatterExtractor**: Parses markdown frontmatter
-- **SchemaValidator**: Validates against defined schemas
-- **AIAnalyzer**: Claude-powered content analysis
-- **TemplateMapper**: Maps extracted data to templates
-- **RegistryBuilder**: Creates output registries
+- **PipelineOrchestrator**: Coordinates the entire processing pipeline
+- **FrontmatterProcessor**: Extracts and processes markdown frontmatter
+- **SchemaProcessingService**: Validates data against JSON Schema
+- **TemplateRenderer**: Renders data using template files
+- **JMESPathFilterService**: Processes x-derived-from expressions
+- **Aggregator**: Combines multiple documents into single output
+- **BasePropertyPopulator**: Applies schema defaults and transformations
 
 ### Processing Pipeline
 
 ```
-1. Discovery → 2. Extraction → 3. Validation → 4. Analysis → 5. Output
-     ↓              ↓              ↓              ↓            ↓
-  Find files   Parse front    Check schema   AI enhance   Generate
-               matter                                      registry
+1. Discovery → 2. Extraction → 3. Validation → 4. Transform → 5. Aggregate → 6. Render
+     ↓              ↓               ↓              ↓              ↓            ↓
+  Find files   Parse YAML     Schema check   Apply derived   Combine      Template
+  (glob/dir)   frontmatter    & defaults     fields         documents    output
 ```
 
 ## Development
@@ -187,13 +218,19 @@ src/
 
 ```bash
 # Install development dependencies
-deno cache --reload mod.ts
+deno cache --reload cli.ts
 
-# Run tests
+# Run all tests (using robust test runner)
 deno task test
 
-# Run with watch mode
-deno task dev
+# Run specific test categories
+deno task test:unit        # Unit tests only
+deno task test:integration # Integration tests
+deno task test:e2e         # End-to-end tests
+
+# Run with coverage
+deno task test:coverage
+deno task coverage:report
 
 # Run CI pipeline
 deno task ci
@@ -202,38 +239,54 @@ deno task ci
 ### Testing
 
 ```bash
-# Run all tests
-deno test --allow-all
+# Run all tests with robust runner
+deno task test
 
 # Run specific test file
-deno test --allow-all tests/domain/core/frontmatter_test.ts
+deno test --allow-all tests/unit/frontmatter-processor_test.ts
 
-# Run with coverage
-deno test --allow-all --coverage=coverage
-deno coverage coverage --lcov > coverage.lcov
+# Run with coverage (saves to tmp/coverage)
+deno task test:coverage
+deno task coverage:report
 
-# Run with debug logging (using breakdownlogger)
-deno test --allow-all --env=DEBUG_LEVEL=debug
+# Run with debug logging
+DEBUG_LEVEL=3 deno test --allow-all
+
+# Test categories:
+# - unit/: Domain logic tests
+# - integration/: Cross-boundary tests
+# - e2e/: Full CLI workflow tests
+# - specifications/: TDD compliance tests
+# - performance/: Performance benchmarks
 ```
 
 ### Code Quality
 
-- **Test Coverage**: Minimum 80% required
-- **Type Safety**: Strict TypeScript with no `any`
-- **Error Handling**: Result pattern, no exceptions
-- **Code Style**: Deno formatter standards
+- **Test Coverage**: 80%+ maintained (281 tests passing)
+- **Type Safety**: Strict TypeScript with discriminated unions
+- **Error Handling**: Result<T, E> pattern throughout
+- **Code Style**: Deno formatter and linter standards
+- **Architecture**: DDD with Totality principles
+- **Testing**: TDD with specification-driven development
 
 ## API Reference
 
 ### Core Classes
 
-#### FrontmatterProcessor
+#### PipelineOrchestrator
 
 ```typescript
-class FrontmatterProcessor {
-  constructor(config: ProcessorConfig);
-  process(): Promise<Result<ProcessingResult, ProcessingError>>;
-  validate(data: unknown): Result<ValidatedData, ValidationError>;
+class PipelineOrchestrator {
+  static create(config: PipelineConfig): Promise<PipelineOrchestrator>;
+  execute(): Promise<Result<ProcessingSuccess, ProcessingError>>;
+}
+
+interface PipelineConfig {
+  schemaPath: string;
+  inputPattern: string;
+  destinationPath: string;
+  templatePath?: string;
+  verbosity?: VerbosityConfig;
 }
 ```
 
@@ -263,21 +316,29 @@ interface Err<E> {
 }
 ```
 
-## CLI Commands
+## CLI Usage
 
 ```bash
-# Main commands
-frontmatter-to-schema process    # Process markdown files
-frontmatter-to-schema validate   # Validate schemas
-frontmatter-to-schema analyze    # Run AI analysis
+# Basic command structure
+frontmatter-to-schema <schema> <input> <output> [options]
+
+# Arguments
+<schema>    Path to JSON schema file
+<input>     Directory, glob pattern, or file path
+<output>    Output file path (.json or .yaml)
 
 # Options
---config, -c     Config file path
---input, -i      Input directory
---output, -o     Output directory
---schema, -s     Schema file path
---verbose, -v    Verbose output
---help, -h       Show help
+--template, -t        Custom template file
+--verbose            Enable verbose logging
+--generate-prompt    Generate schema/template creation prompt
+--help, -h          Show help message
+--version, -v       Show version
+
+# Permissions required
+--allow-read        Read files
+--allow-write       Write output
+--allow-env         Debug logging (optional)
+--allow-run         External commands (optional)
 ```
 
 ## Schema Extensions (x-* Properties)
@@ -345,6 +406,31 @@ array notation with dot-path expressions.
 
 When used with `x-derived-from`, ensures derived values are unique (removes
 duplicates).
+
+### x-jmespath-filter
+
+Applies JMESPath expressions for advanced data filtering and transformation.
+
+```json
+{
+  "filteredData": {
+    "type": "array",
+    "x-jmespath-filter": "items[?status==`active`].name"
+  }
+}
+```
+
+### x-template-format
+
+Specifies the output format for the template rendering (json, yaml, etc.).
+
+### x-base-property
+
+Defines base properties that should be populated from schema defaults.
+
+### x-default-value
+
+Provides default values for properties when not present in frontmatter.
 
 ### x-template-items
 
@@ -436,16 +522,24 @@ its behavior depends on how it's positioned in the JSON template:
 This design ensures type-safe JSON generation while maintaining clear template
 semantics.
 
-## Configuration Options
+## Output Formats
 
-| Option            | Type     | Default           | Description        |
-| ----------------- | -------- | ----------------- | ------------------ |
-| `input.directory` | string   | `./docs`          | Source directory   |
-| `input.patterns`  | string[] | `["**/*.md"]`     | File patterns      |
-| `output.format`   | string   | `json`            | Output format      |
-| `ai.enabled`      | boolean  | `true`            | Enable AI analysis |
-| `ai.model`        | string   | `claude-3-sonnet` | AI model           |
-| `schema.strict`   | boolean  | `false`           | Strict validation  |
+The tool automatically detects output format based on file extension:
+
+| Extension | Format | Description                           |
+| --------- | ------ | ------------------------------------- |
+| `.json`   | JSON   | Formatted JSON with 2-space indent   |
+| `.yaml`   | YAML   | YAML format with proper structure    |
+| `.yml`    | YAML   | Same as .yaml                        |
+
+### Supported Input Patterns
+
+| Pattern Type | Example                | Description                    |
+| ------------ | ---------------------- | ------------------------------ |
+| Directory    | `docs/`                | All .md files in directory     |
+| Glob         | `**/*.md`              | All .md files recursively      |
+| Specific     | `docs/**/*.md`         | .md files under docs/          |
+| Single file  | `readme.md`            | Single markdown file           |
 
 ## Contributing
 
@@ -457,16 +551,19 @@ semantics.
 
 ### Development Guidelines
 
-- Follow DDD principles
+- Follow DDD and Totality principles
 - Write tests first (TDD)
-- Use Result pattern for errors
-- Document public APIs
+- Use Result<T, E> pattern for all error handling
+- Document public APIs with JSDoc
 - Keep coverage above 80%
+- Use discriminated unions for type safety
+- Avoid hardcoding - use value objects and registries
 
 ## Support
 
 - Issues:
-  [GitHub Issues](https://github.com/yourusername/frontmatter-to-schema/issues)
+  [GitHub Issues](https://github.com/tettuan/frontmatter-to-schema/issues)
+- Repository: [GitHub](https://github.com/tettuan/frontmatter-to-schema)
 - Docs: [Documentation](./docs)
 - Examples: [Example Directory](./examples)
 
@@ -474,7 +571,8 @@ semantics.
 
 Built with:
 
-- [Deno](https://deno.land) - Runtime
-- [JSR](https://jsr.io) - Package Registry
-- [@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger) - Debug
-  logging and test analysis
+- [Deno](https://deno.land) - Runtime and toolchain
+- [JSR](https://jsr.io) - Package registry for dependencies
+- [@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger) - Enhanced debug logging
+- [@halvardm/jmespath](https://jsr.io/@halvardm/jmespath) - JMESPath expressions
+- [@std/*](https://jsr.io/@std) - Deno standard library
