@@ -83,6 +83,155 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 一覧のなかで、どの配列構造が各マークダウンファイルの処理に用いれるかは、`"x-frontmatter-part": true`
 で判定する。
 
+## 配列・単一要素の統一的抽出機能
+
+フロントマターの構造が配列か単一要素かに依存せず、統一的な記法で値を抽出する機能を提供する。
+
+### 抽出ディレクティブ
+
+#### `x-extract-from`
+配列要素やオブジェクトから特定のプロパティパスを指定して値を抽出する。
+
+```json
+{
+  "id": {
+    "type": "string",
+    "x-extract-from": "id.full"  // ネストされた値を抽出
+  }
+}
+```
+
+#### `x-frontmatter-part: true`
+このディレクティブが設定された配列が、各Markdownファイルのフロントマター処理の起点となる。
+
+#### `x-merge-arrays: true`
+複数ファイルから収集した配列を1つのフラット配列に統合する。
+
+### 抽出パス記法
+
+#### `[]`表記による自動正規化
+`x-extract-from`で指定するパスに`[]`を含めることで、対象が単一要素でも配列でも同じ処理で抽出できる。
+
+```
+traceability[].id.full
+```
+
+この記法により：
+- **単一要素の場合**: 自動的に配列化して処理
+- **配列の場合**: 各要素から値を抽出
+- **結果**: 常に配列として正規化
+
+### 動作原理
+
+| フロントマター構造 | パス指定 | 抽出結果 |
+|-----------------|---------|---------|
+| `traceability: {id: {full: "A"}}` | `traceability[].id.full` | `["A"]` |
+| `traceability: [{id: {full: "A"}}, {id: {full: "B"}}]` | `traceability[].id.full` | `["A", "B"]` |
+| 混在（複数ファイル） | 同一パス | 統合された配列 |
+
+### 実現できること
+
+1. **構造の違いを吸収**: フロントマター作成者は配列化を意識不要
+2. **Schema再利用**: 同一Schemaで多様なフロントマター構造に対応
+3. **段階的移行**: 既存の単一要素を配列に移行する際もSchema変更不要
+4. **一貫性**: 抽出結果は常に配列として扱え、後続処理が簡潔
+
+### 設計思想
+
+「**書き手の自由度を保ちながら、読み手（Schema）側で構造を正規化する**」
+
+- フロントマター作成時：要素数に応じて自然な構造を選択
+- Schema定義時：`[]`表記で構造の違いを吸収
+- 処理結果：予測可能な配列形式で統一
+
+### 完全な例：トレーサビリティID収集
+
+#### 多様なフロントマター入力
+```yaml
+# ファイル1: 単一要素
+traceability:
+  id:
+    full: req:single-001#20250909
+    summary: 単一要件
+
+# ファイル2: 配列要素
+traceability:
+  - id:
+      full: req:array-001#20250909
+    summary: 要件1
+  - id:
+      full: req:array-002#20250909
+    summary: 要件2
+```
+
+#### 統一Schema定義
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "x-template": "trace_list_template.json",
+  "properties": {
+    "trace_ids": {
+      "type": "array",
+      "description": "全トレーサビリティIDの一覧",
+      "x-frontmatter-part": true,
+      "x-merge-arrays": true,
+      "x-derived-unique": true,
+      "items": {
+        "type": "string",
+        "x-extract-from": "traceability[].id.full"
+      }
+    },
+    "trace_details": {
+      "type": "array",
+      "description": "ID付き要約情報",
+      "x-frontmatter-part": true,
+      "x-merge-arrays": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "x-extract-from": "id.full"
+          },
+          "summary": {
+            "type": "string",
+            "x-extract-from": "summary"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+#### 出力結果
+```json
+{
+  "trace_ids": [
+    "req:single-001#20250909",
+    "req:array-001#20250909",
+    "req:array-002#20250909"
+  ],
+  "trace_details": [
+    {
+      "id": "req:single-001#20250909",
+      "summary": "単一要件"
+    },
+    {
+      "id": "req:array-001#20250909",
+      "summary": "要件1"
+    },
+    {
+      "id": "req:array-002#20250909",
+      "summary": "要件2"
+    }
+  ]
+}
+```
+
+この機能により、フロントマターの構造的多様性を許容しつつ、一貫性のある処理を実現する。
+
 ```text
 - 一覧
   - コマンド繰り返し項目()
@@ -144,6 +293,63 @@ Schemaのroot階層は、"x-template" と並列の"properties"を起点とする
 
 である。
 
+## データ抽出・変換ディレクティブ
+
+Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス。
+
+### テンプレート制御
+
+| ディレクティブ | 型 | 説明 | 適用対象 |
+|---|---|---|---|
+| `x-template` | string | コンテナテンプレートファイル指定 | ルートスキーマ |
+| `x-template-items` | string | `{@items}`展開時のアイテムテンプレート | ルートスキーマ |
+
+### データ抽出
+
+| ディレクティブ | 型 | 説明 | 適用対象 |
+|---|---|---|---|
+| `x-frontmatter-part` | boolean | 各Markdownファイル処理の起点を指定 | 配列プロパティ |
+| `x-extract-from` | string | 抽出元のプロパティパス（`[]`表記で配列/単一両対応） | 任意のプロパティ |
+
+### データ変換
+
+| ディレクティブ | 型 | 説明 | 適用対象 |
+|---|---|---|---|
+| `x-merge-arrays` | boolean | 複数ファイルの配列を1つに統合 | 配列プロパティ |
+| `x-derived-from` | string | 他のプロパティから値を集約 | 任意のプロパティ |
+| `x-derived-unique` | boolean | 配列の重複を削除 | 配列プロパティ |
+| `x-jmespath-filter` | string | JMESPath式によるフィルタリング | 配列プロパティ |
+
+### 処理順序
+
+ディレクティブは以下の順序で処理される：
+
+1. **抽出フェーズ**
+   - `x-frontmatter-part`による対象配列の特定
+   - `x-extract-from`による値の抽出（`[]`表記で正規化）
+
+2. **変換フェーズ**
+   - `x-jmespath-filter`によるフィルタリング
+   - `x-merge-arrays`による配列統合
+
+3. **集約フェーズ**
+   - `x-derived-from`による値の集約
+   - `x-derived-unique`による重複削除
+
+4. **出力フェーズ**
+   - `x-template`/`x-template-items`によるテンプレート適用
+
+### パス記法の詳細
+
+`x-extract-from`と`x-derived-from`で使用可能なパス記法：
+
+| 記法 | 例 | 説明 |
+|---|---|---|
+| ドット記法 | `id.full` | ネストされたプロパティアクセス |
+| 配列展開 | `items[]` | 配列の各要素を展開（単一要素も配列化） |
+| 組み合わせ | `traceability[].id.full` | 配列展開後にプロパティアクセス |
+| インデックス | `items[0]` | 特定インデックスの要素（非推奨） |
+
 ### 集約機能
 
 一覧は、集約機能を持つ。 `"x-derived-from": "commands[].c1"`
@@ -198,6 +404,10 @@ registry_command_template.json
 3. 実例1-実例2の階層情報が変わっても、アプリケーションコードに影響がない
 4. 上記2と3が、設定あるいは引数で解決できている
 5. 最終成果物Zは、TypeScript処理による成果物を結合した結果とイコールである。
+6. フロントマターの構造（配列/単一）に依存しない抽出処理を`[]`記法で実現
+7. 書き手の自由度と読み手の一貫性を両立する設計
+8. すべての`x-*`ディレクティブは宣言的であり、処理順序は自動決定される
+9. ディレクティブの組み合わせにより、複雑な変換を段階的に記述可能
 
 # 参照すべき情報
 
