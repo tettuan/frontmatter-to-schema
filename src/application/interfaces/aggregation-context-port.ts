@@ -96,6 +96,19 @@ export interface AggregationContextPort {
     mainData: ValidatedData[],
     additionalData: Record<string, unknown>,
   ): Result<EnrichedResult, AggregationError>;
+
+  /**
+   * Merge arrays based on x-merge-arrays directive
+   * Implements Issue #898: x-merge-arrays directive functionality
+   */
+  mergeArrays(
+    sourceArrays: unknown[][],
+    mergeConfig: {
+      flatten: boolean;
+      preserveOrder?: boolean;
+      filterEmpty?: boolean;
+    },
+  ): Result<unknown[], AggregationError>;
 }
 
 /**
