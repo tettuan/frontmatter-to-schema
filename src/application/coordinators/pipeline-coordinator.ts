@@ -128,11 +128,11 @@ export class PipelineCoordinator {
       return templatePathsResult;
     }
 
-    // Step 3: Process documents with optional items extraction
+    // Step 3: Process documents with optional items extraction and x-extract-from directives
     const processingOptions = config.processingOptions ||
       { kind: "sequential" };
     const processResult = await this.processingCoordinator
-      .processDocumentsWithItemsExtraction(
+      .processDocumentsWithFullExtraction(
         config.inputPattern,
         validationRules,
         schema,

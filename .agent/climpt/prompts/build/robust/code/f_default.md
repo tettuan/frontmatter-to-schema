@@ -20,7 +20,8 @@ options:
 
 # GitHub Issue 機能開発
 
-GitHub Issueリストから選択した機能要件に基づき、DDD・TDD・Totality原則を適用した堅牢な実装を行う。
+GitHub
+Issueリストから選択した機能要件に基づき、DDD・TDD・Totality原則を適用した堅牢な実装を行う。
 
 ## 開発方針
 
@@ -41,7 +42,8 @@ GitHub Issueリストから選択した機能要件に基づき、DDD・TDD・To
 2. **アーキテクチャ**
    - `docs/architecture/README.md` - アーキテクチャ概要
    - `docs/architecture/template-schema-domain-handoff.md` - ドメイン境界設計
-   - `docs/architecture/template-output-subdomain-separation.md` - サブドメイン分離
+   - `docs/architecture/template-output-subdomain-separation.md` -
+     サブドメイン分離
 
 3. **テスト戦略**
    - `docs/tests/README.md` - テスト戦略概要
@@ -129,9 +131,10 @@ GitHub Issueリストから選択した機能要件に基づき、DDD・TDD・To
    ```
 
 10. **ドキュメント作成**
-   - 実装仕様書の作成
-   - APIドキュメント更新（該当する場合）
-   - テスト仕様書の更新
+
+- 実装仕様書の作成
+- APIドキュメント更新（該当する場合）
+- テスト仕様書の更新
 
 ### Phase 5: 完了
 

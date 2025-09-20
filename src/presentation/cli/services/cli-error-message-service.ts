@@ -203,6 +203,8 @@ export class CLIErrorMessageService {
         return "Schema does not define a $ref";
       case "DerivedFromNotDefined":
         return "Schema does not define derived-from directive";
+      case "ExtractFromNotDefined":
+        return "Schema does not define x-extract-from directive";
       case "ItemsNotDefined":
         return "Schema does not define items";
       case "EnumNotDefined":

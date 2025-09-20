@@ -487,4 +487,32 @@ export class SchemaPropertyUtils {
       },
     };
   }
+
+  /**
+   * Check if schema property has extract-from directive
+   */
+  static hasExtractFrom(schema: SchemaProperty): boolean {
+    const key = defaultSchemaExtensionRegistry.getExtractFromKey().getValue();
+    return schema.extensions?.[key] !== undefined;
+  }
+
+  /**
+   * Get extract-from path from schema property
+   */
+  static getExtractFrom(
+    schema: SchemaProperty,
+  ): Result<string, SchemaError & { message: string }> {
+    const key = defaultSchemaExtensionRegistry.getExtractFromKey().getValue();
+    const extractFrom = schema.extensions?.[key] as string | undefined;
+    if (extractFrom) {
+      return { ok: true, data: extractFrom };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "ExtractFromNotDefined",
+        message: `${key} directive not found in schema extensions`,
+      },
+    };
+  }
 }

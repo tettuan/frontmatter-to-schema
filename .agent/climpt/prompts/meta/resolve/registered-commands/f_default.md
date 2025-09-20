@@ -21,8 +21,8 @@ options:
 
 registry: `.agent/climpt/registry.json`
 
-registry に、実行可能なClimpt-*が存在する。
-registry を読み、「選択に使いたい内容」に相応しい用途のものを「構築手順」に沿って探し出すこと。
+registry に、実行可能なClimpt-*が存在する。 registry
+を読み、「選択に使いたい内容」に相応しい用途のものを「構築手順」に沿って探し出すこと。
 
 なお、適切なClimpt-*がない場合は、「適切なclimptが見つからない場合」に基づいて決定する。
 
@@ -44,7 +44,8 @@ registry を読み、「選択に使いたい内容」に相応しい用途の�
 
 # 構築手順
 
-1. 「選択に使いたい内容」からメインテーマを決め、registryのtitleやdescriptionから 対象（c1,c2,c3のセット） を選ぶ
+1. 「選択に使いたい内容」からメインテーマを決め、registryのtitleやdescriptionから
+   対象（c1,c2,c3のセット） を選ぶ
 2. 「選択に使いたい内容」を input_text, input_text_file
    のいずれで指定するか決める。
 3. 「option」を理解し、-iや-aでプロンプトを切り替えるか判断する。

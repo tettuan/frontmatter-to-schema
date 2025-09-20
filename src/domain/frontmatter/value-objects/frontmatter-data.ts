@@ -286,6 +286,32 @@ export class FrontmatterData {
     return new FrontmatterData(newData);
   }
 
+  /**
+   * Set a value at the specified path, returning a new FrontmatterData instance
+   * This is a safer version of withField that returns a Result type
+   */
+  set(
+    path: string,
+    value: unknown,
+  ): Result<FrontmatterData, ValidationError & { message: string }> {
+    if (!path || path.trim() === "") {
+      return err(createError({
+        kind: "EmptyInput",
+      }, "Path cannot be empty"));
+    }
+
+    try {
+      const newData = this.withField(path, value);
+      return ok(newData);
+    } catch (error) {
+      return err(createError({
+        kind: "InvalidType",
+        expected: "valid path",
+        actual: path,
+      }, `Failed to set value at path ${path}: ${error}`));
+    }
+  }
+
   toJSON(): string {
     return JSON.stringify(this.data, null, 2);
   }

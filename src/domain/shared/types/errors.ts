@@ -85,6 +85,7 @@ export type SchemaError =
   | { readonly kind: "PropertiesNotDefined" }
   | { readonly kind: "RefNotDefined" }
   | { readonly kind: "DerivedFromNotDefined" }
+  | { readonly kind: "ExtractFromNotDefined" }
   | { readonly kind: "ItemsNotDefined" }
   | { readonly kind: "EnumNotDefined" }
   | { readonly kind: "PropertyNotFound"; readonly path: string };
@@ -287,6 +288,8 @@ const getDefaultMessage = (error: DomainError): string => {
       return "Schema does not define a $ref";
     case "DerivedFromNotDefined":
       return `Schema does not define ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`;
+    case "ExtractFromNotDefined":
+      return `Schema does not define ${defaultSchemaExtensionRegistry.getExtractFromKey().getValue()}`;
     case "ItemsNotDefined":
       return "Schema does not define items";
     case "PropertyNotFound":
