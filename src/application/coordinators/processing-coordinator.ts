@@ -7,6 +7,8 @@ import { FrontmatterTransformationService } from "../../domain/frontmatter/servi
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
 import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
+import { SchemaStructureDetector, ProcessingHints } from "../../domain/schema/services/schema-structure-detector.ts";
+import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -326,6 +328,95 @@ export class ProcessingCoordinator {
     }
 
     return ok({ mainData });
+  }
+
+  /**
+   * Process documents with StructureType detection (basic variant)
+   * Returns structure information alongside processed data
+   * Following DDD - coordination with structure intelligence
+   */
+  async processDocumentsWithStructureDetection(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions = { kind: "sequential" },
+  ): Promise<
+    Result<{
+      data: FrontmatterData;
+      structureType: StructureType;
+      processingHints: ProcessingHints;
+    }, DomainError & { message: string }>
+  > {
+    // Detect structure type first
+    const structureResult = SchemaStructureDetector.detectStructureType(schema);
+    if (!structureResult.ok) {
+      return structureResult;
+    }
+
+    const structureType = structureResult.data;
+    const processingHints = SchemaStructureDetector.getProcessingHints(structureType);
+
+    // Use basic processing logic
+    const processResult = await this.processDocuments(
+      inputPattern,
+      validationRules,
+      schema,
+      options,
+    );
+    if (!processResult.ok) {
+      return processResult;
+    }
+
+    return ok({
+      data: processResult.data,
+      structureType,
+      processingHints,
+    });
+  }
+
+  /**
+   * Process documents with StructureType awareness and processing hints
+   * Integrates structure detection with document processing for optimized handling
+   * Following DDD - coordination of domain operations with structure intelligence
+   */
+  async processDocumentsWithStructureAwareness(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions = { kind: "sequential" },
+  ): Promise<
+    Result<{
+      mainData: FrontmatterData;
+      itemsData?: FrontmatterData[];
+      structureType: StructureType;
+      processingHints: ProcessingHints;
+    }, DomainError & { message: string }>
+  > {
+    // Detect structure type first using our new SchemaStructureDetector
+    const structureResult = SchemaStructureDetector.detectStructureType(schema);
+    if (!structureResult.ok) {
+      return structureResult;
+    }
+
+    const structureType = structureResult.data;
+    const processingHints = SchemaStructureDetector.getProcessingHints(structureType);
+
+    // Use existing processing logic with structure intelligence
+    const processResult = await this.processDocumentsWithFullExtraction(
+      inputPattern,
+      validationRules,
+      schema,
+      options,
+    );
+    if (!processResult.ok) {
+      return processResult;
+    }
+
+    return ok({
+      ...processResult.data,
+      structureType,
+      processingHints,
+    });
   }
 
   /**
