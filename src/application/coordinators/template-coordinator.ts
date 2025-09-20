@@ -10,7 +10,10 @@ import {
 } from "../../domain/template/services/template-path-resolver.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
-import { SchemaStructureDetector, ProcessingHints } from "../../domain/schema/services/schema-structure-detector.ts";
+import {
+  ProcessingHints,
+  SchemaStructureDetector,
+} from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 
 /**
@@ -237,7 +240,7 @@ export class TemplateCoordinator {
   private adjustTemplateConfigForStructure(
     config: TemplateConfig,
     structureType: StructureType,
-    hints: ProcessingHints,
+    _hints: ProcessingHints,
   ): TemplateConfig {
     if (config.kind === "explicit") {
       // For explicit templates, no adjustment needed
@@ -285,7 +288,9 @@ export class TemplateCoordinator {
     }
 
     const resolvedPaths = pathsResult.data;
-    const processingHints = SchemaStructureDetector.getProcessingHints(structureType);
+    const processingHints = SchemaStructureDetector.getProcessingHints(
+      structureType,
+    );
 
     // Use backward compatibility property if available, otherwise extract from ItemsTemplateState
     const itemsTemplatePath = resolvedPaths.itemsTemplatePath !== undefined

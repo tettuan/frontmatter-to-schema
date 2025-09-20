@@ -7,7 +7,10 @@ import { FrontmatterTransformationService } from "../../domain/frontmatter/servi
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
 import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
-import { SchemaStructureDetector, ProcessingHints } from "../../domain/schema/services/schema-structure-detector.ts";
+import {
+  ProcessingHints,
+  SchemaStructureDetector,
+} from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 
 /**
@@ -354,7 +357,9 @@ export class ProcessingCoordinator {
     }
 
     const structureType = structureResult.data;
-    const processingHints = SchemaStructureDetector.getProcessingHints(structureType);
+    const processingHints = SchemaStructureDetector.getProcessingHints(
+      structureType,
+    );
 
     // Use basic processing logic
     const processResult = await this.processDocuments(
@@ -399,7 +404,9 @@ export class ProcessingCoordinator {
     }
 
     const structureType = structureResult.data;
-    const processingHints = SchemaStructureDetector.getProcessingHints(structureType);
+    const processingHints = SchemaStructureDetector.getProcessingHints(
+      structureType,
+    );
 
     // Use existing processing logic with structure intelligence
     const processResult = await this.processDocumentsWithFullExtraction(
