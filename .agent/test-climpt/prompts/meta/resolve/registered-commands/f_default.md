@@ -14,7 +14,7 @@ options:
 
 この指示に従い、「出力」を行いなさい。
 
-`.agent/climpt/registered-commands.md` に、実行可能なClimpt-*が存在する。
+`.agent/climpt/registry.json` に、実行可能なClimpt-*が存在する。
 内容を読み、「選択に使いたい内容」に相応しい用途のものを探し出すこと。
 
 なお、適切なClimpt-*がない場合は、「適切なclimptが見つからない場合」に基づいて決定する。
@@ -64,19 +64,19 @@ options:
 ```mermaid
 flowchart TD
     Start([適切なclimptが見つからない]) --> CI{deno task ci<br/>が完全にpass済み？}
-    
+
     CI -->|Yes| PR{PRのCIも<br/>完了済み？}
     CI -->|No| RunCI[deno task ci を実行]
-    
+
     PR -->|Yes| Branches{仕掛かりブランチがあるか？}
     PR -->|No| Executed{deno task ci<br/>実行済み？}
-    
+
     Branches -->|Yes| Selected{ブランチ統合のclimpt-*はあるか？}
     Branches -->|No| MergeBranch{既存のブランチ統合を実行する}
 
     Issues -->|Yes| GetIssues[gh を用いて Issue 一覧から<br/>bugラベルのissueを20個取得し、1つ選んで対応する]
     Issues -->|No| Refactor[refactor 調査を開始する<br/>climpt-* を選ぶ]
-    
+
     Executed -->|Yes| Analyze[deno task ci から実施すべきことを<br/>整理し、構築手順で climpt-* を選ぶ]
     Executed -->|No| RunCI
 
@@ -84,7 +84,7 @@ flowchart TD
     Selected -->|No| Issues
 
     RunCI --> End([処理完了])
-    RunClimpt --> End 
+    RunClimpt --> End
     GetIssues --> End
     Refactor --> End
     Analyze --> End
