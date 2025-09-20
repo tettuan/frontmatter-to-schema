@@ -5,14 +5,19 @@ transforming it into structured schemas using AI-powered analysis.
 
 ## Features
 
-- **Schema-Driven Processing**: Validate frontmatter against JSON Schema with custom x-* extensions
-- **Template-Based Transformation**: Convert validated data using customizable JSON/YAML templates
-- **Flexible Input Patterns**: Support for directories, glob patterns, and single files
+- **Schema-Driven Processing**: Validate frontmatter against JSON Schema with
+  custom x-* extensions
+- **Template-Based Transformation**: Convert validated data using customizable
+  JSON/YAML templates
+- **Flexible Input Patterns**: Support for directories, glob patterns, and
+  single files
 - **DDD Architecture**: Clean domain-driven design with totality principles
 - **Type-Safe**: Full TypeScript with discriminated unions and Result pattern
 - **Multi-Format Output**: Generate JSON or YAML outputs with proper formatting
-- **Advanced Field Processing**: Derived fields, unique filtering, and JMESPath expressions
-- **Comprehensive Testing**: 80%+ coverage with TDD and specification-driven tests
+- **Advanced Field Processing**: Derived fields, unique filtering, and JMESPath
+  expressions
+- **Comprehensive Testing**: 80%+ coverage with TDD and specification-driven
+  tests
 
 ## Installation
 
@@ -70,7 +75,7 @@ frontmatter-to-schema schema.json docs/ output.json --generate-prompt
 ### Programmatic Usage
 
 ```typescript
-import { PipelineOrchestrator, PipelineConfig } from "./mod.ts";
+import { PipelineConfig, PipelineOrchestrator } from "./mod.ts";
 
 const config: PipelineConfig = {
   schemaPath: "./schema.json",
@@ -526,20 +531,20 @@ semantics.
 
 The tool automatically detects output format based on file extension:
 
-| Extension | Format | Description                           |
-| --------- | ------ | ------------------------------------- |
-| `.json`   | JSON   | Formatted JSON with 2-space indent   |
-| `.yaml`   | YAML   | YAML format with proper structure    |
-| `.yml`    | YAML   | Same as .yaml                        |
+| Extension | Format | Description                        |
+| --------- | ------ | ---------------------------------- |
+| `.json`   | JSON   | Formatted JSON with 2-space indent |
+| `.yaml`   | YAML   | YAML format with proper structure  |
+| `.yml`    | YAML   | Same as .yaml                      |
 
 ### Supported Input Patterns
 
-| Pattern Type | Example                | Description                    |
-| ------------ | ---------------------- | ------------------------------ |
-| Directory    | `docs/`                | All .md files in directory     |
-| Glob         | `**/*.md`              | All .md files recursively      |
-| Specific     | `docs/**/*.md`         | .md files under docs/          |
-| Single file  | `readme.md`            | Single markdown file           |
+| Pattern Type | Example        | Description                |
+| ------------ | -------------- | -------------------------- |
+| Directory    | `docs/`        | All .md files in directory |
+| Glob         | `**/*.md`      | All .md files recursively  |
+| Specific     | `docs/**/*.md` | .md files under docs/      |
+| Single file  | `readme.md`    | Single markdown file       |
 
 ## Contributing
 
@@ -573,6 +578,7 @@ Built with:
 
 - [Deno](https://deno.land) - Runtime and toolchain
 - [JSR](https://jsr.io) - Package registry for dependencies
-- [@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger) - Enhanced debug logging
+- [@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger) - Enhanced
+  debug logging
 - [@halvardm/jmespath](https://jsr.io/@halvardm/jmespath) - JMESPath expressions
 - [@std/*](https://jsr.io/@std) - Deno standard library

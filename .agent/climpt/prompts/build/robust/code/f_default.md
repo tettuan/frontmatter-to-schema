@@ -1,150 +1,193 @@
 ---
-title: APIを強固に構築する
+c1: build
+c2: robust
+c3: code
+title: GitHub Issue機能の堅牢実装
+description: GitHub Issueから選択して機能要件を堅牢に実装する
+usage: |
+  GitHub Issueリストから選択して堅牢な機能実装を行います
+  例: climpt-build robust code
 options:
-  input_text_file: 強固に構築すべき機能要件
-  input_text: 強固な構築に向けた追加指示
+  input:
+    - issue_selection
+  adaptation:
+    - default
+    - detailed
+  file: false
+  stdin: false
+  destination: false
 ---
 
-# API 強固構築
+# GitHub Issue 機能開発
 
-ドメイン駆動設計と全域性（Totality）原則に基づいた、強固で堅牢なAPI構築を行う。
+GitHub
+Issueリストから選択した機能要件に基づき、DDD・TDD・Totality原則を適用した堅牢な実装を行う。
 
-## 強固構築方針
+## 開発方針
 
-- **ドメイン駆動設計**: ビジネスロジックとドメインモデルを中核とした堅牢な設計
-- **全域性原則**:
-  型安全性による不正状態の完全排除（`docs/development/totality_go.ja.md`参照）
-- **強固性重視**: 障害耐性、保守性、拡張性を重視した堅牢な構築
-- [AI複雑化防止（科学的制御）](docs/development/ai-complexity-control_compact.ja.md)
+- **ドメイン駆動設計**: ビジネスロジックとドメインモデルを中核とした設計
+- **テスト駆動開発**: テストファーストによる品質保証
+- **全域性原則**: 型安全性による不正状態の完全排除
+- **AI複雑化防止**: 科学的制御による複雑性管理
 
 ## 必須参照資料
 
-必ず以下の資料を参照してから強固な設計・実装を開始すること：
+開発開始前に以下の資料を必ず確認すること：
 
-1. **ドメイン設計**: `docs/domain/design_domain_boundary-*.md`
-2. **サブドメイン設計**: `docs/domain/architecture/**/*.md`
-3. **全域性原則**: `docs/development/totality_go.ja.md`
-4. **プロジェクト構造**: `docs/architecture/domain-driven-implementation.md`
-5. **テスト方針**: `docs/tests/README.md`, `docs/tests/testing_guidelines.md`
+1. **開発原則**
+   - `docs/development/totality.ja.md` - 全域性原則
+   - `docs/development/ai-complexity-control_compact.ja.md` - AI複雑化防止
+   - `docs/development/prohibit-hardcoding.ja.md` - ハードコーディング禁止
 
-## 強固構築手順
+2. **アーキテクチャ**
+   - `docs/architecture/README.md` - アーキテクチャ概要
+   - `docs/architecture/template-schema-domain-handoff.md` - ドメイン境界設計
+   - `docs/architecture/template-output-subdomain-separation.md` -
+     サブドメイン分離
 
-2. **ブランチ準備**
+3. **テスト戦略**
+   - `docs/tests/README.md` - テスト戦略概要
+   - `docs/tests/checklist-based-on-gh-issue.md` - Issueベースのチェックリスト
+   - `docs/testing.ja.md` - テスト実装ガイド
+
+## 実装フロー
+
+### Phase 1: Issue選択と分析
+
+1. **Issue選択**
    ```bash
-   echo "強固なAPI構築-{input_text_file}対応" | climpt-git decide-branch working-branc
+   # オープンなIssueをリスト表示
+   gh issue list --state open --limit 20
+
+   # ラベルでフィルタリング（例：enhancement）
+   gh issue list --label "enhancement" --state open
+
+   # 特定のIssueの詳細を確認
+   gh issue view {issue_number}
    ```
 
-3. **仕様理解・調査**
-   - `{input_text_file}` の内容分析と強固性要件の特定
-   - 既存実装の調査（`cmd/api-server/`, `api/openapi.yaml`）
-   - ドメイン設計資料の読み込み
+2. **Issue分析**
+   - 選択したIssueの要件確認
+   - 機能スコープの明確化
+   - 受け入れ条件の定義
 
-### Phase 2: 強固設計・計画
+3. **既存実装調査**
+   ```bash
+   # 関連コードの検索
+   deno task search --pattern "関連キーワード"
 
-4. **強固ドメイン設計**
-   - 対象機能のドメインモデル定義（障害耐性重視）
-   - 全域性原則に基づく型安全設計
-   - バリデーション・制約型の堅牢設計
+   # 既存テストの確認
+   deno test --filter "関連テスト"
+   ```
 
-5. **強固API設計**
-   - OpenAPI仕様の作成・更新（エラーケース網羅）
-   - エンドポイント設計（冪等性・一貫性重視）
-   - リクエスト/レスポンス型定義（型安全性徹底）
+### Phase 2: 設計
 
-6. **強固実装計画**
-   - 修正対象ファイルのリスト化
-   - 依存関係の整理（循環依存排除）
-   - タスク分割とワーカー割り当て
+4. **ドメインモデル設計**
+   - エンティティ・値オブジェクトの定義
+   - ビジネスルールの明確化
+   - 境界づけられたコンテキストの設計
 
-### Phase 3: 強固実装
+5. **テスト設計**
+   - テストケースの洗い出し
+   - 境界値・異常系の定義
+   - E2Eシナリオの設計
 
-7. **コア強固実装**
-   - ドメインモデルの堅牢実装（不変性保証）
-   - リポジトリパターンの実装（トランザクション安全）
-   - サービス層の実装（ビジネスルール遵守）
-   - APIハンドラーの実装（エラー処理徹底）
+### Phase 3: 実装
 
-8. **型安全性強化**
-   - 制約型の実装（`NewValidType(input) (*Type, error)`パターン）
-   - エラーハンドリングの統一（ValidationError使用）
-   - 状態変換の全域化（不正状態完全排除）
+6. **TDD実装サイクル**
+   ```bash
+   # Red: テスト作成
+   deno test --filter "新機能" --watch
 
-### Phase 4: 徹底テスト・検証
+   # Green: 実装
+   # 最小限の実装でテストを通す
 
-9. **強固テスト実装**
-   - ユニットテストの作成・修正（境界値・異常系網羅）
-   - 統合テストの作成・修正（実運用環境模擬）
-   - API仕様テストの実行（契約保証）
+   # Refactor: リファクタリング
+   # 設計パターンの適用
+   ```
 
-10. **品質検証**
+7. **ドメイン層実装**
+   - モデル実装（値オブジェクト・エンティティ）
+   - ドメインサービス実装
+   - リポジトリインターフェース定義
+
+8. **アプリケーション層実装**
+   - ユースケース実装
+   - DTOの定義
+   - バリデーション実装
+
+### Phase 4: 品質保証
+
+9. **テスト実行**
+   ```bash
+   # 単体テスト
+   deno test
+
+   # カバレッジ確認（80%以上必須）
+   deno task test:coverage
+
+   # CI パイプライン
+   deno task ci
+   ```
+
+10. **ドキュメント作成**
+
+- 実装仕様書の作成
+- APIドキュメント更新（該当する場合）
+- テスト仕様書の更新
+
+### Phase 5: 完了
+
+11. **プルリクエスト準備**
     ```bash
-    # 個別パッケージテスト
-    go test ./path/to/package -v
+    # コミット作成
+    gh issue develop {issue_number} --commit
 
-    # 全ユニットテスト
-    make test-unit
-
-    # 全テスト
-    make test
+    # PR作成
+    gh pr create --title "feat: #{issue_number} 機能実装" \
+                 --body "Closes #{issue_number}"
     ```
 
-### Phase 5: 堅牢ドキュメント化
+## 実装内容
 
-11. **API仕様書作成**
-    - `docs/api/README.md` - API全体概要（強固性ポリシー含む）
-    - `docs/api/endpoints/*.md` - 個別エンドポイント仕様（エラーケース網羅）
-    - `docs/api/features/*.md` - 機能グループ仕様（障害対応含む）
+選択したGitHub Issueに基づく以下の実装：
 
-12. **実装ドキュメント更新**
-    - ドメインモデル図の更新（制約・不変条件明記）
-    - アーキテクチャ図の更新（障害伝播経路含む）
+### 成果物チェックリスト
 
-13. コミット
+- [ ] ドメインモデル実装（Totality原則適用）
+- [ ] ユースケース実装（ビジネスルール遵守）
+- [ ] テストコード（単体・統合・E2E）
+- [ ] カバレッジ80%以上達成
+- [ ] ドキュメント更新
+- [ ] CI パイプライン通過
 
-- 最後に `climpt-git group-commit unstaged-changes`
-  を実行し、表示された指示に従ってください。
+### 品質基準
 
-## 強固構築内容
-
-`{input_text_file}`の内容に基づいて以下を強固に構築する：
-
-### 必須成果物
-
-- [ ] ドメインモデル強固実装（全域性原則適用・不変条件保証）
-- [ ] APIエンドポイント強固実装（障害耐性・冪等性保証）
-- [ ] OpenAPI仕様更新（エラーケース網羅・契約保証）
-- [ ] テストコード（ユニット・統合・境界値・異常系）
-- [ ] API仕様書一式（強固性ポリシー含む）
-- [ ] 実装ドキュメント（制約・障害対応含む）
-
-### 強固性基準
-
-- **型安全性**: 全域性原則による不正状態完全排除
-- **障害耐性**: 異常系処理の徹底実装
-- **テストカバレッジ**: `deno task ci` エラー0件
-- **可読性**: ドメイン駆動設計による明確な責務分離
-- **保守性**: 制約型とエラーハンドリングの統一
-- **拡張性**: 変更に強い設計の採用
+- **型安全性**: 全域性原則による不正状態排除
+- **テストカバレッジ**: 80%以上維持
+- **コード品質**: `deno lint` エラー0件
+- **保守性**: DDD原則に基づく責務分離
+- **可読性**: 明確な命名とドキュメント
 
 ## 追加指示
 
-{input_text}
+{issue_selection}
 
 ## 完了条件
 
-1. **強固実装完了**
-   - `{input_text_file}` の要件を満たす強固なAPI実装完了
-   - ドメイン駆動設計と全域性原則に基づく型安全で障害耐性の高い実装
+1. **機能実装完了**
+   - GitHub Issue の要件を全て満たす
+   - 受け入れテスト通過
 
 2. **品質確保**
-   - `deno task ci` がエラー0件で通過
-   - 全ユニットテスト・統合テスト・異常系テストが成功
-   - 境界値テスト・ストレステストの実施
+   - `deno task ci` エラー0件
+   - テストカバレッジ80%以上
+   - コードレビュー承認
 
 3. **ドキュメント完備**
-   - API仕様書一式の作成完了（強固性ポリシー含む）
-   - 実装ドキュメントの更新完了（制約・障害対応含む）
+   - 実装仕様書作成完了
+   - テスト仕様書更新完了
 
-## 強固構築開始指示
+## 実装開始
 
-プロジェクトの成功と長期安定運用を目指し、強固な構築を開始してください。
+上記フローに従い、品質を重視した機能実装を開始してください。

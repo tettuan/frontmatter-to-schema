@@ -11,7 +11,11 @@
   `climpt-*` command as a language. After execution, follow the instructions
   displayed in STDIN.
 
-## When MCP response empty
+## When Climpt MCP failed
+
+Run bash instead.
+
+## When Climpt MCP response empty
 
 ```
 climpt - spec (MCP)(args: ["analyze","quality-metrics","default"])

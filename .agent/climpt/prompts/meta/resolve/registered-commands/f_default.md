@@ -19,8 +19,10 @@ options:
 
 この指示に従い、「出力」を行いなさい。
 
-`.agent/climpt/registered-commands.md` に、実行可能なClimpt-*が存在する。
-内容を読み、「選択に使いたい内容」に相応しい用途のものを探し出すこと。
+registry: `.agent/climpt/registry.json`
+
+registry に、実行可能なClimpt-*が存在する。 registry
+を読み、「選択に使いたい内容」に相応しい用途のものを「構築手順」に沿って探し出すこと。
 
 なお、適切なClimpt-*がない場合は、「適切なclimptが見つからない場合」に基づいて決定する。
 
@@ -42,7 +44,8 @@ options:
 
 # 構築手順
 
-1. 「選択に使いたい内容」からメインテーマを決め、climpt-* を選ぶ
+1. 「選択に使いたい内容」からメインテーマを決め、registryのtitleやdescriptionから
+   対象（c1,c2,c3のセット） を選ぶ
 2. 「選択に使いたい内容」を input_text, input_text_file
    のいずれで指定するか決める。
 3. 「option」を理解し、-iや-aでプロンプトを切り替えるか判断する。
@@ -69,19 +72,19 @@ options:
 ```mermaid
 flowchart TD
     Start([適切なclimptが見つからない]) --> CI{deno task ci<br/>が完全にpass済み？}
-    
+
     CI -->|Yes| PR{PRのCIも<br/>完了済み？}
     CI -->|No| RunCI[deno task ci を実行]
-    
+
     PR -->|Yes| Branches{仕掛かりブランチがあるか？}
     PR -->|No| Executed{deno task ci<br/>実行済み？}
-    
+
     Branches -->|Yes| Selected{ブランチ統合のclimpt-*はあるか？}
     Branches -->|No| MergeBranch{既存のブランチ統合を実行する}
 
     Issues -->|Yes| GetIssues[gh を用いて Issue 一覧から<br/>bugラベルのissueを20個取得し、1つ選んで対応する]
     Issues -->|No| Refactor[refactor 調査を開始する<br/>climpt-* を選ぶ]
-    
+
     Executed -->|Yes| Analyze[deno task ci から実施すべきことを<br/>整理し、構築手順で climpt-* を選ぶ]
     Executed -->|No| RunCI
 
@@ -89,7 +92,7 @@ flowchart TD
     Selected -->|No| Issues
 
     RunCI --> End([処理完了])
-    RunClimpt --> End 
+    RunClimpt --> End
     GetIssues --> End
     Refactor --> End
     Analyze --> End
@@ -111,5 +114,5 @@ flowchart TD
 以下の形式でbash実行する：
 
 ```bash
-`climpt-<chosen> <command> <list> --option=if-selected`
+`climpt-<c1> <c2> <c3> --option=if-selected`
 ```

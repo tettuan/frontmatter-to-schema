@@ -5,6 +5,8 @@ import { ValidationRules } from "../../domain/schema/value-objects/validation-ru
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
+import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
+import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -28,9 +30,14 @@ export type ProcessingOptions =
  * - Totality: All methods return Result<T,E>
  */
 export class ProcessingCoordinator {
+  private readonly extractFromProcessor: ExtractFromProcessor;
+
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
-  ) {}
+    propertyExtractor?: PropertyExtractor,
+  ) {
+    this.extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+  }
 
   /**
    * Smart Constructor for ProcessingCoordinator
@@ -38,6 +45,7 @@ export class ProcessingCoordinator {
    */
   static create(
     frontmatterTransformer: FrontmatterTransformationService,
+    propertyExtractor?: PropertyExtractor,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
       return err(createError({
@@ -46,7 +54,9 @@ export class ProcessingCoordinator {
       }));
     }
 
-    return ok(new ProcessingCoordinator(frontmatterTransformer));
+    return ok(
+      new ProcessingCoordinator(frontmatterTransformer, propertyExtractor),
+    );
   }
 
   /**
@@ -158,6 +168,155 @@ export class ProcessingCoordinator {
       const itemsResult = this.extractFrontmatterPartData(mainData, schema);
       if (!itemsResult.ok) {
         return itemsResult;
+      }
+
+      return ok({
+        mainData,
+        itemsData: itemsResult.data,
+      });
+    }
+
+    return ok({ mainData });
+  }
+
+  /**
+   * Process x-extract-from directives for data transformation
+   * Similar to extractFrontmatterPartData, processes directives during transformation phase
+   * Following DDD - coordination of domain operations
+   */
+  processExtractFromDirectives(
+    data: FrontmatterData,
+    schema: Schema,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    // Check if schema has x-extract-from directives
+    if (!schema.hasExtractFromDirectives()) {
+      // No directives, return data unchanged
+      return ok(data);
+    }
+
+    const directivesResult = schema.getExtractFromDirectives();
+    if (!directivesResult.ok) {
+      const errorMessage = "message" in directivesResult.error
+        ? directivesResult.error.message
+        : JSON.stringify(directivesResult.error);
+      return err(createError({
+        kind: "AggregationFailed",
+        message: `Failed to get x-extract-from directives: ${errorMessage}`,
+      }));
+    }
+
+    // Process directives using ExtractFromProcessor
+    const processResult = this.extractFromProcessor.processBatch(
+      data,
+      directivesResult.data,
+    );
+
+    if (!processResult.ok) {
+      const errorMessage = "message" in processResult.error
+        ? processResult.error.message
+        : JSON.stringify(processResult.error);
+      return err(createError({
+        kind: "AggregationFailed",
+        message: `Failed to process x-extract-from directives: ${errorMessage}`,
+      }));
+    }
+
+    return processResult;
+  }
+
+  /**
+   * Process documents with x-extract-from directives applied
+   * Combines document processing with directive application
+   */
+  async processDocumentsWithExtractFrom(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions = { kind: "sequential" },
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // Process documents first
+    const processResult = await this.processDocuments(
+      inputPattern,
+      validationRules,
+      schema,
+      options,
+    );
+    if (!processResult.ok) {
+      return processResult;
+    }
+
+    // Apply x-extract-from directives if present
+    const extractResult = this.processExtractFromDirectives(
+      processResult.data,
+      schema,
+    );
+
+    return extractResult;
+  }
+
+  /**
+   * Process documents with both items extraction and x-extract-from directives
+   * Comprehensive coordination combining all processing steps
+   */
+  async processDocumentsWithFullExtraction(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions = { kind: "sequential" },
+  ): Promise<
+    Result<{
+      mainData: FrontmatterData;
+      itemsData?: FrontmatterData[];
+    }, DomainError & { message: string }>
+  > {
+    // Process documents with x-extract-from directives
+    const processResult = await this.processDocumentsWithExtractFrom(
+      inputPattern,
+      validationRules,
+      schema,
+      options,
+    );
+    if (!processResult.ok) {
+      return processResult;
+    }
+
+    const mainData = processResult.data;
+
+    // Check if we need to extract items data
+    const frontmatterPartResult = schema.findFrontmatterPartPath();
+    const hasFrontmatterPart = frontmatterPartResult.ok;
+
+    if (hasFrontmatterPart) {
+      const itemsResult = this.extractFrontmatterPartData(mainData, schema);
+      if (!itemsResult.ok) {
+        return itemsResult;
+      }
+
+      // Apply x-extract-from to each extracted item if needed
+      if (schema.hasExtractFromDirectives()) {
+        const processedItems: FrontmatterData[] = [];
+        for (const item of itemsResult.data) {
+          const processedItemResult = this.processExtractFromDirectives(
+            item,
+            schema,
+          );
+          if (processedItemResult.ok) {
+            processedItems.push(processedItemResult.data);
+          } else {
+            // Log warning but continue processing other items
+            const errorMessage = "message" in processedItemResult.error
+              ? processedItemResult.error.message
+              : JSON.stringify(processedItemResult.error);
+            console.warn(
+              `Failed to process x-extract-from for item: ${errorMessage}`,
+            );
+            processedItems.push(item);
+          }
+        }
+        return ok({
+          mainData,
+          itemsData: processedItems,
+        });
       }
 
       return ok({

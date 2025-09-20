@@ -6,6 +6,7 @@ import {
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../factories/frontmatter-data-factory.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
+import { PropertyExtractor } from "../../schema/extractors/property-extractor.ts";
 
 export interface FrontmatterExtractor {
   extract(content: string): Result<{
@@ -22,6 +23,7 @@ export class FrontmatterProcessor {
   constructor(
     private readonly extractor: FrontmatterExtractor,
     private readonly parser: FrontmatterParser,
+    private readonly propertyExtractor?: PropertyExtractor,
   ) {}
 
   extract(

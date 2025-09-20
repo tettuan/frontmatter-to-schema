@@ -215,6 +215,20 @@ export class SchemaDefinition {
   }
 
   /**
+   * Check if schema has extract-from directive
+   */
+  hasExtractFrom(): boolean {
+    return SchemaPropertyUtils.hasExtractFrom(this.schema);
+  }
+
+  /**
+   * Get extract-from path from schema
+   */
+  getExtractFrom(): Result<string, SchemaError & { message: string }> {
+    return SchemaPropertyUtils.getExtractFrom(this.schema);
+  }
+
+  /**
    * Get items schema for array schemas
    */
   getItems(): Result<
