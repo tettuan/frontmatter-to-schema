@@ -1,6 +1,6 @@
 {
   "name": "@scope/frontmatter-to-schema",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Convert frontmatter to JSON schema",
   "license": "MIT",
   "exports": "./mod.ts",
