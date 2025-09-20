@@ -16,7 +16,6 @@ import { describe, it } from "@std/testing/bdd";
 import { FrontmatterProcessor } from "../../src/domain/frontmatter/processors/frontmatter-processor.ts";
 import { PropertyExtractor } from "../../src/domain/schema/extractors/property-extractor.ts";
 import { ExtractFromProcessor } from "../../src/domain/schema/services/extract-from-processor.ts";
-import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ExtractFromDirective } from "../../src/domain/schema/value-objects/extract-from-directive.ts";
 import { ok } from "../../src/domain/shared/types/result.ts";
 
@@ -76,7 +75,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -112,7 +113,9 @@ describe("Directive Combination Integration Tests", () => {
         );
         assertEquals(namesDirective.ok, true);
 
-        if (titleDirective.ok && traceabilityDirective.ok && namesDirective.ok) {
+        if (
+          titleDirective.ok && traceabilityDirective.ok && namesDirective.ok
+        ) {
           // Process title extraction
           const titleResult = extractFromProcessor.processDirective(
             frontmatterDataObj,
@@ -136,7 +139,9 @@ describe("Directive Combination Integration Tests", () => {
 
           if (titleResult.ok && traceabilityResult.ok && namesResult.ok) {
             const titleValue = titleResult.data.get("extractedTitle");
-            const traceabilityValue = traceabilityResult.data.get("extractedTraceabilityIds");
+            const traceabilityValue = traceabilityResult.data.get(
+              "extractedTraceabilityIds",
+            );
             const namesValue = namesResult.data.get("extractedNames");
 
             assertEquals(titleValue.ok, true);
@@ -151,7 +156,11 @@ describe("Directive Combination Integration Tests", () => {
                 "comp:authz:001",
                 "comp:log:001",
               ]);
-              assertEquals(namesValue.data, ["authentication", "authorization", "logging"]);
+              assertEquals(namesValue.data, [
+                "authentication",
+                "authorization",
+                "logging",
+              ]);
             }
           }
         }
@@ -199,7 +208,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -235,17 +246,21 @@ describe("Directive Combination Integration Tests", () => {
         );
         assertEquals(componentNamesDirective.ok, true);
 
-        if (projectNameDirective.ok && componentTraceabilityDirective.ok && componentNamesDirective.ok) {
+        if (
+          projectNameDirective.ok && componentTraceabilityDirective.ok &&
+          componentNamesDirective.ok
+        ) {
           const projectNameResult = extractFromProcessor.processDirective(
             frontmatterDataObj,
             projectNameDirective.data,
           );
           assertEquals(projectNameResult.ok, true);
 
-          const componentTraceabilityResult = extractFromProcessor.processDirective(
-            frontmatterDataObj,
-            componentTraceabilityDirective.data,
-          );
+          const componentTraceabilityResult = extractFromProcessor
+            .processDirective(
+              frontmatterDataObj,
+              componentTraceabilityDirective.data,
+            );
           assertEquals(componentTraceabilityResult.ok, true);
 
           const componentNamesResult = extractFromProcessor.processDirective(
@@ -254,10 +269,17 @@ describe("Directive Combination Integration Tests", () => {
           );
           assertEquals(componentNamesResult.ok, true);
 
-          if (projectNameResult.ok && componentTraceabilityResult.ok && componentNamesResult.ok) {
+          if (
+            projectNameResult.ok && componentTraceabilityResult.ok &&
+            componentNamesResult.ok
+          ) {
             const projectName = projectNameResult.data.get("projectName");
-            const componentIds = componentTraceabilityResult.data.get("componentIds");
-            const componentNames = componentNamesResult.data.get("componentNames");
+            const componentIds = componentTraceabilityResult.data.get(
+              "componentIds",
+            );
+            const componentNames = componentNamesResult.data.get(
+              "componentNames",
+            );
 
             assertEquals(projectName.ok, true);
             assertEquals(componentIds.ok, true);
@@ -310,7 +332,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -388,7 +412,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -404,7 +430,10 @@ describe("Directive Combination Integration Tests", () => {
         let frontmatterDataObj = processResult.data.frontmatter;
 
         // First extraction: primary.id -> extractedId
-        const primaryDirective = ExtractFromDirective.create("primary.id", "extractedId");
+        const primaryDirective = ExtractFromDirective.create(
+          "primary.id",
+          "extractedId",
+        );
         assertEquals(primaryDirective.ok, true);
 
         if (primaryDirective.ok) {
@@ -418,7 +447,10 @@ describe("Directive Combination Integration Tests", () => {
             frontmatterDataObj = primaryResult.data;
 
             // Second extraction: secondary.id -> extractedId (same target)
-            const secondaryDirective = ExtractFromDirective.create("secondary.id", "extractedId");
+            const secondaryDirective = ExtractFromDirective.create(
+              "secondary.id",
+              "extractedId",
+            );
             assertEquals(secondaryDirective.ok, true);
 
             if (secondaryDirective.ok) {
@@ -479,7 +511,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -545,8 +579,12 @@ describe("Directive Combination Integration Tests", () => {
                   if (priorityResult.ok) {
                     // Verify all extracted data is available
                     const reqIds = priorityResult.data.get("extractedReqIds");
-                    const traceIds = priorityResult.data.get("extractedTraceIds");
-                    const priorities = priorityResult.data.get("extractedPriorities");
+                    const traceIds = priorityResult.data.get(
+                      "extractedTraceIds",
+                    );
+                    const priorities = priorityResult.data.get(
+                      "extractedPriorities",
+                    );
 
                     assertEquals(reqIds.ok, true);
                     assertEquals(traceIds.ok, true);
@@ -555,7 +593,10 @@ describe("Directive Combination Integration Tests", () => {
                     if (reqIds.ok && traceIds.ok && priorities.ok) {
                       // Assert: Verify chained processing results
                       assertEquals(reqIds.data, ["req-001", "req-002"]);
-                      assertEquals(traceIds.data, ["trace:req-001", "trace:req-002"]);
+                      assertEquals(traceIds.data, [
+                        "trace:req-001",
+                        "trace:req-002",
+                      ]);
                       assertEquals(priorities.data, ["high", "medium"]);
                     }
                   }
@@ -587,7 +628,9 @@ describe("Directive Combination Integration Tests", () => {
       });
       const mockParser = new MockCombinationParser(frontmatterData);
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       const processor = new FrontmatterProcessor(
         mockExtractor,
@@ -603,7 +646,10 @@ describe("Directive Combination Integration Tests", () => {
         let workingData = processResult.data.frontmatter;
 
         // Valid extraction
-        const validDirective = ExtractFromDirective.create("valid.data.value", "validValue");
+        const validDirective = ExtractFromDirective.create(
+          "valid.data.value",
+          "validValue",
+        );
         assertEquals(validDirective.ok, true);
 
         if (validDirective.ok) {
@@ -617,7 +663,10 @@ describe("Directive Combination Integration Tests", () => {
             workingData = validResult.data;
 
             // Invalid extraction (missing path)
-            const invalidDirective = ExtractFromDirective.create("invalid.data.value", "invalidValue");
+            const invalidDirective = ExtractFromDirective.create(
+              "invalid.data.value",
+              "invalidValue",
+            );
             assertEquals(invalidDirective.ok, true);
 
             if (invalidDirective.ok) {

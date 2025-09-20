@@ -72,10 +72,14 @@ describe("Multi-File Processing Integration Tests", () => {
       ];
 
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       // Act: Process each file configuration
-      const aggregatedResults: Array<{ file: string; id: string; priority: string; category: string }> = [];
+      const aggregatedResults: Array<
+        { file: string; id: string; priority: string; category: string }
+      > = [];
 
       for (const config of fileConfigurations) {
         const mockExtractor = new MockFileExtractor({
@@ -97,9 +101,18 @@ describe("Multi-File Processing Integration Tests", () => {
           const frontmatterData = processResult.data.frontmatter;
 
           // Extract all properties using multiple directives
-          const idDirective = ExtractFromDirective.create("traceability.id.full", "id");
-          const priorityDirective = ExtractFromDirective.create("priority", "priority");
-          const categoryDirective = ExtractFromDirective.create("category", "category");
+          const idDirective = ExtractFromDirective.create(
+            "traceability.id.full",
+            "id",
+          );
+          const priorityDirective = ExtractFromDirective.create(
+            "priority",
+            "priority",
+          );
+          const categoryDirective = ExtractFromDirective.create(
+            "category",
+            "category",
+          );
 
           assertEquals(idDirective.ok, true);
           assertEquals(priorityDirective.ok, true);
@@ -109,17 +122,26 @@ describe("Multi-File Processing Integration Tests", () => {
             let workingData = frontmatterData;
 
             // Process ID extraction
-            const idResult = extractFromProcessor.processDirective(workingData, idDirective.data);
+            const idResult = extractFromProcessor.processDirective(
+              workingData,
+              idDirective.data,
+            );
             assertEquals(idResult.ok, true);
             if (idResult.ok) workingData = idResult.data;
 
             // Process priority extraction
-            const priorityResult = extractFromProcessor.processDirective(workingData, priorityDirective.data);
+            const priorityResult = extractFromProcessor.processDirective(
+              workingData,
+              priorityDirective.data,
+            );
             assertEquals(priorityResult.ok, true);
             if (priorityResult.ok) workingData = priorityResult.data;
 
             // Process category extraction
-            const categoryResult = extractFromProcessor.processDirective(workingData, categoryDirective.data);
+            const categoryResult = extractFromProcessor.processDirective(
+              workingData,
+              categoryDirective.data,
+            );
             assertEquals(categoryResult.ok, true);
             if (categoryResult.ok) workingData = categoryResult.data;
 
@@ -164,8 +186,14 @@ describe("Multi-File Processing Integration Tests", () => {
           name: "components1.md",
           data: {
             components: [
-              { traceability: { id: { full: "comp:auth:001" } }, type: "authentication" },
-              { traceability: { id: { full: "comp:authz:001" } }, type: "authorization" },
+              {
+                traceability: { id: { full: "comp:auth:001" } },
+                type: "authentication",
+              },
+              {
+                traceability: { id: { full: "comp:authz:001" } },
+                type: "authorization",
+              },
             ],
           },
         },
@@ -173,16 +201,27 @@ describe("Multi-File Processing Integration Tests", () => {
           name: "components2.md",
           data: {
             components: [
-              { traceability: { id: { full: "comp:log:001" } }, type: "logging" },
-              { traceability: { id: { full: "comp:cache:001" } }, type: "caching" },
-              { traceability: { id: { full: "comp:db:001" } }, type: "database" },
+              {
+                traceability: { id: { full: "comp:log:001" } },
+                type: "logging",
+              },
+              {
+                traceability: { id: { full: "comp:cache:001" } },
+                type: "caching",
+              },
+              {
+                traceability: { id: { full: "comp:db:001" } },
+                type: "database",
+              },
             ],
           },
         },
       ];
 
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       // Act: Process array-based files
       const allComponentIds: string[] = [];
@@ -205,11 +244,17 @@ describe("Multi-File Processing Integration Tests", () => {
 
         if (processResult.ok) {
           const frontmatterData = processResult.data.frontmatter;
-          const directive = ExtractFromDirective.create("components[].traceability.id.full", "componentIds");
+          const directive = ExtractFromDirective.create(
+            "components[].traceability.id.full",
+            "componentIds",
+          );
           assertEquals(directive.ok, true);
 
           if (directive.ok) {
-            const extractResult = extractFromProcessor.processDirective(frontmatterData, directive.data);
+            const extractResult = extractFromProcessor.processDirective(
+              frontmatterData,
+              directive.data,
+            );
             assertEquals(extractResult.ok, true);
 
             if (extractResult.ok) {
@@ -242,7 +287,9 @@ describe("Multi-File Processing Integration Tests", () => {
       // Arrange: Large number of file simulations
       const batchSize = 25;
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       // Act: Process batch
       const startTime = Date.now();
@@ -273,11 +320,17 @@ describe("Multi-File Processing Integration Tests", () => {
 
         if (processResult.ok) {
           const frontmatterData = processResult.data.frontmatter;
-          const directive = ExtractFromDirective.create("traceability.id.full", "batchId");
+          const directive = ExtractFromDirective.create(
+            "traceability.id.full",
+            "batchId",
+          );
           assertEquals(directive.ok, true);
 
           if (directive.ok) {
-            const extractResult = extractFromProcessor.processDirective(frontmatterData, directive.data);
+            const extractResult = extractFromProcessor.processDirective(
+              frontmatterData,
+              directive.data,
+            );
             assertEquals(extractResult.ok, true);
 
             if (extractResult.ok) {
@@ -298,7 +351,10 @@ describe("Multi-File Processing Integration Tests", () => {
       // Assert: Performance and correctness
       assertEquals(batchResults.length, batchSize);
       assertEquals(batchResults[0], "batch:000");
-      assertEquals(batchResults[batchSize - 1], `batch:${String(batchSize - 1).padStart(3, "0")}`);
+      assertEquals(
+        batchResults[batchSize - 1],
+        `batch:${String(batchSize - 1).padStart(3, "0")}`,
+      );
 
       // Performance assertion: should complete within reasonable time (< 200ms for 25 files)
       assertEquals(duration < 200, true);
@@ -327,10 +383,13 @@ describe("Multi-File Processing Integration Tests", () => {
       ];
 
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       // Act: Process mixed configurations
-      const results: Array<{ file: string; success: boolean; id?: string }> = [];
+      const results: Array<{ file: string; success: boolean; id?: string }> =
+        [];
 
       for (const config of mixedConfigurations) {
         const mockExtractor = new MockFileExtractor({
@@ -350,11 +409,17 @@ describe("Multi-File Processing Integration Tests", () => {
 
         if (processResult.ok) {
           const frontmatterData = processResult.data.frontmatter;
-          const directive = ExtractFromDirective.create("traceability.id.full", "fileId");
+          const directive = ExtractFromDirective.create(
+            "traceability.id.full",
+            "fileId",
+          );
           assertEquals(directive.ok, true);
 
           if (directive.ok) {
-            const extractResult = extractFromProcessor.processDirective(frontmatterData, directive.data);
+            const extractResult = extractFromProcessor.processDirective(
+              frontmatterData,
+              directive.data,
+            );
             assertEquals(extractResult.ok, true);
 
             if (extractResult.ok) {
@@ -422,10 +487,13 @@ describe("Multi-File Processing Integration Tests", () => {
       ];
 
       const propertyExtractor = PropertyExtractor.create();
-      const extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+      const extractFromProcessor = ExtractFromProcessor.create(
+        propertyExtractor,
+      );
 
       // Act: Process heterogeneous structures
-      const structureResults: Array<{ file: string; extractedIds: string[] }> = [];
+      const structureResults: Array<{ file: string; extractedIds: string[] }> =
+        [];
 
       for (const config of heterogeneousConfigurations) {
         const mockExtractor = new MockFileExtractor({
@@ -445,11 +513,17 @@ describe("Multi-File Processing Integration Tests", () => {
 
         if (processResult.ok) {
           const frontmatterData = processResult.data.frontmatter;
-          const directive = ExtractFromDirective.create(config.extractPath, "extractedIds");
+          const directive = ExtractFromDirective.create(
+            config.extractPath,
+            "extractedIds",
+          );
           assertEquals(directive.ok, true);
 
           if (directive.ok) {
-            const extractResult = extractFromProcessor.processDirective(frontmatterData, directive.data);
+            const extractResult = extractFromProcessor.processDirective(
+              frontmatterData,
+              directive.data,
+            );
             assertEquals(extractResult.ok, true);
 
             if (extractResult.ok) {
@@ -475,7 +549,10 @@ describe("Multi-File Processing Integration Tests", () => {
       // Assert: Verify heterogeneous processing
       assertEquals(structureResults.length, 3);
       assertEquals(structureResults[0].extractedIds, ["single:001"]);
-      assertEquals(structureResults[1].extractedIds, ["array:001", "array:002"]);
+      assertEquals(structureResults[1].extractedIds, [
+        "array:001",
+        "array:002",
+      ]);
       assertEquals(structureResults[2].extractedIds, ["nested:001"]);
     });
   });
