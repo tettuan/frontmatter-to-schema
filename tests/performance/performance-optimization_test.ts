@@ -53,7 +53,7 @@ const createTestData = (size: number = 100) => {
 
 describe("Performance Optimization Tests", () => {
   let optimizedExtractor: OptimizedPropertyExtractor;
-  let pathCache: PathCache;
+  let pathCache: PathCache<unknown>;
   let performanceMonitor: PerformanceMonitor;
 
   beforeEach(() => {
@@ -290,7 +290,7 @@ describe("Performance Optimization Tests", () => {
 
       // Verify all batch processing succeeded
       const successfulBatches = batchResults.filter((r) => r.ok);
-      assertEquals(successfulBatches.length, 1); // Only one batch expected
+      assertEquals(successfulBatches.length, batchSize); // All files should succeed
 
       // Performance target: 100 files in < 1 second (scaled from 1000 files in 10s)
       assert(

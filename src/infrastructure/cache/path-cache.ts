@@ -1,508 +1,485 @@
 /**
- * Path Cache Implementation for Performance Optimization
- *
- * Provides intelligent caching for property path parsing and extraction results
- * Following DDD principles with domain-driven cache design
- * Implements totality patterns with Result types and Smart Constructors
+ * @fileoverview Path Cache Infrastructure for Performance Optimization
+ * @description Implements caching for property paths and extraction results
+ * Following DDD and Totality principles
  */
 
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { PerformanceError } from "../../domain/shared/types/errors.ts";
-import { PropertyPath } from "../../domain/schema/extractors/property-extractor.ts";
+import { SchemaError } from "../../domain/shared/types/errors.ts";
 
 /**
- * Cache Entry for parsed property paths
+ * Cache entry with TTL and usage tracking
  */
-interface PathCacheEntry {
-  readonly path: PropertyPath;
-  readonly parseTime: number;
-  readonly accessCount: number;
-  readonly lastAccessed: number;
-  readonly complexity: number; // Path complexity score for eviction strategy
-}
-
-/**
- * Cache Entry for extraction results
- */
-interface ExtractionCacheEntry {
-  readonly result: unknown;
-  readonly dataHash: string;
-  readonly pathHash: string;
+interface CacheEntry<T> {
+  readonly value: T;
   readonly timestamp: number;
   readonly accessCount: number;
-  readonly lastAccessed: number;
+  readonly ttl: number;
 }
 
 /**
- * Path Cache Configuration
+ * Cache configuration options
  */
 export interface PathCacheConfig {
-  readonly maxPathEntries: number;
-  readonly maxExtractionEntries: number;
-  readonly pathTtlMs: number;
-  readonly extractionTtlMs: number;
-  readonly enableComplexityEviction: boolean;
-  readonly enableExtractionCache: boolean;
+  readonly maxSize: number;
+  readonly defaultTtl: number;
+  readonly enableMetrics: boolean;
+  readonly maxPathEntries?: number;
+  readonly maxExtractionEntries?: number;
+  readonly pathTtlMs?: number;
+  readonly extractionTtlMs?: number;
 }
 
 /**
- * Path Cache Statistics for monitoring
+ * Cache metrics for monitoring
  */
-export interface PathCacheStats {
-  readonly pathEntries: number;
-  readonly extractionEntries: number;
-  readonly pathHits: number;
-  readonly pathMisses: number;
-  readonly extractionHits: number;
-  readonly extractionMisses: number;
-  readonly pathHitRate: number;
-  readonly extractionHitRate: number;
-  readonly memoryEstimateMB: number;
+interface CacheMetrics {
+  readonly hits: number;
+  readonly misses: number;
   readonly evictions: number;
+  readonly size: number;
+  readonly hitRate: number;
 }
 
 /**
- * Path Cache for Property Path parsing and extraction results
- * Optimizes repeated path parsing and data extraction operations
+ * Path Cache for property path parsing and extraction results
+ * Following Totality principle with immutable design
  */
-export class PathCache {
-  private readonly pathCache = new Map<string, PathCacheEntry>();
-  private readonly extractionCache = new Map<string, ExtractionCacheEntry>();
-  private readonly config: PathCacheConfig;
-  private readonly stats: PathCacheStats;
+export class PathCache<T> {
+  private constructor(
+    private readonly cache: Map<string, CacheEntry<T>>,
+    private readonly config: PathCacheConfig,
+    private readonly metrics: {
+      hits: number;
+      misses: number;
+      evictions: number;
+    },
+  ) {}
 
-  private constructor(config: PathCacheConfig) {
-    this.config = config;
-    this.stats = {
-      pathEntries: 0,
-      extractionEntries: 0,
-      pathHits: 0,
-      pathMisses: 0,
-      extractionHits: 0,
-      extractionMisses: 0,
-      pathHitRate: 0,
-      extractionHitRate: 0,
-      memoryEstimateMB: 0,
-      evictions: 0,
+  /**
+   * Smart Constructor
+   */
+  static create<T>(config?: Partial<PathCacheConfig>): PathCache<T> {
+    const defaultConfig: PathCacheConfig = {
+      maxSize: 1000,
+      defaultTtl: 300000, // 5 minutes
+      enableMetrics: true,
     };
+
+    const finalConfig = { ...defaultConfig, ...config };
+    return new PathCache(
+      new Map(),
+      finalConfig,
+      { hits: 0, misses: 0, evictions: 0 },
+    );
   }
 
   /**
-   * Smart Constructor for PathCache
+   * Get value from cache
    */
-  static create(
-    config: Partial<PathCacheConfig> = {},
-  ): Result<PathCache, PerformanceError & { message: string }> {
-    const validatedConfig: PathCacheConfig = {
-      maxPathEntries: config.maxPathEntries ?? 1000,
-      maxExtractionEntries: config.maxExtractionEntries ?? 500,
-      pathTtlMs: config.pathTtlMs ?? 30 * 60 * 1000, // 30 minutes
-      extractionTtlMs: config.extractionTtlMs ?? 5 * 60 * 1000, // 5 minutes
-      enableComplexityEviction: config.enableComplexityEviction ?? true,
-      enableExtractionCache: config.enableExtractionCache ?? true,
-    };
+  get(key: string): Result<T | undefined, SchemaError> {
+    try {
+      const entry = this.cache.get(key);
 
-    // Validate configuration
-    if (
-      validatedConfig.maxPathEntries < 1 ||
-      validatedConfig.maxPathEntries > 10000
-    ) {
-      return err({
-        kind: "PerformanceViolation",
-        content: "Path cache entries must be between 1 and 10000",
-        message: "Invalid path cache configuration",
-      });
-    }
-
-    if (
-      validatedConfig.maxExtractionEntries < 1 ||
-      validatedConfig.maxExtractionEntries > 5000
-    ) {
-      return err({
-        kind: "PerformanceViolation",
-        content: "Extraction cache entries must be between 1 and 5000",
-        message: "Invalid extraction cache configuration",
-      });
-    }
-
-    return ok(new PathCache(validatedConfig));
-  }
-
-  /**
-   * Get cached PropertyPath or null if not found/expired
-   */
-  getPath(pathString: string): PropertyPath | null {
-    const entry = this.pathCache.get(pathString);
-
-    if (!entry) {
-      (this.stats as any).pathMisses++;
-      this.updatePathHitRate();
-      return null;
-    }
-
-    // Check TTL expiration
-    const now = Date.now();
-    if (now - entry.lastAccessed > this.config.pathTtlMs) {
-      this.pathCache.delete(pathString);
-      (this.stats as any).pathMisses++;
-      (this.stats as any).evictions++;
-      this.updatePathHitRate();
-      return null;
-    }
-
-    // Update access statistics
-    const updatedEntry: PathCacheEntry = {
-      ...entry,
-      accessCount: entry.accessCount + 1,
-      lastAccessed: now,
-    };
-    this.pathCache.set(pathString, updatedEntry);
-
-    (this.stats as any).pathHits++;
-    this.updatePathHitRate();
-    return entry.path;
-  }
-
-  /**
-   * Cache parsed PropertyPath
-   */
-  setPath(
-    pathString: string,
-    path: PropertyPath,
-  ): Result<void, PerformanceError> {
-    // Check if cache is full and eviction is needed
-    if (this.pathCache.size >= this.config.maxPathEntries) {
-      const evictionResult = this.evictPathEntries();
-      if (!evictionResult.ok) {
-        return evictionResult;
+      if (!entry) {
+        this.incrementMisses();
+        return ok(undefined);
       }
+
+      // Check TTL
+      if (this.isExpired(entry)) {
+        this.cache.delete(key);
+        this.incrementMisses();
+        return ok(undefined);
+      }
+
+      // Update access count
+      const updatedEntry: CacheEntry<T> = {
+        ...entry,
+        accessCount: entry.accessCount + 1,
+      };
+      this.cache.set(key, updatedEntry);
+
+      this.incrementHits();
+      return ok(entry.value);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Cache get failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
+  }
+
+  /**
+   * Set value in cache
+   */
+  set(key: string, value: T, ttl?: number): Result<void, SchemaError> {
+    try {
+      const effectiveTtl = ttl ?? this.config.defaultTtl;
+
+      // Evict if at capacity
+      const maxEntries = this.config.maxPathEntries ?? this.config.maxSize;
+      if (this.cache.size >= maxEntries && !this.cache.has(key)) {
+        const evictResult = this.evictLeastRecentlyUsed();
+        if (!evictResult.ok) {
+          return evictResult;
+        }
+      }
+
+      const entry: CacheEntry<T> = {
+        value,
+        timestamp: Date.now(),
+        accessCount: 1,
+        ttl: effectiveTtl,
+      };
+
+      this.cache.set(key, entry);
+      return ok(undefined);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Cache set failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
+  }
+
+  /**
+   * Check if cache has valid entry
+   */
+  has(key: string): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return false;
+
+    if (this.isExpired(entry)) {
+      this.cache.delete(key);
+      return false;
     }
 
-    const now = Date.now();
-    const complexity = this.calculatePathComplexity(pathString);
+    return true;
+  }
 
-    const entry: PathCacheEntry = {
-      path,
-      parseTime: now,
-      accessCount: 1,
-      lastAccessed: now,
-      complexity,
+  /**
+   * Clear cache
+   */
+  clear(): void {
+    this.cache.clear();
+    this.resetMetrics();
+  }
+
+  /**
+   * Get cache metrics
+   */
+  getMetrics(): CacheMetrics {
+    const total = this.metrics.hits + this.metrics.misses;
+    const hitRate = total > 0 ? this.metrics.hits / total : 0;
+
+    return {
+      hits: this.metrics.hits,
+      misses: this.metrics.misses,
+      evictions: this.metrics.evictions,
+      size: this.cache.size,
+      hitRate,
     };
+  }
 
-    this.pathCache.set(pathString, entry);
-    (this.stats as any).pathEntries = this.pathCache.size;
-    this.updateMemoryEstimate();
+  /**
+   * Get cache size
+   */
+  size(): number {
+    return this.cache.size;
+  }
 
-    return ok(undefined);
+  /**
+   * Estimate memory usage in bytes
+   */
+  estimateMemoryUsage(): number {
+    let totalSize = 0;
+
+    for (const [key, entry] of this.cache) {
+      // Rough estimation: key + value + metadata
+      totalSize += key.length * 2; // String UTF-16
+      totalSize += this.estimateValueSize(entry.value);
+      totalSize += 64; // Metadata overhead
+    }
+
+    return totalSize;
+  }
+
+  /**
+   * Get cached property path
+   */
+  getPath(pathString: string): unknown | null {
+    const result = this.get(pathString);
+    return result.ok ? result.data : null;
+  }
+
+  /**
+   * Set cached property path
+   */
+  setPath(pathString: string, path: unknown): void {
+    const result = this.set(pathString, path as T);
+    if (!result.ok) {
+      const errorMessage = "message" in result.error
+        ? result.error.message
+        : `Error kind: ${result.error.kind}`;
+      throw new Error(`Failed to cache path: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Generate data hash for caching
+   */
+  generateDataHash(data: unknown): string {
+    try {
+      const str = JSON.stringify(data);
+      return this.simpleHash(str);
+    } catch {
+      return "invalid-data-hash";
+    }
+  }
+
+  /**
+   * Generate path hash for caching
+   */
+  generatePathHash(pathString: string): string {
+    return this.simpleHash(pathString);
   }
 
   /**
    * Get cached extraction result
    */
   getExtractionResult(dataHash: string, pathHash: string): unknown | null {
-    if (!this.config.enableExtractionCache) {
-      return null;
-    }
-
-    const cacheKey = `${dataHash}:${pathHash}`;
-    const entry = this.extractionCache.get(cacheKey);
-
-    if (!entry) {
-      (this.stats as any).extractionMisses++;
-      this.updateExtractionHitRate();
-      return null;
-    }
-
-    // Check TTL expiration
-    const now = Date.now();
-    if (now - entry.timestamp > this.config.extractionTtlMs) {
-      this.extractionCache.delete(cacheKey);
-      (this.stats as any).extractionMisses++;
-      (this.stats as any).evictions++;
-      this.updateExtractionHitRate();
-      return null;
-    }
-
-    // Update access statistics
-    const updatedEntry: ExtractionCacheEntry = {
-      ...entry,
-      accessCount: entry.accessCount + 1,
-      lastAccessed: now,
-    };
-    this.extractionCache.set(cacheKey, updatedEntry);
-
-    (this.stats as any).extractionHits++;
-    this.updateExtractionHitRate();
-    return entry.result;
+    const key = `extract:${dataHash}:${pathHash}`;
+    const result = this.get(key);
+    return result.ok ? result.data : null;
   }
 
   /**
-   * Cache extraction result
+   * Set cached extraction result
    */
   setExtractionResult(
     dataHash: string,
     pathHash: string,
-    result: unknown,
-  ): Result<void, PerformanceError> {
-    if (!this.config.enableExtractionCache) {
-      return ok(undefined);
+    value: unknown,
+  ): void {
+    const key = `extract:${dataHash}:${pathHash}`;
+    const result = this.set(key, value as T);
+    if (!result.ok) {
+      const errorMessage = "message" in result.error
+        ? result.error.message
+        : `Error kind: ${result.error.kind}`;
+      throw new Error(`Failed to cache extraction result: ${errorMessage}`);
     }
-
-    // Check if cache is full and eviction is needed
-    if (this.extractionCache.size >= this.config.maxExtractionEntries) {
-      const evictionResult = this.evictExtractionEntries();
-      if (!evictionResult.ok) {
-        return evictionResult;
-      }
-    }
-
-    const now = Date.now();
-    const cacheKey = `${dataHash}:${pathHash}`;
-
-    const entry: ExtractionCacheEntry = {
-      result,
-      dataHash,
-      pathHash,
-      timestamp: now,
-      accessCount: 1,
-      lastAccessed: now,
-    };
-
-    this.extractionCache.set(cacheKey, entry);
-    (this.stats as any).extractionEntries = this.extractionCache.size;
-    this.updateMemoryEstimate();
-
-    return ok(undefined);
   }
 
   /**
-   * Generate hash for data structure (simple implementation)
+   * Perform cache maintenance
    */
-  generateDataHash(data: unknown): string {
+  performMaintenance(): Result<void, SchemaError> {
     try {
-      const serialized = JSON.stringify(data);
-      // Simple hash function for demonstration - in production, use a proper hash
-      let hash = 0;
-      for (let i = 0; i < serialized.length; i++) {
-        const char = serialized.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return Math.abs(hash).toString(36);
-    } catch {
-      return Date.now().toString(36);
+      this.cleanup();
+      return ok(undefined);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Cache maintenance failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
     }
   }
 
   /**
-   * Generate hash for path string
+   * Get cache statistics
    */
-  generatePathHash(pathString: string): string {
-    let hash = 0;
-    for (let i = 0; i < pathString.length; i++) {
-      const char = pathString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
+  getStats(): any {
+    const metrics = this.getMetrics();
+    return {
+      ...metrics,
+      memoryUsage: this.estimateMemoryUsage(),
+      pathEntries: this.cache.size,
+    };
   }
 
   /**
-   * Clear all caches
+   * Remove expired entries
    */
-  clear(): void {
-    const totalEvictions = this.pathCache.size + this.extractionCache.size;
-    this.pathCache.clear();
-    this.extractionCache.clear();
-
-    (this.stats as any).pathEntries = 0;
-    (this.stats as any).extractionEntries = 0;
-    (this.stats as any).evictions += totalEvictions;
-    this.updateMemoryEstimate();
-  }
-
-  /**
-   * Get current cache statistics
-   */
-  getStats(): PathCacheStats {
-    return { ...this.stats };
-  }
-
-  /**
-   * Perform cache maintenance (cleanup expired entries)
-   */
-  performMaintenance(): Result<void, PerformanceError> {
+  cleanup(): number {
+    let removedCount = 0;
     const now = Date.now();
-    let evictedCount = 0;
 
-    // Clean expired path entries
-    for (const [key, entry] of this.pathCache.entries()) {
-      if (now - entry.lastAccessed > this.config.pathTtlMs) {
-        this.pathCache.delete(key);
-        evictedCount++;
+    for (const [key, entry] of this.cache) {
+      if (now - entry.timestamp > entry.ttl) {
+        this.cache.delete(key);
+        removedCount++;
       }
     }
 
-    // Clean expired extraction entries
-    if (this.config.enableExtractionCache) {
-      for (const [key, entry] of this.extractionCache.entries()) {
-        if (now - entry.timestamp > this.config.extractionTtlMs) {
-          this.extractionCache.delete(key);
-          evictedCount++;
+    return removedCount;
+  }
+
+  // Private methods
+
+  private isExpired(entry: CacheEntry<T>): boolean {
+    return Date.now() - entry.timestamp > entry.ttl;
+  }
+
+  private evictLeastRecentlyUsed(): Result<void, SchemaError> {
+    try {
+      let lruKey: string | null = null;
+      let lruEntry: CacheEntry<T> | null = null;
+
+      for (const [key, entry] of this.cache) {
+        if (!lruEntry || entry.accessCount < lruEntry.accessCount) {
+          lruKey = key;
+          lruEntry = entry;
         }
       }
-    }
 
-    (this.stats as any).pathEntries = this.pathCache.size;
-    (this.stats as any).extractionEntries = this.extractionCache.size;
-    (this.stats as any).evictions += evictedCount;
-    this.updateMemoryEstimate();
+      if (lruKey) {
+        this.cache.delete(lruKey);
+        this.incrementEvictions();
+      }
 
-    return ok(undefined);
-  }
-
-  /**
-   * Calculate path complexity for eviction strategy
-   */
-  private calculatePathComplexity(pathString: string): number {
-    let complexity = pathString.length; // Base complexity on length
-
-    // Add complexity for special patterns
-    if (pathString.includes("[]")) complexity += 10; // Array notation
-    if (pathString.includes(".")) complexity += pathString.split(".").length; // Depth
-
-    return complexity;
-  }
-
-  /**
-   * Evict path entries using complexity-based or LRU strategy
-   */
-  private evictPathEntries(): Result<void, PerformanceError> {
-    const entriesToRemove = Math.ceil(this.config.maxPathEntries * 0.1); // Remove 10%
-    const entries = Array.from(this.pathCache.entries());
-
-    if (this.config.enableComplexityEviction) {
-      // Evict highest complexity, least recently used entries
-      entries
-        .sort((a, b) => {
-          const complexityDiff = b[1].complexity - a[1].complexity;
-          if (complexityDiff !== 0) return complexityDiff;
-          return a[1].lastAccessed - b[1].lastAccessed;
-        })
-        .slice(0, entriesToRemove)
-        .forEach(([key]) => {
-          this.pathCache.delete(key);
-          (this.stats as any).evictions++;
-        });
-    } else {
-      // Simple LRU eviction
-      entries
-        .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
-        .slice(0, entriesToRemove)
-        .forEach(([key]) => {
-          this.pathCache.delete(key);
-          (this.stats as any).evictions++;
-        });
-    }
-
-    return ok(undefined);
-  }
-
-  /**
-   * Evict extraction entries using LRU strategy
-   */
-  private evictExtractionEntries(): Result<void, PerformanceError> {
-    const entriesToRemove = Math.ceil(this.config.maxExtractionEntries * 0.1);
-    const entries = Array.from(this.extractionCache.entries());
-
-    entries
-      .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed)
-      .slice(0, entriesToRemove)
-      .forEach(([key]) => {
-        this.extractionCache.delete(key);
-        (this.stats as any).evictions++;
+      return ok(undefined);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Cache eviction failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       });
-
-    return ok(undefined);
+    }
   }
 
-  /**
-   * Update path hit rate statistics
-   */
-  private updatePathHitRate(): void {
-    const total = this.stats.pathHits + this.stats.pathMisses;
-    (this.stats as any).pathHitRate = total > 0
-      ? this.stats.pathHits / total
-      : 0;
+  private incrementHits(): void {
+    if (this.config.enableMetrics) {
+      (this.metrics as { hits: number }).hits++;
+    }
   }
 
-  /**
-   * Update extraction hit rate statistics
-   */
-  private updateExtractionHitRate(): void {
-    const total = this.stats.extractionHits + this.stats.extractionMisses;
-    (this.stats as any).extractionHitRate = total > 0
-      ? this.stats.extractionHits / total
-      : 0;
+  private incrementMisses(): void {
+    if (this.config.enableMetrics) {
+      (this.metrics as { misses: number }).misses++;
+    }
   }
 
-  /**
-   * Update memory usage estimate
-   */
-  private updateMemoryEstimate(): void {
-    // Rough estimate: path entry ~200B, extraction entry ~1KB
-    const pathMemory = this.pathCache.size * 200;
-    const extractionMemory = this.extractionCache.size * 1024;
-    (this.stats as any).memoryEstimateMB = (pathMemory + extractionMemory) /
-      (1024 * 1024);
+  private incrementEvictions(): void {
+    if (this.config.enableMetrics) {
+      (this.metrics as { evictions: number }).evictions++;
+    }
+  }
+
+  private resetMetrics(): void {
+    (this.metrics as { hits: number; misses: number; evictions: number }) = {
+      hits: 0,
+      misses: 0,
+      evictions: 0,
+    };
+  }
+
+  private estimateValueSize(value: T): number {
+    if (typeof value === "string") {
+      return value.length * 2; // UTF-16
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      return 8;
+    }
+    if (typeof value === "object" && value !== null) {
+      return JSON.stringify(value).length * 2; // Rough estimate
+    }
+    return 64; // Default estimate
+  }
+
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 }
 
 /**
- * Path Cache Factory
- * Creates PathCache instances with proper configuration
+ * Factory for creating PathCache instances
  */
 export class PathCacheFactory {
+  private constructor() {}
+
   /**
-   * Create standard PathCache for production use
+   * Create a new PathCache instance with Result pattern
    */
-  static create(
+  static create<T>(
     config?: Partial<PathCacheConfig>,
-  ): Result<PathCache, PerformanceError & { message: string }> {
-    return PathCache.create(config);
+  ): Result<PathCache<T>, SchemaError> {
+    try {
+      const cache = PathCache.create<T>(config);
+      return ok(cache);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Failed to create PathCache: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
   }
 
   /**
-   * Create PathCache optimized for testing
+   * Create a new PathCache instance for PropertyPath objects
    */
-  static createForTesting(): Result<
-    PathCache,
-    PerformanceError & { message: string }
-  > {
-    return PathCache.create({
-      maxPathEntries: 100,
-      maxExtractionEntries: 50,
-      pathTtlMs: 1000,
-      extractionTtlMs: 500,
-      enableComplexityEviction: true,
-      enableExtractionCache: true,
-    });
+  static createPropertyPathCache(
+    config?: Partial<PathCacheConfig>,
+  ): PathCache<unknown> {
+    return PathCache.create<unknown>(config);
   }
 
   /**
-   * Create PathCache optimized for high-performance scenarios
+   * Create a new PathCache instance for extraction results
    */
-  static createHighPerformance(): Result<
-    PathCache,
-    PerformanceError & { message: string }
-  > {
-    return PathCache.create({
-      maxPathEntries: 5000,
-      maxExtractionEntries: 2000,
-      pathTtlMs: 60 * 60 * 1000, // 1 hour
-      extractionTtlMs: 15 * 60 * 1000, // 15 minutes
-      enableComplexityEviction: true,
-      enableExtractionCache: true,
-    });
+  static createExtractionCache(
+    config?: Partial<PathCacheConfig>,
+  ): PathCache<unknown> {
+    return PathCache.create<unknown>(config);
+  }
+
+  /**
+   * Create a new PathCache instance with custom type
+   */
+  static createTypedCache<T>(config?: Partial<PathCacheConfig>): PathCache<T> {
+    return PathCache.create<T>(config);
+  }
+
+  /**
+   * Create a PathCache instance optimized for testing with smaller limits
+   */
+  static createForTesting<T = unknown>(
+    config?: Partial<PathCacheConfig>,
+  ): Result<PathCache<T>, SchemaError> {
+    const testConfig: Partial<PathCacheConfig> = {
+      maxSize: 50,
+      defaultTtl: 1000, // 1 second for fast test execution
+      enableMetrics: true,
+      maxPathEntries: 25,
+      ...config,
+    };
+
+    try {
+      const cache = PathCache.create<T>(testConfig);
+      return ok(cache);
+    } catch (error) {
+      return err({
+        kind: "InvalidSchema" as const,
+        message: `Failed to create test PathCache: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
   }
 }

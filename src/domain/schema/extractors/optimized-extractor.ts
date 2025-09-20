@@ -52,14 +52,14 @@ export interface OptimizedExtractorConfig {
  */
 export class OptimizedPropertyExtractor {
   private readonly baseExtractor: PropertyExtractor;
-  private readonly pathCache: PathCache | null;
+  private readonly pathCache: PathCache<unknown> | null;
   private readonly config: OptimizedExtractorConfig;
   private readonly activeExtractions = new Map<string, ExtractionMetrics>();
   private readonly extractionHistory: ExtractionMetrics[] = [];
 
   private constructor(
     baseExtractor: PropertyExtractor,
-    pathCache: PathCache | null,
+    pathCache: PathCache<unknown> | null,
     config: OptimizedExtractorConfig,
   ) {
     this.baseExtractor = baseExtractor;
@@ -106,15 +106,18 @@ export class OptimizedPropertyExtractor {
     const baseExtractor = PropertyExtractor.create();
 
     // Create path cache if enabled
-    let pathCache: PathCache | null = null;
+    let pathCache: PathCache<unknown> | null = null;
     if (validatedConfig.enablePathCache) {
       const cacheResult = PathCacheFactory.create(
         validatedConfig.pathCacheConfig,
       );
       if (!cacheResult.ok) {
+        const errorMessage = "message" in cacheResult.error
+          ? cacheResult.error.message
+          : `Error kind: ${cacheResult.error.kind}`;
         return err({
           kind: "InvalidSchema",
-          message: `Failed to create path cache: ${cacheResult.error.content}`,
+          message: `Failed to create path cache: ${errorMessage}`,
         });
       }
       pathCache = cacheResult.data;
@@ -190,7 +193,7 @@ export class OptimizedPropertyExtractor {
       }
 
       // Get or parse property path
-      const pathResult = await this.getOrParsePath(pathString);
+      const pathResult = this.getOrParsePath(pathString);
       if (!pathResult.ok) {
         this.completeMetrics(operationId, false);
         return pathResult;
@@ -236,7 +239,7 @@ export class OptimizedPropertyExtractor {
       if (this.pathCache && this.config.enableExtractionCache) {
         const dataHash = this.pathCache.generateDataHash(data);
         const pathHash = this.pathCache.generatePathHash(pathString);
-        await this.pathCache.setExtractionResult(
+        this.pathCache.setExtractionResult(
           dataHash,
           pathHash,
           extractionResult.data,
@@ -418,10 +421,12 @@ export class OptimizedPropertyExtractor {
     if (this.pathCache) {
       const maintenanceResult = this.pathCache.performMaintenance();
       if (!maintenanceResult.ok) {
+        const errorMessage = "message" in maintenanceResult.error
+          ? maintenanceResult.error.message
+          : `Error kind: ${maintenanceResult.error.kind}`;
         return err({
           kind: "InvalidSchema",
-          message:
-            `Cache maintenance failed: ${maintenanceResult.error.content}`,
+          message: `Cache maintenance failed: ${errorMessage}`,
         });
       }
     }
@@ -437,14 +442,14 @@ export class OptimizedPropertyExtractor {
   /**
    * Get or parse property path with caching
    */
-  private async getOrParsePath(
+  private getOrParsePath(
     pathString: string,
-  ): Promise<Result<PropertyPath, SchemaError>> {
+  ): Result<PropertyPath, SchemaError> {
     // Try cache first
     if (this.pathCache) {
       const cachedPath = this.pathCache.getPath(pathString);
-      if (cachedPath) {
-        return ok(cachedPath);
+      if (cachedPath && typeof cachedPath === "object" && cachedPath !== null) {
+        return ok(cachedPath as PropertyPath);
       }
     }
 
@@ -456,7 +461,7 @@ export class OptimizedPropertyExtractor {
 
     // Cache the parsed path
     if (this.pathCache) {
-      await this.pathCache.setPath(pathString, pathResult.data);
+      this.pathCache.setPath(pathString, pathResult.data);
     }
 
     return pathResult;
