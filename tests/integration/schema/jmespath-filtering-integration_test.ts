@@ -134,7 +134,7 @@ describe("JMESPath Filtering Integration", () => {
         project: {
           name: "frontmatter-to-schema",
           dependencies: [
-            { name: "@std/assert", version: "^1.0.14", type: "dev" },
+            { name: "jsr:@std/assert", version: "^1.0.14", type: "dev" },
             { name: "@halvardm/jmespath", version: "^0.17.0", type: "prod" },
           ],
         },

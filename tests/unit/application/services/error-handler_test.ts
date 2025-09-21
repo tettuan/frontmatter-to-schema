@@ -3,8 +3,8 @@
  * @description Comprehensive tests for error handling and recovery functionality
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { ErrorHandler } from "../../../../src/application/services/error-handler.ts";
 import {
   ExtractionErrorContextFactory,
