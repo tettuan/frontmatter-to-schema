@@ -172,26 +172,7 @@ export class CompletenessProofService {
   async executeCompletenessProof(): Promise<
     Result<CompletenessProofResult, DomainError & { message: string }>
   > {
-    // 完全性証明実行点デバッグ情報
-    const completenessProofExecutionDebug = {
-      executionPhase: "completeness-proof-execution",
-      proofRequirements: {
-        totalityCompliance: 100,
-        entropyControl: 12.0,
-        specificationCoverage: 70,
-        boundaryIsolation: 95,
-      },
-      varianceRisks: {
-        proofComplexity: "very-high",
-        verificationAccuracy: "high-variance-risk",
-        mathematicalRigor: "critical-requirement",
-        evidenceCollection: "complex-process",
-      },
-      executionStrategy: "systematic-category-verification",
-      automationLevel: "semi-automated",
-    };
-
-    console.log("完全性証明実行デバッグ情報:", completenessProofExecutionDebug);
+    // 完全性証明実行デバッグ情報 removed for DDD compliance
 
     try {
       const categoryResults: ProofResult[] = [];

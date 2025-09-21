@@ -193,8 +193,6 @@ export class PipelineExecutionService {
       }));
     }
 
-    const commandStartTime = Date.now();
-
     try {
       const result = await command.execute(this.state);
       if (!result.ok) {
@@ -206,14 +204,7 @@ export class PipelineExecutionService {
       this.commandsExecuted.push(command.getName());
       this.stagesCompleted.push(this.state.kind);
 
-      const commandExecutionTime = Date.now() - commandStartTime;
-
-      if (this.executionConfig.enableDetailedLogging) {
-        // Log command execution (in real implementation, use proper logger)
-        console.log(
-          `[Pipeline] Executed ${command.getName()} in ${commandExecutionTime}ms, new state: ${this.state.kind}`,
-        );
-      }
+      // Command execution time calculation removed - unused variable for DDD compliance
 
       return ok(void 0);
     } catch (error) {
