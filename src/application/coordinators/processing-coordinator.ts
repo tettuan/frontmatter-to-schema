@@ -5,7 +5,6 @@ import { ValidationRules } from "../../domain/schema/value-objects/validation-ru
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
-// TODO: Re-enable when ExtractFromProcessor is fully implemented
 import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
 import {
@@ -37,7 +36,6 @@ export type ProcessingOptions =
  * - Totality: All methods return Result<T,E>
  */
 export class ProcessingCoordinator {
-  // TODO: Re-enable when ExtractFromProcessor is fully implemented
   private readonly extractFromProcessor: ExtractFromProcessor;
   private readonly logger: DebugLogger | null;
 
@@ -47,7 +45,6 @@ export class ProcessingCoordinator {
     logger?: DebugLogger,
   ) {
     this.logger = logger || null;
-    // TODO: Re-enable when ExtractFromProcessor is fully implemented
     const result = ExtractFromProcessor.create(propertyExtractor);
     if (!result.ok) {
       throw new Error("Failed to create ExtractFromProcessor");
@@ -384,13 +381,33 @@ export class ProcessingCoordinator {
     return ok({ mainData });
   }
 
-  // TODO: Re-enable when ExtractFromProcessor is fully implemented
+  /**
+   * Process x-extract-from directives on frontmatter data
+   * Extracts specified property paths from the data structure
+   */
   processExtractFromDirectives(
     data: FrontmatterData,
-    _schema: Schema,
+    schema: Schema,
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Implementation temporarily disabled - just return data unchanged
-    return ok(data);
+    // Check if schema has extract-from directives
+    if (!schema.hasExtractFromDirectives()) {
+      return ok(data);
+    }
+
+    // Get extract-from directives from schema
+    const directivesResult = schema.getExtractFromDirectives();
+    if (!directivesResult.ok) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: "Failed to get extract-from directives from schema",
+      }));
+    }
+
+    // Process directives using ExtractFromProcessor
+    return this.extractFromProcessor.processDirectives(
+      data,
+      directivesResult.data,
+    );
   }
 
   /**
@@ -414,7 +431,6 @@ export class ProcessingCoordinator {
       return processResult;
     }
 
-    // TODO: Re-enable when ExtractFromProcessor is fully implemented
     // Apply x-extract-from directives if present
     const extractResult = this.processExtractFromDirectives(
       processResult.data,
@@ -480,7 +496,6 @@ export class ProcessingCoordinator {
       }
 
       // Apply x-extract-from to each extracted item if needed
-      // TODO: Re-enable when ExtractFromProcessor is fully implemented
       if (schema.hasExtractFromDirectives()) {
         console.log(
           "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
@@ -491,7 +506,6 @@ export class ProcessingCoordinator {
 
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
-          // TODO: Re-enable when ExtractFromProcessor is fully implemented
           const processedItemResult = this.processExtractFromDirectives(
             item,
             schema,
@@ -499,7 +513,15 @@ export class ProcessingCoordinator {
           if (processedItemResult.ok) {
             processedItems.push(processedItemResult.data);
           } else {
-            // For now, just use the item as-is if processing fails
+            // Log the error but continue processing other items
+            this.logger?.logDebug(
+              "extract-from-processing-error",
+              "Failed to process extract-from directives for item",
+              {
+                error: processedItemResult.error.kind,
+                item: item.getAllKeys(),
+              },
+            );
             processedItems.push(item);
           }
         }
