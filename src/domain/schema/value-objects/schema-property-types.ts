@@ -515,4 +515,33 @@ export class SchemaPropertyUtils {
       },
     };
   }
+
+  /**
+   * Check if schema property has merge-arrays directive
+   */
+  static hasMergeArrays(schema: SchemaProperty): boolean {
+    const key = defaultSchemaExtensionRegistry.getMergeArraysKey().getValue();
+    return schema.extensions?.[key] !== undefined;
+  }
+
+  /**
+   * Get merge-arrays configuration from schema property
+   */
+  static getMergeArrays(
+    schema: SchemaProperty,
+  ): Result<boolean, SchemaError & { message: string }> {
+    const key = defaultSchemaExtensionRegistry.getMergeArraysKey().getValue();
+    const mergeArrays = schema.extensions?.[key] as boolean | undefined;
+    if (mergeArrays !== undefined) {
+      return { ok: true, data: mergeArrays };
+    }
+    return {
+      ok: false,
+      error: {
+        kind: "PropertyNotFound",
+        path: key,
+        message: `${key} directive not found in schema extensions`,
+      },
+    };
+  }
 }

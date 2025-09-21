@@ -10,6 +10,7 @@ import {
   CircuitBreakerFactory,
 } from "../services/circuit-breaker.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import { ArrayMergeConfig, ArrayMerger } from "../services/array-merger.ts";
 
 export interface AggregatedResult {
   readonly baseData: FrontmatterData;
@@ -20,6 +21,7 @@ export class Aggregator {
   private readonly evaluator = new ExpressionEvaluator();
   private readonly circuitBreakerState: CircuitBreakerConfigurationState;
   private readonly circuitBreaker?: CircuitBreaker;
+  private readonly arrayMerger: ArrayMerger;
 
   constructor(circuitBreakerState?: CircuitBreakerConfigurationState) {
     this.circuitBreakerState = circuitBreakerState ??
@@ -29,6 +31,15 @@ export class Aggregator {
     if (this.circuitBreakerState.kind !== "disabled") {
       this.circuitBreaker = new CircuitBreaker(this.circuitBreakerState.config);
     }
+
+    // Initialize ArrayMerger
+    const arrayMergerResult = ArrayMerger.create();
+    if (!arrayMergerResult.ok) {
+      throw new Error(
+        `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
+      );
+    }
+    this.arrayMerger = arrayMergerResult.data;
   }
 
   /**
@@ -233,5 +244,76 @@ export class Aggregator {
     }
 
     return ok(results);
+  }
+
+  /**
+   * Merge arrays based on x-merge-arrays directive
+   * Implements Issue #898: x-merge-arrays directive functionality
+   */
+  mergeArrays(
+    sourceArrays: unknown[][],
+    mergeConfig: {
+      flatten: boolean;
+      preserveOrder?: boolean;
+      filterEmpty?: boolean;
+    },
+  ): Result<unknown[], AggregationError & { message: string }> {
+    const config = mergeConfig.flatten
+      ? ArrayMergeConfig.createFlattening({
+        preserveOrder: mergeConfig.preserveOrder,
+        filterEmpty: mergeConfig.filterEmpty,
+      })
+      : ArrayMergeConfig.createPreserving({
+        preserveOrder: mergeConfig.preserveOrder,
+        filterEmpty: mergeConfig.filterEmpty,
+      });
+
+    const mergeResult = this.arrayMerger.merge(sourceArrays, config);
+    if (!mergeResult.ok) {
+      return mergeResult;
+    }
+
+    return ok(mergeResult.data.getData());
+  }
+
+  /**
+   * Merge arrays from frontmatter data sources with schema-defined configuration
+   * Integrates with existing aggregation workflow
+   */
+  mergeArraysFromSources(
+    data: FrontmatterData[],
+    arrayPath: string,
+    mergeConfig: {
+      flatten: boolean;
+      preserveOrder?: boolean;
+      filterEmpty?: boolean;
+    },
+  ): Result<unknown[], AggregationError & { message: string }> {
+    // Extract arrays from each source
+    const sources = data.map((item, index) => ({
+      data: item.getData(),
+      path: `source-${index}`,
+    }));
+
+    const config = mergeConfig.flatten
+      ? ArrayMergeConfig.createFlattening({
+        preserveOrder: mergeConfig.preserveOrder,
+        filterEmpty: mergeConfig.filterEmpty,
+      })
+      : ArrayMergeConfig.createPreserving({
+        preserveOrder: mergeConfig.preserveOrder,
+        filterEmpty: mergeConfig.filterEmpty,
+      });
+
+    const mergeResult = this.arrayMerger.mergeFromSources(
+      sources,
+      arrayPath,
+      config,
+    );
+    if (!mergeResult.ok) {
+      return mergeResult;
+    }
+
+    return ok(mergeResult.data.getData());
   }
 }
