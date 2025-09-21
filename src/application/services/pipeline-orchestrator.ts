@@ -314,6 +314,16 @@ export class PipelineOrchestrator {
     config: PipelineConfig,
   ): Promise<Result<string, DomainError & { message: string }>> {
     const executionStart = performance.now();
+    const executionId = this.stateManager.getExecutionId();
+
+    // Enhanced logging: Track pipeline stage transition
+    this.loggingService.logStageTransition(
+      "idle",
+      "initializing",
+      executionId,
+      { reason: "Pipeline execution started" },
+    );
+
     const initResult = this.stateManager.transitionTo({
       kind: "initializing",
       startTime: executionStart,
@@ -338,8 +348,27 @@ export class PipelineOrchestrator {
       return err(schemaStateResult.error);
     }
 
+    // Enhanced logging: Track schema loading stage transition
+    this.loggingService.logStageTransition(
+      "initializing",
+      "schema-loading",
+      executionId,
+      { reason: "Starting schema validation and processing" },
+    );
+
+    const schemaLoadStart = performance.now();
     const schemaResult = await this.schemaCoordinator.loadAndProcessSchema(
       config.schemaPath,
+    );
+    const schemaLoadEnd = performance.now();
+
+    // Enhanced logging: Track schema processing step
+    this.loggingService.logProcessingStep(
+      "schema-validation",
+      "schema-loading",
+      { start: schemaLoadStart, end: schemaLoadEnd },
+      { resourcesProcessed: 1 },
+      { schemaPath: config.schemaPath },
     );
     if (!schemaResult.ok) {
       this.handleError(schemaResult.error);
@@ -398,6 +427,15 @@ export class PipelineOrchestrator {
       return err(validationRulesResult.error);
     }
 
+    // Enhanced logging: Track document processing stage transition
+    this.loggingService.logStageTransition(
+      "template-resolved",
+      "document-processing",
+      executionId,
+      { reason: "Starting document processing pipeline" },
+    );
+
+    const docProcessingStart = performance.now();
     const documentsResult = await this.documentService.processDocuments(
       {
         inputPattern: config.inputPattern,
@@ -406,9 +444,36 @@ export class PipelineOrchestrator {
       validationRulesResult.data,
       schemaResult.data,
     );
+    const docProcessingEnd = performance.now();
+    const docProcessingDuration = docProcessingEnd - docProcessingStart;
+
     if (!documentsResult.ok) {
       this.handleError(documentsResult.error);
       return err(documentsResult.error);
+    }
+
+    // Enhanced logging: Track document processing performance
+    this.loggingService.logProcessingStep(
+      "document-processing",
+      "document-processing",
+      { start: docProcessingStart, end: docProcessingEnd },
+      { resourcesProcessed: documentsResult.data.length },
+      {
+        inputPattern: config.inputPattern,
+        documentsProcessed: documentsResult.data.length,
+      },
+    );
+
+    // Enhanced logging: Performance bottleneck detection (threshold: 5 seconds for document processing)
+    if (docProcessingDuration > 5000) {
+      this.loggingService.logPerformanceBottleneck(
+        "document-processing",
+        docProcessingDuration,
+        5000,
+        {
+          resourceCount: documentsResult.data.length,
+        },
+      );
     }
     const renderingResult = this.stateManager.transitionTo({
       kind: "rendering",
@@ -443,6 +508,18 @@ export class PipelineOrchestrator {
     }
     const executionEnd = performance.now();
     const duration = executionEnd - executionStart;
+
+    // Enhanced logging: Track final completion stage transition
+    this.loggingService.logStageTransition(
+      "rendering",
+      "completed",
+      executionId,
+      {
+        duration,
+        reason: "Pipeline execution completed successfully",
+        resourcesProcessed: documentsResult.data.length,
+      },
+    );
 
     const completedResult = this.stateManager.transitionTo({
       kind: "completed",

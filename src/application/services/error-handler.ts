@@ -12,6 +12,12 @@ import {
   ExtractionErrorFactory,
   ExtractionResult,
 } from "../../domain/errors/extraction-errors.ts";
+import {
+  RecoveryContext,
+  RecoveryStrategy as UnifiedRecoveryStrategy,
+  RecoveryStrategyFactory,
+} from "../strategies/recovery-strategy.ts";
+import { DomainError } from "../../domain/shared/types/errors.ts";
 
 /**
  * Error handling configuration
@@ -25,9 +31,10 @@ export interface ErrorHandlerConfig {
 }
 
 /**
- * Error recovery strategy types
+ * Legacy recovery action types for backward compatibility
+ * Gradually migrate to unified RecoveryStrategy interface
  */
-export type RecoveryStrategy =
+export type LegacyRecoveryAction =
   | { kind: "skip"; reason: string }
   | { kind: "defaultValue"; value: unknown; reason: string }
   | { kind: "partialResult"; data: unknown; reason: string }
@@ -43,8 +50,9 @@ export interface ErrorHandlingResult<T> {
   readonly errors: Array<ExtractionError & { message: string }>;
   readonly warnings: Array<ExtractionError & { message: string }>;
   readonly recoveryActions: Array<
-    { action: RecoveryStrategy; appliedTo: string }
+    { action: LegacyRecoveryAction; appliedTo: string }
   >;
+  readonly unifiedRecoveryStrategies?: UnifiedRecoveryStrategy[];
   readonly debugInfo?: Record<string, unknown>;
 }
 
@@ -96,7 +104,8 @@ export interface ExtractionDebugInfo {
  */
 export class ErrorHandler {
   private readonly config: ErrorHandlerConfig;
-  private readonly recoveryStrategies: Map<string, RecoveryStrategy>;
+  private readonly recoveryStrategies: Map<string, LegacyRecoveryAction>;
+  private readonly unifiedRecoveryStrategies: UnifiedRecoveryStrategy[];
 
   constructor(config: Partial<ErrorHandlerConfig> = {}) {
     this.config = {
@@ -110,6 +119,12 @@ export class ErrorHandler {
 
     this.recoveryStrategies = new Map();
     this.initializeDefaultRecoveryStrategies();
+
+    // Initialize unified recovery strategies
+    const strategiesResult = RecoveryStrategyFactory.createStrategies();
+    this.unifiedRecoveryStrategies = strategiesResult.ok
+      ? strategiesResult.data
+      : [];
   }
 
   /**
@@ -130,7 +145,7 @@ export class ErrorHandler {
     const errors: Array<ExtractionError & { message: string }> = [];
     const warnings: Array<ExtractionError & { message: string }> = [];
     const recoveryActions: Array<
-      { action: RecoveryStrategy; appliedTo: string }
+      { action: LegacyRecoveryAction; appliedTo: string }
     > = [];
     let attemptCount = 0;
     let lastResult: ExtractionResult<T> | undefined;
@@ -368,7 +383,7 @@ export class ErrorHandler {
   private selectRecoveryStrategy(
     error: ExtractionError,
     attemptCount: number,
-  ): RecoveryStrategy {
+  ): LegacyRecoveryAction {
     const strategyKey = `${error.kind}_${attemptCount}`;
     const existingStrategy = this.recoveryStrategies.get(strategyKey);
 
@@ -425,7 +440,7 @@ export class ErrorHandler {
    * Apply recovery strategy to failed operation
    */
   private applyRecoveryStrategy<T>(
-    strategy: RecoveryStrategy,
+    strategy: LegacyRecoveryAction,
     failedResult: ExtractionResult<T>,
     _operationName: string,
     _context: ExtractionErrorContext,
@@ -888,5 +903,46 @@ export class ErrorHandler {
     } catch {
       return 0;
     }
+  }
+
+  /**
+   * Handle domain errors using unified recovery strategy pattern
+   * Integrates with the pipeline's recovery strategy system
+   */
+  handleDomainError(
+    error: DomainError,
+    operationId: string,
+    attemptCount: number = 1,
+    maxAttempts: number = 3,
+    metadata: Record<string, unknown> = {},
+  ): Result<void, DomainError & { message: string }> {
+    if (!this.config.enableRecovery) {
+      return err(error as DomainError & { message: string });
+    }
+
+    // Find appropriate unified recovery strategy
+    const strategyResult = RecoveryStrategyFactory.findStrategy(
+      error,
+      this.unifiedRecoveryStrategies,
+    );
+
+    if (!strategyResult.ok) {
+      // Fallback to legacy recovery strategies if unified strategy not found
+      return err(error as DomainError & { message: string });
+    }
+
+    // Create recovery context
+    const context: RecoveryContext = {
+      operationId,
+      verbosityMode: {
+        kind: this.config.verboseLogging ? "verbose" : "normal",
+      },
+      attemptCount,
+      maxAttempts,
+      metadata,
+    };
+
+    // Apply unified recovery strategy
+    return strategyResult.data.recover(error, context);
   }
 }

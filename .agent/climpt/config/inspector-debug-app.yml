@@ -1,5 +1,5 @@
 # Build Configuration
-working_dir: ".agent/climpt"
+working_dir: ".agent/inspector"
 app_prompt:
   base_dir: "prompts/debug"
 app_schema:

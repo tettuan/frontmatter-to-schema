@@ -16,7 +16,9 @@ import { FrontmatterDataFactory } from "../../../../../src/domain/frontmatter/fa
 describe("Aggregator Array Merging Integration", () => {
   describe("mergeArrays method", () => {
     it("should merge arrays with flattening enabled", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const sourceArrays = [
         ["cmd1", "cmd2"],
@@ -37,7 +39,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should merge arrays with preservation enabled", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const sourceArrays = [
         ["cmd1", "cmd2"],
@@ -57,7 +61,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should handle empty arrays correctly", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const sourceArrays = [
         ["cmd1"],
@@ -79,7 +85,9 @@ describe("Aggregator Array Merging Integration", () => {
 
   describe("mergeArraysFromSources method", () => {
     it("should merge arrays from FrontmatterData sources", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Create test data sources
       const data1Result = FrontmatterDataFactory.fromParsedData({
@@ -121,7 +129,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should handle missing properties in FrontmatterData sources", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const data1Result = FrontmatterDataFactory.fromParsedData({
         commands: ["build"],
@@ -155,7 +165,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should handle nested property paths", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const data1Result = FrontmatterDataFactory.fromParsedData({
         tools: {
@@ -192,7 +204,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should preserve array structure when flatten is false", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const data1Result = FrontmatterDataFactory.fromParsedData({
         tags: ["frontend", "javascript"],
@@ -219,7 +233,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should handle non-array values by wrapping them", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const data1Result = FrontmatterDataFactory.fromParsedData({
         category: ["tech", "programming"],
@@ -258,7 +274,9 @@ describe("Aggregator Array Merging Integration", () => {
 
   describe("Real-world scenarios", () => {
     it("should handle the exact use case described in Issue #898", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Simulate multiple markdown files with frontmatter
       const file1Result = FrontmatterDataFactory.fromParsedData({
@@ -303,7 +321,9 @@ describe("Aggregator Array Merging Integration", () => {
     });
 
     it("should work with complex nested data structures", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const complexData1Result = FrontmatterDataFactory.fromParsedData({
         metadata: {

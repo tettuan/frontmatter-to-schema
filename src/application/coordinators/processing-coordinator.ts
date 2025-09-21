@@ -13,6 +13,7 @@ import {
 } from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
+import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -38,14 +39,29 @@ export type ProcessingOptions =
 export class ProcessingCoordinator {
   private readonly extractFromProcessor: ExtractFromProcessor;
   private readonly logger: DebugLogger | null;
+  private readonly recoveryRegistry: RecoveryStrategyRegistry;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
     optimizedExtractor?: boolean,
+    recoveryRegistry?: RecoveryStrategyRegistry,
   ) {
     this.logger = logger || null;
+
+    // Initialize recovery registry with defaults if not provided
+    if (recoveryRegistry) {
+      this.recoveryRegistry = recoveryRegistry;
+    } else {
+      const registryResult = RecoveryStrategyRegistry.createWithDefaults();
+      if (!registryResult.ok) {
+        throw new Error(
+          `Failed to create default RecoveryStrategyRegistry: ${registryResult.error.message}`,
+        );
+      }
+      this.recoveryRegistry = registryResult.data;
+    }
 
     // Use optimized extractor by default for better performance
     if (optimizedExtractor !== false) {
@@ -101,6 +117,7 @@ export class ProcessingCoordinator {
     propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
     optimizedExtractor?: boolean,
+    recoveryRegistry?: RecoveryStrategyRegistry,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
       return err(createError({
@@ -115,6 +132,7 @@ export class ProcessingCoordinator {
         propertyExtractor,
         logger,
         optimizedExtractor,
+        recoveryRegistry,
       ),
     );
   }
@@ -131,6 +149,7 @@ export class ProcessingCoordinator {
       undefined, // Use default PropertyExtractor
       logger,
       true, // Enable optimized extractor
+      undefined, // Use default RecoveryStrategyRegistry
     );
   }
 
@@ -191,14 +210,8 @@ export class ProcessingCoordinator {
         },
       );
 
-      // Check if error is recoverable (Issue #905 Phase 3)
-      const recoverableErrors = [
-        "MissingRequired",
-        "InvalidType",
-        "InvalidFormat",
-        "FileNotFound",
-      ];
-      const isRecoverable = recoverableErrors.includes(result.error.kind);
+      // Check if error is recoverable using RecoveryStrategyRegistry (Issue #905 Phase 3)
+      const isRecoverable = this.recoveryRegistry.canRecover(result.error.kind);
 
       if (!isRecoverable) {
         this.logger?.logDebug(
@@ -213,12 +226,27 @@ export class ProcessingCoordinator {
         return result;
       }
 
+      // Get recovery strategy for enhanced debugging
+      const recoveryStrategyResult = this.recoveryRegistry.getRecoveryStrategy(
+        result.error.kind,
+      );
+      const recoveryStrategy = recoveryStrategyResult.ok
+        ? recoveryStrategyResult.data
+        : undefined;
+
       this.logger?.logDebug(
         "error-propagation",
         "Error is recoverable - attempting recovery",
         {
           errorKind: result.error.kind,
           propagationStrategy: "recovery-attempt",
+          recoveryStrategy: recoveryStrategy
+            ? {
+              kind: recoveryStrategy.getStrategyType().kind,
+              maxAttempts: recoveryStrategy.getMaxAttempts(),
+              priority: recoveryStrategy.getPriority(),
+            }
+            : "none",
           recoveryOptions: [
             "partial-result",
             "fallback-validation",

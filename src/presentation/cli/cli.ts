@@ -131,7 +131,15 @@ export class CLI {
       frontmatterParser,
     );
 
-    const aggregator = Aggregator.createWithStandardCircuitBreaker();
+    const aggregatorResult = Aggregator.createWithStandardCircuitBreaker();
+    if (!aggregatorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create aggregator: ${aggregatorResult.error.message}`,
+      }));
+    }
+    const aggregator = aggregatorResult.data;
     const basePropertyPopulator = new BasePropertyPopulator();
 
     const documentProcessor = FrontmatterTransformationService
