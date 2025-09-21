@@ -1,0 +1,56 @@
+{
+  "version": "",
+  "description": "",
+  "tools": {
+    "availableConfigs": [],
+    "commands": [
+      {
+        "c1": "debug",
+        "c2": "analyze-deep",
+        "c3": "project-issues",
+        "title": "プロジェクト全体の深掘り調査と修正タスク洗い出し",
+        "description": "プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出し、ドメイン駆動設計からテスト駆動設計への移行を支援する",
+        "usage": "プロジェクト全体の深掘り調査と修正タスクの洗い出しを実行します。\n既存のissue一覧を確認し、適切な処理を行います。\n",
+        "options": {
+          "input": [],
+          "adaptation": [],
+          "file": false,
+          "stdin": true,
+          "destination": false
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "build-list",
+        "c3": "command-registry",
+        "title": "inspector Executable Commands List Builder",
+        "description": "Creates a comprehensive list of available inspector commands by scanning executable commands, configuration files, and prompt files.",
+        "usage": "inspector-meta build-list command-registry",
+        "options": {
+          "destination": false,
+          "file": false,
+          "stdin": false
+        }
+      },
+      {
+        "c1": "meta",
+        "c2": "resolve",
+        "c3": "registered-commands",
+        "title": "inspector実行コマンドを構築するinspector",
+        "description": "渡された内容に相応しい inspector-* を構築し、示す。",
+        "usage": "使いたいファイルリストや内容を入力として、適切なinspector-*コマンドを構築して提示します。\n登録済みコマンドから最適なものを選択または新規提案します。\n",
+        "options": {
+          "input": [
+            "default"
+          ],
+          "adaptation": [
+            "default"
+          ],
+          "file": false,
+          "stdin": true,
+          "destination": true
+        }
+      }
+    ]
+  }
+}

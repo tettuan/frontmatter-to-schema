@@ -92,11 +92,15 @@ describe("JMESPath Filtering Integration", () => {
       const schemaRepository = new FileSystemSchemaRepository(debugLogger);
       const basePropertyPopulator = new BasePropertyPopulator();
 
-      const schemaProcessingService = new SchemaProcessingService(
+      const schemaProcessingServiceResult = SchemaProcessingService.create(
         schemaRepository,
         basePropertyPopulator,
         jmespathServiceResult.data,
       );
+      if (!schemaProcessingServiceResult.ok) {
+        throw new Error("Failed to create schema processing service");
+      }
+      const schemaProcessingService = schemaProcessingServiceResult.data;
 
       // Create template-schema binding service with JMESPath support
       const bindingServiceResult = TemplateSchemaBindingService.create(
@@ -134,7 +138,7 @@ describe("JMESPath Filtering Integration", () => {
         project: {
           name: "frontmatter-to-schema",
           dependencies: [
-            { name: "@std/assert", version: "^1.0.14", type: "dev" },
+            { name: "jsr:@std/assert", version: "^1.0.14", type: "dev" },
             { name: "@halvardm/jmespath", version: "^0.17.0", type: "prod" },
           ],
         },

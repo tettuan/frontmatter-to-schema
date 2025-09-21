@@ -10,8 +10,8 @@
  * 4. Performance validation for registry aggregation workflows
  */
 
-import { assert, assertEquals } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assert, assertEquals } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { Aggregator } from "../../src/domain/aggregation/aggregators/aggregator.ts";
 import { DerivationRule } from "../../src/domain/aggregation/value-objects/derivation-rule.ts";
 import { TestDataFactory } from "../helpers/test-data-factory.ts";
@@ -20,7 +20,9 @@ describe("Registry Merge Integration Tests - Issue #527", () => {
   describe("Real-world Registry Aggregation Scenarios", () => {
     it("should aggregate multiple climpt registry files and derive availableConfigs", () => {
       // Arrange: Simulate multiple registry markdown files as would be processed
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Registry File 1: Meta and Spec commands
       const registry1Data = TestDataFactory.createFrontmatterData({
@@ -159,7 +161,9 @@ describe("Registry Merge Integration Tests - Issue #527", () => {
 
     it("should handle registry merge with base data preservation", () => {
       // Arrange: Base registry structure and multiple command sources
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Base registry metadata
       const baseRegistryResult = TestDataFactory.createFrontmatterData({
@@ -227,7 +231,9 @@ describe("Registry Merge Integration Tests - Issue #527", () => {
 
     it("should handle performance for large registry merge operations", () => {
       // Arrange: Large-scale registry data simulation
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Generate multiple large registries
       const registryDataSets: any[] = [];
@@ -299,7 +305,9 @@ describe("Registry Merge Integration Tests - Issue #527", () => {
 
     it("should handle edge cases in registry merge operations", () => {
       // Arrange: Edge case scenarios
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Empty registry
       const emptyRegistryResult = TestDataFactory.createFrontmatterData({

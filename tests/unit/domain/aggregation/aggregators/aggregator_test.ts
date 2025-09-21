@@ -4,7 +4,9 @@ import { DerivationRule } from "../../../../../src/domain/aggregation/value-obje
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 
 Deno.test("Aggregator - x-derived-from - should aggregate simple array property", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Create test data with commands array
   const data1Result = TestDataFactory.createFrontmatterData({
@@ -47,7 +49,9 @@ Deno.test("Aggregator - x-derived-from - should aggregate simple array property"
 });
 
 Deno.test("Aggregator - x-derived-unique - should aggregate with unique values", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Create test data with duplicate values
   const data1Result = TestDataFactory.createFrontmatterData({
@@ -91,7 +95,9 @@ Deno.test("Aggregator - x-derived-unique - should aggregate with unique values",
 });
 
 Deno.test("Aggregator - should handle multiple derivation rules", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   const data1Result = TestDataFactory.createFrontmatterData({
     commands: [
@@ -160,7 +166,9 @@ Deno.test("Aggregator - should handle multiple derivation rules", () => {
 });
 
 Deno.test("Aggregator - should handle nested property paths", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   const data1Result = TestDataFactory.createFrontmatterData({
     tools: {
@@ -204,7 +212,9 @@ Deno.test("Aggregator - should handle nested property paths", () => {
 });
 
 Deno.test("Aggregator - should handle empty data gracefully", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   const data1Result = TestDataFactory.createFrontmatterData({
     commands: [],
@@ -231,7 +241,9 @@ Deno.test("Aggregator - should handle empty data gracefully", () => {
 });
 
 Deno.test("Aggregator - should merge derived fields with base data", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   const baseDataResult = TestDataFactory.createFrontmatterData({
     version: "1.0.0",
@@ -277,7 +289,9 @@ Deno.test("Aggregator - should merge derived fields with base data", () => {
 });
 
 Deno.test("Aggregator - should handle complex real-world scenario", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Simulate real climpt registry data
   const metaResolveResult = TestDataFactory.createFrontmatterData({
@@ -366,7 +380,9 @@ Deno.test("Aggregator - should handle complex real-world scenario", () => {
 });
 
 Deno.test("Aggregator - should handle evaluation errors gracefully", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   const dataResult = TestDataFactory.createFrontmatterData({
     notAnArray: "string value",
@@ -394,7 +410,9 @@ Deno.test("Aggregator - should handle evaluation errors gracefully", () => {
 
 // Issue #527: Missing test for multiple registry merge functionality
 Deno.test("Aggregator - Multiple Registry Merge - should merge commands from multiple registries and derive availableConfigs", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Simulate Registry 1: meta and spec commands
   const registry1Result = TestDataFactory.createFrontmatterData({
@@ -505,7 +523,9 @@ Deno.test("Aggregator - Multiple Registry Merge - should merge commands from mul
 });
 
 Deno.test("Aggregator - Multiple Registry Merge - should handle empty registries gracefully", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Registry with commands
   const fullRegistryResult = TestDataFactory.createFrontmatterData({
@@ -564,7 +584,9 @@ Deno.test("Aggregator - Multiple Registry Merge - should handle empty registries
 });
 
 Deno.test("Aggregator - Multiple Registry Merge - should preserve latest version in base data", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Base data with version and description
   const baseDataResult = TestDataFactory.createFrontmatterData({
@@ -621,7 +643,9 @@ Deno.test("Aggregator - Multiple Registry Merge - should preserve latest version
 });
 
 Deno.test("Aggregator - Multiple Registry Merge - should handle conflicting command data", () => {
-  const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+  const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+  assert(aggregatorResult.ok);
+  const aggregator = aggregatorResult.data;
 
   // Registry 1: meta command with one description
   const registry1Result = TestDataFactory.createFrontmatterData({

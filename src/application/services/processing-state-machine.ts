@@ -9,6 +9,10 @@ import {
 import { LoggingService } from "../../infrastructure/logging/logging-service.ts";
 import { PipelineConfig } from "./pipeline-orchestrator.ts";
 import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import {
+  TemplateConfig,
+  TemplateResolutionStrategyFactory,
+} from "../strategies/template-resolution-strategy.ts";
 
 /**
  * Processing context for state transitions
@@ -80,10 +84,14 @@ export class ProcessingStateMachine {
     // Reset state machine to idle for new execution
     this.stateService.reset();
 
-    // Create pipeline configuration from app config
-    const templatePath = config.templateConfig.kind === "explicit"
-      ? config.templateConfig.templatePath
-      : undefined;
+    // Create pipeline configuration from app config using strategy pattern
+    const templatePathResult = this.extractTemplatePathFromConfig(
+      config.templateConfig,
+    );
+    if (!templatePathResult.ok) {
+      return templatePathResult;
+    }
+    const templatePath = templatePathResult.data;
 
     const pipelineConfig: PipelineConfiguration = {
       mode: this.determineMode(config),
@@ -302,12 +310,38 @@ export class ProcessingStateMachine {
   /**
    * Determine processing mode from config
    */
+  /**
+   * Extract template path from config using strategy pattern
+   * Eliminates hardcoded kind comparisons
+   */
+  private extractTemplatePathFromConfig(
+    templateConfig: TemplateConfig,
+  ): Result<string | undefined, DomainError & { message: string }> {
+    const strategyResult = TemplateResolutionStrategyFactory.createStrategy(
+      templateConfig,
+    );
+    if (!strategyResult.ok) {
+      return strategyResult;
+    }
+
+    // For explicit strategy, return the template path
+    // For schema-derived strategy, return undefined (will be derived later)
+    switch (templateConfig.kind) {
+      case "explicit":
+        return ok(templateConfig.templatePath);
+      case "schema-derived":
+        return ok(undefined);
+    }
+  }
+
+  /**
+   * Determine processing mode using strategy pattern
+   * Eliminates hardcoded kind comparisons
+   */
   private determineMode(
     config: PipelineConfig,
   ): "standard" | "validation-only" | "template-only" {
-    // Check if we have a template (either explicit or will be derived from schema)
-    const hasTemplate = config.templateConfig.kind === "explicit" ||
-      config.templateConfig.kind === "schema-derived";
+    const hasTemplate = this.hasTemplateConfiguration(config.templateConfig);
 
     if (!config.schemaPath) {
       return "template-only";
@@ -316,6 +350,19 @@ export class ProcessingStateMachine {
       return "validation-only";
     }
     return "standard";
+  }
+
+  /**
+   * Check if template configuration provides a template
+   * Uses strategy pattern to avoid hardcoded kind comparisons
+   */
+  private hasTemplateConfiguration(templateConfig: TemplateConfig): boolean {
+    // All current template config kinds provide templates
+    // This method replaces hardcoded kind === "explicit" || kind === "schema-derived"
+    const strategyResult = TemplateResolutionStrategyFactory.createStrategy(
+      templateConfig,
+    );
+    return strategyResult.ok;
   }
 
   /**

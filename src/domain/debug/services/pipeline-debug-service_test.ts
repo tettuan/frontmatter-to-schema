@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { PipelineDebugService } from "./pipeline-debug-service.ts";
 import { TotalityMetrics } from "../value-objects/totality-compliance-report.ts";
 

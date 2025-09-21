@@ -84,7 +84,9 @@ describe("FrontmatterProcessor", () => {
       const parser = new MockFrontmatterParser();
       parser.setDataToReturn({ title: "Test Document", author: "John" });
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content =
         "---\ntitle: Test Document\nauthor: John\n---\nBody content";
@@ -107,7 +109,9 @@ describe("FrontmatterProcessor", () => {
       extractor.setDataToReturn({ frontmatter: "", body: "Just body content" });
       const parser = new MockFrontmatterParser();
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "Just body content";
       const result = processor.extract(content);
@@ -124,7 +128,9 @@ describe("FrontmatterProcessor", () => {
       extractor.setDataToReturn({ frontmatter: "   \n  ", body: "Body" });
       const parser = new MockFrontmatterParser();
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "---\n   \n  \n---\nBody";
       const result = processor.extract(content);
@@ -147,7 +153,9 @@ describe("FrontmatterProcessor", () => {
       );
       const parser = new MockFrontmatterParser();
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "Invalid content";
       const result = processor.extract(content);
@@ -173,7 +181,9 @@ describe("FrontmatterProcessor", () => {
         }),
       );
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "---\ninvalid: yaml: content:\n---\nBody";
       const result = processor.extract(content);
@@ -190,7 +200,9 @@ describe("FrontmatterProcessor", () => {
       // Set parser to return null, which should cause FrontmatterDataFactory to fail
       parser.setDataToReturn(null);
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "---\ntitle: Test\n---\nBody";
       const result = processor.extract(content);
@@ -216,7 +228,9 @@ describe("FrontmatterProcessor", () => {
         },
       });
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = "---\ncomplex frontmatter\n---\nBody";
       const result = processor.extract(content);
@@ -241,7 +255,9 @@ describe("FrontmatterProcessor", () => {
     it("should validate frontmatter data successfully", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({ title: "Test", count: 5 });
       if (!dataResult.ok) throw new Error("Failed to create test data");
@@ -262,7 +278,9 @@ describe("FrontmatterProcessor", () => {
     it("should currently always return success (validation not implemented)", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({ title: 123 }); // Wrong type
       if (!dataResult.ok) throw new Error("Failed to create test data");
@@ -280,7 +298,9 @@ describe("FrontmatterProcessor", () => {
     it("should currently always return success for required fields (validation not implemented)", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({}); // Missing required field
       if (!dataResult.ok) throw new Error("Failed to create test data");
@@ -298,7 +318,9 @@ describe("FrontmatterProcessor", () => {
     it("should validate complex nested structures", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         title: "Test",
@@ -326,7 +348,9 @@ describe("FrontmatterProcessor", () => {
     it("should extract array data from specified path", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         items: [
@@ -354,7 +378,9 @@ describe("FrontmatterProcessor", () => {
     it("should return error for non-array data", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         items: "not an array",
@@ -373,7 +399,9 @@ describe("FrontmatterProcessor", () => {
     it("should return empty array for non-existent path", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         other: "data",
@@ -391,7 +419,9 @@ describe("FrontmatterProcessor", () => {
     it("should handle nested path extraction", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         data: {
@@ -424,7 +454,9 @@ describe("FrontmatterProcessor", () => {
     it("should handle empty array", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         items: [],
@@ -442,7 +474,9 @@ describe("FrontmatterProcessor", () => {
     it("should handle array with invalid items", () => {
       const extractor = new MockFrontmatterExtractor();
       const parser = new MockFrontmatterParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const dataResult = FrontmatterData.create({
         items: [
@@ -476,7 +510,9 @@ describe("FrontmatterProcessor", () => {
       const parser = new MockFrontmatterParser();
       parser.setDataToReturn({ title: "Test", count: 5 });
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       // Extract
       const extractResult = processor.extract(
@@ -516,7 +552,9 @@ describe("FrontmatterProcessor", () => {
         ],
       });
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       // Extract
       const extractResult = processor.extract("---\nfrontmatter\n---\nBody");

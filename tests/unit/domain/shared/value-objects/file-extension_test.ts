@@ -2,7 +2,7 @@
  * Tests for FileExtension value object
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { FileExtension } from "../../../../../src/domain/shared/value-objects/file-extension.ts";
 
 Deno.test("FileExtension", async (t) => {

@@ -22,6 +22,7 @@ import {
 } from "../../shared/services/debug-logger.ts";
 import {
   DomainLogger,
+  DomainLoggerAdapter,
   DomainLoggerFactory,
 } from "../../shared/services/domain-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
@@ -125,16 +126,49 @@ export type RuleConversionResult = {
  * 5. Generate final integrated domain data
  */
 export class FrontmatterTransformationService {
-  constructor(
+  private constructor(
     private readonly frontmatterProcessor: FrontmatterProcessor,
     private readonly aggregator: Aggregator,
     private readonly basePropertyPopulator: BasePropertyPopulator,
     private readonly fileReader: FileReader,
     private readonly fileLister: FileLister,
     private readonly frontmatterDataCreationService:
-      FrontmatterDataCreationService = defaultFrontmatterDataCreationService,
+      FrontmatterDataCreationService,
     private readonly domainLogger: DomainLogger,
   ) {}
+
+  /**
+   * Smart Constructor following Totality principles
+   * Creates a frontmatter transformation service with all required dependencies
+   */
+  static create(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    frontmatterDataCreationService?: FrontmatterDataCreationService,
+    domainLogger?: DomainLogger,
+  ): Result<
+    FrontmatterTransformationService,
+    DomainError & { message: string }
+  > {
+    const creationService = frontmatterDataCreationService ??
+      defaultFrontmatterDataCreationService;
+    const logger = domainLogger ?? DomainLoggerAdapter.createDisabled();
+
+    return ok(
+      new FrontmatterTransformationService(
+        frontmatterProcessor,
+        aggregator,
+        basePropertyPopulator,
+        fileReader,
+        fileLister,
+        creationService,
+        logger,
+      ),
+    );
+  }
 
   /**
    * Helper method to create an activeLogger compatible with existing logging patterns
@@ -1771,7 +1805,21 @@ export class FrontmatterTransformationService {
         const finalValues = rule.isUnique() ? [...new Set(values)] : values;
 
         // Set derived field using targetField path
-        this.setNestedField(derivedFields, rule.getTargetField(), finalValues);
+        const setFieldResult = this.setNestedField(
+          derivedFields,
+          rule.getTargetField(),
+          finalValues,
+        );
+        if (!setFieldResult.ok) {
+          // Log error but continue processing other rules
+          activeLogger?.error(
+            `Failed to set derived field: ${rule.getTargetField()}`,
+            createLogContext({
+              operation: "derived-field-setting",
+              error: setFieldResult.error.message,
+            }),
+          );
+        }
 
         activeLogger?.debug(
           `Calculated derived field: ${rule.getTargetField()}`,
@@ -1878,7 +1926,7 @@ export class FrontmatterTransformationService {
     obj: Record<string, unknown>,
     path: string,
     value: unknown,
-  ): void {
+  ): Result<void, DomainError & { message: string }> {
     const parts = path.split(".");
     let current = obj;
 
@@ -1897,7 +1945,11 @@ export class FrontmatterTransformationService {
           current = newRecordResult.data;
         } else {
           // This should never happen since we just created an empty object
-          throw new Error("Failed to create record for nested path");
+          // But following Totality principles, we return an error instead of throwing
+          return err(createError({
+            kind: "InvalidStructure",
+            field: path,
+          }, "Failed to create record for nested path after initialization"));
         }
       } else {
         current = propertyResult.data;
@@ -1905,6 +1957,7 @@ export class FrontmatterTransformationService {
     }
 
     current[parts[parts.length - 1]] = value;
+    return ok(void 0);
   }
 
   /**
@@ -1989,7 +2042,7 @@ export class FrontmatterTransformationService {
     obj: Record<string, unknown>,
     path: string,
     value: unknown,
-  ): void {
+  ): Result<void, DomainError & { message: string }> {
     const parts = path.split(".");
     let current = obj;
 
@@ -2010,7 +2063,14 @@ export class FrontmatterTransformationService {
           current = newRecordResult.data;
         } else {
           // This should never happen since we just created an empty object
-          throw new Error("Failed to create record for nested path");
+          // But following Totality principles, we return an error instead of throwing
+          return err(createError(
+            {
+              kind: "InvalidStructure",
+              field: path,
+            },
+            "Failed to create record for nested property after initialization",
+          ));
         }
       } else {
         current = propertyResult.data;
@@ -2019,6 +2079,7 @@ export class FrontmatterTransformationService {
 
     // Set the final property
     current[parts[parts.length - 1]] = value;
+    return ok(void 0);
   }
 
   /**

@@ -163,6 +163,118 @@ export class LoggingService {
 
     return messageLevelIndex >= configLevelIndex;
   }
+
+  /**
+   * Log processing flow step with timing and performance metrics
+   * Enhanced debug information for issue #920
+   */
+  logProcessingStep(
+    stepName: string,
+    stage: string,
+    timing: { start: number; end: number },
+    metrics?: {
+      memoryUsage?: number;
+      throughput?: number;
+      resourcesProcessed?: number;
+    },
+    context?: Record<string, unknown>,
+  ): void {
+    if (!this.shouldLog("debug")) return;
+
+    const duration = timing.end - timing.start;
+    const enhancedContext = {
+      stage,
+      stepName,
+      timing: {
+        duration: `${duration}ms`,
+        start: timing.start,
+        end: timing.end,
+      },
+      performance: {
+        memoryUsage: metrics?.memoryUsage
+          ? `${metrics.memoryUsage}MB`
+          : "unknown",
+        throughput: metrics?.throughput
+          ? `${metrics.throughput}/sec`
+          : "unknown",
+        resourcesProcessed: metrics?.resourcesProcessed || 0,
+      },
+      ...context,
+    };
+
+    this.debug(`Processing step: ${stepName}`, enhancedContext);
+  }
+
+  /**
+   * Log pipeline stage transition with detailed context
+   * Helps track processing flow variations for issue #920
+   */
+  logStageTransition(
+    fromStage: string,
+    toStage: string,
+    executionId: string,
+    metadata?: {
+      duration?: number;
+      reason?: string;
+      resourcesProcessed?: number;
+    },
+  ): void {
+    if (!this.shouldLog("info")) return;
+
+    this.info(
+      `Pipeline stage transition: ${fromStage} → ${toStage}`,
+      {
+        executionId,
+        transition: {
+          from: fromStage,
+          to: toStage,
+          timestamp: new Date().toISOString(),
+        },
+        metadata: {
+          duration: metadata?.duration ? `${metadata.duration}ms` : undefined,
+          reason: metadata?.reason,
+          resourcesProcessed: metadata?.resourcesProcessed,
+        },
+      },
+    );
+  }
+
+  /**
+   * Log performance bottleneck detection
+   * Enhanced debug information for optimization
+   */
+  logPerformanceBottleneck(
+    operation: string,
+    duration: number,
+    threshold: number,
+    context?: {
+      resourceCount?: number;
+      memoryPeak?: number;
+      cpuUsage?: number;
+    },
+  ): void {
+    if (!this.shouldLog("warn")) return;
+
+    this.warn(
+      `Performance bottleneck detected: ${operation}`,
+      {
+        performance: {
+          operation,
+          duration: `${duration}ms`,
+          threshold: `${threshold}ms`,
+          slowdownFactor: (duration / threshold).toFixed(2),
+        },
+        resources: {
+          count: context?.resourceCount,
+          memoryPeak: context?.memoryPeak
+            ? `${context.memoryPeak}MB`
+            : undefined,
+          cpuUsage: context?.cpuUsage ? `${context.cpuUsage}%` : undefined,
+        },
+        timestamp: new Date().toISOString(),
+      },
+    );
+  }
 }
 
 /**

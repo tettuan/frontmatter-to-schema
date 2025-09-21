@@ -9,14 +9,7 @@ import {
   DomainLogger,
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
-// Configuration types for discriminated union approach
-export type TemplateConfiguration =
-  | { readonly kind: "SingleTemplate"; readonly path: string }
-  | {
-    readonly kind: "DualTemplate";
-    readonly mainPath: string;
-    readonly itemsPath: string;
-  };
+import { TemplateConfiguration } from "../value-objects/template-configuration.ts";
 
 export type DataConfiguration =
   | { readonly kind: "SingleData"; readonly data: FrontmatterData }

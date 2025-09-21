@@ -15,13 +15,10 @@ import {
   SchemaStructureDetector,
 } from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
-
-/**
- * Template configuration using discriminated unions (Totality principle)
- */
-export type TemplateConfig =
-  | { readonly kind: "explicit"; readonly templatePath: string }
-  | { readonly kind: "schema-derived" };
+import {
+  TemplateConfig,
+  TemplateResolutionStrategyFactory,
+} from "../strategies/template-resolution-strategy.ts";
 
 /**
  * Template format using discriminated unions (Totality principle)
@@ -98,7 +95,7 @@ export class TemplateCoordinator {
 
   /**
    * Resolve template paths based on schema and configuration
-   * Extracted from PipelineOrchestrator template resolution logic
+   * Following Strategy Pattern to eliminate hardcoded if/else branches
    * Following Totality principles - total function returning Result<T,E>
    */
   resolveTemplatePaths(
@@ -106,26 +103,20 @@ export class TemplateCoordinator {
     templateConfig: TemplateConfig,
     schemaPath: string,
   ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
-    // Create template path configuration based on discriminated union
-    const explicitTemplatePath = templateConfig.kind === "explicit"
-      ? templateConfig.templatePath
-      : undefined;
-
-    const templatePathConfig = {
-      schemaPath,
-      explicitTemplatePath,
-    };
-
-    const resolvePathsResult = this.templatePathResolver.resolveTemplatePaths(
-      schema,
-      templatePathConfig,
+    // Create strategy based on template configuration
+    const strategyResult = TemplateResolutionStrategyFactory.createStrategy(
+      templateConfig,
     );
-    if (!resolvePathsResult.ok) {
-      return resolvePathsResult;
+    if (!strategyResult.ok) {
+      return strategyResult;
     }
 
-    // Return the resolved paths directly as they already match the expected interface
-    return resolvePathsResult;
+    // Use strategy to resolve template paths - eliminates hardcoded branches
+    return strategyResult.data.resolve(
+      schema,
+      schemaPath,
+      this.templatePathResolver,
+    );
   }
 
   /**

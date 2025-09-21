@@ -17,7 +17,9 @@ import { DerivationRule } from "../../../../../src/domain/aggregation/value-obje
 describe("Derived Unique and Merge Arrays Integration", () => {
   describe("x-derived-unique + x-merge-arrays compatibility", () => {
     it("should apply x-derived-unique during aggregation and x-merge-arrays during merging", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       // Create test data with duplicate values
       const data1Result = FrontmatterDataFactory.fromParsedData({
@@ -83,7 +85,9 @@ describe("Derived Unique and Merge Arrays Integration", () => {
     });
 
     it("should handle complex nested data with both directives", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const complexData1Result = FrontmatterDataFactory.fromParsedData({
         project: {
@@ -137,7 +141,9 @@ describe("Derived Unique and Merge Arrays Integration", () => {
     });
 
     it("should work with different merge strategies and unique derivation", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const file1Result = FrontmatterDataFactory.fromParsedData({
         commands: ["build", "test", "deploy"],
@@ -204,7 +210,9 @@ describe("Derived Unique and Merge Arrays Integration", () => {
 
   describe("Directive separation of concerns", () => {
     it("should demonstrate that x-derived-unique and x-merge-arrays serve different purposes", () => {
-      const aggregator = Aggregator.createWithDisabledCircuitBreaker();
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
+      const aggregator = aggregatorResult.data;
 
       const testData = [
         { technologies: ["A", "B"] },

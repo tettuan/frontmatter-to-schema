@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { PipelineExecutionService } from "./pipeline-execution-service.ts";
 import { CommandExecutionContext } from "../commands/pipeline-command.ts";
 import { err, ok } from "../../../domain/shared/types/result.ts";

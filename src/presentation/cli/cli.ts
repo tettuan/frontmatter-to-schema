@@ -2,9 +2,9 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
   ProcessingLoggerFactory,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../application/strategies/template-resolution-strategy.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { JMESPathFilterService } from "../../domain/schema/services/jmespath-filter-service.ts";
@@ -126,12 +126,28 @@ export class CLI {
 
     const frontmatterExtractor = new YamlFrontmatterExtractor();
     const frontmatterParser = new JsonFrontmatterParser();
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       frontmatterExtractor,
       frontmatterParser,
     );
+    if (!frontmatterProcessorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create FrontmatterProcessor: ${frontmatterProcessorResult.error.message}`,
+      }));
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
-    const aggregator = Aggregator.createWithStandardCircuitBreaker();
+    const aggregatorResult = Aggregator.createWithStandardCircuitBreaker();
+    if (!aggregatorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create aggregator: ${aggregatorResult.error.message}`,
+      }));
+    }
+    const aggregator = aggregatorResult.data;
     const basePropertyPopulator = new BasePropertyPopulator();
 
     const documentProcessor = FrontmatterTransformationService
@@ -153,11 +169,19 @@ export class CLI {
       }));
     }
 
-    const schemaProcessor = new SchemaProcessingService(
+    const schemaProcessorResult = SchemaProcessingService.create(
       schemaRepository,
       basePropertyPopulator,
       jmespathFilterServiceResult.data,
     );
+    if (!schemaProcessorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create SchemaProcessingService: ${schemaProcessorResult.error.message}`,
+      }));
+    }
+    const schemaProcessor = schemaProcessorResult.data;
 
     // Create TemplateRenderer
     const templateRendererResult = TemplateRenderer.create();

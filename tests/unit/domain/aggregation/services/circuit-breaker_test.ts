@@ -29,7 +29,9 @@ function createTestConfig(
 }
 Deno.test("CircuitBreaker", async (t) => {
   await t.step("should initialize with closed state", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
     const state = breaker.getState();
 
     assertEquals(state.status, "closed");
@@ -41,7 +43,9 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should accept requests when closed and under limits", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
     const result = breaker.canProcess(100, 10);
 
     assertEquals(result.ok, true);
@@ -54,7 +58,9 @@ Deno.test("CircuitBreaker", async (t) => {
     const config = createTestConfig({
       maxDatasetSize: 1000,
     });
-    const breaker = new CircuitBreaker(config);
+    const breakerResult = CircuitBreaker.create(config);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
     const result = breaker.canProcess(1001, 1);
 
     assertEquals(result.ok, false);
@@ -83,7 +89,9 @@ Deno.test("CircuitBreaker", async (t) => {
     });
     assert(configResult.ok);
     const config = configResult.data;
-    const breaker = new CircuitBreaker(config);
+    const breakerResult = CircuitBreaker.create(config);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
     const result = breaker.canProcess(100, 20); // 100 * 20 = 2000 > 1000
 
     assertEquals(result.ok, false);
@@ -104,7 +112,9 @@ Deno.test("CircuitBreaker", async (t) => {
       failureThreshold: 3,
     });
     assert(configResult.ok);
-    const breaker = new CircuitBreaker(configResult.data);
+    const breakerResult = CircuitBreaker.create(configResult.data);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Start in closed state
     assertEquals(breaker.getState().status, "closed");
@@ -140,7 +150,9 @@ Deno.test("CircuitBreaker", async (t) => {
     });
     assert(configResult.ok);
     const config = configResult.data;
-    const breaker = new CircuitBreaker(config);
+    const breakerResult = CircuitBreaker.create(config);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Force open state
     breaker.recordFailure("Failure 1");
@@ -179,7 +191,9 @@ Deno.test("CircuitBreaker", async (t) => {
       });
       assert(configResult.ok);
       const config = configResult.data;
-      const breaker = new CircuitBreaker(config);
+      const breakerResult = CircuitBreaker.create(config);
+      assert(breakerResult.ok);
+      const breaker = breakerResult.data;
 
       // Force open state
       breaker.recordFailure("Failure 1");
@@ -210,7 +224,9 @@ Deno.test("CircuitBreaker", async (t) => {
       });
       assert(configResult.ok);
       const config = configResult.data;
-      const breaker = new CircuitBreaker(config);
+      const breakerResult = CircuitBreaker.create(config);
+      assert(breakerResult.ok);
+      const breaker = breakerResult.data;
 
       // Force open state
       breaker.recordFailure("Failure 1");
@@ -249,7 +265,9 @@ Deno.test("CircuitBreaker", async (t) => {
       });
       assert(configResult.ok);
       const config = configResult.data;
-      const breaker = new CircuitBreaker(config);
+      const breakerResult = CircuitBreaker.create(config);
+      assert(breakerResult.ok);
+      const breaker = breakerResult.data;
 
       // Force open state
       breaker.recordFailure("Failure 1");
@@ -271,7 +289,9 @@ Deno.test("CircuitBreaker", async (t) => {
   );
 
   await t.step("should track metrics correctly", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Record multiple successes
     breaker.recordSuccess(100, 50);
@@ -286,7 +306,9 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should calculate average processing time correctly", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     breaker.recordSuccess(100, 50);
     assertEquals(breaker.getState().metrics.averageProcessingTime, 100);
@@ -308,7 +330,9 @@ Deno.test("CircuitBreaker", async (t) => {
     });
     assert(configResult.ok);
     const config = configResult.data;
-    const breaker = new CircuitBreaker(config);
+    const breakerResult = CircuitBreaker.create(config);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Under limit - return full size
     let batchSize = breaker.suggestBatchSize(100, 5); // complexity = 500 < 1000
@@ -328,7 +352,9 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should reset state correctly", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Create some state
     breaker.recordFailure("Failure 1");
@@ -371,7 +397,9 @@ Deno.test("CircuitBreaker", async (t) => {
     });
     assert(configResult.ok);
     const config = configResult.data;
-    const breaker = new CircuitBreaker(config);
+    const breakerResult = CircuitBreaker.create(config);
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     // Current memory will likely be > 0.8MB, triggering rejection
     const result = breaker.canProcess(100, 10);
@@ -389,7 +417,9 @@ Deno.test("CircuitBreaker", async (t) => {
   });
 
   await t.step("should maintain immutable state", () => {
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     const state1 = breaker.getState();
     breaker.recordSuccess(100, 50);
@@ -409,7 +439,9 @@ Deno.test("CircuitBreaker", async (t) => {
 
   await t.step("should handle concurrent operations safely", async () => {
     // Test thread-safety by simulating concurrent operations
-    const breaker = new CircuitBreaker();
+    const breakerResult = CircuitBreaker.create();
+    assert(breakerResult.ok);
+    const breaker = breakerResult.data;
 
     const operations = Array.from(
       { length: 10 },

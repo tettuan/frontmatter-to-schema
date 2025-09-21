@@ -1,5 +1,5 @@
-import { describe, it } from "@std/testing/bdd";
-import { assert, assertEquals } from "@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
+import { assert, assertEquals } from "jsr:@std/assert";
 import {
   ComplexityFactorsConfig,
   EntropyThresholdsConfig,

@@ -3,8 +3,8 @@
  * @description Comprehensive tests for schema directive validation
  */
 
-import { assertEquals, assertExists } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { describe, it } from "jsr:@std/testing/bdd";
 import { DirectiveValidator } from "../../../../../src/domain/schema/validators/directive-validator.ts";
 import { SchemaProperty } from "../../../../../src/domain/schema/value-objects/schema-property-types.ts";
 

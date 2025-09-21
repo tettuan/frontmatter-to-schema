@@ -23,51 +23,104 @@ export class Aggregator {
   private readonly circuitBreaker?: CircuitBreaker;
   private readonly arrayMerger: ArrayMerger;
 
-  constructor(circuitBreakerState?: CircuitBreakerConfigurationState) {
-    this.circuitBreakerState = circuitBreakerState ??
+  private constructor(
+    circuitBreakerState: CircuitBreakerConfigurationState,
+    arrayMerger: ArrayMerger,
+    circuitBreaker?: CircuitBreaker,
+  ) {
+    this.circuitBreakerState = circuitBreakerState;
+    this.arrayMerger = arrayMerger;
+    this.circuitBreaker = circuitBreaker;
+  }
+
+  /**
+   * Smart constructor following Totality principle
+   */
+  static create(
+    circuitBreakerState?: CircuitBreakerConfigurationState,
+  ): Result<Aggregator, AggregationError & { message: string }> {
+    const finalCircuitBreakerState = circuitBreakerState ??
       CircuitBreakerFactory.createStandard();
 
-    // Only create CircuitBreaker if not disabled
-    if (this.circuitBreakerState.kind !== "disabled") {
-      this.circuitBreaker = new CircuitBreaker(this.circuitBreakerState.config);
-    }
-
-    // Initialize ArrayMerger
+    // Initialize ArrayMerger with proper error handling
     const arrayMergerResult = ArrayMerger.create();
     if (!arrayMergerResult.ok) {
-      throw new Error(
-        `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
-      );
+      return {
+        ok: false,
+        error: createError({
+          kind: "AggregationFailed",
+          message:
+            `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
+        }),
+      };
     }
-    this.arrayMerger = arrayMergerResult.data;
+
+    // Create CircuitBreaker if not disabled
+    let circuitBreaker: CircuitBreaker | undefined;
+    if (finalCircuitBreakerState.kind !== "disabled") {
+      const circuitBreakerResult = CircuitBreaker.create(
+        finalCircuitBreakerState.config,
+      );
+      if (!circuitBreakerResult.ok) {
+        return {
+          ok: false,
+          error: createError({
+            kind: "AggregationFailed",
+            message:
+              `Failed to create CircuitBreaker: ${circuitBreakerResult.error.message}`,
+          }),
+        };
+      }
+      circuitBreaker = circuitBreakerResult.data;
+    }
+
+    return ok(
+      new Aggregator(
+        finalCircuitBreakerState,
+        arrayMergerResult.data,
+        circuitBreaker,
+      ),
+    );
   }
 
   /**
    * Factory method for creating Aggregator with disabled circuit breaker
    */
-  static createWithDisabledCircuitBreaker(): Aggregator {
-    return new Aggregator(CircuitBreakerFactory.createDisabled());
+  static createWithDisabledCircuitBreaker(): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.create(CircuitBreakerFactory.createDisabled());
   }
 
   /**
    * Factory method for creating Aggregator with standard circuit breaker configuration
    */
-  static createWithStandardCircuitBreaker(): Aggregator {
-    return new Aggregator(CircuitBreakerFactory.createStandard());
+  static createWithStandardCircuitBreaker(): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.create(CircuitBreakerFactory.createStandard());
   }
 
   /**
    * Factory method for creating Aggregator with high-throughput circuit breaker configuration
    */
-  static createWithHighThroughputCircuitBreaker(): Aggregator {
-    return new Aggregator(CircuitBreakerFactory.createHighThroughput());
+  static createWithHighThroughputCircuitBreaker(): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.create(CircuitBreakerFactory.createHighThroughput());
   }
 
   /**
    * Factory method for creating Aggregator with low-latency circuit breaker configuration
    */
-  static createWithLowLatencyCircuitBreaker(): Aggregator {
-    return new Aggregator(CircuitBreakerFactory.createLowLatency());
+  static createWithLowLatencyCircuitBreaker(): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.create(CircuitBreakerFactory.createLowLatency());
   }
 
   /**
@@ -75,16 +128,8 @@ export class Aggregator {
    */
   static createWithCustomCircuitBreaker(
     circuitBreakerState: CircuitBreakerConfigurationState,
-  ): Aggregator {
-    return new Aggregator(circuitBreakerState);
-  }
-
-  /**
-   * @deprecated Use factory methods instead. This constructor will be removed in the next version.
-   * Use Aggregator.createWithStandardCircuitBreaker() for equivalent behavior.
-   */
-  static create(): Aggregator {
-    return new Aggregator(CircuitBreakerFactory.createStandard());
+  ): Result<Aggregator, AggregationError & { message: string }> {
+    return Aggregator.create(circuitBreakerState);
   }
 
   aggregate(

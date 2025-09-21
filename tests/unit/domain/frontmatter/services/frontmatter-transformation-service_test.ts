@@ -13,7 +13,7 @@
  * - Deep merge operations and data structure preservation
  */
 
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
@@ -580,10 +580,12 @@ describe("FrontmatterTransformationService", () => {
 
     it("should handle derivation rules with frontmatter-part", () => {
       // Use real aggregator for this test
+      const aggregatorResult = Aggregator.createWithDisabledCircuitBreaker();
+      assert(aggregatorResult.ok);
       const service = FrontmatterTransformationService
         .createWithDisabledLogging(
           new MockFrontmatterProcessor() as any,
-          Aggregator.createWithDisabledCircuitBreaker(),
+          aggregatorResult.data,
           new MockBasePropertyPopulator() as any,
           new MockFileReader() as any,
           new MockFileLister() as any,

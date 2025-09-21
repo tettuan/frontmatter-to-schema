@@ -119,10 +119,52 @@ export type CompletenessProofError =
   | { kind: "VerificationSystemFailure"; component: string };
 
 export class CompletenessProofService {
-  constructor(
-    private readonly proofThreshold: number = 95,
-    private readonly evidenceThreshold: number = 80,
+  private constructor(
+    private readonly proofThreshold: number,
+    private readonly evidenceThreshold: number,
   ) {}
+
+  /**
+   * Smart Constructor following Totality principles
+   * Creates a completeness proof service with specified thresholds
+   */
+  static create(
+    proofThreshold: number = 95,
+    evidenceThreshold: number = 80,
+  ): Result<CompletenessProofService, DomainError & { message: string }> {
+    if (proofThreshold < 0 || proofThreshold > 100) {
+      return err(createError(
+        {
+          kind: "OutOfRange",
+          value: proofThreshold,
+          min: 0,
+          max: 100,
+        },
+        `Invalid proof threshold: ${proofThreshold}, must be between 0 and 100`,
+      ));
+    }
+
+    if (evidenceThreshold < 0 || evidenceThreshold > 100) {
+      return err(createError(
+        {
+          kind: "OutOfRange",
+          value: evidenceThreshold,
+          min: 0,
+          max: 100,
+        },
+        `Invalid evidence threshold: ${evidenceThreshold}, must be between 0 and 100`,
+      ));
+    }
+
+    return ok(new CompletenessProofService(proofThreshold, evidenceThreshold));
+  }
+
+  /**
+   * Factory method with default thresholds
+   */
+  static createDefault(): CompletenessProofService {
+    return new CompletenessProofService(95, 80);
+  }
 
   /**
    * 完全性証明の実行

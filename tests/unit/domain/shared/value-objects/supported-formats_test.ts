@@ -3,7 +3,7 @@
  * Following robust testing principles with totality
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assertEquals, assertExists } from "jsr:@std/assert";
 import { SupportedFormats } from "../../../../../src/domain/shared/value-objects/supported-formats.ts";
 import { FileExtension } from "../../../../../src/domain/shared/value-objects/file-extension.ts";
 

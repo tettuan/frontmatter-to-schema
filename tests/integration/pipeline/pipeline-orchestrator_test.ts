@@ -4,9 +4,9 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
   ProcessingLoggerFactory,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../../src/application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../../src/application/strategies/template-resolution-strategy.ts";
 import { FrontmatterTransformationService } from "../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../../src/domain/schema/services/schema-processing-service.ts";
 import { TemplateRenderer } from "../../../src/domain/template/renderers/template-renderer.ts";
@@ -193,10 +193,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
   it("should process complete pipeline from frontmatter to template output", async () => {
     // Setup
     const fileSystem = new MockFileSystem();
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
+    if (!frontmatterProcessorResult.ok) {
+      throw new Error("Failed to create frontmatter processor");
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     // Create mock aggregator
     const mockAggregator = {
@@ -309,10 +313,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       }),
     );
 
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
+    if (!frontmatterProcessorResult.ok) {
+      throw new Error("Failed to create frontmatter processor");
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     // Create mock aggregator
     const mockAggregator = {
@@ -391,10 +399,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
   it("should handle schema loading errors gracefully", async () => {
     const fileSystem = new MockFileSystem();
 
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
+    if (!frontmatterProcessorResult.ok) {
+      throw new Error("Failed to create frontmatter processor");
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     // Create mock aggregator
     const mockAggregator = {
@@ -483,10 +495,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       }),
     );
 
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
+    if (!frontmatterProcessorResult.ok) {
+      throw new Error("Failed to create frontmatter processor");
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     // Create mock aggregator
     const mockAggregator = {
@@ -590,10 +606,14 @@ describe("PipelineOrchestrator Integration Tests", () => {
       }),
     );
 
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       new MockFrontmatterExtractor(),
       new MockFrontmatterParser(),
     );
+    if (!frontmatterProcessorResult.ok) {
+      throw new Error("Failed to create frontmatter processor");
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     // Create mock aggregator
     const mockAggregator = {

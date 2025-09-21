@@ -124,14 +124,23 @@ export class CircuitBreaker {
     },
   };
 
-  constructor(
+  private constructor(
+    private readonly config: CircuitBreakerConfig,
+  ) {}
+
+  /**
+   * Smart constructor for CircuitBreaker following totality principles
+   */
+  static create(
     config?: CircuitBreakerConfig | LegacyCircuitBreakerConfig,
-  ) {
+  ): Result<CircuitBreaker, AggregationError & { message: string }> {
+    let finalConfig: CircuitBreakerConfig;
+
     if (!config) {
-      this.config = CircuitBreakerConfig.forStandardProcessing();
+      finalConfig = CircuitBreakerConfig.forStandardProcessing();
     } else if ("getThresholds" in config) {
       // New CircuitBreakerConfig
-      this.config = config;
+      finalConfig = config;
     } else {
       // Legacy configuration - convert to new format
       const result = CircuitBreakerConfig.create({
@@ -142,15 +151,46 @@ export class CircuitBreaker {
         cooldownPeriodMs: config.cooldownPeriodMs,
       });
       if (!result.ok) {
-        throw new Error(
-          `Invalid legacy configuration: ${result.error.message}`,
-        );
+        return err(createError({
+          kind: "AggregationFailed",
+          message: `Invalid legacy configuration: ${result.error.message}`,
+        }));
       }
-      this.config = result.data;
+      finalConfig = result.data;
     }
+
+    return ok(new CircuitBreaker(finalConfig));
   }
 
-  private readonly config: CircuitBreakerConfig;
+  /**
+   * Factory method for creating a CircuitBreaker with standard configuration
+   */
+  static createWithStandardConfig(): Result<
+    CircuitBreaker,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreaker.create(CircuitBreakerConfig.forStandardProcessing());
+  }
+
+  /**
+   * Factory method for creating a CircuitBreaker with high-throughput configuration
+   */
+  static createWithHighThroughputConfig(): Result<
+    CircuitBreaker,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreaker.create(CircuitBreakerConfig.forHighThroughput());
+  }
+
+  /**
+   * Factory method for creating a CircuitBreaker with low-latency configuration
+   */
+  static createWithLowLatencyConfig(): Result<
+    CircuitBreaker,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreaker.create(CircuitBreakerConfig.forLowLatency());
+  }
 
   canProcess(
     datasetSize: number,

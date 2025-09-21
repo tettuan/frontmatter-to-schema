@@ -116,7 +116,7 @@ export class DocumentProcessingService {
     }
     const strategy = strategyDecisionResult.data;
 
-    // Log strategy decision
+    // Enhanced debug logging: Strategy decision with variance analysis
     this.loggingService.debug("Document processing strategy selected", {
       operation: "document-batch-processing",
       strategy: {
@@ -126,12 +126,39 @@ export class DocumentProcessingService {
         estimatedTime: strategy.estimatedTimeMs,
         estimatedMemory: strategy.estimatedMemoryMB,
       },
+      varianceAnalysis: {
+        strategyVolatility: strategy.shouldUseParallel ? "high" : "low",
+        memoryPredictability: strategy.estimatedMemoryMB < 50
+          ? "stable"
+          : "variable",
+        errorRecoveryComplexity: strategy.shouldUseParallel
+          ? "complex"
+          : "simple",
+      },
     });
 
     // Process documents using coordinator
     const processingOptions = strategy.shouldUseParallel
       ? { kind: "parallel" as const, maxWorkers: strategy.concurrencyLevel }
       : { kind: "sequential" as const };
+
+    // Enhanced debug logging: Processing variance monitoring
+    const processingStartTime = performance.now();
+    const preProcessingMemory = Deno.memoryUsage();
+
+    this.loggingService.debug(
+      "Starting document processing with variance monitoring",
+      {
+        operation: "document-processing-start",
+        preProcessingState: {
+          memoryMB: Math.floor(preProcessingMemory.heapUsed / 1024 / 1024),
+          varianceRisk: strategy.shouldUseParallel
+            ? "high-variance"
+            : "low-variance",
+          recoverabilityLevel: strategy.shouldUseParallel ? "limited" : "full",
+        },
+      },
+    );
 
     const processedDataResult = await this.processingCoordinator
       .processDocuments(
@@ -142,6 +169,28 @@ export class DocumentProcessingService {
       );
 
     if (!processedDataResult.ok) {
+      // Enhanced debug logging: Error handling variance analysis
+      const errorProcessingTime = performance.now() - processingStartTime;
+      const errorMemory = Deno.memoryUsage();
+
+      this.loggingService.error(
+        "Document processing failed with variance impact",
+        {
+          operation: "document-processing-error",
+          error: processedDataResult.error,
+          varianceImpact: {
+            processingTimeBeforeError: errorProcessingTime,
+            memoryGrowthMB: Math.floor(
+              (errorMemory.heapUsed - preProcessingMemory.heapUsed) / 1024 /
+                1024,
+            ),
+            strategyInfluence: strategy.shouldUseParallel
+              ? "high-impact"
+              : "low-impact",
+            recoverabilityScore: strategy.shouldUseParallel ? 0.3 : 0.8,
+          },
+        },
+      );
       return processedDataResult;
     }
 
@@ -166,10 +215,33 @@ export class DocumentProcessingService {
       concurrencyLevel: strategy.concurrencyLevel,
     };
 
-    this.loggingService.info("Document processing completed", {
-      operation: "document-processing-complete",
-      metrics,
-    });
+    // Enhanced debug logging: Variance analysis of completed processing
+    const actualProcessingTime = endTime - processingStartTime;
+    const memoryVariance = metrics.memoryUsageMB.growth /
+      Math.max(strategy.estimatedMemoryMB, 1);
+    const timeVariance = actualProcessingTime /
+      Math.max(strategy.estimatedTimeMs, 1);
+
+    this.loggingService.info(
+      "Document processing completed with variance analysis",
+      {
+        operation: "document-processing-complete",
+        metrics,
+        varianceAnalysis: {
+          timeVarianceRatio: timeVariance,
+          memoryVarianceRatio: memoryVariance,
+          timePredicton: timeVariance < 1.5 ? "accurate" : "poor",
+          memoryPrediction: memoryVariance < 2.0 ? "stable" : "volatile",
+          overallVarianceLevel: (timeVariance + memoryVariance) / 2 > 1.5
+            ? "high"
+            : "low",
+          strategyEffectiveness:
+            strategy.shouldUseParallel && timeVariance < 1.2
+              ? "optimal"
+              : "suboptimal",
+        },
+      },
+    );
 
     return ok(
       Array.isArray(processedDataResult.data)

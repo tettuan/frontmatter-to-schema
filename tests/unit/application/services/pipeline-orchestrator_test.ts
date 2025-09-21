@@ -5,9 +5,9 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
   ProcessingLoggerFactory,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../../../src/application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../../../src/application/strategies/template-resolution-strategy.ts";
 // Note: The actual service imports are not needed since we're using mocks
 import { SchemaCacheFactory } from "../../../../src/infrastructure/caching/schema-cache.ts";
 

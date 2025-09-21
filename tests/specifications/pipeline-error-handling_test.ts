@@ -13,9 +13,9 @@ import {
 } from "../helpers/specification-test-framework.ts";
 import {
   PipelineConfig,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../src/application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../src/application/strategies/template-resolution-strategy.ts";
 import { err, Result } from "../../src/domain/shared/types/result.ts";
 import {
   createError,

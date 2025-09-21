@@ -23,6 +23,12 @@ import { ComplexityMetricsService } from "../../domain/monitoring/services/compl
 import { EntropyManagementService } from "../../domain/monitoring/services/entropy-management-service.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
+import {
+  RecoveryContext,
+  RecoveryStrategy,
+  RecoveryStrategyFactory,
+} from "../strategies/recovery-strategy.ts";
+import { TemplateConfig } from "../strategies/template-resolution-strategy.ts";
 
 /**
  * Factory for creating ProcessingLoggerState instances - for backward compatibility
@@ -45,10 +51,6 @@ export class ProcessingLoggerFactory {
     return logger ? this.createEnhancedEnabled(logger) : this.createDisabled();
   }
 }
-
-export type TemplateConfig =
-  | { readonly kind: "explicit"; readonly templatePath: string }
-  | { readonly kind: "schema-derived" };
 
 export type VerbosityConfig =
   | { readonly kind: "verbose"; readonly enabled: true }
@@ -97,6 +99,7 @@ export class PipelineOrchestrator {
     private readonly documentService: DocumentProcessingService,
     private readonly loggingService: LoggingService,
     private readonly strategyConfig: PipelineStrategyConfig,
+    private readonly recoveryStrategies: RecoveryStrategy[],
   ) {}
 
   static create(
@@ -162,6 +165,12 @@ export class PipelineOrchestrator {
     );
     if (!documentServiceResult.ok) return err(documentServiceResult.error);
 
+    // Create recovery strategies
+    const recoveryStrategiesResult = RecoveryStrategyFactory.createStrategies();
+    if (!recoveryStrategiesResult.ok) {
+      return err(recoveryStrategiesResult.error);
+    }
+
     return ok(
       new PipelineOrchestrator(
         schemaCoordinatorResult.data,
@@ -172,7 +181,123 @@ export class PipelineOrchestrator {
         documentServiceResult.data,
         loggingService,
         defaultStrategyConfig,
+        recoveryStrategiesResult.data,
       ),
+    );
+  }
+
+  /**
+   * Attempt error recovery using appropriate recovery strategy
+   * Following DDD principles - domain service coordination
+   * Following Totality principles - total function returning Result<T,E>
+   */
+  private attemptRecovery(
+    error: DomainError,
+    operationId: string,
+    verbosityMode: VerbosityMode,
+    attemptCount: number = 1,
+    maxAttempts: number = 3,
+    metadata: Record<string, unknown> = {},
+  ): Result<void, DomainError & { message: string }> {
+    // Create recovery context
+    const context: RecoveryContext = {
+      operationId,
+      verbosityMode,
+      attemptCount,
+      maxAttempts,
+      metadata,
+    };
+
+    // Find appropriate recovery strategy
+    const strategyResult = RecoveryStrategyFactory.findStrategy(
+      error,
+      this.recoveryStrategies,
+    );
+
+    if (!strategyResult.ok) {
+      // No recovery strategy available - log and return original error
+      this.loggingService.error("No recovery strategy found", {
+        error: error,
+        operationId,
+      });
+      return err(error as DomainError & { message: string });
+    }
+
+    // Attempt recovery using the strategy
+    const recoveryResult = strategyResult.data.recover(error, context);
+    if (!recoveryResult.ok) {
+      this.loggingService.error("Recovery attempt failed", {
+        originalError: error,
+        recoveryError: recoveryResult.error,
+        operationId,
+        attemptCount,
+      });
+      return recoveryResult;
+    }
+
+    // Recovery successful - log success
+    if (verbosityMode.kind === "verbose") {
+      this.loggingService.info("Recovery successful", {
+        originalError: error,
+        operationId,
+        attemptCount,
+      });
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Execute operation with recovery support
+   * Following DDD principles - error handling with domain recovery strategies
+   */
+  private async executeWithRecovery<T>(
+    operation: () => Promise<Result<T, DomainError & { message: string }>>,
+    operationId: string,
+    verbosityMode: VerbosityMode,
+    maxAttempts: number = 3,
+  ): Promise<Result<T, DomainError & { message: string }>> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const result = await operation();
+
+      if (result.ok) {
+        return result;
+      }
+
+      // If it's the last attempt, return the error
+      if (attempt === maxAttempts) {
+        return result;
+      }
+
+      // Attempt recovery
+      const recoveryResult = await this.attemptRecovery(
+        result.error,
+        operationId,
+        verbosityMode,
+        attempt,
+        maxAttempts,
+      );
+
+      // If recovery failed, return original error
+      if (!recoveryResult.ok) {
+        return result;
+      }
+
+      // Recovery succeeded, try the operation again
+      if (verbosityMode.kind === "verbose") {
+        this.loggingService.info("Retrying operation after recovery", {
+          operationId,
+          attempt: attempt + 1,
+        });
+      }
+    }
+
+    // This should never be reached, but TypeScript needs it
+    return err(
+      {
+        kind: "ConfigurationError",
+        message: "Unexpected error in executeWithRecovery",
+      } as DomainError & { message: string },
     );
   }
 
@@ -189,6 +314,16 @@ export class PipelineOrchestrator {
     config: PipelineConfig,
   ): Promise<Result<string, DomainError & { message: string }>> {
     const executionStart = performance.now();
+    const executionId = this.stateManager.getExecutionId();
+
+    // Enhanced logging: Track pipeline stage transition
+    this.loggingService.logStageTransition(
+      "idle",
+      "initializing",
+      executionId,
+      { reason: "Pipeline execution started" },
+    );
+
     const initResult = this.stateManager.transitionTo({
       kind: "initializing",
       startTime: executionStart,
@@ -213,8 +348,27 @@ export class PipelineOrchestrator {
       return err(schemaStateResult.error);
     }
 
+    // Enhanced logging: Track schema loading stage transition
+    this.loggingService.logStageTransition(
+      "initializing",
+      "schema-loading",
+      executionId,
+      { reason: "Starting schema validation and processing" },
+    );
+
+    const schemaLoadStart = performance.now();
     const schemaResult = await this.schemaCoordinator.loadAndProcessSchema(
       config.schemaPath,
+    );
+    const schemaLoadEnd = performance.now();
+
+    // Enhanced logging: Track schema processing step
+    this.loggingService.logProcessingStep(
+      "schema-validation",
+      "schema-loading",
+      { start: schemaLoadStart, end: schemaLoadEnd },
+      { resourcesProcessed: 1 },
+      { schemaPath: config.schemaPath },
     );
     if (!schemaResult.ok) {
       this.handleError(schemaResult.error);
@@ -273,6 +427,15 @@ export class PipelineOrchestrator {
       return err(validationRulesResult.error);
     }
 
+    // Enhanced logging: Track document processing stage transition
+    this.loggingService.logStageTransition(
+      "template-resolved",
+      "document-processing",
+      executionId,
+      { reason: "Starting document processing pipeline" },
+    );
+
+    const docProcessingStart = performance.now();
     const documentsResult = await this.documentService.processDocuments(
       {
         inputPattern: config.inputPattern,
@@ -281,9 +444,36 @@ export class PipelineOrchestrator {
       validationRulesResult.data,
       schemaResult.data,
     );
+    const docProcessingEnd = performance.now();
+    const docProcessingDuration = docProcessingEnd - docProcessingStart;
+
     if (!documentsResult.ok) {
       this.handleError(documentsResult.error);
       return err(documentsResult.error);
+    }
+
+    // Enhanced logging: Track document processing performance
+    this.loggingService.logProcessingStep(
+      "document-processing",
+      "document-processing",
+      { start: docProcessingStart, end: docProcessingEnd },
+      { resourcesProcessed: documentsResult.data.length },
+      {
+        inputPattern: config.inputPattern,
+        documentsProcessed: documentsResult.data.length,
+      },
+    );
+
+    // Enhanced logging: Performance bottleneck detection (threshold: 5 seconds for document processing)
+    if (docProcessingDuration > 5000) {
+      this.loggingService.logPerformanceBottleneck(
+        "document-processing",
+        docProcessingDuration,
+        5000,
+        {
+          resourceCount: documentsResult.data.length,
+        },
+      );
     }
     const renderingResult = this.stateManager.transitionTo({
       kind: "rendering",
@@ -318,6 +508,18 @@ export class PipelineOrchestrator {
     }
     const executionEnd = performance.now();
     const duration = executionEnd - executionStart;
+
+    // Enhanced logging: Track final completion stage transition
+    this.loggingService.logStageTransition(
+      "rendering",
+      "completed",
+      executionId,
+      {
+        duration,
+        reason: "Pipeline execution completed successfully",
+        resourcesProcessed: documentsResult.data.length,
+      },
+    );
 
     const completedResult = this.stateManager.transitionTo({
       kind: "completed",
