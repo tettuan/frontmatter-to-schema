@@ -6,7 +6,7 @@ import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
 // TODO: Re-enable when ExtractFromProcessor is fully implemented
-// import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
+import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
 import {
   ProcessingHints,
@@ -37,14 +37,18 @@ export type ProcessingOptions =
  */
 export class ProcessingCoordinator {
   // TODO: Re-enable when ExtractFromProcessor is fully implemented
-  // private readonly extractFromProcessor: ExtractFromProcessor;
+  private readonly extractFromProcessor: ExtractFromProcessor;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
-    _propertyExtractor?: PropertyExtractor,
+    propertyExtractor?: PropertyExtractor,
   ) {
     // TODO: Re-enable when ExtractFromProcessor is fully implemented
-    // this.extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+    const result = ExtractFromProcessor.create(propertyExtractor);
+    if (!result.ok) {
+      throw new Error("Failed to create ExtractFromProcessor");
+    }
+    this.extractFromProcessor = result.data;
   }
 
   /**
@@ -188,15 +192,13 @@ export class ProcessingCoordinator {
   }
 
   // TODO: Re-enable when ExtractFromProcessor is fully implemented
-  /*
   processExtractFromDirectives(
     data: FrontmatterData,
-    schema: Schema,
+    _schema: Schema,
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Implementation temporarily disabled
+    // Implementation temporarily disabled - just return data unchanged
     return ok(data);
   }
-  */
 
   /**
    * Process documents with x-extract-from directives applied
@@ -221,13 +223,12 @@ export class ProcessingCoordinator {
 
     // TODO: Re-enable when ExtractFromProcessor is fully implemented
     // Apply x-extract-from directives if present
-    // const extractResult = this.processExtractFromDirectives(
-    //   processResult.data,
-    //   schema,
-    // );
+    const extractResult = this.processExtractFromDirectives(
+      processResult.data,
+      schema,
+    );
 
-    // return extractResult;
-    return processResult;
+    return extractResult;
   }
 
   /**
@@ -287,10 +288,7 @@ export class ProcessingCoordinator {
 
       // Apply x-extract-from to each extracted item if needed
       // TODO: Re-enable when ExtractFromProcessor is fully implemented
-      // if (schema.hasExtractFromDirectives()) {
-      // TODO: Remove dead code when ExtractFromProcessor is implemented
-      /*
-      if (false) {
+      if (schema.hasExtractFromDirectives()) {
         console.log(
           "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
         );
@@ -301,13 +299,16 @@ export class ProcessingCoordinator {
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
           // TODO: Re-enable when ExtractFromProcessor is fully implemented
-          // const processedItemResult = this.processExtractFromDirectives(
-          //   item,
-          //   schema,
-          // );
-          // TODO: Re-enable when ExtractFromProcessor is fully implemented
-          // For now, just use the item as-is
-          processedItems.push(item);
+          const processedItemResult = this.processExtractFromDirectives(
+            item,
+            schema,
+          );
+          if (processedItemResult.ok) {
+            processedItems.push(processedItemResult.data);
+          } else {
+            // For now, just use the item as-is if processing fails
+            processedItems.push(item);
+          }
         }
 
         console.debug(
@@ -318,7 +319,6 @@ export class ProcessingCoordinator {
           itemsData: processedItems,
         });
       }
-      */
 
       console.debug(
         "[DIRECTIVE-ORDER-DEBUG] No x-extract-from on items, completing frontmatter-part processing",

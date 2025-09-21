@@ -6,7 +6,7 @@ import { ValidationRules } from "../value-objects/validation-rules.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
 // TODO: Re-enable when ExtractFromDirective is fully implemented
-// import { ExtractFromDirective } from "../value-objects/extract-from-directive.ts";
+import { ExtractFromDirective } from "../value-objects/extract-from-directive.ts";
 
 export interface ResolvedSchema {
   readonly definition: SchemaDefinition;
@@ -363,7 +363,6 @@ export class Schema {
   }
 
   // TODO: Re-enable when ExtractFromDirective is fully implemented
-  /*
   getExtractFromDirectives(): Result<
     ExtractFromDirective[],
     SchemaError & { message: string }
@@ -376,5 +375,4 @@ export class Schema {
     // Implementation temporarily disabled
     return false;
   }
-  */
 }
