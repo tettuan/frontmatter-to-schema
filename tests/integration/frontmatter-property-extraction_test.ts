@@ -48,11 +48,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser({});
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       assertExists(processor);
     });
@@ -64,7 +66,9 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       });
       const parser = new MockFrontmatterParser({});
 
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       assertExists(processor);
     });
@@ -89,11 +93,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -131,11 +137,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -185,11 +193,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -227,11 +237,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -267,11 +279,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -309,11 +323,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -376,11 +392,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -430,11 +448,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(largeData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -474,11 +494,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(originalData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);
@@ -521,11 +543,13 @@ describe("FrontmatterProcessor with PropertyExtractor Integration", () => {
       const parser = new MockFrontmatterParser(testData);
       const propertyExtractor = PropertyExtractor.create();
 
-      const processor = new FrontmatterProcessor(
+      const processorResult = FrontmatterProcessor.create(
         extractor,
         parser,
         propertyExtractor,
       );
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const extractResult = processor.extract("---\nfrontmatter\n---\nContent");
       assertEquals(extractResult.ok, true);

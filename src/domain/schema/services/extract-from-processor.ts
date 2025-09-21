@@ -148,9 +148,14 @@ export class ExtractFromProcessor {
     }
 
     if (this.optimizedExtractor) {
-      throw new Error(
+      return err(createError(
+        {
+          kind: "InvalidFormat",
+          format: "synchronous-processing",
+          value: "optimized-extractor-enabled",
+        },
         "Cannot use synchronous processing with OptimizedPropertyExtractor. Use processDirectives() instead.",
-      );
+      ));
     }
 
     try {

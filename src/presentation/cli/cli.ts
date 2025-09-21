@@ -126,10 +126,18 @@ export class CLI {
 
     const frontmatterExtractor = new YamlFrontmatterExtractor();
     const frontmatterParser = new JsonFrontmatterParser();
-    const frontmatterProcessor = new FrontmatterProcessor(
+    const frontmatterProcessorResult = FrontmatterProcessor.create(
       frontmatterExtractor,
       frontmatterParser,
     );
+    if (!frontmatterProcessorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create FrontmatterProcessor: ${frontmatterProcessorResult.error.message}`,
+      }));
+    }
+    const frontmatterProcessor = frontmatterProcessorResult.data;
 
     const aggregatorResult = Aggregator.createWithStandardCircuitBreaker();
     if (!aggregatorResult.ok) {
@@ -161,11 +169,19 @@ export class CLI {
       }));
     }
 
-    const schemaProcessor = new SchemaProcessingService(
+    const schemaProcessorResult = SchemaProcessingService.create(
       schemaRepository,
       basePropertyPopulator,
       jmespathFilterServiceResult.data,
     );
+    if (!schemaProcessorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create SchemaProcessingService: ${schemaProcessorResult.error.message}`,
+      }));
+    }
+    const schemaProcessor = schemaProcessorResult.data;
 
     // Create TemplateRenderer
     const templateRendererResult = TemplateRenderer.create();

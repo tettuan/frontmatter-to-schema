@@ -32,11 +32,56 @@ export type ProcessedSchema =
  * Handles: SchemaDefinition → ValidationRules + BaseProperties extraction
  */
 export class SchemaProcessingService {
-  constructor(
+  private constructor(
     private readonly schemaRepository: SchemaRepository,
     private readonly basePropertyPopulator: BasePropertyPopulator,
     private readonly jmespathFilterService: JMESPathFilterService,
   ) {}
+
+  /**
+   * Smart constructor following Totality principles
+   * Ensures valid dependencies on creation
+   */
+  static create(
+    schemaRepository: SchemaRepository,
+    basePropertyPopulator: BasePropertyPopulator,
+    jmespathFilterService: JMESPathFilterService,
+  ): Result<SchemaProcessingService, DomainError & { message: string }> {
+    if (!schemaRepository) {
+      return err({
+        kind: "InvalidFormat",
+        format: "dependency",
+        value: "schemaRepository",
+        message: "SchemaRepository is required",
+      });
+    }
+
+    if (!basePropertyPopulator) {
+      return err({
+        kind: "InvalidFormat",
+        format: "dependency",
+        value: "basePropertyPopulator",
+        message: "BasePropertyPopulator is required",
+      });
+    }
+
+    if (!jmespathFilterService) {
+      return err({
+        kind: "InvalidFormat",
+        format: "dependency",
+        value: "jmespathFilterService",
+        message: "JMESPathFilterService is required",
+      });
+    }
+
+    return ok(
+      new SchemaProcessingService(
+        schemaRepository,
+        basePropertyPopulator,
+        jmespathFilterService,
+      ),
+    );
+  }
 
   /**
    * Load and process schema to extract validation rules and metadata.

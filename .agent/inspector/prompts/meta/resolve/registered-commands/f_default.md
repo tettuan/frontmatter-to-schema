@@ -24,7 +24,8 @@ registry: `.agent/inspector/registry.json`
 registry に、実行可能な inspector-*が存在する。 registry
 を読み、「選択に使いたい内容」に相応しい用途のものを「構築手順」に沿って探し出すこと。
 
-なお、適切な inspector-* がない場合は、「適切なinspectorが見つからない場合」に基づいて決定する。
+なお、適切な inspector-*
+がない場合は、「適切なinspectorが見つからない場合」に基づいて決定する。
 
 # 選択に使いたい内容
 

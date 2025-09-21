@@ -20,11 +20,39 @@ export interface FrontmatterParser {
 }
 
 export class FrontmatterProcessor {
-  constructor(
+  private constructor(
     private readonly extractor: FrontmatterExtractor,
     private readonly parser: FrontmatterParser,
     private readonly propertyExtractor?: PropertyExtractor,
   ) {}
+
+  /**
+   * Smart constructor following Totality principles
+   * Ensures valid dependencies on creation
+   */
+  static create(
+    extractor: FrontmatterExtractor,
+    parser: FrontmatterParser,
+    propertyExtractor?: PropertyExtractor,
+  ): Result<FrontmatterProcessor, FrontmatterError & { message: string }> {
+    if (!extractor) {
+      return err({
+        kind: "MalformedFrontmatter",
+        content: "extractor",
+        message: "FrontmatterExtractor is required",
+      });
+    }
+
+    if (!parser) {
+      return err({
+        kind: "MalformedFrontmatter",
+        content: "parser",
+        message: "FrontmatterParser is required",
+      });
+    }
+
+    return ok(new FrontmatterProcessor(extractor, parser, propertyExtractor));
+  }
 
   extract(
     content: string,
