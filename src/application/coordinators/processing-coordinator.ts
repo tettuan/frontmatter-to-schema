@@ -13,6 +13,7 @@ import {
   SchemaStructureDetector,
 } from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
+import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -38,11 +39,14 @@ export type ProcessingOptions =
 export class ProcessingCoordinator {
   // TODO: Re-enable when ExtractFromProcessor is fully implemented
   private readonly extractFromProcessor: ExtractFromProcessor;
+  private readonly logger: DebugLogger | null;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
+    logger?: DebugLogger,
   ) {
+    this.logger = logger || null;
     // TODO: Re-enable when ExtractFromProcessor is fully implemented
     const result = ExtractFromProcessor.create(propertyExtractor);
     if (!result.ok) {
@@ -58,6 +62,7 @@ export class ProcessingCoordinator {
   static create(
     frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
+    logger?: DebugLogger,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
       return err(createError({
@@ -67,7 +72,11 @@ export class ProcessingCoordinator {
     }
 
     return ok(
-      new ProcessingCoordinator(frontmatterTransformer, propertyExtractor),
+      new ProcessingCoordinator(
+        frontmatterTransformer,
+        propertyExtractor,
+        logger,
+      ),
     );
   }
 
@@ -82,8 +91,31 @@ export class ProcessingCoordinator {
     schema: Schema,
     options: ProcessingOptions = { kind: "sequential" },
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // Debug: ValidationRules application timing (Issue #905 Phase 1)
+    this.logger?.logDebug(
+      "validation-timing",
+      "ValidationRules application started",
+      {
+        inputPattern,
+        validationStrategy: "fail-fast", // Current implementation strategy
+        ruleCount: validationRules.getRules().length,
+        processingMode: options.kind,
+      },
+    );
+
     // Convert ProcessingOptions to transformation service options
     const transformationOptions = this.convertProcessingOptions(options);
+
+    // Debug: Processing variance tracking (Issue #905 Phase 1)
+    this.logger?.logDebug(
+      "processing-variance",
+      "Processing options converted for transformation",
+      {
+        originalOptions: options,
+        transformationOptions,
+        expectedVariance: "low",
+      },
+    );
 
     const result = await this.frontmatterTransformer.transformDocuments(
       inputPattern,
@@ -92,6 +124,28 @@ export class ProcessingCoordinator {
       undefined, // processingBounds - using default
       transformationOptions,
     );
+
+    // Debug: Error propagation tracking (Issue #905 Phase 1)
+    if (!result.ok) {
+      this.logger?.logDebug(
+        "error-propagation",
+        "Document processing failed",
+        {
+          errorKind: result.error.kind,
+          propagationStrategy: "immediate-return",
+          recoveryOptions: ["partial-result", "retry"],
+        },
+      );
+    } else {
+      this.logger?.logDebug(
+        "processing-success",
+        "Document processing completed successfully",
+        {
+          dataSize: result.data.getAllKeys().length,
+          processingVariance: "within-tolerance",
+        },
+      );
+    }
 
     return result;
   }
@@ -105,14 +159,43 @@ export class ProcessingCoordinator {
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData[], DomainError & { message: string }> {
+    // Debug: Frontmatter-part extraction variance tracking (Issue #905 Phase 1)
+    this.logger?.logDebug(
+      "frontmatter-part-extraction",
+      "Starting frontmatter-part data extraction",
+      {
+        dataKeys: data.getAllKeys(),
+        schemaPath: schema.getPath().toString(),
+        extractionStrategy: "array-expansion",
+      },
+    );
+
     // Check if schema has frontmatter-part definition
     const pathResult = schema.findFrontmatterPartPath();
     if (!pathResult.ok) {
       // No frontmatter-part defined, return data as single item array
+      this.logger?.logDebug(
+        "frontmatter-part-extraction",
+        "No frontmatter-part path found, using single-item strategy",
+        {
+          reason: "no-frontmatter-part-defined",
+          fallbackStrategy: "single-item-array",
+        },
+      );
       return ok([data]);
     }
 
     const frontmatterPartPath = pathResult.data;
+
+    // Debug: Path resolution tracking (Issue #905 Phase 1)
+    this.logger?.logDebug(
+      "frontmatter-part-path",
+      "Frontmatter-part path resolved",
+      {
+        path: frontmatterPartPath,
+        pathResolutionStrategy: "schema-traversal",
+      },
+    );
 
     // Check if this data already contains an array at the frontmatter-part path
     const arrayDataResult = data.get(frontmatterPartPath);
@@ -121,25 +204,65 @@ export class ProcessingCoordinator {
 
     if (hasArrayData) {
       // File contains array at target path - extract individual items
+      this.logger?.logDebug(
+        "array-processing-variance",
+        "Processing array data at frontmatter-part path",
+        {
+          arrayLength: arrayDataResult.data.length,
+          processingStrategy: "item-by-item-extraction",
+          expectedVariance: "item-validation-failures",
+        },
+      );
+
       const result: FrontmatterData[] = [];
+      let processedCount = 0;
+      let skippedCount = 0;
+
       for (let i = 0; i < arrayDataResult.data.length; i++) {
         const item = arrayDataResult.data[i];
 
         // Skip invalid items gracefully (null, primitives, etc.)
         if (!item || typeof item !== "object") {
+          skippedCount++;
           continue;
         }
 
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (itemDataResult.ok) {
           result.push(itemDataResult.data);
+          processedCount++;
+        } else {
+          skippedCount++;
         }
         // Continue processing other items even if one fails
       }
 
+      // Debug: Array processing results (Issue #905 Phase 1)
+      this.logger?.logDebug(
+        "array-processing-results",
+        "Array processing completed",
+        {
+          totalItems: arrayDataResult.data.length,
+          processedItems: processedCount,
+          skippedItems: skippedCount,
+          processingVariance: skippedCount > 0 ? "high" : "low",
+        },
+      );
+
       return ok(result);
     } else {
       // Default case: individual file contributes directly as one item
+      this.logger?.logDebug(
+        "frontmatter-part-extraction",
+        "No array data found, using single-item fallback",
+        {
+          reason: "no-array-at-path",
+          fallbackStrategy: "single-item-array",
+          dataType: arrayDataResult.ok
+            ? typeof arrayDataResult.data
+            : "unknown",
+        },
+      );
       return ok([data]);
     }
   }
