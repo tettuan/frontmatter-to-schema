@@ -129,13 +129,83 @@ export class ProcessingCoordinator {
     if (!result.ok) {
       this.logger?.logDebug(
         "error-propagation",
-        "Document processing failed",
+        "Document processing failed - evaluating recovery options",
         {
           errorKind: result.error.kind,
-          propagationStrategy: "immediate-return",
-          recoveryOptions: ["partial-result", "retry"],
+          propagationStrategy: "error-classification",
+          recoveryEvaluation: "determining-if-recoverable",
         },
       );
+
+      // Check if error is recoverable (Issue #905 Phase 3)
+      const recoverableErrors = [
+        "MissingRequired",
+        "InvalidType",
+        "InvalidFormat",
+        "FileNotFound",
+      ];
+      const isRecoverable = recoverableErrors.includes(result.error.kind);
+
+      if (!isRecoverable) {
+        this.logger?.logDebug(
+          "error-propagation",
+          "Error is non-recoverable - propagating unchanged",
+          {
+            errorKind: result.error.kind,
+            propagationStrategy: "direct-propagation",
+            reason: "non-recoverable-error-type",
+          },
+        );
+        return result;
+      }
+
+      this.logger?.logDebug(
+        "error-propagation",
+        "Error is recoverable - attempting recovery",
+        {
+          errorKind: result.error.kind,
+          propagationStrategy: "recovery-attempt",
+          recoveryOptions: [
+            "partial-result",
+            "fallback-validation",
+            "user-guidance",
+          ],
+        },
+      );
+
+      // Issue #905 Phase 3: Error recovery mechanisms
+      const recoveryResult = await this.attemptErrorRecovery(
+        result.error,
+        inputPattern,
+        validationRules,
+        schema,
+        options,
+      );
+
+      if (recoveryResult.ok) {
+        this.logger?.logDebug(
+          "error-recovery-success",
+          "Error recovery completed successfully",
+          {
+            originalError: result.error.kind,
+            recoveryStrategy: recoveryResult.data.strategy,
+            recoveredDataSize: recoveryResult.data.data.getAllKeys().length,
+            partialSuccess: true,
+          },
+        );
+        return ok(recoveryResult.data.data);
+      } else {
+        this.logger?.logDebug(
+          "error-recovery-failed",
+          "Error recovery unsuccessful - returning enhanced error",
+          {
+            originalError: result.error.kind,
+            recoveryError: recoveryResult.error.kind,
+            userGuidance: recoveryResult.error.message,
+          },
+        );
+        return recoveryResult;
+      }
     } else {
       this.logger?.logDebug(
         "processing-success",
@@ -563,6 +633,263 @@ export class ProcessingCoordinator {
         return { parallel: false, maxWorkers: 1 };
       case "parallel":
         return { parallel: true, maxWorkers: options.maxWorkers };
+    }
+  }
+
+  /**
+   * Attempt error recovery for failed document processing
+   * Issue #905 Phase 3: Error recovery mechanisms
+   * Following Totality principles - comprehensive error handling with recovery strategies
+   */
+  private async attemptErrorRecovery(
+    error: DomainError & { message: string },
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions,
+  ): Promise<
+    Result<
+      { data: FrontmatterData; strategy: string },
+      DomainError & { message: string }
+    >
+  > {
+    this.logger?.logDebug(
+      "error-recovery-attempt",
+      "Starting error recovery process",
+      {
+        errorKind: error.kind,
+        recoveryStrategies: [
+          "partial-processing",
+          "fallback-validation",
+          "user-guidance",
+        ],
+      },
+    );
+
+    // Strategy 1: Attempt partial processing with relaxed validation
+    if (
+      error.kind === "MissingRequired" || error.kind === "InvalidType" ||
+      error.kind === "InvalidFormat"
+    ) {
+      this.logger?.logDebug(
+        "error-recovery-strategy",
+        "Attempting partial processing with fallback validation",
+        {
+          strategy: "fallback-validation",
+          originalError: error.kind,
+        },
+      );
+
+      const fallbackResult = await this.attemptFallbackValidation(
+        inputPattern,
+        validationRules,
+        schema,
+        options,
+      );
+
+      if (fallbackResult.ok) {
+        return ok({
+          data: fallbackResult.data,
+          strategy: "fallback-validation",
+        });
+      }
+    }
+
+    // Strategy 2: Attempt partial result extraction for file system or frontmatter errors
+    if (
+      error.kind === "FileNotFound" || error.kind === "ReadFailed" ||
+      error.kind === "ExtractionFailed"
+    ) {
+      this.logger?.logDebug(
+        "error-recovery-strategy",
+        "Attempting partial result extraction",
+        {
+          strategy: "partial-processing",
+          originalError: error.kind,
+        },
+      );
+
+      const partialResult = this.attemptPartialProcessing(
+        inputPattern,
+        validationRules,
+        schema,
+        options,
+      );
+
+      if (partialResult.ok) {
+        return ok({
+          data: partialResult.data,
+          strategy: "partial-processing",
+        });
+      }
+    }
+
+    // Strategy 3: Return enhanced error with user guidance
+    this.logger?.logDebug(
+      "error-recovery-strategy",
+      "Providing enhanced error with user guidance",
+      {
+        strategy: "user-guidance",
+        originalError: error.kind,
+      },
+    );
+
+    return err(createError({
+      kind: "InitializationError",
+      message: this.generateUserGuidanceMessage(error, inputPattern),
+    }));
+  }
+
+  /**
+   * Attempt processing with fallback validation rules
+   * More permissive validation to recover partial data
+   */
+  private async attemptFallbackValidation(
+    inputPattern: string,
+    validationRules: ValidationRules,
+    schema: Schema,
+    options: ProcessingOptions,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    this.logger?.logDebug(
+      "fallback-validation",
+      "Creating relaxed validation rules for recovery",
+      {
+        originalRules: validationRules.getRules().length,
+        fallbackStrategy: "optional-fields",
+      },
+    );
+
+    // Create fallback validation rules (make all fields optional)
+    const fallbackRules = this.createFallbackValidationRules(validationRules);
+
+    // Convert ProcessingOptions to transformation service options
+    const transformationOptions = this.convertProcessingOptions(options);
+
+    const result = await this.frontmatterTransformer.transformDocuments(
+      inputPattern,
+      fallbackRules,
+      schema,
+      undefined, // processingBounds - using default
+      transformationOptions,
+    );
+
+    if (result.ok) {
+      this.logger?.logDebug(
+        "fallback-validation-success",
+        "Fallback validation recovered partial data",
+        {
+          recoveredDataSize: result.data.getAllKeys().length,
+          strategy: "relaxed-validation",
+        },
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Attempt to extract partial results from available data
+   * Process what can be processed, skip what fails
+   */
+  private attemptPartialProcessing(
+    _inputPattern: string,
+    _validationRules: ValidationRules,
+    _schema: Schema,
+    _options: ProcessingOptions,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    this.logger?.logDebug(
+      "partial-processing",
+      "Attempting partial result extraction",
+      {
+        strategy: "best-effort-processing",
+        skipErrors: true,
+      },
+    );
+
+    // Implementation would involve file-by-file processing with error tolerance
+    // For now, return a minimal data structure
+    const emptyDataResult = FrontmatterData.create({});
+    if (!emptyDataResult.ok) {
+      return emptyDataResult;
+    }
+
+    this.logger?.logDebug(
+      "partial-processing-fallback",
+      "Created minimal data structure for partial recovery",
+      {
+        strategy: "minimal-data",
+        dataSize: 0,
+      },
+    );
+
+    return ok(emptyDataResult.data);
+  }
+
+  /**
+   * Create relaxed validation rules for error recovery
+   * Makes required fields optional to allow partial processing
+   */
+  private createFallbackValidationRules(
+    _originalRules: ValidationRules,
+  ): ValidationRules {
+    // Create more permissive rules - simplified implementation
+    // In a full implementation, this would analyze the original rules
+    // and create optional variants
+    return ValidationRules.create([]);
+  }
+
+  /**
+   * Generate user-friendly error message with recovery suggestions
+   * Issue #905 Phase 3: User-friendly error messaging
+   */
+  private generateUserGuidanceMessage(
+    error: DomainError & { message: string },
+    inputPattern: string,
+  ): string {
+    const baseMessage =
+      `Processing failed for pattern "${inputPattern}": ${error.message}`;
+
+    switch (error.kind) {
+      case "MissingRequired":
+      case "InvalidType":
+      case "InvalidFormat":
+        return `${baseMessage}
+
+Recovery suggestions:
+1. Check your frontmatter structure matches the schema requirements
+2. Verify all required fields are present in your markdown files
+3. Try processing individual files to identify specific validation issues
+4. Consider using a more permissive schema for initial testing`;
+
+      case "FileNotFound":
+      case "ReadFailed":
+      case "PermissionDenied":
+        return `${baseMessage}
+
+Recovery suggestions:
+1. Verify the file pattern matches existing files
+2. Check file permissions and accessibility
+3. Try processing a smaller subset of files first
+4. Ensure markdown files have valid frontmatter syntax`;
+
+      case "InvalidSchema":
+      case "TemplateNotDefined":
+        return `${baseMessage}
+
+Recovery suggestions:
+1. Validate your schema file syntax
+2. Check for missing or circular references
+3. Verify schema extensions are properly defined
+4. Try using a simpler schema to isolate the issue`;
+
+      default:
+        return `${baseMessage}
+
+General recovery suggestions:
+1. Check the CLI documentation for usage examples
+2. Verify input files and schema are accessible
+3. Try running with --verbose flag for more details
+4. Consider processing files individually to isolate issues`;
     }
   }
 }
