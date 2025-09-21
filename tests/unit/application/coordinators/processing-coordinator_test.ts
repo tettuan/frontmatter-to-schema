@@ -266,7 +266,7 @@ describe("ProcessingCoordinator", () => {
         const mockData = FrontmatterData.empty();
         const schema = createTestSchema(false, false); // no extract-from
 
-        const result = coordinator.data.processExtractFromDirectives(
+        const result = coordinator.data.processExtractFromDirectivesSync(
           mockData,
           schema,
         );
@@ -287,7 +287,7 @@ describe("ProcessingCoordinator", () => {
         const mockData = FrontmatterData.empty();
         const schema = createTestSchema(true, false); // has extract-from
 
-        const result = coordinator.data.processExtractFromDirectives(
+        const result = coordinator.data.processExtractFromDirectivesSync(
           mockData,
           schema,
         );

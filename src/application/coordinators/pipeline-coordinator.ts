@@ -74,8 +74,8 @@ export class PipelineCoordinator {
       return schemaCoordinatorResult;
     }
 
-    // Create processing coordinator
-    const processingCoordinatorResult = ProcessingCoordinator.create(
+    // Create processing coordinator with optimized performance
+    const processingCoordinatorResult = ProcessingCoordinator.createOptimized(
       frontmatterTransformationService,
     );
     if (!processingCoordinatorResult.ok) {
