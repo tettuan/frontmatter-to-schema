@@ -25,11 +25,6 @@
         "/Users/tettuan/github/frontmatter-to-schema"
       ],
       "env": {}
-    },
-    "codex": {
-      "type": "stdio",
-      "command": "codex",
-      "args": ["mcp"]
     }
   }
 }

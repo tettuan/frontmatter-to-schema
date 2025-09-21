@@ -306,11 +306,12 @@ export class ExtractFromProcessor {
         }
 
         return ok(extractionResult.data);
-      } catch (error) {
+      } catch (_error) {
         // Fall back to basic extractor if optimized extraction fails
-        console.warn(
-          `Optimized extraction failed, falling back to basic extractor: ${error}`,
-        );
+        // TODO: Replace with proper domain logging
+        // console.warn(
+        //   `Optimized extraction failed, falling back to basic extractor: ${_error}`,
+        // );
       }
     }
 

@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
+import { DebugLogger } from "../services/debug-logger.ts";
 
 /**
  * Processing context for recovery operations
@@ -32,15 +33,17 @@ export interface RecoveryStrategy {
  * Handles schema loading errors with fallback mechanisms
  */
 export class SchemaLoadFailureRecovery implements RecoveryStrategy {
+  private constructor(private readonly logger?: DebugLogger) {}
+
   /**
    * Smart Constructor for SchemaLoadFailureRecovery
    * Following Totality principles
    */
-  static create(): Result<
+  static create(logger?: DebugLogger): Result<
     SchemaLoadFailureRecovery,
     DomainError & { message: string }
   > {
-    return ok(new SchemaLoadFailureRecovery());
+    return ok(new SchemaLoadFailureRecovery(logger));
   }
 
   canRecover(error: DomainError): boolean {
@@ -92,8 +95,13 @@ export class SchemaLoadFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Log error and suggest fallback
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Schema not found, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromSchemaNotFound",
+        "Schema not found, attempting recovery",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -113,7 +121,14 @@ export class SchemaLoadFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Log error and continue with simplified processing
     if (context.verbosityMode.kind === "verbose") {
-      console.log(`[Recovery] Invalid schema, attempt ${context.attemptCount}`);
+      this.logger?.logDebug(
+        "recoverFromInvalidSchema",
+        "Invalid schema, attempting recovery",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
+      );
     }
 
     return ok(undefined);
@@ -132,8 +147,13 @@ export class SchemaLoadFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Skip reference resolution and continue
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Reference resolution failed, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromReferenceNotFound",
+        "Reference resolution failed, attempting recovery",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -153,8 +173,13 @@ export class SchemaLoadFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Break circular reference by limiting depth
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Circular reference detected, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromCircularReference",
+        "Circular reference detected, attempting recovery",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -167,15 +192,17 @@ export class SchemaLoadFailureRecovery implements RecoveryStrategy {
  * Handles template resolution errors with alternative paths
  */
 export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
+  private constructor(private readonly logger?: DebugLogger) {}
+
   /**
    * Smart Constructor for TemplateResolutionFailureRecovery
    * Following Totality principles
    */
-  static create(): Result<
+  static create(logger?: DebugLogger): Result<
     TemplateResolutionFailureRecovery,
     DomainError & { message: string }
   > {
-    return ok(new TemplateResolutionFailureRecovery());
+    return ok(new TemplateResolutionFailureRecovery(logger));
   }
 
   canRecover(error: DomainError): boolean {
@@ -230,8 +257,13 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use default template or fallback
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Template not found, using fallback, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromTemplateNotFound",
+        "Template not found, using fallback",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -251,8 +283,13 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use simplified template
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Invalid template, using simplified version, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromInvalidTemplate",
+        "Invalid template, using simplified version",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -272,8 +309,13 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use default value for missing variable
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Variable not found, using default, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromVariableNotFound",
+        "Variable not found, using default",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -293,8 +335,13 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use minimal rendering
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Render failed, using minimal rendering, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromRenderFailed",
+        "Render failed, using minimal rendering",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -314,8 +361,13 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Convert to default format
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Invalid format, converting to default, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromInvalidFormat",
+        "Invalid format, converting to default",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -328,15 +380,17 @@ export class TemplateResolutionFailureRecovery implements RecoveryStrategy {
  * Handles data validation errors with correction mechanisms
  */
 export class ValidationFailureRecovery implements RecoveryStrategy {
+  private constructor(private readonly logger?: DebugLogger) {}
+
   /**
    * Smart Constructor for ValidationFailureRecovery
    * Following Totality principles
    */
-  static create(): Result<
+  static create(logger?: DebugLogger): Result<
     ValidationFailureRecovery,
     DomainError & { message: string }
   > {
-    return ok(new ValidationFailureRecovery());
+    return ok(new ValidationFailureRecovery(logger));
   }
 
   canRecover(error: DomainError): boolean {
@@ -400,8 +454,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Clamp value to valid range
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Out of range value, clamping to bounds, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromOutOfRange",
+        "Out of range value, clamping to bounds",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -421,8 +480,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use fallback pattern
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Invalid regex, using fallback pattern, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromInvalidRegex",
+        "Invalid regex, using fallback pattern",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -442,8 +506,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Apply auto-correction or use default
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Pattern mismatch, applying auto-correction, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromPatternMismatch",
+        "Pattern mismatch, applying auto-correction",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -463,8 +532,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Use simplified parsing or default value
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Parse error, using simplified parsing, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromParseError",
+        "Parse error, using simplified parsing",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -484,8 +558,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Provide default value
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Empty input, providing default value, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromEmptyInput",
+        "Empty input, providing default value",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -505,8 +584,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Truncate to maximum length
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Input too long, truncating to maximum length, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromInputTooLong",
+        "Input too long, truncating to maximum length",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -526,8 +610,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Convert to expected type
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Invalid type, converting to expected type, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromInvalidType",
+        "Invalid type, converting to expected type",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -547,8 +636,13 @@ export class ValidationFailureRecovery implements RecoveryStrategy {
 
     // Recovery: Provide sensible default for required field
     if (context.verbosityMode.kind === "verbose") {
-      console.log(
-        `[Recovery] Missing required field, providing default, attempt ${context.attemptCount}`,
+      this.logger?.logDebug(
+        "recoverFromMissingRequired",
+        "Missing required field, providing default",
+        {
+          attemptCount: context.attemptCount,
+          operationId: context.operationId,
+        },
       );
     }
 
@@ -566,26 +660,28 @@ export class RecoveryStrategyFactory {
    * Create recovery strategy based on error type
    * Following Totality principles - exhaustive pattern matching
    */
-  static createStrategies(): Result<
+  static createStrategies(logger?: DebugLogger): Result<
     RecoveryStrategy[],
     DomainError & { message: string }
   > {
     const strategies: RecoveryStrategy[] = [];
 
     // Create all recovery strategies
-    const schemaRecoveryResult = SchemaLoadFailureRecovery.create();
+    const schemaRecoveryResult = SchemaLoadFailureRecovery.create(logger);
     if (!schemaRecoveryResult.ok) {
       return schemaRecoveryResult;
     }
     strategies.push(schemaRecoveryResult.data);
 
-    const templateRecoveryResult = TemplateResolutionFailureRecovery.create();
+    const templateRecoveryResult = TemplateResolutionFailureRecovery.create(
+      logger,
+    );
     if (!templateRecoveryResult.ok) {
       return templateRecoveryResult;
     }
     strategies.push(templateRecoveryResult.data);
 
-    const validationRecoveryResult = ValidationFailureRecovery.create();
+    const validationRecoveryResult = ValidationFailureRecovery.create(logger);
     if (!validationRecoveryResult.ok) {
       return validationRecoveryResult;
     }

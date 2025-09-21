@@ -11,6 +11,10 @@ import {
 } from "../services/circuit-breaker.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { ArrayMergeConfig, ArrayMerger } from "../services/array-merger.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 
 export interface AggregatedResult {
   readonly baseData: FrontmatterData;
@@ -22,15 +26,18 @@ export class Aggregator {
   private readonly circuitBreakerState: CircuitBreakerConfigurationState;
   private readonly circuitBreaker?: CircuitBreaker;
   private readonly arrayMerger: ArrayMerger;
+  private readonly logger: DomainLogger;
 
   private constructor(
     circuitBreakerState: CircuitBreakerConfigurationState,
     arrayMerger: ArrayMerger,
     circuitBreaker?: CircuitBreaker,
+    logger?: DomainLogger,
   ) {
     this.circuitBreakerState = circuitBreakerState;
     this.arrayMerger = arrayMerger;
     this.circuitBreaker = circuitBreaker;
+    this.logger = logger ?? new NullDomainLogger();
   }
 
   /**
@@ -38,6 +45,7 @@ export class Aggregator {
    */
   static create(
     circuitBreakerState?: CircuitBreakerConfigurationState,
+    logger?: DomainLogger,
   ): Result<Aggregator, AggregationError & { message: string }> {
     const finalCircuitBreakerState = circuitBreakerState ??
       CircuitBreakerFactory.createStandard();
@@ -79,6 +87,7 @@ export class Aggregator {
         finalCircuitBreakerState,
         arrayMergerResult.data,
         circuitBreaker,
+        logger,
       ),
     );
   }
@@ -215,7 +224,11 @@ export class Aggregator {
           ),
         )
       ) {
-        console.debug("[PERF-AGGREGATION]", JSON.stringify(performanceMetrics));
+        this.logger.logDebug(
+          "performance-metrics",
+          "Aggregation performance metrics collected",
+          { performanceMetrics },
+        );
       }
     }
 

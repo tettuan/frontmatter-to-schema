@@ -1,0 +1,92 @@
+# Performance Settings Configuration
+# Following AI complexity control principles - externalized from hardcoded performance parameters
+
+version: "1.0.0"
+description: "Configuration for performance optimization settings in frontmatter-to-schema"
+
+# Schema processing optimization settings
+schemaProcessing:
+  cache:
+    enablePathCache: true
+    enableExtractionCache: true
+    enableMetrics: true
+    description: "Caching strategies for schema processing optimization"
+
+  concurrency:
+    maxConcurrentExtractions: 20
+    maxConcurrentValidations: 15
+    maxConcurrentTransformations: 10
+    description: "Concurrency limits for parallel processing operations"
+
+  optimization:
+    enableStreamingProcessing: true
+    enableBatchOptimization: false
+    enableMemoryOptimization: true
+    description: "Processing optimization strategies"
+
+# File system operations performance
+fileSystem:
+  concurrency:
+    maxConcurrentReads: 50
+    maxConcurrentWrites: 25
+    description: "File system operation concurrency limits"
+
+  caching:
+    enableFileCache: true
+    cacheExpiry: 300000 # 5 minutes in milliseconds
+    maxCacheSize: 100 # Maximum number of cached files
+    description: "File system caching configuration"
+
+# Memory management settings
+memory:
+  limits:
+    maxHeapUsage: 512 # MB
+    maxBufferSize: 64 # MB
+    description: "Memory usage limits"
+
+  optimization:
+    enableGarbageCollection: true
+    gcInterval: 30000 # 30 seconds
+    description: "Memory optimization strategies"
+
+# Performance profiles for different environments
+profiles:
+  conservative:
+    schemaProcessing:
+      maxConcurrentExtractions: 5
+      maxConcurrentValidations: 3
+    fileSystem:
+      maxConcurrentReads: 10
+      maxConcurrentWrites: 5
+    description: "Conservative settings for resource-constrained environments"
+
+  balanced:
+    schemaProcessing:
+      maxConcurrentExtractions: 20
+      maxConcurrentValidations: 15
+    fileSystem:
+      maxConcurrentReads: 50
+      maxConcurrentWrites: 25
+    description: "Balanced settings for normal operation"
+
+  aggressive:
+    schemaProcessing:
+      maxConcurrentExtractions: 100
+      maxConcurrentValidations: 75
+    fileSystem:
+      maxConcurrentReads: 200
+      maxConcurrentWrites: 100
+    description: "Aggressive settings for high-performance environments"
+
+# Feature flags
+features:
+  enableVarianceMonitoring: true
+  enablePerformanceMetrics: true
+  enableProfileSwitching: true
+  enableDynamicAdjustment: false
+
+# Default behavior when configuration loading fails
+fallback:
+  profile: "balanced"
+  maxConcurrentExtractions: 20
+  enableAllOptimizations: true

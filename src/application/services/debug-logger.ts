@@ -378,6 +378,50 @@ export class DebugLogger {
   /**
    * Get current debug statistics
    */
+  /**
+   * Log debug message
+   */
+  logDebug(
+    operation: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    this.log("debug", operation, message, data);
+  }
+
+  /**
+   * Log warning message
+   */
+  logWarning(
+    operation: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    this.log("warn", operation, message, data);
+  }
+
+  /**
+   * Log info message
+   */
+  logInfo(
+    operation: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    this.log("info", operation, message, data);
+  }
+
+  /**
+   * Log error message
+   */
+  logError(
+    operation: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): void {
+    this.log("error", operation, message, data);
+  }
+
   getStatistics(): DebugStatistics {
     return { ...this.statistics };
   }

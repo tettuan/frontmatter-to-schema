@@ -1,0 +1,84 @@
+# Example External Configuration for Supported Formats
+# This demonstrates the configuration-driven approach that replaces hardcoding
+
+# Format definitions - externally configurable
+formats:
+  schema:
+    extensions: [".json", ".jsonschema", ".yaml", ".yml"]
+    description: "Schema definition files for validation and structure"
+    mimeType: "application/json"
+    default: false
+
+  template:
+    extensions: [".json", ".yaml", ".yml", ".hbs", ".mustache"]
+    description: "Template files for output formatting and generation"
+    mimeType: "application/json"
+    default: false
+
+  markdown:
+    extensions: [".md", ".markdown", ".mdx"]
+    description: "Markdown documentation and content files"
+    mimeType: "text/markdown"
+    default: false
+
+  output:
+    extensions: [".json", ".yaml", ".yml", ".xml", ".csv"]
+    description: "Output format files for processed results"
+    mimeType: "application/json"
+    default: true
+
+  configuration:
+    extensions: [".json", ".yaml", ".yml", ".toml"]
+    description: "Configuration files for system settings"
+    mimeType: "application/json"
+    default: false
+
+# Validation rules - configurable behavior
+validation:
+  requireExtension: true
+  caseSensitive: false
+  allowMultipleExtensions: true
+
+# Feature flags - configurable capabilities
+features:
+  enableFormatDetection: true
+  enableMimeTypeValidation: true
+  enableCustomFormats: true
+  enableDirectiveProcessing: true
+  enableArrayProcessing: true
+  enableErrorRecovery: true
+
+# Error recovery configuration
+errorRecovery:
+  enableFallback: true
+  fallbackFormat: "output"
+  retryAttempts: 3
+  fallbackStrategy: "graceful-degradation"
+
+# Fallback configuration for error scenarios
+fallback:
+  extensions: [".json"]
+  defaultFormat: "output"
+
+# Advanced processing configuration
+processing:
+  enableParallelProcessing: true
+  maxConcurrentFiles: 10
+  enableStreamingProcessing: true
+  enableBatchProcessing: true
+
+# Template engine configuration
+templateEngine:
+  defaultEngine: "json"
+  supportedEngines: ["json", "yaml", "handlebars", "mustache"]
+  enableCustomEngines: true
+
+# Plugin system configuration (for Pattern 24)
+plugins:
+  enableCustomFormats: true
+  enablePluginLoading: true
+  pluginDirectory: "plugins/"
+  customFormatHandlers:
+    ".custom": "CustomFormatHandler"
+    ".plugin": "PluginFormatHandler"
+    ".avsc": "AvroSchemaHandler"
