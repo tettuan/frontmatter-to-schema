@@ -26,14 +26,11 @@ export class Aggregator {
   private constructor(
     circuitBreakerState: CircuitBreakerConfigurationState,
     arrayMerger: ArrayMerger,
+    circuitBreaker?: CircuitBreaker,
   ) {
     this.circuitBreakerState = circuitBreakerState;
     this.arrayMerger = arrayMerger;
-
-    // Only create CircuitBreaker if not disabled
-    if (this.circuitBreakerState.kind !== "disabled") {
-      this.circuitBreaker = new CircuitBreaker(this.circuitBreakerState.config);
-    }
+    this.circuitBreaker = circuitBreaker;
   }
 
   /**
@@ -58,8 +55,31 @@ export class Aggregator {
       };
     }
 
+    // Create CircuitBreaker if not disabled
+    let circuitBreaker: CircuitBreaker | undefined;
+    if (finalCircuitBreakerState.kind !== "disabled") {
+      const circuitBreakerResult = CircuitBreaker.create(
+        finalCircuitBreakerState.config,
+      );
+      if (!circuitBreakerResult.ok) {
+        return {
+          ok: false,
+          error: createError({
+            kind: "AggregationFailed",
+            message:
+              `Failed to create CircuitBreaker: ${circuitBreakerResult.error.message}`,
+          }),
+        };
+      }
+      circuitBreaker = circuitBreakerResult.data;
+    }
+
     return ok(
-      new Aggregator(finalCircuitBreakerState, arrayMergerResult.data),
+      new Aggregator(
+        finalCircuitBreakerState,
+        arrayMergerResult.data,
+        circuitBreaker,
+      ),
     );
   }
 
