@@ -274,6 +274,14 @@ export class ProcessingCoordinator {
       itemsData?: FrontmatterData[];
     }, DomainError & { message: string }>
   > {
+    // Debug: Track directive processing order variance
+    console.log(
+      "[DIRECTIVE-ORDER-DEBUG] Starting processDocumentsWithFullExtraction",
+    );
+    console.log(
+      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 1. x-extract-from (initial)",
+    );
+
     // Process documents with x-extract-from directives
     const processResult = await this.processDocumentsWithExtractFrom(
       inputPattern,
@@ -286,10 +294,19 @@ export class ProcessingCoordinator {
     }
 
     const mainData = processResult.data;
+    console.log(
+      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 2. x-frontmatter-part detection",
+    );
 
     // Check if we need to extract items data
     const frontmatterPartResult = schema.findFrontmatterPartPath();
     const hasFrontmatterPart = frontmatterPartResult.ok;
+
+    if (hasFrontmatterPart) {
+      console.debug(
+        "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 3. x-frontmatter-part extraction",
+      );
+    }
 
     if (hasFrontmatterPart) {
       const itemsResult = this.extractFrontmatterPartData(mainData, schema);
@@ -299,6 +316,13 @@ export class ProcessingCoordinator {
 
       // Apply x-extract-from to each extracted item if needed
       if (schema.hasExtractFromDirectives()) {
+        console.log(
+          "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
+        );
+        console.log(
+          "[DIRECTIVE-ORDER-DEBUG] WARNING: Second x-extract-from processing creates order dependency issue",
+        );
+
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
           const processedItemResult = this.processExtractFromDirectives(
@@ -318,18 +342,28 @@ export class ProcessingCoordinator {
             processedItems.push(item);
           }
         }
+
+        console.debug(
+          "[DIRECTIVE-ORDER-DEBUG] Completed items processing with variance pattern",
+        );
         return ok({
           mainData,
           itemsData: processedItems,
         });
       }
 
+      console.debug(
+        "[DIRECTIVE-ORDER-DEBUG] No x-extract-from on items, completing frontmatter-part processing",
+      );
       return ok({
         mainData,
         itemsData: itemsResult.data,
       });
     }
 
+    console.debug(
+      "[DIRECTIVE-ORDER-DEBUG] No frontmatter-part detected, single-pass processing complete",
+    );
     return ok({ mainData });
   }
 
