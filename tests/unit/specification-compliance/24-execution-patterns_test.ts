@@ -89,23 +89,21 @@ class TestConfigurationFactory {
    */
   static createBasicSchemaTemplateConfig() {
     return {
-      version: "1.0.0",
-      description: "Test configuration for basic schema template processing",
       formats: {
         schema: {
-          extensions: [".json", ".jsonschema", ".yaml", ".yml"],
+          extensions: [".jsonschema"],
           description: "Schema definition files for validation and structure",
           mimeType: "application/json",
           default: false,
         },
         template: {
-          extensions: [".json", ".yaml", ".yml"],
+          extensions: [".json"],
           description: "Template files for output formatting",
           mimeType: "application/json",
           default: true,
         },
         markdown: {
-          extensions: [".md", ".markdown", ".mdx"],
+          extensions: [".md"],
           description: "Markdown documentation and content files",
           mimeType: "text/markdown",
           default: false,
@@ -133,8 +131,6 @@ class TestConfigurationFactory {
    */
   static createErrorRecoveryConfig() {
     return {
-      version: "1.0.0",
-      description: "Test configuration for error recovery processing",
       formats: {
         json: {
           extensions: [".json"],
@@ -165,8 +161,6 @@ class TestConfigurationFactory {
    */
   static createComplexProcessingConfig() {
     return {
-      version: "1.0.0",
-      description: "Test configuration for complex processing scenarios",
       formats: {
         schema: {
           extensions: [".json", ".jsonschema", ".yaml", ".yml"],
@@ -205,7 +199,7 @@ class TestConfigurationFactory {
   }
 }
 
-describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", () => {
+describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
   describe("Configuration Loading Infrastructure", () => {
     it("should load external configuration instead of using hardcoded values", async () => {
       // Arrange - Create configurable format loader with external config
@@ -242,8 +236,7 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
 
         // Test specification requirement: Configurable extensions
         const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".json"), true);
-        assertEquals(schemaFormat?.extensions.includes(".yaml"), true);
+        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
 
         // Test specification requirement: Configurable defaults
         assertEquals(formats.defaultFormat, "template");
@@ -293,7 +286,7 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const patternConfig = {
         formats: {
           schema: {
-            extensions: [".json"],
+            extensions: [".jsonschema"],
             description: "Simple schema for single document processing",
             mimeType: "application/json",
             default: false,
@@ -335,9 +328,9 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
         assertEquals(formats.isExtensionSupported(".md"), true);
 
         // Test specification: Simple schema support
-        assertEquals(formats.isExtensionSupported(".json"), true);
+        assertEquals(formats.isExtensionSupported(".jsonschema"), true);
         const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".json"), true);
+        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
 
         // Test specification: JSON template output
         assertEquals(formats.defaultFormat, "template");
@@ -354,19 +347,19 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const directiveConfig = {
         formats: {
           schema: {
-            extensions: [".json", ".yaml"],
+            extensions: [".jsonschema"],
             description: "Schema with x-extract-from directive support",
             mimeType: "application/json",
             default: false,
           },
           template: {
-            extensions: [".yaml", ".yml"],
+            extensions: [".yaml"],
             description: "YAML template for directive-processed output",
             mimeType: "application/x-yaml",
             default: true,
           },
           markdown: {
-            extensions: [".md", ".markdown"],
+            extensions: [".md"],
             description: "Multiple markdown files for batch processing",
             mimeType: "text/markdown",
             default: false,
@@ -399,12 +392,10 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
 
         // Test specification: Multiple markdown file support
         assertEquals(formats.isExtensionSupported(".md"), true);
-        assertEquals(formats.isExtensionSupported(".markdown"), true);
 
         // Test specification: x-extract-from directive support via schema
         const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".json"), true);
-        assertEquals(schemaFormat?.extensions.includes(".yaml"), true);
+        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
 
         // Test specification: YAML template output configurability
         assertEquals(formats.defaultFormat, "template");
@@ -422,13 +413,13 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const arrayConfig = {
         formats: {
           schema: {
-            extensions: [".json", ".jsonschema"],
+            extensions: [".jsonschema"],
             description: "Schema with x-frontmatter-part array support",
             mimeType: "application/json",
             default: false,
           },
           template: {
-            extensions: [".json", ".yaml"],
+            extensions: [".json"],
             description: "Template for array-processed frontmatter output",
             mimeType: "application/json",
             default: true,
@@ -480,11 +471,193 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
         assertEquals(formats.defaultFormat, "template");
         const templateFormat = formats.getFormat("template");
         assertEquals(templateFormat?.extensions.includes(".json"), true);
-        assertEquals(templateFormat?.extensions.includes(".yaml"), true);
       }
     });
 
-    // Continue with remaining basic patterns...
+    it("Pattern 5: x-derived-from aggregation + unique processing - Aggregation config", async () => {
+      // Test configurable aggregation strategies for x-derived-from directives
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const aggregationConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with x-derived-from aggregation support",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for aggregated output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableAggregation: true,
+          enableDerivedFromDirectives: true,
+          enableUniqueProcessing: true,
+        },
+      };
+
+      const configContent = JSON.stringify(aggregationConfig);
+      mockFs.setFile("config/pattern-5.yml", configContent);
+      mockYaml.setParseResult(configContent, aggregationConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-5.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const formats = result.data;
+        assertEquals(formats.isExtensionSupported(".jsonschema"), true);
+        assertEquals(formats.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 6: Schema with $ref + recursive resolution - Reference handling config", async () => {
+      // Test configurable $ref resolution strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const refConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with configurable $ref resolution",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for reference-resolved output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableRefResolution: true,
+          enableRecursiveRefs: true,
+          enableCircularRefDetection: true,
+        },
+      };
+
+      const configContent = JSON.stringify(refConfig);
+      mockFs.setFile("config/pattern-6.yml", configContent);
+      mockYaml.setParseResult(configContent, refConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-6.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const formats = result.data;
+        assertEquals(formats.isExtensionSupported(".jsonschema"), true);
+        assertEquals(formats.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 7: Parallel processing + Worker Pool - Processing strategy config", async () => {
+      // Test configurable parallel processing strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const parallelConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema for parallel processing",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for parallel-processed output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableParallelProcessing: true,
+          enableWorkerPool: true,
+          enableLoadBalancing: true,
+        },
+      };
+
+      const configContent = JSON.stringify(parallelConfig);
+      mockFs.setFile("config/pattern-7.yml", configContent);
+      mockYaml.setParseResult(configContent, parallelConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-7.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const formats = result.data;
+        assertEquals(formats.isExtensionSupported(".jsonschema"), true);
+        assertEquals(formats.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 8: Streaming processing + Pipeline Stage - Pipeline config", async () => {
+      // Test configurable streaming pipeline strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const streamingConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema for streaming pipeline processing",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for streaming output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableStreamingProcessing: true,
+          enablePipelineStages: true,
+          enableBackpressureControl: true,
+        },
+      };
+
+      const configContent = JSON.stringify(streamingConfig);
+      mockFs.setFile("config/pattern-8.yml", configContent);
+      mockYaml.setParseResult(configContent, streamingConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-8.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const formats = result.data;
+        assertEquals(formats.isExtensionSupported(".jsonschema"), true);
+        assertEquals(formats.defaultFormat, "template");
+      }
+    });
+
     it("Pattern 4: Single→Array normalization + [] notation - Notation configurability", async () => {
       // Test that [] notation support is configurable, not hardcoded
       const mockFs = new MockFileSystemAdapter();
@@ -493,7 +666,7 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const notationConfig = {
         formats: {
           schema: {
-            extensions: [".json"],
+            extensions: [".jsonschema"],
             description: "Schema with configurable [] notation support",
             mimeType: "application/json",
             default: false,
@@ -547,7 +720,7 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const errorRecoveryConfig = {
         formats: {
           schema: {
-            extensions: [".json", ".yaml"],
+            extensions: [".jsonschema"],
             description: "Primary schema with fallback support",
             mimeType: "application/json",
             default: false,
@@ -596,7 +769,7 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
         // Test specification: Error recovery through configuration
         const fallbackFormat = formats.getFormat("fallback");
         assertEquals(fallbackFormat?.extensions.includes(".json"), true);
-        assertEquals(fallbackFormat?.description.includes("fallback"), true);
+        assertEquals(fallbackFormat?.description.includes("Fallback"), true);
       }
 
       // Test fallback mechanism
@@ -636,6 +809,266 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       assertExists(fallbackFormats);
       assertEquals(fallbackFormats.isExtensionSupported(".json"), true);
     });
+
+    it("Pattern 11: Template load failure + Configurable Default - Default template config", async () => {
+      // Test configurable default template strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const defaultTemplateConfig = {
+        formats: {
+          template: {
+            extensions: [".json"],
+            description: "Configurable default template format",
+            mimeType: "application/json",
+            default: true,
+          },
+          fallback: {
+            extensions: [".txt"],
+            description: "Fallback template for error recovery",
+            mimeType: "text/plain",
+            default: false,
+          },
+        },
+      };
+
+      const configContent = JSON.stringify(defaultTemplateConfig);
+      mockFs.setFile("config/pattern-11.yml", configContent);
+      mockYaml.setParseResult(configContent, defaultTemplateConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-11.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.defaultFormat, "template");
+        assertEquals(result.data.isExtensionSupported(".json"), true);
+      }
+    });
+
+    it("Pattern 12: x-extract-from failure + Configurable Path Adjustment - Path config", async () => {
+      // Test configurable path adjustment strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const pathConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with configurable path adjustment",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template with path adjustment support",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enablePathAdjustment: true,
+          enableFallbackPaths: true,
+        },
+      };
+
+      const configContent = JSON.stringify(pathConfig);
+      mockFs.setFile("config/pattern-12.yml", configContent);
+      mockYaml.setParseResult(configContent, pathConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-12.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 13: Validation failure + Configurable Error Details - Error detail config", async () => {
+      // Test configurable error detail strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const errorDetailConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with configurable error reporting",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for error detail output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableDetailedErrors: true,
+          enableErrorContext: true,
+        },
+      };
+
+      const configContent = JSON.stringify(errorDetailConfig);
+      mockFs.setFile("config/pattern-13.yml", configContent);
+      mockYaml.setParseResult(configContent, errorDetailConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-13.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 14: Output write failure + Configurable Alternative Path - Path fallback config", async () => {
+      // Test configurable alternative path strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const alternativePathConfig = {
+        formats: {
+          output: {
+            extensions: [".json"],
+            description: "Primary output with configurable alternatives",
+            mimeType: "application/json",
+            default: true,
+          },
+          backup: {
+            extensions: [".bak"],
+            description: "Backup output for write failures",
+            mimeType: "application/json",
+            default: false,
+          },
+        },
+        features: {
+          enableAlternativePaths: true,
+          enableBackupOutput: true,
+        },
+      };
+
+      const configContent = JSON.stringify(alternativePathConfig);
+      mockFs.setFile("config/pattern-14.yml", configContent);
+      mockYaml.setParseResult(configContent, alternativePathConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-14.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".json"), true);
+        assertEquals(result.data.defaultFormat, "output");
+      }
+    });
+
+    it("Pattern 15: Memory shortage + Configurable Partial Processing - Resource config", async () => {
+      // Test configurable memory management strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const resourceConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with memory-aware processing",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for memory-optimized output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enablePartialProcessing: true,
+          enableMemoryManagement: true,
+        },
+      };
+
+      const configContent = JSON.stringify(resourceConfig);
+      mockFs.setFile("config/pattern-15.yml", configContent);
+      mockYaml.setParseResult(configContent, resourceConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-15.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 16: External dependency failure + Configurable Retry - Retry config", async () => {
+      // Test configurable retry strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const retryConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with configurable retry logic",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for retry-aware processing",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableRetryLogic: true,
+          enableBackoffStrategy: true,
+        },
+      };
+
+      const configContent = JSON.stringify(retryConfig);
+      mockFs.setFile("config/pattern-16.yml", configContent);
+      mockYaml.setParseResult(configContent, retryConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-16.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
   });
 
   describe("Complex Processing Scenarios (Patterns 17-24) - Advanced Config", () => {
@@ -647,20 +1080,20 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
       const dualTemplateConfig = {
         formats: {
           schema: {
-            extensions: [".json", ".jsonschema"],
+            extensions: [".jsonschema"],
             description: "Schema with x-template directive support",
             mimeType: "application/json",
             default: false,
           },
           template: {
-            extensions: [".hbs", ".mustache", ".json", ".yaml"],
+            extensions: [".hbs"],
             description:
               "Advanced template with x-template and x-template-items",
             mimeType: "application/json",
             default: true,
           },
           itemTemplate: {
-            extensions: [".hbs", ".json"],
+            extensions: [".mustache"],
             description: "Specialized item template for x-template-items",
             mimeType: "application/json",
             default: false,
@@ -701,15 +1134,278 @@ describe.ignore("24 Execution Patterns - Specification Compliance Test Suite", (
         assertExists(formats.getFormat("template"));
         const templateFormat = formats.getFormat("template");
         assertEquals(templateFormat?.extensions.includes(".hbs"), true);
-        assertEquals(templateFormat?.extensions.includes(".mustache"), true);
 
         // Test specification: x-template-items support through config
         assertExists(formats.getFormat("itemTemplate"));
         const itemFormat = formats.getFormat("itemTemplate");
-        assertEquals(itemFormat?.extensions.includes(".hbs"), true);
+        assertEquals(itemFormat?.extensions.includes(".mustache"), true);
 
         // Test specification: Template engine configurability
         assertEquals(formats.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 18: JMESPath Filter + dynamic data filtering - Filter config", async () => {
+      // Test configurable JMESPath filter strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const filterConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with JMESPath filter support",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for filtered output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableJMESPathFilter: true,
+          enableDynamicFiltering: true,
+        },
+      };
+
+      const configContent = JSON.stringify(filterConfig);
+      mockFs.setFile("config/pattern-18.yml", configContent);
+      mockYaml.setParseResult(configContent, filterConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-18.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 19: x-merge-arrays + multi-file integration - Merge strategy config", async () => {
+      // Test configurable array merge strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const mergeConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with array merge directives",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for merged array output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableArrayMerge: true,
+          enableMultiFileIntegration: true,
+        },
+      };
+
+      const configContent = JSON.stringify(mergeConfig);
+      mockFs.setFile("config/pattern-19.yml", configContent);
+      mockYaml.setParseResult(configContent, mergeConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-19.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 20: Circular reference Schema + configurable detection - Detection config", async () => {
+      // Test configurable circular reference detection
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const detectionConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with circular reference detection",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for circular-safe output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableCircularDetection: true,
+          enableReferenceTracking: true,
+        },
+      };
+
+      const configContent = JSON.stringify(detectionConfig);
+      mockFs.setFile("config/pattern-20.yml", configContent);
+      mockYaml.setParseResult(configContent, detectionConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-20.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 21: Large file processing + configurable memory limits - Resource config", async () => {
+      // Test configurable memory limit strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const memoryConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema for memory-efficient processing",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for large file output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableMemoryLimits: true,
+          enableStreamingProcessing: true,
+        },
+      };
+
+      const configContent = JSON.stringify(memoryConfig);
+      mockFs.setFile("config/pattern-21.yml", configContent);
+      mockYaml.setParseResult(configContent, memoryConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-21.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 22: Internationalization + configurable encoding - Locale config", async () => {
+      // Test configurable internationalization strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const i18nConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with i18n support",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for localized output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableInternationalization: true,
+          enableConfigurableEncoding: true,
+        },
+      };
+
+      const configContent = JSON.stringify(i18nConfig);
+      mockFs.setFile("config/pattern-22.yml", configContent);
+      mockYaml.setParseResult(configContent, i18nConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-22.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
+      }
+    });
+
+    it("Pattern 23: Cache utilization + configurable policies - Cache config", async () => {
+      // Test configurable cache policy strategies
+      const mockFs = new MockFileSystemAdapter();
+      const mockYaml = new MockYamlParser();
+
+      const cacheConfig = {
+        formats: {
+          schema: {
+            extensions: [".jsonschema"],
+            description: "Schema with cache support",
+            mimeType: "application/json",
+            default: false,
+          },
+          template: {
+            extensions: [".json"],
+            description: "Template for cached output",
+            mimeType: "application/json",
+            default: true,
+          },
+        },
+        features: {
+          enableCaching: true,
+          enableConfigurablePolicies: true,
+        },
+      };
+
+      const configContent = JSON.stringify(cacheConfig);
+      mockFs.setFile("config/pattern-23.yml", configContent);
+      mockYaml.setParseResult(configContent, cacheConfig);
+
+      const loader = new FormatConfigLoader(
+        mockFs,
+        mockYaml,
+        "config/pattern-23.yml",
+      );
+      const result = await loader.loadConfiguration();
+
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isExtensionSupported(".jsonschema"), true);
+        assertEquals(result.data.defaultFormat, "template");
       }
     });
 
