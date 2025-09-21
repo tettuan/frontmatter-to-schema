@@ -3,6 +3,7 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
+import { DebugLogger } from "../../services/debug-logger.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -54,6 +55,7 @@ export class PipelineExecutionService {
     private readonly executionConfig: PipelineExecutionConfig,
     private readonly context: CommandExecutionContext,
     initialState: PipelineState,
+    private readonly logger?: DebugLogger,
   ) {
     this.state = initialState;
   }
@@ -65,6 +67,7 @@ export class PipelineExecutionService {
     pipelineConfig: PipelineConfig,
     executionConfig: PipelineExecutionConfig,
     context: CommandExecutionContext,
+    logger?: DebugLogger,
   ): Result<PipelineExecutionService, DomainError & { message: string }> {
     // Validate execution configuration
     const configValidation = PipelineExecutionService.validateExecutionConfig(
@@ -84,6 +87,7 @@ export class PipelineExecutionService {
         executionConfig,
         context,
         initialState,
+        logger,
       ),
     );
   }
@@ -209,9 +213,15 @@ export class PipelineExecutionService {
       const commandExecutionTime = Date.now() - commandStartTime;
 
       if (this.executionConfig.enableDetailedLogging) {
-        // Log command execution (in real implementation, use proper logger)
-        console.log(
-          `[Pipeline] Executed ${command.getName()} in ${commandExecutionTime}ms, new state: ${this.state.kind}`,
+        // Log command execution using proper logger
+        this.logger?.logDebug(
+          "executeCommand",
+          "Command executed successfully",
+          {
+            commandName: command.getName(),
+            executionTime: commandExecutionTime,
+            newState: this.state.kind,
+          },
         );
       }
 

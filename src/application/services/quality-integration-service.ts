@@ -5,6 +5,7 @@
 
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { DebugLogger } from "./debug-logger.ts";
 
 // 完全品質達成フロー - デバッグ情報 (Iteration 9)
 const completeQualityAchievementDebug = {
@@ -84,6 +85,7 @@ export class QualityIntegrationService {
   constructor(
     private readonly qualityThreshold: number = 90,
     private readonly proofThreshold: number = 95,
+    private readonly logger?: DebugLogger,
   ) {}
 
   /**
@@ -126,7 +128,11 @@ export class QualityIntegrationService {
       qualityCertificationRequired: true,
     };
 
-    console.log("品質統合評価デバッグ情報:", qualityIntegrationPointDebug);
+    this.logger?.logDebug(
+      "evaluateQualityIntegration",
+      "品質統合評価デバッグ情報",
+      qualityIntegrationPointDebug,
+    );
 
     try {
       // 品質メトリクス計算
@@ -294,8 +300,9 @@ export class QualityIntegrationService {
    */
   monitorQualityIntegration(): void {
     // 継続的な品質監視実装
-    console.log(
-      "Quality integration monitoring active:",
+    this.logger?.logDebug(
+      "monitorQualityIntegration",
+      "Quality integration monitoring active",
       completeQualityAchievementDebug,
     );
   }

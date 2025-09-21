@@ -6,6 +6,11 @@
 
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -77,19 +82,31 @@ export interface DirectiveProcessingOrder {
  * - Totality: All methods return Result<T,E>
  */
 export class DirectiveProcessor {
-  private constructor() {
+  private constructor(private readonly logger: DomainLogger) {
     // Private constructor for Smart Constructor pattern
   }
 
   /**
    * Smart Constructor for DirectiveProcessor
    * Following Totality principles by returning Result<T,E>
+   * @deprecated Use createWithLogger for proper DDD compliance
    */
   static create(): Result<
     DirectiveProcessor,
     DomainError & { message: string }
   > {
-    return ok(new DirectiveProcessor());
+    const nullLogger = new NullDomainLogger();
+    return ok(new DirectiveProcessor(nullLogger));
+  }
+
+  /**
+   * Smart Constructor with logger following DDD principles
+   */
+  static createWithLogger(logger: DomainLogger): Result<
+    DirectiveProcessor,
+    DomainError & { message: string }
+  > {
+    return ok(new DirectiveProcessor(logger));
   }
 
   /**
@@ -143,8 +160,14 @@ export class DirectiveProcessor {
 
     // Process each phase in order
     for (const phase of processingOrder.phases) {
-      console.log(
-        `[DIRECTIVE-ORDER-DEBUG] Phase ${phase.phaseNumber}: ${phase.description}`,
+      this.logger.logDebug(
+        "processDirectivesInOrder",
+        `Phase ${phase.phaseNumber}: ${phase.description}`,
+        LogContextFactory.withContext({
+          phaseNumber: phase.phaseNumber,
+          description: phase.description,
+          directiveCount: phase.directives.length,
+        }),
       );
 
       // Process all directives in current phase
@@ -153,8 +176,14 @@ export class DirectiveProcessor {
           continue; // Skip directives not present in schema
         }
 
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing: ${directiveNode.type.getKind()} at ${directiveNode.schemaPath}`,
+        this.logger.logDebug(
+          "processDirectivesInOrder",
+          `Processing directive: ${directiveNode.type.getKind()}`,
+          LogContextFactory.withContext({
+            directiveType: directiveNode.type.getKind(),
+            schemaPath: directiveNode.schemaPath,
+            directiveId: directiveNode.id,
+          }),
         );
 
         const processResult = this.processDirective(
@@ -169,7 +198,11 @@ export class DirectiveProcessor {
       }
     }
 
-    console.log("[DIRECTIVE-ORDER-DEBUG] All directive processing complete");
+    this.logger.logDebug(
+      "processDirectivesInOrder",
+      "All directive processing complete",
+      LogContextFactory.withoutContext(),
+    );
     return ok(currentData);
   }
 
@@ -420,22 +453,37 @@ export class DirectiveProcessor {
     switch (kind) {
       case "frontmatter-part":
         // TODO: Implement frontmatter-part processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing frontmatter-part (placeholder)`,
+        this.logger.logDebug(
+          "processDirective",
+          "Processing frontmatter-part (placeholder)",
+          LogContextFactory.withContext({
+            directiveType: kind,
+            schemaPath: directiveNode.schemaPath,
+          }),
         );
         return ok(data);
 
       case "extract-from":
         // TODO: Implement extract-from processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing extract-from (placeholder)`,
+        this.logger.logDebug(
+          "processDirective",
+          "Processing extract-from (placeholder)",
+          LogContextFactory.withContext({
+            directiveType: kind,
+            schemaPath: directiveNode.schemaPath,
+          }),
         );
         return ok(data);
 
       case "derived-from":
         // TODO: Implement derived-from processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing derived-from (placeholder)`,
+        this.logger.logDebug(
+          "processDirective",
+          "Processing derived-from (placeholder)",
+          LogContextFactory.withContext({
+            directiveType: kind,
+            schemaPath: directiveNode.schemaPath,
+          }),
         );
         return ok(data);
 

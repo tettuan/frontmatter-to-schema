@@ -14,6 +14,7 @@ import {
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
+import { NullDomainLogger } from "../../domain/shared/services/domain-logger.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -601,11 +602,12 @@ export class ProcessingCoordinator {
     }, DomainError & { message: string }>
   > {
     // Debug: Track directive processing order variance
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Starting processDocumentsWithFullExtraction",
-    );
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 1. x-extract-from (initial)",
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "Starting processDocumentsWithFullExtraction",
+      {
+        sequence: "1. x-extract-from (initial)",
+      },
     );
 
     // Process documents with x-extract-from directives
@@ -620,8 +622,10 @@ export class ProcessingCoordinator {
     }
 
     const mainData = processResult.data;
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 2. x-frontmatter-part detection",
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "Processing sequence: 2. x-frontmatter-part detection",
+      {},
     );
 
     // Check if we need to extract items data
@@ -629,8 +633,10 @@ export class ProcessingCoordinator {
     const hasFrontmatterPart = frontmatterPartResult.ok;
 
     if (hasFrontmatterPart) {
-      console.debug(
-        "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 3. x-frontmatter-part extraction",
+      this.logger?.logDebug(
+        "processDocumentsWithFullExtraction",
+        "Processing sequence: 3. x-frontmatter-part extraction",
+        {},
       );
     }
 
@@ -642,11 +648,13 @@ export class ProcessingCoordinator {
 
       // Apply x-extract-from to each extracted item if needed
       if (schema.hasExtractFromDirectives()) {
-        console.log(
-          "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
-        );
-        console.log(
-          "[DIRECTIVE-ORDER-DEBUG] WARNING: Second x-extract-from processing creates order dependency issue",
+        this.logger?.logDebug(
+          "processDocumentsWithFullExtraction",
+          "Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
+          {
+            warning:
+              "Second x-extract-from processing creates order dependency issue",
+          },
         );
 
         const processedItems: FrontmatterData[] = [];
@@ -671,8 +679,10 @@ export class ProcessingCoordinator {
           }
         }
 
-        console.debug(
-          "[DIRECTIVE-ORDER-DEBUG] Completed items processing with variance pattern",
+        this.logger?.logDebug(
+          "processDocumentsWithFullExtraction",
+          "Completed items processing with variance pattern",
+          {},
         );
         return ok({
           mainData,
@@ -680,8 +690,10 @@ export class ProcessingCoordinator {
         });
       }
 
-      console.debug(
-        "[DIRECTIVE-ORDER-DEBUG] No x-extract-from on items, completing frontmatter-part processing",
+      this.logger?.logDebug(
+        "processDocumentsWithFullExtraction",
+        "No x-extract-from on items, completing frontmatter-part processing",
+        {},
       );
       return ok({
         mainData,
@@ -689,8 +701,10 @@ export class ProcessingCoordinator {
       });
     }
 
-    console.debug(
-      "[DIRECTIVE-ORDER-DEBUG] No frontmatter-part detected, single-pass processing complete",
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "No frontmatter-part detected, single-pass processing complete",
+      {},
     );
     return ok({ mainData });
   }
@@ -1097,5 +1111,16 @@ General recovery suggestions:
 3. Try running with --verbose flag for more details
 4. Consider processing files individually to isolate issues`;
     }
+  }
+
+  /**
+   * Create DomainLogger from the available DebugLogger
+   * Following DDD principles by adapting infrastructure logger to domain interface
+   */
+  private createDomainLogger() {
+    // For now, use NullDomainLogger since we need a proper adapter to bridge
+    // infrastructure DebugLogger to domain DebugLogger interface
+    // TODO: Create proper adapter that maps infrastructure DebugLogger to domain DebugLogger
+    return new NullDomainLogger();
   }
 }

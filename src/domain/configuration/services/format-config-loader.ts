@@ -1,5 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { ValidationError } from "../../shared/types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
   RawFormatConfig,
@@ -266,6 +271,7 @@ export class FormatConfigLoader {
   constructor(
     fileSystem: FileSystemAdapter,
     yamlParser: YamlParser,
+    private readonly logger: DomainLogger,
     configPath: string = "config/supported-formats.yml",
   ) {
     this.fileSystem = fileSystem;
@@ -407,9 +413,14 @@ export class FormatConfigLoader {
       return result.data;
     }
 
-    // Log warning about fallback (in production, this would use proper logging)
-    console.warn(
-      `Failed to load configuration from ${this.configPath}: ${result.error.message}. Using fallback configuration.`,
+    // Log warning about fallback
+    this.logger.logWarning(
+      "loadSupportedFormatsWithFallback",
+      "Failed to load configuration, using fallback",
+      LogContextFactory.withContext({
+        configPath: this.configPath,
+        error: result.error.message,
+      }),
     );
 
     const fallbackResult = SupportedFormats.createFallback();
@@ -520,7 +531,13 @@ export class FormatConfigLoaderFactory {
   static createWithDenoAdapters(configPath?: string): FormatConfigLoader {
     const fileSystem = new DenoFileSystemAdapter();
     const yamlParser = new DenoYamlParser();
-    return new FormatConfigLoader(fileSystem, yamlParser, configPath);
+    const nullLogger = new NullDomainLogger();
+    return new FormatConfigLoader(
+      fileSystem,
+      yamlParser,
+      nullLogger,
+      configPath,
+    );
   }
 }
 

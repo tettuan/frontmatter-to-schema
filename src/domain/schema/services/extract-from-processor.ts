@@ -6,6 +6,11 @@
 
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import {
   PropertyExtractor,
@@ -25,25 +30,58 @@ import { ExtractFromDirective } from "../value-objects/extract-from-directive.ts
 export class ExtractFromProcessor {
   private constructor(
     private readonly propertyExtractor: PropertyExtractor,
+    private readonly logger: DomainLogger,
     private readonly optimizedExtractor?: OptimizedPropertyExtractor,
   ) {}
 
   /**
    * Smart Constructor following Totality principles
    * Ensures valid state on creation
+   * @deprecated Use createWithLogger for proper DDD compliance
    */
   static create(
     propertyExtractor?: PropertyExtractor,
   ): Result<ExtractFromProcessor, DomainError & { message: string }> {
+    const nullLogger = new NullDomainLogger();
+    return ExtractFromProcessor.createWithLogger(nullLogger, propertyExtractor);
+  }
+
+  /**
+   * Smart Constructor with logger following DDD principles
+   */
+  static createWithLogger(
+    logger: DomainLogger,
+    propertyExtractor?: PropertyExtractor,
+  ): Result<ExtractFromProcessor, DomainError & { message: string }> {
     const extractor = propertyExtractor ?? PropertyExtractor.create();
-    return ok(new ExtractFromProcessor(extractor));
+    return ok(new ExtractFromProcessor(extractor, logger));
   }
 
   /**
    * Smart Constructor with performance optimization
    * Creates an ExtractFromProcessor with OptimizedPropertyExtractor
+   * @deprecated Use createOptimizedWithLogger for proper DDD compliance
    */
   static createOptimized(
+    optimizedConfig?: {
+      enablePathCache?: boolean;
+      enableExtractionCache?: boolean;
+      enableMetrics?: boolean;
+      maxConcurrentExtractions?: number;
+    },
+  ): Result<ExtractFromProcessor, DomainError & { message: string }> {
+    const nullLogger = new NullDomainLogger();
+    return ExtractFromProcessor.createOptimizedWithLogger(
+      nullLogger,
+      optimizedConfig,
+    );
+  }
+
+  /**
+   * Smart Constructor with performance optimization and logger
+   */
+  static createOptimizedWithLogger(
+    logger: DomainLogger,
     optimizedConfig?: {
       enablePathCache?: boolean;
       enableExtractionCache?: boolean;
@@ -73,6 +111,7 @@ export class ExtractFromProcessor {
     return ok(
       new ExtractFromProcessor(
         fallbackExtractor,
+        logger,
         optimizedExtractorResult.data,
       ),
     );
@@ -308,8 +347,13 @@ export class ExtractFromProcessor {
         return ok(extractionResult.data);
       } catch (error) {
         // Fall back to basic extractor if optimized extraction fails
-        console.warn(
-          `Optimized extraction failed, falling back to basic extractor: ${error}`,
+        this.logger.logWarning(
+          "processDirective",
+          "Optimized extraction failed, falling back to basic extractor",
+          LogContextFactory.withContext({
+            path: directive.getPath(),
+            error: error instanceof Error ? error.message : String(error),
+          }),
         );
       }
     }

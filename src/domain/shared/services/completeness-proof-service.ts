@@ -5,6 +5,11 @@
 
 import { err, ok, Result } from "../types/result.ts";
 import { createError, DomainError } from "../types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "./domain-logger.ts";
 
 // 完全性証明メカニズムデバッグ情報 (Iteration 9)
 const _completenessProofMechanismDebug = {
@@ -122,13 +127,32 @@ export class CompletenessProofService {
   private constructor(
     private readonly proofThreshold: number,
     private readonly evidenceThreshold: number,
+    private readonly logger: DomainLogger,
   ) {}
 
   /**
    * Smart Constructor following Totality principles
    * Creates a completeness proof service with specified thresholds
+   * @deprecated Use createWithLogger for proper DDD compliance
    */
   static create(
+    proofThreshold: number = 95,
+    evidenceThreshold: number = 80,
+  ): Result<CompletenessProofService, DomainError & { message: string }> {
+    const nullLogger = new NullDomainLogger();
+    return CompletenessProofService.createWithLogger(
+      nullLogger,
+      proofThreshold,
+      evidenceThreshold,
+    );
+  }
+
+  /**
+   * Smart Constructor with logger following DDD principles
+   * Creates a completeness proof service with proper logging
+   */
+  static createWithLogger(
+    logger: DomainLogger,
     proofThreshold: number = 95,
     evidenceThreshold: number = 80,
   ): Result<CompletenessProofService, DomainError & { message: string }> {
@@ -156,14 +180,27 @@ export class CompletenessProofService {
       ));
     }
 
-    return ok(new CompletenessProofService(proofThreshold, evidenceThreshold));
+    return ok(
+      new CompletenessProofService(proofThreshold, evidenceThreshold, logger),
+    );
   }
 
   /**
    * Factory method with default thresholds
+   * @deprecated Use createDefaultWithLogger for proper DDD compliance
    */
   static createDefault(): CompletenessProofService {
-    return new CompletenessProofService(95, 80);
+    const nullLogger = new NullDomainLogger();
+    return new CompletenessProofService(95, 80, nullLogger);
+  }
+
+  /**
+   * Factory method with default thresholds and logger
+   */
+  static createDefaultWithLogger(
+    logger: DomainLogger,
+  ): CompletenessProofService {
+    return new CompletenessProofService(95, 80, logger);
   }
 
   /**
@@ -191,7 +228,11 @@ export class CompletenessProofService {
       automationLevel: "semi-automated",
     };
 
-    console.log("完全性証明実行デバッグ情報:", completenessProofExecutionDebug);
+    this.logger.logDebug(
+      "executeCompletenessProof",
+      "完全性証明実行デバッグ情報",
+      LogContextFactory.withContext(completenessProofExecutionDebug),
+    );
 
     try {
       const categoryResults: ProofResult[] = [];

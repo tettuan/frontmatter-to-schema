@@ -3,6 +3,7 @@ import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ProcessingStateMachine } from "./processing-state-machine.ts";
+import { DebugLogger } from "./debug-logger.ts";
 
 /**
  * Pipeline execution state using discriminated union
@@ -71,6 +72,7 @@ export class PipelineStateManager {
   constructor(
     executionId: string,
     stateMachine: ProcessingStateMachine,
+    private readonly logger?: DebugLogger,
   ) {
     this.currentContext = {
       executionId,
@@ -466,8 +468,13 @@ export class PipelineStateManager {
     const stateMachineResult = this.updateStateMachine(newState);
     if (!stateMachineResult.ok) {
       // Log warning but don't fail the state transition
-      console.warn(
-        `State machine update failed: ${stateMachineResult.error.message}`,
+      this.logger?.logWarning(
+        "transitionToState",
+        "State machine update failed",
+        {
+          error: stateMachineResult.error.message,
+          newState: newState.kind,
+        },
       );
     }
 

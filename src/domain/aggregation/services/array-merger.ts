@@ -11,6 +11,11 @@
 
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 
 /**
  * Merge strategy using discriminated union (Totality principle)
@@ -130,12 +135,23 @@ export class ArrayMergeResult {
 export class ArrayMerger {
   /**
    * Smart Constructor following Totality principle
+   * @deprecated Use createWithLogger for proper DDD compliance
    */
   static create(): Result<ArrayMerger, AggregationError & { message: string }> {
-    return ok(new ArrayMerger());
+    const nullLogger = new NullDomainLogger();
+    return ok(new ArrayMerger(nullLogger));
   }
 
-  private constructor() {}
+  /**
+   * Smart Constructor with logger following DDD principles
+   */
+  static createWithLogger(
+    logger: DomainLogger,
+  ): Result<ArrayMerger, AggregationError & { message: string }> {
+    return ok(new ArrayMerger(logger));
+  }
+
+  private constructor(private readonly logger: DomainLogger) {}
 
   /**
    * Merge arrays based on x-merge-arrays directive
@@ -276,8 +292,12 @@ export class ArrayMerger {
           sourceArrays.push(extracted.data);
         } else {
           // Log warning but continue processing other sources
-          console.warn(
-            `Failed to extract array from source: ${extracted.error.message}`,
+          this.logger.logWarning(
+            "mergeFromPaths",
+            "Failed to extract array from source",
+            LogContextFactory.withContext({
+              error: extracted.error.message,
+            }),
           );
           sourceArrays.push([]); // Add empty array to maintain source count
         }

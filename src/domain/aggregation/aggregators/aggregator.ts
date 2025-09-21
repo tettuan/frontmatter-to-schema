@@ -1,5 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { AggregationError, createError } from "../../shared/types/errors.ts";
+import {
+  DomainLogger,
+  LogContextFactory,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DerivationRule } from "../value-objects/derivation-rule.ts";
@@ -26,6 +31,7 @@ export class Aggregator {
   private constructor(
     circuitBreakerState: CircuitBreakerConfigurationState,
     arrayMerger: ArrayMerger,
+    private readonly logger: DomainLogger,
     circuitBreaker?: CircuitBreaker,
   ) {
     this.circuitBreakerState = circuitBreakerState;
@@ -35,15 +41,27 @@ export class Aggregator {
 
   /**
    * Smart constructor following Totality principle
+   * @deprecated Use createWithLogger for proper DDD compliance
    */
   static create(
+    circuitBreakerState?: CircuitBreakerConfigurationState,
+  ): Result<Aggregator, AggregationError & { message: string }> {
+    const nullLogger = new NullDomainLogger();
+    return Aggregator.createWithLogger(nullLogger, circuitBreakerState);
+  }
+
+  /**
+   * Smart constructor with logger following DDD principles
+   */
+  static createWithLogger(
+    logger: DomainLogger,
     circuitBreakerState?: CircuitBreakerConfigurationState,
   ): Result<Aggregator, AggregationError & { message: string }> {
     const finalCircuitBreakerState = circuitBreakerState ??
       CircuitBreakerFactory.createStandard();
 
     // Initialize ArrayMerger with proper error handling
-    const arrayMergerResult = ArrayMerger.create();
+    const arrayMergerResult = ArrayMerger.createWithLogger(logger);
     if (!arrayMergerResult.ok) {
       return {
         ok: false,
@@ -78,6 +96,7 @@ export class Aggregator {
       new Aggregator(
         finalCircuitBreakerState,
         arrayMergerResult.data,
+        logger,
         circuitBreaker,
       ),
     );
@@ -85,6 +104,7 @@ export class Aggregator {
 
   /**
    * Factory method for creating Aggregator with disabled circuit breaker
+   * @deprecated Use createWithDisabledCircuitBreakerAndLogger for proper DDD compliance
    */
   static createWithDisabledCircuitBreaker(): Result<
     Aggregator,
@@ -94,7 +114,23 @@ export class Aggregator {
   }
 
   /**
+   * Factory method with logger for creating Aggregator with disabled circuit breaker
+   */
+  static createWithDisabledCircuitBreakerAndLogger(
+    logger: DomainLogger,
+  ): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.createWithLogger(
+      logger,
+      CircuitBreakerFactory.createDisabled(),
+    );
+  }
+
+  /**
    * Factory method for creating Aggregator with standard circuit breaker configuration
+   * @deprecated Use createWithStandardCircuitBreakerAndLogger for proper DDD compliance
    */
   static createWithStandardCircuitBreaker(): Result<
     Aggregator,
@@ -104,7 +140,23 @@ export class Aggregator {
   }
 
   /**
+   * Factory method with logger for creating Aggregator with standard circuit breaker configuration
+   */
+  static createWithStandardCircuitBreakerAndLogger(
+    logger: DomainLogger,
+  ): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.createWithLogger(
+      logger,
+      CircuitBreakerFactory.createStandard(),
+    );
+  }
+
+  /**
    * Factory method for creating Aggregator with high-throughput circuit breaker configuration
+   * @deprecated Use createWithHighThroughputCircuitBreakerAndLogger for proper DDD compliance
    */
   static createWithHighThroughputCircuitBreaker(): Result<
     Aggregator,
@@ -114,7 +166,23 @@ export class Aggregator {
   }
 
   /**
+   * Factory method with logger for creating Aggregator with high-throughput circuit breaker configuration
+   */
+  static createWithHighThroughputCircuitBreakerAndLogger(
+    logger: DomainLogger,
+  ): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.createWithLogger(
+      logger,
+      CircuitBreakerFactory.createHighThroughput(),
+    );
+  }
+
+  /**
    * Factory method for creating Aggregator with low-latency circuit breaker configuration
+   * @deprecated Use createWithLowLatencyCircuitBreakerAndLogger for proper DDD compliance
    */
   static createWithLowLatencyCircuitBreaker(): Result<
     Aggregator,
@@ -124,12 +192,38 @@ export class Aggregator {
   }
 
   /**
+   * Factory method with logger for creating Aggregator with low-latency circuit breaker configuration
+   */
+  static createWithLowLatencyCircuitBreakerAndLogger(
+    logger: DomainLogger,
+  ): Result<
+    Aggregator,
+    AggregationError & { message: string }
+  > {
+    return Aggregator.createWithLogger(
+      logger,
+      CircuitBreakerFactory.createLowLatency(),
+    );
+  }
+
+  /**
    * Factory method for creating Aggregator with custom circuit breaker configuration
+   * @deprecated Use createWithCustomCircuitBreakerAndLogger for proper DDD compliance
    */
   static createWithCustomCircuitBreaker(
     circuitBreakerState: CircuitBreakerConfigurationState,
   ): Result<Aggregator, AggregationError & { message: string }> {
     return Aggregator.create(circuitBreakerState);
+  }
+
+  /**
+   * Factory method with logger for creating Aggregator with custom circuit breaker configuration
+   */
+  static createWithCustomCircuitBreakerAndLogger(
+    logger: DomainLogger,
+    circuitBreakerState: CircuitBreakerConfigurationState,
+  ): Result<Aggregator, AggregationError & { message: string }> {
+    return Aggregator.createWithLogger(logger, circuitBreakerState);
   }
 
   aggregate(
@@ -215,7 +309,11 @@ export class Aggregator {
           ),
         )
       ) {
-        console.debug("[PERF-AGGREGATION]", JSON.stringify(performanceMetrics));
+        this.logger.logDebug(
+          "aggregate",
+          "Performance metrics",
+          LogContextFactory.withContext(performanceMetrics),
+        );
       }
     }
 
