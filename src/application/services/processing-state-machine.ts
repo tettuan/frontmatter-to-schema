@@ -10,6 +10,7 @@ import { LoggingService } from "../../infrastructure/logging/logging-service.ts"
 import { PipelineConfig } from "./pipeline-orchestrator.ts";
 import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
 import {
+  ExplicitTemplateStrategy,
   TemplateConfig,
   TemplateResolutionStrategyFactory,
 } from "../strategies/template-resolution-strategy.ts";
@@ -324,13 +325,16 @@ export class ProcessingStateMachine {
       return strategyResult;
     }
 
-    // For explicit strategy, return the template path
-    // For schema-derived strategy, return undefined (will be derived later)
-    switch (templateConfig.kind) {
-      case "explicit":
-        return ok(templateConfig.templatePath);
-      case "schema-derived":
-        return ok(undefined);
+    const strategy = strategyResult.data;
+
+    // Use strategy pattern to determine template path extraction
+    // Explicit strategy should return the path, schema-derived should return undefined
+    if (strategy instanceof ExplicitTemplateStrategy) {
+      // For explicit strategy, return the template path directly
+      return ok((templateConfig as { templatePath: string }).templatePath);
+    } else {
+      // For schema-derived strategy, return undefined (will be derived later)
+      return ok(undefined);
     }
   }
 

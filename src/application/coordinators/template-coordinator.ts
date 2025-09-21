@@ -16,6 +16,7 @@ import {
 } from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 import {
+  ExplicitTemplateStrategy,
   TemplateConfig,
   TemplateResolutionStrategyFactory,
 } from "../strategies/template-resolution-strategy.ts";
@@ -233,7 +234,16 @@ export class TemplateCoordinator {
     structureType: StructureType,
     _hints: ProcessingHints,
   ): TemplateConfig {
-    if (config.kind === "explicit") {
+    // Use strategy pattern to determine if template is explicit
+    const strategyResult = TemplateResolutionStrategyFactory.createStrategy(
+      config,
+    );
+    if (!strategyResult.ok) {
+      // If strategy creation fails, return original config
+      return config;
+    }
+
+    if (strategyResult.data instanceof ExplicitTemplateStrategy) {
       // For explicit templates, no adjustment needed
       return config;
     }
