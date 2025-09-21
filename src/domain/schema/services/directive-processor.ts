@@ -143,9 +143,8 @@ export class DirectiveProcessor {
 
     // Process each phase in order
     for (const phase of processingOrder.phases) {
-      console.log(
-        `[DIRECTIVE-ORDER-DEBUG] Phase ${phase.phaseNumber}: ${phase.description}`,
-      );
+      // Phase processing debug information removed for production
+      // Phase ${phase.phaseNumber}: ${phase.description}
 
       // Process all directives in current phase
       for (const directiveNode of phase.directives) {
@@ -153,9 +152,8 @@ export class DirectiveProcessor {
           continue; // Skip directives not present in schema
         }
 
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing: ${directiveNode.type.getKind()} at ${directiveNode.schemaPath}`,
-        );
+        // Directive processing debug information removed for production
+        // Processing: ${directiveNode.type.getKind()} at ${directiveNode.schemaPath}
 
         const processResult = this.processDirective(
           currentData,
@@ -169,7 +167,7 @@ export class DirectiveProcessor {
       }
     }
 
-    console.log("[DIRECTIVE-ORDER-DEBUG] All directive processing complete");
+    // All directive processing complete - debug information removed for production
     return ok(currentData);
   }
 
@@ -420,23 +418,17 @@ export class DirectiveProcessor {
     switch (kind) {
       case "frontmatter-part":
         // TODO: Implement frontmatter-part processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing frontmatter-part (placeholder)`,
-        );
+        // Processing frontmatter-part (placeholder implementation)
         return ok(data);
 
       case "extract-from":
         // TODO: Implement extract-from processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing extract-from (placeholder)`,
-        );
+        // Processing extract-from (placeholder implementation)
         return ok(data);
 
       case "derived-from":
         // TODO: Implement derived-from processing
-        console.log(
-          `[DIRECTIVE-ORDER-DEBUG] Processing derived-from (placeholder)`,
-        );
+        // Processing derived-from (placeholder implementation)
         return ok(data);
 
       default:

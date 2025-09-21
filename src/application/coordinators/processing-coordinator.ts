@@ -14,6 +14,7 @@ import {
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
+import { DirectiveProcessor } from "../../domain/schema/services/directive-processor.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -600,12 +601,14 @@ export class ProcessingCoordinator {
       itemsData?: FrontmatterData[];
     }, DomainError & { message: string }>
   > {
-    // Debug: Track directive processing order variance
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Starting processDocumentsWithFullExtraction",
-    );
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 1. x-extract-from (initial)",
+    // Track directive processing order with proper logging
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "Starting deterministic directive processing",
+      {
+        inputPattern,
+        processingMode: options.kind,
+      },
     );
 
     // Process documents with x-extract-from directives
@@ -620,8 +623,10 @@ export class ProcessingCoordinator {
     }
 
     const mainData = processResult.data;
-    console.log(
-      "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 2. x-frontmatter-part detection",
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "x-extract-from processing complete, checking for x-frontmatter-part",
+      {},
     );
 
     // Check if we need to extract items data
@@ -629,8 +634,12 @@ export class ProcessingCoordinator {
     const hasFrontmatterPart = frontmatterPartResult.ok;
 
     if (hasFrontmatterPart) {
-      console.debug(
-        "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 3. x-frontmatter-part extraction",
+      this.logger?.logDebug(
+        "processDocumentsWithFullExtraction",
+        "x-frontmatter-part detected, extracting items",
+        {
+          frontmatterPartPath: frontmatterPartResult.data,
+        },
       );
     }
 
@@ -640,28 +649,53 @@ export class ProcessingCoordinator {
         return itemsResult;
       }
 
-      // Apply x-extract-from to each extracted item if needed
+      // Use DirectiveProcessor for deterministic processing order
+      // This eliminates the order dependency variance by processing all directives
+      // in a canonical sequence defined by the DirectiveProcessor
       if (schema.hasExtractFromDirectives()) {
-        console.log(
-          "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
+        this.logger?.logDebug(
+          "processDocumentsWithFullExtraction",
+          "Using DirectiveProcessor for deterministic x-extract-from on items",
+          {
+            itemCount: itemsResult.data.length,
+          },
         );
-        console.log(
-          "[DIRECTIVE-ORDER-DEBUG] WARNING: Second x-extract-from processing creates order dependency issue",
+
+        const directiveProcessorResult = DirectiveProcessor.create();
+        if (!directiveProcessorResult.ok) {
+          return err(createError({
+            kind: "ConfigurationError",
+            message:
+              `Failed to create DirectiveProcessor: ${directiveProcessorResult.error.message}`,
+          }));
+        }
+
+        const directiveProcessor = directiveProcessorResult.data;
+        const processingOrderResult = directiveProcessor.resolveProcessingOrder(
+          schema,
         );
+
+        if (!processingOrderResult.ok) {
+          return err(createError({
+            kind: "AggregationFailed",
+            message:
+              `Failed to resolve directive processing order: ${processingOrderResult.error.message}`,
+          }));
+        }
 
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
-          const processedItemResult = await this.processExtractFromDirectives(
+          const processedItemResult = directiveProcessor.processDirectives(
             item,
             schema,
+            processingOrderResult.data,
           );
           if (processedItemResult.ok) {
             processedItems.push(processedItemResult.data);
           } else {
-            // Log the error but continue processing other items
             this.logger?.logDebug(
-              "extract-from-processing-error",
-              "Failed to process extract-from directives for item",
+              "directive-processing-error",
+              "Failed to process directives for item using DirectiveProcessor",
               {
                 error: processedItemResult.error.kind,
                 item: item.getAllKeys(),
@@ -671,17 +705,25 @@ export class ProcessingCoordinator {
           }
         }
 
-        console.debug(
-          "[DIRECTIVE-ORDER-DEBUG] Completed items processing with variance pattern",
+        this.logger?.logDebug(
+          "processDocumentsWithFullExtraction",
+          "Completed deterministic directive processing on items",
+          {
+            processedCount: processedItems.length,
+            totalPhases: processingOrderResult.data.phases.length,
+          },
         );
+
         return ok({
           mainData,
           itemsData: processedItems,
         });
       }
 
-      console.debug(
-        "[DIRECTIVE-ORDER-DEBUG] No x-extract-from on items, completing frontmatter-part processing",
+      this.logger?.logDebug(
+        "processDocumentsWithFullExtraction",
+        "No x-extract-from on items, completing frontmatter-part processing",
+        {},
       );
       return ok({
         mainData,
@@ -689,8 +731,10 @@ export class ProcessingCoordinator {
       });
     }
 
-    console.debug(
-      "[DIRECTIVE-ORDER-DEBUG] No frontmatter-part detected, single-pass processing complete",
+    this.logger?.logDebug(
+      "processDocumentsWithFullExtraction",
+      "No frontmatter-part detected, single-pass processing complete",
+      {},
     );
     return ok({ mainData });
   }
