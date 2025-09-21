@@ -394,10 +394,11 @@ const getDefaultMessage = (error: DomainError): string => {
       // 全域性保証: 到達不可能な分岐 - TypeScriptコンパイル時エラーで保証
       const _exhaustive: never = error;
       // デバッグ情報: この分岐に到達した場合は型安全性の破綻を意味する
-      console.error(
-        "[TOTALITY-VIOLATION] Unreachable error type detected:",
-        error,
-      );
+      // TODO: Replace with proper domain logging
+      // console.error(
+      //   "[TOTALITY-VIOLATION] Unreachable error type detected:",
+      //   error,
+      // );
       return `Unknown error: ${JSON.stringify(_exhaustive)}`;
     }
   }

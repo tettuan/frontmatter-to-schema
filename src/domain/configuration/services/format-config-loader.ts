@@ -408,9 +408,10 @@ export class FormatConfigLoader {
     }
 
     // Log warning about fallback (in production, this would use proper logging)
-    console.warn(
-      `Failed to load configuration from ${this.configPath}: ${result.error.message}. Using fallback configuration.`,
-    );
+    // TODO: Replace with proper domain logging
+    // console.warn(
+    //   `Failed to load configuration from ${this.configPath}: ${result.error.message}. Using fallback configuration.`,
+    // );
 
     const fallbackResult = SupportedFormats.createFallback();
     if (fallbackResult.ok) {

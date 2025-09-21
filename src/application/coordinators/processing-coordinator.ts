@@ -15,6 +15,7 @@ import { StructureType } from "../../domain/schema/value-objects/structure-type.
 import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
 import { DirectiveProcessor } from "../../domain/schema/services/directive-processor.ts";
+import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -41,6 +42,7 @@ export class ProcessingCoordinator {
   private readonly extractFromProcessor: ExtractFromProcessor;
   private readonly logger: DebugLogger | null;
   private readonly recoveryRegistry: RecoveryStrategyRegistry;
+  private readonly performanceSettings: PerformanceSettings;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
@@ -48,6 +50,7 @@ export class ProcessingCoordinator {
     logger?: DebugLogger,
     optimizedExtractor?: boolean,
     recoveryRegistry?: RecoveryStrategyRegistry,
+    performanceSettings?: PerformanceSettings,
   ) {
     this.logger = logger || null;
 
@@ -64,13 +67,28 @@ export class ProcessingCoordinator {
       this.recoveryRegistry = registryResult.data;
     }
 
+    // Initialize performance settings with defaults if not provided
+    if (performanceSettings) {
+      this.performanceSettings = performanceSettings;
+    } else {
+      const settingsResult = PerformanceSettings.createDefault();
+      if (!settingsResult.ok) {
+        throw new Error(
+          `Failed to create default PerformanceSettings: ${settingsResult.error.message}`,
+        );
+      }
+      this.performanceSettings = settingsResult.data;
+    }
+
     // HIGH-VARIANCE DEBUG POINT: Schema processing optimization strategy
     // Critical variance point for parallel schema loading and caching
     const optimizedConfig = {
-      enablePathCache: true,
-      enableExtractionCache: true,
-      enableMetrics: true,
-      maxConcurrentExtractions: 20, // HARDCODED - Should be externally configurable
+      enablePathCache: this.performanceSettings.isPathCacheEnabled(),
+      enableExtractionCache: this.performanceSettings
+        .isExtractionCacheEnabled(),
+      enableMetrics: this.performanceSettings.areMetricsEnabled(),
+      maxConcurrentExtractions: this.performanceSettings
+        .getMaxConcurrentExtractions(),
     };
 
     this.logger?.logDebug(
@@ -79,11 +97,12 @@ export class ProcessingCoordinator {
       {
         debugPoint: "schema-optimization-strategy",
         optimizationConfig: optimizedConfig,
+        performanceProfile: this.performanceSettings.getCurrentProfile(),
         varianceRisk: "high",
         parallelismImpact: "schema-loading-variance-300-400%",
         cachingStrategy: "path-and-extraction-cache",
-        hardcodingViolation: "maxConcurrentExtractions-hardcoded",
-        requiresExternalConfig: true,
+        configurationSource: "external-performance-settings",
+        hardcodingViolationFixed: true,
       },
     );
 
@@ -879,11 +898,12 @@ export class ProcessingCoordinator {
 
     // HIGH-VARIANCE DEBUG POINT: Error recovery strategy selection
     // This represents a critical variance point in parallel processing scenarios
-    const validationRecoverableErrors = [
-      "MissingRequired",
-      "InvalidType",
-      "InvalidFormat",
-    ];
+    const canRecoverFromValidationError = this.recoveryRegistry.canRecover(
+      error.kind,
+    );
+    const validationStrategy = this.recoveryRegistry.getRecoveryStrategy(
+      error.kind,
+    );
 
     this.logger?.logDebug(
       "variance-debug-point",
@@ -891,7 +911,10 @@ export class ProcessingCoordinator {
       {
         debugPoint: "error-recovery-strategy-selection",
         errorKind: error.kind,
-        availableStrategies: validationRecoverableErrors,
+        canRecover: canRecoverFromValidationError,
+        strategy: validationStrategy.ok
+          ? validationStrategy.data?.getStrategyType()
+          : null,
         processingMode: "fallback-validation",
         varianceRisk: "high",
         parallelismImpact: "strategy-selection-variance-300-400%",
@@ -899,7 +922,10 @@ export class ProcessingCoordinator {
     );
 
     // Strategy 1: Attempt partial processing with relaxed validation
-    if (validationRecoverableErrors.includes(error.kind)) {
+    if (
+      canRecoverFromValidationError && validationStrategy.ok &&
+      validationStrategy.data
+    ) {
       this.logger?.logDebug(
         "error-recovery-strategy",
         "Attempting partial processing with fallback validation",
@@ -927,11 +953,12 @@ export class ProcessingCoordinator {
 
     // HIGH-VARIANCE DEBUG POINT: File system error recovery strategy
     // Critical variance point for parallel file processing scenarios
-    const fileSystemRecoverableErrors = [
-      "FileNotFound",
-      "ReadFailed",
-      "ExtractionFailed",
-    ];
+    const canRecoverFromFileSystemError = this.recoveryRegistry.canRecover(
+      error.kind,
+    );
+    const fileSystemStrategy = this.recoveryRegistry.getRecoveryStrategy(
+      error.kind,
+    );
 
     this.logger?.logDebug(
       "variance-debug-point",
@@ -939,7 +966,10 @@ export class ProcessingCoordinator {
       {
         debugPoint: "filesystem-error-recovery-strategy",
         errorKind: error.kind,
-        availableFileStrategies: fileSystemRecoverableErrors,
+        canRecover: canRecoverFromFileSystemError,
+        strategy: fileSystemStrategy.ok
+          ? fileSystemStrategy.data?.getStrategyType()
+          : null,
         processingMode: "partial-processing",
         varianceRisk: "high",
         parallelismImpact: "filesystem-recovery-variance-200-500%",
@@ -948,7 +978,10 @@ export class ProcessingCoordinator {
     );
 
     // Strategy 2: Attempt partial result extraction for file system or frontmatter errors
-    if (fileSystemRecoverableErrors.includes(error.kind)) {
+    if (
+      canRecoverFromFileSystemError && fileSystemStrategy.ok &&
+      fileSystemStrategy.data
+    ) {
       this.logger?.logDebug(
         "error-recovery-strategy",
         "Attempting partial result extraction",

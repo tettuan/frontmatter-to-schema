@@ -1,0 +1,52 @@
+# Schema Field Detection Patterns Configuration
+# Following AI complexity control principles - externalized from hardcoded field names
+
+version: "1.0.0"
+description: "Configuration for schema field detection patterns in frontmatter-to-schema"
+
+# Command field patterns for detecting command-based schemas
+commandFields:
+  sequential:
+    patterns: ["c1", "c2", "c3", "c4", "c5"]
+    description: "Sequential command field patterns (c1, c2, c3, etc.)"
+
+  named:
+    patterns: ["commands", "commandList", "cmd"]
+    description: "Named command field patterns"
+
+  custom:
+    patterns: []
+    description: "Custom command field patterns (can be extended via configuration)"
+
+# Schema structure detection patterns
+structurePatterns:
+  hasCommands:
+    requiredFields: ["commands"]
+    optionalFields: ["commandCount", "sequence"]
+    description: "Detects schemas with command arrays"
+
+  hasSequentialCommands:
+    anyOfFields: ["c1", "c2", "c3"]
+    description: "Detects schemas with sequential command patterns"
+
+  hasCustomCommands:
+    configurable: true
+    description: "Detects schemas with custom command patterns"
+
+# Validation rules
+validation:
+  caseSensitive: true
+  requireMinimumMatch: 1
+  allowPartialMatch: true
+
+# Feature flags
+features:
+  enableSequentialDetection: true
+  enableNamedDetection: true
+  enableCustomPatterns: true
+  enableNestedDetection: false
+
+# Default behavior when configuration loading fails
+fallback:
+  commandFields: ["c1", "c2", "c3", "commands"]
+  enableStrictMatching: false

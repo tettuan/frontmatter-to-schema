@@ -275,10 +275,8 @@ export class ArrayMerger {
         if (extracted.ok) {
           sourceArrays.push(extracted.data);
         } else {
-          // Log warning but continue processing other sources
-          console.warn(
-            `Failed to extract array from source: ${extracted.error.message}`,
-          );
+          // Note: Failed to extract array from source, continuing with empty array
+          // TODO: Replace with proper domain logging when logger is injected
           sourceArrays.push([]); // Add empty array to maintain source count
         }
       }

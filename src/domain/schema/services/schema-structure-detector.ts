@@ -5,6 +5,7 @@ import {
   StructureType,
   StructureTypeFactory,
 } from "../value-objects/structure-type.ts";
+import { SchemaFieldPatterns } from "../../configuration/value-objects/schema-field-patterns.ts";
 
 /**
  * Domain service responsible for detecting schema structure types.
@@ -19,13 +20,45 @@ import {
  * - Schema-driven detection instead of hardcoding
  */
 export class SchemaStructureDetector {
+  constructor(
+    private readonly fieldPatterns: SchemaFieldPatterns,
+  ) {}
+
+  /**
+   * Create detector with default field patterns for static usage
+   */
+  static createWithDefaults(): Result<
+    SchemaStructureDetector,
+    DomainError & { message: string }
+  > {
+    const defaultPatternsResult = SchemaFieldPatterns.createDefault();
+    if (!defaultPatternsResult.ok) {
+      return defaultPatternsResult;
+    }
+    return ok(new SchemaStructureDetector(defaultPatternsResult.data));
+  }
+
+  /**
+   * Static convenience method for backwards compatibility
+   * Uses default field patterns configuration
+   */
+  static detectStructureType(
+    schema: Schema,
+  ): Result<StructureType, DomainError & { message: string }> {
+    const detectorResult = SchemaStructureDetector.createWithDefaults();
+    if (!detectorResult.ok) {
+      return detectorResult;
+    }
+    return detectorResult.data.detectStructureType(schema);
+  }
+
   /**
    * Detect the structure type from a schema definition.
    *
    * This method replaces hardcoded detectStructureType logic with
    * schema-driven analysis using x-frontmatter-part directives.
    */
-  static detectStructureType(
+  detectStructureType(
     schema: Schema,
   ): Result<StructureType, DomainError & { message: string }> {
     // Try to find x-frontmatter-part path in schema
@@ -68,7 +101,7 @@ export class SchemaStructureDetector {
    * - command-related field names
    * - registry-specific extensions
    */
-  private static detectRegistryByStructure(
+  private detectRegistryByStructure(
     schema: Schema,
   ): Result<StructureType, DomainError & { message: string }> {
     const definition = schema.getDefinition();
@@ -88,7 +121,7 @@ export class SchemaStructureDetector {
   /**
    * Check if schema has registry-specific structural patterns.
    */
-  private static hasRegistryStructurePattern(rawSchema: unknown): boolean {
+  private hasRegistryStructurePattern(rawSchema: unknown): boolean {
     if (typeof rawSchema !== "object" || rawSchema === null) {
       return false;
     }
@@ -97,7 +130,7 @@ export class SchemaStructureDetector {
 
     // Check for tools.commands structure
     if (
-      this.hasNestedProperty(schema, [
+      SchemaStructureDetector.hasNestedProperty(schema, [
         "properties",
         "tools",
         "properties",
@@ -107,15 +140,31 @@ export class SchemaStructureDetector {
       return true;
     }
 
-    // Check for direct commands property with c1/c2/c3 pattern
+    // Check for command properties using configurable patterns
     const properties = schema.properties as Record<string, unknown> | undefined;
     if (properties && typeof properties === "object") {
-      const hasCommandFields = ["c1", "c2", "c3"].some((field) =>
-        field in properties
-      );
-      const hasCommandsArray = "commands" in properties;
+      const _propertyKeys = Object.keys(properties);
 
-      if (hasCommandFields || hasCommandsArray) {
+      // Check sequential patterns (c1, c2, c3, etc.) if enabled
+      const hasSequentialFields =
+        this.fieldPatterns.isSequentialDetectionEnabled() &&
+        this.fieldPatterns.getSequentialPatterns().some((field) =>
+          field in properties
+        );
+
+      // Check named patterns (commands, etc.) if enabled
+      const hasNamedFields = this.fieldPatterns.isNamedDetectionEnabled() &&
+        this.fieldPatterns.getNamedPatterns().some((field) =>
+          field in properties
+        );
+
+      // Check custom patterns if enabled
+      const hasCustomFields = this.fieldPatterns.isCustomPatternsEnabled() &&
+        this.fieldPatterns.getCustomPatterns().some((field) =>
+          field in properties
+        );
+
+      if (hasSequentialFields || hasNamedFields || hasCustomFields) {
         return true;
       }
     }
