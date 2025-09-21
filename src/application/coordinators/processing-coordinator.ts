@@ -5,7 +5,8 @@ import { ValidationRules } from "../../domain/schema/value-objects/validation-ru
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
-import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
+// TODO: Re-enable when ExtractFromProcessor is fully implemented
+// import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
 import {
   ProcessingHints,
@@ -35,13 +36,15 @@ export type ProcessingOptions =
  * - Totality: All methods return Result<T,E>
  */
 export class ProcessingCoordinator {
-  private readonly extractFromProcessor: ExtractFromProcessor;
+  // TODO: Re-enable when ExtractFromProcessor is fully implemented
+  // private readonly extractFromProcessor: ExtractFromProcessor;
 
   constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
-    propertyExtractor?: PropertyExtractor,
+    _propertyExtractor?: PropertyExtractor,
   ) {
-    this.extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
+    // TODO: Re-enable when ExtractFromProcessor is fully implemented
+    // this.extractFromProcessor = ExtractFromProcessor.create(propertyExtractor);
   }
 
   /**
@@ -184,50 +187,16 @@ export class ProcessingCoordinator {
     return ok({ mainData });
   }
 
-  /**
-   * Process x-extract-from directives for data transformation
-   * Similar to extractFrontmatterPartData, processes directives during transformation phase
-   * Following DDD - coordination of domain operations
-   */
+  // TODO: Re-enable when ExtractFromProcessor is fully implemented
+  /*
   processExtractFromDirectives(
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Check if schema has x-extract-from directives
-    if (!schema.hasExtractFromDirectives()) {
-      // No directives, return data unchanged
-      return ok(data);
-    }
-
-    const directivesResult = schema.getExtractFromDirectives();
-    if (!directivesResult.ok) {
-      const errorMessage = "message" in directivesResult.error
-        ? directivesResult.error.message
-        : JSON.stringify(directivesResult.error);
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Failed to get x-extract-from directives: ${errorMessage}`,
-      }));
-    }
-
-    // Process directives using ExtractFromProcessor
-    const processResult = this.extractFromProcessor.processBatch(
-      data,
-      directivesResult.data,
-    );
-
-    if (!processResult.ok) {
-      const errorMessage = "message" in processResult.error
-        ? processResult.error.message
-        : JSON.stringify(processResult.error);
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Failed to process x-extract-from directives: ${errorMessage}`,
-      }));
-    }
-
-    return processResult;
+    // Implementation temporarily disabled
+    return ok(data);
   }
+  */
 
   /**
    * Process documents with x-extract-from directives applied
@@ -250,13 +219,15 @@ export class ProcessingCoordinator {
       return processResult;
     }
 
+    // TODO: Re-enable when ExtractFromProcessor is fully implemented
     // Apply x-extract-from directives if present
-    const extractResult = this.processExtractFromDirectives(
-      processResult.data,
-      schema,
-    );
+    // const extractResult = this.processExtractFromDirectives(
+    //   processResult.data,
+    //   schema,
+    // );
 
-    return extractResult;
+    // return extractResult;
+    return processResult;
   }
 
   /**
@@ -315,7 +286,11 @@ export class ProcessingCoordinator {
       }
 
       // Apply x-extract-from to each extracted item if needed
-      if (schema.hasExtractFromDirectives()) {
+      // TODO: Re-enable when ExtractFromProcessor is fully implemented
+      // if (schema.hasExtractFromDirectives()) {
+      // TODO: Remove dead code when ExtractFromProcessor is implemented
+      /*
+      if (false) {
         console.log(
           "[DIRECTIVE-ORDER-DEBUG] Processing sequence: 4. x-extract-from (on items) - VARIANCE DETECTED",
         );
@@ -325,22 +300,14 @@ export class ProcessingCoordinator {
 
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
-          const processedItemResult = this.processExtractFromDirectives(
-            item,
-            schema,
-          );
-          if (processedItemResult.ok) {
-            processedItems.push(processedItemResult.data);
-          } else {
-            // Log warning but continue processing other items
-            const errorMessage = "message" in processedItemResult.error
-              ? processedItemResult.error.message
-              : JSON.stringify(processedItemResult.error);
-            console.warn(
-              `Failed to process x-extract-from for item: ${errorMessage}`,
-            );
-            processedItems.push(item);
-          }
+          // TODO: Re-enable when ExtractFromProcessor is fully implemented
+          // const processedItemResult = this.processExtractFromDirectives(
+          //   item,
+          //   schema,
+          // );
+          // TODO: Re-enable when ExtractFromProcessor is fully implemented
+          // For now, just use the item as-is
+          processedItems.push(item);
         }
 
         console.debug(
@@ -351,6 +318,7 @@ export class ProcessingCoordinator {
           itemsData: processedItems,
         });
       }
+      */
 
       console.debug(
         "[DIRECTIVE-ORDER-DEBUG] No x-extract-from on items, completing frontmatter-part processing",
