@@ -11,10 +11,10 @@ import {
   ProcessingOptions,
 } from "./processing-coordinator.ts";
 import {
-  TemplateConfig,
   TemplateCoordinator,
   TemplateFileSystem,
 } from "./template-coordinator.ts";
+import { TemplateConfig } from "../strategies/template-resolution-strategy.ts";
 
 /**
  * Verbosity configuration using discriminated unions (Totality principle)
