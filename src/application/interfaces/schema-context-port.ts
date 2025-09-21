@@ -1,5 +1,7 @@
 import { Result } from "../../domain/shared/types/result.ts";
 import { DomainError as _DomainError } from "../../domain/shared/types/errors.ts";
+import { ValidationRules } from "../../domain/schema/value-objects/validation-rules.ts";
+import { ResolvedSchema } from "../../domain/schema/entities/schema.ts";
 
 /**
  * Schema Context Port - DDD Boundary Interface
@@ -9,15 +11,6 @@ import { DomainError as _DomainError } from "../../domain/shared/types/errors.ts
  * or the application layer can safely use without violating domain boundaries.
  */
 
-export interface ValidationRules {
-  readonly rules: ReadonlyArray<{
-    readonly field: string;
-    readonly type: string;
-    readonly required: boolean;
-    readonly constraints?: Record<string, unknown>;
-  }>;
-}
-
 export type SchemaContextError = _DomainError & {
   readonly kind:
     | "SchemaNotFound"
@@ -26,13 +19,6 @@ export type SchemaContextError = _DomainError & {
     | "ValidationRulesFailed";
   readonly message?: string;
 };
-
-export interface ResolvedSchema {
-  readonly id: string;
-  readonly definition: Record<string, unknown>;
-  readonly resolved: boolean;
-  readonly validationRules: ValidationRules;
-}
 
 /**
  * Schema Context Port Interface

@@ -2,9 +2,9 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
   ProcessingLoggerFactory,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../application/strategies/template-resolution-strategy.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { JMESPathFilterService } from "../../domain/schema/services/jmespath-filter-service.ts";

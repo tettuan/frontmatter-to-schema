@@ -1,5 +1,5 @@
 import { Result } from "../../domain/shared/types/result.ts";
-import { DomainError } from "../../domain/shared/types/errors.ts";
+import { TemplateError } from "../../domain/shared/types/errors.ts";
 import { ValidatedData } from "./frontmatter-context-port.ts";
 
 /**
@@ -29,14 +29,6 @@ export interface RenderedOutput {
   readonly templatePath: string;
   readonly renderedAt: Date;
 }
-
-export type TemplateError = DomainError & {
-  readonly kind:
-    | "TemplateNotFound"
-    | "TemplateInvalid"
-    | "RenderError"
-    | "VariableResolutionFailed";
-};
 
 /**
  * Template Context Port Interface

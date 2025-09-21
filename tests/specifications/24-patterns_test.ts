@@ -56,9 +56,9 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
   ProcessingLoggerFactory,
-  TemplateConfig,
   VerbosityConfig,
 } from "../../src/application/services/pipeline-orchestrator.ts";
+import { TemplateConfig } from "../../src/application/strategies/template-resolution-strategy.ts";
 import { SchemaCacheFactory } from "../../src/infrastructure/caching/schema-cache.ts";
 import { Schema } from "../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";

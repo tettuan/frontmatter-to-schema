@@ -1,6 +1,6 @@
 import { Result } from "../../domain/shared/types/result.ts";
-import { DomainError } from "../../domain/shared/types/errors.ts";
-import { ValidationRules } from "./schema-context-port.ts";
+import { FrontmatterError } from "../../domain/shared/types/errors.ts";
+import { ValidationRules } from "../../domain/schema/value-objects/validation-rules.ts";
 
 /**
  * Frontmatter Context Port - DDD Boundary Interface
@@ -15,14 +15,6 @@ export interface ValidatedData {
   readonly filePath: string;
   readonly validated: boolean;
 }
-
-export type FrontmatterError = DomainError & {
-  readonly kind:
-    | "FrontmatterNotFound"
-    | "ParseError"
-    | "ValidationFailed"
-    | "FileReadError";
-};
 
 export interface ProcessedDocument {
   readonly filePath: string;

@@ -1,8 +1,6 @@
 import { DomainEvent, DomainEventFactory, EventTypes } from "./domain-event.ts";
-import {
-  ResolvedSchema,
-  ValidationRules,
-} from "../../../application/interfaces/schema-context-port.ts";
+import { ResolvedSchema } from "../../schema/entities/schema.ts";
+import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 
 /**
  * Schema Context Domain Events

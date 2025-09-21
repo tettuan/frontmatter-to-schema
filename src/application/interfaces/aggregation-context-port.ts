@@ -1,7 +1,8 @@
 import { Result } from "../../domain/shared/types/result.ts";
-import { DomainError } from "../../domain/shared/types/errors.ts";
+import { AggregationError as AggregationErrorType } from "../../domain/shared/types/errors.ts";
 import { ValidatedData } from "./frontmatter-context-port.ts";
 import { EnrichedResult } from "./template-context-port.ts";
+import { DerivationRule } from "../../domain/aggregation/value-objects/derivation-rule.ts";
 
 /**
  * Aggregation Context Port - DDD Boundary Interface
@@ -11,27 +12,12 @@ import { EnrichedResult } from "./template-context-port.ts";
  * medium lifecycle pattern defined in the architecture.
  */
 
-export interface DerivationRule {
-  readonly sourceExpression: string; // e.g., "commands[].c1"
-  readonly targetField: string;
-  readonly unique: boolean;
-  readonly transform?: "array" | "unique" | "count" | "first" | "last";
-}
-
 export interface AggregatedResult {
   readonly originalData: ValidatedData[];
   readonly aggregatedFields: Record<string, unknown>;
   readonly appliedRules: DerivationRule[];
   readonly processedAt: Date;
 }
-
-export type AggregationError = DomainError & {
-  readonly kind:
-    | "AggregationFailed"
-    | "DerivationRuleFailed"
-    | "ExpressionEvaluationFailed"
-    | "DataMergeFailed";
-};
 
 /**
  * Aggregation Context Port Interface
@@ -50,7 +36,7 @@ export interface AggregationContextPort {
   aggregateData(
     items: ValidatedData[],
     rules: DerivationRule[],
-  ): Result<AggregatedResult, AggregationError>;
+  ): Result<AggregatedResult, AggregationErrorType>;
 
   /**
    * Apply derivation rules to generate new fields
@@ -59,7 +45,7 @@ export interface AggregationContextPort {
   applyDerivationRules(
     data: ValidatedData[],
     rules: DerivationRule[],
-  ): Result<Record<string, unknown>, AggregationError>;
+  ): Result<Record<string, unknown>, AggregationErrorType>;
 
   /**
    * Evaluate expression against data set
@@ -68,7 +54,7 @@ export interface AggregationContextPort {
   evaluateExpression(
     data: ValidatedData[],
     expression: string,
-  ): Result<unknown[], AggregationError>;
+  ): Result<unknown[], AggregationErrorType>;
 
   /**
    * Create enriched result for template rendering
@@ -77,7 +63,7 @@ export interface AggregationContextPort {
   createEnrichedResult(
     originalData: ValidatedData[],
     aggregatedResult: AggregatedResult,
-  ): Result<EnrichedResult, AggregationError>;
+  ): Result<EnrichedResult, AggregationErrorType>;
 
   /**
    * Extract unique values from expression results
@@ -86,7 +72,7 @@ export interface AggregationContextPort {
   extractUniqueValues(
     data: ValidatedData[],
     expression: string,
-  ): Result<unknown[], AggregationError>;
+  ): Result<unknown[], AggregationErrorType>;
 
   /**
    * Merge multiple data sources into unified structure
@@ -95,7 +81,7 @@ export interface AggregationContextPort {
   mergeDataSources(
     mainData: ValidatedData[],
     additionalData: Record<string, unknown>,
-  ): Result<EnrichedResult, AggregationError>;
+  ): Result<EnrichedResult, AggregationErrorType>;
 
   /**
    * Merge arrays based on x-merge-arrays directive
@@ -108,7 +94,7 @@ export interface AggregationContextPort {
       preserveOrder?: boolean;
       filterEmpty?: boolean;
     },
-  ): Result<unknown[], AggregationError>;
+  ): Result<unknown[], AggregationErrorType>;
 }
 
 /**
