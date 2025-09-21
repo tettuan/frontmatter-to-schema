@@ -229,8 +229,8 @@ describe("DirectiveOrderManager", () => {
       if (managerResult.ok) {
         const manager = managerResult.data;
 
-        // @ts-expect-error - testing invalid directive
         const invalidResult = manager.getDirectiveDependencies(
+          // @ts-expect-error - testing invalid directive
           "x-invalid-directive",
         );
         assertEquals(invalidResult.ok, false);
