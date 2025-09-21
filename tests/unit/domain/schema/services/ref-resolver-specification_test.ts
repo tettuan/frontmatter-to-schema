@@ -159,7 +159,9 @@ describe("BUSINESS REQUIREMENT: JSON Schema $ref Resolution", () => {
     it("WHEN: Resolving simple schema THEN: Should return unchanged schema", () => {
       // Arrange - Business scenario setup
       const repository = new RobustSchemaRepository();
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       const simpleSchema = new TestSchemaBuilder("object")
         .withProperty("name", { kind: "string" })
@@ -212,7 +214,9 @@ describe("BUSINESS REQUIREMENT: JSON Schema $ref Resolution", () => {
       };
       repository.register("#/definitions/Person", personSchema);
 
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       // Main schema with reference (business requirement)
       const mainSchema = {
@@ -291,7 +295,9 @@ describe("BUSINESS REQUIREMENT: JSON Schema $ref Resolution", () => {
       repository.register("#/definitions/Address", addressSchema);
       repository.register("#/definitions/Person", personSchema);
 
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       const mainSchema = {
         type: "object",
@@ -340,7 +346,9 @@ describe("BUSINESS REQUIREMENT: JSON Schema $ref Resolution", () => {
       const repository = new RobustSchemaRepository();
       // Intentionally not registering the referenced schema
 
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       const schemaWithMissingRef = {
         type: "object",
@@ -399,7 +407,9 @@ describe("BUSINESS REQUIREMENT: JSON Schema $ref Resolution", () => {
       repository.register("#/definitions/A", schemaA);
       repository.register("#/definitions/B", schemaB);
 
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       const mainSchema = {
         type: "object",
@@ -442,7 +452,9 @@ describe("DOMAIN RULES: Schema Reference Resolution", () => {
 
   it("Should enforce schema resolution completeness rule", () => {
     const repository = new RobustSchemaRepository();
-    const resolver = new RefResolver(repository);
+    const resolverResult = RefResolver.create(repository);
+    if (!resolverResult.ok) throw new Error("Failed to create resolver");
+    const resolver = resolverResult.data;
 
     // Register complete schema graph
     repository.register("#/definitions/Base", {
@@ -484,7 +496,9 @@ describe("PERFORMANCE & EDGE CASES: RefResolver Robustness", () => {
     it("WHEN: Resolving deeply nested references THEN: Should handle without performance degradation", () => {
       // Arrange - Performance scenario with deep reference chain
       const repository = new RobustSchemaRepository();
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       // Create deep reference chain: A -> B -> C -> D -> E
       const deepestSchema: SchemaProperty = {
@@ -554,7 +568,9 @@ describe("PERFORMANCE & EDGE CASES: RefResolver Robustness", () => {
     it("WHEN: Resolving complex schema graph THEN: Should handle efficiently", () => {
       // Arrange - Performance scenario with wide reference graph
       const repository = new RobustSchemaRepository();
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       // Create many referenced schemas
       for (let i = 0; i < 50; i++) {
@@ -619,7 +635,9 @@ describe("PERFORMANCE & EDGE CASES: RefResolver Robustness", () => {
     it("WHEN: Resolving with loader errors THEN: Should handle gracefully", () => {
       // Arrange - Edge case with loader failures
       const repository = new RobustSchemaRepository();
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       // Register an error scenario
       repository.registerError("#/definitions/FailingSchema", {
@@ -667,7 +685,9 @@ describe("PERFORMANCE & EDGE CASES: RefResolver Robustness", () => {
     it("WHEN: Resolving self-reference THEN: Should detect immediate circular reference", () => {
       // Arrange - Edge case with self-reference
       const repository = new RobustSchemaRepository();
-      const resolver = new RefResolver(repository);
+      const resolverResult = RefResolver.create(repository);
+      if (!resolverResult.ok) throw new Error("Failed to create resolver");
+      const resolver = resolverResult.data;
 
       // Create self-referencing schema
       const selfRefSchema: SchemaProperty = {

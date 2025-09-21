@@ -210,11 +210,15 @@ describe("SchemaProcessingService Specification", () => {
     mockPopulator = new MockBasePropertyPopulator();
     mockJMESPathService = new MockJMESPathFilterService();
 
-    service = new SchemaProcessingService(
+    const serviceResult = SchemaProcessingService.create(
       mockRepository as any,
       mockPopulator as any,
       mockJMESPathService as any,
     );
+    if (!serviceResult.ok) {
+      throw new Error("Failed to create schema processing service");
+    }
+    service = serviceResult.data;
   });
 
   describe("Business Requirement: Schema Processing Pipeline", () => {

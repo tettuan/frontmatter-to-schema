@@ -108,9 +108,32 @@ export interface DomainLogger {
 /**
  * Adapter implementation that wraps DebugLogger for domain use
  * Uses discriminated union for explicit logger state management
+ * Following Smart Constructor pattern for Totality compliance
  */
 export class DomainLoggerAdapter implements DomainLogger {
-  constructor(private readonly loggerState: LoggerState) {}
+  private constructor(private readonly loggerState: LoggerState) {}
+
+  /**
+   * Smart Constructor following Totality principles
+   * Creates a domain logger adapter with the specified logger state
+   */
+  static create(loggerState: LoggerState): DomainLoggerAdapter {
+    return new DomainLoggerAdapter(loggerState);
+  }
+
+  /**
+   * Factory method to create an enabled logger
+   */
+  static createEnabled(logger: DebugLogger): DomainLoggerAdapter {
+    return new DomainLoggerAdapter({ kind: "enabled", logger });
+  }
+
+  /**
+   * Factory method to create a disabled logger
+   */
+  static createDisabled(): DomainLoggerAdapter {
+    return new DomainLoggerAdapter({ kind: "disabled" });
+  }
 
   logInfo(
     operation: string,
@@ -316,14 +339,14 @@ export class DomainLoggerFactory {
    * Create a logger with enabled debug logging
    */
   static createEnabled(debugLogger: DebugLogger): DomainLoggerAdapter {
-    return new DomainLoggerAdapter({ kind: "enabled", logger: debugLogger });
+    return DomainLoggerAdapter.createEnabled(debugLogger);
   }
 
   /**
    * Create a logger with disabled logging (no-op)
    */
   static createDisabled(): DomainLoggerAdapter {
-    return new DomainLoggerAdapter({ kind: "disabled" });
+    return DomainLoggerAdapter.createDisabled();
   }
 
   /**

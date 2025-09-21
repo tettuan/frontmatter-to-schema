@@ -14,7 +14,24 @@ export interface SchemaLoader {
 export class RefResolver {
   private readonly visitedRefs = new Set<string>();
 
-  constructor(private readonly loader: SchemaLoader) {}
+  private constructor(private readonly loader: SchemaLoader) {}
+
+  /**
+   * Smart constructor following Totality principles
+   * Ensures valid loader dependency on creation
+   */
+  static create(
+    loader: SchemaLoader,
+  ): Result<RefResolver, SchemaError & { message: string }> {
+    if (!loader) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: "SchemaLoader is required",
+      }));
+    }
+
+    return ok(new RefResolver(loader));
+  }
 
   resolve(
     definition: SchemaDefinition,

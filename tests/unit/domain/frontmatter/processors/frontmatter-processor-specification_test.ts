@@ -180,7 +180,9 @@ describe("BUSINESS REQUIREMENT: Markdown Frontmatter Processing", () => {
       // Arrange - Business scenario setup
       const extractor = new InMemoryFrontmatterExtractor();
       const parser = new InMemoryYamlParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const markdownContent = `---
 title: Test Document
@@ -237,7 +239,9 @@ This is the body of the document.`;
       // Arrange - No frontmatter scenario
       const extractor = new InMemoryFrontmatterExtractor();
       const parser = new InMemoryYamlParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const markdownContent = `# Document without Frontmatter
 
@@ -272,7 +276,9 @@ This is pure markdown content without any frontmatter.`;
       // Arrange - Validation scenario
       const extractor = new InMemoryFrontmatterExtractor();
       const parser = new InMemoryYamlParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = `---
 title: Valid Title
@@ -325,7 +331,9 @@ Content body`;
       // Arrange - Invalid scenario
       const extractor = new InMemoryFrontmatterExtractor();
       const parser = new InMemoryYamlParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = `---
 author: Jane Smith
@@ -372,7 +380,9 @@ Content without title`;
       // Arrange - Complex structure scenario
       const extractor = new InMemoryFrontmatterExtractor();
       const parser = new InMemoryYamlParser();
-      const processor = new FrontmatterProcessor(extractor, parser);
+      const processorResult = FrontmatterProcessor.create(extractor, parser);
+      if (!processorResult.ok) throw new Error("Failed to create processor");
+      const processor = processorResult.data;
 
       const content = `---
 title: Complex Document
@@ -440,7 +450,9 @@ describe("DOMAIN RULES: Frontmatter Processing", () => {
   it("Should maintain frontmatter structural integrity", () => {
     const extractor = new InMemoryFrontmatterExtractor();
     const parser = new InMemoryYamlParser();
-    const processor = new FrontmatterProcessor(extractor, parser);
+    const processorResult = FrontmatterProcessor.create(extractor, parser);
+    if (!processorResult.ok) throw new Error("Failed to create processor");
+    const processor = processorResult.data;
 
     const content = `---
 test: value

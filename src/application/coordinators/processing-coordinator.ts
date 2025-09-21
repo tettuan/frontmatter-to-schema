@@ -63,14 +63,34 @@ export class ProcessingCoordinator {
       this.recoveryRegistry = registryResult.data;
     }
 
+    // HIGH-VARIANCE DEBUG POINT: Schema processing optimization strategy
+    // Critical variance point for parallel schema loading and caching
+    const optimizedConfig = {
+      enablePathCache: true,
+      enableExtractionCache: true,
+      enableMetrics: true,
+      maxConcurrentExtractions: 20, // HARDCODED - Should be externally configurable
+    };
+
+    this.logger?.logDebug(
+      "variance-debug-point",
+      "Schema processing optimization configuration - High variance detection",
+      {
+        debugPoint: "schema-optimization-strategy",
+        optimizationConfig: optimizedConfig,
+        varianceRisk: "high",
+        parallelismImpact: "schema-loading-variance-300-400%",
+        cachingStrategy: "path-and-extraction-cache",
+        hardcodingViolation: "maxConcurrentExtractions-hardcoded",
+        requiresExternalConfig: true,
+      },
+    );
+
     // Use optimized extractor by default for better performance
     if (optimizedExtractor !== false) {
-      const optimizedResult = ExtractFromProcessor.createOptimized({
-        enablePathCache: true,
-        enableExtractionCache: true,
-        enableMetrics: true,
-        maxConcurrentExtractions: 20,
-      });
+      const optimizedResult = ExtractFromProcessor.createOptimized(
+        optimizedConfig,
+      );
 
       if (optimizedResult.ok) {
         this.extractFromProcessor = optimizedResult.data;
@@ -813,17 +833,36 @@ export class ProcessingCoordinator {
       },
     );
 
+    // HIGH-VARIANCE DEBUG POINT: Error recovery strategy selection
+    // This represents a critical variance point in parallel processing scenarios
+    const validationRecoverableErrors = [
+      "MissingRequired",
+      "InvalidType",
+      "InvalidFormat",
+    ];
+
+    this.logger?.logDebug(
+      "variance-debug-point",
+      "Error recovery strategy evaluation - High variance detection",
+      {
+        debugPoint: "error-recovery-strategy-selection",
+        errorKind: error.kind,
+        availableStrategies: validationRecoverableErrors,
+        processingMode: "fallback-validation",
+        varianceRisk: "high",
+        parallelismImpact: "strategy-selection-variance-300-400%",
+      },
+    );
+
     // Strategy 1: Attempt partial processing with relaxed validation
-    if (
-      error.kind === "MissingRequired" || error.kind === "InvalidType" ||
-      error.kind === "InvalidFormat"
-    ) {
+    if (validationRecoverableErrors.includes(error.kind)) {
       this.logger?.logDebug(
         "error-recovery-strategy",
         "Attempting partial processing with fallback validation",
         {
           strategy: "fallback-validation",
           originalError: error.kind,
+          debugContext: "high-variance-execution-path",
         },
       );
 
@@ -842,17 +881,37 @@ export class ProcessingCoordinator {
       }
     }
 
+    // HIGH-VARIANCE DEBUG POINT: File system error recovery strategy
+    // Critical variance point for parallel file processing scenarios
+    const fileSystemRecoverableErrors = [
+      "FileNotFound",
+      "ReadFailed",
+      "ExtractionFailed",
+    ];
+
+    this.logger?.logDebug(
+      "variance-debug-point",
+      "File system error recovery evaluation - High variance detection",
+      {
+        debugPoint: "filesystem-error-recovery-strategy",
+        errorKind: error.kind,
+        availableFileStrategies: fileSystemRecoverableErrors,
+        processingMode: "partial-processing",
+        varianceRisk: "high",
+        parallelismImpact: "filesystem-recovery-variance-200-500%",
+        memoryImpact: "partial-result-accumulation",
+      },
+    );
+
     // Strategy 2: Attempt partial result extraction for file system or frontmatter errors
-    if (
-      error.kind === "FileNotFound" || error.kind === "ReadFailed" ||
-      error.kind === "ExtractionFailed"
-    ) {
+    if (fileSystemRecoverableErrors.includes(error.kind)) {
       this.logger?.logDebug(
         "error-recovery-strategy",
         "Attempting partial result extraction",
         {
           strategy: "partial-processing",
           originalError: error.kind,
+          debugContext: "high-variance-filesystem-path",
         },
       );
 

@@ -51,7 +51,9 @@ class MockSchemaLoader implements SchemaLoader {
 
 Deno.test("RefResolver - should resolve simple schema without references", () => {
   const loader = new MockSchemaLoader();
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const simpleSchema = {
     type: "object",
@@ -90,7 +92,9 @@ Deno.test("RefResolver - should resolve schema with single $ref", () => {
 
   loader.addSchema("#/definitions/Person", personSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -139,7 +143,9 @@ Deno.test("RefResolver - should resolve schema with nested $ref in properties", 
   loader.addSchema("#/definitions/Address", addressSchema);
   loader.addSchema("#/definitions/Person", personSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -181,7 +187,9 @@ Deno.test("RefResolver - should resolve schema with $ref in array items", () => 
 
   loader.addSchema("#/definitions/Item", itemSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -237,7 +245,9 @@ Deno.test("RefResolver - should detect circular references", () => {
   loader.addSchema("#/definitions/A", schemaA);
   loader.addSchema("#/definitions/B", schemaB);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     $ref: "#/definitions/A",
@@ -257,7 +267,9 @@ Deno.test("RefResolver - should detect circular references", () => {
 
 Deno.test("RefResolver - should handle missing reference", () => {
   const loader = new MockSchemaLoader();
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -287,7 +299,9 @@ Deno.test("RefResolver - should handle loader errors", () => {
   };
   loader.addError("#/definitions/Missing", error);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -315,7 +329,9 @@ Deno.test("RefResolver - should handle invalid referenced schema", () => {
   const invalidSchema = { type: 123 }; // Invalid type field
   loader.addSchema("#/definitions/Invalid", invalidSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -365,7 +381,9 @@ Deno.test("RefResolver - should handle complex nested array items with objects",
   loader.addSchema("#/definitions/Nested", nestedSchema);
   loader.addSchema("#/definitions/Deep", deepSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const mainSchema = {
     type: "object",
@@ -399,7 +417,9 @@ Deno.test("RefResolver - should clear visited refs between resolve calls", () =>
 
   loader.addSchema("#/definitions/Simple", simpleSchema);
 
-  const resolver = new RefResolver(loader);
+  const resolverResult = RefResolver.create(loader);
+  if (!resolverResult.ok) throw new Error("Failed to create resolver");
+  const resolver = resolverResult.data;
 
   const schema1 = {
     $ref: "#/definitions/Simple",

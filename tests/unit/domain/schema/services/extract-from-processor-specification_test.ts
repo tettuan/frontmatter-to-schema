@@ -286,19 +286,20 @@ describe("ExtractFromProcessor Specification", () => {
       const directive = createTestDirective("test");
       const processor = createOptimizedProcessor();
 
-      // When/Then: Should throw error for sync processing with optimized processor
-      let thrownError: Error | null = null;
-      try {
-        processor.processDirectivesSync(frontmatterData, [directive]);
-      } catch (error) {
-        thrownError = error as Error;
-      }
+      // When: Try to use sync processing with optimized processor
+      const result = processor.processDirectivesSync(frontmatterData, [
+        directive,
+      ]);
 
-      assertExists(thrownError);
-      assertEquals(
-        thrownError?.message.includes("Cannot use synchronous processing"),
-        true,
-      );
+      // Then: Should return an error result instead of throwing
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "InvalidFormat");
+        assertEquals(
+          result.error.message.includes("Cannot use synchronous processing"),
+          true,
+        );
+      }
     });
   });
 
