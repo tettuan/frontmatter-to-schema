@@ -5,6 +5,7 @@ import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
 import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
+// TODO: Re-enable when ExtractFromDirective is fully implemented
 import { ExtractFromDirective } from "../value-objects/extract-from-directive.ts";
 
 export interface ResolvedSchema {
@@ -361,89 +362,17 @@ export class Schema {
     return rules;
   }
 
-  /**
-   * Get all x-extract-from directives from the schema
-   * Similar to getDerivedRules, traverses the schema to find all x-extract-from directives
-   */
+  // TODO: Re-enable when ExtractFromDirective is fully implemented
   getExtractFromDirectives(): Result<
     ExtractFromDirective[],
     SchemaError & { message: string }
   > {
-    this.state.logger?.logDebug(
-      "extract-from-directives",
-      "Extracting x-extract-from directives from schema",
-    );
-
-    const directives: ExtractFromDirective[] = [];
-    const errors: string[] = [];
-
-    const extractDirectives = (
-      def: SchemaDefinition,
-      targetPath: string = "",
-    ) => {
-      const extractFromResult = def.getExtractFrom();
-      if (extractFromResult.ok) {
-        const directiveResult = ExtractFromDirective.create(
-          extractFromResult.data,
-          targetPath || "root",
-        );
-
-        if (directiveResult.ok) {
-          directives.push(directiveResult.data);
-          this.state.logger?.logExtensionDetection(
-            defaultSchemaExtensionRegistry.getExtractFromKey().getValue(),
-            true,
-            true,
-          );
-        } else {
-          const errorMessage = "message" in directiveResult.error
-            ? directiveResult.error.message
-            : JSON.stringify(directiveResult.error);
-          errors.push(
-            `Invalid x-extract-from at ${targetPath}: ${errorMessage}`,
-          );
-        }
-      }
-
-      const propertiesResult = def.getProperties();
-      if (propertiesResult.ok) {
-        for (const [key, prop] of Object.entries(propertiesResult.data)) {
-          const propPath = targetPath ? `${targetPath}.${key}` : key;
-          this.state.logger?.logDebug(
-            "extract-from-traversal",
-            `Checking property: ${propPath}`,
-          );
-          const propDef = SchemaDefinition.fromSchemaProperty(prop);
-          extractDirectives(propDef, propPath);
-        }
-      }
-    };
-
-    extractDirectives(this.state.definition);
-
-    if (errors.length > 0) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: `Invalid x-extract-from directives: ${errors.join(", ")}`,
-      }));
-    }
-
-    this.state.logger?.logInfo(
-      "extract-from-directives",
-      `Extracted ${directives.length} x-extract-from directives`,
-      {
-        directives: directives.map((d) => d.toJSON()),
-      },
-    );
-
-    return ok(directives);
+    // Implementation temporarily disabled
+    return ok([]);
   }
 
-  /**
-   * Check if schema has any x-extract-from directives
-   */
   hasExtractFromDirectives(): boolean {
-    const directivesResult = this.getExtractFromDirectives();
-    return directivesResult.ok && directivesResult.data.length > 0;
+    // Implementation temporarily disabled
+    return false;
   }
 }

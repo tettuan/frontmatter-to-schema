@@ -49,6 +49,48 @@ export interface ErrorHandlingResult<T> {
 }
 
 /**
+ * Issue #905 Enhancement Types
+ */
+export interface ValidationResult {
+  readonly isValid: boolean;
+  readonly errors: readonly any[];
+  readonly warnings: readonly any[];
+  readonly debugInfo?: {
+    validatedDirectives: readonly string[];
+    processingOrder: readonly string[];
+    dependencyGraph: Record<string, readonly string[]>;
+    validationTime: number;
+  };
+}
+
+export interface RecoverySuggestion {
+  readonly type: "fix" | "workaround" | "alternative";
+  readonly description: string;
+  readonly example?: string;
+  readonly action?: string;
+}
+
+export interface ExtractionErrorWithRecovery {
+  readonly error: ExtractionError;
+  readonly context: ExtractionErrorContext;
+  readonly recoverySuggestions: readonly RecoverySuggestion[];
+  readonly debugInfo?: ExtractionDebugInfo;
+}
+
+export interface ExtractionDebugInfo {
+  readonly stackTrace: readonly string[];
+  readonly sourceData: unknown;
+  readonly intermediateSteps: readonly any[];
+  readonly performanceMetrics: {
+    readonly totalDuration: number;
+    readonly memoryUsage: number;
+    readonly stepsExecuted: number;
+    readonly cacheMisses: number;
+    readonly retryAttempts: number;
+  };
+}
+
+/**
  * Enhanced Error Handler - Application Service
  * Provides error recovery, user-friendly messaging, and debugging support
  */
@@ -630,5 +672,221 @@ export class ErrorHandler {
     return `❌ Schema validation failed at "${error.schemaPath}":\\n   ${
       error.validationErrors.join("\\n   ")
     }`;
+  }
+
+  /**
+   * Get debug configuration - Issue #905 Enhancement
+   */
+  getDebugConfig(): {
+    enabled: boolean;
+    level: string;
+    verboseLogging: boolean;
+    performanceMonitoring: boolean;
+  } {
+    return {
+      enabled: this.config.debugMode,
+      level: this.config.verboseLogging ? "verbose" : "basic",
+      verboseLogging: this.config.verboseLogging,
+      performanceMonitoring: false, // Add this to config if needed
+    };
+  }
+
+  /**
+   * Set debug mode at runtime - Issue #905 Enhancement
+   */
+  setDebugMode(
+    enabled: boolean,
+    level: "basic" | "verbose" | "trace" = "basic",
+  ): void {
+    (this.config as any).debugMode = enabled;
+    (this.config as any).verboseLogging = level === "verbose" ||
+      level === "trace";
+  }
+
+  /**
+   * Validate schema directives - Issue #905 Enhancement
+   */
+  validateSchemaDirectives(
+    _schema: any,
+  ): Promise<Result<ValidationResult, { kind: string; message: string }>> {
+    // This is a placeholder implementation for Issue #905
+    // In a real implementation, this would use DirectiveValidator
+    const validationResult: ValidationResult = {
+      isValid: true,
+      errors: [],
+      warnings: [],
+      debugInfo: this.config.debugMode
+        ? {
+          validatedDirectives: [],
+          processingOrder: [],
+          dependencyGraph: {},
+          validationTime: 0,
+        }
+        : undefined,
+    };
+
+    return Promise.resolve(ok(validationResult));
+  }
+
+  /**
+   * Handle extraction error with recovery suggestions - Issue #905 Enhancement
+   */
+  handleExtractionError(
+    error: ExtractionError,
+    context: ExtractionErrorContext,
+  ): ExtractionErrorWithRecovery {
+    const recoverySuggestions = this.generateRecoverySuggestions(
+      error,
+      context,
+    );
+
+    const debugInfo: ExtractionDebugInfo | undefined = this.config.debugMode
+      ? {
+        stackTrace: this.getStackTrace(),
+        sourceData: context.sourceData || "Hidden",
+        intermediateSteps: [],
+        performanceMetrics: {
+          totalDuration: Date.now() - new Date(context.timestamp).getTime(),
+          memoryUsage: this.getMemoryUsage(),
+          stepsExecuted: 1,
+          cacheMisses: 0,
+          retryAttempts: 0,
+        },
+      }
+      : undefined;
+
+    return {
+      error,
+      context,
+      recoverySuggestions,
+      debugInfo,
+    };
+  }
+
+  /**
+   * Create user-friendly error message - Issue #905 Enhancement
+   */
+  createUserFriendlyErrorMessage(
+    errorWithRecovery: ExtractionErrorWithRecovery,
+  ): string {
+    let message = this.formatErrorMessage(errorWithRecovery.error);
+
+    // Add recovery suggestions
+    if (errorWithRecovery.recoverySuggestions.length > 0) {
+      message += "\n\n💡 Suggestions:";
+      for (
+        const [index, suggestion] of errorWithRecovery.recoverySuggestions
+          .entries()
+      ) {
+        message += `\n${index + 1}. ${suggestion.description}`;
+        if (suggestion.example) {
+          message += `\n   Example: ${suggestion.example}`;
+        }
+        if (suggestion.action) {
+          message += `\n   Action: ${suggestion.action}`;
+        }
+      }
+    }
+
+    // Add debug information
+    if (this.config.debugMode && errorWithRecovery.debugInfo) {
+      message += "\n\n🔍 Debug Information:";
+
+      if (this.config.verboseLogging) {
+        message +=
+          `\n   Performance: ${errorWithRecovery.debugInfo.performanceMetrics.totalDuration}ms, ${errorWithRecovery.debugInfo.performanceMetrics.stepsExecuted} steps`;
+        message +=
+          `\n   Memory: ${errorWithRecovery.debugInfo.performanceMetrics.memoryUsage}MB`;
+      }
+
+      if (
+        this.config.verboseLogging &&
+        errorWithRecovery.debugInfo.stackTrace.length > 0
+      ) {
+        message += "\n   Stack trace:";
+        for (
+          const frame of errorWithRecovery.debugInfo.stackTrace.slice(0, 3)
+        ) {
+          message += `\n     ${frame}`;
+        }
+      }
+    }
+
+    return message;
+  }
+
+  /**
+   * Generate recovery suggestions for errors - Issue #905 Enhancement
+   */
+  private generateRecoverySuggestions(
+    error: ExtractionError,
+    _context: ExtractionErrorContext,
+  ): readonly RecoverySuggestion[] {
+    switch (error.kind) {
+      case "PropertyNotFound":
+        return [
+          {
+            type: "fix",
+            description: "Verify the path exists in your source data",
+            example: `Check if '${error.path}' is available in the frontmatter`,
+            action: "Inspect source file structure",
+          },
+          {
+            type: "alternative",
+            description: "Use one of these similar paths instead",
+            example: error.availablePaths.slice(0, 3).join(", "),
+            action: "Update x-extract-from to use correct path",
+          },
+        ];
+      case "TypeMismatchInExtraction":
+        return [
+          {
+            type: "fix",
+            description: `Convert source data to ${error.expected} format`,
+            example: `Ensure '${error.path}' contains ${error.expected} data`,
+            action: "Update source data format",
+          },
+        ];
+      case "ArrayExpansionFailed":
+        return [
+          {
+            type: "fix",
+            description: "Use valid array index",
+            example: `Use proper array notation for '${error.path}'`,
+            action: "Update array access in path",
+          },
+        ];
+      default:
+        return [
+          {
+            type: "workaround",
+            description:
+              "Check the error details and verify your configuration",
+            action: "Review schema definition and source data structure",
+          },
+        ];
+    }
+  }
+
+  private getStackTrace(): string[] {
+    const stack = new Error().stack;
+    if (!stack) return [];
+
+    return stack
+      .split("\n")
+      .slice(2, 10)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  }
+
+  private getMemoryUsage(): number {
+    try {
+      if (typeof Deno !== "undefined" && Deno.memoryUsage) {
+        return Math.round(Deno.memoryUsage().rss / 1024 / 1024);
+      }
+      return 0;
+    } catch {
+      return 0;
+    }
   }
 }

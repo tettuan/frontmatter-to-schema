@@ -1,0 +1,453 @@
+/**
+ * @fileoverview Directive Processor Application Service - Issue #900
+ * @description Orchestrates the processing of schema directives in correct dependency order
+ */
+
+import { err, ok, Result } from "../../domain/shared/types/result.ts";
+import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import {
+  DirectiveOrderManager,
+  DirectiveType,
+  ProcessingOrder,
+} from "../../domain/schema/directive-order.ts";
+import { Schema } from "../../domain/schema/entities/schema.ts";
+import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../domain/shared/services/domain-logger.ts";
+
+/**
+ * Directive processing context for a single execution
+ */
+export interface DirectiveProcessingContext {
+  readonly executionId: string;
+  readonly schema: Schema;
+  readonly inputData: FrontmatterData[];
+  readonly processingOrder: ProcessingOrder;
+  readonly startTime: number;
+}
+
+/**
+ * Processing result for a single directive stage
+ */
+export interface StageProcessingResult {
+  readonly stage: number;
+  readonly directives: readonly DirectiveType[];
+  readonly processedData: FrontmatterData[];
+  readonly processingTime: number;
+  readonly success: boolean;
+  readonly errors: readonly (DomainError & { message: string })[];
+}
+
+/**
+ * Complete directive processing result
+ */
+export interface DirectiveProcessingResult {
+  readonly success: boolean;
+  readonly finalData: FrontmatterData[];
+  readonly stageResults: readonly StageProcessingResult[];
+  readonly totalProcessingTime: number;
+  readonly directivesProcessed: readonly DirectiveType[];
+  readonly processingOrder: ProcessingOrder;
+}
+
+/**
+ * Application service for managing directive processing with proper ordering
+ */
+export class DirectiveProcessor {
+  private readonly orderManager: DirectiveOrderManager;
+
+  private constructor(
+    orderManager: DirectiveOrderManager,
+    private readonly domainLogger: DomainLogger = new NullDomainLogger(),
+  ) {
+    this.orderManager = orderManager;
+  }
+
+  /**
+   * Smart Constructor following Totality principles
+   */
+  static create(
+    domainLogger?: DomainLogger,
+  ): Result<DirectiveProcessor, DomainError & { message: string }> {
+    const orderManagerResult = DirectiveOrderManager.create();
+    if (!orderManagerResult.ok) {
+      return err(orderManagerResult.error);
+    }
+
+    return ok(
+      new DirectiveProcessor(
+        orderManagerResult.data,
+        domainLogger ?? new NullDomainLogger(),
+      ),
+    );
+  }
+
+  /**
+   * Process all directives in the schema according to dependency order
+   */
+  async processDirectives(
+    schema: Schema,
+    inputData: FrontmatterData[],
+  ): Promise<
+    Result<DirectiveProcessingResult, DomainError & { message: string }>
+  > {
+    const executionId = `directive-proc-${Date.now()}-${
+      Math.random().toString(36).substring(2, 9)
+    }`;
+    const startTime = performance.now();
+
+    this.domainLogger.logInfo(
+      "directive-processing",
+      `[DIRECTIVE-ORDER-DEBUG] Starting directive processing pipeline`,
+      {
+        executionId,
+        inputDataCount: inputData.length,
+        schemaId: schema.getPath().toString(),
+      },
+    );
+
+    // Detect directives present in schema
+    const presentDirectivesResult = this.detectPresentDirectives(schema);
+    if (!presentDirectivesResult.ok) {
+      return err(presentDirectivesResult.error);
+    }
+
+    const presentDirectives = presentDirectivesResult.data;
+
+    this.domainLogger.logDebug(
+      "directive-detection",
+      `[DIRECTIVE-ORDER-DEBUG] Detected directives in schema`,
+      {
+        executionId,
+        presentDirectives,
+        directiveCount: presentDirectives.length,
+      },
+    );
+
+    // Determine processing order
+    const orderResult = this.orderManager.determineProcessingOrder(
+      presentDirectives,
+    );
+    if (!orderResult.ok) {
+      return err(orderResult.error);
+    }
+
+    const processingOrder = orderResult.data;
+
+    this.domainLogger.logInfo(
+      "directive-order",
+      `[DIRECTIVE-ORDER-DEBUG] Determined directive processing order`,
+      {
+        executionId,
+        orderedDirectives: processingOrder.orderedDirectives,
+        stageCount: processingOrder.stages.length,
+        dependencyGraph: processingOrder.dependencyGraph,
+      },
+    );
+
+    // Create processing context
+    const context: DirectiveProcessingContext = {
+      executionId,
+      schema,
+      inputData,
+      processingOrder,
+      startTime,
+    };
+
+    // Process each stage in order
+    const stageResults: StageProcessingResult[] = [];
+    let currentData = inputData;
+
+    for (const stage of processingOrder.stages) {
+      this.domainLogger.logDebug(
+        "stage-processing",
+        `[DIRECTIVE-ORDER-DEBUG] Processing stage ${stage.stage}: ${stage.description}`,
+        {
+          executionId,
+          stage: stage.stage,
+          directives: stage.directives,
+          description: stage.description,
+          inputDataCount: currentData.length,
+        },
+      );
+
+      const stageResult = await this.processStage(
+        stage,
+        currentData,
+        context,
+      );
+
+      stageResults.push(stageResult);
+
+      if (!stageResult.success) {
+        this.domainLogger.logError(
+          "stage-processing",
+          `[DIRECTIVE-ORDER-DEBUG] Stage ${stage.stage} processing failed`,
+          {
+            executionId,
+            stage: stage.stage,
+            errors: stageResult.errors,
+          },
+        );
+
+        // For now, continue processing despite errors
+        // Future enhancement: configurable error handling strategy
+      }
+
+      currentData = stageResult.processedData;
+    }
+
+    const totalProcessingTime = performance.now() - startTime;
+
+    const result: DirectiveProcessingResult = {
+      success: stageResults.every((r) => r.success),
+      finalData: currentData,
+      stageResults,
+      totalProcessingTime,
+      directivesProcessed: processingOrder.orderedDirectives,
+      processingOrder,
+    };
+
+    this.domainLogger.logInfo(
+      "directive-processing",
+      `[DIRECTIVE-ORDER-DEBUG] Completed directive processing pipeline`,
+      {
+        executionId,
+        success: result.success,
+        totalProcessingTime: result.totalProcessingTime,
+        finalDataCount: result.finalData.length,
+        stagesProcessed: result.stageResults.length,
+      },
+    );
+
+    return ok(result);
+  }
+
+  /**
+   * Process a single stage with all its directives
+   */
+  private async processStage(
+    stage: {
+      readonly stage: number;
+      readonly directives: readonly DirectiveType[];
+      readonly description: string;
+    },
+    inputData: FrontmatterData[],
+    context: DirectiveProcessingContext,
+  ): Promise<StageProcessingResult> {
+    const stageStartTime = performance.now();
+    const errors: (DomainError & { message: string })[] = [];
+    let processedData = inputData;
+
+    this.domainLogger.logDebug(
+      "stage-execution",
+      `[DIRECTIVE-ORDER-DEBUG] Processing sequence: ${stage.stage}. ${stage.description}`,
+      {
+        executionId: context.executionId,
+        stage: stage.stage,
+        directives: stage.directives,
+        inputDataCount: inputData.length,
+      },
+    );
+
+    // Process each directive in the stage
+    for (const directive of stage.directives) {
+      this.domainLogger.logDebug(
+        "directive-execution",
+        `[DIRECTIVE-ORDER-DEBUG] Processing directive: ${directive}`,
+        {
+          executionId: context.executionId,
+          directive,
+          stage: stage.stage,
+          dataCount: processedData.length,
+        },
+      );
+
+      try {
+        // This is a placeholder for actual directive processing
+        // Each directive type would have its own processing logic
+        const directiveResult = await this.processDirective(
+          directive,
+          processedData,
+          context,
+        );
+
+        if (!directiveResult.ok) {
+          errors.push(directiveResult.error);
+          this.domainLogger.logError(
+            "directive-execution",
+            `[DIRECTIVE-ORDER-DEBUG] Directive ${directive} processing failed`,
+            {
+              executionId: context.executionId,
+              directive,
+              error: directiveResult.error,
+            },
+          );
+        } else {
+          processedData = directiveResult.data;
+          this.domainLogger.logDebug(
+            "directive-execution",
+            `[DIRECTIVE-ORDER-DEBUG] Directive ${directive} processing completed`,
+            {
+              executionId: context.executionId,
+              directive,
+              outputDataCount: processedData.length,
+            },
+          );
+        }
+      } catch (error) {
+        const domainError = createError(
+          {
+            kind: "InvalidType",
+            expected: "valid directive",
+            actual: directive,
+          },
+          `Unexpected error processing directive ${directive}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        );
+        errors.push(domainError);
+
+        this.domainLogger.logError(
+          "directive-execution",
+          `[DIRECTIVE-ORDER-DEBUG] Unexpected error in directive ${directive}`,
+          {
+            executionId: context.executionId,
+            directive,
+            error: domainError,
+          },
+        );
+      }
+    }
+
+    const processingTime = performance.now() - stageStartTime;
+
+    return {
+      stage: stage.stage,
+      directives: stage.directives,
+      processedData,
+      processingTime,
+      success: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Process an individual directive (placeholder implementation)
+   */
+  private processDirective(
+    directive: DirectiveType,
+    data: FrontmatterData[],
+    context: DirectiveProcessingContext,
+  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
+    // Placeholder implementation - each directive type would have specific logic
+    this.domainLogger.logDebug(
+      "directive-processing",
+      `[DIRECTIVE-ORDER-DEBUG] Processing ${directive} with ${data.length} data items`,
+      {
+        executionId: context.executionId,
+        directive,
+        dataCount: data.length,
+      },
+    );
+
+    // TODO: Implement specific processing logic for each directive type
+    // This would delegate to existing services like:
+    // - x-frontmatter-part: FrontmatterTransformationService
+    // - x-extract-from: ExtractFromProcessor
+    // - x-derived-from: DerivationProcessor
+    // - etc.
+
+    return Promise.resolve(ok(data)); // Placeholder - return data unchanged
+  }
+
+  /**
+   * Detect which directives are present in the schema
+   */
+  private detectPresentDirectives(
+    schema: Schema,
+  ): Result<readonly DirectiveType[], DomainError & { message: string }> {
+    const supportedDirectives = this.orderManager.getSupportedDirectives();
+    const presentDirectives: DirectiveType[] = [];
+
+    // TODO: Implement schema analysis to detect present directives
+    // This would involve traversing the schema and checking for x-* extensions
+    // For now, return a placeholder set
+
+    // Check for x-frontmatter-part
+    const frontmatterPartResult = schema.findFrontmatterPartSchema();
+    if (frontmatterPartResult.ok) {
+      presentDirectives.push("x-frontmatter-part");
+    }
+
+    // Check for other directives by examining schema extensions
+    // This is a simplified detection - real implementation would be more thorough
+    const schemaData = schema.getDefinition().getRawSchema();
+    if (this.hasDirectiveInSchema(schemaData, "x-extract-from")) {
+      presentDirectives.push("x-extract-from");
+    }
+    if (this.hasDirectiveInSchema(schemaData, "x-derived-from")) {
+      presentDirectives.push("x-derived-from");
+    }
+    if (this.hasDirectiveInSchema(schemaData, "x-template")) {
+      presentDirectives.push("x-template");
+    }
+    if (this.hasDirectiveInSchema(schemaData, "x-template-items")) {
+      presentDirectives.push("x-template-items");
+    }
+
+    this.domainLogger.logDebug(
+      "directive-detection",
+      `Detected ${presentDirectives.length} directives in schema`,
+      {
+        presentDirectives,
+        supportedDirectives,
+      },
+    );
+
+    return ok(presentDirectives);
+  }
+
+  /**
+   * Helper method to check if a directive exists in schema
+   */
+  private hasDirectiveInSchema(schemaData: any, directive: string): boolean {
+    const checkObject = (obj: any): boolean => {
+      if (!obj || typeof obj !== "object") {
+        return false;
+      }
+
+      if (obj[directive]) {
+        return true;
+      }
+
+      for (const value of Object.values(obj)) {
+        if (checkObject(value)) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    return checkObject(schemaData);
+  }
+
+  /**
+   * Get processing order for given directives (public interface)
+   */
+  getProcessingOrder(
+    directives: readonly DirectiveType[],
+  ): Result<ProcessingOrder, DomainError & { message: string }> {
+    return this.orderManager.determineProcessingOrder(directives);
+  }
+
+  /**
+   * Get supported directive types
+   */
+  getSupportedDirectives(): readonly DirectiveType[] {
+    return this.orderManager.getSupportedDirectives();
+  }
+}

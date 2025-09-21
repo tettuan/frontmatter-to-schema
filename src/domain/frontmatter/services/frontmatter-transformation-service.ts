@@ -312,6 +312,20 @@ export class FrontmatterTransformationService {
 
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (frontmatterPartSchemaResult.ok) {
+      // Debug: Validation rules variance coordination (Issue #905 Phase 2)
+      activeLogger?.debug(
+        "Validation rules variance - coordination with ProcessingCoordinator validation timing",
+        {
+          operation: "validation-rules-variance",
+          variancePoint: "frontmatter-part-adjustment",
+          originalRules: validationRules.getRules().length,
+          adjustmentStrategy: "array-element-schema",
+          coordinationWithProcessingCoordinator: "validation-timing-alignment",
+          expectedVariance: "high",
+          timestamp: new Date().toISOString(),
+        },
+      );
+
       activeLogger?.debug(
         "x-frontmatter-part detected, adjusting validation rules for array element schema",
         {
@@ -493,6 +507,28 @@ export class FrontmatterTransformationService {
       actualBounds = defaultBoundsResult.data;
     }
 
+    // Debug: Processing bounds variance tracking (Issue #905 Phase 2)
+    activeLogger?.debug(
+      "Processing bounds variance decision coordination",
+      {
+        operation: "processing-bounds-variance",
+        boundsSource: processingBounds
+          ? "external-provided"
+          : "factory-generated",
+        boundsType: actualBounds.kind,
+        fileCount: filesResult.data.length,
+        varianceFactors: {
+          boundsDetermination: processingBounds ? "explicit" : "dynamic",
+          memoryPrediction: actualBounds.kind === "bounded"
+            ? "constrained"
+            : "unlimited",
+          coordinationStrategy: "ProcessingCoordinator-alignment",
+        },
+        expectedVariance: processingBounds ? "low" : "medium",
+        timestamp: new Date().toISOString(),
+      },
+    );
+
     // メモリ境界監視振れ幅デバッグ情報 (メモリ管理変動制御フロー Iteration 15)
     const memoryBoundsVarianceDebug = {
       varianceTarget: "memory-bounds-monitoring-variance-control",
@@ -575,11 +611,47 @@ export class FrontmatterTransformationService {
       filesResult.data.length > 1;
     let maxWorkers = legacyOptions?.maxWorkers || 4;
 
+    // Debug: Processing strategy decision variance tracking (Issue #905 Phase 2)
+    activeLogger?.debug(
+      "Processing strategy decision point - coordination with ProcessingCoordinator",
+      {
+        operation: "transformation-strategy-variance",
+        inputPattern,
+        fileCount: filesResult.data.length,
+        processingOptionsState: processingOptionsState?.kind || "legacy",
+        initialDecision: {
+          useParallel,
+          maxWorkers,
+          decisionFactors: ["parallel-flag", "file-count-threshold"],
+        },
+        coordinationPoint: "ProcessingCoordinator-handoff",
+        timestamp: new Date().toISOString(),
+      },
+    );
+
     // Handle adaptive strategy if provided
     if (processingOptionsState?.kind === "adaptive") {
       const fileCount = filesResult.data.length;
+      const previousParallel = useParallel;
       useParallel = fileCount > processingOptionsState.maxFileThreshold;
       maxWorkers = processingOptionsState.baseWorkers;
+
+      // Debug: Adaptive strategy variance (Issue #905 Phase 2)
+      activeLogger?.debug(
+        "Adaptive processing strategy variance detected",
+        {
+          operation: "adaptive-strategy-variance",
+          strategyChange: previousParallel !== useParallel,
+          threshold: processingOptionsState.maxFileThreshold,
+          fileCount,
+          decisionChange: {
+            from: previousParallel ? "parallel" : "sequential",
+            to: useParallel ? "parallel" : "sequential",
+          },
+          varianceLevel: previousParallel !== useParallel ? "high" : "low",
+          timestamp: new Date().toISOString(),
+        },
+      );
     }
 
     // 処理戦略切り替え振れ幅デバッグ情報 (高変動箇所特定フロー Iteration 13)
