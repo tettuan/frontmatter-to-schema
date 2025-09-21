@@ -33,7 +33,7 @@ describe("ExtractFromProcessor", () => {
     }
   });
 
-  it("should return unchanged data when no directives", () => {
+  it("should return unchanged data when no directives", async () => {
     const extractor = PropertyExtractor.create();
     const processor = ExtractFromProcessor.create(extractor);
     assertEquals(processor.ok, true);
@@ -44,7 +44,7 @@ describe("ExtractFromProcessor", () => {
         "id": "123",
       });
 
-      const result = processor.data.processDirectives(testData, []);
+      const result = await processor.data.processDirectives(testData, []);
       assertEquals(result.ok, true);
       if (result.ok) {
         const titleResult = result.data.get("title");
@@ -59,7 +59,7 @@ describe("ExtractFromProcessor", () => {
     }
   });
 
-  it("should extract simple property path", () => {
+  it("should extract simple property path", async () => {
     const extractor = PropertyExtractor.create();
     const processor = ExtractFromProcessor.create(extractor);
     assertEquals(processor.ok, true);
@@ -79,7 +79,7 @@ describe("ExtractFromProcessor", () => {
       assertEquals(directive.ok, true);
 
       if (directive.ok) {
-        const result = processor.data.processDirectives(testData, [
+        const result = await processor.data.processDirectives(testData, [
           directive.data,
         ]);
         assertEquals(result.ok, true);
@@ -95,7 +95,7 @@ describe("ExtractFromProcessor", () => {
     }
   });
 
-  it("should extract from array with bracket notation", () => {
+  it("should extract from array with bracket notation", async () => {
     const extractor = PropertyExtractor.create();
     const processor = ExtractFromProcessor.create(extractor);
     assertEquals(processor.ok, true);
@@ -112,7 +112,7 @@ describe("ExtractFromProcessor", () => {
       assertEquals(directive.ok, true);
 
       if (directive.ok) {
-        const result = processor.data.processDirectives(testData, [
+        const result = await processor.data.processDirectives(testData, [
           directive.data,
         ]);
         assertEquals(result.ok, true);
@@ -134,7 +134,7 @@ describe("ExtractFromProcessor", () => {
     }
   });
 
-  it("should handle multiple directives", () => {
+  it("should handle multiple directives", async () => {
     const extractor = PropertyExtractor.create();
     const processor = ExtractFromProcessor.create(extractor);
     assertEquals(processor.ok, true);
@@ -157,7 +157,7 @@ describe("ExtractFromProcessor", () => {
       assertEquals(directive2.ok, true);
 
       if (directive1.ok && directive2.ok) {
-        const result = processor.data.processDirectives(
+        const result = await processor.data.processDirectives(
           testData,
           [directive1.data, directive2.data],
         );
@@ -177,7 +177,7 @@ describe("ExtractFromProcessor", () => {
     }
   });
 
-  it("should handle extraction errors gracefully", () => {
+  it("should handle extraction errors gracefully", async () => {
     const extractor = PropertyExtractor.create();
     const processor = ExtractFromProcessor.create(extractor);
     assertEquals(processor.ok, true);
@@ -193,12 +193,80 @@ describe("ExtractFromProcessor", () => {
       assertEquals(directive.ok, true);
 
       if (directive.ok) {
-        const result = processor.data.processDirectives(testData, [
+        const result = await processor.data.processDirectives(testData, [
           directive.data,
         ]);
         assertEquals(result.ok, false);
         if (!result.ok) {
           assertEquals(result.error.kind, "ExtractionFailed");
+        }
+      }
+    }
+  });
+
+  it("should work with optimized extractor", async () => {
+    const processor = ExtractFromProcessor.createOptimized({
+      enablePathCache: true,
+      enableExtractionCache: true,
+      enableMetrics: true,
+      maxConcurrentExtractions: 5,
+    });
+    assertEquals(processor.ok, true);
+
+    if (processor.ok) {
+      // Start with a simple test case first
+      const testData = createTestFrontmatterData({
+        "user": {
+          "name": "John Doe",
+        },
+      });
+
+      const directive = ExtractFromDirective.create("user.name");
+      assertEquals(directive.ok, true);
+
+      if (directive.ok) {
+        const result = await processor.data.processDirectives(testData, [
+          directive.data,
+        ]);
+        assertEquals(result.ok, true);
+        if (result.ok) {
+          const extractedResult = result.data.get("extracted");
+          assertEquals(extractedResult.ok, true);
+          if (extractedResult.ok) {
+            assertEquals(extractedResult.data, "John Doe");
+          }
+
+          // Check performance stats
+          const stats = processor.data.getPerformanceStats();
+          assertEquals(stats.isOptimized, true);
+          assertExists(stats.stats);
+        }
+      }
+    }
+  });
+
+  it("should provide performance metrics", async () => {
+    const processor = ExtractFromProcessor.createOptimized();
+    assertEquals(processor.ok, true);
+
+    if (processor.ok) {
+      const testData = createTestFrontmatterData({
+        "user": { "name": "John" },
+      });
+
+      const directive = ExtractFromDirective.create("user.name");
+      assertEquals(directive.ok, true);
+
+      if (directive.ok) {
+        await processor.data.processDirectives(testData, [directive.data]);
+
+        const stats = processor.data.getPerformanceStats();
+        assertEquals(stats.isOptimized, true);
+
+        if (stats.stats) {
+          assertEquals(typeof stats.stats.totalExtractions, "number");
+          assertEquals(typeof stats.stats.averageDuration, "number");
+          assertEquals(typeof stats.stats.cacheHitRate, "number");
         }
       }
     }

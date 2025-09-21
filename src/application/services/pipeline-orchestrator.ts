@@ -117,7 +117,7 @@ export class PipelineOrchestrator {
     );
     if (!schemaCoordinatorResult.ok) return err(schemaCoordinatorResult.error);
 
-    const processingCoordinatorResult = ProcessingCoordinator.create(
+    const processingCoordinatorResult = ProcessingCoordinator.createOptimized(
       frontmatterTransformer,
     );
     if (!processingCoordinatorResult.ok) {

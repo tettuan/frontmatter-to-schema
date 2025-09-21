@@ -43,8 +43,48 @@ export class ProcessingCoordinator {
     private readonly frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
+    optimizedExtractor?: boolean,
   ) {
     this.logger = logger || null;
+
+    // Use optimized extractor by default for better performance
+    if (optimizedExtractor !== false) {
+      const optimizedResult = ExtractFromProcessor.createOptimized({
+        enablePathCache: true,
+        enableExtractionCache: true,
+        enableMetrics: true,
+        maxConcurrentExtractions: 20,
+      });
+
+      if (optimizedResult.ok) {
+        this.extractFromProcessor = optimizedResult.data;
+        if (this.logger) {
+          this.logger.logDebug(
+            "extractor-optimization",
+            "Using OptimizedPropertyExtractor for enhanced performance",
+            {
+              cacheEnabled: true,
+              metricsEnabled: true,
+              maxConcurrent: 20,
+            },
+          );
+        }
+        return;
+      } else {
+        // Log warning and fall back to basic extractor
+        if (this.logger) {
+          this.logger.logDebug(
+            "extractor-fallback",
+            "Failed to create OptimizedPropertyExtractor, falling back to basic extractor",
+            {
+              error: optimizedResult.error.message,
+            },
+          );
+        }
+      }
+    }
+
+    // Fallback to basic extractor
     const result = ExtractFromProcessor.create(propertyExtractor);
     if (!result.ok) {
       throw new Error("Failed to create ExtractFromProcessor");
@@ -60,6 +100,7 @@ export class ProcessingCoordinator {
     frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
+    optimizedExtractor?: boolean,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
       return err(createError({
@@ -73,7 +114,23 @@ export class ProcessingCoordinator {
         frontmatterTransformer,
         propertyExtractor,
         logger,
+        optimizedExtractor,
       ),
+    );
+  }
+
+  /**
+   * Create ProcessingCoordinator with high-performance optimizations enabled
+   */
+  static createOptimized(
+    frontmatterTransformer: FrontmatterTransformationService,
+    logger?: DebugLogger,
+  ): Result<ProcessingCoordinator, DomainError & { message: string }> {
+    return ProcessingCoordinator.create(
+      frontmatterTransformer,
+      undefined, // Use default PropertyExtractor
+      logger,
+      true, // Enable optimized extractor
     );
   }
 
@@ -384,8 +441,48 @@ export class ProcessingCoordinator {
   /**
    * Process x-extract-from directives on frontmatter data
    * Extracts specified property paths from the data structure
+   * Enhanced with async support for optimized extractors
    */
-  processExtractFromDirectives(
+  async processExtractFromDirectives(
+    data: FrontmatterData,
+    schema: Schema,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    // Check if schema has extract-from directives
+    if (!schema.hasExtractFromDirectives()) {
+      return ok(data);
+    }
+
+    // Get extract-from directives from schema
+    const directivesResult = schema.getExtractFromDirectives();
+    if (!directivesResult.ok) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: "Failed to get extract-from directives from schema",
+      }));
+    }
+
+    // Check if we have an optimized extractor to use async processing
+    const stats = this.extractFromProcessor.getPerformanceStats();
+    if (stats.isOptimized) {
+      // Use async processing for optimized extractor
+      return await this.extractFromProcessor.processDirectives(
+        data,
+        directivesResult.data,
+      );
+    } else {
+      // Use sync processing for backward compatibility
+      return this.extractFromProcessor.processDirectivesSync(
+        data,
+        directivesResult.data,
+      );
+    }
+  }
+
+  /**
+   * Synchronous version for backward compatibility
+   * Use when you need synchronous processing or with basic extractors
+   */
+  processExtractFromDirectivesSync(
     data: FrontmatterData,
     schema: Schema,
   ): Result<FrontmatterData, DomainError & { message: string }> {
@@ -403,8 +500,8 @@ export class ProcessingCoordinator {
       }));
     }
 
-    // Process directives using ExtractFromProcessor
-    return this.extractFromProcessor.processDirectives(
+    // Use sync processing
+    return this.extractFromProcessor.processDirectivesSync(
       data,
       directivesResult.data,
     );
@@ -432,7 +529,7 @@ export class ProcessingCoordinator {
     }
 
     // Apply x-extract-from directives if present
-    const extractResult = this.processExtractFromDirectives(
+    const extractResult = await this.processExtractFromDirectives(
       processResult.data,
       schema,
     );
@@ -506,7 +603,7 @@ export class ProcessingCoordinator {
 
         const processedItems: FrontmatterData[] = [];
         for (const item of itemsResult.data) {
-          const processedItemResult = this.processExtractFromDirectives(
+          const processedItemResult = await this.processExtractFromDirectives(
             item,
             schema,
           );
