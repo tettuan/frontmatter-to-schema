@@ -2,6 +2,6 @@
 params:
   two:
     directiveType:
-      pattern: "^(analyze-deep)$"
+      pattern: "^(analyze-deep|trace-error|plan-logger|design-flow)$"
     layerType:
-      pattern: "^(project-issues)$"
+      pattern: "^(project-issues|cause-analysis|debug-strategy|reproducible-steps)$"
