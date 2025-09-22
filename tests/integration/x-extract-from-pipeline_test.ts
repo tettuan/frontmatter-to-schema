@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "jsr:@std/assert";
 import { Schema } from "../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-definition.ts";
