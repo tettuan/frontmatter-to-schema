@@ -345,7 +345,7 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "FileNotFound");
+        assertEquals(result.error.kind, "SchemaNotFound");
       }
     });
 
@@ -773,7 +773,7 @@ describe("PipelineOrchestrator", () => {
 
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "FileNotFound");
+        assertEquals(result.error.kind, "SchemaNotFound");
       }
     });
 
@@ -1185,7 +1185,7 @@ describe("PipelineOrchestrator", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         // Schema loading failure is returned directly
-        assertEquals(result.error.kind, "FileNotFound");
+        assertEquals(result.error.kind, "SchemaNotFound");
       }
     });
 

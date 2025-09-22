@@ -11,7 +11,7 @@ import { PipelineCoordinator } from "../../../../src/application/coordinators/pi
  */
 
 // Mock file system interfaces for testing
-const mockSchemaFileSystem = {
+const _mockSchemaFileSystem = {
   read: (path: string) => {
     if (path.includes("valid-schema.json")) {
       return {
@@ -83,7 +83,6 @@ const mockSchemaCache = {
 
 Deno.test("PipelineCoordinator.create - should create coordinator with valid dependencies", () => {
   const result = PipelineCoordinator.create(
-    mockSchemaFileSystem,
     mockTemplateFileSystem,
     mockFrontmatterService,
     mockTemplatePathResolver,
@@ -98,7 +97,6 @@ Deno.test("PipelineCoordinator.create - should create coordinator with valid dep
 Deno.test("PipelineCoordinator.create - should return error with null dependencies", () => {
   const result = PipelineCoordinator.create(
     null,
-    mockTemplateFileSystem,
     mockFrontmatterService,
     mockTemplatePathResolver,
     mockOutputRenderingService,
@@ -111,7 +109,6 @@ Deno.test("PipelineCoordinator.create - should return error with null dependenci
 
 Deno.test("PipelineCoordinator - should follow DDD architecture principles", () => {
   const coordinatorResult = PipelineCoordinator.create(
-    mockSchemaFileSystem,
     mockTemplateFileSystem,
     mockFrontmatterService,
     mockTemplatePathResolver,
@@ -162,7 +159,6 @@ Deno.test("PipelineCoordinator - should use discriminated unions for configurati
 Deno.test("PipelineCoordinator - should follow Totality principles", () => {
   // Test business requirement: all methods should return Result<T,E>
   const coordinatorResult = PipelineCoordinator.create(
-    mockSchemaFileSystem,
     mockTemplateFileSystem,
     mockFrontmatterService,
     mockTemplatePathResolver,

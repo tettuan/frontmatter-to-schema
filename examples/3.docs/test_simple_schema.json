@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Simple Test Schema",
+  "x-template": "index_level_template.json",
+  "properties": {
+    "version": {
+      "type": "string",
+      "default": "1.0.0"
+    },
+    "req": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "x-extract-from": "traceability[]",
+      "x-jmespath-filter": "[?id.level == 'req']",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "object",
+            "properties": {
+              "full": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

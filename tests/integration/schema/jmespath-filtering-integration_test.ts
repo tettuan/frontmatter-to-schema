@@ -89,7 +89,10 @@ describe("JMESPath Filtering Integration", () => {
 
       // Create schema processing service
       const debugLogger = new NoOpDebugLogger();
-      const schemaRepository = new FileSystemSchemaRepository(debugLogger);
+      const schemaRepository = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
       const basePropertyPopulator = new BasePropertyPopulator();
 
       const schemaProcessingServiceResult = SchemaProcessingService.create(

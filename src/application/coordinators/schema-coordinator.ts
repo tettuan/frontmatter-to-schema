@@ -2,9 +2,9 @@ import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
-import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
 import { ValidationRules } from "../../domain/schema/value-objects/validation-rules.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
+import { FileSystemSchemaRepository } from "../../infrastructure/adapters/schema-loader.ts";
 
 /**
  * File system interface for schema operations
@@ -29,7 +29,7 @@ export interface SchemaFileSystem {
  */
 export class SchemaCoordinator {
   constructor(
-    private readonly fileSystem: SchemaFileSystem,
+    private readonly schemaRepository: FileSystemSchemaRepository,
     private readonly schemaCache: SchemaCache,
   ) {}
 
@@ -38,14 +38,14 @@ export class SchemaCoordinator {
    * Following Totality principles by returning Result<T,E>
    */
   static create(
-    fileSystem: SchemaFileSystem,
+    schemaRepository: FileSystemSchemaRepository,
     schemaCache: SchemaCache,
   ): Result<SchemaCoordinator, DomainError & { message: string }> {
     // Validate dependencies
-    if (!fileSystem) {
+    if (!schemaRepository) {
       return err(createError({
         kind: "InitializationError",
-        message: "SchemaFileSystem is required",
+        message: "FileSystemSchemaRepository is required",
       }));
     }
     if (!schemaCache) {
@@ -55,11 +55,11 @@ export class SchemaCoordinator {
       }));
     }
 
-    return ok(new SchemaCoordinator(fileSystem, schemaCache));
+    return ok(new SchemaCoordinator(schemaRepository, schemaCache));
   }
 
   /**
-   * Load schema with caching support
+   * Load schema with caching support and reference resolution
    * Extracted from PipelineOrchestrator.loadSchema()
    * Following Totality principles - total function returning Result<T,E>
    */
@@ -77,52 +77,46 @@ export class SchemaCoordinator {
 
       const schemaResult = Schema.create(pathResult.data, cacheResult.data);
       if (schemaResult.ok) {
-        return schemaResult;
+        // Resolve references for cached schema
+        const resolvedResult = this.schemaRepository.resolve(schemaResult.data);
+        if (resolvedResult.ok) {
+          return resolvedResult;
+        }
+        // If resolution fails, continue with fresh load
       }
-      // If Schema creation fails, continue with fresh load
     }
 
-    // Cache miss or error - load from file system
-    const contentResult = await Promise.resolve(
-      this.fileSystem.read(schemaPath),
+    // Cache miss or error - load from repository with resolution
+    const pathResult = SchemaPath.create(schemaPath);
+    if (!pathResult.ok) {
+      return pathResult;
+    }
+
+    // Load schema using FileSystemSchemaRepository which includes resolution
+    const schemaResult = this.schemaRepository.load(pathResult.data);
+    if (!schemaResult.ok) {
+      return schemaResult;
+    }
+
+    // Resolve schema references
+    const resolvedResult = this.schemaRepository.resolve(schemaResult.data);
+    if (!resolvedResult.ok) {
+      return resolvedResult;
+    }
+
+    const resolvedSchema = resolvedResult.data;
+
+    // Cache the resolved schema definition for future use
+    const setCacheResult = await this.schemaCache.set(
+      schemaPath,
+      resolvedSchema.getDefinition(),
     );
-    if (!contentResult.ok) {
-      return contentResult;
+    if (!setCacheResult.ok) {
+      // Cache set error - continue but note the issue
+      // In production, this might warrant logging
     }
 
-    try {
-      const schemaData = JSON.parse(contentResult.data);
-
-      // Create schema path using smart constructor
-      const pathResult = SchemaPath.create(schemaPath);
-      if (!pathResult.ok) {
-        return pathResult;
-      }
-
-      // Create schema definition using smart constructor
-      const definitionResult = SchemaDefinition.create(schemaData);
-      if (!definitionResult.ok) {
-        return definitionResult;
-      }
-
-      // Cache the schema definition for future use
-      const setCacheResult = await this.schemaCache.set(
-        schemaPath,
-        definitionResult.data,
-      );
-      if (!setCacheResult.ok) {
-        // Cache set error - continue but note the issue
-        // In production, this might warrant logging
-      }
-
-      // Create schema entity using smart constructor
-      return Schema.create(pathResult.data, definitionResult.data);
-    } catch (error) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: `Failed to parse schema: ${error}`,
-      }));
-    }
+    return ok(resolvedSchema);
   }
 
   /**

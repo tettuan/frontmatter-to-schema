@@ -8,12 +8,20 @@ import {
 } from "../../domain/schema/index.ts";
 import { DenoFileReader } from "../file-system/file-reader.ts";
 import { DebugLogger } from "./debug-logger.ts";
+import { dirname, isAbsolute, join } from "@std/path";
+import { RefResolver } from "../../domain/schema/services/ref-resolver.ts";
+
+export interface FileReader {
+  read(path: string): Result<string, { message: string }>;
+}
 
 export class FileSystemSchemaRepository implements SchemaRepository {
-  private readonly fileReader = new DenoFileReader();
   private readonly schemaCache = new Map<string, Schema>();
 
-  constructor(private readonly debugLogger?: DebugLogger) {}
+  constructor(
+    private readonly fileReader: FileReader = new DenoFileReader(),
+    private readonly debugLogger?: DebugLogger,
+  ) {}
 
   load(path: SchemaPath): Result<Schema, SchemaError & { message: string }> {
     const pathStr = path.toString();
@@ -98,12 +106,56 @@ export class FileSystemSchemaRepository implements SchemaRepository {
       return schemaResult;
     }
 
-    this.schemaCache.set(pathStr, schemaResult.data);
+    // Resolve references in the loaded schema
+    const resolvedResult = this.resolve(schemaResult.data);
+    if (!resolvedResult.ok) {
+      return resolvedResult;
+    }
+
+    this.schemaCache.set(pathStr, resolvedResult.data);
     this.debugLogger?.logInfo(
       "schema-loading",
-      `Successfully loaded and cached schema: ${pathStr}`,
+      `Successfully loaded, resolved, and cached schema: ${pathStr}`,
     );
-    return schemaResult;
+    return resolvedResult;
+  }
+
+  /**
+   * Load schema with path resolution support for relative references
+   * @param path Schema path (can be relative or absolute)
+   * @param basePath Optional base path for resolving relative paths
+   */
+  loadWithContext(
+    path: SchemaPath | string,
+    basePath?: string,
+  ): Result<Schema, SchemaError & { message: string }> {
+    const pathStr = path.toString();
+
+    // Resolve relative paths against base path
+    let resolvedPath: string;
+    if (basePath && !isAbsolute(pathStr)) {
+      resolvedPath = join(dirname(basePath), pathStr);
+      this.debugLogger?.logDebug(
+        "schema-path-resolution",
+        `Resolving relative path "${pathStr}" against base "${basePath}" → "${resolvedPath}"`,
+      );
+    } else {
+      resolvedPath = pathStr;
+      this.debugLogger?.logDebug(
+        "schema-path-resolution",
+        `Using absolute path: "${resolvedPath}"`,
+      );
+    }
+
+    // Create SchemaPath from resolved path and use existing load method
+    const schemaPathResult = SchemaPath.create(resolvedPath);
+    if (!schemaPathResult.ok) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: `Invalid resolved path: ${resolvedPath}`,
+      }));
+    }
+    return this.load(schemaPathResult.data);
   }
 
   private safeJsonParse(content: string): Result<unknown, { message: string }> {
@@ -121,6 +173,69 @@ export class FileSystemSchemaRepository implements SchemaRepository {
       return ok(schema);
     }
 
-    return ok(schema);
+    // Use RefResolver for schema reference resolution
+
+    // Create a SchemaLoader adapter for this repository
+    const schemaLoader = {
+      load: (ref: string) => this.loadSchemaAsProperty(ref),
+      loadWithContext: (ref: string, basePath?: string) =>
+        this.loadSchemaAsPropertyWithContext(ref, basePath),
+    };
+
+    const refResolverResult = RefResolver.create(schemaLoader);
+    if (!refResolverResult.ok) {
+      return refResolverResult;
+    }
+
+    const definition = schema.getDefinition();
+    const schemaPath = schema.getPath().toString();
+    const resolvedResult = refResolverResult.data.resolve(
+      definition,
+      schemaPath,
+    );
+    if (!resolvedResult.ok) {
+      return resolvedResult;
+    }
+
+    return ok(schema.withResolved(resolvedResult.data));
+  }
+
+  /**
+   * Load schema and convert to SchemaProperty format for RefResolver
+   */
+  private loadSchemaAsProperty(
+    ref: string,
+  ): Result<any, SchemaError & { message: string }> {
+    const schemaPathResult = SchemaPath.create(ref);
+    if (!schemaPathResult.ok) {
+      return err(createError({
+        kind: "InvalidSchema",
+        message: `Invalid schema reference path: ${ref}`,
+      }));
+    }
+
+    const schemaResult = this.load(schemaPathResult.data);
+    if (!schemaResult.ok) {
+      return schemaResult;
+    }
+
+    const definition = schemaResult.data.getDefinition();
+    return ok(definition.getRawSchema());
+  }
+
+  /**
+   * Load schema with context and convert to SchemaProperty format for RefResolver
+   */
+  private loadSchemaAsPropertyWithContext(
+    ref: string,
+    basePath?: string,
+  ): Result<any, SchemaError & { message: string }> {
+    const schemaResult = this.loadWithContext(ref, basePath);
+    if (!schemaResult.ok) {
+      return schemaResult;
+    }
+
+    const definition = schemaResult.data.getDefinition();
+    return ok(definition.getRawSchema());
   }
 }

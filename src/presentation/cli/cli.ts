@@ -131,7 +131,7 @@ export class CLI {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
     const fileLister = new DenoFileLister();
-    const schemaRepository = new FileSystemSchemaRepository();
+    const schemaRepository = new FileSystemSchemaRepository(fileReader);
 
     const frontmatterExtractor = new YamlFrontmatterExtractor();
     const frontmatterParser = new JsonFrontmatterParser();

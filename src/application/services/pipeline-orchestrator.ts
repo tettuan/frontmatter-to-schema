@@ -6,6 +6,7 @@ import { SchemaProcessingService } from "../../domain/schema/services/schema-pro
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
+import { FileSystemSchemaRepository } from "../../infrastructure/adapters/schema-loader.ts";
 import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
 import { ProcessingCoordinator } from "../coordinators/processing-coordinator.ts";
 import { TemplateCoordinator } from "../coordinators/template-coordinator.ts";
@@ -123,8 +124,23 @@ export class PipelineOrchestrator {
     }
 
     // Initialize coordinators
+    // Create FileSystemSchemaRepository for schema loading with reference resolution
+    // Adapt the fileSystem interface to FileReader interface
+    const fileReader = {
+      read: (path: string) => {
+        const result = fileSystem.read(path);
+        if (result instanceof Promise) {
+          throw new Error(
+            "Synchronous file reading expected in schema repository",
+          );
+        }
+        return result;
+      },
+    };
+    const schemaRepository = new FileSystemSchemaRepository(fileReader);
+
     const schemaCoordinatorResult = SchemaCoordinator.create(
-      fileSystem,
+      schemaRepository,
       schemaCache,
     );
     if (!schemaCoordinatorResult.ok) return err(schemaCoordinatorResult.error);

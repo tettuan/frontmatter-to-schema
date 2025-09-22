@@ -5,7 +5,8 @@ import { FrontmatterTransformationService } from "../../domain/frontmatter/servi
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
-import { SchemaCoordinator, SchemaFileSystem } from "./schema-coordinator.ts";
+import { FileSystemSchemaRepository } from "../../infrastructure/adapters/schema-loader.ts";
+import { SchemaCoordinator } from "./schema-coordinator.ts";
 import {
   ProcessingCoordinator,
   ProcessingOptions,
@@ -58,16 +59,18 @@ export class PipelineCoordinator {
    * Following Totality principles by returning Result<T,E>
    */
   static create(
-    schemaFileSystem: SchemaFileSystem,
     templateFileSystem: TemplateFileSystem,
     frontmatterTransformationService: FrontmatterTransformationService,
     templatePathResolver: TemplatePathResolver,
     outputRenderingService: OutputRenderingService,
     schemaCache: SchemaCache,
   ): Result<PipelineCoordinator, DomainError & { message: string }> {
+    // Create schema repository for schema loading with reference resolution
+    const schemaRepository = new FileSystemSchemaRepository();
+
     // Create schema coordinator
     const schemaCoordinatorResult = SchemaCoordinator.create(
-      schemaFileSystem,
+      schemaRepository,
       schemaCache,
     );
     if (!schemaCoordinatorResult.ok) {

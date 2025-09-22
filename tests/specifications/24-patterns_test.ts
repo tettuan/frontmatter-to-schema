@@ -746,7 +746,7 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, false);
       if (!result.ok) {
-        assertEquals(result.error.kind, "FileNotFound");
+        assertEquals(result.error.kind, "SchemaNotFound");
       }
     });
 

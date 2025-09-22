@@ -398,6 +398,9 @@ describe("FileSystemSchemaRepository", () => {
       assertEquals(loadResult.ok, true);
       if (!loadResult.ok) return;
 
+      // Schema is now automatically resolved during load
+      assertEquals(loadResult.data.isResolved(), true);
+
       // Act
       const resolveResult = repository.resolve(loadResult.data);
 
@@ -478,7 +481,10 @@ describe("FileSystemSchemaRepository", () => {
     it("should work with NoOpDebugLogger", async () => {
       // Arrange
       const debugLogger = new NoOpDebugLogger();
-      const repositoryWithLogger = new FileSystemSchemaRepository(debugLogger);
+      const repositoryWithLogger = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
 
       const schemaPath = `${testDir}/debug-test-schema.json`;
       const schema = { type: "object", properties: { id: { type: "string" } } };
@@ -505,7 +511,10 @@ describe("FileSystemSchemaRepository", () => {
       Deno.env.set("DEBUG_LEVEL", "3"); // Enable DEBUG level
 
       const debugLogger = new ConsoleDebugLogger();
-      const repositoryWithLogger = new FileSystemSchemaRepository(debugLogger);
+      const repositoryWithLogger = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
 
       const schemaPath = `${testDir}/console-debug-schema.json`;
       const schema = {
@@ -543,7 +552,10 @@ describe("FileSystemSchemaRepository", () => {
       Deno.env.set("DEBUG_LEVEL", "3"); // Enable DEBUG level
 
       const debugLogger = new ConsoleDebugLogger();
-      const repositoryWithLogger = new FileSystemSchemaRepository(debugLogger);
+      const repositoryWithLogger = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
 
       const schemaPath = `${testDir}/cache-hit-debug-schema.json`;
       const schema = {
@@ -584,7 +596,10 @@ describe("FileSystemSchemaRepository", () => {
       Deno.env.set("DEBUG_LEVEL", "0"); // Enable ERROR level
 
       const debugLogger = new ConsoleDebugLogger();
-      const repositoryWithLogger = new FileSystemSchemaRepository(debugLogger);
+      const repositoryWithLogger = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
 
       try {
         // Act
@@ -616,7 +631,10 @@ describe("FileSystemSchemaRepository", () => {
       Deno.env.set("DEBUG_LEVEL", "0"); // Enable ERROR level
 
       const debugLogger = new ConsoleDebugLogger();
-      const repositoryWithLogger = new FileSystemSchemaRepository(debugLogger);
+      const repositoryWithLogger = new FileSystemSchemaRepository(
+        undefined,
+        debugLogger,
+      );
 
       const schemaPath = `${testDir}/invalid-json-debug.json`;
       const invalidJson = "{ invalid json content without closing brace";
@@ -947,10 +965,11 @@ describe("FileSystemSchemaRepository", () => {
 
       const result = repository.load(pathResult.data);
 
-      // Assert
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        assertExists(result.data);
+      // Assert - Self-referencing schema should now fail with reference resolution failure
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        // Should fail with reference resolution error
+        assertEquals(result.error.kind, "RefResolutionFailed");
       }
     });
 
@@ -1068,13 +1087,16 @@ describe("FileSystemSchemaRepository", () => {
       assertEquals(loadResult.ok, true);
       if (!loadResult.ok) return;
 
+      // Schema is now automatically resolved during load
+      assertEquals(loadResult.data.isResolved(), true);
+
       // Act
       const resolveResult = repository.resolve(loadResult.data);
 
       // Assert
       assertEquals(resolveResult.ok, true);
       if (resolveResult.ok) {
-        // Currently resolve just returns the schema as-is
+        // Schema is already resolved, so resolve returns the same instance
         assertEquals(resolveResult.data, loadResult.data);
       }
     });
@@ -1095,6 +1117,9 @@ describe("FileSystemSchemaRepository", () => {
       assertEquals(loadResult.ok, true);
       if (!loadResult.ok) return;
 
+      // Schema is now automatically resolved during load
+      assertEquals(loadResult.data.isResolved(), true);
+
       // Act
       const resolveResult1 = repository.resolve(loadResult.data);
       const resolveResult2 = repository.resolve(loadResult.data);
@@ -1103,7 +1128,7 @@ describe("FileSystemSchemaRepository", () => {
       assertEquals(resolveResult1.ok, true);
       assertEquals(resolveResult2.ok, true);
       if (resolveResult1.ok && resolveResult2.ok) {
-        // Both resolve calls should return the same schema instance
+        // Both resolve calls should return the same schema instance since it's already resolved
         assertEquals(resolveResult1.data, resolveResult2.data);
         assertEquals(resolveResult1.data, loadResult.data);
       }

@@ -501,7 +501,7 @@ describe("PipelineOrchestrator Integration Tests", () => {
     // Assert error handling
     assertEquals(result.ok, false);
     if (!result.ok) {
-      assertEquals(result.error.kind, "PathNotFound");
+      assertEquals(result.error.kind, "SchemaNotFound");
     }
   });
 
