@@ -376,7 +376,8 @@ export class ExtractFromProcessor {
       return err(createError({
         kind: "ExtractionFailed",
         path: directive.getTargetPath(),
-        message: `Failed to build frontmatter after applying directive '${directive.getTargetPath()}'`,
+        message:
+          `Failed to build frontmatter after applying directive '${directive.getTargetPath()}'`,
       }));
     }
 
@@ -389,7 +390,9 @@ export class ExtractFromProcessor {
     value: unknown,
   ): Result<void, DomainError & { message: string }> {
     const segments = directive.getTargetSegments();
-    const normalizedSegments = segments.map((segment) => segment.replace("[]", ""));
+    const normalizedSegments = segments.map((segment) =>
+      segment.replace("[]", "")
+    );
 
     this.setNestedProperty(rawData, normalizedSegments, value);
     return ok(undefined);
@@ -409,7 +412,8 @@ export class ExtractFromProcessor {
         kind: "InvalidFormat",
         format: "extract-from-target-path",
         value: directive.getTargetPath(),
-        message: `Target path '${directive.getTargetPath()}' must specify a property before array notation`,
+        message:
+          `Target path '${directive.getTargetPath()}' must specify a property before array notation`,
       }));
     }
 
@@ -424,8 +428,8 @@ export class ExtractFromProcessor {
     const valuesArray = Array.isArray(value)
       ? value
       : value === undefined || value === null
-        ? []
-        : [value];
+      ? []
+      : [value];
 
     if (postSegments.length === 0) {
       parent[arrayKey] = valuesArray;
@@ -435,7 +439,9 @@ export class ExtractFromProcessor {
     for (let i = 0; i < valuesArray.length; i++) {
       const itemValue = valuesArray[i];
       const existing = targetArray[i];
-      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+      if (
+        !existing || typeof existing !== "object" || Array.isArray(existing)
+      ) {
         targetArray[i] = {};
       }
 
@@ -456,7 +462,9 @@ export class ExtractFromProcessor {
     let current = root;
     for (const segment of segments) {
       const existing = current[segment];
-      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+      if (
+        !existing || typeof existing !== "object" || Array.isArray(existing)
+      ) {
         current[segment] = {};
       }
       current = current[segment] as Record<string, unknown>;
@@ -477,7 +485,9 @@ export class ExtractFromProcessor {
     for (let i = 0; i < segments.length - 1; i++) {
       const segment = segments[i];
       const existing = current[segment];
-      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+      if (
+        !existing || typeof existing !== "object" || Array.isArray(existing)
+      ) {
         current[segment] = {};
       }
       current = current[segment] as Record<string, unknown>;

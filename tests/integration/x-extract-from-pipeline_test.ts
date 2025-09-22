@@ -3,8 +3,6 @@ import { Schema } from "../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-definition.ts";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
-import { ProcessingCoordinator } from "../../src/application/coordinators/processing-coordinator.ts";
-import { DirectiveProcessor } from "../../src/application/services/directive-processor.ts";
 import { ExtractFromProcessor } from "../../src/domain/schema/services/extract-from-processor.ts";
 
 Deno.test("x-extract-from pipeline integration", async (t) => {
@@ -17,10 +15,10 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
           "type": "array",
           "x-extract-from": "data.nested[].value",
           "items": {
-            "type": "string"
-          }
-        }
-      }
+            "type": "string",
+          },
+        },
+      },
     };
 
     const frontmatterData = {
@@ -28,9 +26,9 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         nested: [
           { value: "first", other: "data1" },
           { value: "second", other: "data2" },
-          { value: "third", other: "data3" }
-        ]
-      }
+          { value: "third", other: "data3" },
+        ],
+      },
     };
 
     // Create schema
@@ -64,12 +62,15 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
     if (!directivesResult.ok) return;
 
     assertEquals(directivesResult.data.length, 1);
-    assertEquals(directivesResult.data[0].targetPath, "items");
-    assertEquals(directivesResult.data[0].sourcePath, "data.nested[].value");
+    assertEquals(directivesResult.data[0].getTargetPath(), "items");
+    assertEquals(
+      directivesResult.data[0].getSourcePath(),
+      "data.nested[].value",
+    );
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
@@ -89,18 +90,18 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
           "x-extract-from": "sources[]",
           "x-merge-arrays": true,
           "items": {
-            "type": "object"
-          }
-        }
-      }
+            "type": "object",
+          },
+        },
+      },
     };
 
     const frontmatterData = {
       sources: [
         { id: 1, name: "first" },
-        { id: 2, name: "second" }
+        { id: 2, name: "second" },
       ],
-      other: "data"
+      other: "data",
     };
 
     // Create schema
@@ -130,20 +131,20 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
     assertEquals(directivesResult.ok, true);
     if (!directivesResult.ok) return;
 
-    assertEquals(directivesResult.data[0].mergeArrays, true);
+    assertEquals(directivesResult.data[0].shouldMergeArrays(), true);
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
 
     const extractedData = extractResult.data.getData();
     assertEquals(Array.isArray(extractedData.combined), true);
-    assertEquals(extractedData.combined.length, 2);
-    assertEquals(extractedData.combined[0].id, 1);
-    assertEquals(extractedData.combined[1].id, 2);
+    assertEquals((extractedData.combined as any[]).length, 2);
+    assertEquals((extractedData.combined as any[])[0].id, 1);
+    assertEquals((extractedData.combined as any[])[1].id, 2);
   });
 
   await t.step("should handle multiple x-extract-from directives", () => {
@@ -154,21 +155,21 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         "names": {
           "type": "array",
           "x-extract-from": "users[].name",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
         },
         "emails": {
           "type": "array",
           "x-extract-from": "users[].email",
-          "items": { "type": "string" }
-        }
-      }
+          "items": { "type": "string" },
+        },
+      },
     };
 
     const frontmatterData = {
       users: [
         { name: "Alice", email: "alice@example.com" },
-        { name: "Bob", email: "bob@example.com" }
-      ]
+        { name: "Bob", email: "bob@example.com" },
+      ],
     };
 
     // Create schema
@@ -202,14 +203,17 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
 
     const extractedData = extractResult.data.getData();
-    assertEquals(extractedData.names, ["Alice", "Bob"]);
-    assertEquals(extractedData.emails, ["alice@example.com", "bob@example.com"]);
+    assertEquals(extractedData.names as string[], ["Alice", "Bob"]);
+    assertEquals(extractedData.emails as string[], [
+      "alice@example.com",
+      "bob@example.com",
+    ]);
   });
 
   await t.step("should handle empty arrays in extraction", () => {
@@ -220,14 +224,14 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         "items": {
           "type": "array",
           "x-extract-from": "empty[]",
-          "items": { "type": "string" }
-        }
-      }
+          "items": { "type": "string" },
+        },
+      },
     };
 
     const frontmatterData = {
       empty: [],
-      other: "data"
+      other: "data",
     };
 
     // Create schema
@@ -259,14 +263,14 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
 
     const extractedData = extractResult.data.getData();
     assertEquals(Array.isArray(extractedData.items), true);
-    assertEquals(extractedData.items.length, 0);
+    assertEquals((extractedData.items as any[]).length, 0);
   });
 
   await t.step("should handle missing source paths gracefully", () => {
@@ -277,13 +281,13 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         "items": {
           "type": "array",
           "x-extract-from": "nonexistent.path[]",
-          "items": { "type": "string" }
-        }
-      }
+          "items": { "type": "string" },
+        },
+      },
     };
 
     const frontmatterData = {
-      other: "data"
+      other: "data",
     };
 
     // Create schema
@@ -315,14 +319,14 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
 
     const extractedData = extractResult.data.getData();
     assertEquals(Array.isArray(extractedData.items), true);
-    assertEquals(extractedData.items.length, 0);
+    assertEquals((extractedData.items as any[]).length, 0);
   });
 
   await t.step("should handle null and undefined values", () => {
@@ -333,9 +337,9 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         "values": {
           "type": "array",
           "x-extract-from": "data[].value",
-          "items": { "type": "string" }
-        }
-      }
+          "items": { "type": "string" },
+        },
+      },
     };
 
     const frontmatterData = {
@@ -344,8 +348,8 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         { value: null },
         { other: "no-value" },
         { value: undefined },
-        { value: "last" }
-      ]
+        { value: "last" },
+      ],
     };
 
     // Create schema
@@ -377,7 +381,7 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
@@ -385,10 +389,11 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
     const extractedData = extractResult.data.getData();
     assertEquals(Array.isArray(extractedData.values), true);
     // Should only include non-null/undefined values
-    assertEquals(extractedData.values.includes("first"), true);
-    assertEquals(extractedData.values.includes("last"), true);
-    assertEquals(extractedData.values.includes(null), true); // null is preserved
-    assertEquals(extractedData.values.includes(undefined), false); // undefined is filtered
+    const values = extractedData.values as any[];
+    assertEquals(values.includes("first"), true);
+    assertEquals(values.includes("last"), true);
+    assertEquals(values.includes(null), true); // null is preserved
+    assertEquals(values.includes(undefined), false); // undefined is filtered
   });
 
   await t.step("should handle complex nested structures", () => {
@@ -399,9 +404,9 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
         "ids": {
           "type": "array",
           "x-extract-from": "data.level1[].level2[].id",
-          "items": { "type": "string" }
-        }
-      }
+          "items": { "type": "string" },
+        },
+      },
     };
 
     const frontmatterData = {
@@ -410,17 +415,17 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
           {
             level2: [
               { id: "1-1", name: "item-1-1" },
-              { id: "1-2", name: "item-1-2" }
-            ]
+              { id: "1-2", name: "item-1-2" },
+            ],
           },
           {
             level2: [
               { id: "2-1", name: "item-2-1" },
-              { id: "2-2", name: "item-2-2" }
-            ]
-          }
-        ]
-      }
+              { id: "2-2", name: "item-2-2" },
+            ],
+          },
+        ],
+      },
     };
 
     // Create schema
@@ -452,7 +457,7 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     assertEquals(extractResult.ok, true);
     if (!extractResult.ok) return;
@@ -462,7 +467,7 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
     // Note: The path data.level1[].level2[].id doesn't work as expected
     // This would require more complex path parsing
     // For now, just verify it creates an empty array
-    assertEquals(extractedData.ids.length, 0);
+    assertEquals((extractedData.ids as any[]).length, 0);
   });
 });
 
@@ -474,9 +479,9 @@ Deno.test("x-extract-from performance", async (t) => {
         name: `name-${i}`,
         value: i,
         nested: {
-          data: `nested-${i}`
-        }
-      }))
+          data: `nested-${i}`,
+        },
+      })),
     };
 
     const schemaData = {
@@ -486,14 +491,14 @@ Deno.test("x-extract-from performance", async (t) => {
         "ids": {
           "type": "array",
           "x-extract-from": "items[].id",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
         },
         "values": {
           "type": "array",
           "x-extract-from": "items[].value",
-          "items": { "type": "number" }
-        }
-      }
+          "items": { "type": "number" },
+        },
+      },
     };
 
     // Create schema
@@ -526,7 +531,7 @@ Deno.test("x-extract-from performance", async (t) => {
     const startTime = performance.now();
     const extractResult = extractFromProcessor.processDirectivesSync(
       dataResult.data,
-      directivesResult.data
+      directivesResult.data,
     );
     const endTime = performance.now();
 
@@ -534,11 +539,15 @@ Deno.test("x-extract-from performance", async (t) => {
     if (!extractResult.ok) return;
 
     const extractedData = extractResult.data.getData();
-    assertEquals(extractedData.ids.length, 1000);
-    assertEquals(extractedData.values.length, 1000);
+    assertEquals((extractedData.ids as any[]).length, 1000);
+    assertEquals((extractedData.values as any[]).length, 1000);
 
     // Performance assertion: should complete within reasonable time
     const processingTime = endTime - startTime;
-    assertEquals(processingTime < 1000, true, `Processing took ${processingTime}ms`);
+    assertEquals(
+      processingTime < 1000,
+      true,
+      `Processing took ${processingTime}ms`,
+    );
   });
 });

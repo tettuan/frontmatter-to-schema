@@ -135,7 +135,7 @@ describe("ExtractFromProcessor", () => {
 
   it("skips updates when source value is undefined for non-array targets", async () => {
     const frontmatter = createFrontmatter({ title: "Default" });
-    const directive = createDirective("title", "missing" );
+    const directive = createDirective("title", "missing");
     const processor = createProcessor();
 
     const result = await processor.processDirectives(frontmatter, [directive]);

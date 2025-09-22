@@ -18,7 +18,8 @@ outputs:
 
 ## 目的
 
-Issue #941で特定されたProcessingCoordinator内の重複コードパターンを体系的にリファクタリングし、DRY原則に準拠した実装に改善する。
+Issue
+#941で特定されたProcessingCoordinator内の重複コードパターンを体系的にリファクタリングし、DRY原則に準拠した実装に改善する。
 
 ## 前提条件
 
@@ -54,8 +55,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
    grep -r "ProcessingCoordinator" src/ --include="*.ts" | wc -l
    ```
 
-期待される結果: 4つのメソッドで同一パターン確認、依存箇所リスト出力
-{/xml:step}
+期待される結果: 4つのメソッドで同一パターン確認、依存箇所リスト出力 {/xml:step}
 
 ### ステップ2: デバッグ環境設定
 
@@ -77,6 +77,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
    ```bash
    git checkout -b refactor/issue-941-dry-principle
    ```
+
 {/xml:step}
 
 ### ステップ3: 段階的リファクタリング計画
@@ -98,6 +99,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
    ```bash
    grep -l "processDocumentsWithFullExtraction\|processDocumentsWithExtractFrom" tests/**/*_test.ts
    ```
+
 {/xml:step}
 
 ### ステップ4: リファクタリング実装
@@ -110,7 +112,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
    abstract class ProcessingBase {
      protected async executeWithProcessing<T>(
        processFunc: () => Promise<Result<FrontmatterData, DomainError>>,
-       postProcess: (data: FrontmatterData) => Promise<Result<T, DomainError>>
+       postProcess: (data: FrontmatterData) => Promise<Result<T, DomainError>>,
      ): Promise<Result<T, DomainError>> {
        const result = await processFunc();
        if (!result.ok) return result;
@@ -132,6 +134,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
      return result.data;
    };
    ```
+
 {/xml:step}
 
 ### ステップ5: 検証と品質確認
@@ -160,6 +163,7 @@ Issue #941で特定されたProcessingCoordinator内の重複コードパター�
    # After
    wc -l src/application/coordinators/processing-coordinator.ts
    ```
+
 {/xml:step}
 
 ## 出力

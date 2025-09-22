@@ -66,7 +66,8 @@ outputs:
    - 実態: ProcessingCoordinatorの7メソッド
    - 特殊化: 各メソッドが個別のケースに対応
 3. 乖離度測定:
-   - 実行コマンド: `wc -l src/application/coordinators/processing-coordinator.ts`
+   - 実行コマンド:
+     `wc -l src/application/coordinators/processing-coordinator.ts`
    - 確認ポイント: 1208行の大規模クラス、80%共通ロジック {/xml:step}
 
 ### ステップ4: Schema変更影響範囲評価
@@ -145,7 +146,8 @@ outputs:
 
 - **症状**: 抽象化レベルの評価ができない
 - **原因**: 一般解の期待仕様が不明確
-- **解決策**: `docs/requirements.ja.md`の「抽象度に即して一般解として設計」要求を基準とする
+- **解決策**:
+  `docs/requirements.ja.md`の「抽象度に即して一般解として設計」要求を基準とする
 
 #### 問題2: 設計品質指標の定量化が困難
 

@@ -18,7 +18,8 @@ outputs:
 
 ## 目的
 
-ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定し、DRY原則違反と特殊解実装パターンの根本原因を分析する。7つの処理メソッドの重複とprocessDocumentsWithFullExtraction()の3つの処理パス分岐による不確定性を解決する。
+ProcessingCoordinatorの処理フロー振れ幅問題（Issue
+#941）を特定し、DRY原則違反と特殊解実装パターンの根本原因を分析する。7つの処理メソッドの重複とprocessDocumentsWithFullExtraction()の3つの処理パス分岐による不確定性を解決する。
 
 ## 前提条件
 
@@ -44,7 +45,8 @@ ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定�
    `rg "async.*process.*\(" src/application/coordinators/processing-coordinator.ts -A 1`
 2. HIGH-VARIANCE DEBUG POINTの実装確認:
    `rg "HIGH-VARIANCE-DETECTION" src/application/coordinators/processing-coordinator.ts -A 5 -B 5`
-3. 期待される結果: 3つの処理完了パス（DirectiveProcessor/frontmatter-part only/単一パス）が確認できる {/xml:step}
+3. 期待される結果: 3つの処理完了パス（DirectiveProcessor/frontmatter-part
+   only/単一パス）が確認できる {/xml:step}
 
 ### ステップ2: デバッグ環境設定
 
@@ -54,20 +56,25 @@ ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定�
    `export LOG_KEY=workflow-debug-processing-coordinator-variance LOG_LEVEL=debug`
 2. BreakdownLogger有効化確認: `echo "Debug session: $LOG_KEY"`
 3. 出力先ディレクトリ確認: `mkdir -p tmp/`
-4. 要求仕様確認: `grep -A 5 "特定のパターンのみでハードコーディング" docs/requirements.ja.md` {/xml:step}
+4. 要求仕様確認:
+   `grep -A 5 "特定のパターンのみでハードコーディング" docs/requirements.ja.md`
+   {/xml:step}
 
 ### ステップ3: 重複パターン分析
 
 {xml:step id="step3" type="investigation"}
 
 1. 7つの処理メソッドの共通ロジック特定:
-   - 実行コマンド: `rg "if \(!.*\.ok\)" src/application/coordinators/processing-coordinator.ts --count`
+   - 実行コマンド:
+     `rg "if \(!.*\.ok\)" src/application/coordinators/processing-coordinator.ts --count`
    - 確認ポイント: 同一エラーハンドリングパターンの出現回数
 2. FrontmatterData.create()重複確認:
-   - 実行コマンド: `rg "FrontmatterData\.create\(" src/application/coordinators/processing-coordinator.ts -n`
+   - 実行コマンド:
+     `rg "FrontmatterData\.create\(" src/application/coordinators/processing-coordinator.ts -n`
    - 確認ポイント: 同一作成パターンの重複箇所
 3. ログ出力重複確認:
-   - 実行コマンド: `rg "this\.logger\?\." src/application/coordinators/processing-coordinator.ts --count`
+   - 実行コマンド:
+     `rg "this\.logger\?\." src/application/coordinators/processing-coordinator.ts --count`
    - 確認ポイント: 類似ログパターンの分散状況 {/xml:step}
 
 ### ステップ4: 処理パス分岐実行テスト
@@ -77,7 +84,8 @@ ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定�
 1. 各処理パスの実行確認:
    `deno test tests/unit/application/coordinators/processing-coordinator_test.ts --filter "comprehensive" --allow-all`
 2. デバッグ出力分析: HIGH-VARIANCE DEBUG POINTからの出力確認
-3. 振れ幅測定: 3つの完了パス（DirectiveProcessor使用/frontmatter-part only/単一パス）の実行時間・メモリ使用量比較
+3. 振れ幅測定: 3つの完了パス（DirectiveProcessor使用/frontmatter-part
+   only/単一パス）の実行時間・メモリ使用量比較
 4. 特殊解パターン確認: if文による条件分岐のハードコーディング調査 {/xml:step}
 
 ### ステップ5: 一般解設計検証
@@ -122,7 +130,8 @@ ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定�
 
 #### 問題2: 処理パス分岐の特定が困難
 
-- **症状**: 3つの完了パス（DirectiveProcessor/frontmatter-part only/単一パス）の区別ができない
+- **症状**: 3つの完了パス（DirectiveProcessor/frontmatter-part
+  only/単一パス）の区別ができない
 - **原因**: ログレベルが適切に設定されていない
 - **解決策**: `LOG_LEVEL=debug`を設定し、variance-debug-pointカテゴリを有効化
 
@@ -130,4 +139,5 @@ ProcessingCoordinatorの処理フロー振れ幅問題（Issue #941）を特定�
 
 - **症状**: 特殊解実装が要求違反かどうかの判定が曖昧
 - **原因**: 要求仕様の「一般解として設計」の基準が不明確
-- **解決策**: docs/requirements.ja.mdの「特定のパターンのみでハードコーディング禁止」を具体的基準として適用
+- **解決策**:
+  docs/requirements.ja.mdの「特定のパターンのみでハードコーディング禁止」を具体的基準として適用

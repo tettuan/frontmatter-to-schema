@@ -2,8 +2,8 @@ import { describe, it } from "jsr:@std/testing@^1.0.5/bdd";
 import { assert, assertEquals } from "jsr:@std/assert@^1.0.7";
 import {
   LegacySchemaProperty,
-  SchemaPropertyMigration,
   SchemaPropertyLegacyAdapter,
+  SchemaPropertyMigration,
 } from "../../../../../src/domain/schema/value-objects/schema-property-migration.ts";
 import { defaultSchemaExtensionRegistry } from "../../../../../src/domain/schema/value-objects/schema-extension-registry.ts";
 import {
@@ -21,7 +21,10 @@ describe("SchemaPropertyMigration", () => {
     };
 
     const migrationResult = SchemaPropertyMigration.migrate(legacy);
-    assert(migrationResult.ok, migrationResult.ok ? undefined : migrationResult.error.message);
+    assert(
+      migrationResult.ok,
+      migrationResult.ok ? undefined : migrationResult.error.message,
+    );
     if (!migrationResult.ok) return;
 
     const migrated = migrationResult.data;
@@ -34,7 +37,10 @@ describe("SchemaPropertyMigration", () => {
 
     assert(SchemaPropertyUtils.hasExtractFrom(migrated));
     const extractValue = SchemaPropertyUtils.getExtractFrom(migrated);
-    assert(extractValue.ok, extractValue.ok ? undefined : extractValue.error.message);
+    assert(
+      extractValue.ok,
+      extractValue.ok ? undefined : extractValue.error.message,
+    );
     if (extractValue.ok) {
       assertEquals(extractValue.data, "traceability[]");
     }

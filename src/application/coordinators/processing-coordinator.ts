@@ -137,8 +137,14 @@ export class ProcessingCoordinator {
    * @internal
    */
   private async processWithPipeline<TInput, TOutput>(
-    baseProcessor: () => Promise<Result<TInput, DomainError & { message: string }>>,
-    transformers: Array<(input: TInput) => Promise<Result<TOutput, DomainError & { message: string }>>>,
+    baseProcessor: () => Promise<
+      Result<TInput, DomainError & { message: string }>
+    >,
+    transformers: Array<
+      (
+        input: TInput,
+      ) => Promise<Result<TOutput, DomainError & { message: string }>>
+    >,
   ): Promise<Result<TOutput, DomainError & { message: string }>> {
     const baseResult = await baseProcessor();
 
@@ -146,7 +152,9 @@ export class ProcessingCoordinator {
       return baseResult as Result<TOutput, DomainError & { message: string }>;
     }
 
-    let currentResult: Result<any, DomainError & { message: string }> = ok(baseResult.data);
+    let currentResult: Result<any, DomainError & { message: string }> = ok(
+      baseResult.data,
+    );
 
     for (const transformer of transformers) {
       currentResult = await ResultValidator.chainOrReturn(
@@ -459,13 +467,13 @@ export class ProcessingCoordinator {
 
         if (hasFrontmatterPart) {
           const itemsResult = this.extractFrontmatterPartData(mainData, schema);
-          return ResultValidator.mapOrReturn(
+          return await Promise.resolve(ResultValidator.mapOrReturn(
             itemsResult,
             (itemsData) => ({ mainData, itemsData }),
-          );
+          ));
         }
 
-        return ok({ mainData });
+        return await Promise.resolve(ok({ mainData }));
       },
     );
   }
@@ -489,15 +497,15 @@ export class ProcessingCoordinator {
     if (!directivesResult.ok) {
       this.logger?.logError(
         "extract-from-directives",
-        "Failed to get extract-from directives",
+        directivesResult.error,
         {
-          error: directivesResult.error,
           schemaPath: schema.getPath().toString(),
         },
       );
       return err(createError({
         kind: "InvalidSchema",
-        message: `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
+        message:
+          `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
       }));
     }
 
@@ -536,15 +544,15 @@ export class ProcessingCoordinator {
     if (!directivesResult.ok) {
       this.logger?.logError(
         "extract-from-directives",
-        "Failed to get extract-from directives",
+        directivesResult.error,
         {
-          error: directivesResult.error,
           schemaPath: schema.getPath().toString(),
         },
       );
       return err(createError({
         kind: "InvalidSchema",
-        message: `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
+        message:
+          `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
       }));
     }
 
@@ -576,7 +584,7 @@ export class ProcessingCoordinator {
     // Apply x-extract-from directives if present
     return ResultValidator.chainOrReturn(
       processResult,
-      async (data) => this.processExtractFromDirectives(data, schema),
+      async (data) => await this.processExtractFromDirectives(data, schema),
     );
   }
 
@@ -596,7 +604,9 @@ export class ProcessingCoordinator {
     }, DomainError & { message: string }>
   > {
     // HIGH-VARIANCE DEBUG POINT: Track directive processing order variance
-    const processingVarianceDebugId = `processing-variance-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const processingVarianceDebugId = `processing-variance-${Date.now()}-${
+      Math.random().toString(36).substring(2, 9)
+    }`;
     const startTime = performance.now();
 
     this.logger?.logDebug(
@@ -733,7 +743,8 @@ export class ProcessingCoordinator {
           "variance-debug-point",
           "[HIGH-VARIANCE-DETECTION] Processing completed with DirectiveProcessor - Variance analysis",
           {
-            debugPoint: "processDocumentsWithFullExtraction-directive-processor-completion",
+            debugPoint:
+              "processDocumentsWithFullExtraction-directive-processor-completion",
             processingVarianceDebugId,
             processingPath: "frontmatter-part-with-directive-processor",
             totalProcessingTime,
@@ -769,7 +780,8 @@ export class ProcessingCoordinator {
         "variance-debug-point",
         "[HIGH-VARIANCE-DETECTION] Processing completed with frontmatter-part only - Variance analysis",
         {
-          debugPoint: "processDocumentsWithFullExtraction-frontmatter-part-only-completion",
+          debugPoint:
+            "processDocumentsWithFullExtraction-frontmatter-part-only-completion",
           processingVarianceDebugId,
           processingPath: "frontmatter-part-without-directive-processor",
           totalProcessingTime,
@@ -786,7 +798,8 @@ export class ProcessingCoordinator {
             totalProcessingTime,
           },
           varianceRisk: "medium",
-          reason: "No x-extract-from on items, completing frontmatter-part processing",
+          reason:
+            "No x-extract-from on items, completing frontmatter-part processing",
         },
       );
 

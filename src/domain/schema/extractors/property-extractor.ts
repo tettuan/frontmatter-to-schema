@@ -87,7 +87,7 @@ export class PropertyPath {
         return s.replace("[]", "");
       }
       return s;
-    }).filter(s => s !== ""); // Remove empty segments
+    }).filter((s) => s !== ""); // Remove empty segments
   }
 
   /**

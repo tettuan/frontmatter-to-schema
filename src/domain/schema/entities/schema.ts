@@ -472,7 +472,8 @@ export class Schema {
       stopOnFirstMatch: boolean;
     },
   ): Result<boolean, SchemaError & { message: string }> {
-    const { referencedSchemas, visitedRefs, collect, stopOnFirstMatch } = context;
+    const { referencedSchemas, visitedRefs, collect, stopOnFirstMatch } =
+      context;
     let found = false;
 
     if (definition.hasExtractFrom()) {
@@ -531,9 +532,11 @@ export class Schema {
       }
 
       for (const [key, property] of Object.entries(propertiesResult.data)) {
-        if (typeof property === 'object' && property !== null) {
+        if (typeof property === "object" && property !== null) {
           const nextPath = currentPath ? `${currentPath}.${key}` : key;
-          const propertyDefinition = SchemaDefinition.fromSchemaProperty(property as any);
+          const propertyDefinition = SchemaDefinition.fromSchemaProperty(
+            property as any,
+          );
           const childResult = this.collectExtractFromDirectives(
             propertyDefinition,
             nextPath,
@@ -595,7 +598,9 @@ export class Schema {
           }
         }
       } else {
-        const itemsDefinition = SchemaDefinition.fromSchemaProperty(items as any);
+        const itemsDefinition = SchemaDefinition.fromSchemaProperty(
+          items as any,
+        );
         const childResult = this.collectExtractFromDirectives(
           itemsDefinition,
           itemsPath,
@@ -631,7 +636,9 @@ export class Schema {
       if (!referencedDefinition) {
         return err(createError({
           kind: "InvalidSchema",
-          message: `Referenced schema '${ref}' not found for path '${currentPath || "<root>"}'`,
+          message: `Referenced schema '${ref}' not found for path '${
+            currentPath || "<root>"
+          }'`,
         }));
       }
 

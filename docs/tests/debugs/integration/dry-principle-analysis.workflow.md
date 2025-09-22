@@ -18,7 +18,8 @@ outputs:
 
 ## 目的
 
-Issue #941で特定されたDRY原則違反の包括的分析を実行し、300+のエラーハンドリング重複、15+のFrontmatterData作成重複、50+のログ出力重複の根本原因を特定する。リファクタリング優先度と影響範囲を定量化する。
+Issue
+#941で特定されたDRY原則違反の包括的分析を実行し、300+のエラーハンドリング重複、15+のFrontmatterData作成重複、50+のログ出力重複の根本原因を特定する。リファクタリング優先度と影響範囲を定量化する。
 
 ## 前提条件
 
@@ -39,12 +40,9 @@ Issue #941で特定されたDRY原則違反の包括的分析を実行し、300+
 
 {xml:step id="step1" type="investigation"}
 
-1. Result<T,E>パターン重複確認:
-   `rg "if \(!.*\.ok\)" src/ --count-matches`
-2. エラー作成パターン重複:
-   `rg "return err\(createError\(" src/ --count-matches`
-3. 分布分析:
-   `rg "if \(!.*\.ok\)" src/ --stats`
+1. Result<T,E>パターン重複確認: `rg "if \(!.*\.ok\)" src/ --count-matches`
+2. エラー作成パターン重複: `rg "return err\(createError\(" src/ --count-matches`
+3. 分布分析: `rg "if \(!.*\.ok\)" src/ --stats`
 4. 期待される結果: 300+箇所のエラーハンドリング重複の定量化 {/xml:step}
 
 ### ステップ2: デバッグ環境設定
@@ -62,8 +60,7 @@ Issue #941で特定されたDRY原則違反の包括的分析を実行し、300+
 
 1. FrontmatterData.create()パターン検索:
    `rg "FrontmatterData\.create\(" src/ -A 3 -B 1 --no-heading > tmp/dry-analysis/frontmatter-creation-patterns.txt`
-2. 重複箇所の定量化:
-   `rg "FrontmatterData\.create\(" src/ --count-matches`
+2. 重複箇所の定量化: `rg "FrontmatterData\.create\(" src/ --count-matches`
 3. ファイル別分布確認:
    `rg "FrontmatterData\.create\(" src/ --files-with-matches | wc -l`
 4. 期待される結果: 15+箇所の作成パターン重複とファイル分散状況 {/xml:step}
@@ -72,8 +69,7 @@ Issue #941で特定されたDRY原則違反の包括的分析を実行し、300+
 
 {xml:step id="step4" type="investigation"}
 
-1. 条件付きログパターン確認:
-   `rg "this\.logger\?\." src/ --count-matches`
+1. 条件付きログパターン確認: `rg "this\.logger\?\." src/ --count-matches`
 2. ログカテゴリ重複確認:
    `rg "\.logDebug\(" src/ -o | sort | uniq -c | sort -rn > tmp/dry-analysis/log-categories.txt`
 3. ログメッセージ類似度分析:
@@ -84,8 +80,7 @@ Issue #941で特定されたDRY原則違反の包括的分析を実行し、300+
 
 {xml:step id="step5" type="investigation"}
 
-1. Smart Constructorパターン検索:
-   `rg "static create\(" src/ --count-matches`
+1. Smart Constructorパターン検索: `rg "static create\(" src/ --count-matches`
 2. 初期化パターン重複確認:
    `rg "static create\(" src/ -A 10 | rg "if \(!.*\)" --count-matches`
 3. 検証ロジック重複分析:

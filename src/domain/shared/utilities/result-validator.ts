@@ -1,5 +1,5 @@
-import { Result, err, ok } from "../types/result.ts";
-import { DomainError, createError } from "../types/errors.ts";
+import { err, ok, Result } from "../types/result.ts";
+import { createError, DomainError } from "../types/errors.ts";
 
 /**
  * ResultValidator - Utility for handling Result validation patterns
@@ -61,7 +61,7 @@ export class ResultValidator {
     if (!result.ok) {
       return err(result.error);
     }
-    return operation(result.data);
+    return await operation(result.data);
   }
 
   /**
@@ -73,7 +73,7 @@ export class ResultValidator {
     context: string,
   ): T {
     if (!result.ok) {
-      const errorMessage = 'message' in result.error
+      const errorMessage = "message" in result.error
         ? (result.error as any).message
         : `Error kind: ${result.error.kind}`;
       throw new Error(`${context}: ${errorMessage}`);
@@ -94,7 +94,13 @@ export class ResultValidator {
       return err(createError({ kind, message } as any));
     }
     // For other error kinds, use the appropriate structure
-    return err(createError({ kind: "InvalidType", expected: "unknown", actual: "unknown" }, message));
+    return err(
+      createError({
+        kind: "InvalidType",
+        expected: "unknown",
+        actual: "unknown",
+      }, message),
+    );
   }
 
   /**
@@ -120,7 +126,7 @@ export class ResultValidator {
    */
   static async tryAsync<T>(
     operation: () => Promise<T>,
-    errorKind: DomainError["kind"] = "ConfigurationError",
+    _errorKind: DomainError["kind"] = "ConfigurationError",
   ): Promise<Result<T, DomainError & { message: string }>> {
     try {
       const result = await operation();
@@ -136,7 +142,7 @@ export class ResultValidator {
    */
   static try<T>(
     operation: () => T,
-    errorKind: DomainError["kind"] = "ConfigurationError",
+    _errorKind: DomainError["kind"] = "ConfigurationError",
   ): Result<T, DomainError & { message: string }> {
     try {
       const result = operation();

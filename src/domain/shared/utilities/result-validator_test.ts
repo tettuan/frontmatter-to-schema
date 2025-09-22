@@ -1,7 +1,7 @@
-import { assertEquals, assertRejects } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { ResultValidator } from "./result-validator.ts";
-import { ok, err, Result } from "../types/result.ts";
+import { err, ok, Result } from "../types/result.ts";
 import { createError } from "../types/errors.ts";
 
 describe("ResultValidator", () => {
@@ -13,7 +13,11 @@ describe("ResultValidator", () => {
     });
 
     it("returns error result if failed", () => {
-      const error = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const result = err(error);
       const validated = ResultValidator.validateOrReturn(result);
       assertEquals(validated, result);
@@ -28,9 +32,15 @@ describe("ResultValidator", () => {
     });
 
     it("returns first error if any result fails", () => {
-      const error1 = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error1 = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const error2 = createError({ kind: "EmptyInput" });
-      const results = [ok(1), err(error1), err(error2)] as Array<Result<unknown, typeof error1 | typeof error2>>;
+      const results = [ok(1), err(error1), err(error2)] as Array<
+        Result<unknown, typeof error1 | typeof error2>
+      >;
       const validated = ResultValidator.validateAll(...results);
       assertEquals(validated.ok, false);
       if (!validated.ok) {
@@ -47,7 +57,11 @@ describe("ResultValidator", () => {
     });
 
     it("returns error without mapping if failed", () => {
-      const error = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const result = err(error);
       const mapped = ResultValidator.mapOrReturn(result, (n: number) => n * 2);
       assertEquals(mapped, result);
@@ -59,17 +73,21 @@ describe("ResultValidator", () => {
       const result = ok(5);
       const chained = await ResultValidator.chainOrReturn(
         result,
-        async (n) => ok(n * 2),
+        (n) => Promise.resolve(ok(n * 2)),
       );
       assertEquals(chained, ok(10));
     });
 
     it("returns error without chaining if failed", async () => {
-      const error = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const result = err(error);
       const chained = await ResultValidator.chainOrReturn(
         result,
-        async (n: number) => ok(n * 2),
+        (n: number) => Promise.resolve(ok(n * 2)),
       );
       assertEquals(chained, result);
     });
@@ -83,7 +101,11 @@ describe("ResultValidator", () => {
     });
 
     it("throws error with context if failed", () => {
-      const error = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const result = err(error);
 
       try {
@@ -92,7 +114,10 @@ describe("ResultValidator", () => {
       } catch (e) {
         assertEquals(e instanceof Error, true);
         if (e instanceof Error) {
-          assertEquals(e.message, "test context: Expected type string, got number");
+          assertEquals(
+            e.message,
+            "test context: Expected type string, got number",
+          );
         }
       }
     });
@@ -102,7 +127,7 @@ describe("ResultValidator", () => {
     it("creates standardized error result", () => {
       const result = ResultValidator.createErrorResult<string>(
         "InvalidType",
-        "test message"
+        "test message",
       );
       assertEquals(result.ok, false);
       if (!result.ok) {
@@ -120,7 +145,11 @@ describe("ResultValidator", () => {
     });
 
     it("returns first error if any fails", () => {
-      const error = createError({ kind: "InvalidType", expected: "string", actual: "number" });
+      const error = createError({
+        kind: "InvalidType",
+        expected: "string",
+        actual: "number",
+      });
       const results = [ok(1), err(error), ok(3)];
       const collected = ResultValidator.collectResults(results);
       assertEquals(collected, err(error));
@@ -129,15 +158,13 @@ describe("ResultValidator", () => {
 
   describe("tryAsync", () => {
     it("wraps successful async operation", async () => {
-      const result = await ResultValidator.tryAsync(async () => 42);
+      const result = await ResultValidator.tryAsync(() => Promise.resolve(42));
       assertEquals(result, ok(42));
     });
 
     it("catches and wraps async errors", async () => {
       const result = await ResultValidator.tryAsync(
-        async () => {
-          throw new Error("test error");
-        },
+        () => Promise.reject(new Error("test error")),
         "ConfigurationError",
       );
       assertEquals(result.ok, false);

@@ -25,7 +25,8 @@ outputs:
 
 ## 目的
 
-Issue #941「Refactor duplicate code patterns violating DRY principle」の包括的調査を体系的に実行し、DRY原則違反、特殊解実装、設計品質問題の根本原因を特定する。4つのワークフローを協調実行し、リファクタリング戦略を確立する。
+Issue #941「Refactor duplicate code patterns violating DRY
+principle」の包括的調査を体系的に実行し、DRY原則違反、特殊解実装、設計品質問題の根本原因を特定する。4つのワークフローを協調実行し、リファクタリング戦略を確立する。
 
 ## 前提条件
 
@@ -49,26 +50,33 @@ Issue #941「Refactor duplicate code patterns violating DRY principle」の包�
 1. **Totality Compliance Check**:
    - ワークフロー: `docs/tests/debugs/component/totality-compliance.workflow.md`
    - 目的: Result<T,E>パターンの一貫性確認
-   - 実行コマンド: LOG_KEY=workflow-debug-totality-compliance ./run-workflow.sh totality-compliance.workflow.md
+   - 実行コマンド: LOG_KEY=workflow-debug-totality-compliance ./run-workflow.sh
+     totality-compliance.workflow.md
 
 2. **Schema Structure Detector Analysis**:
-   - ワークフロー: `docs/tests/debugs/component/schema-structure-detector.workflow.md`
+   - ワークフロー:
+     `docs/tests/debugs/component/schema-structure-detector.workflow.md`
    - 目的: ハードコーディングパターンの特定
-   - 実行コマンド: LOG_KEY=workflow-debug-schema-structure-detector ./run-workflow.sh schema-structure-detector.workflow.md
+   - 実行コマンド: LOG_KEY=workflow-debug-schema-structure-detector
+     ./run-workflow.sh schema-structure-detector.workflow.md
 
 3. **ProcessingCoordinator Variance Investigation**:
-   - ワークフロー: `docs/tests/debugs/component/processing-coordinator-variance.workflow.md`
+   - ワークフロー:
+     `docs/tests/debugs/component/processing-coordinator-variance.workflow.md`
    - 目的: 高変動箇所の詳細分析とデバッグ出力検証
-   - 実行コマンド: LOG_KEY=workflow-debug-processing-coordinator-variance ./run-workflow.sh processing-coordinator-variance.workflow.md {/xml:step}
+   - 実行コマンド: LOG_KEY=workflow-debug-processing-coordinator-variance
+     ./run-workflow.sh processing-coordinator-variance.workflow.md {/xml:step}
 
 ### フェーズ2: 統合分析（Integration Level）
 
 {xml:step id="phase2" type="analysis"}
 
 1. **DRY Principle Violation Analysis**:
-   - ワークフロー: `docs/tests/debugs/integration/dry-principle-analysis.workflow.md`
+   - ワークフロー:
+     `docs/tests/debugs/integration/dry-principle-analysis.workflow.md`
    - 目的: 重複パターンの定量化と影響範囲評価
-   - 実行コマンド: LOG_KEY=workflow-analysis-dry-violations ./run-workflow.sh dry-principle-analysis.workflow.md
+   - 実行コマンド: LOG_KEY=workflow-analysis-dry-violations ./run-workflow.sh
+     dry-principle-analysis.workflow.md
 
 2. **相互関係分析**:
    - フェーズ1の結果を統合
@@ -109,9 +117,12 @@ graph TD
 
 ### 依存関係の詳細
 
-1. **Totality Compliance** → **DRY Analysis**: Result<T,E>パターンの違反がDRY違反の一因
-2. **Schema Structure Detector** → **ProcessingCoordinator**: ハードコーディングが特殊解実装の根拠
-3. **ProcessingCoordinator Variance** → **DRY Analysis**: 高変動箇所が重複パターンの震源地
+1. **Totality Compliance** → **DRY Analysis**:
+   Result<T,E>パターンの違反がDRY違反の一因
+2. **Schema Structure Detector** → **ProcessingCoordinator**:
+   ハードコーディングが特殊解実装の根拠
+3. **ProcessingCoordinator Variance** → **DRY Analysis**:
+   高変動箇所が重複パターンの震源地
 4. **すべて** → **Meta Analysis**: 統合的根本原因分析
 
 ## 実行コマンド例
@@ -143,7 +154,8 @@ LOG_KEY=workflow-meta-issue-941 ./run-workflow.sh meta/issue-941-investigation.w
 ## 成功基準
 
 - [ ] 4つの関連ワークフローが正常実行されている
-- [ ] DRY原則違反が定量化されている（300+エラーハンドリング、15+FrontmatterData、50+ログ、20+Smart Constructor）
+- [ ] DRY原則違反が定量化されている（300+エラーハンドリング、15+FrontmatterData、50+ログ、20+Smart
+      Constructor）
 - [ ] ProcessingCoordinatorの3つの処理パス分岐が特定されている
 - [ ] Totality原則違反が評価されている
 - [ ] Issue #941のPhase 1-4実装計画が精査・更新されている
@@ -151,7 +163,9 @@ LOG_KEY=workflow-meta-issue-941 ./run-workflow.sh meta/issue-941-investigation.w
 
 ## 関連Issues
 
-- **Primary**: [Issue #941](https://github.com/tettuan/frontmatter-to-schema/issues/941) - Refactor duplicate code patterns violating DRY principle
+- **Primary**:
+  [Issue #941](https://github.com/tettuan/frontmatter-to-schema/issues/941) -
+  Refactor duplicate code patterns violating DRY principle
 - **Related**: すべてのDDD/TDD/Totality原則関連Issues
 
 ## トラブルシューティング
