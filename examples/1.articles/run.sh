@@ -20,7 +20,7 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command
-./frontmatter-to-schema \
+./cli.ts \
   "$SCHEMA_FILE" \
   "$DOCS_DIR/**/*.md" \
   "$OUTPUT_FILE" \

@@ -33,7 +33,7 @@ for level in req spec design impl test; do
 
     # Run the frontmatter-to-schema CLI
     # Arguments: <schema> <input> <output>
-    ./frontmatter-to-schema \
+    ./cli.ts \
         "${SPEC_TRACE_DIR}/index_${level}_schema.json" \
         "$DOCS_PATTERN" \
         "${SPEC_TRACE_DIR}/index/${level}_index.json" \

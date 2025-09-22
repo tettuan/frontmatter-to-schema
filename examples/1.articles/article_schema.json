@@ -19,15 +19,7 @@
     },
     "type": {
       "type": "string",
-      "description": "Article type (tech/idea)",
-      "enum": ["tech", "idea"]
-    },
-    "topics": {
-      "type": "array",
-      "description": "Article topics/tags",
-      "items": {
-        "type": "string"
-      }
+      "description": "Article type (tech/idea)"
     },
     "published": {
       "type": "boolean",
@@ -44,6 +36,6 @@
       "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$"
     }
   },
-  "required": ["filename", "title", "type", "published"],
+  "required": ["title", "type", "published"],
   "additionalProperties": false
 }

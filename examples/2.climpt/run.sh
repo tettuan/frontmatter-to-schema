@@ -20,7 +20,7 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command with new CLI interface
-FRONTMATTER_TO_SCHEMA_TEST_MODE=true ./frontmatter-to-schema \
+FRONTMATTER_TO_SCHEMA_TEST_MODE=true ./cli.ts \
   "$REGISTRY_SCHEMA" \
   "$PROMPTS_DIR/**/*.md" \
   "$OUTPUT_FILE" \
