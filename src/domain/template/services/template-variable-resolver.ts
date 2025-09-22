@@ -10,8 +10,9 @@
  * - Result types: All operations return Result<T, E> for total functions
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { TemplateVariable } from "../value-objects/template-variable.ts";
 import { matchTemplateVariableType } from "../value-objects/template-variable-type.ts";
@@ -68,11 +69,13 @@ export class TemplateVariableResolver {
   ): Result<unknown, TemplateError & { message: string }> {
     const dataResult = context.data.get(variableName);
     if (!dataResult.ok) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: variableName,
-        reason: `Variable '${variableName}' not found in data context`,
-      }));
+      return ErrorHandler.template({
+        operation: "resolveStandardVariable",
+        method: "getFromData",
+      }).variableResolutionFailed(
+        variableName,
+        `Variable '${variableName}' not found in data context`,
+      );
     }
 
     return ok(dataResult.data);
@@ -89,11 +92,13 @@ export class TemplateVariableResolver {
       return ok(context.arrayDataState.data);
     }
 
-    return err(createError({
-      kind: "VariableResolutionFailed",
-      variable: ARRAY_EXPANSION_MARKER,
-      reason: ERROR_MESSAGES.ARRAY_MARKER_NOT_SUPPORTED(ARRAY_EXPANSION_MARKER),
-    }));
+    return ErrorHandler.template({
+      operation: "resolveArrayExpansionVariable",
+      method: "checkArrayDataState",
+    }).variableResolutionFailed(
+      ARRAY_EXPANSION_MARKER,
+      ERROR_MESSAGES.ARRAY_MARKER_NOT_SUPPORTED(ARRAY_EXPANSION_MARKER),
+    );
   }
 
   /**
@@ -110,11 +115,13 @@ export class TemplateVariableResolver {
     }
 
     // All other special processors are currently unsupported
-    return err(createError({
-      kind: "VariableResolutionFailed",
-      variable: marker,
-      reason: ERROR_MESSAGES.ARRAY_MARKER_NOT_SUPPORTED(marker),
-    }));
+    return ErrorHandler.template({
+      operation: "resolveSpecialProcessorVariable",
+      method: "checkUnsupportedMarker",
+    }).variableResolutionFailed(
+      marker,
+      ERROR_MESSAGES.ARRAY_MARKER_NOT_SUPPORTED(marker),
+    );
   }
 
   /**

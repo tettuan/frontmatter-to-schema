@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 
 /**
@@ -20,22 +21,24 @@ export class JsonFormatter extends BaseFormatter {
   }
   format(data: unknown): Result<string, TemplateError & { message: string }> {
     if (!this.isSerializable(data)) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "Data contains non-serializable values",
-      }));
+      return ErrorHandler.template({
+        operation: "format",
+        method: "validateSerializable",
+      }).invalid("Data contains non-serializable values");
     }
 
     try {
       const formatted = JSON.stringify(data, null, 2);
       return ok(formatted);
     } catch (error) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `Failed to format as JSON: ${
+      return ErrorHandler.template({
+        operation: "format",
+        method: "stringifyJSON",
+      }).invalid(
+        `Failed to format as JSON: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 

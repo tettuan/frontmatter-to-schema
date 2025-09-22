@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import {
   ARRAY_EXPANSION_PLACEHOLDER,
   ERROR_MESSAGES,
@@ -99,10 +100,10 @@ export class TemplateFormatDetector {
     }
 
     // Shouldn't reach here since we checked template.includes(ARRAY_EXPANSION_PLACEHOLDER)
-    return err(createError({
-      kind: "RenderFailed",
-      message: ERROR_MESSAGES.TEMPLATE_ITEMS_NOT_FOUND,
-    }));
+    return ErrorHandler.template({
+      operation: "detectItemsPlaceholder",
+      method: "findPlaceholder",
+    }).invalid(ERROR_MESSAGES.TEMPLATE_ITEMS_NOT_FOUND);
   }
 
   /**

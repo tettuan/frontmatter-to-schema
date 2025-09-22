@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "jsr:@std/assert";
 import {
   StructureTypeFactory,
   StructureTypeUtils,
@@ -63,9 +63,9 @@ Deno.test("StructureType Value Object", async (t) => {
 
     if (!emptyResult.ok) {
       assertEquals(emptyResult.error.kind, "InvalidSchema");
-      assertEquals(
-        emptyResult.error.message,
-        "Invalid schema: Collection path cannot be empty",
+      assert(
+        emptyResult.error.message.includes("Collection path cannot be empty"),
+        `Expected message to contain "Collection path cannot be empty", got: "${emptyResult.error.message}"`,
       );
     }
 
@@ -119,9 +119,9 @@ Deno.test("StructureType Value Object", async (t) => {
 
     if (!emptyResult.ok) {
       assertEquals(emptyResult.error.kind, "InvalidSchema");
-      assertEquals(
-        emptyResult.error.message,
-        "Invalid schema: Custom path cannot be empty",
+      assert(
+        emptyResult.error.message.includes("Custom path cannot be empty"),
+        `Expected message to contain "Custom path cannot be empty", got: "${emptyResult.error.message}"`,
       );
     }
   });
@@ -210,9 +210,11 @@ Deno.test("StructureType Value Object", async (t) => {
 
     if (!emptyPathResult.ok) {
       assertEquals(emptyPathResult.error.kind, "InvalidSchema");
-      assertEquals(
-        emptyPathResult.error.message,
-        "Invalid schema: Path cannot be empty for structure type detection",
+      assert(
+        emptyPathResult.error.message.includes(
+          "Path cannot be empty for structure type detection",
+        ),
+        `Expected message to contain "Path cannot be empty for structure type detection", got: "${emptyPathResult.error.message}"`,
       );
     }
   });

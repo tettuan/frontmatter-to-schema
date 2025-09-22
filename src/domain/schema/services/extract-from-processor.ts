@@ -4,8 +4,9 @@
  * Following DDD, Totality, and Smart Constructor principles
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import {
@@ -61,13 +62,12 @@ export class ExtractFromProcessor {
     });
 
     if (!optimizedExtractorResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "optimized-extractor",
-        value: optimizedConfig,
-        message:
-          `Failed to create optimized extractor: ${optimizedExtractorResult.error.message}`,
-      }));
+      return ErrorHandler.schema({
+        operation: "createOptimized",
+        method: "create",
+      }).invalid(
+        `Failed to create optimized extractor: ${optimizedExtractorResult.error.message}`,
+      );
     }
 
     const fallbackExtractor = PropertyExtractor.create();
@@ -141,14 +141,15 @@ export class ExtractFromProcessor {
     }
 
     if (this.optimizedExtractor) {
-      return err(createError(
-        {
-          kind: "InvalidFormat",
-          format: "synchronous-processing",
-          value: "optimized-extractor-enabled",
-        },
+      return ErrorHandler.validation({
+        operation: "processDirectivesSync",
+        method: "validate",
+      }).invalidFormat(
+        "synchronous-processing",
+        "optimized-extractor-enabled",
+        undefined,
         "Cannot use synchronous processing with OptimizedPropertyExtractor. Use processDirectives() instead.",
-      ));
+      );
     }
 
     const rawData = this.frontmatterDataToNestedObject(data);
@@ -203,15 +204,12 @@ export class ExtractFromProcessor {
         );
 
         if (!extractionResult.ok) {
-          const errorMessage = "message" in extractionResult.error
-            ? extractionResult.error.message
-            : `Error kind: ${extractionResult.error.kind}`;
-          return err(createError({
-            kind: "ExtractionFailed",
-            path: directive.getSourcePath(),
-            message:
-              `Optimized extraction failed from path '${directive.getSourcePath()}': ${errorMessage}`,
-          }));
+          return ErrorHandler.schema({
+            operation: "extractFromRawData",
+            method: "optimizedExtract",
+          }).propertyNotFound(
+            directive.getSourcePath(),
+          );
         }
 
         return ok(extractionResult.data);
@@ -222,12 +220,15 @@ export class ExtractFromProcessor {
 
     const pathResult = PropertyPath.create(directive.getSourcePath());
     if (!pathResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "property-path",
-        value: directive.getSourcePath(),
-        message: `Invalid property path: ${directive.getSourcePath()}`,
-      }));
+      return ErrorHandler.validation({
+        operation: "extractFromRawData",
+        method: "createPath",
+      }).invalidFormat(
+        "property-path",
+        directive.getSourcePath(),
+        undefined,
+        `Invalid property path: ${directive.getSourcePath()}`,
+      );
     }
 
     const extractionResult = this.propertyExtractor.extract(
@@ -236,12 +237,12 @@ export class ExtractFromProcessor {
     );
 
     if (!extractionResult.ok) {
-      return err(createError({
-        kind: "ExtractionFailed",
-        path: directive.getSourcePath(),
-        message:
-          `Failed to extract from path '${directive.getSourcePath()}': Property extraction failed`,
-      }));
+      return ErrorHandler.schema({
+        operation: "extractFromRawData",
+        method: "extract",
+      }).propertyNotFound(
+        directive.getSourcePath(),
+      );
     }
 
     return ok(extractionResult.data);
@@ -253,12 +254,15 @@ export class ExtractFromProcessor {
   ): Result<unknown, DomainError & { message: string }> {
     const pathResult = PropertyPath.create(directive.getSourcePath());
     if (!pathResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "property-path",
-        value: directive.getSourcePath(),
-        message: `Invalid property path: ${directive.getSourcePath()}`,
-      }));
+      return ErrorHandler.validation({
+        operation: "extractFromRawDataSync",
+        method: "createPath",
+      }).invalidFormat(
+        "property-path",
+        directive.getSourcePath(),
+        undefined,
+        `Invalid property path: ${directive.getSourcePath()}`,
+      );
     }
 
     const extractionResult = this.propertyExtractor.extract(
@@ -267,12 +271,12 @@ export class ExtractFromProcessor {
     );
 
     if (!extractionResult.ok) {
-      return err(createError({
-        kind: "ExtractionFailed",
-        path: directive.getSourcePath(),
-        message:
-          `Failed to extract from path '${directive.getSourcePath()}': Property extraction failed`,
-      }));
+      return ErrorHandler.schema({
+        operation: "extractFromRawDataSync",
+        method: "extract",
+      }).propertyNotFound(
+        directive.getSourcePath(),
+      );
     }
 
     return ok(extractionResult.data);
@@ -373,12 +377,12 @@ export class ExtractFromProcessor {
 
     const updatedFrontmatter = FrontmatterDataFactory.fromParsedData(rawData);
     if (!updatedFrontmatter.ok) {
-      return err(createError({
-        kind: "ExtractionFailed",
-        path: directive.getTargetPath(),
-        message:
-          `Failed to build frontmatter after applying directive '${directive.getTargetPath()}'`,
-      }));
+      return ErrorHandler.schema({
+        operation: "applyDirectiveResult",
+        method: "fromParsedData",
+      }).invalid(
+        `Failed to build frontmatter after applying directive '${directive.getTargetPath()}'`,
+      );
     }
 
     return ok(updatedFrontmatter.data);
@@ -408,13 +412,15 @@ export class ExtractFromProcessor {
     const postSegments = propertyPath.getPostArraySegments();
 
     if (preSegments.length === 0) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-target-path",
-        value: directive.getTargetPath(),
-        message:
-          `Target path '${directive.getTargetPath()}' must specify a property before array notation`,
-      }));
+      return ErrorHandler.validation({
+        operation: "applyArrayTarget",
+        method: "validatePath",
+      }).invalidFormat(
+        "extract-from-target-path",
+        directive.getTargetPath(),
+        undefined,
+        `Target path '${directive.getTargetPath()}' must specify a property before array notation`,
+      );
     }
 
     const parent = this.ensureObjectPath(rawData, preSegments.slice(0, -1));
@@ -524,13 +530,14 @@ export class ExtractFromProcessor {
         this.optimizedExtractor.clearCaches();
         return ok(undefined);
       } catch (error) {
-        return err(createError({
-          kind: "ExtractionFailed",
-          path: "cache-clear",
-          message: `Failed to clear caches: ${
+        return ErrorHandler.system({
+          operation: "clearCaches",
+          method: "clearCaches",
+        }).initializationError(
+          `Failed to clear caches: ${
             error instanceof Error ? error.message : String(error)
           }`,
-        }));
+        );
       }
     }
 
@@ -547,11 +554,12 @@ export class ExtractFromProcessor {
         const errorMessage = "message" in maintenanceResult.error
           ? maintenanceResult.error.message
           : `Error kind: ${maintenanceResult.error.kind}`;
-        return err(createError({
-          kind: "ExtractionFailed",
-          path: "cache-maintenance",
-          message: `Cache maintenance failed: ${errorMessage}`,
-        }));
+        return ErrorHandler.system({
+          operation: "performMaintenance",
+          method: "performMaintenance",
+        }).initializationError(
+          `Cache maintenance failed: ${errorMessage}`,
+        );
       }
     }
 

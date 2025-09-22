@@ -7,8 +7,9 @@
  * Follows Totality principle by ensuring all creation methods return Result types.
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, FrontmatterError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { FrontmatterError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import {
   FrontmatterContent,
   FrontmatterData,
@@ -42,10 +43,12 @@ export class FrontmatterDataCreationService {
     for (let i = 0; i < items.length; i++) {
       const result = FrontmatterData.create(items[i]);
       if (!result.ok) {
-        return err(createError(
-          { kind: "MalformedFrontmatter", content: `Array item at index ${i}` },
+        return ErrorHandler.frontmatter({
+          operation: "createFromArray",
+          method: "validateArrayItem",
+        }).malformedFrontmatter(
           `Failed to create FrontmatterData from array item at index ${i}: ${result.error.message}`,
-        ));
+        );
       }
       results.push(result.data);
     }
@@ -140,10 +143,10 @@ export class FrontmatterDataCreationService {
   ): Result<FrontmatterData, FrontmatterError & { message: string }> {
     const result = FrontmatterData.create(data);
     if (!result.ok) {
-      return err(createError(
-        result.error,
-        `${result.error.message} (Context: ${context})`,
-      ));
+      return ErrorHandler.frontmatter({
+        operation: "createWithContext",
+        method: "createFromRaw",
+      }).malformedFrontmatter(`${result.error.message} (Context: ${context})`);
     }
     return result;
   }

@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
   ProcessingBounds,
@@ -536,7 +537,7 @@ export class FrontmatterTransformationService {
         filesResult.data.length,
       );
       if (!defaultBoundsResult.ok) {
-        return err(defaultBoundsResult.error);
+        return defaultBoundsResult;
       }
       actualBounds = defaultBoundsResult.data;
     }
@@ -788,10 +789,12 @@ export class FrontmatterTransformationService {
         // Memory bounds monitoring - check state before processing each file
         const state = boundsMonitor.checkState(processedData.length);
         if (state.kind === "exceeded_limit") {
-          return err(createError({
-            kind: "MemoryBoundsViolation",
-            content: `Processing exceeded bounds: ${state.limit}`,
-          }));
+          return ErrorHandler.system({
+            operation: "transformDocumentsInternal",
+            method: "checkMemoryBounds",
+          }).memoryBoundsViolation(
+            `Processing exceeded bounds: ${state.limit}`,
+          );
         }
 
         if (state.kind === "approaching_limit") {
@@ -877,19 +880,19 @@ export class FrontmatterTransformationService {
     }
 
     if (processedData.length === 0) {
-      const noDataError = createError({
-        kind: "AggregationFailed",
-        message: "No valid documents found to process",
-      });
+      const noDataError = ErrorHandler.aggregation({
+        operation: "transformDocumentsInternal",
+        method: "validateProcessedData",
+      }).aggregationFailed("No valid documents found to process");
       activeLogger?.error(
         "No valid documents found to process",
         {
           operation: "document-processing",
-          error: noDataError,
+          error: "No valid documents found to process",
           timestamp: new Date().toISOString(),
         },
       );
-      return err(noDataError);
+      return noDataError;
     }
 
     activeLogger?.info(
@@ -1320,10 +1323,15 @@ export class FrontmatterTransformationService {
               results.length + batchResults.length,
             );
             if (state.kind === "exceeded_limit") {
-              batchErrors.push(createError({
-                kind: "MemoryBoundsViolation",
-                content: `Processing exceeded bounds: ${state.limit}`,
-              }));
+              const boundsError = ErrorHandler.system({
+                operation: "processFilesInParallel",
+                method: "checkBatchMemoryBounds",
+              }).memoryBoundsViolation(
+                `Processing exceeded bounds: ${state.limit}`,
+              );
+              if (!boundsError.ok) {
+                batchErrors.push(boundsError.error);
+              }
               break;
             }
 
@@ -1409,23 +1417,25 @@ export class FrontmatterTransformationService {
 
       return ok(results);
     } catch (error) {
-      const processingError = createError({
-        kind: "AggregationFailed",
-        message: `Parallel processing failed: ${
+      const processingError = ErrorHandler.aggregation({
+        operation: "processFilesInParallel",
+        method: "handleParallelProcessing",
+      }).aggregationFailed(
+        `Parallel processing failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      });
+      );
 
       activeLogger?.error(
         "Parallel processing encountered an unexpected error",
         {
           operation: "parallel-processing-error",
-          error: processingError,
+          error: "Parallel processing failed",
           timestamp: new Date().toISOString(),
         },
       );
 
-      return err(processingError);
+      return processingError;
     }
   }
 
@@ -1867,10 +1877,10 @@ export class FrontmatterTransformationService {
     );
 
     if (!mergedResult.ok) {
-      return err(createError({
-        kind: "MergeFailed",
-        message: `Deep merge failed: ${mergedResult.error.message}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "deepMerge",
+        method: "createMergedData",
+      }).mergeFailed(`Deep merge failed: ${mergedResult.error.message}`);
     }
 
     return ok(mergedResult.data);
@@ -1946,10 +1956,13 @@ export class FrontmatterTransformationService {
         } else {
           // This should never happen since we just created an empty object
           // But following Totality principles, we return an error instead of throwing
-          return err(createError({
-            kind: "InvalidStructure",
-            field: path,
-          }, "Failed to create record for nested path after initialization"));
+          return ErrorHandler.validation({
+            operation: "setNestedField",
+            method: "createNestedRecord",
+          }).invalidStructure(
+            path,
+            "Failed to create record for nested path after initialization",
+          );
         }
       } else {
         current = propertyResult.data;
@@ -2064,13 +2077,13 @@ export class FrontmatterTransformationService {
         } else {
           // This should never happen since we just created an empty object
           // But following Totality principles, we return an error instead of throwing
-          return err(createError(
-            {
-              kind: "InvalidStructure",
-              field: path,
-            },
+          return ErrorHandler.validation({
+            operation: "setNestedProperty",
+            method: "createNestedRecord",
+          }).invalidStructure(
+            path,
             "Failed to create record for nested property after initialization",
-          ));
+          );
         }
       } else {
         current = propertyResult.data;

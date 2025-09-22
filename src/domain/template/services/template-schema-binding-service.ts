@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
@@ -69,11 +70,12 @@ export class TemplateSchemaBindingService {
           filteredDataResult.error,
           { context: "JMESPath filtering failed" },
         );
-        return err(createError({
-          kind: "RenderFailed",
-          message:
-            `JMESPath filtering failed: ${filteredDataResult.error.message}`,
-        }));
+        return ErrorHandler.template({
+          operation: "createVariableContext",
+          method: "applyJMESPathFiltering",
+        }).renderFailed(
+          `JMESPath filtering failed: ${filteredDataResult.error.message}`,
+        );
       }
       processedData = filteredDataResult.data;
 
@@ -101,15 +103,15 @@ export class TemplateSchemaBindingService {
     if (hasItemsTemplateResult.ok && hasItemsTemplateResult.data) {
       const isValid = context.validateItemsResolution();
       if (!isValid) {
-        const error = createError({
-          kind: "DataCompositionFailed",
-          reason: "Items resolution validation failed",
-        });
+        const errorResult = ErrorHandler.template({
+          operation: "createVariableContext",
+          method: "validateItemsResolution",
+        }).dataCompositionFailed("Items resolution validation failed");
         this.domainLogger.logError(
           "template-schema-binding",
-          error,
+          "Items resolution validation failed",
         );
-        return err(error);
+        return errorResult;
       }
 
       this.domainLogger.logInfo(
@@ -247,11 +249,12 @@ export class TemplateSchemaBindingService {
   ): Result<void, TemplateError & { message: string }> {
     const resolveResult = context.resolveVariable(variable);
     if (!resolveResult.ok) {
-      return err(createError({
-        kind: "RenderFailed",
-        message:
-          `Variable '${variable}' cannot be resolved: ${resolveResult.error.message}`,
-      }));
+      return ErrorHandler.template({
+        operation: "validateVariable",
+        method: "resolveVariable",
+      }).renderFailed(
+        `Variable '${variable}' cannot be resolved: ${resolveResult.error.message}`,
+      );
     }
 
     return ok(undefined);
@@ -269,10 +272,10 @@ export class TemplateSchemaBindingService {
     if (!frontmatterPartResult.ok) {
       const extensionKey = defaultSchemaExtensionRegistry
         .getFrontmatterPartKey().getValue();
-      return err(createError({
-        kind: "RenderFailed",
-        message: `Schema must have ${extensionKey} for {@items} binding`,
-      }));
+      return ErrorHandler.template({
+        operation: "validateItemsBinding",
+        method: "checkFrontmatterPart",
+      }).renderFailed(`Schema must have ${extensionKey} for {@items} binding`);
     }
 
     const hierarchyRoot = frontmatterPartResult.data;
@@ -280,19 +283,22 @@ export class TemplateSchemaBindingService {
     // Check if data has array at hierarchy root
     const rootDataResult = data.get(hierarchyRoot);
     if (!rootDataResult.ok) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: `Data must contain array at hierarchy root: ${hierarchyRoot}`,
-      }));
+      return ErrorHandler.template({
+        operation: "validateItemsBinding",
+        method: "checkHierarchyRoot",
+      }).renderFailed(
+        `Data must contain array at hierarchy root: ${hierarchyRoot}`,
+      );
     }
 
     const rootData = rootDataResult.data;
     if (!Array.isArray(rootData)) {
-      return err(createError({
-        kind: "RenderFailed",
-        message:
-          `Hierarchy root ${hierarchyRoot} must be an array for {@items} binding`,
-      }));
+      return ErrorHandler.template({
+        operation: "validateItemsBinding",
+        method: "validateArrayType",
+      }).renderFailed(
+        `Hierarchy root ${hierarchyRoot} must be an array for {@items} binding`,
+      );
     }
 
     return ok(undefined);
@@ -312,11 +318,12 @@ export class TemplateSchemaBindingService {
     for (const item of arrayData) {
       const itemDataResult = FrontmatterData.create(item);
       if (!itemDataResult.ok) {
-        return err(createError({
-          kind: "RenderFailed",
-          message:
-            `Failed to create FrontmatterData for array item: ${itemDataResult.error.message}`,
-        }));
+        return ErrorHandler.template({
+          operation: "createItemContexts",
+          method: "createFrontmatterData",
+        }).renderFailed(
+          `Failed to create FrontmatterData for array item: ${itemDataResult.error.message}`,
+        );
       }
 
       // Use createVariableContext to ensure JMESPath filtering is applied consistently

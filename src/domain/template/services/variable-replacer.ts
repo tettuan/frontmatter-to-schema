@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import {
@@ -139,12 +140,14 @@ export class VariableReplacer {
 
       return ok(result);
     } catch (error) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: error instanceof Error
+      return ErrorHandler.template({
+        operation: "replaceVariables",
+        method: "processTemplate",
+      }).renderFailed(
+        error instanceof Error
           ? `Variable replacement failed: ${error.message}`
           : "Variable replacement failed",
-      }));
+      );
     }
   }
 
@@ -194,10 +197,10 @@ export class VariableReplacer {
       if (value && typeof value === "object") {
         const objResult = SafePropertyAccess.asRecord(value);
         if (!objResult.ok) {
-          return err(createError({
-            kind: "RenderFailed",
-            message: "Value is not a valid object for processing",
-          }));
+          return ErrorHandler.template({
+            operation: "processValue",
+            method: "validateObject",
+          }).renderFailed("Value is not a valid object for processing");
         }
         return this.processObject(
           objResult.data,
@@ -208,12 +211,14 @@ export class VariableReplacer {
 
       return ok(value);
     } catch (error) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: error instanceof Error
+      return ErrorHandler.template({
+        operation: "processValue",
+        method: "handleProcessing",
+      }).renderFailed(
+        error instanceof Error
           ? `Value processing failed: ${error.message}`
           : "Value processing failed",
-      }));
+      );
     }
   }
 
@@ -422,11 +427,12 @@ export class VariableReplacer {
       for (const item of dataArray) {
         const itemDataResult = FrontmatterDataFactory.fromParsedData(item);
         if (!itemDataResult.ok) {
-          return err(createError({
-            kind: "RenderFailed",
-            message:
-              `Failed to create FrontmatterData from item: ${itemDataResult.error.message}`,
-          }));
+          return ErrorHandler.template({
+            operation: "processArrayExpansion",
+            method: "createItemData",
+          }).renderFailed(
+            `Failed to create FrontmatterData from item: ${itemDataResult.error.message}`,
+          );
         }
 
         const processedResult = this.processValue(
@@ -475,10 +481,10 @@ export class VariableReplacer {
     if (template && typeof template === "object") {
       const templateObjResult = SafePropertyAccess.asRecord(template);
       if (!templateObjResult.ok) {
-        return err(createError({
-          kind: "RenderFailed",
-          message: "Template is not a valid object for array expansion",
-        }));
+        return ErrorHandler.template({
+          operation: "processArrayExpansion",
+          method: "validateTemplate",
+        }).renderFailed("Template is not a valid object for array expansion");
       }
 
       const result: Record<string, unknown> = {};

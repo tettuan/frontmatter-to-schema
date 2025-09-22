@@ -1,5 +1,6 @@
-import { chain, err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { chain, ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Template } from "../entities/template.ts";
 import {
   ArrayExpansionKey,
@@ -80,10 +81,10 @@ export class TemplateStructureAnalyzer {
     if (content && typeof content === "object") {
       const objResult = SafePropertyAccess.asRecord(content);
       if (!objResult.ok) {
-        return err(createError({
-          kind: "InvalidTemplate",
-          message: "Content is not a valid object for structure analysis",
-        }));
+        return ErrorHandler.template({
+          operation: "analyzeContent",
+          method: "validateObjectContent",
+        }).invalid("Content is not a valid object for structure analysis");
       }
       return this.analyzeObjectContent(objResult.data);
     }

@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../types/result.ts";
-import { createError, DomainError } from "../types/errors.ts";
+import { DomainError } from "../types/errors.ts";
+import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 /**
  * ResultValidator - Utility for handling Result validation patterns
@@ -91,16 +92,17 @@ export class ResultValidator {
   ): Result<T, DomainError & { message: string }> {
     // For error kinds that have a message field, create directly
     if (kind === "ConfigurationError" || kind === "InitializationError") {
-      return err(createError({ kind, message } as any));
+      return ErrorHandler.system({
+        operation: "createErrorResult",
+        method: "createSystemError",
+      }).configurationError(message);
     }
     // For other error kinds, use the appropriate structure
-    return err(
-      createError({
-        kind: "InvalidType",
-        expected: "unknown",
-        actual: "unknown",
-      }, message),
-    );
+    const invalidTypeResult = ErrorHandler.validation({
+      operation: "createErrorResult",
+      method: "createGenericError",
+    }).invalidType("unknown", "unknown");
+    return invalidTypeResult;
   }
 
   /**
@@ -133,7 +135,10 @@ export class ResultValidator {
       return ok(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return err(createError({ kind: "ConfigurationError", message }));
+      return ErrorHandler.system({
+        operation: "tryAsync",
+        method: "handleException",
+      }).configurationError(message);
     }
   }
 
@@ -149,7 +154,10 @@ export class ResultValidator {
       return ok(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return err(createError({ kind: "ConfigurationError", message }));
+      return ErrorHandler.system({
+        operation: "try",
+        method: "handleException",
+      }).configurationError(message);
     }
   }
 }

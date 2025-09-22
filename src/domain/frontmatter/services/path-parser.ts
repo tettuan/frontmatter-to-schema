@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { ValidationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Represents a segment in a data access path
@@ -43,10 +44,10 @@ export class PathParser {
     path: string,
   ): Result<PathSegment[], ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError(
-        { kind: "EmptyInput" },
-        "Path cannot be empty",
-      ));
+      return ErrorHandler.validation({
+        operation: "parse",
+        method: "validatePath",
+      }).emptyInput();
     }
 
     const trimmedPath = path.trim();
@@ -78,20 +79,23 @@ export class PathParser {
       }
 
       if (segments.length === 0) {
-        return err(createError(
-          { kind: "ParseError", input: path },
-          "No valid segments found in path",
-        ));
+        return ErrorHandler.validation({
+          operation: "parse",
+          method: "validateSegments",
+        }).parseError(path, "No valid segments found in path");
       }
 
       return ok(segments);
     } catch (error) {
-      return err(createError(
-        { kind: "ParseError", input: path },
+      return ErrorHandler.validation({
+        operation: "parse",
+        method: "handleException",
+      }).parseError(
+        path,
         error instanceof Error
           ? `Path parsing failed: ${error.message}`
           : "Path parsing failed",
-      ));
+      );
     }
   }
 
@@ -122,10 +126,10 @@ export class PathParser {
     }
 
     if (segmentName === "") {
-      return err(createError(
-        { kind: "ParseError", input: path },
-        `Empty property name at position ${startIndex}`,
-      ));
+      return ErrorHandler.validation({
+        operation: "parseNextSegment",
+        method: "validatePropertyName",
+      }).parseError(path, `Empty property name at position ${startIndex}`);
     }
 
     // Check if this is followed by an array index
@@ -169,10 +173,10 @@ export class PathParser {
     ValidationError & { message: string }
   > {
     if (path[startIndex] !== "[") {
-      return err(createError(
-        { kind: "ParseError", input: path },
-        `Expected '[' at position ${startIndex}`,
-      ));
+      return ErrorHandler.validation({
+        operation: "parseArrayIndex",
+        method: "validateOpenBracket",
+      }).parseError(path, `Expected '[' at position ${startIndex}`);
     }
 
     let currentIndex = startIndex + 1; // Skip the '['
@@ -185,33 +189,36 @@ export class PathParser {
         indexStr += char;
         currentIndex++;
       } else {
-        return err(createError(
-          { kind: "ParseError", input: path },
+        return ErrorHandler.validation({
+          operation: "parseArrayIndex",
+          method: "validateIndexCharacter",
+        }).parseError(
+          path,
           `Invalid character in array index: '${char}' at position ${currentIndex}`,
-        ));
+        );
       }
     }
 
     if (currentIndex >= path.length || path[currentIndex] !== "]") {
-      return err(createError(
-        { kind: "ParseError", input: path },
-        "Unterminated array index - missing ']'",
-      ));
+      return ErrorHandler.validation({
+        operation: "parseArrayIndex",
+        method: "validateCloseBracket",
+      }).parseError(path, "Unterminated array index - missing ']'");
     }
 
     if (indexStr === "") {
-      return err(createError(
-        { kind: "ParseError", input: path },
-        "Empty array index",
-      ));
+      return ErrorHandler.validation({
+        operation: "parseArrayIndex",
+        method: "validateIndexValue",
+      }).parseError(path, "Empty array index");
     }
 
     const index = parseInt(indexStr, 10);
     if (isNaN(index) || index < 0) {
-      return err(createError(
-        { kind: "ParseError", input: path },
-        `Invalid array index: ${indexStr}`,
-      ));
+      return ErrorHandler.validation({
+        operation: "parseArrayIndex",
+        method: "validateIndexNumber",
+      }).parseError(path, `Invalid array index: ${indexStr}`);
     }
 
     currentIndex++; // Skip the ']'
@@ -230,10 +237,10 @@ export class PathParser {
     path: string,
   ): Result<PathSegment[], ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError(
-        { kind: "EmptyInput" },
-        "Path cannot be empty",
-      ));
+      return ErrorHandler.validation({
+        operation: "parseComplex",
+        method: "validatePath",
+      }).emptyInput();
     }
 
     const trimmedPath = path.trim();
@@ -243,17 +250,17 @@ export class PathParser {
 
       // First, validate for invalid patterns
       if (/\[[^\d\]]*[^\d\]]+\]/.test(trimmedPath)) {
-        return err(createError(
-          { kind: "ParseError", input: path },
-          "Invalid characters in array index",
-        ));
+        return ErrorHandler.validation({
+          operation: "parseComplex",
+          method: "validateArrayIndexPattern",
+        }).parseError(path, "Invalid characters in array index");
       }
 
       if (/\[-\d+\]/.test(trimmedPath)) {
-        return err(createError(
-          { kind: "ParseError", input: path },
-          "Negative array indices are not supported",
-        ));
+        return ErrorHandler.validation({
+          operation: "parseComplex",
+          method: "validateNegativeIndices",
+        }).parseError(path, "Negative array indices are not supported");
       }
 
       // Use regex to split the path into meaningful parts
@@ -273,30 +280,33 @@ export class PathParser {
           const indexStr = match[2].slice(1, -1); // Remove [ and ]
           const index = parseInt(indexStr, 10);
           if (isNaN(index) || index < 0) {
-            return err(createError(
-              { kind: "ParseError", input: path },
-              `Invalid array index: ${indexStr}`,
-            ));
+            return ErrorHandler.validation({
+              operation: "parseComplex",
+              method: "validateArrayIndexValue",
+            }).parseError(path, `Invalid array index: ${indexStr}`);
           }
           segments.push({ kind: "arrayIndex", value: index });
         }
       }
 
       if (segments.length === 0) {
-        return err(createError(
-          { kind: "ParseError", input: path },
-          "No valid segments found in path",
-        ));
+        return ErrorHandler.validation({
+          operation: "parseComplex",
+          method: "validateSegments",
+        }).parseError(path, "No valid segments found in path");
       }
 
       return ok(segments);
     } catch (error) {
-      return err(createError(
-        { kind: "ParseError", input: path },
+      return ErrorHandler.validation({
+        operation: "parseComplex",
+        method: "handleException",
+      }).parseError(
+        path,
         error instanceof Error
           ? `Path parsing failed: ${error.message}`
           : "Path parsing failed",
-      ));
+      );
     }
   }
 }

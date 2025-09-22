@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, FrontmatterError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { FrontmatterError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { defaultFrontmatterDataCreationService } from "../services/frontmatter-data-creation-service.ts";
 
@@ -29,10 +30,10 @@ export class FrontmatterDataFactory {
     obj: Record<string, unknown>,
   ): Result<FrontmatterData, FrontmatterError & { message: string }> {
     if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-      return err(createError({
-        kind: "MalformedFrontmatter",
-        content: JSON.stringify(obj).substring(0, 100),
-      }));
+      return ErrorHandler.frontmatter({
+        operation: "fromObject",
+        method: "validateObject",
+      }).malformedFrontmatter(JSON.stringify(obj).substring(0, 100));
     }
     return this.creationService.createFromRaw(obj);
   }
@@ -44,10 +45,10 @@ export class FrontmatterDataFactory {
     items: unknown[],
   ): Result<FrontmatterData[], FrontmatterError & { message: string }> {
     if (!Array.isArray(items)) {
-      return err(createError({
-        kind: "MalformedFrontmatter",
-        content: `Expected array but got ${typeof items}`,
-      }));
+      return ErrorHandler.frontmatter({
+        operation: "fromArray",
+        method: "validateArray",
+      }).malformedFrontmatter(`Expected array but got ${typeof items}`);
     }
 
     return this.creationService.createFromArray(items);

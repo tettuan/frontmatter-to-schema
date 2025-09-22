@@ -10,8 +10,9 @@
  * - Validation consolidation: Single point of template variable validation
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import {
   ARRAY_EXPANSION_MARKER,
   ARRAY_EXPANSION_PLACEHOLDER,
@@ -94,11 +95,10 @@ export class TemplateVariable {
     variableName: string,
   ): Result<TemplateVariable, TemplateError & { message: string }> {
     if (!variableName || variableName.trim().length === 0) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: variableName,
-        reason: "Variable name cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "create",
+        method: "validateVariableName",
+      }).variableNotFound(variableName || "[empty]");
     }
 
     const trimmed = variableName.trim();
@@ -125,11 +125,10 @@ export class TemplateVariable {
 
     // Validate standard variable name
     if (!this.isValidVariableName(trimmed)) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: trimmed,
-        reason: ERROR_MESSAGES.INVALID_VARIABLE_PATTERN(trimmed),
-      }));
+      return ErrorHandler.template({
+        operation: "create",
+        method: "validatePattern",
+      }).invalid(ERROR_MESSAGES.INVALID_VARIABLE_PATTERN(trimmed));
     }
 
     return ok(
@@ -148,11 +147,10 @@ export class TemplateVariable {
     placeholder: string,
   ): Result<TemplateVariable, TemplateError & { message: string }> {
     if (!placeholder || placeholder.trim().length === 0) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: placeholder,
-        reason: "Placeholder cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "fromPlaceholder",
+        method: "validateInput",
+      }).variableNotFound(placeholder || "[empty]");
     }
 
     const trimmed = placeholder.trim();
@@ -160,11 +158,10 @@ export class TemplateVariable {
     // Extract variable name from braces
     const match = trimmed.match(/^\{([^}]+)\}$/);
     if (!match) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: placeholder,
-        reason: "Invalid placeholder format, expected {variableName}",
-      }));
+      return ErrorHandler.template({
+        operation: "fromPlaceholder",
+        method: "parseFormat",
+      }).invalid("Invalid placeholder format, expected {variableName}");
     }
 
     const variableName = match[1];

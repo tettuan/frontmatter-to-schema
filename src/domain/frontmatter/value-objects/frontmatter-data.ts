@@ -1,9 +1,9 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
+import { ok, Result } from "../../shared/types/result.ts";
 import {
-  createError,
   FrontmatterError,
   ValidationError,
 } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { PathParser, PathSegment } from "../services/path-parser.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
@@ -16,16 +16,19 @@ export class FrontmatterData {
     data: unknown,
   ): Result<FrontmatterData, FrontmatterError & { message: string }> {
     if (!data) {
-      return err(createError({ kind: "NoFrontmatter" }));
+      return ErrorHandler.frontmatter({
+        operation: "create",
+        method: "validateData",
+      }).noFrontmatter();
     }
 
     // Use SafePropertyAccess to eliminate type assertion
     const recordResult = SafePropertyAccess.asRecord(data);
     if (!recordResult.ok) {
-      return err(createError({
-        kind: "MalformedFrontmatter",
-        content: JSON.stringify(data).substring(0, 100),
-      }));
+      return ErrorHandler.frontmatter({
+        operation: "create",
+        method: "validateRecord",
+      }).malformedFrontmatter(JSON.stringify(data).substring(0, 100));
     }
 
     return ok(new FrontmatterData(recordResult.data));
@@ -43,15 +46,16 @@ export class FrontmatterData {
     path: string,
   ): Result<unknown, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError({
-        kind: "EmptyInput",
-      }, "Path cannot be empty"));
+      return ErrorHandler.validation({
+        operation: "get",
+        method: "validatePath",
+      }).emptyInput();
     }
 
     // Try enhanced path parsing first (supports array indices)
     const parserResult = PathParser.create();
     if (!parserResult.ok) {
-      return err(parserResult.error);
+      return parserResult;
     }
 
     const segmentsResult = parserResult.data.parseComplex(path);
@@ -66,18 +70,17 @@ export class FrontmatterData {
 
     for (const part of parts) {
       if (current === null || current === undefined) {
-        return err(createError({
-          kind: "FieldNotFound",
-          path,
-        }, `Field not found: ${path}`));
+        return ErrorHandler.validation({
+          operation: "get",
+          method: "traversePath",
+        }).fieldNotFound(path, `Field not found: ${path}`);
       }
 
       if (typeof current !== "object") {
-        return err(createError({
-          kind: "InvalidType",
-          expected: "object",
-          actual: typeof current,
-        }, `Expected object at path: ${path}`));
+        return ErrorHandler.validation({
+          operation: "get",
+          method: "validateObjectType",
+        }).invalidType("object", typeof current);
       }
 
       if (part === "[]" && Array.isArray(current)) {
@@ -87,21 +90,20 @@ export class FrontmatterData {
       // Use SafePropertyAccess to eliminate type assertion
       const propertyResult = SafePropertyAccess.getProperty(current, part);
       if (!propertyResult.ok) {
-        return err(createError({
-          kind: "InvalidType",
-          expected: "object",
-          actual: typeof current,
-        }, `Expected object at path: ${path}`));
+        return ErrorHandler.validation({
+          operation: "get",
+          method: "accessProperty",
+        }).invalidType("object", typeof current);
       }
 
       current = propertyResult.data;
     }
 
     if (current === undefined) {
-      return err(createError({
-        kind: "FieldNotFound",
-        path,
-      }, `Value not found at path: ${path}`));
+      return ErrorHandler.validation({
+        operation: "get",
+        method: "validateValue",
+      }).fieldNotFound(path, `Value not found at path: ${path}`);
     }
 
     return ok(current);
@@ -124,23 +126,22 @@ export class FrontmatterData {
       const segment = segments[i];
 
       if (current === null || current === undefined) {
-        return err(createError({
-          kind: "FieldNotFound",
-          path: originalPath,
-        }, `Field not found at segment ${i}: ${originalPath}`));
+        return ErrorHandler.validation({
+          operation: "getBySegments",
+          method: "traverseSegments",
+        }).fieldNotFound(
+          originalPath,
+          `Field not found at segment ${i}: ${originalPath}`,
+        );
       }
 
       switch (segment.kind) {
         case "property": {
           if (typeof current !== "object") {
-            return err(createError(
-              {
-                kind: "InvalidType",
-                expected: "object",
-                actual: typeof current,
-              },
-              `Expected object at property '${segment.value}' in path: ${originalPath}`,
-            ));
+            return ErrorHandler.validation({
+              operation: "getBySegments",
+              method: "validatePropertyAccess",
+            }).invalidType("object", typeof current);
           }
 
           // Use SafePropertyAccess to eliminate type assertion
@@ -149,14 +150,10 @@ export class FrontmatterData {
             segment.value,
           );
           if (!propertyResult.ok) {
-            return err(createError(
-              {
-                kind: "InvalidType",
-                expected: "object",
-                actual: typeof current,
-              },
-              `Cannot access property '${segment.value}' on non-object in path: ${originalPath}`,
-            ));
+            return ErrorHandler.validation({
+              operation: "getBySegments",
+              method: "accessProperty",
+            }).invalidType("object", typeof current);
           }
 
           current = propertyResult.data;
@@ -164,24 +161,20 @@ export class FrontmatterData {
         }
         case "arrayIndex": {
           if (!Array.isArray(current)) {
-            return err(createError(
-              {
-                kind: "InvalidType",
-                expected: "array",
-                actual: typeof current,
-              },
-              `Expected array at index ${segment.value} in path: ${originalPath}`,
-            ));
+            return ErrorHandler.validation({
+              operation: "getBySegments",
+              method: "validateArrayAccess",
+            }).invalidType("array", typeof current);
           }
 
           if (segment.value >= current.length || segment.value < 0) {
-            return err(createError(
-              {
-                kind: "FieldNotFound",
-                path: originalPath,
-              },
+            return ErrorHandler.validation({
+              operation: "getBySegments",
+              method: "validateArrayIndex",
+            }).fieldNotFound(
+              originalPath,
               `Array index ${segment.value} out of bounds (length: ${current.length}) in path: ${originalPath}`,
-            ));
+            );
           }
 
           current = current[segment.value];
@@ -191,10 +184,13 @@ export class FrontmatterData {
     }
 
     if (current === undefined) {
-      return err(createError({
-        kind: "FieldNotFound",
-        path: originalPath,
-      }, `Value not found at path: ${originalPath}`));
+      return ErrorHandler.validation({
+        operation: "getBySegments",
+        method: "validateFinalValue",
+      }).fieldNotFound(
+        originalPath,
+        `Value not found at path: ${originalPath}`,
+      );
     }
 
     return ok(current);
@@ -295,20 +291,20 @@ export class FrontmatterData {
     value: unknown,
   ): Result<FrontmatterData, ValidationError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError({
-        kind: "EmptyInput",
-      }, "Path cannot be empty"));
+      return ErrorHandler.validation({
+        operation: "set",
+        method: "validatePath",
+      }).emptyInput();
     }
 
     try {
       const newData = this.withField(path, value);
       return ok(newData);
-    } catch (error) {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "valid path",
-        actual: path,
-      }, `Failed to set value at path ${path}: ${error}`));
+    } catch (_error) {
+      return ErrorHandler.validation({
+        operation: "set",
+        method: "setField",
+      }).invalidType("valid path", "invalid");
     }
   }
 

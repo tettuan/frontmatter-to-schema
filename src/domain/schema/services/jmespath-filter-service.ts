@@ -1,6 +1,5 @@
 import { JmesPath } from "jsr:@halvardm/jmespath@^0.17.0";
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 
 /**
@@ -111,11 +110,17 @@ export class JMESPathFilterService {
       const jmespath = this.createJmesPathInstance(validatedData.data);
       return ok(jmespath);
     } catch (error) {
-      return err(createError({
-        kind: "JMESPathCompilationFailed",
-        expression: "[initialization]",
-        message: error instanceof Error ? error.message : String(error),
-      }));
+      // Use ErrorHandler for logging/context but return expected error type
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      return err(
+        {
+          kind: "JMESPathCompilationFailed",
+          expression: "[initialization]",
+          message: errorMessage,
+        } as JMESPathFilterError & { message: string },
+      );
     }
   }
 
@@ -133,14 +138,17 @@ export class JMESPathFilterService {
       const deserialized = JSON.parse(serialized);
       return ok(deserialized);
     } catch (error) {
-      return err(createError({
-        kind: "InvalidJMESPathResult",
-        expression: "[input-validation]",
-        result: data,
-        message: `Input data is not JmesPath-compatible: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }));
+      // Return expected error type for this service
+      return err(
+        {
+          kind: "InvalidJMESPathResult",
+          expression: "[input-validation]",
+          result: data,
+          message: `Input data is not JmesPath-compatible: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        } as JMESPathFilterError & { message: string },
+      );
     }
   }
 
@@ -219,18 +227,22 @@ export class JMESPathFilterService {
 
     // Determine error type based on error message patterns
     if (errorMessage.includes("syntax") || errorMessage.includes("parse")) {
-      return err(createError({
-        kind: "JMESPathCompilationFailed",
-        expression,
-        message: errorMessage,
-      }));
+      return err(
+        {
+          kind: "JMESPathCompilationFailed",
+          expression,
+          message: errorMessage,
+        } as JMESPathFilterError & { message: string },
+      );
     }
 
-    return err(createError({
-      kind: "JMESPathExecutionFailed",
-      expression,
-      message: errorMessage,
-    }));
+    return err(
+      {
+        kind: "JMESPathExecutionFailed",
+        expression,
+        message: errorMessage,
+      } as JMESPathFilterError & { message: string },
+    );
   }
 
   /**

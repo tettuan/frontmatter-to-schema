@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { ValidationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import type { SchemaProperty } from "./schema-property-types.ts";
 import { isRefSchema } from "./schema-property-types.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
@@ -167,10 +168,10 @@ export class ValidationRules {
     if (rule) {
       return ok(rule);
     }
-    return err(createError({
-      kind: "ValidationRuleNotFound",
-      path: path,
-    }));
+    return ErrorHandler.validation({
+      operation: "getRuleForPath",
+      method: "findRule",
+    }).validationRuleNotFound(path);
   }
 
   validate(
@@ -382,10 +383,10 @@ function validateWithRules(
     if (
       rule.required && (normalizedData === undefined || normalizedData === null)
     ) {
-      return err(createError({
-        kind: "MissingRequired",
-        field: path,
-      }));
+      return ErrorHandler.validation({
+        operation: "validateWithRules",
+        method: "checkRequired",
+      }).missingRequired(path);
     }
 
     // Skip further validation if data is null/undefined and not required
@@ -401,22 +402,23 @@ function validateWithRules(
         !(rule.kind === "integer" && actualType === "number" &&
           Number.isInteger(normalizedData))
       ) {
-        return err(createError({
-          kind: "InvalidType",
-          expected: rule.kind,
-          actual: actualType,
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateType",
+        }).invalidType(rule.kind, actualType);
       }
     }
 
     // Enum validation using discriminated union
     if (rule.kind === "enum") {
       if (!rule.values.includes(normalizedData)) {
-        return err(createError({
-          kind: "InvalidType",
-          expected: `enum: [${rule.values.join(", ")}]`,
-          actual: String(normalizedData),
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateEnum",
+        }).invalidType(
+          `enum: [${rule.values.join(", ")}]`,
+          String(normalizedData),
+        );
       }
     }
 
@@ -427,17 +429,16 @@ function validateWithRules(
         try {
           const regex = new RegExp(rule.pattern);
           if (!regex.test(normalizedData)) {
-            return err(createError({
-              kind: "PatternMismatch",
-              value: normalizedData,
-              pattern: rule.pattern,
-            }));
+            return ErrorHandler.validation({
+              operation: "validateWithRules",
+              method: "validatePattern",
+            }).patternMismatch(normalizedData, rule.pattern);
           }
         } catch {
-          return err(createError({
-            kind: "InvalidRegex",
-            pattern: rule.pattern,
-          }));
+          return ErrorHandler.validation({
+            operation: "validateWithRules",
+            method: "compilePattern",
+          }).invalidRegex(rule.pattern);
         }
       }
 
@@ -446,22 +447,23 @@ function validateWithRules(
         rule.minLength !== undefined &&
         normalizedData.length < rule.minLength
       ) {
-        return err(createError({
-          kind: "InvalidType",
-          expected: `string with minimum length ${rule.minLength}`,
-          actual: `string with length ${normalizedData.length}`,
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateMinLength",
+        }).invalidType(
+          `string with minimum length ${rule.minLength}`,
+          `string with length ${normalizedData.length}`,
+        );
       }
 
       if (
         rule.maxLength !== undefined &&
         normalizedData.length > rule.maxLength
       ) {
-        return err(createError({
-          kind: "TooLong",
-          value: normalizedData,
-          maxLength: rule.maxLength,
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateMaxLength",
+        }).tooLong(normalizedData, rule.maxLength);
       }
     }
 
@@ -471,21 +473,17 @@ function validateWithRules(
       typeof normalizedData === "number"
     ) {
       if (rule.minimum !== undefined && normalizedData < rule.minimum) {
-        return err(createError({
-          kind: "OutOfRange",
-          value: normalizedData,
-          min: rule.minimum,
-          max: rule.maximum,
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateMinimum",
+        }).outOfRange(normalizedData, rule.minimum, rule.maximum);
       }
 
       if (rule.maximum !== undefined && normalizedData > rule.maximum) {
-        return err(createError({
-          kind: "OutOfRange",
-          value: normalizedData,
-          min: rule.minimum,
-          max: rule.maximum,
-        }));
+        return ErrorHandler.validation({
+          operation: "validateWithRules",
+          method: "validateMaximum",
+        }).outOfRange(normalizedData, rule.minimum, rule.maximum);
       }
     }
   }

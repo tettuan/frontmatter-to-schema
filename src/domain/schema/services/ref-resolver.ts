@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import {
   isRefSchema,
@@ -24,10 +25,10 @@ export class RefResolver {
     loader: SchemaLoader,
   ): Result<RefResolver, SchemaError & { message: string }> {
     if (!loader) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "SchemaLoader is required",
-      }));
+      return ErrorHandler.schema({
+        operation: "create",
+        method: "validateLoader",
+      }).invalid("SchemaLoader is required");
     }
 
     return ok(new RefResolver(loader));
@@ -50,10 +51,10 @@ export class RefResolver {
 
     const resolvedDef = SchemaDefinition.create(resolvedResult.data);
     if (!resolvedDef.ok) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Failed to create resolved schema definition",
-      }));
+      return ErrorHandler.schema({
+        operation: "resolve",
+        method: "createResolvedDefinition",
+      }).invalid("Failed to create resolved schema definition");
     }
 
     return ok({
@@ -145,30 +146,28 @@ export class RefResolver {
     referencedSchemas: Map<string, SchemaDefinition>,
   ): Result<SchemaProperty, SchemaError & { message: string }> {
     if (this.visitedRefs.has(ref)) {
-      return err(createError({
-        kind: "CircularReference",
-        refs: Array.from(this.visitedRefs).concat(ref),
-      }));
+      return ErrorHandler.schema({
+        operation: "resolveRef",
+        method: "checkCircular",
+      }).circularReference(Array.from(this.visitedRefs).concat(ref));
     }
 
     this.visitedRefs.add(ref);
 
     const loadResult = this.loader.load(ref);
     if (!loadResult.ok) {
-      return err(createError({
-        kind: "RefResolutionFailed",
-        ref,
-        message: loadResult.error.message,
-      }));
+      return ErrorHandler.schema({
+        operation: "resolveRef",
+        method: "loadSchema",
+      }).refResolutionFailed(ref, loadResult.error.message);
     }
 
     const schemaDef = SchemaDefinition.create(loadResult.data);
     if (!schemaDef.ok) {
-      return err(createError({
-        kind: "RefResolutionFailed",
-        ref,
-        message: "Invalid referenced schema",
-      }));
+      return ErrorHandler.schema({
+        operation: "resolveRef",
+        method: "createDefinition",
+      }).refResolutionFailed(ref, "Invalid referenced schema");
     }
 
     referencedSchemas.set(ref, schemaDef.data);

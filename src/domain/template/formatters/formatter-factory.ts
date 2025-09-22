@@ -1,5 +1,6 @@
-import { err, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { OutputFormat, OutputFormatter } from "./output-formatter.ts";
 import { JsonFormatter } from "./json-formatter.ts";
 import { YamlFormatter } from "./yaml-formatter.ts";
@@ -31,10 +32,10 @@ export class FormatterFactory {
     const formatterFactory = this.formatters.get(format);
 
     if (!formatterFactory) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `Unsupported output format: ${format}`,
-      }));
+      return ErrorHandler.template({
+        operation: "createFormatter",
+        method: "validateFormat",
+      }).invalid(`Unsupported output format: ${format}`);
     }
 
     return formatterFactory();

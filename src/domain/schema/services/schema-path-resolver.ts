@@ -1,9 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import {
-  createError,
-  DomainError,
-  SchemaError,
-} from "../../shared/types/errors.ts";
+import { DomainError, SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
@@ -32,11 +29,10 @@ export class DataStructure {
     structure: Record<string, unknown>,
   ): Result<DataStructure, DomainError & { message: string }> {
     if (!structure || typeof structure !== "object") {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "object",
-        actual: typeof structure,
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateStructure",
+      }).invalidType("object", typeof structure);
     }
     return ok(new DataStructure(structure));
   }
@@ -106,9 +102,10 @@ export class SchemaPathResolver {
         "schema-path-resolver",
         "Empty data array - returning error",
       );
-      return err(createError({
-        kind: "EmptyInput",
-      }));
+      return ErrorHandler.validation({
+        operation: "resolveDataStructure",
+        method: "validateDataArray",
+      }).emptyInput();
     }
 
     // Get frontmatter-part path from schema (not hardcoded)
@@ -116,10 +113,7 @@ export class SchemaPathResolver {
     if (!frontmatterPartPathResult.ok) {
       this.debugLogger?.logError(
         "schema-path-resolver",
-        createError({
-          kind: "FrontmatterPartNotFound",
-          message: "Schema does not contain frontmatter-part path",
-        }),
+        frontmatterPartPathResult.error,
       );
       return frontmatterPartPathResult;
     }
@@ -157,7 +151,14 @@ export class SchemaPathResolver {
 
       const structureResult = this.buildNestedStructure(pathParts, dataArray);
       if (!structureResult.ok) {
-        return err(createError(structureResult.error));
+        return ErrorHandler.aggregation({
+          operation: "createDynamicStructure",
+          method: "buildNestedStructure",
+        }).aggregationFailed(
+          `Failed to build nested structure: ${
+            JSON.stringify(structureResult.error)
+          }`,
+        );
       }
       const structure = structureResult.data;
 
@@ -175,17 +176,16 @@ export class SchemaPathResolver {
 
       return DataStructure.create(structure);
     } catch (error) {
-      this.debugLogger?.logError(
+      this.debugLogger?.logDebug(
         "schema-path-resolver",
-        createError({
-          kind: "AggregationFailed",
-          message: `Failed to build structure for path "${path}": ${error}`,
-        }),
+        `Failed to build structure for path "${path}": ${error}`,
       );
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Failed to build structure for path "${path}": ${error}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "createDynamicStructure",
+        method: "buildStructure",
+      }).aggregationFailed(
+        `Failed to build structure for path "${path}": ${error}`,
+      );
     }
   }
 
@@ -209,10 +209,10 @@ export class SchemaPathResolver {
     );
 
     if (pathParts.length === 0) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Path parts cannot be empty",
-      }));
+      return ErrorHandler.schema({
+        operation: "buildNestedStructure",
+        method: "validatePathParts",
+      }).invalidSchema("Path parts cannot be empty");
     }
 
     if (pathParts.length === 1) {

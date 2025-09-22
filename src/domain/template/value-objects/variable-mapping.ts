@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { ValidationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 export type Variable =
   | {
@@ -40,10 +41,10 @@ export class VariableMapping {
   ): Result<Variable, ValidationError & { message: string }> {
     const variable = this.variables.get(name);
     if (!variable) {
-      return err(createError({
-        kind: "MissingRequired",
-        field: name,
-      }, `Variable not found: ${name}`));
+      return ErrorHandler.validation({
+        operation: "getVariable",
+        method: "findVariable",
+      }).missingRequired(name);
     }
     return ok(variable);
   }

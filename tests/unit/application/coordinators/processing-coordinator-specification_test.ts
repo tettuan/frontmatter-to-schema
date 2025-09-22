@@ -261,9 +261,11 @@ describe("BUSINESS REQUIREMENT: Processing Coordinator Initialization", () => {
 
       if (!result.ok) {
         assertEquals(result.error.kind, "InitializationError");
-        assertEquals(
-          result.error.message,
-          "Initialization error: FrontmatterTransformationService is required",
+        assert(
+          result.error.message.includes(
+            "FrontmatterTransformationService is required",
+          ),
+          `Expected error message to contain "FrontmatterTransformationService is required", got: "${result.error.message}"`,
         );
 
         // Validate Totality principles compliance

@@ -97,6 +97,7 @@ interface SchemaContext {
 **ライフサイクル**: 長期（アプリケーション起動時に読込、キャッシュ保持）
 
 **拡張ディレクティブの責務**:
+
 - `x-extract-from`: ネストしたデータ構造からの値抽出（Stage 2で処理）
 - `x-derived-from`: 集約処理での派生フィールド生成（Stage 4で処理）
 - `x-frontmatter-part`: フロントマター配列処理の指定（Stage 1で処理）

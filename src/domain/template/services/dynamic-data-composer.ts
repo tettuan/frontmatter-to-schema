@@ -1,5 +1,6 @@
-import { chain, err, map, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { chain, map, ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ArrayExpansionKey } from "../value-objects/template-structure.ts";
 import { ComposedData } from "../value-objects/variable-context.ts";
@@ -82,12 +83,14 @@ export class DynamicDataComposer {
       const data = mainData.getData();
       return ok(data);
     } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: `Failed to extract main data: ${
+      return ErrorHandler.template({
+        operation: "extractMainData",
+        method: "getData",
+      }).dataCompositionFailed(
+        `Failed to extract main data: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 
@@ -101,12 +104,14 @@ export class DynamicDataComposer {
       const items = itemsData.map((item) => item.getData());
       return ok(items);
     } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: `Failed to extract items data: ${
+      return ErrorHandler.template({
+        operation: "extractItemsData",
+        method: "getData",
+      }).dataCompositionFailed(
+        `Failed to extract items data: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 

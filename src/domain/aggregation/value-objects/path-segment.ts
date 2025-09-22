@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
@@ -13,17 +14,17 @@ export class PathSegment {
     segment: string,
   ): Result<PathSegment, DomainError & { message: string }> {
     if (typeof segment !== "string") {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "string",
-        actual: typeof segment,
-      }, "Path segment must be a string"));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateSegmentType",
+      }).invalidType("string", typeof segment);
     }
 
     if (segment.trim().length === 0) {
-      return err(createError({
-        kind: "EmptyInput",
-      }, "Path segment cannot be empty"));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateSegmentNotEmpty",
+      }).emptyInput();
     }
 
     return ok(new PathSegment(segment.trim()));
@@ -44,12 +45,10 @@ export class PathSegment {
     target: unknown,
   ): Result<unknown, DomainError & { message: string }> {
     if (target === null || target === undefined) {
-      return err(createError({
-        kind: "PathNotFound",
-        path: this.segment,
-        message:
-          `Cannot access property '${this.segment}' on null or undefined`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "extractFrom",
+        method: "validateTarget",
+      }).pathNotFound(this.segment);
     }
 
     // Handle array notation
@@ -57,30 +56,26 @@ export class PathSegment {
       if (Array.isArray(target)) {
         return ok(target);
       }
-      return err(createError({
-        kind: "PathNotFound",
-        path: this.segment,
-        message: `Expected array for '[]' notation, got ${typeof target}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "extractFrom",
+        method: "validateArrayNotation",
+      }).pathNotFound(this.segment);
     }
 
     // Handle object property access
     if (!this.isValidObjectForPropertyAccess(target)) {
-      return err(createError({
-        kind: "PathNotFound",
-        path: this.segment,
-        message: `Cannot access property '${this.segment}' on ${typeof target}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "extractFrom",
+        method: "validateObjectType",
+      }).pathNotFound(this.segment);
     }
 
     const objectResult = SafePropertyAccess.asRecord(target);
     if (!objectResult.ok) {
-      return err(createError({
-        kind: "PathNotFound",
-        path: this.segment,
-        message:
-          `Target is not a valid object for property access: ${this.segment}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "extractFrom",
+        method: "validateObjectRecord",
+      }).pathNotFound(this.segment);
     }
 
     const valueResult = SafePropertyAccess.getProperty(
@@ -88,11 +83,10 @@ export class PathSegment {
       this.segment,
     );
     if (!valueResult.ok) {
-      return err(createError({
-        kind: "PathNotFound",
-        path: this.segment,
-        message: `Property '${this.segment}' not found or not accessible`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "extractFrom",
+        method: "accessProperty",
+      }).pathNotFound(this.segment);
     }
 
     return ok(valueResult.data);

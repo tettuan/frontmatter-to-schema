@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Verbosity mode configuration for template variable processing
@@ -41,10 +42,10 @@ export class ProcessingContext {
     itemTemplate?: unknown,
   ): Result<ProcessingContext, TemplateError & { message: string }> {
     if (!Array.isArray(arrayData)) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: "Array data must be an array for array processing context",
-      }));
+      return ErrorHandler.template({
+        operation: "forArrayProcessing",
+        method: "validateArrayData",
+      }).invalid("Array data must be an array for array processing context");
     }
 
     return ok(
@@ -60,10 +61,10 @@ export class ProcessingContext {
     verbosityMode: VerbosityMode = { kind: "normal" },
   ): Result<ProcessingContext, TemplateError & { message: string }> {
     if (!Array.isArray(arrayData)) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: "Array data must be an array for expansion context",
-      }));
+      return ErrorHandler.template({
+        operation: "forArrayExpansion",
+        method: "validateArrayData",
+      }).invalid("Array data must be an array for expansion context");
     }
 
     return ok(new ProcessingContext("expansion", verbosityMode, arrayData));

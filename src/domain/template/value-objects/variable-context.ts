@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { TemplateVariable } from "./template-variable.ts";
@@ -71,12 +72,14 @@ export class VariableContext {
         new VariableContext(contextData, arrayDataState, hierarchyRootState),
       );
     } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: error instanceof Error
+      return ErrorHandler.template({
+        operation: "create",
+        method: "processData",
+      }).invalid(
+        error instanceof Error
           ? error.message
           : "Unknown error creating context",
-      }));
+      );
     }
   }
 
@@ -96,12 +99,14 @@ export class VariableContext {
         ),
       );
     } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: error instanceof Error
+      return ErrorHandler.template({
+        operation: "fromSingleData",
+        method: "processData",
+      }).invalid(
+        error instanceof Error
           ? error.message
           : "Unknown error creating context",
-      }));
+      );
     }
   }
 
@@ -140,12 +145,14 @@ export class VariableContext {
         ),
       );
     } catch (error) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: error instanceof Error
+      return ErrorHandler.template({
+        operation: "fromArrayData",
+        method: "processArrayData",
+      }).invalid(
+        error instanceof Error
           ? error.message
           : "Unknown error creating array context",
-      }));
+      );
     }
   }
 
@@ -156,11 +163,10 @@ export class VariableContext {
     variablePath: string,
   ): Result<unknown, TemplateError & { message: string }> {
     if (!variablePath.trim()) {
-      return err(createError({
-        kind: "VariableResolutionFailed",
-        variable: variablePath,
-        reason: "Variable path cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "getValue",
+        method: "validatePath",
+      }).variableNotFound(variablePath || "[empty]");
     }
 
     // Handle array expansion markers
@@ -266,12 +272,10 @@ export class VariableContext {
       return ok(this.arrayDataState.data);
     }
 
-    return err(createError({
-      kind: "VariableResolutionFailed",
-      variable: marker,
-      reason:
-        `Array marker '${marker}' not supported or no array data available`,
-    }));
+    return ErrorHandler.template({
+      operation: "resolveArrayMarker",
+      method: "checkArrayData",
+    }).variableNotFound(marker);
   }
 
   private resolveDataPath(
@@ -282,19 +286,17 @@ export class VariableContext {
 
     for (const segment of segments) {
       if (current === null || current === undefined) {
-        return err(createError({
-          kind: "VariableResolutionFailed",
-          variable: path,
-          reason: `Path segment '${segment}' not found`,
-        }));
+        return ErrorHandler.template({
+          operation: "resolveDataPath",
+          method: "traversePath",
+        }).variableNotFound(path);
       }
 
       if (typeof current !== "object") {
-        return err(createError({
-          kind: "VariableResolutionFailed",
-          variable: path,
-          reason: `Cannot access property '${segment}' on non-object value`,
-        }));
+        return ErrorHandler.template({
+          operation: "resolveDataPath",
+          method: "accessProperty",
+        }).invalid(`Cannot access property '${segment}' on non-object value`);
       }
 
       current = current[segment];

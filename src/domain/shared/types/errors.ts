@@ -147,7 +147,8 @@ export type FileSystemError =
 
 export type SystemError =
   | { readonly kind: "InitializationError"; readonly message: string }
-  | { readonly kind: "ConfigurationError"; readonly message: string };
+  | { readonly kind: "ConfigurationError"; readonly message: string }
+  | { readonly kind: "MemoryBoundsViolation"; readonly content: string };
 
 export type PerformanceError =
   | { readonly kind: "BenchmarkError"; readonly content: string }

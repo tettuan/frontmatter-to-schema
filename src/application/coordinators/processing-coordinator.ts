@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { ok, Result } from "../../domain/shared/types/result.ts";
+import { DomainError } from "../../domain/shared/types/errors.ts";
+import { ErrorHandler } from "../../domain/shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../domain/schema/value-objects/validation-rules.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
@@ -64,10 +65,10 @@ export class ProcessingCoordinator {
     recoveryRegistry?: RecoveryStrategyRegistry,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "FrontmatterTransformationService is required",
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateFrontmatterTransformer",
+      }).initializationError("FrontmatterTransformationService is required");
     }
 
     // Create dependencies with proper error handling
@@ -78,30 +79,30 @@ export class ProcessingCoordinator {
     } else {
       const registryResult = RecoveryStrategyRegistry.createWithDefaults();
       if (!registryResult.ok) {
-        return err(createError({
-          kind: "InitializationError",
-          message: "Failed to create RecoveryStrategyRegistry",
-        }));
+        return ErrorHandler.system({
+          operation: "create",
+          method: "createRecoveryRegistry",
+        }).initializationError("Failed to create RecoveryStrategyRegistry");
       }
       finalRecoveryRegistry = registryResult.data;
     }
 
     const settingsResult = PerformanceSettings.createDefault();
     if (!settingsResult.ok) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "Failed to create PerformanceSettings",
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "createPerformanceSettings",
+      }).initializationError("Failed to create PerformanceSettings");
     }
     const finalPerformanceSettings = settingsResult.data;
 
     // Create ExtractFromProcessor
     const extractorResult = ExtractFromProcessor.create(propertyExtractor);
     if (!extractorResult.ok) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "Failed to create ExtractFromProcessor",
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "createExtractFromProcessor",
+      }).initializationError("Failed to create ExtractFromProcessor");
     }
 
     return ok(
@@ -502,11 +503,13 @@ export class ProcessingCoordinator {
           schemaPath: schema.getPath().toString(),
         },
       );
-      return err(createError({
-        kind: "InvalidSchema",
-        message:
-          `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
-      }));
+      return ErrorHandler.validation({
+        operation: "processExtractFromDirectives",
+        method: "getExtractFromDirectives",
+      }).invalidStructure(
+        "schema",
+        `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
+      );
     }
 
     // Check if we have an optimized extractor to use async processing
@@ -549,11 +552,13 @@ export class ProcessingCoordinator {
           schemaPath: schema.getPath().toString(),
         },
       );
-      return err(createError({
-        kind: "InvalidSchema",
-        message:
-          `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
-      }));
+      return ErrorHandler.validation({
+        operation: "processExtractFromDirectives",
+        method: "getExtractFromDirectives",
+      }).invalidStructure(
+        "schema",
+        `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
+      );
     }
 
     // Use sync processing
@@ -684,11 +689,12 @@ export class ProcessingCoordinator {
 
         const directiveProcessorResult = await DirectiveProcessor.create();
         if (!directiveProcessorResult.ok) {
-          return err(createError({
-            kind: "ConfigurationError",
-            message:
-              `Failed to create DirectiveProcessor: ${directiveProcessorResult.error.message}`,
-          }));
+          return ErrorHandler.system({
+            operation: "processDocumentsWithFullExtraction",
+            method: "createDirectiveProcessor",
+          }).configurationError(
+            `Failed to create DirectiveProcessor: ${directiveProcessorResult.error.message}`,
+          );
         }
 
         const directiveProcessor = directiveProcessorResult.data;
@@ -697,11 +703,12 @@ export class ProcessingCoordinator {
         );
 
         if (!processingOrderResult.ok) {
-          return err(createError({
-            kind: "AggregationFailed",
-            message:
-              `Failed to resolve directive processing order: ${processingOrderResult.error.message}`,
-          }));
+          return ErrorHandler.aggregation({
+            operation: "processDocumentsWithFullExtraction",
+            method: "resolveProcessingOrder",
+          }).aggregationFailed(
+            `Failed to resolve directive processing order: ${processingOrderResult.error.message}`,
+          );
         }
 
         const processedItems: FrontmatterData[] = [];
@@ -1098,10 +1105,12 @@ export class ProcessingCoordinator {
       },
     );
 
-    return err(createError({
-      kind: "InitializationError",
-      message: this.generateUserGuidanceMessage(error, inputPattern),
-    }));
+    return ErrorHandler.system({
+      operation: "attemptErrorRecovery",
+      method: "generateUserGuidance",
+    }).initializationError(
+      this.generateUserGuidanceMessage(error, inputPattern),
+    );
   }
 
   /**

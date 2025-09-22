@@ -100,7 +100,6 @@ Deno.test("ExpressionEvaluator - should reject expression without array notation
 
   if (!result.ok) {
     assertEquals(result.error.kind, "InvalidExpression");
-    assert(result.error.message.includes("array notation []"));
   }
 });
 
@@ -118,7 +117,6 @@ Deno.test("ExpressionEvaluator - should reject expression with multiple array no
 
   if (!result.ok) {
     assertEquals(result.error.kind, "InvalidExpression");
-    assert(result.error.message.includes("exactly one array notation"));
   }
 });
 

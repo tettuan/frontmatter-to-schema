@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ProcessingContext } from "../value-objects/processing-context.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
@@ -111,10 +112,10 @@ export class UnifiedVariableReplacementStrategy
     if (content && typeof content === "object") {
       const objResult = SafePropertyAccess.asRecord(content);
       if (!objResult.ok) {
-        return err(createError({
-          kind: "RenderFailed",
-          message: "Content is not a valid object for processing",
-        }));
+        return ErrorHandler.template({
+          operation: "processSingleItem",
+          method: "validateObjectContent",
+        }).renderFailed("Content is not a valid object for processing");
       }
       return this.processObject(
         objResult.data,
@@ -134,11 +135,12 @@ export class UnifiedVariableReplacementStrategy
   ): Result<unknown, TemplateError & { message: string }> {
     const arrayData = context.arrayData;
     if (!arrayData) {
-      return err({
-        kind: "DataCompositionFailed",
-        reason: "Array expansion requires array data in context",
-        message: "Array expansion requires array data in context",
-      });
+      return ErrorHandler.template({
+        operation: "processArrayExpansion",
+        method: "validateArrayData",
+      }).dataCompositionFailed(
+        "Array expansion requires array data in context",
+      );
     }
 
     if (typeof content === "string") {
@@ -168,11 +170,12 @@ export class UnifiedVariableReplacementStrategy
   ): Result<unknown, TemplateError & { message: string }> {
     const arrayData = context.arrayData;
     if (!arrayData) {
-      return err({
-        kind: "DataCompositionFailed",
-        reason: "Array processing requires array data in context",
-        message: "Array processing requires array data in context",
-      });
+      return ErrorHandler.template({
+        operation: "processArrayItems",
+        method: "validateArrayData",
+      }).dataCompositionFailed(
+        "Array processing requires array data in context",
+      );
     }
 
     // Process template for each item in the array
@@ -181,13 +184,12 @@ export class UnifiedVariableReplacementStrategy
       // Create FrontmatterData from each item
       const itemDataResult = FrontmatterData.create(item);
       if (!itemDataResult.ok) {
-        return err({
-          kind: "DataCompositionFailed",
-          reason:
-            `Failed to create FrontmatterData from array item: ${itemDataResult.error.message}`,
-          message:
-            `Failed to create FrontmatterData from array item: ${itemDataResult.error.message}`,
-        });
+        return ErrorHandler.template({
+          operation: "processArrayItems",
+          method: "createFrontmatterData",
+        }).dataCompositionFailed(
+          `Failed to create FrontmatterData from array item: ${itemDataResult.error.message}`,
+        );
       }
 
       const itemResult = this.processSingleItem(
@@ -226,12 +228,14 @@ export class UnifiedVariableReplacementStrategy
 
       return ok(result);
     } catch (error) {
-      return err(createError({
-        kind: "RenderFailed",
-        message: error instanceof Error
+      return ErrorHandler.template({
+        operation: "replaceStringVariables",
+        method: "processTemplate",
+      }).renderFailed(
+        error instanceof Error
           ? `Variable replacement failed: ${error.message}`
           : "Variable replacement failed",
-      }));
+      );
     }
   }
 

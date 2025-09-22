@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Template } from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 import { TemplateRenderer } from "../renderers/template-renderer.ts";
@@ -79,18 +80,18 @@ export class OutputRenderingService {
     // Initialize DDD services following Totality pattern
     const analyzerResult = TemplateStructureAnalyzer.create();
     if (!analyzerResult.ok) {
-      return err(createError({
-        kind: "InitializationError",
-        message: `Failed to create TemplateStructureAnalyzer`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "initializeAnalyzer",
+      }).initializationError("Failed to create TemplateStructureAnalyzer");
     }
 
     const composerResult = DynamicDataComposer.create();
     if (!composerResult.ok) {
-      return err(createError({
-        kind: "InitializationError",
-        message: `Failed to create DynamicDataComposer`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "initializeComposer",
+      }).initializationError("Failed to create DynamicDataComposer");
     }
 
     return ok(
@@ -489,12 +490,14 @@ export class OutputRenderingService {
           kind: "InvalidTemplate",
           message: `Failed to parse rendered output: ${error}`,
         }, { renderResult: renderResult.data });
-        return err(createError({
-          kind: "InvalidTemplate",
-          message: `Failed to parse rendered output for formatting: ${
+        return ErrorHandler.template({
+          operation: "renderOutput",
+          method: "parseRenderedOutput",
+        }).invalid(
+          `Failed to parse rendered output for formatting: ${
             error instanceof Error ? error.message : "Unknown error"
           }`,
-        }));
+        );
       } else {
         // Non-JSON format - assume template already produces correct format
         this.domainLogger.logDebug(
@@ -557,12 +560,12 @@ export class OutputRenderingService {
       templatePath,
     );
     if (!parseResult.ok) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        template: templatePath,
-        message:
-          `Failed to parse template content: ${parseResult.error.message}`,
-      }));
+      return ErrorHandler.template({
+        operation: "loadTemplate",
+        method: "parseTemplateContent",
+      }).invalid(
+        `Failed to parse template content: ${parseResult.error.message}`,
+      );
     }
 
     const templateContent = parseResult.data;
@@ -618,21 +621,16 @@ export class OutputRenderingService {
     }
 
     // Both parsing methods failed
-    const parseError = createError({
-      kind: "InvalidTemplate",
-      template: templatePath,
-      message: `Failed to parse template as JSON or YAML: ${templatePath}`,
-    });
-
-    this.domainLogger.logError("template-parsing", parseError, {
+    this.domainLogger.logError("template-parsing", "Failed to parse template", {
+      templatePath,
       jsonError: jsonResult.error.message,
       yamlError: yamlResult.error.message,
     });
 
-    return err({
-      message:
-        `Failed to parse as JSON (${jsonResult.error.message}) or YAML (${yamlResult.error.message})`,
-    });
+    return ErrorHandler.template({
+      operation: "parseTemplateContent",
+      method: "tryBothFormats",
+    }).invalid(`Failed to parse template as JSON or YAML: ${templatePath}`);
   }
 
   private safeJsonParse(content: string): Result<unknown, { message: string }> {

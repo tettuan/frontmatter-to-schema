@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Represents the analyzed structure of a template
@@ -24,11 +25,13 @@ export class TemplateStructure {
     const keyNames = arrayKeys.map((k) => k.templateKey);
     const uniqueKeys = new Set(keyNames);
     if (keyNames.length !== uniqueKeys.size) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: "template",
-        issue: "Duplicate array expansion keys detected",
-      }));
+      return ErrorHandler.template({
+        operation: "create",
+        method: "validateArrayKeys",
+      }).structureInvalid(
+        "template",
+        "Duplicate array expansion keys detected",
+      );
     }
 
     return ok(new TemplateStructure(arrayKeys, variables, staticContent));
@@ -86,19 +89,17 @@ export class ArrayExpansionKey {
     targetPath: string,
   ): Result<ArrayExpansionKey, TemplateError & { message: string }> {
     if (!templateKey.trim()) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: templateKey,
-        issue: "Template key cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "ArrayExpansionKey.create",
+        method: "validateTemplateKey",
+      }).structureInvalid(templateKey, "Template key cannot be empty");
     }
 
     if (!expansionMarker.trim()) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: expansionMarker,
-        issue: "Expansion marker cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "ArrayExpansionKey.create",
+        method: "validateExpansionMarker",
+      }).structureInvalid(expansionMarker, "Expansion marker cannot be empty");
     }
 
     return ok(new ArrayExpansionKey(templateKey, expansionMarker, targetPath));
@@ -121,27 +122,24 @@ export class VariableReference {
     position: number,
   ): Result<VariableReference, TemplateError & { message: string }> {
     if (!placeholder.trim()) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: placeholder,
-        issue: "Placeholder cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "VariableReference.create",
+        method: "validatePlaceholder",
+      }).structureInvalid(placeholder, "Placeholder cannot be empty");
     }
 
     if (!variablePath.trim()) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: variablePath,
-        issue: "Variable path cannot be empty",
-      }));
+      return ErrorHandler.template({
+        operation: "VariableReference.create",
+        method: "validateVariablePath",
+      }).structureInvalid(variablePath, "Variable path cannot be empty");
     }
 
     if (position < 0) {
-      return err(createError({
-        kind: "TemplateStructureInvalid",
-        template: `${position}`,
-        issue: "Position cannot be negative",
-      }));
+      return ErrorHandler.template({
+        operation: "VariableReference.create",
+        method: "validatePosition",
+      }).structureInvalid(`${position}`, "Position cannot be negative");
     }
 
     return ok(new VariableReference(placeholder, variablePath, position));

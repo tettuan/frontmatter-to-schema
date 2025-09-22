@@ -5,7 +5,8 @@
  */
 
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -431,16 +432,21 @@ export class DirectiveProcessor {
         // Will handle derived data directives when feature is developed
         return ok(data);
 
-      default:
+      default: {
+        // ErrorHandler methods always return error Results
+        const configErrorResult = ErrorHandler.system({
+          operation: "processDirective",
+          method: "switchKind",
+        }).configurationError(`Directive processing not implemented: ${kind}`);
+
+        // Since ErrorHandler always returns errors, we can safely assert this is an Err
         return err({
           kind: "ProcessingFailed",
           directive: kind,
-          error: createError({
-            kind: "ConfigurationError",
-            message: `Directive processing not implemented: ${kind}`,
-          }),
+          error: (configErrorResult as any).error, // ErrorHandler always returns Err results
           message: `Directive processing not implemented: ${kind}`,
         });
+      }
     }
   }
 

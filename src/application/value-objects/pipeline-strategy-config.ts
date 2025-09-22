@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, SystemError } from "../../domain/shared/types/errors.ts";
+import { ok, Result } from "../../domain/shared/types/result.ts";
+import { SystemError } from "../../domain/shared/types/errors.ts";
+import { ErrorHandler } from "../../domain/shared/services/unified-error-handler.ts";
 
 /**
  * Pipeline processing strategy configuration
@@ -69,19 +70,21 @@ export class PipelineStrategyConfig {
 
     // Validate configuration
     if (finalConcurrency < 1 || finalConcurrency > 16) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Invalid concurrency level: ${finalConcurrency}. Must be between 1 and 16.`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateConcurrencyLevel",
+      }).configurationError(
+        `Invalid concurrency level: ${finalConcurrency}. Must be between 1 and 16.`,
+      );
     }
 
     if (finalThresholds.maxMemoryVariancePct < 100) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Invalid memory variance threshold: ${finalThresholds.maxMemoryVariancePct}%. Must be at least 100%.`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateMemoryVarianceThreshold",
+      }).configurationError(
+        `Invalid memory variance threshold: ${finalThresholds.maxMemoryVariancePct}%. Must be at least 100%.`,
+      );
     }
 
     return ok(

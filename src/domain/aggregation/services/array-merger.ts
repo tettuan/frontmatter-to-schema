@@ -9,8 +9,9 @@
  * - Immutable value objects
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { AggregationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Merge strategy using discriminated union (Totality principle)
@@ -148,10 +149,10 @@ export class ArrayMerger {
     try {
       // Validate input
       if (!Array.isArray(sourceArrays)) {
-        return err(createError({
-          kind: "AggregationFailed",
-          message: "Source data must be an array of arrays",
-        }));
+        return ErrorHandler.aggregation({
+          operation: "merge",
+          method: "validateSourceArrays",
+        }).aggregationFailed("Source data must be an array of arrays");
       }
 
       // Filter empty arrays if configured
@@ -183,12 +184,14 @@ export class ArrayMerger {
         }
       }
     } catch (error) {
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Array merge failed: ${
+      return ErrorHandler.aggregation({
+        operation: "merge",
+        method: "performMerge",
+      }).aggregationFailed(
+        `Array merge failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 
@@ -283,12 +286,14 @@ export class ArrayMerger {
 
       return this.merge(sourceArrays, config);
     } catch (error) {
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Failed to merge arrays from sources: ${
+      return ErrorHandler.aggregation({
+        operation: "mergeFromSources",
+        method: "processSources",
+      }).aggregationFailed(
+        `Failed to merge arrays from sources: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 
@@ -330,12 +335,14 @@ export class ArrayMerger {
         return ok([]);
       }
     } catch (error) {
-      return err(createError({
-        kind: "AggregationFailed",
-        message: `Failed to extract array at path "${path}": ${
+      return ErrorHandler.aggregation({
+        operation: "extractArrayFromSource",
+        method: "traversePath",
+      }).aggregationFailed(
+        `Failed to extract array at path "${path}": ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 }

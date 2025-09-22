@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import {
   isRefSchema,
   RefSchema,
@@ -70,17 +71,13 @@ export class SchemaDefinition {
       case "null":
         return ok(this.schema.kind);
       case "ref":
-        return err(createError({
-          kind: "TypeNotDefined",
-          message: "Reference schema does not have a direct type",
-        }));
+        return ErrorHandler.schema({ operation: "getType", method: "ref" })
+          .typeNotDefined();
       case "enum":
         return ok(this.schema.baseType || "string");
       case "any":
-        return err(createError({
-          kind: "TypeNotDefined",
-          message: "Any type schema does not have a specific type",
-        }));
+        return ErrorHandler.schema({ operation: "getType", method: "any" })
+          .typeNotDefined();
     }
   }
 
@@ -91,10 +88,10 @@ export class SchemaDefinition {
     if (SchemaPropertyGuards.isObject(this.schema)) {
       return ok(this.schema.properties);
     }
-    return err(createError({
-      kind: "PropertiesNotDefined",
-      message: `Schema of kind '${this.schema.kind}' does not have properties`,
-    }));
+    return ErrorHandler.schema({
+      operation: "getProperties",
+      method: "validate",
+    }).propertiesNotDefined();
   }
 
   /**
@@ -180,10 +177,8 @@ export class SchemaDefinition {
     if (SchemaPropertyGuards.isRef(this.schema)) {
       return ok(this.schema.ref);
     }
-    return err(createError({
-      kind: "RefNotDefined",
-      message: `Schema of kind '${this.schema.kind}' is not a reference`,
-    }));
+    return ErrorHandler.schema({ operation: "getRef", method: "validate" })
+      .refNotDefined();
   }
 
   /**
@@ -252,10 +247,8 @@ export class SchemaDefinition {
     if (SchemaPropertyGuards.isArray(this.schema)) {
       return ok(this.schema.items);
     }
-    return err(createError({
-      kind: "ItemsNotDefined",
-      message: `Schema of kind '${this.schema.kind}' does not have items`,
-    }));
+    return ErrorHandler.schema({ operation: "getItems", method: "validate" })
+      .itemsNotDefined();
   }
 
   /**
@@ -268,10 +261,10 @@ export class SchemaDefinition {
     if (SchemaPropertyGuards.isEnum(this.schema)) {
       return ok(this.schema.values);
     }
-    return err(createError({
-      kind: "EnumNotDefined",
-      message: `Schema of kind '${this.schema.kind}' is not an enum`,
-    }));
+    return ErrorHandler.schema({
+      operation: "getEnumValues",
+      method: "validate",
+    }).enumNotDefined();
   }
 
   /**
@@ -289,19 +282,23 @@ export class SchemaDefinition {
     schemaProperty: SchemaProperty,
   ): Result<SchemaProperty, SchemaError & { message: string }> {
     if (!SchemaPropertyGuards.isArray(schemaProperty)) {
-      return err(createError(
-        {
-          kind: "ItemsNotDefined",
-        },
+      return ErrorHandler.schema({
+        operation: "extractItemsSchema",
+        method: "validate",
+      }).invalid(
         `Schema of kind '${schemaProperty.kind}' does not define items for array type`,
-      ));
+      );
     }
 
     // Handle $ref items (should not be processed directly)
     if (isRefSchema(schemaProperty.items)) {
-      return err(createError({
-        kind: "RefNotDefined",
-      }, "Array items reference unresolved $ref - use resolved schema"));
+      return ErrorHandler.schema({
+        operation: "extractItemsSchema",
+        method: "ref",
+      }).refResolutionFailed(
+        "items",
+        "Array items reference unresolved $ref - use resolved schema",
+      );
     }
 
     return ok(schemaProperty.items);
@@ -322,23 +319,24 @@ export class SchemaDefinition {
         // Use safe extraction with exhaustive pattern matching
         const itemsResult = this.extractItemsSchema(current);
         if (!itemsResult.ok) {
-          return err(createError(
-            {
-              kind: "PropertyNotFound",
-              path: path,
-            },
-            `Cannot access array items at path '${path}': ${itemsResult.error.message}`,
-          ));
+          return ErrorHandler.schema({
+            operation: "navigateToPath",
+            method: "extractItems",
+          }).propertyNotFound(
+            path,
+          );
         }
         current = itemsResult.data;
       } else {
         // Navigate to property using exhaustive switch
         const navigationResult = this.navigateToProperty(current, part);
         if (!navigationResult.ok) {
-          return err(createError({
-            kind: "PropertyNotFound",
-            path: path,
-          }, `Property '${part}' not found at path '${path}'`));
+          return ErrorHandler.schema({
+            operation: "navigateToPath",
+            method: "navigate",
+          }).propertyNotFound(
+            path,
+          );
         }
         current = navigationResult.data;
       }
@@ -360,10 +358,12 @@ export class SchemaDefinition {
         if (schema.properties[propertyName]) {
           return ok(schema.properties[propertyName]);
         }
-        return err(createError({
-          kind: "PropertyNotFound",
-          path: propertyName,
-        }, `Property '${propertyName}' not found in object schema`));
+        return ErrorHandler.schema({
+          operation: "navigateToProperty",
+          method: "object",
+        }).propertyNotFound(
+          propertyName,
+        );
 
       case "string":
       case "number":
@@ -374,10 +374,12 @@ export class SchemaDefinition {
       case "enum":
       case "null":
       case "any":
-        return err(createError({
-          kind: "PropertyNotFound",
-          path: propertyName,
-        }, `Schema of kind '${schema.kind}' does not have properties`));
+        return ErrorHandler.schema({
+          operation: "navigateToProperty",
+          method: "validate",
+        }).propertyNotFound(
+          propertyName,
+        );
     }
   }
 

@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { ValidationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 export class DerivationRule {
   private constructor(
@@ -14,17 +15,17 @@ export class DerivationRule {
     unique: boolean = false,
   ): Result<DerivationRule, ValidationError & { message: string }> {
     if (!sourceExpression || sourceExpression.trim().length === 0) {
-      return err(createError(
-        { kind: "EmptyInput" },
-        "Source expression cannot be empty",
-      ));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateSourceExpression",
+      }).emptyInput();
     }
 
     if (!targetField || targetField.trim().length === 0) {
-      return err(createError(
-        { kind: "EmptyInput" },
-        "Target field cannot be empty",
-      ));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateTargetField",
+      }).emptyInput();
     }
 
     const trimmedExpression = sourceExpression.trim();

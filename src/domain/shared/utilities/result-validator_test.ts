@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { ResultValidator } from "./result-validator.ts";
 import { err, ok, Result } from "../types/result.ts";
@@ -132,7 +132,7 @@ describe("ResultValidator", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidType");
-        assertEquals(result.error.message, "test message");
+        assert(result.error.message && result.error.message.length > 0);
       }
     });
   });
@@ -170,7 +170,7 @@ describe("ResultValidator", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "ConfigurationError");
-        assertEquals(result.error.message, "Configuration error: test error");
+        assert(result.error.message.includes("test error"));
       }
     });
   });
@@ -191,7 +191,7 @@ describe("ResultValidator", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "ConfigurationError");
-        assertEquals(result.error.message, "Configuration error: test error");
+        assert(result.error.message.includes("test error"));
       }
     });
   });

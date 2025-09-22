@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
@@ -24,22 +25,24 @@ export class MarkdownFormatter extends BaseFormatter {
   }
   format(data: unknown): Result<string, TemplateError & { message: string }> {
     if (!this.isSerializable(data)) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "Data contains non-serializable values",
-      }));
+      return ErrorHandler.template({
+        operation: "format",
+        method: "validateSerializable",
+      }).invalid("Data contains non-serializable values");
     }
 
     try {
       const formatted = this.toMarkdown(data, 1);
       return ok(formatted);
     } catch (error) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `Failed to format as Markdown: ${
+      return ErrorHandler.template({
+        operation: "format",
+        method: "toMarkdown",
+      }).invalid(
+        `Failed to format as Markdown: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 

@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import {
   Decision,
@@ -193,10 +194,10 @@ export class TemplatePathResolver {
       );
     }
 
-    return err(createError({
-      kind: "TemplateNotDefined",
-      message: "No template path specified in config or schema",
-    }));
+    return ErrorHandler.schema({
+      operation: "resolveMainTemplatePath",
+      method: "validateTemplatePath",
+    }).templateNotDefined();
   }
 
   /**

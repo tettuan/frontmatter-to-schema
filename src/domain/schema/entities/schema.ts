@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SchemaPath } from "../value-objects/schema-path.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
@@ -110,7 +111,7 @@ export class Schema {
       }
       case "initial":
       case "validated": {
-        return err(createError({ kind: "SchemaNotResolved" }));
+        return ErrorHandler.schema().invalid("Schema not resolved");
       }
     }
   }
@@ -221,7 +222,7 @@ export class Schema {
         }
       }
 
-      return err(createError({ kind: "FrontmatterPartNotFound" }));
+      return ErrorHandler.schema().frontmatterPartNotFound();
     };
 
     const foundResult = findInProperties(this.state.definition);
@@ -273,7 +274,7 @@ export class Schema {
         }
       }
 
-      return err(createError({ kind: "FrontmatterPartNotFound" }));
+      return ErrorHandler.schema().frontmatterPartNotFound();
     };
 
     const pathResult = findPath(this.state.definition);
@@ -384,11 +385,9 @@ export class Schema {
           });
 
           if (!directiveResult.ok) {
-            return err(createError({
-              kind: "InvalidSchema",
-              message:
-                `Invalid x-extract-from directive at path '${targetPath}': ${directiveResult.error.message}`,
-            }));
+            return ErrorHandler.schema().invalid(
+              `Invalid x-extract-from directive at path '${targetPath}': ${directiveResult.error.message}`,
+            );
           }
 
           directives.push(directiveResult.data);
@@ -478,10 +477,9 @@ export class Schema {
 
     if (definition.hasExtractFrom()) {
       if (!currentPath) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message: "x-extract-from directive cannot target the schema root",
-        }));
+        return ErrorHandler.schema().invalid(
+          "x-extract-from directive cannot target the schema root",
+        );
       }
 
       const extractResult = definition.getExtractFrom();
@@ -571,11 +569,9 @@ export class Schema {
         if (!visitedRefs.has(visitKey)) {
           const referencedDefinition = referencedSchemas.get(items.$ref);
           if (!referencedDefinition) {
-            return err(createError({
-              kind: "InvalidSchema",
-              message:
-                `Referenced schema '${items.$ref}' not found for array items at path '${itemsPath}'`,
-            }));
+            return ErrorHandler.schema().invalid(
+              `Referenced schema '${items.$ref}' not found for array items at path '${itemsPath}'`,
+            );
           }
 
           visitedRefs.add(visitKey);
@@ -634,12 +630,11 @@ export class Schema {
 
       const referencedDefinition = referencedSchemas.get(ref);
       if (!referencedDefinition) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message: `Referenced schema '${ref}' not found for path '${
+        return ErrorHandler.schema().invalid(
+          `Referenced schema '${ref}' not found for path '${
             currentPath || "<root>"
           }'`,
-        }));
+        );
       }
 
       visitedRefs.add(visitKey);

@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../types/result.ts";
-import { createError, ValidationError } from "../types/errors.ts";
+import { ValidationError } from "../types/errors.ts";
+import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 /**
  * Safe property access utilities following Totality principles
@@ -15,27 +16,24 @@ export class SafePropertyAccess {
     data: unknown,
   ): Result<Record<string, unknown>, ValidationError & { message: string }> {
     if (data === null || data === undefined) {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "object",
-        actual: "null/undefined",
-      }, "Cannot convert null or undefined to object"));
+      return ErrorHandler.validation({
+        operation: "asRecord",
+        method: "validateNotNull",
+      }).invalidType("object", "null/undefined");
     }
 
     if (typeof data !== "object") {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "object",
-        actual: typeof data,
-      }, `Cannot convert ${typeof data} to object`));
+      return ErrorHandler.validation({
+        operation: "asRecord",
+        method: "validateObjectType",
+      }).invalidType("object", typeof data);
     }
 
     if (Array.isArray(data)) {
-      return err(createError({
-        kind: "InvalidType",
-        expected: "object",
-        actual: "array",
-      }, "Cannot convert array to object"));
+      return ErrorHandler.validation({
+        operation: "asRecord",
+        method: "validateNotArray",
+      }).invalidType("object", "array");
     }
 
     // At this point TypeScript knows data is Record<string, unknown>
@@ -105,10 +103,10 @@ export class SafePropertyAccess {
       const propertyResult = this.getProperty(current, part);
 
       if (!propertyResult.ok) {
-        return err(createError({
-          kind: "FieldNotFound",
-          path: path.slice(0, i + 1).join("."),
-        }, `Path navigation failed at step ${i}: ${part}`));
+        return ErrorHandler.validation({
+          operation: "navigatePath",
+          method: "validatePathSegment",
+        }).fieldNotFound(path.slice(0, i + 1).join("."));
       }
 
       current = propertyResult.data;

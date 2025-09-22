@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 import { VariableMapping } from "../value-objects/variable-mapping.ts";
 import {
@@ -91,10 +92,10 @@ export class Template {
     configurationState: TemplateConfigurationState,
   ): Result<Template, TemplateError & { message: string }> {
     if (!content) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "Template content is empty",
-      }));
+      return ErrorHandler.template({
+        operation: "createInternal",
+        method: "validateContent",
+      }).invalid("Template content is empty");
     }
 
     const format = determineFormat(content, path, configurationState.config);

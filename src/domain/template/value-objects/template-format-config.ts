@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Domain configuration for template format detection
@@ -66,18 +67,20 @@ export class TemplateFormatConfig {
     content: Record<string, unknown>,
   ): Result<TemplateFormatType, TemplateError & { message: string }> {
     if (!this.detectionStrategy.contentBased) {
-      return err(createError({
-        kind: "DataCompositionFailed",
-        reason: "Content-based detection is disabled in strategy configuration",
-      }));
+      return ErrorHandler.template({
+        operation: "detectFormatFromContent",
+        method: "checkStrategy",
+      }).invalid(
+        "Content-based detection is disabled in strategy configuration",
+      );
     }
 
     const formatType = content.format_type;
     if (typeof formatType !== "string") {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "format_type property must be a string",
-      }));
+      return ErrorHandler.template({
+        operation: "detectFormatFromContent",
+        method: "validateFormatType",
+      }).invalid("format_type property must be a string");
     }
 
     // Use domain-configured keys instead of hardcoded strings
@@ -91,10 +94,10 @@ export class TemplateFormatConfig {
       return ok("json");
     }
 
-    return err(createError({
-      kind: "InvalidFormat",
-      format: formatType,
-    }));
+    return ErrorHandler.template({
+      operation: "detectFormatFromContent",
+      method: "validateFormat",
+    }).invalid(`Unsupported format type: ${formatType}`);
   }
 
   /**

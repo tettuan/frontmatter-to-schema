@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { PropertyPath } from "../extractors/property-extractor.ts";
 
 export interface ExtractFromDirectiveProps {
@@ -23,73 +24,84 @@ export class ExtractFromDirective {
     props: ExtractFromDirectiveProps,
   ): Result<ExtractFromDirective, DomainError & { message: string }> {
     if (!props || typeof props !== "object") {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-directive",
-        value: props,
-        message: "Directive props must be provided",
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateProps",
+      }).invalidFormat(
+        "extract-from-directive",
+        props,
+        undefined,
+        "Directive props must be provided",
+      );
     }
 
     const { targetPath, sourcePath, mergeArrays, targetIsArray } = props;
 
     if (!targetPath || typeof targetPath !== "string") {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-target-path",
-        value: targetPath,
-        message: "Target path must be a non-empty string",
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateTargetPath",
+      }).invalidFormat(
+        "extract-from-target-path",
+        targetPath,
+        undefined,
+        "Target path must be a non-empty string",
+      );
     }
 
     if (!sourcePath || typeof sourcePath !== "string") {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-source-path",
-        value: sourcePath,
-        message: "Source path must be a non-empty string",
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateSourcePath",
+      }).invalidFormat(
+        "extract-from-source-path",
+        sourcePath,
+        undefined,
+        "Source path must be a non-empty string",
+      );
     }
 
     const normalizedTarget = targetPath.trim();
     const normalizedSource = sourcePath.trim();
 
     if (normalizedTarget.length === 0) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-target-path",
-        value: targetPath,
-        message: "Target path cannot be empty",
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateTargetLength",
+      }).emptyInput();
     }
 
     if (normalizedSource.length === 0) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-source-path",
-        value: sourcePath,
-        message: "Source path cannot be empty",
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateSourceLength",
+      }).emptyInput();
     }
 
     const targetPathResult = PropertyPath.create(normalizedTarget);
     if (!targetPathResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-target-path",
-        value: normalizedTarget,
-        message: `Invalid target path '${normalizedTarget}'`,
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "createTargetPath",
+      }).invalidFormat(
+        "extract-from-target-path",
+        normalizedTarget,
+        undefined,
+        `Invalid target path '${normalizedTarget}'`,
+      );
     }
 
     const sourcePathResult = PropertyPath.create(normalizedSource);
     if (!sourcePathResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "extract-from-source-path",
-        value: normalizedSource,
-        message: `Invalid source path '${normalizedSource}'`,
-      }));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "createSourcePath",
+      }).invalidFormat(
+        "extract-from-source-path",
+        normalizedSource,
+        undefined,
+        `Invalid source path '${normalizedSource}'`,
+      );
     }
 
     return ok(

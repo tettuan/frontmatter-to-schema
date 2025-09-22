@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, ValidationError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { ValidationError } from "../../shared/types/errors.ts";
+import { ValidationErrorBuilder } from "../../shared/services/unified-error-handler.ts";
 import { FileExtension } from "../../shared/value-objects/file-extension.ts";
 import { SupportedFormats } from "../../shared/value-objects/supported-formats.ts";
 
@@ -10,17 +11,18 @@ export class TemplatePath {
     path: string,
   ): Result<TemplatePath, ValidationError & { message: string }> {
     if (!path || path.trim().length === 0) {
-      return err(createError({ kind: "EmptyInput" }));
+      return new ValidationErrorBuilder().emptyInput();
     }
 
     const trimmed = path.trim();
     const validationResult = SupportedFormats.validatePath(trimmed, "template");
     if (!validationResult.ok) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "template path",
-        value: trimmed,
-      }, validationResult.error.message));
+      return new ValidationErrorBuilder().invalidFormat(
+        "template path",
+        trimmed,
+        undefined,
+        validationResult.error.message,
+      );
     }
 
     return ok(new TemplatePath(trimmed));

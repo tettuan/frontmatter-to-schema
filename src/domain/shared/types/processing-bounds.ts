@@ -3,8 +3,9 @@
  * Following DDD and Totality principles with discriminated unions
  */
 
-import { err, ok, Result } from "./result.ts";
-import { createError, PerformanceError } from "./errors.ts";
+import { ok, Result } from "./result.ts";
+import { PerformanceError } from "./errors.ts";
+import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 /**
  * Processing bounds discriminated union
@@ -60,24 +61,28 @@ export class ProcessingBoundsFactory {
     timeLimitSeconds: number,
   ): Result<ProcessingBounds, PerformanceError & { message: string }> {
     if (memoryLimitMB <= 0) {
-      return err(createError({
-        kind: "MemoryBoundsViolation",
-        content: `Memory limit must be positive, got ${memoryLimitMB}MB`,
-      }));
+      return ErrorHandler.performance({
+        operation: "createBounded",
+        method: "validateMemoryLimit",
+      }).memoryBoundsExceeded(
+        `Memory limit must be positive, got ${memoryLimitMB}MB`,
+      );
     }
 
     if (fileLimit <= 0) {
-      return err(createError({
-        kind: "MemoryBoundsViolation",
-        content: `File limit must be positive, got ${fileLimit}`,
-      }));
+      return ErrorHandler.performance({
+        operation: "createBounded",
+        method: "validateFileLimit",
+      }).memoryBoundsExceeded(`File limit must be positive, got ${fileLimit}`);
     }
 
     if (timeLimitSeconds <= 0) {
-      return err(createError({
-        kind: "MemoryBoundsViolation",
-        content: `Time limit must be positive, got ${timeLimitSeconds}s`,
-      }));
+      return ErrorHandler.performance({
+        operation: "createBounded",
+        method: "validateTimeLimit",
+      }).memoryBoundsExceeded(
+        `Time limit must be positive, got ${timeLimitSeconds}s`,
+      );
     }
 
     return ok({
@@ -102,10 +107,12 @@ export class ProcessingBoundsFactory {
     fileCount: number,
   ): Result<ProcessingBounds, PerformanceError & { message: string }> {
     if (fileCount < 0) {
-      return err(createError({
-        kind: "MemoryBoundsViolation",
-        content: `File count must be non-negative, got ${fileCount}`,
-      }));
+      return ErrorHandler.performance({
+        operation: "createDefault",
+        method: "validateFileCount",
+      }).memoryBoundsExceeded(
+        `File count must be non-negative, got ${fileCount}`,
+      );
     }
 
     // Special case: 0 files found - use unbounded processing (nothing to process)
@@ -219,14 +226,16 @@ export class ProcessingBoundsMonitor {
     const expectedLogGrowth = Math.log2(filesProcessed) * (1024 * 1024); // 1MB per log2(n)
 
     if (memoryGrowth > expectedLogGrowth * 2) { // Allow 2x tolerance
-      return err(createError({
-        kind: "MemoryBoundsViolation",
-        content: `Memory growth ${
+      return ErrorHandler.performance({
+        operation: "validateMemoryGrowth",
+        method: "checkLogGrowthConstraint",
+      }).memoryBoundsExceeded(
+        `Memory growth ${
           Math.round(memoryGrowth / 1024 / 1024)
         }MB exceeds O(log n) target of ${
           Math.round(expectedLogGrowth / 1024 / 1024)
         }MB for ${filesProcessed} files`,
-      }));
+      );
     }
 
     return ok(void 0);

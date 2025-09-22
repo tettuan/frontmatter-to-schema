@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { AggregationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { CircuitBreakerConfig } from "../value-objects/circuit-breaker-config.ts";
 
 /**
@@ -176,10 +177,12 @@ export class CircuitBreaker {
         cooldownPeriodMs: config.cooldownPeriodMs,
       });
       if (!result.ok) {
-        return err(createError({
-          kind: "AggregationFailed",
-          message: `Invalid legacy configuration: ${result.error.message}`,
-        }));
+        return ErrorHandler.aggregation({
+          operation: "create",
+          method: "convertLegacyConfig",
+        }).aggregationFailed(
+          `Invalid legacy configuration: ${result.error.message}`,
+        );
       }
       finalConfig = result.data;
     }
@@ -244,12 +247,14 @@ export class CircuitBreaker {
 
       if (timeSinceFailure < cooldownPeriod) {
         this.recordRejection();
-        return err(createError({
-          kind: "AggregationFailed",
-          message: `Circuit breaker is open. Please wait ${
+        return ErrorHandler.aggregation({
+          operation: "canProcess",
+          method: "checkCircuitBreakerState",
+        }).aggregationFailed(
+          `Circuit breaker is open. Please wait ${
             Math.ceil((cooldownPeriod - timeSinceFailure) / 1000)
           } seconds before retrying.`,
-        }));
+        );
       }
 
       this.state = {
@@ -264,20 +269,22 @@ export class CircuitBreaker {
 
     if (datasetSize > thresholds.maxDatasetSize) {
       this.recordRejection();
-      return err(createError({
-        kind: "AggregationFailed",
-        message:
-          `Dataset size ${datasetSize} exceeds maximum allowed ${thresholds.maxDatasetSize}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "canProcess",
+        method: "validateDatasetSize",
+      }).aggregationFailed(
+        `Dataset size ${datasetSize} exceeds maximum allowed ${thresholds.maxDatasetSize}`,
+      );
     }
 
     if (complexity > thresholds.maxComplexity) {
       this.recordRejection();
-      return err(createError({
-        kind: "AggregationFailed",
-        message:
-          `Processing complexity ${complexity} exceeds maximum allowed ${thresholds.maxComplexity}`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "canProcess",
+        method: "validateComplexity",
+      }).aggregationFailed(
+        `Processing complexity ${complexity} exceeds maximum allowed ${thresholds.maxComplexity}`,
+      );
     }
 
     const currentMemoryMB = Math.round(
@@ -285,11 +292,12 @@ export class CircuitBreaker {
     );
     if (currentMemoryMB > thresholds.maxMemoryMB * 0.8) {
       this.recordRejection();
-      return err(createError({
-        kind: "AggregationFailed",
-        message:
-          `Current memory usage ${currentMemoryMB}MB is too high (limit: ${thresholds.maxMemoryMB}MB)`,
-      }));
+      return ErrorHandler.aggregation({
+        operation: "canProcess",
+        method: "validateMemoryUsage",
+      }).aggregationFailed(
+        `Current memory usage ${currentMemoryMB}MB is too high (limit: ${thresholds.maxMemoryMB}MB)`,
+      );
     }
 
     return ok(true);

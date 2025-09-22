@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Template } from "../entities/template.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { JsonFormatter } from "../formatters/json-formatter.ts";
@@ -318,23 +319,10 @@ export class TemplateRenderer {
         break;
       }
       default: {
-        const error = createError({
-          kind: "InvalidFormat",
-          format,
-        });
-        this.domainLogger.logError(
-          "template-format",
-          createError({
-            kind: "InvalidTemplate",
-            message: `Invalid format: ${format}`,
-          }),
-          {
-            operation: "output-formatting",
-            format,
-            timestamp: new Date().toISOString(),
-          },
-        );
-        return err(error);
+        return ErrorHandler.template({
+          operation: "formatOutput",
+          method: "validateFormat",
+        }).invalidFormat(format);
       }
     }
 

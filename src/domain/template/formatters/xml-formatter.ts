@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
@@ -27,22 +28,26 @@ export class XmlFormatter extends BaseFormatter {
 
   format(data: unknown): Result<string, TemplateError & { message: string }> {
     if (!this.isSerializable(data)) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "Data contains circular references or non-serializable values",
-      }));
+      return ErrorHandler.template({
+        operation: "format",
+        method: "validateSerializable",
+      }).invalid(
+        "Data contains circular references or non-serializable values",
+      );
     }
 
     try {
       const xmlContent = this.convertToXml(data, "root");
       return ok(`<?xml version="1.0" encoding="UTF-8"?>\n${xmlContent}`);
     } catch (error) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `XML formatting failed: ${
+      return ErrorHandler.template({
+        operation: "format",
+        method: "convertToXml",
+      }).invalid(
+        `XML formatting failed: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 

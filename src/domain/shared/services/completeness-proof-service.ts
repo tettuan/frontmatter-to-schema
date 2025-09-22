@@ -3,8 +3,9 @@
  * 数学的完全性の検証とその証明を行う
  */
 
-import { err, ok, Result } from "../types/result.ts";
-import { createError, DomainError } from "../types/errors.ts";
+import { ok, Result } from "../types/result.ts";
+import { DomainError } from "../types/errors.ts";
+import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 // 完全性証明メカニズムデバッグ情報 (Iteration 9)
 const _completenessProofMechanismDebug = {
@@ -133,27 +134,17 @@ export class CompletenessProofService {
     evidenceThreshold: number = 80,
   ): Result<CompletenessProofService, DomainError & { message: string }> {
     if (proofThreshold < 0 || proofThreshold > 100) {
-      return err(createError(
-        {
-          kind: "OutOfRange",
-          value: proofThreshold,
-          min: 0,
-          max: 100,
-        },
-        `Invalid proof threshold: ${proofThreshold}, must be between 0 and 100`,
-      ));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateProofThreshold",
+      }).outOfRange(proofThreshold, 0, 100);
     }
 
     if (evidenceThreshold < 0 || evidenceThreshold > 100) {
-      return err(createError(
-        {
-          kind: "OutOfRange",
-          value: evidenceThreshold,
-          min: 0,
-          max: 100,
-        },
-        `Invalid evidence threshold: ${evidenceThreshold}, must be between 0 and 100`,
-      ));
+      return ErrorHandler.validation({
+        operation: "create",
+        method: "validateEvidenceThreshold",
+      }).outOfRange(evidenceThreshold, 0, 100);
     }
 
     return ok(new CompletenessProofService(proofThreshold, evidenceThreshold));
@@ -189,13 +180,10 @@ export class CompletenessProofService {
       ) {
         const result = await this.proveCategory(category);
         if (!result.ok) {
-          return err(createError(
-            {
-              kind: "ValidationRuleNotFound",
-              path: `proof.${category}`,
-            },
-            `Proof execution failed for ${category}: ${result.error.message}`,
-          ));
+          return ErrorHandler.validation({
+            operation: "executeCompletenessProof",
+            method: "proveCategory",
+          }).validationRuleNotFound(`proof.${category}`);
         }
         categoryResults.push(result.data);
         allGaps.push(...result.data.gaps);
@@ -209,15 +197,10 @@ export class CompletenessProofService {
       const criticalGaps = allGaps.filter((gap) => gap.severity === "critical");
 
       if (criticalGaps.length > 0) {
-        return err(createError(
-          {
-            kind: "ValidationRuleNotFound",
-            path: "proof.criticalGaps",
-          },
-          `Critical gaps detected: ${
-            criticalGaps.map((g) => g.description).join(", ")
-          }`,
-        ));
+        return ErrorHandler.validation({
+          operation: "executeCompletenessProof",
+          method: "validateCriticalGaps",
+        }).validationRuleNotFound("proof.criticalGaps");
       }
 
       const result: CompletenessProofResult = {
@@ -230,10 +213,12 @@ export class CompletenessProofService {
 
       return ok(result);
     } catch (_error) {
-      return err(createError({
-        kind: "AggregationFailed",
-        message: "Verification system failure in completeness-proof-service",
-      }));
+      return ErrorHandler.aggregation({
+        operation: "executeCompletenessProof",
+        method: "handleException",
+      }).aggregationFailed(
+        "Verification system failure in completeness-proof-service",
+      );
     }
   }
 

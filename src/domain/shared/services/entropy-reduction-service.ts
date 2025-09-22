@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../types/result.ts";
-import { createError, SystemError } from "../types/errors.ts";
+import { ok, Result } from "../types/result.ts";
+import { SystemError } from "../types/errors.ts";
+import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 /**
  * AI Complexity Control - Entropy Reduction Service
@@ -61,19 +62,21 @@ export class EntropyReductionService {
     safetyMargin: number = 2.0,
   ): Result<EntropyReductionService, SystemError & { message: string }> {
     if (entropyThreshold <= 0) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Invalid entropy threshold: ${entropyThreshold}. Must be positive.`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateEntropyThreshold",
+      }).configurationError(
+        `Invalid entropy threshold: ${entropyThreshold}. Must be positive.`,
+      );
     }
 
     if (safetyMargin < 0) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Invalid safety margin: ${safetyMargin}. Must be non-negative.`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateSafetyMargin",
+      }).configurationError(
+        `Invalid safety margin: ${safetyMargin}. Must be non-negative.`,
+      );
     }
 
     return ok(new EntropyReductionService(entropyThreshold, safetyMargin));

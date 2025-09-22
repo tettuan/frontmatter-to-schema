@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { defaultSchemaExtensionRegistry } from "./schema-extension-registry.ts";
 import {
   ArrayConstraints,
@@ -64,10 +65,10 @@ export class SchemaPropertyMigration {
     legacy: unknown,
   ): Result<NewSchemaProperty, SchemaError & { message: string }> {
     if (!legacy || typeof legacy !== "object") {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Schema must be an object",
-      }));
+      return ErrorHandler.schema({ operation: "migrate", method: "validate" })
+        .invalid(
+          "Schema must be an object",
+        );
     }
 
     const legacySchema = legacy as LegacySchemaProperty;
@@ -117,11 +118,12 @@ export class SchemaPropertyMigration {
     for (const [key, legacyProp] of Object.entries(legacyProperties)) {
       const migrationResult = this.migrate(legacyProp);
       if (!migrationResult.ok) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message:
-            `Failed to migrate property '${key}': ${migrationResult.error.message}`,
-        }));
+        return ErrorHandler.schema({
+          operation: "migrateProperties",
+          method: "migrate",
+        }).invalid(
+          `Failed to migrate property '${key}': ${migrationResult.error.message}`,
+        );
       }
       migratedProperties[key] = migrationResult.data;
     }
@@ -206,10 +208,12 @@ export class SchemaPropertyMigration {
         return ok(SchemaPropertyFactory.createNull(extensions));
 
       default:
-        return err(createError({
-          kind: "InvalidSchema",
-          message: `Unknown schema type: ${legacy.type}`,
-        }));
+        return ErrorHandler.schema({
+          operation: "migrateByType",
+          method: "validate",
+        }).invalid(
+          `Unknown schema type: ${legacy.type}`,
+        );
     }
   }
 
@@ -218,10 +222,12 @@ export class SchemaPropertyMigration {
     extensions: SchemaExtensions,
   ): Result<NewSchemaProperty, SchemaError & { message: string }> {
     if (!legacy.items) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Array schema must define items",
-      }));
+      return ErrorHandler.schema({
+        operation: "migrateArray",
+        method: "validate",
+      }).invalid(
+        "Array schema must define items",
+      );
     }
 
     let items: NewSchemaProperty | RefSchema;
@@ -231,11 +237,12 @@ export class SchemaPropertyMigration {
     } else {
       const itemsResult = this.migrate(legacy.items);
       if (!itemsResult.ok) {
-        return err(createError({
-          kind: "InvalidSchema",
-          message:
-            `Failed to migrate array items: ${itemsResult.error.message}`,
-        }));
+        return ErrorHandler.schema({
+          operation: "migrateArray",
+          method: "migrateItems",
+        }).invalid(
+          `Failed to migrate array items: ${itemsResult.error.message}`,
+        );
       }
       items = itemsResult.data;
     }

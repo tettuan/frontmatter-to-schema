@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Represents the type of data structure that a schema defines.
@@ -51,20 +52,21 @@ export class StructureTypeFactory {
     description?: string,
   ): Result<StructureType, SchemaError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Collection path cannot be empty",
-      }));
+      return ErrorHandler.schema({
+        operation: "collection",
+        method: "validatePath",
+      }).invalidSchema("Collection path cannot be empty");
     }
 
     // Validate path format - should be simple property name for collections
     const pathPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
     if (!pathPattern.test(path)) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message:
-          `Invalid collection path format '${path}': must be a valid property name`,
-      }));
+      return ErrorHandler.schema({
+        operation: "collection",
+        method: "validatePathFormat",
+      }).invalidSchema(
+        `Invalid collection path format '${path}': must be a valid property name`,
+      );
     }
 
     return ok({
@@ -82,20 +84,21 @@ export class StructureTypeFactory {
     description?: string,
   ): Result<StructureType, SchemaError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Custom path cannot be empty",
-      }));
+      return ErrorHandler.schema({
+        operation: "custom",
+        method: "validatePath",
+      }).invalidSchema("Custom path cannot be empty");
     }
 
     // Validate nested path format (allows dots)
     const pathPattern = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/;
     if (!pathPattern.test(path)) {
-      return err(createError({
-        kind: "InvalidSchema",
-        message:
-          `Invalid custom path format '${path}': must be a valid nested property path`,
-      }));
+      return ErrorHandler.schema({
+        operation: "custom",
+        method: "validateNestedPath",
+      }).invalidSchema(
+        `Invalid custom path format '${path}': must be a valid nested property path`,
+      );
     }
 
     return ok({
@@ -112,10 +115,10 @@ export class StructureTypeFactory {
     path: string,
   ): Result<StructureType, SchemaError & { message: string }> {
     if (!path || path.trim() === "") {
-      return err(createError({
-        kind: "InvalidSchema",
-        message: "Path cannot be empty for structure type detection",
-      }));
+      return ErrorHandler.schema({
+        operation: "fromPath",
+        method: "validateDetectionPath",
+      }).invalidSchema("Path cannot be empty for structure type detection");
     }
 
     // Registry pattern detection

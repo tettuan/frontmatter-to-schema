@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../entities/schema.ts";
 import {
   StructureType,
@@ -88,10 +89,12 @@ export class SchemaStructureDetector {
       "Generic collection structure (no x-frontmatter-part detected)",
     );
     if (!collectionResult.ok) {
-      return err(createError({
-        kind: "AggregationFailed",
-        message: "Failed to create default collection structure type",
-      }));
+      return ErrorHandler.aggregation({
+        operation: "detectFromSchema",
+        method: "createDefault",
+      }).aggregationFailed(
+        "Failed to create default collection structure type",
+      );
     }
 
     return collectionResult;
@@ -116,10 +119,10 @@ export class SchemaStructureDetector {
       return ok(StructureTypeFactory.registry());
     }
 
-    return err(createError({
-      kind: "FrontmatterPartNotFound",
-      message: "Schema does not contain registry structure patterns",
-    }));
+    return ErrorHandler.schema({
+      operation: "detectFromSchema",
+      method: "registry",
+    }).frontmatterPartNotFound();
   }
 
   /**
@@ -164,10 +167,13 @@ export class SchemaStructureDetector {
     const rawSchema = definition.getRawSchema();
 
     if (typeof rawSchema !== "object" || rawSchema === null) {
-      return err(createError({
-        kind: "InvalidStructure",
-        field: "schema",
-      }));
+      return ErrorHandler.validation({
+        operation: "inferFromProperties",
+        method: "validateSchema",
+      }).invalidType(
+        "object",
+        "null",
+      );
     }
 
     const schemaObj = rawSchema as Record<string, unknown>;
@@ -176,9 +182,10 @@ export class SchemaStructureDetector {
       | undefined;
 
     if (!properties || typeof properties !== "object") {
-      return err(createError({
-        kind: "PropertiesNotDefined",
-      }));
+      return ErrorHandler.schema({
+        operation: "inferFromProperties",
+        method: "getProperties",
+      }).propertiesNotDefined();
     }
 
     const _propertyKeys = Object.keys(properties);
@@ -222,10 +229,10 @@ export class SchemaStructureDetector {
       }
     }
 
-    return err(createError({
-      kind: "FrontmatterPartNotFound",
-      message: "Could not infer structure type from schema properties",
-    }));
+    return ErrorHandler.schema({
+      operation: "inferFromProperties",
+      method: "infer",
+    }).frontmatterPartNotFound();
   }
 
   /**

@@ -4,8 +4,9 @@
  * Following DDD and Totality principles
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Directive Type Discriminated Union
@@ -53,10 +54,10 @@ export class DirectiveType {
     const priority = priorityMap.get(kind);
 
     if (dependencies === undefined || priority === undefined) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Unknown directive type: ${kind}`,
-      }));
+      return ErrorHandler.system({
+        operation: "create",
+        method: "validateDirectiveType",
+      }).configurationError(`Unknown directive type: ${kind}`);
     }
 
     return ok(new DirectiveType(kind, dependencies, priority));

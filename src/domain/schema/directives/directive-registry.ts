@@ -3,8 +3,9 @@
  * @description Replaces hardcoded directive strings with configuration-driven approach
  */
 
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, DomainError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { DomainError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { parse } from "jsr:@std/yaml@1.0.5";
 
 /**
@@ -73,12 +74,14 @@ export class DirectiveRegistry {
       DirectiveRegistry.instance = registry;
       return ok(registry);
     } catch (error) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Failed to create directive registry: ${
+      return ErrorHandler.system({
+        operation: "create",
+        method: "createRegistry",
+      }).configurationError(
+        `Failed to create directive registry: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 
@@ -93,12 +96,14 @@ export class DirectiveRegistry {
       const config = parse(content) as DirectiveConfiguration;
       return DirectiveRegistry.create(config);
     } catch (error) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Failed to load directive configuration: ${
+      return ErrorHandler.system({
+        operation: "loadFromFile",
+        method: "loadConfiguration",
+      }).configurationError(
+        `Failed to load directive configuration: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 
@@ -110,11 +115,12 @@ export class DirectiveRegistry {
     DomainError & { message: string }
   > {
     if (!DirectiveRegistry.instance) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          "DirectiveRegistry not initialized. Call create() or loadFromFile() first.",
-      }));
+      return ErrorHandler.system({
+        operation: "getInstance",
+        method: "checkInitialized",
+      }).configurationError(
+        "DirectiveRegistry not initialized. Call create() or loadFromFile() first.",
+      );
     }
     return ok(DirectiveRegistry.instance);
   }
@@ -125,10 +131,10 @@ export class DirectiveRegistry {
   get(key: string): Result<DirectiveConfig, DomainError & { message: string }> {
     const directive = this.directives.get(key);
     if (!directive) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Directive '${key}' not found in registry`,
-      }));
+      return ErrorHandler.system({
+        operation: "get",
+        method: "findDirective",
+      }).configurationError(`Directive '${key}' not found in registry`);
     }
     return ok(directive);
   }
@@ -141,10 +147,12 @@ export class DirectiveRegistry {
   ): Result<DirectiveConfig, DomainError & { message: string }> {
     const key = this.nameToKey.get(name);
     if (!key) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Directive with name '${name}' not found in registry`,
-      }));
+      return ErrorHandler.system({
+        operation: "getByName",
+        method: "findDirectiveByName",
+      }).configurationError(
+        `Directive with name '${name}' not found in registry`,
+      );
     }
     return this.get(key);
   }
@@ -212,10 +220,10 @@ export class DirectiveRegistry {
   ): Result<DirectiveConfiguration, DomainError & { message: string }> {
     try {
       if (!config || typeof config !== "object") {
-        return err(createError({
-          kind: "ConfigurationError",
-          message: "Configuration must be an object",
-        }));
+        return ErrorHandler.system({
+          operation: "validateConfiguration",
+          method: "validateObjectType",
+        }).configurationError("Configuration must be an object");
       }
 
       const typedConfig = config as Record<string, unknown>;
@@ -223,61 +231,67 @@ export class DirectiveRegistry {
       if (
         !typedConfig.directives || typeof typedConfig.directives !== "object"
       ) {
-        return err(createError({
-          kind: "ConfigurationError",
-          message: "Configuration must have 'directives' object",
-        }));
+        return ErrorHandler.system({
+          operation: "validateConfiguration",
+          method: "validateDirectivesProperty",
+        }).configurationError("Configuration must have 'directives' object");
       }
 
       const directives = typedConfig.directives as Record<string, unknown>;
 
       for (const [key, directive] of Object.entries(directives)) {
         if (!directive || typeof directive !== "object") {
-          return err(createError({
-            kind: "ConfigurationError",
-            message: `Directive '${key}' must be an object`,
-          }));
+          return ErrorHandler.system({
+            operation: "validateConfiguration",
+            method: "validateDirectiveObject",
+          }).configurationError(`Directive '${key}' must be an object`);
         }
 
         const dir = directive as Record<string, unknown>;
 
         if (typeof dir.name !== "string") {
-          return err(createError({
-            kind: "ConfigurationError",
-            message: `Directive '${key}' must have string 'name'`,
-          }));
+          return ErrorHandler.system({
+            operation: "validateConfiguration",
+            method: "validateDirectiveName",
+          }).configurationError(`Directive '${key}' must have string 'name'`);
         }
 
         if (typeof dir.stage !== "number") {
-          return err(createError({
-            kind: "ConfigurationError",
-            message: `Directive '${key}' must have number 'stage'`,
-          }));
+          return ErrorHandler.system({
+            operation: "validateConfiguration",
+            method: "validateDirectiveStage",
+          }).configurationError(`Directive '${key}' must have number 'stage'`);
         }
 
         if (typeof dir.description !== "string") {
-          return err(createError({
-            kind: "ConfigurationError",
-            message: `Directive '${key}' must have string 'description'`,
-          }));
+          return ErrorHandler.system({
+            operation: "validateConfiguration",
+            method: "validateDirectiveDescription",
+          }).configurationError(
+            `Directive '${key}' must have string 'description'`,
+          );
         }
 
         if (!Array.isArray(dir.dependsOn)) {
-          return err(createError({
-            kind: "ConfigurationError",
-            message: `Directive '${key}' must have array 'dependsOn'`,
-          }));
+          return ErrorHandler.system({
+            operation: "validateConfiguration",
+            method: "validateDirectiveDependencies",
+          }).configurationError(
+            `Directive '${key}' must have array 'dependsOn'`,
+          );
         }
       }
 
       return ok(config as DirectiveConfiguration);
     } catch (error) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Configuration validation failed: ${
+      return ErrorHandler.system({
+        operation: "validateConfiguration",
+        method: "handleValidationError",
+      }).configurationError(
+        `Configuration validation failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 }

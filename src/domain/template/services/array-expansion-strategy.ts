@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import {
   TemplateFormatDetection,
   TemplateFormatDetector,
@@ -68,12 +69,12 @@ export class ArrayExpansionStrategy {
       default: {
         // Exhaustive pattern matching ensures all cases handled
         const exhaustiveCheck: never = detection;
-        return err(createError({
-          kind: "RenderFailed",
-          message: `Unhandled detection kind: ${
-            JSON.stringify(exhaustiveCheck)
-          }`,
-        }));
+        return ErrorHandler.template({
+          operation: "expandItems",
+          method: "handleDetectionKind",
+        }).renderFailed(
+          `Unhandled detection kind: ${JSON.stringify(exhaustiveCheck)}`,
+        );
       }
     }
   }

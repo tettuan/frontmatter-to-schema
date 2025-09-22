@@ -11,7 +11,7 @@
  * - Pattern detection for different template types
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { TemplateStructureAnalyzer } from "../../../../../src/domain/template/services/template-structure-analyzer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
@@ -193,9 +193,9 @@ describe("TemplateStructureAnalyzer", () => {
 
         assertEquals(templateResult.error.kind, "InvalidTemplate");
         if (templateResult.error.kind === "InvalidTemplate") {
-          assertEquals(
-            templateResult.error.message,
-            "Invalid template: Template content is empty",
+          assert(
+            templateResult.error.message.includes("Template content is empty"),
+            `Expected message to contain "Template content is empty", got: "${templateResult.error.message}"`,
           );
         }
       });

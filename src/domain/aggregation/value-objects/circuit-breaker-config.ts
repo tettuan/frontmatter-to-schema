@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { AggregationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Domain configuration for circuit breaker settings
@@ -49,20 +50,23 @@ export class CircuitBreakerConfig {
 
     // Validate configuration (allow test scenarios with shorter cooldowns)
     if (finalThresholds.cooldownPeriodMs < 100) {
-      return err(createError({
-        kind: "InvalidExpression",
-        expression: `cooldownPeriodMs: ${finalThresholds.cooldownPeriodMs}`,
-      }, "Cooldown period must be at least 100ms"));
+      return ErrorHandler.aggregation({
+        operation: "create",
+        method: "validateCooldownPeriod",
+      }).invalidExpression(
+        `cooldownPeriodMs: ${finalThresholds.cooldownPeriodMs}`,
+      );
     }
 
     if (
       finalThresholds.maxProcessingTimeMs < finalThresholds.cooldownPeriodMs
     ) {
-      return err(createError({
-        kind: "InvalidExpression",
-        expression:
-          `maxProcessingTimeMs: ${finalThresholds.maxProcessingTimeMs}, cooldownPeriodMs: ${finalThresholds.cooldownPeriodMs}`,
-      }, "Max processing time must be greater than cooldown period"));
+      return ErrorHandler.aggregation({
+        operation: "create",
+        method: "validateProcessingTime",
+      }).invalidExpression(
+        `maxProcessingTimeMs: ${finalThresholds.maxProcessingTimeMs}, cooldownPeriodMs: ${finalThresholds.cooldownPeriodMs}`,
+      );
     }
 
     return ok(new CircuitBreakerConfig(finalThresholds, adaptiveScaling));

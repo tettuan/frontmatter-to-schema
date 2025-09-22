@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, SchemaError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../entities/schema.ts";
 import { SchemaProperty } from "../value-objects/schema-property-types.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -30,11 +31,12 @@ export class BasePropertyPopulator {
       // Only set if not already present in frontmatter
       if (!(rule.field in newData)) {
         if (rule.defaultValue === undefined) {
-          return err(createError({
-            kind: "InvalidSchema",
-            message:
-              `Base property '${rule.field}' defined but no default value specified`,
-          }));
+          return ErrorHandler.schema({
+            operation: "populate",
+            method: "validateBaseProperty",
+          }).invalidSchema(
+            `Base property '${rule.field}' defined but no default value specified`,
+          );
         }
         newData[rule.field] = rule.defaultValue;
       }
@@ -43,12 +45,14 @@ export class BasePropertyPopulator {
     const result = FrontmatterDataFactory.fromObject(newData);
     if (!result.ok) {
       // Convert FrontmatterError to SchemaError
-      return err(createError({
-        kind: "InvalidSchema",
-        message: `Failed to create frontmatter data: ${
+      return ErrorHandler.schema({
+        operation: "populate",
+        method: "createFrontmatterData",
+      }).invalidSchema(
+        `Failed to create frontmatter data: ${
           result.error.message || "Unknown error"
         }`,
-      }));
+      );
     }
 
     return ok(result.data);

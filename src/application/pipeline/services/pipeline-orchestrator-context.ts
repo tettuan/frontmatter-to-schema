@@ -3,6 +3,7 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
+import { ErrorHandler } from "../../../domain/shared/services/unified-error-handler.ts";
 import { CommandExecutionContext } from "../commands/pipeline-command.ts";
 import { Schema } from "../../../domain/schema/entities/schema.ts";
 import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-accessor.ts";
@@ -42,7 +43,7 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         this.fileSystem.read(schemaPath),
       );
       if (!contentResult.ok) {
-        return err(contentResult.error);
+        return contentResult;
       }
 
       // Parse JSON content
@@ -51,13 +52,13 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
       // Create schema path
       const pathResult = SchemaPath.create(schemaPath);
       if (!pathResult.ok) {
-        return err(pathResult.error);
+        return pathResult;
       }
 
       // Create schema definition
       const definitionResult = SchemaDefinition.create(schemaData);
       if (!definitionResult.ok) {
-        return err(definitionResult.error);
+        return definitionResult;
       }
 
       // Create schema entity
@@ -66,15 +67,15 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         definitionResult.data,
       );
       if (!schemaResult.ok) {
-        return err(schemaResult.error);
+        return schemaResult;
       }
 
       return ok(schemaResult.data);
     } catch (_error) {
-      return err(createError({
-        kind: "SchemaNotFound",
-        path: schemaPath,
-      }));
+      return ErrorHandler.validation({
+        operation: "loadSchema",
+        method: "parseSchemaFile",
+      }).fieldNotFound(schemaPath, "Schema file not found");
     }
   }
 
@@ -95,7 +96,7 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         config,
       );
       if (!templateConfigResult.ok) {
-        return err(templateConfigResult.error);
+        return templateConfigResult;
       }
       const rawTemplateConfig = templateConfigResult.data;
 
@@ -143,12 +144,14 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         outputFormat,
       });
     } catch (error) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: `Template path resolution failed: ${
+      return ErrorHandler.system({
+        operation: "resolveTemplatePaths",
+        method: "resolveTemplateConfiguration",
+      }).configurationError(
+        `Template path resolution failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 
@@ -196,12 +199,14 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
 
       return ok(processedData);
     } catch (error) {
-      return err(createError({
-        kind: "PipelineExecutionError",
-        content: `Document transformation failed: ${
+      return ErrorHandler.system({
+        operation: "transformDocuments",
+        method: "processDocumentTransformation",
+      }).configurationError(
+        `Document transformation failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      }));
+      );
     }
   }
 

@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { AggregationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { DerivationRule } from "../value-objects/derivation-rule.ts";
@@ -62,14 +63,12 @@ export class Aggregator {
     // Initialize ArrayMerger with proper error handling
     const arrayMergerResult = ArrayMerger.create();
     if (!arrayMergerResult.ok) {
-      return {
-        ok: false,
-        error: createError({
-          kind: "AggregationFailed",
-          message:
-            `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
-        }),
-      };
+      return ErrorHandler.aggregation({
+        operation: "create",
+        method: "initializeArrayMerger",
+      }).aggregationFailed(
+        `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
+      );
     }
 
     // Create CircuitBreaker if not disabled
@@ -79,14 +78,12 @@ export class Aggregator {
         finalCircuitBreakerState.config,
       );
       if (!circuitBreakerResult.ok) {
-        return {
-          ok: false,
-          error: createError({
-            kind: "AggregationFailed",
-            message:
-              `Failed to create CircuitBreaker: ${circuitBreakerResult.error.message}`,
-          }),
-        };
+        return ErrorHandler.aggregation({
+          operation: "create",
+          method: "initializeCircuitBreaker",
+        }).aggregationFailed(
+          `Failed to create CircuitBreaker: ${circuitBreakerResult.error.message}`,
+        );
       }
       circuitBreaker = circuitBreakerResult.data;
     }
@@ -205,10 +202,10 @@ export class Aggregator {
         if (this.circuitBreaker) {
           this.circuitBreaker.recordFailure(errorMessage);
         }
-        return err(createError({
-          kind: "AggregationFailed",
-          message: errorMessage,
-        }));
+        return ErrorHandler.aggregation({
+          operation: "aggregate",
+          method: "evaluateRule",
+        }).aggregationFailed(errorMessage);
       }
 
       derivedFields[rule.getTargetField()] = evaluationResult.data;

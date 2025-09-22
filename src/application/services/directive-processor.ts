@@ -3,8 +3,9 @@
  * @description Orchestrates the processing of schema directives in correct dependency order
  */
 
-import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { ok, Result } from "../../domain/shared/types/result.ts";
+import { DomainError } from "../../domain/shared/types/errors.ts";
+import { ErrorHandler } from "../../domain/shared/services/unified-error-handler.ts";
 import {
   DirectiveOrderManager,
   DirectiveType,
@@ -74,7 +75,7 @@ export class DirectiveProcessor {
   ): Promise<Result<DirectiveProcessor, DomainError & { message: string }>> {
     const orderManagerResult = await DirectiveOrderManager.create(configPath);
     if (!orderManagerResult.ok) {
-      return err(orderManagerResult.error);
+      return orderManagerResult;
     }
 
     return ok(
@@ -112,7 +113,7 @@ export class DirectiveProcessor {
     // Detect directives present in schema
     const presentDirectivesResult = this.detectPresentDirectives(schema);
     if (!presentDirectivesResult.ok) {
-      return err(presentDirectivesResult.error);
+      return presentDirectivesResult;
     }
 
     const presentDirectives = presentDirectivesResult.data;
@@ -132,7 +133,7 @@ export class DirectiveProcessor {
       presentDirectives,
     );
     if (!orderResult.ok) {
-      return err(orderResult.error);
+      return orderResult;
     }
 
     const processingOrder = orderResult.data;
@@ -299,17 +300,13 @@ export class DirectiveProcessor {
           );
         }
       } catch (error) {
-        const domainError = createError(
-          {
-            kind: "InvalidType",
-            expected: "valid directive",
-            actual: directive,
-          },
-          `Unexpected error processing directive ${directive}: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        );
-        errors.push(domainError);
+        const domainErrorResult = ErrorHandler.validation({
+          operation: "processStage",
+          method: "processDirective",
+        }).invalidType("valid directive", directive);
+        if (!domainErrorResult.ok) {
+          errors.push(domainErrorResult.error);
+        }
 
         this.domainLogger.logError(
           "directive-execution",
@@ -317,7 +314,7 @@ export class DirectiveProcessor {
           {
             executionId: context.executionId,
             directive,
-            error: domainError,
+            error: error instanceof Error ? error.message : "Unknown error",
           },
         );
       }

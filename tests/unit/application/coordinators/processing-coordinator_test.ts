@@ -16,7 +16,7 @@
  * - Follow Arrange-Act-Assert pattern with Result<T,E> validation
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import {
   ProcessingCoordinator,
@@ -81,9 +81,11 @@ describe("ProcessingCoordinator", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "InitializationError");
-        assertEquals(
-          result.error.message,
-          "Initialization error: FrontmatterTransformationService is required",
+        assert(
+          result.error.message.includes(
+            "FrontmatterTransformationService is required",
+          ),
+          `Expected error message to contain "FrontmatterTransformationService is required", got: "${result.error.message}"`,
         );
       }
     });

@@ -4,7 +4,8 @@
  */
 
 import { err, ok, Result } from "../shared/types/result.ts";
-import { createError, DomainError } from "../shared/types/errors.ts";
+import { DomainError } from "../shared/types/errors.ts";
+import { ErrorHandler } from "../shared/services/unified-error-handler.ts";
 import { DirectiveRegistry } from "./directives/directive-registry.ts";
 
 /**
@@ -191,12 +192,14 @@ export class DirectiveOrderManager {
       } else if (recursionStack.has(dependency)) {
         // Circular dependency detected
         const cycle = Array.from(recursionStack).concat([dependency]);
-        return err(createError({
-          kind: "InvalidFormat",
-          format: "directive-dependency-graph",
-          value: cycle.join(" → "),
-          field: "directive-processing-order",
-        }));
+        return ErrorHandler.validation({
+          operation: "dfsCheckCycle",
+          method: "detectCircularDependency",
+        }).invalidFormat(
+          "directive-dependency-graph",
+          cycle.join(" → "),
+          "directive-processing-order",
+        );
       }
     }
 
@@ -221,12 +224,14 @@ export class DirectiveOrderManager {
       directive: DirectiveType,
     ): Result<void, DomainError & { message: string }> => {
       if (tempMarked.has(directive)) {
-        return err(createError({
-          kind: "InvalidFormat",
-          format: "directive-dependency-graph",
-          value: directive,
-          field: "directive-topological-sort",
-        }));
+        return ErrorHandler.validation({
+          operation: "topologicalSort",
+          method: "visitDirective",
+        }).invalidFormat(
+          "directive-dependency-graph",
+          directive,
+          "directive-topological-sort",
+        );
       }
 
       if (visited.has(directive)) {
@@ -333,12 +338,10 @@ export class DirectiveOrderManager {
     const dependency = this.dependencies.find((d) => d.directive === directive);
 
     if (!dependency) {
-      return err(createError({
-        kind: "InvalidFormat",
-        format: "supported-directive",
-        value: directive,
-        field: "directive-type",
-      }));
+      return ErrorHandler.validation({
+        operation: "getDirectiveDependencies",
+        method: "findDirective",
+      }).invalidFormat("supported-directive", directive, "directive-type");
     }
 
     return ok(dependency);

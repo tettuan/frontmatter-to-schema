@@ -1,5 +1,6 @@
-import { err, ok, Result } from "../../shared/types/result.ts";
-import { createError, TemplateError } from "../../shared/types/errors.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { TemplateError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 import { stringify as stringifyYaml } from "jsr:@std/yaml@1.0.5";
 
@@ -21,10 +22,10 @@ export class YamlFormatter extends BaseFormatter {
   }
   format(data: unknown): Result<string, TemplateError & { message: string }> {
     if (!this.isSerializable(data)) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: "Data contains non-serializable values",
-      }));
+      return ErrorHandler.template({
+        operation: "format",
+        method: "validateSerializable",
+      }).invalid("Data contains non-serializable values");
     }
 
     try {
@@ -34,12 +35,14 @@ export class YamlFormatter extends BaseFormatter {
       });
       return ok(formatted);
     } catch (error) {
-      return err(createError({
-        kind: "InvalidTemplate",
-        message: `Failed to format as YAML: ${
+      return ErrorHandler.template({
+        operation: "format",
+        method: "stringifyYAML",
+      }).invalid(
+        `Failed to format as YAML: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-      }));
+      );
     }
   }
 

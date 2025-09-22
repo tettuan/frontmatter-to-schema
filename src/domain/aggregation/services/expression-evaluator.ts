@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { AggregationError, createError } from "../../shared/types/errors.ts";
+import { AggregationError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { PathSegment } from "../value-objects/path-segment.ts";
@@ -21,18 +22,18 @@ export class ExpressionEvaluator {
   ): Result<unknown[], AggregationError & { message: string }> {
     // Validate expression format
     if (!expression.includes("[]")) {
-      return err(createError({
-        kind: "InvalidExpression",
-        expression,
-      }, "Expression must contain array notation []"));
+      return ErrorHandler.aggregation({
+        operation: "evaluate",
+        method: "validateExpressionFormat",
+      }).invalidExpression(expression);
     }
 
     const parts = expression.split("[]");
     if (parts.length !== 2) {
-      return err(createError({
-        kind: "InvalidExpression",
-        expression,
-      }, "Expression must have exactly one array notation []"));
+      return ErrorHandler.aggregation({
+        operation: "evaluate",
+        method: "validateArrayNotation",
+      }).invalidExpression(expression);
     }
 
     const basePath = parts[0];
@@ -71,10 +72,13 @@ export class ExpressionEvaluator {
         const baseResult = item.get(basePath);
         if (!baseResult.ok) {
           skippedItems++;
-          errors.push(createError({
-            kind: "PathNotFound",
-            path: basePath,
-          }, `Base path '${basePath}' not found in data item`));
+          const pathErrorResult = ErrorHandler.aggregation({
+            operation: "evaluateWithAccumulation",
+            method: "extractBasePath",
+          }).pathNotFound(basePath);
+          if (!pathErrorResult.ok) {
+            errors.push(pathErrorResult.error);
+          }
           continue;
         }
         baseValue = baseResult.data;
@@ -85,10 +89,13 @@ export class ExpressionEvaluator {
       // Ensure base value is array
       if (!Array.isArray(baseValue)) {
         skippedItems++;
-        errors.push(createError({
-          kind: "InvalidExpression",
-          expression: `${basePath}[]`,
-        }, `Expected array at '${basePath}', got ${typeof baseValue}`));
+        const expressionErrorResult = ErrorHandler.aggregation({
+          operation: "evaluateWithAccumulation",
+          method: "validateArrayType",
+        }).invalidExpression(`${basePath}[]`);
+        if (!expressionErrorResult.ok) {
+          errors.push(expressionErrorResult.error);
+        }
         continue;
       }
 
@@ -154,10 +161,10 @@ export class ExpressionEvaluator {
     for (const partString of parts) {
       const segmentResult = PathSegment.create(partString);
       if (!segmentResult.ok) {
-        return err(createError({
-          kind: "PathNotFound",
-          path,
-        }, `Invalid path segment: ${segmentResult.error.message}`));
+        return ErrorHandler.aggregation({
+          operation: "evaluatePath",
+          method: "validatePathSegment",
+        }).pathNotFound(path);
       }
 
       const segment = segmentResult.data;
@@ -165,10 +172,10 @@ export class ExpressionEvaluator {
       // Use PathSegment's safe extraction instead of nullable checks and type assertions
       const extractionResult = segment.extractFrom(current);
       if (!extractionResult.ok) {
-        return err(createError({
-          kind: "PathNotFound",
-          path,
-        }, extractionResult.error.message));
+        return ErrorHandler.aggregation({
+          operation: "evaluatePath",
+          method: "extractPathSegment",
+        }).pathNotFound(path);
       }
 
       current = extractionResult.data;

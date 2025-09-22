@@ -1,5 +1,6 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import { DomainError } from "../../domain/shared/types/errors.ts";
+import { ErrorHandler } from "../../domain/shared/services/unified-error-handler.ts";
 
 /**
  * Business requirement specification for testing
@@ -276,21 +277,19 @@ export class RequirementBuilder {
 
   build(): Result<BusinessRequirement, DomainError & { message: string }> {
     if (!this.id) {
-      return err(createError({ kind: "MissingRequired", field: "id" }));
+      return ErrorHandler.validation().missingRequired("id");
     }
     if (!this.description) {
-      return err(
-        createError({ kind: "MissingRequired", field: "description" }),
-      );
+      return ErrorHandler.validation().missingRequired("description");
     }
     if (!this.given) {
-      return err(createError({ kind: "MissingRequired", field: "given" }));
+      return ErrorHandler.validation().missingRequired("given");
     }
     if (!this.when) {
-      return err(createError({ kind: "MissingRequired", field: "when" }));
+      return ErrorHandler.validation().missingRequired("when");
     }
     if (this.then.length === 0) {
-      return err(createError({ kind: "MissingRequired", field: "then" }));
+      return ErrorHandler.validation().missingRequired("then");
     }
 
     return ok({
