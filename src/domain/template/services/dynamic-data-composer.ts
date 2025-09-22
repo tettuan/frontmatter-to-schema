@@ -3,6 +3,7 @@ import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ArrayExpansionKey } from "../value-objects/template-structure.ts";
 import { ComposedData } from "../value-objects/variable-context.ts";
+import { ARRAY_EXPANSION_PLACEHOLDER } from "../constants/template-variable-constants.ts";
 
 /**
  * Composes data dynamically based on template structure analysis
@@ -122,7 +123,7 @@ export class DynamicDataComposer {
 
     // For each expansion key, prepare the data structure
     for (const key of expansionKeys) {
-      if (key.expansionMarker === "{@items}") {
+      if (key.expansionMarker === ARRAY_EXPANSION_PLACEHOLDER) {
         // Use the dynamic key name from template analysis instead of hardcoded 'items'
         const dynamicKey = this.determineDynamicKey(key, mainData);
 
@@ -187,13 +188,23 @@ export class DynamicDataComposer {
           itemsValue = JSON.stringify(renderedItems);
         }
 
+        // Parse items as array for proper {@items} expansion
+        const parsedItemsArray = renderedItems.map((item) => {
+          try {
+            return JSON.parse(item);
+          } catch {
+            return item;
+          }
+        });
+
         return {
           mainData: {
             ...main,
-            // Convert rendered items for template substitution
+            // Store under both items (for {{items}}) and @items (for array expansion)
             items: itemsValue,
+            "@items": parsedItemsArray,
           },
-          arrayData: undefined,
+          arrayData: parsedItemsArray,
         };
       },
     );

@@ -279,10 +279,13 @@ describe("BUSINESS REQUIREMENT: Dual Format Template Support", () => {
         assertEquals(parsedOutput.version, "1.0.0");
         assertEquals(parsedOutput.description, "Test registry");
         assert(Array.isArray(parsedOutput.tools.commands));
-        // The {@items} placeholder creates a single array element containing all items
-        assertEquals(parsedOutput.tools.commands.length, 1);
-        assert(Array.isArray(parsedOutput.tools.commands[0]));
-        assertEquals(parsedOutput.tools.commands[0].length, 2);
+        // The {@items} placeholder expands to insert the items directly
+        assertEquals(parsedOutput.tools.commands.length, 2);
+        // Each item should be expanded as a separate element
+        assertEquals(parsedOutput.tools.commands[0].c1, "git");
+        assertEquals(parsedOutput.tools.commands[0].c2, "commit");
+        assertEquals(parsedOutput.tools.commands[1].c1, "spec");
+        assertEquals(parsedOutput.tools.commands[1].c2, "analyze");
 
         // Validate format consistency requirement
         SpecificationAssertions.assertBusinessRequirement(

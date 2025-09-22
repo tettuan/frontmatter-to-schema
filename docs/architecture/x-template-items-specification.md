@@ -86,6 +86,9 @@ the template for each array element.
 **x-template-items in Main Schema**: Optional, but required for `{@items}`
 expansion. If not specified, `{@items}` expansion cannot occur and will remain
 unexpanded.
+**Fallback Behavior**: When the schema omits `x-template-items`, the renderer must
+leave each literal `{@items}` token untouched—no implicit array serialization or
+default expansion is permitted.
 
 ### Schema Independence
 

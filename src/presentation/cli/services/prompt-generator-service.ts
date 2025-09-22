@@ -90,15 +90,6 @@ Target schema file: ${schemaPath}
       - Overrides file extension detection
       - Example: "x-template-format": "yaml"
 
-   h) **x-base-property** (Property-level):
-      - Marks properties for base value population
-      - Values are inherited from schema defaults
-      - Example: "x-base-property": true
-
-   i) **x-default-value** (Property-level):
-      - Provides default values when not in frontmatter
-      - Alternative to JSON Schema's "default" keyword
-      - Example: "x-default-value": "default-config"
 
 4. **Template Variable Resolution**
    Variables in templates (e.g., {version}, {name}) are resolved from:
@@ -154,8 +145,8 @@ Target schema file: ${schemaPath}
     },
     "description": {
       "type": "string",
-      "x-base-property": true,
-      "x-default-value": "Command Registry"
+      "default": "Command Registry",
+      "description": "Registry description with default value"
     },
     "commands": {
       "type": "array",
@@ -286,8 +277,6 @@ metadata:
    - x-derived-unique: Remove duplicates
    - x-jmespath-filter: Advanced JMESPath filtering
    - x-template-format: Output format specification
-   - x-base-property: Base value inheritance
-   - x-default-value: Alternative default values
 
 3. **Template Variable Resolution**:
    - {fieldName}: Replaced with frontmatter field value
@@ -405,7 +394,7 @@ This option outputs a comprehensive guide for creating:
 5. Advanced filtering with x-jmespath-filter
 6. Derived fields with x-derived-from and x-derived-unique
 7. Format specification with x-template-format
-8. Default value handling with x-default-value and x-base-property
+8. Default value handling with standard JSON Schema defaults
 
 Use this prompt with an AI assistant or as documentation
 to understand the schema and template creation process.

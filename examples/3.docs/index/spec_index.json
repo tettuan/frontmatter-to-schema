@@ -1,27 +1,5 @@
 {
   "version": "1.0.0",
   "description": "Specification level traceability IDs",
-  "spec": [
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    }
-  ]
+  "spec": ""
 }

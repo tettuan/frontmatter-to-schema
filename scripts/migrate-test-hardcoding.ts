@@ -7,7 +7,7 @@
 
 import { walk } from "jsr:@std/fs/walk";
 
-// Extension mappings - single source of truth
+// Extension mappings - single source of truth (deprecated directives removed)
 const EXTENSION_MAPPINGS = {
   '"x-frontmatter-part"': "TEST_EXTENSIONS.FRONTMATTER_PART",
   '"x-template"': "TEST_EXTENSIONS.TEMPLATE",
@@ -16,8 +16,6 @@ const EXTENSION_MAPPINGS = {
   '"x-derived-unique"': "TEST_EXTENSIONS.DERIVED_UNIQUE",
   '"x-jmespath-filter"': "TEST_EXTENSIONS.JMESPATH_FILTER",
   '"x-template-format"': "TEST_EXTENSIONS.TEMPLATE_FORMAT",
-  '"x-base-property"': "TEST_EXTENSIONS.BASE_PROPERTY",
-  '"x-default-value"': "TEST_EXTENSIONS.DEFAULT_VALUE",
   "'x-frontmatter-part'": "TEST_EXTENSIONS.FRONTMATTER_PART",
   "'x-template'": "TEST_EXTENSIONS.TEMPLATE",
   "'x-template-items'": "TEST_EXTENSIONS.TEMPLATE_ITEMS",
@@ -25,8 +23,6 @@ const EXTENSION_MAPPINGS = {
   "'x-derived-unique'": "TEST_EXTENSIONS.DERIVED_UNIQUE",
   "'x-jmespath-filter'": "TEST_EXTENSIONS.JMESPATH_FILTER",
   "'x-template-format'": "TEST_EXTENSIONS.TEMPLATE_FORMAT",
-  "'x-base-property'": "TEST_EXTENSIONS.BASE_PROPERTY",
-  "'x-default-value'": "TEST_EXTENSIONS.DEFAULT_VALUE",
 } as const;
 
 interface MigrationResult {

@@ -449,10 +449,13 @@ describe("DynamicDataComposer", () => {
       assertEquals(result.data.mainData.title, "Dual Template Document");
       assertEquals(result.data.mainData.author, "Jane Doe");
       assertEquals(
-        result.data.mainData.items,
-        '[{"name":"Item 1","value":100},{"name":"Item 2","value":200}]',
+        result.data.mainData["@items"],
+        [{ name: "Item 1", value: 100 }, { name: "Item 2", value: 200 }],
       );
-      assertEquals(result.data.arrayData, undefined);
+      assertEquals(result.data.arrayData, [
+        { name: "Item 1", value: 100 },
+        { name: "Item 2", value: 200 },
+      ]);
     });
 
     it("should handle non-JSON rendered items", () => {
@@ -480,9 +483,14 @@ describe("DynamicDataComposer", () => {
 
       assertEquals(result.data.mainData.title, "Text Items Document");
       assertEquals(
-        result.data.mainData.items,
-        '["Plain text item 1","Plain text item 2","Plain text item 3"]',
+        result.data.mainData["@items"],
+        ["Plain text item 1", "Plain text item 2", "Plain text item 3"],
       );
+      assertEquals(result.data.arrayData, [
+        "Plain text item 1",
+        "Plain text item 2",
+        "Plain text item 3",
+      ]);
     });
 
     it("should handle mixed JSON and non-JSON items", () => {
@@ -518,9 +526,10 @@ describe("DynamicDataComposer", () => {
         "Another plain text",
       ];
       assertEquals(
-        result.data.mainData.items,
-        JSON.stringify(expectedItems),
+        result.data.mainData["@items"],
+        expectedItems,
       );
+      assertEquals(result.data.arrayData, expectedItems);
     });
 
     it("should handle empty rendered items array", () => {
@@ -541,7 +550,8 @@ describe("DynamicDataComposer", () => {
       if (!result.ok) return;
 
       assertEquals(result.data.mainData.title, "Empty Items Document");
-      assertEquals(result.data.mainData.items, "[]");
+      assertEquals(result.data.mainData["@items"], []);
+      assertEquals(result.data.arrayData, []);
     });
 
     it("should preserve existing main data properties", () => {
@@ -573,7 +583,8 @@ describe("DynamicDataComposer", () => {
         date: "2023-01-01",
       });
       assertEquals(result.data.mainData.settings, { theme: "dark" });
-      assertEquals(result.data.mainData.items, '[{"rendered":"item"}]');
+      assertEquals(result.data.mainData["@items"], [{ rendered: "item" }]);
+      assertEquals(result.data.arrayData, [{ rendered: "item" }]);
     });
   });
 

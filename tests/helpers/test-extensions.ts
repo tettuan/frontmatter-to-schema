@@ -20,8 +20,6 @@ export const TEST_EXTENSIONS = {
     .getValue(),
   TEMPLATE_FORMAT: defaultSchemaExtensionRegistry.getTemplateFormatKey()
     .getValue(),
-  BASE_PROPERTY: defaultSchemaExtensionRegistry.getBasePropertyKey().getValue(),
-  DEFAULT_VALUE: defaultSchemaExtensionRegistry.getDefaultValueKey().getValue(),
 } as const;
 
 /**
@@ -47,8 +45,6 @@ export function createExtensions(extensions: {
   derivedUnique?: boolean;
   jmespathFilter?: string;
   templateFormat?: "json" | "yaml" | "markdown";
-  baseProperty?: boolean;
-  defaultValue?: unknown;
   description?: string;
 }): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -73,12 +69,6 @@ export function createExtensions(extensions: {
   }
   if (extensions.templateFormat !== undefined) {
     result[TEST_EXTENSIONS.TEMPLATE_FORMAT] = extensions.templateFormat;
-  }
-  if (extensions.baseProperty !== undefined) {
-    result[TEST_EXTENSIONS.BASE_PROPERTY] = extensions.baseProperty;
-  }
-  if (extensions.defaultValue !== undefined) {
-    result[TEST_EXTENSIONS.DEFAULT_VALUE] = extensions.defaultValue;
   }
   if (extensions.description !== undefined) {
     result.description = extensions.description;

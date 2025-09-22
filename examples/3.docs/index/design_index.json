@@ -1,27 +1,5 @@
 {
   "version": "1.0.0",
   "description": "Design level traceability IDs",
-  "design": [
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    }
-  ]
+  "design": ""
 }

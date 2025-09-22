@@ -4,6 +4,8 @@ import {
   TemplateFormatDetection,
   TemplateFormatDetector,
 } from "../value-objects/template-format-detector.ts";
+import { TemplateVariable } from "../value-objects/template-variable.ts";
+import { ARRAY_EXPANSION_PLACEHOLDER } from "../constants/template-variable-constants.ts";
 
 /**
  * Strategy pattern for handling different array expansion formats.
@@ -96,8 +98,9 @@ export class ArrayExpansionStrategy {
     dataArray: unknown[],
   ): Result<unknown, TemplateError & { message: string }> {
     // ✅ Fix: For JSON format, return the actual array instead of stringified version
-    // This ensures @items expands to proper JSON array structure
-    if (template.trim() === "{@items}") {
+    // This ensures array expansion variables expand to proper JSON array structure
+    const variableResult = TemplateVariable.fromPlaceholder(template.trim());
+    if (variableResult.ok && variableResult.data.isArrayExpansion) {
       return ok(dataArray);
     }
     // For templates containing other content, fall back to string replacement
@@ -113,7 +116,7 @@ export class ArrayExpansionStrategy {
     dataArray: unknown[],
   ): Result<string, TemplateError & { message: string }> {
     const expanded = template.replace(
-      "{@items}",
+      ARRAY_EXPANSION_PLACEHOLDER,
       JSON.stringify(dataArray),
     );
     return ok(expanded);

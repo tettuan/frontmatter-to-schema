@@ -363,17 +363,31 @@ export class OutputRenderingService {
       }
 
       // Render with main template using proper context
+      // Since we have composedDataResult.data.arrayData, we need to ensure
+      // the template renderer knows about it for {@items} expansion
       const finalFrontmatterResult = FrontmatterData.create(
         composedDataResult.data.mainData,
       );
       if (!finalFrontmatterResult.ok) {
         return finalFrontmatterResult;
       }
-      renderResult = this.templateRenderer.render(
-        templateResult.data,
-        finalFrontmatterResult.data,
-        verbosityMode,
-      );
+
+      // If we have arrayData from composition, use renderWithArrayData
+      if (composedDataResult.data.arrayData) {
+        // Call render with the FrontmatterData, which will detect @items
+        // The template renderer will use the @items from mainData
+        renderResult = this.templateRenderer.render(
+          templateResult.data,
+          finalFrontmatterResult.data,
+          verbosityMode,
+        );
+      } else {
+        renderResult = this.templateRenderer.render(
+          templateResult.data,
+          finalFrontmatterResult.data,
+          verbosityMode,
+        );
+      }
     } else if (itemsData) {
       // ✅ DDD Fix: Use dynamic data composition for array rendering
       const composedDataResult = this.dataComposer.compose(

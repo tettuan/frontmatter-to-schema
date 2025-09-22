@@ -61,13 +61,9 @@ Deno.test("TestSchemaBuilder", async (t) => {
   await t.step("should add new extension keys", () => {
     const schema = new TestSchemaBuilder()
       .withTemplateFormat("yaml")
-      .withBaseProperty(true)
-      .withDefaultValue("default")
       .build();
 
     assertEquals(schema.extensions?.[TEST_EXTENSIONS.TEMPLATE_FORMAT], "yaml");
-    assertEquals(schema.extensions?.[TEST_EXTENSIONS.BASE_PROPERTY], true);
-    assertEquals(schema.extensions?.[TEST_EXTENSIONS.DEFAULT_VALUE], "default");
   });
 
   await t.step("should add properties to object schema", () => {
@@ -139,18 +135,6 @@ Deno.test("TestSchemaBuilder", async (t) => {
       derivedSchema.extensions?.[TEST_EXTENSIONS.DERIVED_UNIQUE],
       true,
     );
-
-    const basePropertySchema = TestSchemaBuilder.createBasePropertySchema(
-      "default",
-    );
-    assertEquals(
-      basePropertySchema.extensions?.[TEST_EXTENSIONS.BASE_PROPERTY],
-      true,
-    );
-    assertEquals(
-      basePropertySchema.extensions?.[TEST_EXTENSIONS.DEFAULT_VALUE],
-      "default",
-    );
   });
 });
 
@@ -163,8 +147,6 @@ Deno.test("TEST_EXTENSIONS", async (t) => {
     assertEquals(typeof TEST_EXTENSIONS.DERIVED_UNIQUE, "string");
     assertEquals(typeof TEST_EXTENSIONS.JMESPATH_FILTER, "string");
     assertEquals(typeof TEST_EXTENSIONS.TEMPLATE_FORMAT, "string");
-    assertEquals(typeof TEST_EXTENSIONS.BASE_PROPERTY, "string");
-    assertEquals(typeof TEST_EXTENSIONS.DEFAULT_VALUE, "string");
   });
 
   await t.step("should match registry values", () => {
@@ -176,8 +158,6 @@ Deno.test("TEST_EXTENSIONS", async (t) => {
     assertEquals(TEST_EXTENSIONS.DERIVED_UNIQUE, "x-derived-unique");
     assertEquals(TEST_EXTENSIONS.JMESPATH_FILTER, "x-jmespath-filter");
     assertEquals(TEST_EXTENSIONS.TEMPLATE_FORMAT, "x-template-format");
-    assertEquals(TEST_EXTENSIONS.BASE_PROPERTY, "x-base-property");
-    assertEquals(TEST_EXTENSIONS.DEFAULT_VALUE, "x-default-value");
   });
 
   await t.step("createExtensions should create correct object", () => {

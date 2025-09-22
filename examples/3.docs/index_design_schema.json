@@ -23,12 +23,15 @@
     },
     "design": {
       "type": "array",
-      "description": "Design level traceability IDs",
+      "description": "Design level traceability items",
       "x-frontmatter-part": true,
+      "x-extract-from": "traceability[]",
+      "x-jmespath-filter": "[?id.level == 'design']",
+      "x-merge-arrays": true,
       "items": {
         "$ref": "traceability_item_schema.json"
       }
     }
   },
-  "required": ["version", "description", "design"]
+  "required": []
 }

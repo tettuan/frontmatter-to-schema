@@ -789,246 +789,6 @@ describe("Schema Extension Pattern Validation", () => {
     });
   });
 
-  describe("Property Pattern: x-base-property", () => {
-    it("should populate base properties in configuration", () => {
-      const _schema = {
-        type: "object",
-        properties: {
-          baseConfig: {
-            type: "object",
-            [TEST_EXTENSIONS.BASE_PROPERTY]: true,
-            properties: {
-              version: { type: "string" },
-              environment: { type: "string" },
-              defaults: {
-                type: "object",
-                properties: {
-                  timeout: { type: "number" },
-                  retries: { type: "number" },
-                },
-              },
-            },
-          },
-          services: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string" },
-                endpoint: { type: "string" },
-              },
-            },
-          },
-        },
-      };
-
-      const configData = {
-        baseConfig: {
-          version: "1.0.0",
-          environment: "production",
-          defaults: {
-            timeout: 5000,
-            retries: 3,
-          },
-        },
-        services: [
-          { name: "auth", endpoint: "https://auth.example.com" },
-          { name: "api", endpoint: "https://api.example.com" },
-        ],
-      };
-
-      const result = FrontmatterData.create(configData);
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        const data = result.data.getData();
-        assertExists(data.baseConfig);
-        const baseConfig = data.baseConfig as any;
-        assertEquals(baseConfig.environment, "production");
-      }
-    });
-
-    it("should handle nested base properties", () => {
-      const _schema = {
-        type: "object",
-        properties: {
-          metadata: {
-            type: "object",
-            [TEST_EXTENSIONS.BASE_PROPERTY]: true,
-            properties: {
-              created: { type: "string", format: "date-time" },
-              modified: { type: "string", format: "date-time" },
-              author: {
-                type: "object",
-                [TEST_EXTENSIONS.BASE_PROPERTY]: true,
-                properties: {
-                  id: { type: "string" },
-                  name: { type: "string" },
-                  email: { type: "string", format: "email" },
-                },
-              },
-            },
-          },
-          content: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              body: { type: "string" },
-            },
-          },
-        },
-      };
-
-      const documentData = {
-        metadata: {
-          created: "2024-01-01T00:00:00Z",
-          modified: "2024-01-15T12:00:00Z",
-          author: {
-            id: "author-123",
-            name: "Jane Doe",
-            email: "jane@example.com",
-          },
-        },
-        content: {
-          title: "Sample Document",
-          body: "This is the document content.",
-        },
-      };
-
-      const result = FrontmatterData.create(documentData);
-      assertEquals(result.ok, true);
-    });
-  });
-
-  describe("Default Pattern: x-default-value", () => {
-    it("should apply default values to optional fields", () => {
-      const _schema = {
-        type: "object",
-        properties: {
-          settings: {
-            type: "object",
-            properties: {
-              theme: {
-                type: "string",
-                [TEST_EXTENSIONS.DEFAULT_VALUE]: "light",
-              },
-              language: {
-                type: "string",
-                [TEST_EXTENSIONS.DEFAULT_VALUE]: "en",
-              },
-              notifications: {
-                type: "object",
-                properties: {
-                  email: {
-                    type: "boolean",
-                    [TEST_EXTENSIONS.DEFAULT_VALUE]: true,
-                  },
-                  push: {
-                    type: "boolean",
-                    [TEST_EXTENSIONS.DEFAULT_VALUE]: false,
-                  },
-                },
-              },
-            },
-          },
-        },
-      };
-
-      // Partial data, expecting defaults to be applied
-      const partialData = {
-        settings: {
-          theme: "dark", // Override default
-          notifications: {
-            email: false, // Override default
-            // push should use default: false
-          },
-          // language should use default: "en"
-        },
-      };
-
-      const result = FrontmatterData.create(partialData);
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        const data = result.data.getData();
-        const settings = data.settings as any;
-        assertEquals(settings.theme, "dark");
-        // Note: Default value application would happen in processing
-      }
-    });
-
-    it("should handle array default values", () => {
-      const _schema = {
-        type: "object",
-        properties: {
-          permissions: {
-            type: "array",
-            [TEST_EXTENSIONS.DEFAULT_VALUE]: ["read", "write"],
-            items: { type: "string" },
-          },
-          roles: {
-            type: "array",
-            [TEST_EXTENSIONS.DEFAULT_VALUE]: ["user"],
-            items: { type: "string" },
-          },
-        },
-      };
-
-      const userData = {
-        permissions: ["read", "write", "delete"], // Override default
-        // roles should use default: ["user"]
-      };
-
-      const result = FrontmatterData.create(userData);
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        const data = result.data.getData();
-        const permissions = data.permissions as any[];
-        assertEquals(permissions.length, 3);
-      }
-    });
-
-    it("should handle complex object default values", () => {
-      const _schema = {
-        type: "object",
-        properties: {
-          database: {
-            type: "object",
-            [TEST_EXTENSIONS.DEFAULT_VALUE]: {
-              host: "localhost",
-              port: 5432,
-              ssl: false,
-            },
-            properties: {
-              host: { type: "string" },
-              port: { type: "number" },
-              ssl: { type: "boolean" },
-              username: { type: "string" },
-              password: { type: "string" },
-            },
-          },
-        },
-      };
-
-      const configData = {
-        database: {
-          host: "db.example.com", // Override
-          port: 5432, // Same as default
-          ssl: true, // Override
-          username: "admin",
-          password: "secret",
-        },
-      };
-
-      const result = FrontmatterData.create(configData);
-      assertEquals(result.ok, true);
-      if (result.ok) {
-        const data = result.data.getData();
-        const database = data.database as any;
-        assertEquals(database.host, "db.example.com");
-        assertEquals(database.ssl, true);
-      }
-    });
-  });
-
   describe("Integration: Multiple Patterns", () => {
     it("should handle schema with multiple extension patterns", () => {
       const _schema = {
@@ -1066,7 +826,7 @@ describe("Schema Extension Pattern Validation", () => {
                 },
                 featured: {
                   type: "boolean",
-                  [TEST_EXTENSIONS.DEFAULT_VALUE]: false,
+                  default: false,
                 },
                 publishedAt: { type: "string", format: "date" },
               },
@@ -1134,7 +894,6 @@ describe("Schema Extension Pattern Validation", () => {
         properties: {
           project: {
             type: "object",
-            [TEST_EXTENSIONS.BASE_PROPERTY]: true,
             properties: {
               name: { type: "string" },
               version: { type: "string" },
@@ -1146,7 +905,7 @@ describe("Schema Extension Pattern Validation", () => {
             properties: {
               environment: {
                 type: "string",
-                [TEST_EXTENSIONS.DEFAULT_VALUE]: "development",
+                default: "development",
               },
               features: {
                 type: "array",
@@ -1165,7 +924,7 @@ describe("Schema Extension Pattern Validation", () => {
                 name: { type: "string" },
                 enabled: {
                   type: "boolean",
-                  [TEST_EXTENSIONS.DEFAULT_VALUE]: true,
+                  default: true,
                 },
                 features: {
                   type: "array",

@@ -17,6 +17,10 @@ import {
   DomainLogger,
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
+import {
+  ARRAY_EXPANSION_MARKER,
+  ARRAY_EXPANSION_PLACEHOLDER,
+} from "../constants/template-variable-constants.ts";
 
 /**
  * TemplateRenderer eliminates dual-path processing architecture.
@@ -197,8 +201,8 @@ export class TemplateRenderer {
       // Convert FrontmatterData array to plain data for processing
       const plainDataArray = data.map((item) => item.getData());
 
-      // Check if template has {@items} expansion markers
-      if (contentStr.includes("{@items}")) {
+      // Check if template has array expansion markers
+      if (contentStr.includes(ARRAY_EXPANSION_PLACEHOLDER)) {
         this.domainLogger.logDebug(
           "template-context",
           "Determined array expansion context",
@@ -226,6 +230,43 @@ export class TemplateRenderer {
           plainDataArray,
           verbosityMode,
         );
+      }
+    }
+
+    // Check if single FrontmatterData contains array expansion data
+    if (
+      !Array.isArray(data) && contentStr.includes(ARRAY_EXPANSION_PLACEHOLDER)
+    ) {
+      const itemsResult = data.get(ARRAY_EXPANSION_MARKER);
+
+      if (itemsResult.ok && Array.isArray(itemsResult.data)) {
+        this.domainLogger.logDebug(
+          "template-context",
+          "Determined array expansion context from array expansion marker in data",
+          {
+            operation: "context-determination",
+            arrayLength: itemsResult.data.length,
+            timestamp: new Date().toISOString(),
+          },
+        );
+        return ProcessingContext.forArrayExpansion(
+          itemsResult.data,
+          verbosityMode,
+        );
+      } else {
+        // Try to access raw data directly
+        const rawData = data.getData();
+
+        // Workaround: If array expansion marker is in raw data, use it directly
+        if (
+          ARRAY_EXPANSION_MARKER in rawData &&
+          Array.isArray(rawData[ARRAY_EXPANSION_MARKER])
+        ) {
+          return ProcessingContext.forArrayExpansion(
+            rawData[ARRAY_EXPANSION_MARKER],
+            verbosityMode,
+          );
+        }
       }
     }
 

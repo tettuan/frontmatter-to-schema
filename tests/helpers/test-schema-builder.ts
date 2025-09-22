@@ -81,22 +81,6 @@ export class TestSchemaBuilder {
   }
 
   /**
-   * Add x-base-property extension
-   */
-  withBaseProperty(value: boolean = true): this {
-    this.extensions[this.registry.getBasePropertyKey().getValue()] = value;
-    return this;
-  }
-
-  /**
-   * Add x-default-value extension
-   */
-  withDefaultValue(value: unknown): this {
-    this.extensions[this.registry.getDefaultValueKey().getValue()] = value;
-    return this;
-  }
-
-  /**
    * Add description
    */
   withDescription(description: string): this {
@@ -244,16 +228,5 @@ export class TestSchemaBuilder {
       .withDerivedFrom(source)
       .withDerivedUnique(unique)
       .build();
-  }
-
-  static createBasePropertySchema(defaultValue?: unknown): SchemaProperty {
-    const builder = new TestSchemaBuilder("object")
-      .withBaseProperty(true);
-
-    if (defaultValue !== undefined) {
-      builder.withDefaultValue(defaultValue);
-    }
-
-    return builder.build();
   }
 }

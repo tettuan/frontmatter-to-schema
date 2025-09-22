@@ -35,5 +35,5 @@
       "items": { "type": "string" }
     }
   },
-  "required": ["id", "summary", "status"]
+  "required": []
 }

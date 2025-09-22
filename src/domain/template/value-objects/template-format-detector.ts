@@ -1,5 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
+import {
+  ARRAY_EXPANSION_PLACEHOLDER,
+  ERROR_MESSAGES,
+  FORMAT_DETECTION_PATTERNS,
+} from "../constants/template-variable-constants.ts";
 
 /**
  * Represents different template format detection results.
@@ -50,19 +55,19 @@ export class TemplateFormatDetector {
   detectItemsPlaceholder(
     template: string,
   ): Result<TemplateFormatDetection, TemplateError & { message: string }> {
-    if (!template.includes("{@items}")) {
+    if (!template.includes(ARRAY_EXPANSION_PLACEHOLDER)) {
       return ok({ kind: "NoItemsPlaceholder" });
     }
 
     const lines = template.split("\n");
 
-    // Find the line containing {@items}
+    // Find the line containing array expansion placeholder
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      if (line.includes("{@items}")) {
-        // Check for YAML list format: "  - {@items}" or "  - \"{@items}\""
+      if (line.includes(ARRAY_EXPANSION_PLACEHOLDER)) {
+        // Check for YAML list format using pattern matching
         const trimmedLine = line.trim();
-        if (trimmedLine === "- {@items}" || trimmedLine === '- "{@items}"') {
+        if (FORMAT_DETECTION_PATTERNS.YAML_LIST.test(trimmedLine)) {
           // Extract key from previous line (e.g., "books:" -> "books")
           const keyLine = i > 0 ? lines[i - 1] : null;
           if (keyLine && keyLine.includes(":")) {
@@ -77,8 +82,8 @@ export class TemplateFormatDetector {
           }
         }
 
-        // Check for direct {@items} format
-        if (trimmedLine === "{@items}" || trimmedLine === '"{@items}"') {
+        // Check for direct format using pattern matching
+        if (FORMAT_DETECTION_PATTERNS.DIRECT.test(trimmedLine)) {
           return ok({
             kind: "JsonArrayFormat",
             lineIndex: i,
@@ -93,15 +98,15 @@ export class TemplateFormatDetector {
       }
     }
 
-    // Shouldn't reach here since we checked template.includes("{@items}")
+    // Shouldn't reach here since we checked template.includes(ARRAY_EXPANSION_PLACEHOLDER)
     return err(createError({
       kind: "RenderFailed",
-      message: "Template contains {@items} but could not locate it in lines",
+      message: ERROR_MESSAGES.TEMPLATE_ITEMS_NOT_FOUND,
     }));
   }
 
   /**
-   * Checks if template ends with {@items} placeholder.
+   * Checks if template ends with array expansion placeholder.
    * More robust than simple string matching.
    * @param template - Template content
    * @returns Boolean indicating if template ends with items placeholder

@@ -209,11 +209,10 @@ The resolver shall:
 graph LR
     A[Detect {@items}] --> B{x-template-items exists?}
     B -->|Yes| C[Load Item Template]
-    B -->|No| D[Use Default Expansion]
+    B -->|No| H[Leave {@items} literal]
     C --> E[Apply to Each Item]
     E --> F[Combine Results]
     F --> G[Replace {@items}]
-    D --> H[Direct Array Insertion]
 ```
 
 ### 5.2 Implementation Requirements
@@ -222,6 +221,7 @@ graph LR
    - Retrieve `x-template-items` from schema
    - Load specified template file
    - Cache template for performance
+   - If not present, mark `{@items}` for literal passthrough
 
 2. **Data Array Identification**
    - Identify arrays marked with `x-frontmatter-part: true`
@@ -233,8 +233,11 @@ graph LR
    - Collect processed results
 
 4. **Result Combination**
-   - Combine processed items in appropriate format
-   - Replace `{@items}` marker in container template
+   - Combine processed items within the JSON template structure
+   - Replace `{@items}` marker in the container template when an items template exists
+
+5. **Fallback Handling**
+   - Without `x-template-items`, leave `{@items}` unchanged in the rendered output
 
 ## 6. Domain Interaction Model
 
@@ -276,11 +279,12 @@ responsibilities:
 1. Load and validate both templates from file paths
 2. If items template and data exist:
    - Render each item with items template
-   - Combine rendered items (e.g., as JSON array)
+   - Combine rendered items inside the JSON template context
    - Merge combined items with main data
    - Apply main template to produce final output
 3. If only main template exists:
-   - Apply template directly to main data or array data
+   - Render the container template with available data
+   - Leave any `{@items}` tokens untouched because no items template is defined
 4. Write final rendered output to specified file path
 
 **Key Features**:
@@ -339,9 +343,9 @@ Support for array operations:
 1. **Template Completeness**: Templates fully define output structure
 2. **Explicit Output**: Only template content appears in output
 3. **Variable Substitution**: Variables are replaced with actual values
-4. **Array Expansion**: `{@items}` expands using item templates
-5. **Format Separation**: Template format (JSON) is separate from output format
-   (controlled by x-template-format)
+4. **Array Expansion**: `{@items}` expands using item templates when available
+5. **Format Separation**: Templates are authored in JSON; rendered output format is
+   controlled separately by x-template-format (json|yaml|toml|markdown)
 
 ### 8.2 Template Format Specification
 
@@ -349,19 +353,20 @@ Support for array operations:
 
 - All templates must be valid JSON format
 - No YAML or other formats accepted for template files
-- Templates define data structure and variable placeholders
+- Templates define data structure and variable placeholders that are rendered as JSON
 
 **Output Format Control**:
 
 - `x-template-format` schema attribute controls final output format
 - Supported formats: `"json"` | `"yaml"` | `"toml"` | `"markdown"`
 - Default format: `"json"` if x-template-format not specified
+- Rendered JSON is converted to the requested format after template evaluation
 
 **Processing Flow**:
 
 1. Parse JSON template (strict JSON validation)
-2. Apply variable substitution and {@items} expansion
-3. Format final output according to x-template-format
+2. Apply variable substitution and {@items} expansion when an items template exists
+3. Convert the rendered JSON structure into the x-template-format output (json|yaml|toml|markdown)
 4. Write formatted output to target file
 
 ### 8.3 Processing Order
@@ -431,7 +436,7 @@ type ProcessingResult<T> = Result<T, ProcessingError>;
 1. **Variable Resolution**: All variable notations resolve correctly
 2. **Array Expansion**: `{@items}` expands with proper templates
 3. **Data Aggregation**: x-derived-from rules apply correctly
-4. **Format Support**: JSON, YAML, and Markdown output formats work
+4. **Format Support**: JSON, TOML, YAML, and Markdown output formats work
 
 ### 12.2 Quality Requirements
 

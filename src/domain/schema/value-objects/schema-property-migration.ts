@@ -46,8 +46,6 @@ export interface LegacySchemaProperty {
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string;
   readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
-  readonly "x-base-property"?: boolean;
-  readonly "x-default-value"?: unknown;
   readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
   readonly default?: unknown; // Standard JSON Schema default property
 }
@@ -141,8 +139,6 @@ export class SchemaPropertyMigration {
       [registry.getDerivedUniqueKey().getValue()]: legacy["x-derived-unique"],
       [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
       [registry.getTemplateFormatKey().getValue()]: legacy["x-template-format"], // User-requested: output format specification
-      [registry.getBasePropertyKey().getValue()]: legacy["x-base-property"], // Base property marker
-      [registry.getDefaultValueKey().getValue()]: legacy["x-default-value"], // Default value for base properties
       [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression
       description: legacy.description,
     };
@@ -391,10 +387,6 @@ export class SchemaPropertyLegacyAdapter {
           | "yaml"
           | "markdown"
           | undefined,
-      "x-base-property": schema.extensions
-        ?.[registry.getBasePropertyKey().getValue()] as boolean | undefined,
-      "x-default-value": schema.extensions
-        ?.[registry.getDefaultValueKey().getValue()],
       "x-jmespath-filter": schema.extensions
         ?.[registry.getJmespathFilterKey().getValue()] as string | undefined,
     };

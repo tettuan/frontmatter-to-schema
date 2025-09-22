@@ -23,12 +23,15 @@
     },
     "impl": {
       "type": "array",
-      "description": "Implementation level traceability IDs",
+      "description": "Implementation level traceability items",
       "x-frontmatter-part": true,
+      "x-extract-from": "traceability[]",
+      "x-jmespath-filter": "[?id.level == 'impl']",
+      "x-merge-arrays": true,
       "items": {
         "$ref": "traceability_item_schema.json"
       }
     }
   },
-  "required": ["version", "description", "impl"]
+  "required": []
 }

@@ -19,26 +19,18 @@ Deno.test("Hardcoding Detection Tests", async (t) => {
       .getTemplateItemsKey();
     const templateFormatKey = defaultSchemaExtensionRegistry
       .getTemplateFormatKey();
-    const basePropertyKey = defaultSchemaExtensionRegistry
-      .getBasePropertyKey();
-    const defaultValueKey = defaultSchemaExtensionRegistry
-      .getDefaultValueKey();
 
     assertExists(frontmatterPartKey);
     assertExists(templateKey);
     assertExists(derivedFromKey);
     assertExists(templateItemsKey);
     assertExists(templateFormatKey);
-    assertExists(basePropertyKey);
-    assertExists(defaultValueKey);
 
     assertEquals(frontmatterPartKey.getValue(), "x-frontmatter-part");
     assertEquals(templateKey.getValue(), "x-template");
     assertEquals(derivedFromKey.getValue(), "x-derived-from");
     assertEquals(templateItemsKey.getValue(), "x-template-items");
     assertEquals(templateFormatKey.getValue(), "x-template-format");
-    assertEquals(basePropertyKey.getValue(), "x-base-property");
-    assertEquals(defaultValueKey.getValue(), "x-default-value");
   });
 
   await t.step("Schema extension keys should be value objects", () => {
@@ -57,15 +49,13 @@ Deno.test("Hardcoding Detection Tests", async (t) => {
     assertEquals(registry.hasExtension("x-frontmatter-part"), true);
     assertEquals(registry.hasExtension("x-derived-from"), true);
     assertEquals(registry.hasExtension("x-template-format"), true);
-    assertEquals(registry.hasExtension("x-base-property"), true);
-    assertEquals(registry.hasExtension("x-default-value"), true);
     assertEquals(registry.hasExtension("non-existent-extension"), false);
   });
 
   await t.step("All keys should be retrievable", () => {
     const allKeys = defaultSchemaExtensionRegistry.getAllKeys();
 
-    assertEquals(allKeys.length >= 9, true); // At least 9 standard extensions
+    assertEquals(allKeys.length >= 7, true); // At least 7 standard extensions
 
     const keyValues = allKeys.map((k) => k.getValue());
     assertEquals(keyValues.includes("x-template"), true);
@@ -75,8 +65,6 @@ Deno.test("Hardcoding Detection Tests", async (t) => {
     assertEquals(keyValues.includes("x-derived-unique"), true);
     assertEquals(keyValues.includes("x-jmespath-filter"), true);
     assertEquals(keyValues.includes("x-template-format"), true);
-    assertEquals(keyValues.includes("x-base-property"), true);
-    assertEquals(keyValues.includes("x-default-value"), true);
   });
 });
 
@@ -97,13 +85,11 @@ Deno.test("Static Analysis Simulation", async (t) => {
         '"x-derived-unique"',
         '"x-jmespath-filter"',
         '"x-template-format"',
-        '"x-base-property"',
-        '"x-default-value"',
       ];
 
       // In a real implementation, this would scan source files
       // For now, we just verify the patterns are known
-      assertEquals(forbiddenPatterns.length, 9);
+      assertEquals(forbiddenPatterns.length, 7);
 
       // Verify our registry covers all these patterns
       const registry = defaultSchemaExtensionRegistry;

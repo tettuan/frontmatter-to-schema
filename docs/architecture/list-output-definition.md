@@ -10,7 +10,7 @@ documents, where:
 1. **Multiple documents** → **Single output file**
 2. **Document content** gets **transformed into list items**
 3. **Container template** wraps the aggregated items
-4. **$ref resolution** determines the actual item structure
+4. **Schema reuse via `$ref`** keeps item validation consistent while templates drive rendering
 
 ### Concrete Example
 
@@ -97,9 +97,9 @@ Malformed List Output
 
 ### 3. Reference vs Definition
 
-- **Reference**: `$ref` points to what should be repeated
-- **Definition**: The template structure that defines the container
-- **Rule**: Follow references to find the repeatable structure
+- **Reference**: `$ref` reuses schema substructures strictly for validation
+- **Definition**: `x-template-items` selects the repeatable rendering template
+- **Rule**: Keep schema reuse and template selection independent
 
 ## Real-World Analogy
 
@@ -132,7 +132,7 @@ Multiple Bookshelves:
 1. **Single output file** (not multiple)
 2. **Container wrapping** the items
 3. **Array of items** inside the container
-4. **$ref-resolved item structure**
+4. **Item schema validated via `$ref` while templates control rendering**
 
 ### List Output Must NOT Have:
 

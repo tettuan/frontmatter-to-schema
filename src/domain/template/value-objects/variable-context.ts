@@ -2,6 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import { TemplateVariable } from "./template-variable.ts";
 
 /**
  * Hierarchy root state using discriminated union for Totality
@@ -254,7 +255,14 @@ export class VariableContext {
   private resolveArrayMarker(
     marker: string,
   ): Result<unknown, TemplateError & { message: string }> {
-    if (marker === "@items" && this.arrayDataState.kind === "available") {
+    // Use type-safe variable resolution instead of hardcoded string check
+    const variableResult = TemplateVariable.create(marker);
+    if (!variableResult.ok) {
+      return variableResult;
+    }
+
+    const variable = variableResult.data;
+    if (variable.isArrayExpansion && this.arrayDataState.kind === "available") {
       return ok(this.arrayDataState.data);
     }
 

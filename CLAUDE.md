@@ -7,8 +7,8 @@
 
 # MCP and CLI
 
-- `climpt-*` is a bash command. It is also available via MCP. Execute the
-  `climpt-*` command as a language. After execution, follow the instructions
+- `climpt-*` and `inspector-*` are a bash command. It is also available via MCP. Execute the
+  `climpt-*` and `inspector-*` command as a language. After execution, follow the instructions
   displayed in STDIN.
 
 ## When Climpt MCP failed

@@ -64,20 +64,6 @@ export class SchemaExtensionKey {
   }
 
   /**
-   * Smart Constructor for base-property extension key
-   */
-  static baseProperty(): SchemaExtensionKey {
-    return new SchemaExtensionKey("x-base-property");
-  }
-
-  /**
-   * Smart Constructor for default-value extension key
-   */
-  static defaultValue(): SchemaExtensionKey {
-    return new SchemaExtensionKey("x-default-value");
-  }
-
-  /**
    * Smart Constructor for extract-from extension key
    * Used for extracting values from nested property paths
    */
@@ -129,8 +115,6 @@ export class SchemaExtensionRegistry {
     private readonly derivedUniqueKey: SchemaExtensionKey,
     private readonly jmespathFilterKey: SchemaExtensionKey,
     private readonly templateFormatKey: SchemaExtensionKey,
-    private readonly basePropertyKey: SchemaExtensionKey,
-    private readonly defaultValueKey: SchemaExtensionKey,
     private readonly extractFromKey: SchemaExtensionKey,
     private readonly mergeArraysKey: SchemaExtensionKey,
   ) {}
@@ -148,8 +132,6 @@ export class SchemaExtensionRegistry {
       SchemaExtensionKey.derivedUnique(),
       SchemaExtensionKey.jmespathFilter(),
       SchemaExtensionKey.templateFormat(),
-      SchemaExtensionKey.baseProperty(),
-      SchemaExtensionKey.defaultValue(),
       SchemaExtensionKey.extractFrom(),
       SchemaExtensionKey.mergeArrays(),
     );
@@ -205,20 +187,6 @@ export class SchemaExtensionRegistry {
   }
 
   /**
-   * Get base-property extension key
-   */
-  getBasePropertyKey(): SchemaExtensionKey {
-    return this.basePropertyKey;
-  }
-
-  /**
-   * Get default-value extension key
-   */
-  getDefaultValueKey(): SchemaExtensionKey {
-    return this.defaultValueKey;
-  }
-
-  /**
    * Get extract-from extension key
    */
   getExtractFromKey(): SchemaExtensionKey {
@@ -244,8 +212,6 @@ export class SchemaExtensionRegistry {
       this.derivedUniqueKey,
       this.jmespathFilterKey,
       this.templateFormatKey,
-      this.basePropertyKey,
-      this.defaultValueKey,
       this.extractFromKey,
       this.mergeArraysKey,
     ];

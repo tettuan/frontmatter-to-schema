@@ -3,6 +3,10 @@ import { createError, TemplateError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ProcessingContext } from "../value-objects/processing-context.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import {
+  ARRAY_EXPANSION_MARKER,
+  ARRAY_EXPANSION_PLACEHOLDER,
+} from "../constants/template-variable-constants.ts";
 
 /**
  * VariableReplacementStrategy defines the contract for template variable replacement.
@@ -138,10 +142,13 @@ export class UnifiedVariableReplacementStrategy
     }
 
     if (typeof content === "string") {
-      // Handle {@items} expansion in string templates
-      if (content.includes("{@items}")) {
+      // Handle array expansion in string templates using type-safe approach
+      if (content.includes(ARRAY_EXPANSION_PLACEHOLDER)) {
         const itemsJson = JSON.stringify(arrayData);
-        const expanded = content.replace("{@items}", itemsJson);
+        const expanded = content.replace(
+          ARRAY_EXPANSION_PLACEHOLDER,
+          itemsJson,
+        );
         return this.replaceStringVariables(
           expanded,
           data,
@@ -235,8 +242,8 @@ export class UnifiedVariableReplacementStrategy
     verbosityMode: { readonly kind: "normal" } | { readonly kind: "verbose" } =
       { kind: "normal" },
   ): string {
-    // Skip @ variables (special processing markers) except @items
-    if (varName.startsWith("@") && varName !== "@items") {
+    // Skip @ variables (special processing markers) except array expansion markers
+    if (varName.startsWith("@") && varName !== ARRAY_EXPANSION_MARKER) {
       return originalMatch;
     }
 
@@ -289,11 +296,23 @@ export class UnifiedVariableReplacementStrategy
   ): Result<unknown[], TemplateError & { message: string }> {
     const results: unknown[] = [];
     for (const item of array) {
-      const itemResult = this.processSingleItem(item, data, context);
-      if (!itemResult.ok) {
-        return itemResult;
+      // Special handling for {@items} in array context
+      if (
+        typeof item === "string" && item === "{@items}" &&
+        context?.hasArrayData && context.arrayData
+      ) {
+        // Expand {@items} to the actual array items
+        // The items should already be processed, so add them directly
+        for (const arrayItem of context.arrayData) {
+          results.push(arrayItem);
+        }
+      } else {
+        const itemResult = this.processSingleItem(item, data, context);
+        if (!itemResult.ok) {
+          return itemResult;
+        }
+        results.push(itemResult.data);
       }
-      results.push(itemResult.data);
     }
     return ok(results);
   }
@@ -335,8 +354,8 @@ export class UnifiedVariableReplacementStrategy
         if (variableMatch) {
           const varName = variableMatch[1];
 
-          // Handle {@items} array expansion in JSON object context
-          if (varName === "@items" && context?.hasArrayData) {
+          // Handle array expansion variables in JSON object context
+          if (varName === ARRAY_EXPANSION_MARKER && context?.hasArrayData) {
             // In object property context, use raw array for proper JSON structure
             result[renderedKey] = context.arrayData;
             continue;

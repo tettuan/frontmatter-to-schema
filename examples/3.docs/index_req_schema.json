@@ -24,14 +24,14 @@
     "req": {
       "type": "array",
       "description": "Requirement level traceability items",
-      "x-frontmatter-part": "traceability",
-      "x-filter": {
-        "id.level": "req"
-      },
+      "x-frontmatter-part": true,
+      "x-extract-from": "traceability[]",
+      "x-jmespath-filter": "[?id.level == 'req']",
+      "x-merge-arrays": true,
       "items": {
         "$ref": "traceability_item_schema.json"
       }
     }
   },
-  "required": ["version", "description", "req"]
+  "required": []
 }

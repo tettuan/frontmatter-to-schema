@@ -488,6 +488,32 @@ export class PipelineOrchestrator {
         ? templatePathsResult.data.outputFormat.format
         : "json";
 
+    // Extract itemsData from x-frontmatter-part if defined
+    let itemsData: FrontmatterData[] | undefined;
+
+    // Check if schema has x-frontmatter-part directive
+    const frontmatterPartResult = schemaResult.data.findFrontmatterPartPath();
+    if (frontmatterPartResult.ok && documentsResult.data.length > 0) {
+      // Extract items from the frontmatter part path
+      const mainDoc = documentsResult.data[0];
+      const itemsResult = mainDoc.get(frontmatterPartResult.data);
+
+      if (itemsResult.ok && Array.isArray(itemsResult.data)) {
+        // Convert raw items to FrontmatterData array
+        const convertedItems: FrontmatterData[] = [];
+        for (const item of itemsResult.data) {
+          const itemDataResult = FrontmatterData.create(item);
+          if (itemDataResult.ok) {
+            convertedItems.push(itemDataResult.data);
+          }
+        }
+        itemsData = convertedItems.length > 0 ? convertedItems : undefined;
+      }
+    } else if (documentsResult.data.length > 1) {
+      // Fallback: if multiple documents, use them as itemsData
+      itemsData = documentsResult.data;
+    }
+
     const outputResult = this.templateCoordinator.renderOutput(
       templatePathsResult.data.templatePath,
       templatePathsResult.data.itemsTemplatePath,
@@ -495,7 +521,7 @@ export class PipelineOrchestrator {
         const result = FrontmatterData.create({});
         return result.ok ? result.data : documentsResult.data[0];
       })(),
-      documentsResult.data.length > 1 ? documentsResult.data : undefined,
+      itemsData,
       config.outputPath,
       outputFormat,
       (config.verbosityConfig.kind === "verbose"

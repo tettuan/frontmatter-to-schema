@@ -8,6 +8,8 @@ import {
 } from "../../shared/services/domain-logger.ts";
 import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import { TemplateVariable } from "../value-objects/template-variable.ts";
+import { ARRAY_EXPANSION_PLACEHOLDER } from "../constants/template-variable-constants.ts";
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -70,11 +72,15 @@ export class VariableReplacer {
           `Processing variable: ${varName}`,
         );
 
-        // Handle {@items} array expansion
-        if (varName === "@items" && arrayData) {
+        // Handle array expansion variables using type-safe approach
+        const variableResult = TemplateVariable.create(varName);
+        if (
+          variableResult.ok && variableResult.data.isArrayExpansion && arrayData
+        ) {
           this.domainLogger.logDebug(
             "variable-replacement",
-            "Processing @items array expansion",
+            "Processing array expansion variable",
+            { variableName: varName },
           );
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
@@ -103,8 +109,11 @@ export class VariableReplacer {
       result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
         // Debug logging available via domain logger
 
-        // Handle {@items} array expansion
-        if (varName === "@items" && arrayData) {
+        // Handle array expansion variables using type-safe approach
+        const variableResult = TemplateVariable.create(varName);
+        if (
+          variableResult.ok && variableResult.data.isArrayExpansion && arrayData
+        ) {
           // Debug logging available via domain logger
           // Return special marker for array expansion
           return "[@ITEMS_EXPANSION]";
@@ -299,8 +308,12 @@ export class VariableReplacer {
         if (variableMatch) {
           const varName = variableMatch[1];
 
-          // Handle {@items} array expansion in JSON object context
-          if (varName === "@items" && arrayData) {
+          // Handle array expansion variables in JSON object context
+          const variableResult = TemplateVariable.create(varName);
+          if (
+            variableResult.ok && variableResult.data.isArrayExpansion &&
+            arrayData
+          ) {
             // In object property context, use raw array for proper JSON structure
             result[renderedKey] = arrayData;
             continue;
@@ -383,8 +396,8 @@ export class VariableReplacer {
   }
 
   /**
-   * Process template with {@items} array expansion support
-   * @param template - Template content with potential {@items} marker
+   * Process template with array expansion support
+   * @param template - Template content with potential array expansion markers
    * @param dataArray - Array of data items to expand
    * @param itemTemplate - Optional template to apply to each item
    * @returns Result containing expanded content or error
@@ -394,8 +407,11 @@ export class VariableReplacer {
     dataArray: unknown[],
     itemTemplate?: unknown,
   ): Result<unknown, TemplateError & { message: string }> {
-    // If template is a string and contains {@items}, expand it
-    if (typeof template === "string" && template.includes("{@items}")) {
+    // If template is a string and contains array expansion markers, expand it
+    if (
+      typeof template === "string" &&
+      template.includes(ARRAY_EXPANSION_PLACEHOLDER)
+    ) {
       if (!itemTemplate) {
         // ✅ DDD Fix: Use strategy pattern for consistent array expansion
         return this.arrayExpansionStrategy.expandItems(template, dataArray);
@@ -424,7 +440,7 @@ export class VariableReplacer {
         processedItems.push(processedResult.data);
       }
 
-      // Replace {@items} with processed items
+      // Replace array expansion markers with processed items
       if (typeof template === "string") {
         // For JSON templates, directly insert the array
         if (template.trim().startsWith("[") && template.trim().endsWith("]")) {
@@ -432,7 +448,7 @@ export class VariableReplacer {
         }
         // For string templates, join the items
         const expanded = template.replace(
-          "{@items}",
+          ARRAY_EXPANSION_PLACEHOLDER,
           JSON.stringify(processedItems),
         );
         return ok(expanded);
@@ -445,7 +461,7 @@ export class VariableReplacer {
     if (Array.isArray(template)) {
       const result: unknown[] = [];
       for (const item of template) {
-        if (typeof item === "string" && item === "{@items}") {
+        if (typeof item === "string" && item === ARRAY_EXPANSION_PLACEHOLDER) {
           // Expand array items here
           result.push(...dataArray);
         } else {

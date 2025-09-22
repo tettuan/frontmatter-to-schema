@@ -4,7 +4,6 @@ import { Schema } from "../entities/schema.ts";
 import { SchemaProperty } from "../value-objects/schema-property-types.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
-import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
 
 export interface BasePropertyRule {
   readonly field: string;
@@ -78,18 +77,8 @@ export class BasePropertyPopulator {
         ) {
           const fieldPath = path ? `${path}.${key}` : key;
 
-          // Check if this is a base property (from extensions)
-          const registry = defaultSchemaExtensionRegistry;
-          if (
-            propertyDef.extensions
-              ?.[registry.getBasePropertyKey().getValue()] === true
-          ) {
-            rules.push({
-              field: fieldPath,
-              defaultValue: propertyDef.extensions
-                ?.[registry.getDefaultValueKey().getValue()],
-            });
-          } else if (propertyDef.default !== undefined) {
+          // Check if this property has a default value
+          if (propertyDef.default !== undefined) {
             // CRITICAL: Handle standard JSON Schema default properties
             // This enables template variable replacement for schema defaults
             // Without this, variables like {version}, {description}, {level} remain unreplaced

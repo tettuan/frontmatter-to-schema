@@ -7,6 +7,8 @@ import {
   VariableReference,
 } from "../value-objects/template-structure.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import { TemplateVariable } from "../value-objects/template-variable.ts";
+import { ARRAY_EXPANSION_PLACEHOLDER } from "../constants/template-variable-constants.ts";
 
 /**
  * Analyzes template structure to identify dynamic keys and variable patterns
@@ -23,6 +25,23 @@ export class TemplateStructureAnalyzer {
     TemplateError & { message: string }
   > {
     return ok(new TemplateStructureAnalyzer());
+  }
+
+  /**
+   * Type-safe check for array expansion placeholder.
+   * Replaces hardcoded string comparisons.
+   */
+  private isArrayExpansionPlaceholder(value: string): boolean {
+    const variableResult = TemplateVariable.fromPlaceholder(value);
+    return variableResult.ok && variableResult.data.isArrayExpansion;
+  }
+
+  /**
+   * Type-safe check for array expansion content.
+   * Replaces hardcoded string.includes() checks.
+   */
+  private containsArrayExpansion(value: string): boolean {
+    return value.includes(ARRAY_EXPANSION_PLACEHOLDER);
   }
 
   /**
@@ -146,10 +165,10 @@ export class TemplateStructureAnalyzer {
     for (let i = 0; i < content.length; i++) {
       const item = content[i];
 
-      if (typeof item === "string" && item === "{@items}") {
+      if (typeof item === "string" && this.isArrayExpansionPlaceholder(item)) {
         const keyResult = ArrayExpansionKey.create(
           `array_${i}`,
-          "{@items}",
+          item,
           "items",
         );
         if (!keyResult.ok) {
@@ -186,10 +205,10 @@ export class TemplateStructureAnalyzer {
 
     for (const [key, value] of Object.entries(content)) {
       // Check if this property contains array expansion
-      if (typeof value === "string" && value.includes("{@items}")) {
+      if (typeof value === "string" && this.containsArrayExpansion(value)) {
         const keyResult = ArrayExpansionKey.create(
           key,
-          "{@items}",
+          ARRAY_EXPANSION_PLACEHOLDER,
           "items",
         );
         if (!keyResult.ok) {

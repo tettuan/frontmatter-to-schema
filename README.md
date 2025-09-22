@@ -429,14 +429,6 @@ Applies JMESPath expressions for advanced data filtering and transformation.
 
 Specifies the output format for the template rendering (json, yaml, etc.).
 
-### x-base-property
-
-Defines base properties that should be populated from schema defaults.
-
-### x-default-value
-
-Provides default values for properties when not present in frontmatter.
-
 ### x-template-items
 
 Specifies a separate template file for rendering array items when using

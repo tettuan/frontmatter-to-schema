@@ -1,27 +1,5 @@
 {
   "version": "1.0.0",
   "description": "Implementation level traceability IDs",
-  "impl": [
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    },
-    {
-      "id": "{id.full}"
-    }
-  ]
+  "impl": ""
 }
