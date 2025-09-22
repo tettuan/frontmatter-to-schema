@@ -7,13 +7,15 @@
 
 # MCP and CLI
 
-- `climpt-*` and `inspector-*` are a bash command. It is also available via MCP. Execute the
-  `climpt-*` and `inspector-*` command as a language. After execution, follow the instructions
-  displayed in STDIN.
+- `climpt-*` and `inspector-*` are a bash command. It is also available via MCP.
+  Execute the `climpt-*` and `inspector-*` command as a language. After
+  execution, follow the instructions displayed in STDIN.
 
 ## When Climpt MCP failed
 
-Run bash instead.
+Run bash instead. Comamnds are listed in `.agent/climpt/registry.json`.
+
+`inspector-*` commands are in `.agent/inspector/registry.json`.
 
 ## When Climpt MCP response empty
 

@@ -47,8 +47,17 @@ export class Aggregator {
     circuitBreakerState?: CircuitBreakerConfigurationState,
     logger?: DomainLogger,
   ): Result<Aggregator, AggregationError & { message: string }> {
-    const finalCircuitBreakerState = circuitBreakerState ??
-      CircuitBreakerFactory.createStandard();
+    let finalCircuitBreakerState: CircuitBreakerConfigurationState;
+
+    if (circuitBreakerState) {
+      finalCircuitBreakerState = circuitBreakerState;
+    } else {
+      const standardStateResult = CircuitBreakerFactory.createStandard();
+      if (!standardStateResult.ok) {
+        return standardStateResult;
+      }
+      finalCircuitBreakerState = standardStateResult.data;
+    }
 
     // Initialize ArrayMerger with proper error handling
     const arrayMergerResult = ArrayMerger.create();
@@ -109,7 +118,11 @@ export class Aggregator {
     Aggregator,
     AggregationError & { message: string }
   > {
-    return Aggregator.create(CircuitBreakerFactory.createStandard());
+    const stateResult = CircuitBreakerFactory.createStandard();
+    if (!stateResult.ok) {
+      return stateResult;
+    }
+    return Aggregator.create(stateResult.data);
   }
 
   /**
@@ -119,7 +132,11 @@ export class Aggregator {
     Aggregator,
     AggregationError & { message: string }
   > {
-    return Aggregator.create(CircuitBreakerFactory.createHighThroughput());
+    const stateResult = CircuitBreakerFactory.createHighThroughput();
+    if (!stateResult.ok) {
+      return stateResult;
+    }
+    return Aggregator.create(stateResult.data);
   }
 
   /**
@@ -129,7 +146,11 @@ export class Aggregator {
     Aggregator,
     AggregationError & { message: string }
   > {
-    return Aggregator.create(CircuitBreakerFactory.createLowLatency());
+    const stateResult = CircuitBreakerFactory.createLowLatency();
+    if (!stateResult.ok) {
+      return stateResult;
+    }
+    return Aggregator.create(stateResult.data);
   }
 
   /**

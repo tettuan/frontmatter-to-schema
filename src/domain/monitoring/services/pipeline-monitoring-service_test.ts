@@ -19,7 +19,13 @@ Deno.test("PipelineMonitoringService - Complete Monitoring Flow", () => {
   if (!serviceResult.ok) return;
 
   const service = serviceResult.data;
-  const strategyConfig = PipelineStrategyConfig.forBalanced();
+  const strategyConfigResult = PipelineStrategyConfig.forBalanced();
+  if (!strategyConfigResult.ok) {
+    throw new Error(
+      `Failed to create strategy config: ${strategyConfigResult.error.message}`,
+    );
+  }
+  const strategyConfig = strategyConfigResult.data;
 
   // Start monitoring
   const startResult = service.startMonitoring(strategyConfig);
@@ -52,7 +58,13 @@ Deno.test("PipelineMonitoringService - State Transition Validation", () => {
   if (!serviceResult.ok) return;
 
   const service = serviceResult.data;
-  const strategyConfig = PipelineStrategyConfig.forBalanced();
+  const strategyConfigResult = PipelineStrategyConfig.forBalanced();
+  if (!strategyConfigResult.ok) {
+    throw new Error(
+      `Failed to create strategy config: ${strategyConfigResult.error.message}`,
+    );
+  }
+  const strategyConfig = strategyConfigResult.data;
 
   // Try to analyze variance without starting monitoring
   const analyzeResult = service.analyzeVariance(strategyConfig);
@@ -84,7 +96,13 @@ Deno.test("PipelineMonitoringService - Monitoring Summary", () => {
   assertExists(initialSummary.initialMemoryMB);
 
   // Test collecting summary
-  const strategyConfig = PipelineStrategyConfig.forBalanced();
+  const strategyConfigResult = PipelineStrategyConfig.forBalanced();
+  if (!strategyConfigResult.ok) {
+    throw new Error(
+      `Failed to create strategy config: ${strategyConfigResult.error.message}`,
+    );
+  }
+  const strategyConfig = strategyConfigResult.data;
   service.startMonitoring(strategyConfig);
 
   const collectingSummary = service.getMonitoringSummary();

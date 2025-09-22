@@ -271,9 +271,16 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
 
       // Test fallback strategy
-      const fallbackFormats = await loader.loadConfigurationWithFallback();
-      assertExists(fallbackFormats);
-      assertEquals(fallbackFormats.isExtensionSupported(".json"), true);
+      const fallbackFormatsResult = await loader
+        .loadConfigurationWithFallback();
+      assertExists(fallbackFormatsResult);
+      assertEquals(fallbackFormatsResult.ok, true);
+      if (fallbackFormatsResult.ok) {
+        assertEquals(
+          fallbackFormatsResult.data.isExtensionSupported(".json"),
+          true,
+        );
+      }
     });
   });
 
@@ -773,9 +780,16 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
 
       // Test fallback mechanism
-      const fallbackFormats = await loader.loadConfigurationWithFallback();
-      assertExists(fallbackFormats);
-      assertEquals(fallbackFormats.isExtensionSupported(".json"), true);
+      const fallbackFormatsResult = await loader
+        .loadConfigurationWithFallback();
+      assertExists(fallbackFormatsResult);
+      assertEquals(fallbackFormatsResult.ok, true);
+      if (fallbackFormatsResult.ok) {
+        assertEquals(
+          fallbackFormatsResult.data.isExtensionSupported(".json"),
+          true,
+        );
+      }
     });
 
     it("Pattern 10: Frontmatter parse failure + Configurable Recovery - Recovery config testing", async () => {
@@ -805,9 +819,16 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
 
       // Test that fallback recovery is configurable
-      const fallbackFormats = await loader.loadConfigurationWithFallback();
-      assertExists(fallbackFormats);
-      assertEquals(fallbackFormats.isExtensionSupported(".json"), true);
+      const fallbackFormatsResult = await loader
+        .loadConfigurationWithFallback();
+      assertEquals(fallbackFormatsResult.ok, true);
+      if (fallbackFormatsResult.ok) {
+        assertExists(fallbackFormatsResult.data);
+        assertEquals(
+          fallbackFormatsResult.data.isExtensionSupported(".json"),
+          true,
+        );
+      }
     });
 
     it("Pattern 11: Template load failure + Configurable Default - Default template config", async () => {

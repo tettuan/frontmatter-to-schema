@@ -140,25 +140,20 @@ Deno.test("SchemaStructureDetector - Critical Issue #528 Fix", async (t) => {
   );
 
   await t.step(
-    "Should fallback to registry detection by structure patterns",
+    "Should fallback to registry detection by configurable patterns",
     () => {
-      // Arrange: Registry-like schema without x-frontmatter-part
+      // Arrange: Schema with configurable pattern field (commands) without x-frontmatter-part
       const registryLikeSchema = createTestSchema({
         type: "object",
         properties: {
-          tools: {
-            type: "object",
-            properties: {
-              commands: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    c1: { type: "string" },
-                    c2: { type: "string" },
-                    c3: { type: "string" },
-                  },
-                },
+          commands: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                c1: { type: "string" },
+                c2: { type: "string" },
+                c3: { type: "string" },
               },
             },
           },
@@ -264,11 +259,11 @@ Deno.test("SchemaStructureDetector - Critical Issue #528 Fix", async (t) => {
         booksResult.data,
       );
 
-      // Registry hints
+      // Registry hints - now using configurable patterns
       assertEquals(registryHints.requiresAggregation, true);
-      assertEquals(registryHints.expectedArrayFields, ["commands"]);
-      assertEquals(registryHints.derivationRules, ["availableConfigs"]);
-      assertEquals(registryHints.templateFormat, "json");
+      assertEquals(registryHints.expectedArrayFields, ["commands"]); // From configurable patterns
+      assertEquals(registryHints.derivationRules, ["availableConfigs"]); // Core business derivation rule
+      assertEquals(registryHints.templateFormat, "json"); // Registry schemas typically use JSON format
 
       // Collection hints
       assertEquals(booksHints.requiresAggregation, false);

@@ -27,31 +27,52 @@ export class CircuitBreakerFactory {
   /**
    * Create standard circuit breaker state with default configuration
    */
-  static createStandard(): CircuitBreakerConfigurationState {
-    return {
+  static createStandard(): Result<
+    CircuitBreakerConfigurationState,
+    AggregationError & { message: string }
+  > {
+    const configResult = CircuitBreakerConfig.forStandardProcessing();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return ok({
       kind: "standard",
-      config: CircuitBreakerConfig.forStandardProcessing(),
-    };
+      config: configResult.data,
+    });
   }
 
   /**
    * Create high-throughput circuit breaker state for intensive processing
    */
-  static createHighThroughput(): CircuitBreakerConfigurationState {
-    return {
+  static createHighThroughput(): Result<
+    CircuitBreakerConfigurationState,
+    AggregationError & { message: string }
+  > {
+    const configResult = CircuitBreakerConfig.forHighThroughput();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return ok({
       kind: "high-throughput",
-      config: CircuitBreakerConfig.forHighThroughput(),
-    };
+      config: configResult.data,
+    });
   }
 
   /**
    * Create low-latency circuit breaker state for quick processing
    */
-  static createLowLatency(): CircuitBreakerConfigurationState {
-    return {
+  static createLowLatency(): Result<
+    CircuitBreakerConfigurationState,
+    AggregationError & { message: string }
+  > {
+    const configResult = CircuitBreakerConfig.forLowLatency();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return ok({
       kind: "low-latency",
-      config: CircuitBreakerConfig.forLowLatency(),
-    };
+      config: configResult.data,
+    });
   }
 
   /**
@@ -137,7 +158,11 @@ export class CircuitBreaker {
     let finalConfig: CircuitBreakerConfig;
 
     if (!config) {
-      finalConfig = CircuitBreakerConfig.forStandardProcessing();
+      const configResult = CircuitBreakerConfig.forStandardProcessing();
+      if (!configResult.ok) {
+        return configResult;
+      }
+      finalConfig = configResult.data;
     } else if ("getThresholds" in config) {
       // New CircuitBreakerConfig
       finalConfig = config;
@@ -169,7 +194,11 @@ export class CircuitBreaker {
     CircuitBreaker,
     AggregationError & { message: string }
   > {
-    return CircuitBreaker.create(CircuitBreakerConfig.forStandardProcessing());
+    const configResult = CircuitBreakerConfig.forStandardProcessing();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return CircuitBreaker.create(configResult.data);
   }
 
   /**
@@ -179,7 +208,11 @@ export class CircuitBreaker {
     CircuitBreaker,
     AggregationError & { message: string }
   > {
-    return CircuitBreaker.create(CircuitBreakerConfig.forHighThroughput());
+    const configResult = CircuitBreakerConfig.forHighThroughput();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return CircuitBreaker.create(configResult.data);
   }
 
   /**
@@ -189,7 +222,11 @@ export class CircuitBreaker {
     CircuitBreaker,
     AggregationError & { message: string }
   > {
-    return CircuitBreaker.create(CircuitBreakerConfig.forLowLatency());
+    const configResult = CircuitBreakerConfig.forLowLatency();
+    if (!configResult.ok) {
+      return configResult;
+    }
+    return CircuitBreaker.create(configResult.data);
   }
 
   canProcess(

@@ -51,12 +51,11 @@ export class TemplateFormatConfig {
   /**
    * Default configuration instance
    */
-  static default(): TemplateFormatConfig {
-    const result = TemplateFormatConfig.create();
-    if (!result.ok) {
-      throw new Error("Failed to create default TemplateFormatConfig");
-    }
-    return result.data;
+  static default(): Result<
+    TemplateFormatConfig,
+    TemplateError & { message: string }
+  > {
+    return TemplateFormatConfig.create();
   }
 
   /**

@@ -10,23 +10,30 @@ variables:
 
 ## 概要
 
-本指示書は、Deno DDD プロジェクトにおいてデバッグ手順を自然言語ワークフローとして体系化し、XML構造化データへの変換が可能な形式で `docs/tests/debugs/*.workflow.md` に記載する実装手順を定義する。BreakdownLoggerとの統合により再現可能なデバッグフローを確立し、トラブルシューティングの標準化と効率化を実現する。
+本指示書は、Deno DDD
+プロジェクトにおいてデバッグ手順を自然言語ワークフローとして体系化し、XML構造化データへの変換が可能な形式で
+`docs/tests/debugs/*.workflow.md`
+に記載する実装手順を定義する。BreakdownLoggerとの統合により再現可能なデバッグフローを確立し、トラブルシューティングの標準化と効率化を実現する。
 
 ## 前提情報リスト
 
 **プロジェクト構造**:
+
 - Deno + TypeScript + DDD + Totality原則
 - 既存テスト環境: Unit/Integration/E2E（257テスト通過）
 - BreakdownLogger統合済み（環境変数制御）
-- デバッグ戦略ドキュメント: `docs/tests/test-debugging-strategy.md`、`docs/tests/breakdownlogger-integration.md`
+- デバッグ戦略ドキュメント:
+  `docs/tests/test-debugging-strategy.md`、`docs/tests/breakdownlogger-integration.md`
 
 **ワークフロー要求**:
+
 - 自然言語記述による手順の明確化
 - XML構造化データへの変換可能性
 - 再現可能性95%以上の達成
 - 段階的なデバッグプロセスの標準化
 
 **技術制約**:
+
 - `docs/tests/debugs/` ディレクトリ構造（新規作成）
 - `*.workflow.md` ファイル命名規則
 - XML変換互換性の確保
@@ -112,42 +119,47 @@ outputs:
 ## ワークフロー手順
 
 ### ステップ1: 初期確認
+
 {xml:step id="step1" type="verification"}
+
 1. {具体的な確認項目}
 2. {実行コマンド例}
-3. {期待される結果}
-{/xml:step}
+3. {期待される結果} {/xml:step}
 
 ### ステップ2: デバッグ環境設定
+
 {xml:step id="step2" type="setup"}
+
 1. 環境変数設定: `export LOG_KEY={component-key} LOG_LEVEL=debug`
 2. BreakdownLogger有効化確認
-3. 出力先ディレクトリ確認: `mkdir -p tmp/`
-{/xml:step}
+3. 出力先ディレクトリ確認: `mkdir -p tmp/` {/xml:step}
 
 ### ステップ3: 段階的調査
+
 {xml:step id="step3" type="investigation"}
+
 1. {第1段階の調査項目}
    - 実行コマンド: `{command}`
    - 確認ポイント: {check-points}
 2. {第2段階の調査項目}
    - 実行コマンド: `{command}`
-   - 確認ポイント: {check-points}
-{/xml:step}
+   - 確認ポイント: {check-points} {/xml:step}
 
 ### ステップ4: 問題特定
+
 {xml:step id="step4" type="diagnosis"}
+
 1. ログ分析: `{log-analysis-method}`
 2. 症状パターン確認: {pattern-matching}
-3. 根本原因仮説: {hypothesis}`
-{/xml:step}
+3. 根本原因仮説: {hypothesis}` {/xml:step}
 
 ### ステップ5: 検証・解決
+
 {xml:step id="step5" type="resolution"}
+
 1. 仮説検証: {verification-method}
 2. 解決策適用: {solution-implementation}
-3. 結果確認: {result-verification}
-{/xml:step}
+3. 結果確認: {result-verification} {/xml:step}
 
 ## 出力
 
@@ -173,11 +185,13 @@ outputs:
 ### よくある問題
 
 #### 問題1: {common-issue-1}
+
 - **症状**: {symptom}
 - **原因**: {cause}
 - **解決策**: {solution}
 
 #### 問題2: {common-issue-2}
+
 - **症状**: {symptom}
 - **原因**: {cause}
 - **解決策**: {solution}
@@ -186,12 +200,14 @@ outputs:
 #### 2.2 XML変換対応仕様
 
 **XML構造化要素**:
+
 - `{xml:step}` タグ: 各ステップの構造化
 - `{xml:condition}` タグ: 条件分岐の明示
 - `{xml:loop}` タグ: 反復処理の定義
 - `{xml:data}` タグ: データ構造の記述
 
 **変換可能性確保**:
+
 - YAML フロントマターによるメタデータ定義
 - 構造化コメントによるセマンティクス明示
 - 標準化されたステップ記述形式
@@ -201,6 +217,7 @@ outputs:
 #### 3.1 基本コンポーネントワークフロー
 
 **対象コンポーネント**:
+
 - `schema-validation`: スキーマ検証ロジック
 - `template-rendering`: テンプレート処理
 - `frontmatter-parsing`: フロントマター抽出
@@ -209,6 +226,7 @@ outputs:
 #### 3.2 統合テストワークフロー
 
 **対象統合テスト**:
+
 - `pipeline-orchestrator`: 完全処理パイプライン
 - `base-property-population`: ベースプロパティ設定
 - `base-property-override`: フロントマター上書き
@@ -216,6 +234,7 @@ outputs:
 #### 3.3 E2Eワークフロー
 
 **対象E2Eテスト**:
+
 - `cli-basic`: 基本CLI機能
 - `cli-validation`: CLI引数検証
 - `end-to-end-flow`: 完全ワークフロー
@@ -236,7 +255,7 @@ interface WorkflowMetadata {
 
 interface WorkflowStep {
   id: string;
-  type: 'verification' | 'setup' | 'investigation' | 'diagnosis' | 'resolution';
+  type: "verification" | "setup" | "investigation" | "diagnosis" | "resolution";
   content: string;
   commands?: string[];
   checkpoints?: string[];
@@ -420,10 +439,13 @@ LOG_KEY=workflow-debug-schema-validation LOG_LEVEL=debug deno test tests/unit/do
 
 ### プロジェクト固有資料
 
-- **[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)**: 包括的デバッグアプローチ
-- **[BreakdownLogger統合ガイド](docs/tests/breakdownlogger-integration.md)**: 実装済み統合パターン
+- **[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)**:
+  包括的デバッグアプローチ
+- **[BreakdownLogger統合ガイド](docs/tests/breakdownlogger-integration.md)**:
+  実装済み統合パターン
 - **[テストガイドライン](docs/tests/testing_guidelines.md)**: TDD実践と実装指針
-- **[包括的テスト戦略](docs/testing/comprehensive-test-strategy.md)**: 全体テストアプローチ
+- **[包括的テスト戦略](docs/testing/comprehensive-test-strategy.md)**:
+  全体テストアプローチ
 
 ### 技術標準資料
 

@@ -5,7 +5,7 @@ import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 /**
  * Output format types supported by the system
  */
-export type OutputFormat = "json" | "yaml" | "markdown";
+export type OutputFormat = "json" | "yaml" | "markdown" | "xml";
 
 /**
  * Interface for formatting template output into different formats

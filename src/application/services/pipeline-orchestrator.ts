@@ -110,9 +110,18 @@ export class PipelineOrchestrator {
     fileSystem: FileSystem,
     schemaCache: SchemaCache,
     processingLoggerState: ProcessingLoggerState,
-    defaultStrategyConfig: PipelineStrategyConfig = PipelineStrategyConfig
-      .forBalanced(),
+    defaultStrategyConfig?: PipelineStrategyConfig,
   ): Result<PipelineOrchestrator, DomainError & { message: string }> {
+    // Create default strategy config if not provided
+    let finalStrategyConfig = defaultStrategyConfig;
+    if (!finalStrategyConfig) {
+      const strategyConfigResult = PipelineStrategyConfig.forBalanced();
+      if (!strategyConfigResult.ok) {
+        return err(strategyConfigResult.error);
+      }
+      finalStrategyConfig = strategyConfigResult.data;
+    }
+
     // Initialize coordinators
     const schemaCoordinatorResult = SchemaCoordinator.create(
       fileSystem,
@@ -136,9 +145,12 @@ export class PipelineOrchestrator {
       return err(templateCoordinatorResult.error);
     }
 
-    const loggingService = LoggingServiceFactory.fromProcessingLoggerState(
-      processingLoggerState,
-    );
+    const loggingServiceResult = LoggingServiceFactory
+      .fromProcessingLoggerState(
+        processingLoggerState,
+      );
+    if (!loggingServiceResult.ok) return err(loggingServiceResult.error);
+    const loggingService = loggingServiceResult.data;
     const complexityMetricsResult = ComplexityMetricsService.create();
     if (!complexityMetricsResult.ok) return err(complexityMetricsResult.error);
     const entropyManagementResult = EntropyManagementService.create();
@@ -146,7 +158,7 @@ export class PipelineOrchestrator {
     const metricsServiceResult = MetricsCollectionService.create(
       complexityMetricsResult.data,
       entropyManagementResult.data,
-      defaultStrategyConfig,
+      finalStrategyConfig,
     );
     if (!metricsServiceResult.ok) return err(metricsServiceResult.error);
     const stateMachineResult = ProcessingStateMachine.create(loggingService);
@@ -180,7 +192,7 @@ export class PipelineOrchestrator {
         stateManagerResult.data,
         documentServiceResult.data,
         loggingService,
-        defaultStrategyConfig,
+        finalStrategyConfig,
         recoveryStrategiesResult.data,
       ),
     );

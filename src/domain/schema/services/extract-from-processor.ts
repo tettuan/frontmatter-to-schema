@@ -7,6 +7,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import {
   PropertyExtractor,
   PropertyPath,
@@ -88,51 +89,43 @@ export class ExtractFromProcessor {
     directives: ExtractFromDirective[],
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
     if (directives.length === 0) {
-      // No directives to process, return data unchanged
       return ok(data);
     }
 
-    try {
-      // Process each directive and accumulate results
-      const extractedData: Record<string, unknown> = {};
+    const rawData = this.frontmatterDataToNestedObject(data);
+    let currentData = data;
 
-      for (let i = 0; i < directives.length; i++) {
-        const directive = directives[i];
-        const extractionResult = await this.processSingleDirective(
-          data,
-          directive,
-        );
-
-        if (!extractionResult.ok) {
-          return extractionResult;
-        }
-
-        // Generate key for extracted data
-        const key = this.generateExtractedKey(directive, i, directives.length);
-        extractedData[key] = extractionResult.data;
+    for (const directive of directives) {
+      const extractionResult = await this.extractFromRawData(
+        rawData,
+        directive,
+      );
+      if (!extractionResult.ok) {
+        return extractionResult;
       }
 
-      // Create new FrontmatterData with extracted values
-      const resultData = FrontmatterData.create(extractedData);
-      if (!resultData.ok) {
-        return err(createError({
-          kind: "InvalidFormat",
-          format: "frontmatter-data",
-          value: extractedData,
-          message: "Failed to create FrontmatterData from extracted values",
-        }));
+      const normalizedValue = this.normalizeExtractedValue(
+        directive,
+        extractionResult.data,
+      );
+
+      if (this.shouldSkipDirectiveApplication(directive, normalizedValue)) {
+        continue;
       }
 
-      return ok(resultData.data);
-    } catch (error) {
-      return err(createError({
-        kind: "ExtractionFailed",
-        path: "directive-processing",
-        message: `Failed to process directives: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }));
+      const applyResult = this.applyDirectiveResult(
+        rawData,
+        directive,
+        normalizedValue,
+      );
+      if (!applyResult.ok) {
+        return applyResult;
+      }
+
+      currentData = applyResult.data;
     }
+
+    return ok(currentData);
   }
 
   /**
@@ -158,135 +151,51 @@ export class ExtractFromProcessor {
       ));
     }
 
-    try {
-      const extractedData: Record<string, unknown> = {};
-
-      for (let i = 0; i < directives.length; i++) {
-        const directive = directives[i];
-        const path = directive.getPath();
-
-        let extractionResult: Result<
-          unknown,
-          DomainError & { message: string }
-        >;
-
-        if (path.includes("[]")) {
-          // For array notation, we need to convert to sync operation
-          const pathResult = PropertyPath.create(directive.getPath());
-          if (!pathResult.ok) {
-            return err(createError({
-              kind: "InvalidFormat",
-              format: "property-path",
-              value: directive.getPath(),
-              message: `Invalid property path: ${directive.getPath()}`,
-            }));
-          }
-
-          const rawData = this.frontmatterDataToNestedObject(data);
-          const syncExtractionResult = this.propertyExtractor.extract(
-            rawData,
-            pathResult.data,
-          );
-
-          if (!syncExtractionResult.ok) {
-            return err(createError({
-              kind: "ExtractionFailed",
-              path: directive.getPath(),
-              message:
-                `Failed to extract from path '${directive.getPath()}': Property extraction failed`,
-            }));
-          }
-
-          extractionResult = ok(syncExtractionResult.data);
-        } else {
-          extractionResult = data.get(path);
-          if (!extractionResult.ok) {
-            return err(createError({
-              kind: "ExtractionFailed",
-              path: path,
-              message: `Failed to extract from path '${path}': ${
-                extractionResult.error.message || "Unknown error"
-              }`,
-            }));
-          }
-        }
-
-        const key = this.generateExtractedKey(directive, i, directives.length);
-        extractedData[key] = extractionResult.data;
-      }
-
-      const resultData = FrontmatterData.create(extractedData);
-      if (!resultData.ok) {
-        return err(createError({
-          kind: "InvalidFormat",
-          format: "frontmatter-data",
-          value: extractedData,
-          message: "Failed to create FrontmatterData from extracted values",
-        }));
-      }
-
-      return ok(resultData.data);
-    } catch (error) {
-      return err(createError({
-        kind: "ExtractionFailed",
-        path: "directive-processing",
-        message: `Failed to process directives: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }));
-    }
-  }
-
-  /**
-   * Process a single x-extract-from directive
-   * Private method following encapsulation principles
-   */
-  private async processSingleDirective(
-    data: FrontmatterData,
-    directive: ExtractFromDirective,
-  ): Promise<Result<unknown, DomainError & { message: string }>> {
-    const path = directive.getPath();
-
-    // Check if path contains array notation (e.g., "traceability[].id.full")
-    if (path.includes("[]")) {
-      // Use PropertyExtractor for array notation paths
-      return await this.extractWithPropertyExtractor(data, directive);
-    } else {
-      // Use FrontmatterData's own path resolution for simple paths
-      // This handles the flattened key structure correctly
-      const extractionResult = data.get(path);
-      if (!extractionResult.ok) {
-        return err(createError({
-          kind: "ExtractionFailed",
-          path: path,
-          message: `Failed to extract from path '${path}': ${
-            extractionResult.error.message || "Unknown error"
-          }`,
-        }));
-      }
-
-      return ok(extractionResult.data);
-    }
-  }
-
-  /**
-   * Extract using PropertyExtractor for complex paths (arrays, etc.)
-   * Converts FrontmatterData to nested object structure first
-   * Uses OptimizedPropertyExtractor when available for better performance
-   */
-  private async extractWithPropertyExtractor(
-    data: FrontmatterData,
-    directive: ExtractFromDirective,
-  ): Promise<Result<unknown, DomainError & { message: string }>> {
-    // Convert FrontmatterData to nested object structure for PropertyExtractor
     const rawData = this.frontmatterDataToNestedObject(data);
+    let currentData = data;
 
-    // Use optimized extractor if available
+    for (const directive of directives) {
+      const extractionResult = this.extractFromRawDataSync(
+        rawData,
+        directive,
+      );
+      if (!extractionResult.ok) {
+        return extractionResult;
+      }
+
+      const normalizedValue = this.normalizeExtractedValue(
+        directive,
+        extractionResult.data,
+      );
+
+      if (this.shouldSkipDirectiveApplication(directive, normalizedValue)) {
+        continue;
+      }
+
+      const applyResult = this.applyDirectiveResult(
+        rawData,
+        directive,
+        normalizedValue,
+      );
+      if (!applyResult.ok) {
+        return applyResult;
+      }
+
+      currentData = applyResult.data;
+    }
+
+    return ok(currentData);
+  }
+
+  private async extractFromRawData(
+    rawData: Record<string, unknown>,
+    directive: ExtractFromDirective,
+  ): Promise<Result<unknown, DomainError & { message: string }>> {
     if (this.optimizedExtractor) {
       try {
         const extractionResult = await this.optimizedExtractor.extract(
           rawData,
-          directive.getPath(),
+          directive.getSourcePath(),
           {
             operation: "x-extract-from",
             correlationId: `extract-${Date.now()}`,
@@ -299,30 +208,25 @@ export class ExtractFromProcessor {
             : `Error kind: ${extractionResult.error.kind}`;
           return err(createError({
             kind: "ExtractionFailed",
-            path: directive.getPath(),
+            path: directive.getSourcePath(),
             message:
-              `Optimized extraction failed from path '${directive.getPath()}': ${errorMessage}`,
+              `Optimized extraction failed from path '${directive.getSourcePath()}': ${errorMessage}`,
           }));
         }
 
         return ok(extractionResult.data);
       } catch (_error) {
         // Fall back to basic extractor if optimized extraction fails
-        // TODO: Replace with proper domain logging
-        // console.warn(
-        //   `Optimized extraction failed, falling back to basic extractor: ${_error}`,
-        // );
       }
     }
 
-    // Fallback to basic PropertyExtractor
-    const pathResult = PropertyPath.create(directive.getPath());
+    const pathResult = PropertyPath.create(directive.getSourcePath());
     if (!pathResult.ok) {
       return err(createError({
         kind: "InvalidFormat",
         format: "property-path",
-        value: directive.getPath(),
-        message: `Invalid property path: ${directive.getPath()}`,
+        value: directive.getSourcePath(),
+        message: `Invalid property path: ${directive.getSourcePath()}`,
       }));
     }
 
@@ -330,12 +234,44 @@ export class ExtractFromProcessor {
       rawData,
       pathResult.data,
     );
+
     if (!extractionResult.ok) {
       return err(createError({
         kind: "ExtractionFailed",
-        path: directive.getPath(),
+        path: directive.getSourcePath(),
         message:
-          `Failed to extract from path '${directive.getPath()}': Property extraction failed`,
+          `Failed to extract from path '${directive.getSourcePath()}': Property extraction failed`,
+      }));
+    }
+
+    return ok(extractionResult.data);
+  }
+
+  private extractFromRawDataSync(
+    rawData: Record<string, unknown>,
+    directive: ExtractFromDirective,
+  ): Result<unknown, DomainError & { message: string }> {
+    const pathResult = PropertyPath.create(directive.getSourcePath());
+    if (!pathResult.ok) {
+      return err(createError({
+        kind: "InvalidFormat",
+        format: "property-path",
+        value: directive.getSourcePath(),
+        message: `Invalid property path: ${directive.getSourcePath()}`,
+      }));
+    }
+
+    const extractionResult = this.propertyExtractor.extract(
+      rawData,
+      pathResult.data,
+    );
+
+    if (!extractionResult.ok) {
+      return err(createError({
+        kind: "ExtractionFailed",
+        path: directive.getSourcePath(),
+        message:
+          `Failed to extract from path '${directive.getSourcePath()}': Property extraction failed`,
       }));
     }
 
@@ -390,35 +326,164 @@ export class ExtractFromProcessor {
     current[lastPart] = value;
   }
 
-  /**
-   * Generate appropriate key name for extracted data
-   * Handles single vs multiple directives appropriately
-   */
-  private generateExtractedKey(
+  private normalizeExtractedValue(
     directive: ExtractFromDirective,
-    index: number,
-    totalDirectives: number,
-  ): string {
-    if (totalDirectives === 1) {
-      // Single directive - use generic "extracted" key
-      return "extracted";
+    value: unknown,
+  ): unknown {
+    const expectsArray = directive.hasTargetArrayExpansion() ||
+      directive.isTargetArray();
+
+    if (!expectsArray) {
+      return value;
     }
 
-    // Multiple directives - generate descriptive key from path
-    const path = directive.getPath();
-    const segments = path.split(".");
-
-    // Use last segment(s) to create meaningful key
-    if (segments.length >= 2) {
-      // Convert "user.name" to "userName", "project.title" to "projectTitle"
-      const lastTwo = segments.slice(-2);
-      return lastTwo.map((segment, i) =>
-        i === 0 ? segment : segment.charAt(0).toUpperCase() + segment.slice(1)
-      ).join("").replace(/\[\]/g, "");
-    } else {
-      // Fallback to simple naming
-      return segments[0]?.replace(/\[\]/g, "") || `extracted${index}`;
+    if (value === null || value === undefined) {
+      return [];
     }
+
+    return Array.isArray(value) ? value : [value];
+  }
+
+  private shouldSkipDirectiveApplication(
+    directive: ExtractFromDirective,
+    value: unknown,
+  ): boolean {
+    const expectsArray = directive.hasTargetArrayExpansion() ||
+      directive.isTargetArray();
+
+    if (expectsArray) {
+      return false;
+    }
+
+    return value === undefined;
+  }
+
+  private applyDirectiveResult(
+    rawData: Record<string, unknown>,
+    directive: ExtractFromDirective,
+    value: unknown,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    const applyResult = directive.hasTargetArrayExpansion()
+      ? this.applyArrayTarget(rawData, directive, value)
+      : this.applySimpleTarget(rawData, directive, value);
+
+    if (!applyResult.ok) {
+      return applyResult;
+    }
+
+    const updatedFrontmatter = FrontmatterDataFactory.fromParsedData(rawData);
+    if (!updatedFrontmatter.ok) {
+      return err(createError({
+        kind: "ExtractionFailed",
+        path: directive.getTargetPath(),
+        message: `Failed to build frontmatter after applying directive '${directive.getTargetPath()}'`,
+      }));
+    }
+
+    return ok(updatedFrontmatter.data);
+  }
+
+  private applySimpleTarget(
+    rawData: Record<string, unknown>,
+    directive: ExtractFromDirective,
+    value: unknown,
+  ): Result<void, DomainError & { message: string }> {
+    const segments = directive.getTargetSegments();
+    const normalizedSegments = segments.map((segment) => segment.replace("[]", ""));
+
+    this.setNestedProperty(rawData, normalizedSegments, value);
+    return ok(undefined);
+  }
+
+  private applyArrayTarget(
+    rawData: Record<string, unknown>,
+    directive: ExtractFromDirective,
+    value: unknown,
+  ): Result<void, DomainError & { message: string }> {
+    const propertyPath = directive.getTargetPropertyPath();
+    const preSegments = propertyPath.getPreArraySegments();
+    const postSegments = propertyPath.getPostArraySegments();
+
+    if (preSegments.length === 0) {
+      return err(createError({
+        kind: "InvalidFormat",
+        format: "extract-from-target-path",
+        value: directive.getTargetPath(),
+        message: `Target path '${directive.getTargetPath()}' must specify a property before array notation`,
+      }));
+    }
+
+    const parent = this.ensureObjectPath(rawData, preSegments.slice(0, -1));
+    const arrayKey = preSegments[preSegments.length - 1];
+
+    if (!Array.isArray(parent[arrayKey])) {
+      parent[arrayKey] = [];
+    }
+
+    const targetArray = parent[arrayKey] as unknown[];
+    const valuesArray = Array.isArray(value)
+      ? value
+      : value === undefined || value === null
+        ? []
+        : [value];
+
+    if (postSegments.length === 0) {
+      parent[arrayKey] = valuesArray;
+      return ok(undefined);
+    }
+
+    for (let i = 0; i < valuesArray.length; i++) {
+      const itemValue = valuesArray[i];
+      const existing = targetArray[i];
+      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+        targetArray[i] = {};
+      }
+
+      this.setNestedProperty(
+        targetArray[i] as Record<string, unknown>,
+        postSegments,
+        itemValue,
+      );
+    }
+
+    return ok(undefined);
+  }
+
+  private ensureObjectPath(
+    root: Record<string, unknown>,
+    segments: readonly string[],
+  ): Record<string, unknown> {
+    let current = root;
+    for (const segment of segments) {
+      const existing = current[segment];
+      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+    return current;
+  }
+
+  private setNestedProperty(
+    target: Record<string, unknown>,
+    segments: readonly string[],
+    value: unknown,
+  ): void {
+    if (segments.length === 0) {
+      return;
+    }
+
+    let current = target;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      const existing = current[segment];
+      if (!existing || typeof existing !== "object" || Array.isArray(existing)) {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+
+    current[segments[segments.length - 1]] = value;
   }
 
   /**

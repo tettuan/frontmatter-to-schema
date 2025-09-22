@@ -98,7 +98,10 @@ export class PipelineStrategyConfig {
   /**
    * High-performance configuration for large datasets
    */
-  static forHighPerformance(): PipelineStrategyConfig {
+  static forHighPerformance(): Result<
+    PipelineStrategyConfig,
+    SystemError & { message: string }
+  > {
     const result = PipelineStrategyConfig.create(
       "concurrent-parallel",
       "aggressive",
@@ -112,18 +115,16 @@ export class PipelineStrategyConfig {
       },
       true,
     );
-    if (!result.ok) {
-      throw new Error(
-        "Failed to create high-performance PipelineStrategyConfig",
-      );
-    }
-    return result.data;
+    return result;
   }
 
   /**
    * Memory-optimized configuration for resource-constrained environments
    */
-  static forMemoryOptimized(): PipelineStrategyConfig {
+  static forMemoryOptimized(): Result<
+    PipelineStrategyConfig,
+    SystemError & { message: string }
+  > {
     const result = PipelineStrategyConfig.create(
       "stream-based",
       "minimal",
@@ -137,18 +138,16 @@ export class PipelineStrategyConfig {
       },
       true,
     );
-    if (!result.ok) {
-      throw new Error(
-        "Failed to create memory-optimized PipelineStrategyConfig",
-      );
-    }
-    return result.data;
+    return result;
   }
 
   /**
    * Balanced configuration for standard processing
    */
-  static forBalanced(): PipelineStrategyConfig {
+  static forBalanced(): Result<
+    PipelineStrategyConfig,
+    SystemError & { message: string }
+  > {
     const result = PipelineStrategyConfig.create(
       "adaptive",
       "standard",
@@ -162,10 +161,7 @@ export class PipelineStrategyConfig {
       },
       true,
     );
-    if (!result.ok) {
-      throw new Error("Failed to create balanced PipelineStrategyConfig");
-    }
-    return result.data;
+    return result;
   }
 
   /**

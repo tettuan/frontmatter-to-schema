@@ -285,14 +285,10 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         }
 
         // All results are successful, extract data safely
-        convertedItemsData = itemsConversionResults.map((result) => {
-          if (result.ok) {
-            return result.data;
-          }
-          throw new Error(
-            "This should never happen - all results were checked to be ok",
-          );
-        });
+        // Following Totality principles: use type-safe extraction after validation
+        convertedItemsData = itemsConversionResults.filter((result) =>
+          result.ok
+        ).map((result) => result.data);
       }
 
       // Render output using output rendering service

@@ -163,7 +163,11 @@ This command generates API documentation from code.
   describe("REQ-001: Schema Processing with $ref Resolution", () => {
     it("should resolve external schema references in real business context", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.schemaRefResolution());
+      const requirementResult = DomainSpecifications.schemaRefResolution();
+      assert(requirementResult.ok);
+      if (requirementResult.ok) {
+        runner.addRequirement(requirementResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -178,7 +182,11 @@ This command generates API documentation from code.
     it("should extract and validate frontmatter from actual business documents", async () => {
       // For now, use the existing specification-driven framework to validate business requirements
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.frontmatterExtraction());
+      const requirementResult = DomainSpecifications.frontmatterExtraction();
+      assert(requirementResult.ok);
+      if (requirementResult.ok) {
+        runner.addRequirement(requirementResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -192,7 +200,11 @@ This command generates API documentation from code.
   describe("REQ-003: Template Rendering with Variable Substitution", () => {
     it("should render templates with real business data variables", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.templateRendering());
+      const requirementResult = DomainSpecifications.templateRendering();
+      assert(requirementResult.ok);
+      if (requirementResult.ok) {
+        runner.addRequirement(requirementResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -206,9 +218,12 @@ This command generates API documentation from code.
   describe("REQ-004: Aggregation with Derived Field Generation", () => {
     it("should generate derived fields from multiple business documents", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(
-        DomainSpecifications.aggregationWithDerivedFields(),
-      );
+      const requirementResult = DomainSpecifications
+        .aggregationWithDerivedFields();
+      assert(requirementResult.ok);
+      if (requirementResult.ok) {
+        runner.addRequirement(requirementResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -222,7 +237,11 @@ This command generates API documentation from code.
   describe("REQ-005: Pipeline Error Recovery", () => {
     it("should handle errors gracefully and continue processing valid documents", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.pipelineErrorRecovery());
+      const requirementResult = DomainSpecifications.pipelineErrorRecovery();
+      assert(requirementResult.ok);
+      if (requirementResult.ok) {
+        runner.addRequirement(requirementResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -238,8 +257,12 @@ This command generates API documentation from code.
       const runner = new SpecificationTestRunner();
 
       // Add all domain specifications
-      for (const requirement of DomainSpecifications.getAllRequirements()) {
-        runner.addRequirement(requirement);
+      const allRequirementsResult = DomainSpecifications.getAllRequirements();
+      assert(allRequirementsResult.ok);
+      if (allRequirementsResult.ok) {
+        for (const requirement of allRequirementsResult.data) {
+          runner.addRequirement(requirement);
+        }
       }
 
       const result = await runner.runAll();

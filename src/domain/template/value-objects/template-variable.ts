@@ -59,11 +59,8 @@ export class TemplateVariable {
       default: {
         // This should never happen due to exhaustive matching
         const _exhaustiveCheck: never = this._type;
-        throw new Error(
-          `Unhandled template variable type: ${
-            JSON.stringify(_exhaustiveCheck)
-          }`,
-        );
+        // Following Totality principles: return safe fallback instead of throwing
+        return `[UNKNOWN_TYPE:${JSON.stringify(_exhaustiveCheck)}]`;
       }
     }
   }

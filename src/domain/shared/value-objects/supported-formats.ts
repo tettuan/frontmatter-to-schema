@@ -41,7 +41,7 @@ export class SupportedFormats {
     },
     {
       kind: "output",
-      extensions: [".json", ".yaml", ".yml"],
+      extensions: [".json", ".yaml", ".yml", ".xml"],
     },
     {
       kind: "configuration",

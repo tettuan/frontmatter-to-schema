@@ -47,6 +47,8 @@ export interface LegacySchemaProperty {
   readonly "x-template-items"?: string;
   readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
   readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
+  readonly "x-extract-from"?: string;
+  readonly "x-merge-arrays"?: boolean;
   readonly default?: unknown; // Standard JSON Schema default property
 }
 
@@ -140,6 +142,8 @@ export class SchemaPropertyMigration {
       [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
       [registry.getTemplateFormatKey().getValue()]: legacy["x-template-format"], // User-requested: output format specification
       [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression
+      [registry.getExtractFromKey().getValue()]: legacy["x-extract-from"],
+      [registry.getMergeArraysKey().getValue()]: legacy["x-merge-arrays"],
       description: legacy.description,
     };
   }
@@ -389,6 +393,10 @@ export class SchemaPropertyLegacyAdapter {
           | undefined,
       "x-jmespath-filter": schema.extensions
         ?.[registry.getJmespathFilterKey().getValue()] as string | undefined,
+      "x-extract-from": schema.extensions
+        ?.[registry.getExtractFromKey().getValue()] as string | undefined,
+      "x-merge-arrays": schema.extensions
+        ?.[registry.getMergeArraysKey().getValue()] as boolean | undefined,
     };
 
     switch (schema.kind) {

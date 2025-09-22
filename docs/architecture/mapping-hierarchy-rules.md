@@ -39,10 +39,11 @@ boundary:
 **Rule MO-1: Single Origin Principle**
 
 - Each template processing session has exactly ONE active mapping origin
-- The active origin is the highest-level property marked with `x-frontmatter-part: true`;
-  among peers at the same depth, the first declaration in schema order wins
-- Additional `x-frontmatter-part: true` declarations below the active origin are ignored
-  for the current session and do not create new origins
+- The active origin is the highest-level property marked with
+  `x-frontmatter-part: true`; among peers at the same depth, the first
+  declaration in schema order wins
+- Additional `x-frontmatter-part: true` declarations below the active origin are
+  ignored for the current session and do not create new origins
 
 **Rule MO-2: Data Partitioning Rules**
 
@@ -318,8 +319,9 @@ applied (NOT from $ref):
 - **Template Data Assignment**:
   - `x-template`: Receives complete frontmatter data (schema root scope)
   - `x-template-items`: Receives array data only (moved origin scope)
-- **Priority Rule**: If multiple `x-frontmatter-part` flags exist, use the highest-level
-  first-occurring declaration and treat downstream flags as inert in that run
+- **Priority Rule**: If multiple `x-frontmatter-part` flags exist, use the
+  highest-level first-occurring declaration and treat downstream flags as inert
+  in that run
 - **Independent Processing**: Each template works within its assigned partition
 - This maintains clean separation of concerns between container and items
 

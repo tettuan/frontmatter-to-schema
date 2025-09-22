@@ -17,6 +17,12 @@ formats:
     mimeType: "application/x-yaml"
     default: false
 
+  xml:
+    extensions: [".xml"]
+    description: "Extensible Markup Language - structured data format"
+    mimeType: "application/xml"
+    default: false
+
 # Validation rules
 validation:
   requireExtension: true
@@ -31,5 +37,5 @@ features:
 
 # Default behavior when configuration loading fails
 fallback:
-  extensions: [".json", ".yaml", ".yml"]
+  extensions: [".json", ".yaml", ".yml", ".xml"]
   defaultFormat: "json"

@@ -10,7 +10,8 @@ documents, where:
 1. **Multiple documents** → **Single output file**
 2. **Document content** gets **transformed into list items**
 3. **Container template** wraps the aggregated items
-4. **Schema reuse via `$ref`** keeps item validation consistent while templates drive rendering
+4. **Schema reuse via `$ref`** keeps item validation consistent while templates
+   drive rendering
 
 ### Concrete Example
 

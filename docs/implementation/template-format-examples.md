@@ -81,6 +81,69 @@
 
 ---
 
+### Case 1-1: スキーマで `x-template-format: "xml"` を指定
+
+#### Input Schema (schema.json)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "version": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "x-template": "./template.json",
+  "x-template-format": "xml"
+}
+```
+
+#### Template File (template.json)
+
+```json
+{
+  "project": {
+    "name": "{{title}}",
+    "release": "{{version}}",
+    "author": "{{metadata.author}}",
+    "tags": "{{metadata.tags}}"
+  }
+}
+```
+
+#### XMLFormatter Output:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <project>
+    <name>My XML Project</name>
+    <release>2.0.0</release>
+    <author>John Doe</author>
+    <tags>
+      <item_0>javascript</item_0>
+      <item_1>xml</item_1>
+      <item_2>template</item_2>
+    </tags>
+  </project>
+</root>
+```
+
+#### XMLフォーマットの特徴:
+
+- XML宣言の自動付与
+- 特殊文字（`<`, `>`, `&`, `"`, `'`）の自動エスケープ
+- 無効なXML要素名の自動サニタイズ
+- 配列要素の自動インデックス付き要素名（`item_0`, `item_1`, ...）
+
+---
+
 ### Case 2: スキーマに `x-template-format` 未指定（自動検出）
 
 #### Input Schema (schema.json)
@@ -174,7 +237,7 @@ graph TD
     J --> K{Format type?}
     K -->|json| L[JsonFormatter]
     K -->|yaml| M[YamlFormatter]
-    K -->|toml| N[TomlFormatter]
+    K -->|xml| N[XmlFormatter]
     K -->|markdown| O[MarkdownFormatter]
 
     L --> P[Output File]

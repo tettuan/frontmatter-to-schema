@@ -160,13 +160,64 @@ export class DocumentProcessingService {
       },
     );
 
-    const processedDataResult = await this.processingCoordinator
-      .processDocuments(
-        config.inputPattern,
-        validationRules,
-        schema,
-        processingOptions,
-      );
+    // Determine which processing method to use based on schema directives
+    let processedDataResult;
+
+    // Check for x-extract-from and x-frontmatter-part directives
+    const hasExtractFrom = schema.hasExtractFromDirectives();
+    const hasFrontmatterPart = schema.hasFrontmatterPart();
+
+    if (hasExtractFrom && hasFrontmatterPart) {
+      // Use full extraction when both directives are present
+      const fullResult = await this.processingCoordinator
+        .processDocumentsWithFullExtraction(
+          config.inputPattern,
+          validationRules,
+          schema,
+          processingOptions,
+        );
+
+      if (fullResult.ok) {
+        // Convert to FrontmatterData format expected by the rest of the pipeline
+        processedDataResult = ok(fullResult.data.mainData);
+      } else {
+        processedDataResult = fullResult;
+      }
+    } else if (hasExtractFrom) {
+      // Use extract-from processing when only x-extract-from is present
+      processedDataResult = await this.processingCoordinator
+        .processDocumentsWithExtractFrom(
+          config.inputPattern,
+          validationRules,
+          schema,
+          processingOptions,
+        );
+    } else if (hasFrontmatterPart) {
+      // Use items extraction when only x-frontmatter-part is present
+      const itemsResult = await this.processingCoordinator
+        .processDocumentsWithItemsExtraction(
+          config.inputPattern,
+          validationRules,
+          schema,
+          processingOptions,
+        );
+
+      if (itemsResult.ok) {
+        // Convert to FrontmatterData format expected by the rest of the pipeline
+        processedDataResult = ok(itemsResult.data.mainData);
+      } else {
+        processedDataResult = itemsResult;
+      }
+    } else {
+      // Use basic processing when no special directives are present
+      processedDataResult = await this.processingCoordinator
+        .processDocuments(
+          config.inputPattern,
+          validationRules,
+          schema,
+          processingOptions,
+        );
+    }
 
     if (!processedDataResult.ok) {
       // Enhanced debug logging: Error handling variance analysis

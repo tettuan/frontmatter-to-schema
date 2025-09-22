@@ -17,9 +17,12 @@ describe("Business Requirements Validation", () => {
       const runner = new SpecificationTestRunner();
 
       // Add all domain requirements
-      const requirements = DomainSpecifications.getAllRequirements();
-      for (const req of requirements) {
-        runner.addRequirement(req);
+      const requirementsResult = DomainSpecifications.getAllRequirements();
+      assert(requirementsResult.ok);
+      if (requirementsResult.ok) {
+        for (const req of requirementsResult.data) {
+          runner.addRequirement(req);
+        }
       }
 
       // Run all specifications
@@ -72,7 +75,11 @@ describe("Business Requirements Validation", () => {
   describe("Individual Requirement Tests", () => {
     it("REQ-001: Schema processing with $ref resolution", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.schemaRefResolution());
+      const reqResult = DomainSpecifications.schemaRefResolution();
+      assert(reqResult.ok);
+      if (reqResult.ok) {
+        runner.addRequirement(reqResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -86,7 +93,11 @@ describe("Business Requirements Validation", () => {
 
     it("REQ-002: Frontmatter extraction with validation", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.frontmatterExtraction());
+      const reqResult = DomainSpecifications.frontmatterExtraction();
+      assert(reqResult.ok);
+      if (reqResult.ok) {
+        runner.addRequirement(reqResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -100,7 +111,11 @@ describe("Business Requirements Validation", () => {
 
     it("REQ-003: Template rendering with variable substitution", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.templateRendering());
+      const reqResult = DomainSpecifications.templateRendering();
+      assert(reqResult.ok);
+      if (reqResult.ok) {
+        runner.addRequirement(reqResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -114,9 +129,11 @@ describe("Business Requirements Validation", () => {
 
     it("REQ-004: Aggregation with derived field generation", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(
-        DomainSpecifications.aggregationWithDerivedFields(),
-      );
+      const reqResult = DomainSpecifications.aggregationWithDerivedFields();
+      assert(reqResult.ok);
+      if (reqResult.ok) {
+        runner.addRequirement(reqResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);
@@ -133,7 +150,11 @@ describe("Business Requirements Validation", () => {
 
     it("REQ-005: Pipeline orchestration with error recovery", async () => {
       const runner = new SpecificationTestRunner();
-      runner.addRequirement(DomainSpecifications.pipelineErrorRecovery());
+      const reqResult = DomainSpecifications.pipelineErrorRecovery();
+      assert(reqResult.ok);
+      if (reqResult.ok) {
+        runner.addRequirement(reqResult.data);
+      }
 
       const result = await runner.runAll();
       assert(result.ok);

@@ -78,7 +78,7 @@ describe("Performance Optimization Tests", () => {
   });
 
   describe("Path Cache Performance", () => {
-    it("should achieve high cache hit rates for repeated paths", async () => {
+    it("should achieve high cache hit rates for repeated paths", () => {
       const testPaths = [
         "id.full",
         "traceability[].id.full",
@@ -91,7 +91,8 @@ describe("Performance Optimization Tests", () => {
       for (const pathStr of testPaths) {
         const path = PropertyPath.create(pathStr);
         assert(path.ok, `Should create path: ${pathStr}`);
-        await pathCache.setPath(pathStr, path.data);
+        const setResult = pathCache.setPath(pathStr, path.data);
+        assert(setResult.ok, "Should set path successfully");
       }
 
       // Second pass - measure cache hits
@@ -110,7 +111,7 @@ describe("Performance Optimization Tests", () => {
       );
     });
 
-    it("should handle cache eviction gracefully under memory pressure", async () => {
+    it("should handle cache eviction gracefully under memory pressure", () => {
       const maxEntries = 50; // Small cache for testing
       const testCache = PathCacheFactory.create({
         maxPathEntries: maxEntries,
@@ -125,7 +126,8 @@ describe("Performance Optimization Tests", () => {
         const pathStr = `test.path.${i}`;
         const path = PropertyPath.create(pathStr);
         assert(path.ok, `Should create path: ${pathStr}`);
-        await cache.setPath(pathStr, path.data);
+        const setResult = cache.setPath(pathStr, path.data);
+        assert(setResult.ok, "Should set path successfully");
       }
 
       const stats = cache.getStats();
@@ -133,7 +135,7 @@ describe("Performance Optimization Tests", () => {
       assert(stats.evictions > 0, "Should have performed evictions");
     });
 
-    it("should complete cache operations within performance targets", async () => {
+    it("should complete cache operations within performance targets", () => {
       const pathCount = 1000;
       const startTime = performance.now();
 
@@ -142,7 +144,8 @@ describe("Performance Optimization Tests", () => {
         const pathStr = `test.path.${i}.value`;
         const path = PropertyPath.create(pathStr);
         assert(path.ok, `Should create path: ${pathStr}`);
-        await pathCache.setPath(pathStr, path.data);
+        const setResult = pathCache.setPath(pathStr, path.data);
+        assert(setResult.ok, "Should set path successfully");
       }
 
       const populateTime = performance.now() - startTime;

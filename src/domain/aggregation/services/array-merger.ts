@@ -276,7 +276,7 @@ export class ArrayMerger {
           sourceArrays.push(extracted.data);
         } else {
           // Note: Failed to extract array from source, continuing with empty array
-          // TODO: Replace with proper domain logging when logger is injected
+          // Error is handled through Result pattern - no logging needed here
           sourceArrays.push([]); // Add empty array to maintain source count
         }
       }

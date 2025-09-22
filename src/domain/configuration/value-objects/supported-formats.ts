@@ -221,6 +221,12 @@ export class SupportedFormats {
           mimeType: "application/x-yaml",
           default: false,
         },
+        xml: {
+          extensions: [".xml"],
+          description: "Extensible Markup Language - structured data format",
+          mimeType: "application/xml",
+          default: false,
+        },
       },
     };
 

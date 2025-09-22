@@ -77,9 +77,17 @@ export class PropertyPath {
   getPreArraySegments(): string[] {
     const arrayIndex = this.segments.findIndex((s) => s.includes("[]"));
     if (arrayIndex === -1) return [...this.segments];
-    return this.segments.slice(0, arrayIndex + 1).map((s) =>
-      s.replace("[]", "")
-    );
+
+    // Get segments up to and including the one with array notation
+    const segmentsUpToArray = this.segments.slice(0, arrayIndex + 1);
+
+    // Remove the [] from the last segment
+    return segmentsUpToArray.map((s, i) => {
+      if (i === segmentsUpToArray.length - 1) {
+        return s.replace("[]", "");
+      }
+      return s;
+    }).filter(s => s !== ""); // Remove empty segments
   }
 
   /**
@@ -174,6 +182,12 @@ export class PropertyExtractor {
     // Get the part before []
     const preArraySegments = path.getPreArraySegments();
     const postArraySegments = path.getPostArraySegments();
+
+    // Edge case: path is just "[]" with no property name
+    // This is invalid and should return empty array
+    if (preArraySegments.length === 0) {
+      return ok([]);
+    }
 
     // Navigate to the array/value
     let current: unknown = data;

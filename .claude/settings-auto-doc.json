@@ -1,5 +1,9 @@
 {
   "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["climpt", "serena", "codex"],
+  "permissions": {
+    "allow": ["Climpt__*", "Serena_", "Codex_"]
+  },
   "hooks": {
     "Stop": [
       {

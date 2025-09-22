@@ -290,13 +290,13 @@ export type ProcessingLoggerState = LoggingState;
 export class LoggingServiceFactory {
   /**
    * Create logging service from ProcessingLoggerState
-   * Maintains backward compatibility with existing code
+   * Following Totality principles with Result return type
    */
   static fromProcessingLoggerState(
     state: ProcessingLoggerState,
-  ): LoggingService {
+  ): Result<LoggingService, DomainError & { message: string }> {
     if (state.kind === "disabled") {
-      return LoggingService.createDisabled();
+      return ok(LoggingService.createDisabled());
     }
 
     const result = LoggingService.create(state.logger, {
@@ -305,13 +305,6 @@ export class LoggingServiceFactory {
       maxContextDepth: 5,
     });
 
-    // Since we control the inputs, this should never fail
-    if (!result.ok) {
-      throw new Error(
-        `Failed to create LoggingService: ${result.error.message}`,
-      );
-    }
-
-    return result.data;
+    return result;
   }
 }

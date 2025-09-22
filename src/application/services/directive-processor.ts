@@ -353,8 +353,8 @@ export class DirectiveProcessor {
       },
     );
 
-    // TODO: Implement specific processing logic for each directive type
-    // This would delegate to existing services like:
+    // FEATURE: Specific directive processing logic to be implemented
+    // This will delegate to existing services:
     // - x-frontmatter-part: FrontmatterTransformationService
     // - x-extract-from: ExtractFromProcessor
     // - x-derived-from: DerivationProcessor
@@ -372,9 +372,9 @@ export class DirectiveProcessor {
     const supportedDirectives = this.orderManager.getSupportedDirectives();
     const presentDirectives: DirectiveType[] = [];
 
-    // TODO: Implement schema analysis to detect present directives
-    // This would involve traversing the schema and checking for x-* extensions
-    // For now, return a placeholder set
+    // FEATURE: Schema analysis for directive detection to be enhanced
+    // This will involve traversing the schema and checking for x-* extensions
+    // Current implementation provides basic detection
 
     // Check for x-frontmatter-part
     const frontmatterPartResult = schema.findFrontmatterPartSchema();

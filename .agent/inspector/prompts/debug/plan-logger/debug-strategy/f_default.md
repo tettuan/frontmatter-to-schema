@@ -9,23 +9,27 @@ variables:
 
 ## 概要
 
-本指示書は、Deno DDD プロジェクトにおいて `jsr:@tettuan/breakdownlogger` を活用してテストコードのデバッグ出力を強化し、体系的なテストデバッグ戦略を確立するための実装手順を定義する。環境変数ベースの制御、構造化ログ、パフォーマンス分析を通じて、テスト失敗の迅速な特定と解決を実現する。
+本指示書は、Deno DDD プロジェクトにおいて `jsr:@tettuan/breakdownlogger`
+を活用してテストコードのデバッグ出力を強化し、体系的なテストデバッグ戦略を確立するための実装手順を定義する。環境変数ベースの制御、構造化ログ、パフォーマンス分析を通じて、テスト失敗の迅速な特定と解決を実現する。
 
 ## 前提情報リスト
 
 **プロジェクト構造**:
+
 - Deno + TypeScript + JSR packages
 - DDD, TDD, Totality, AI-complexity-control 原則
 - 83/83 テスト通過、フルDDD実装済み
 - `@tettuan/breakdownlogger` 依存関係導入済み
 
 **既存テスト環境**:
+
 - テスト分類: Unit/Integration/E2E
 - カバレッジ: 80%以上を維持
 - テスト実行: `deno test --allow-all`
 - CI/CD: 完全自動化済み
 
 **BreakdownLogger 機能**:
+
 - 環境変数制御: LOG_KEY, LOG_LENGTH, LOG_LEVEL
 - 構造化ログ出力: JSON フォーマット
 - パフォーマンス追跡: Timer統合
@@ -44,24 +48,28 @@ variables:
 
 - 現在のテスト実行状況を確認: `deno test --allow-all`
 - BreakdownLogger 依存関係の確認: `deno.json` の imports セクション
-- テストディレクトリ構造の把握: `tests/unit/`, `tests/integration/`, `tests/e2e/`
+- テストディレクトリ構造の把握: `tests/unit/`, `tests/integration/`,
+  `tests/e2e/`
 
 ### 2. コンポーネント別ログキー定義
 
 以下の戦略的ログキーを `{uv-test-scope}` に応じて選択・適用:
 
 **Unit Tests**:
+
 - `schema-validation`: スキーマ検証ロジック
 - `template-rendering`: テンプレート処理
 - `frontmatter-parsing`: フロントマター抽出
 - `aggregation-rules`: データ集約ロジック
 
 **Integration Tests**:
+
 - `base-property-population`: ベースプロパティ設定ロジック
 - `base-property-override`: フロントマター上書き動作
 - `pipeline-orchestrator`: 完全処理パイプライン
 
 **E2E Tests**:
+
 - `cli-basic`: 基本CLI機能
 - `cli-validation`: CLI引数検証
 - `end-to-end-flow`: 完全ワークフロー
@@ -79,32 +87,35 @@ const logger = new BreakdownLogger("{uv-component-key}");
 #### 3.2 構造化デバッグパターン
 
 **データ構造分析**:
+
 ```typescript
 logger.debug("スキーマ構造分析", {
   schemaKeys: Object.keys(schemaObject),
   dataSize: JSON.stringify(schemaObject).length,
-  processStep: "validation"
+  processStep: "validation",
 });
 ```
 
 **フロー追跡**:
+
 ```typescript
 logger.info("処理パイプライン実行", {
   schema: paths.schema,
   inputPattern: pattern,
-  currentStep: "processing"
+  currentStep: "processing",
 });
 ```
 
 **エラーコンテキスト**:
+
 ```typescript
 logger.error("操作失敗", {
   errorMessage: error.message,
   context: {
     component: "schema-validator",
     inputData: sanitizedInput,
-    expectedType: "object"
-  }
+    expectedType: "object",
+  },
 });
 ```
 
@@ -128,6 +139,7 @@ export LOG_LENGTH=S|L|W
 shで表現した例。shを量産することは好ましくない。あくまでも実行例として以下を示すものである。
 
 `scripts/test-with-debug.sh`:
+
 ```bash
 #!/bin/bash
 COMPONENT_KEY=${1:-"all"}
@@ -155,7 +167,6 @@ CIでは不要。
 3. **詳細分析**: `LOG_LENGTH=W` で完全出力取得
 4. **パフォーマンス確認**: Timer統合で実行時間測定
 
-
 ## 成果物定義
 
 ### 主成果物
@@ -178,14 +189,17 @@ CIでは不要。
 
 ### プロジェクト固有資料
 
-- **[BreakdownLogger統合ガイド](docs/tests/breakdownlogger-integration.md)**: 実装済み統合パターン
-- **[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)**: 包括的デバッグアプローチ
+- **[BreakdownLogger統合ガイド](docs/tests/breakdownlogger-integration.md)**:
+  実装済み統合パターン
+- **[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)**:
+  包括的デバッグアプローチ
 - **[テストガイドライン](docs/tests/testing_guidelines.md)**: TDD実践と実装指針
 - **[包括的テスト戦略](docs/testing.ja.md)**: 全体テストアプローチ
 
 ### 外部技術資料
 
-- **[@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger)**: 公式パッケージドキュメント
+- **[@tettuan/breakdownlogger](https://jsr.io/@tettuan/breakdownlogger)**:
+  公式パッケージドキュメント
 - **Deno テスト公式ガイド**: 基本テスト実行とベストプラクティス
 
 ## DoD (Definition of Done)

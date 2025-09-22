@@ -55,42 +55,46 @@ export class SchemaStructureDetector {
   /**
    * Detect the structure type from a schema definition.
    *
-   * This method replaces hardcoded detectStructureType logic with
-   * schema-driven analysis using x-frontmatter-part directives.
+   * This method follows pure schema-driven analysis using x-frontmatter-part directives
+   * with configurable fallback patterns when directives are not present.
    */
   detectStructureType(
     schema: Schema,
   ): Result<StructureType, DomainError & { message: string }> {
-    // Try to find x-frontmatter-part path in schema
+    // Primary: Try to find x-frontmatter-part path in schema (schema-driven)
     const frontmatterPartResult = schema.findFrontmatterPartPath();
 
-    if (!frontmatterPartResult.ok) {
-      // No x-frontmatter-part found - this might be a simple schema
-      // Check if it looks like a registry by examining schema structure
-      const registryDetectionResult = this.detectRegistryByStructure(schema);
-      if (registryDetectionResult.ok) {
-        return registryDetectionResult;
-      }
-
-      // Default to collection type with generic path
-      const collectionResult = StructureTypeFactory.collection(
-        "items",
-        "Generic collection structure",
-      );
-      if (!collectionResult.ok) {
-        return err(createError({
-          kind: "AggregationFailed",
-          message: "Failed to create default collection structure type",
-        }));
-      }
-
-      return collectionResult;
+    if (frontmatterPartResult.ok) {
+      const path = frontmatterPartResult.data;
+      // Detect structure type from the frontmatter-part path
+      return StructureTypeFactory.fromPath(path);
     }
 
-    const path = frontmatterPartResult.data;
+    // Secondary: Use configurable pattern-based fallback detection
+    const registryDetectionResult = this.detectRegistryByStructure(schema);
+    if (registryDetectionResult.ok) {
+      return registryDetectionResult;
+    }
 
-    // Detect structure type from the frontmatter-part path
-    return StructureTypeFactory.fromPath(path);
+    // Tertiary: Analyze schema properties to infer structure type
+    const inferredTypeResult = this.inferStructureFromProperties(schema);
+    if (inferredTypeResult.ok) {
+      return inferredTypeResult;
+    }
+
+    // Default: Collection type with generic path (safest fallback)
+    const collectionResult = StructureTypeFactory.collection(
+      "items",
+      "Generic collection structure (no x-frontmatter-part detected)",
+    );
+    if (!collectionResult.ok) {
+      return err(createError({
+        kind: "AggregationFailed",
+        message: "Failed to create default collection structure type",
+      }));
+    }
+
+    return collectionResult;
   }
 
   /**
@@ -119,7 +123,8 @@ export class SchemaStructureDetector {
   }
 
   /**
-   * Check if schema has registry-specific structural patterns.
+   * Check if schema has registry-specific structural patterns using configurable patterns only.
+   * No hardcoded structure assumptions - purely schema-driven detection.
    */
   private hasRegistryStructurePattern(rawSchema: unknown): boolean {
     if (typeof rawSchema !== "object" || rawSchema === null) {
@@ -128,48 +133,99 @@ export class SchemaStructureDetector {
 
     const schema = rawSchema as Record<string, unknown>;
 
-    // Check for tools.commands structure
-    if (
-      SchemaStructureDetector.hasNestedProperty(schema, [
-        "properties",
-        "tools",
-        "properties",
-        "commands",
-      ])
-    ) {
-      return true;
-    }
-
-    // Check for command properties using configurable patterns
+    // Only check for command properties using configurable patterns
     const properties = schema.properties as Record<string, unknown> | undefined;
     if (properties && typeof properties === "object") {
-      const _propertyKeys = Object.keys(properties);
+      const propertyKeys = Object.keys(properties);
 
-      // Check sequential patterns (c1, c2, c3, etc.) if enabled
-      const hasSequentialFields =
-        this.fieldPatterns.isSequentialDetectionEnabled() &&
-        this.fieldPatterns.getSequentialPatterns().some((field) =>
-          field in properties
-        );
+      // Check if any properties match the configured patterns
+      const hasMatchingFields = this.fieldPatterns.hasAnyMatch(propertyKeys);
 
-      // Check named patterns (commands, etc.) if enabled
-      const hasNamedFields = this.fieldPatterns.isNamedDetectionEnabled() &&
-        this.fieldPatterns.getNamedPatterns().some((field) =>
-          field in properties
-        );
-
-      // Check custom patterns if enabled
-      const hasCustomFields = this.fieldPatterns.isCustomPatternsEnabled() &&
-        this.fieldPatterns.getCustomPatterns().some((field) =>
-          field in properties
-        );
-
-      if (hasSequentialFields || hasNamedFields || hasCustomFields) {
-        return true;
+      // Require minimum number of matches as configured
+      if (hasMatchingFields) {
+        const matchCount = propertyKeys.filter((key) =>
+          this.fieldPatterns.matchesPattern(key)
+        ).length;
+        return matchCount >= this.fieldPatterns.getMinimumMatchCount();
       }
     }
 
     return false;
+  }
+
+  /**
+   * Infer structure type from schema properties when x-frontmatter-part is not available.
+   * Uses configurable patterns to make intelligent guesses about structure type.
+   */
+  private inferStructureFromProperties(
+    schema: Schema,
+  ): Result<StructureType, DomainError & { message: string }> {
+    const definition = schema.getDefinition();
+    const rawSchema = definition.getRawSchema();
+
+    if (typeof rawSchema !== "object" || rawSchema === null) {
+      return err(createError({
+        kind: "InvalidStructure",
+        field: "schema",
+      }));
+    }
+
+    const schemaObj = rawSchema as Record<string, unknown>;
+    const properties = schemaObj.properties as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!properties || typeof properties !== "object") {
+      return err(createError({
+        kind: "PropertiesNotDefined",
+      }));
+    }
+
+    const _propertyKeys = Object.keys(properties);
+
+    // Look for array properties that might indicate the structure type
+    for (const [key, value] of Object.entries(properties)) {
+      if (typeof value === "object" && value !== null) {
+        const propertyDef = value as Record<string, unknown>;
+
+        // If this is an array property, it might be our data collection
+        if (propertyDef.type === "array") {
+          // Check if it matches any configured patterns
+          if (this.fieldPatterns.matchesPattern(key)) {
+            // This looks like a registry structure
+            return ok(StructureTypeFactory.registry());
+          }
+
+          // Otherwise, treat as collection with this path
+          const collectionResult = StructureTypeFactory.collection(
+            key,
+            `Inferred collection structure from array property: ${key}`,
+          );
+          if (collectionResult.ok) {
+            return collectionResult;
+          }
+        }
+      }
+    }
+
+    // If no array properties found, check for object properties
+    for (const [key] of Object.entries(properties)) {
+      if (this.fieldPatterns.matchesPattern(key)) {
+        // Found a pattern match, assume custom structure
+        const customResult = StructureTypeFactory.custom(
+          key,
+          `Inferred custom structure from pattern match: ${key}`,
+        );
+        if (customResult.ok) {
+          return customResult;
+        }
+      }
+    }
+
+    return err(createError({
+      kind: "FrontmatterPartNotFound",
+      message: "Could not infer structure type from schema properties",
+    }));
   }
 
   /**
@@ -194,21 +250,22 @@ export class SchemaStructureDetector {
   }
 
   /**
-   * Get structure-specific processing hints.
+   * Get structure-specific processing hints based on schema-driven detection.
    *
    * Different structure types may require different processing approaches.
-   * This method provides hints for the processing pipeline.
+   * This method provides hints for the processing pipeline using configurable patterns.
    */
-  static getProcessingHints(
+  getProcessingHints(
     structureType: StructureType,
   ): ProcessingHints {
     switch (structureType.kind) {
       case "registry":
+        // Use configurable patterns instead of hardcoded values
         return {
           requiresAggregation: true,
-          expectedArrayFields: ["commands"],
-          derivationRules: ["availableConfigs"],
-          templateFormat: "json",
+          expectedArrayFields: [...this.fieldPatterns.getNamedPatterns()],
+          derivationRules: ["availableConfigs"], // Core business derivation rule
+          templateFormat: "json", // Registry schemas typically use JSON format
         };
 
       case "collection":
@@ -219,14 +276,38 @@ export class SchemaStructureDetector {
           templateFormat: "auto",
         };
 
-      case "custom":
+      case "custom": {
+        // Extract field name from path dynamically
+        const pathSegments = structureType.path.split(".");
+        const fieldName = pathSegments[pathSegments.length - 1] || "items";
         return {
           requiresAggregation: true,
-          expectedArrayFields: [structureType.path.split(".").pop() || "items"],
+          expectedArrayFields: [fieldName],
           derivationRules: [],
           templateFormat: "auto",
         };
+      }
     }
+  }
+
+  /**
+   * Static convenience method for backwards compatibility
+   * Uses default field patterns configuration
+   */
+  static getProcessingHints(
+    structureType: StructureType,
+  ): ProcessingHints {
+    const detectorResult = SchemaStructureDetector.createWithDefaults();
+    if (!detectorResult.ok) {
+      // Fallback to minimal hints if detector creation fails
+      return {
+        requiresAggregation: false,
+        expectedArrayFields: [],
+        derivationRules: [],
+        templateFormat: "auto",
+      };
+    }
+    return detectorResult.data.getProcessingHints(structureType);
   }
 }
 

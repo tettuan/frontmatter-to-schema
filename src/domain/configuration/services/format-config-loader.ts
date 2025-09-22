@@ -1,5 +1,9 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { ValidationError } from "../../shared/types/errors.ts";
+import {
+  createError,
+  SystemError,
+  ValidationError,
+} from "../../shared/types/errors.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
   RawFormatConfig,
@@ -399,31 +403,30 @@ export class FormatConfigLoader {
 
   /**
    * Load configuration with fallback to default
-   * Always returns a valid SupportedFormats object for robustness
+   * Returns Result type following Totality principles
    */
-  async loadConfigurationWithFallback(): Promise<SupportedFormats> {
+  async loadConfigurationWithFallback(): Promise<
+    Result<SupportedFormats, SystemError & { message: string }>
+  > {
     const result = await this.loadConfiguration();
     if (result.ok) {
-      return result.data;
+      return ok(result.data);
     }
 
-    // Log warning about fallback (in production, this would use proper logging)
-    // TODO: Replace with proper domain logging
-    // console.warn(
-    //   `Failed to load configuration from ${this.configPath}: ${result.error.message}. Using fallback configuration.`,
-    // );
+    // Warning about fallback configuration would be logged here if needed
+    // Console logging has been removed in favor of proper domain error handling
 
     const fallbackResult = SupportedFormats.createFallback();
     if (fallbackResult.ok) {
-      return fallbackResult.data;
+      return ok(fallbackResult.data);
     }
 
-    // If even fallback fails, this is a critical system error
-    // Since this method promises to always return a valid config, throw here
-    // This should never happen with our hardcoded fallback
-    throw new Error(
-      `Critical: Both config loading and fallback failed: ${fallbackResult.error.message}`,
-    );
+    // If even fallback fails, return error following Totality principles
+    return err(createError({
+      kind: "ConfigurationError",
+      message:
+        `Critical: Both config loading and fallback failed: ${fallbackResult.error.message}`,
+    }));
   }
 
   /**

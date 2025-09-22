@@ -17,5 +17,5 @@ elif [ $issue_count_status -eq 0 ]; then
     echo '{"continue": false, "stopReason": "5 or more open issues found.", "suppressOutput": true}'
 else
     # No release issue and less than 5 issues - block with instruction
-    echo '{"decision": "block", "reason": "Run [inspector-debug analyze-deep project-issues]. After running the climpt-debug, follow the instruction."}'
+    echo '{"decision": "block", "reason": "Run `inspector-debug analyze-deep project-issues`. After running the inspector-debug, follow the instruction."}'
 fi

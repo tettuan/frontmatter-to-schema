@@ -452,10 +452,20 @@ describe.ignore("Configuration-Driven Formats - Specification Compliance", () =>
       }
 
       // ✅ Specification requirement: Fallback mechanism works
-      const fallbackFormats = await loader.loadConfigurationWithFallback();
-      assertExists(fallbackFormats);
-      assertEquals(fallbackFormats.isExtensionSupported(".json"), true);
-      assertEquals(fallbackFormats.isExtensionSupported(".yaml"), true);
+      const fallbackFormatsResult = await loader
+        .loadConfigurationWithFallback();
+      assertEquals(fallbackFormatsResult.ok, true);
+      if (fallbackFormatsResult.ok) {
+        assertExists(fallbackFormatsResult.data);
+        assertEquals(
+          fallbackFormatsResult.data.isExtensionSupported(".json"),
+          true,
+        );
+        assertEquals(
+          fallbackFormatsResult.data.isExtensionSupported(".yaml"),
+          true,
+        );
+      }
     });
 
     it("should handle malformed configuration with proper error reporting", async () => {

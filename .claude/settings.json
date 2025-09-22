@@ -1,7 +1,7 @@
 {
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["climpt"],
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["climpt", "serena"],
   "permissions": {
-    "allow": ["Climpt__*"]
+    "allow": ["Climpt__*", "Serena_"]
   }
 }

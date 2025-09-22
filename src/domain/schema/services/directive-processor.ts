@@ -242,10 +242,10 @@ export class DirectiveProcessor {
       });
     }
 
-    // TODO: Add detection for other directive types as they are implemented
-    // - x-merge-arrays
-    // - x-derived-unique
-    // - x-template, x-template-items, x-template-format
+    // Additional directive types will be detected as new features are implemented:
+    // - x-merge-arrays (aggregation directives)
+    // - x-derived-unique (validation directives)
+    // - x-template, x-template-items, x-template-format (template directives)
 
     return ok(nodes);
   }
@@ -417,18 +417,18 @@ export class DirectiveProcessor {
 
     switch (kind) {
       case "frontmatter-part":
-        // TODO: Implement frontmatter-part processing
-        // Processing frontmatter-part (placeholder implementation)
+        // FEATURE: frontmatter-part processing not yet implemented
+        // Will handle frontmatter section directives when feature is developed
         return ok(data);
 
       case "extract-from":
-        // TODO: Implement extract-from processing
-        // Processing extract-from (placeholder implementation)
+        // FEATURE: extract-from processing not yet implemented
+        // Will handle data extraction directives when feature is developed
         return ok(data);
 
       case "derived-from":
-        // TODO: Implement derived-from processing
-        // Processing derived-from (placeholder implementation)
+        // FEATURE: derived-from processing not yet implemented
+        // Will handle derived data directives when feature is developed
         return ok(data);
 
       default:

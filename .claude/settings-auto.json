@@ -1,9 +1,10 @@
 {
   "cleanupPeriodDays": 5,
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["climpt"],
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["climpt", "serena"],
+  "disabledMcpjsonServers": ["codex"],
   "permissions": {
-    "allow": ["Climpt__*"]
+    "allow": ["Climpt__*", "Serena_"]
   },
   "hooks": {
     "Stop": [

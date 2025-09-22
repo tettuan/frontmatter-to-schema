@@ -234,10 +234,12 @@ graph LR
 
 4. **Result Combination**
    - Combine processed items within the JSON template structure
-   - Replace `{@items}` marker in the container template when an items template exists
+   - Replace `{@items}` marker in the container template when an items template
+     exists
 
 5. **Fallback Handling**
-   - Without `x-template-items`, leave `{@items}` unchanged in the rendered output
+   - Without `x-template-items`, leave `{@items}` unchanged in the rendered
+     output
 
 ## 6. Domain Interaction Model
 
@@ -344,8 +346,8 @@ Support for array operations:
 2. **Explicit Output**: Only template content appears in output
 3. **Variable Substitution**: Variables are replaced with actual values
 4. **Array Expansion**: `{@items}` expands using item templates when available
-5. **Format Separation**: Templates are authored in JSON; rendered output format is
-   controlled separately by x-template-format (json|yaml|toml|markdown)
+5. **Format Separation**: Templates are authored in JSON; rendered output format
+   is controlled separately by x-template-format (json|yaml|toml|markdown)
 
 ### 8.2 Template Format Specification
 
@@ -353,7 +355,8 @@ Support for array operations:
 
 - All templates must be valid JSON format
 - No YAML or other formats accepted for template files
-- Templates define data structure and variable placeholders that are rendered as JSON
+- Templates define data structure and variable placeholders that are rendered as
+  JSON
 
 **Output Format Control**:
 
@@ -365,8 +368,10 @@ Support for array operations:
 **Processing Flow**:
 
 1. Parse JSON template (strict JSON validation)
-2. Apply variable substitution and {@items} expansion when an items template exists
-3. Convert the rendered JSON structure into the x-template-format output (json|yaml|toml|markdown)
+2. Apply variable substitution and {@items} expansion when an items template
+   exists
+3. Convert the rendered JSON structure into the x-template-format output
+   (json|yaml|toml|markdown)
 4. Write formatted output to target file
 
 ### 8.3 Processing Order

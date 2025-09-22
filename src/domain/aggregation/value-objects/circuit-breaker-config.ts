@@ -71,19 +71,21 @@ export class CircuitBreakerConfig {
   /**
    * Default configuration for standard processing
    */
-  static forStandardProcessing(): CircuitBreakerConfig {
-    const result = CircuitBreakerConfig.create();
-    if (!result.ok) {
-      throw new Error("Failed to create standard CircuitBreakerConfig");
-    }
-    return result.data;
+  static forStandardProcessing(): Result<
+    CircuitBreakerConfig,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreakerConfig.create();
   }
 
   /**
    * High-throughput configuration for intensive processing
    */
-  static forHighThroughput(): CircuitBreakerConfig {
-    const result = CircuitBreakerConfig.create({
+  static forHighThroughput(): Result<
+    CircuitBreakerConfig,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreakerConfig.create({
       maxComplexity: 50000,
       maxMemoryMB: 1024,
       maxProcessingTimeMs: 120000,
@@ -92,17 +94,16 @@ export class CircuitBreakerConfig {
       failureThreshold: 10,
       halfOpenRetryDelayMs: 10000,
     }, true);
-    if (!result.ok) {
-      throw new Error("Failed to create high-throughput CircuitBreakerConfig");
-    }
-    return result.data;
   }
 
   /**
    * Low-latency configuration for quick processing
    */
-  static forLowLatency(): CircuitBreakerConfig {
-    const result = CircuitBreakerConfig.create({
+  static forLowLatency(): Result<
+    CircuitBreakerConfig,
+    AggregationError & { message: string }
+  > {
+    return CircuitBreakerConfig.create({
       maxComplexity: 5000,
       maxMemoryMB: 256,
       maxProcessingTimeMs: 30000,
@@ -111,10 +112,6 @@ export class CircuitBreakerConfig {
       failureThreshold: 3,
       halfOpenRetryDelayMs: 2000,
     }, false);
-    if (!result.ok) {
-      throw new Error("Failed to create low-latency CircuitBreakerConfig");
-    }
-    return result.data;
   }
 
   /**

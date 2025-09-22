@@ -218,4 +218,115 @@ Deno.test("CLI Basic Functionality", async (t) => {
       await cleanup();
     }
   });
+
+  await t.step("should accept XML output format (Issue #939)", async () => {
+    // Arrange: Set up test environment
+    const testEnvResult = await createTestEnvironment();
+    if (!testEnvResult.ok) {
+      throw new Error(
+        `Failed to create test environment: ${testEnvResult.error.message}`,
+      );
+    }
+    const { tempDir, cleanup } = testEnvResult.data;
+
+    try {
+      const schemaPath = join(tempDir, "test_schema.json");
+      const markdownPath = join(tempDir, "test_doc.md");
+      const templatePath = join(tempDir, "template.json");
+      const outputPath = join(tempDir, "output.xml");
+
+      // Create test schema
+      const schemaContent = JSON.stringify({
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          author: { type: "string" },
+          published: { type: "boolean" },
+        },
+        required: ["title"],
+      });
+      const schemaWriteResult = await writeTestFile(schemaPath, schemaContent);
+      if (!schemaWriteResult.ok) {
+        throw new Error(
+          `Failed to write schema: ${schemaWriteResult.error.message}`,
+        );
+      }
+
+      // Create test markdown
+      const markdownContent = `---
+title: XML Test Article
+author: Test Author
+published: true
+---
+
+# XML Test Article
+
+This is a test for XML output format.`;
+      const markdownWriteResult = await writeTestFile(
+        markdownPath,
+        markdownContent,
+      );
+      if (!markdownWriteResult.ok) {
+        throw new Error(
+          `Failed to write markdown: ${markdownWriteResult.error.message}`,
+        );
+      }
+
+      // Create test template
+      const templateContent = JSON.stringify({
+        title: "{{title}}",
+        author: "{{author}}",
+        published: "{{published}}",
+      });
+      const templateWriteResult = await writeTestFile(
+        templatePath,
+        templateContent,
+      );
+      if (!templateWriteResult.ok) {
+        throw new Error(
+          `Failed to write template: ${templateWriteResult.error.message}`,
+        );
+      }
+
+      // Act: Execute CLI command with XML output
+      const result = await executeCliCommand([
+        schemaPath,
+        markdownPath,
+        outputPath,
+        "--template",
+        templatePath,
+      ]);
+
+      // Assert: Should succeed (no validation error for XML format)
+      if (!result.ok) {
+        throw new Error(`CLI execution failed: ${result.error.message}`);
+      }
+
+      const outputExists = await fileExists(outputPath);
+      assertFileExists(outputPath, outputExists);
+
+      // Validate XML output was created
+      const outputContentResult = await readTestFile(outputPath);
+      if (!outputContentResult.ok) {
+        throw new Error(
+          `Failed to read XML output: ${outputContentResult.error.message}`,
+        );
+      }
+
+      // Basic validation - CLI accepts XML format and creates output
+      // Note: Current implementation outputs JSON content regardless of file extension
+      // The key test is that CLI validation accepts .xml files (Issue #939 fix)
+      const outputData = JSON.parse(outputContentResult.data);
+      assert(
+        outputData.title === "XML Test Article",
+        "Output should contain correct title",
+      );
+      assert(
+        outputData.author === "Test Author",
+        "Output should contain correct author",
+      );
+    } finally {
+      await cleanup();
+    }
+  });
 });

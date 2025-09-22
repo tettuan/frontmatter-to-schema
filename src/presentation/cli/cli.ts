@@ -71,8 +71,16 @@ export class CLI {
     // Load supported formats configuration
     const formatConfigLoader = FormatConfigLoaderFactory
       .createWithDenoAdapters();
-    const supportedFormats = await formatConfigLoader
+    const supportedFormatsResult = await formatConfigLoader
       .loadConfigurationWithFallback();
+    if (!supportedFormatsResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to load supported formats: ${supportedFormatsResult.error.message}`,
+      }));
+    }
+    const supportedFormats = supportedFormatsResult.data;
 
     // Create CLI services
     const pathExpansionResult = PathExpansionService.create();
@@ -83,7 +91,7 @@ export class CLI {
       }));
     }
 
-    const errorMessageResult = CLIErrorMessageService.create();
+    const errorMessageResult = CLIErrorMessageService.create(supportedFormats);
     if (!errorMessageResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
@@ -440,7 +448,9 @@ TROUBLESHOOTING:
         })));
       }
 
-      const errorMessageResult = CLIErrorMessageService.create();
+      const errorMessageResult = CLIErrorMessageService.create(
+        this.supportedFormats,
+      );
       if (!errorMessageResult.ok) {
         return Promise.resolve(err(createError({
           kind: "ConfigurationError",

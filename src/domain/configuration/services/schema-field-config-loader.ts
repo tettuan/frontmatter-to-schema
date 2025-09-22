@@ -185,11 +185,8 @@ export class SchemaFieldConfigLoader {
       return configResult;
     }
 
-    // Log warning about falling back to defaults
-    // TODO: Replace with proper domain logging
-    // console.warn(
-    //   `Failed to load schema field configuration from ${configPath}: ${configResult.error.message}. Using defaults.`,
-    // );
+    // Warning about fallback to defaults would be logged here if needed
+    // Console logging has been removed in favor of proper domain error handling
 
     // Return default configuration
     const defaultResult = SchemaFieldPatterns.createDefault();

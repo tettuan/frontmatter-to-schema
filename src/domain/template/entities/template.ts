@@ -39,9 +39,14 @@ export class Template {
     path: TemplatePath,
     content: unknown,
   ): Result<Template, TemplateError & { message: string }> {
+    const configResult = TemplateFormatConfig.default();
+    if (!configResult.ok) {
+      return configResult;
+    }
+
     const configState: TemplateConfigurationState = {
       kind: "default",
-      config: TemplateFormatConfig.default(),
+      config: configResult.data,
     };
     return Template.createInternal(path, content, configState);
   }

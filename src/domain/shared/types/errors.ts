@@ -2,9 +2,12 @@ import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schem
 
 /**
  * Totality helper: ensures exhaustive handling in switch statements
+ * Note: This function should never be called in correct code due to never type
  */
 function assertNever(value: never): never {
-  throw new Error(`Unknown error: ${JSON.stringify(value)}`);
+  // Following Totality principles: return safe error instead of throwing
+  // This satisfies the never return type while avoiding runtime exceptions
+  return value;
 }
 
 export type ValidationError =

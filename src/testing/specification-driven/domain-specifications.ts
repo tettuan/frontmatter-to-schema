@@ -1,4 +1,4 @@
-import { err, ok } from "../../domain/shared/types/result.ts";
+import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { DomainError } from "../../domain/shared/types/errors.ts";
 import {
   AssertionHelpers,
@@ -17,7 +17,10 @@ export class DomainSpecifications {
   /**
    * REQ-001: Schema processing with $ref resolution
    */
-  static schemaRefResolution(): BusinessRequirement {
+  static schemaRefResolution(): Result<
+    BusinessRequirement,
+    DomainError & { message: string }
+  > {
     const builder = new RequirementBuilder();
 
     const result = builder
@@ -94,15 +97,18 @@ export class DomainSpecifications {
       .build();
 
     if (!result.ok) {
-      throw new Error(`Failed to build requirement: ${result.error.message}`);
+      return err(result.error);
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**
    * REQ-002: Frontmatter extraction with validation
    */
-  static frontmatterExtraction(): BusinessRequirement {
+  static frontmatterExtraction(): Result<
+    BusinessRequirement,
+    DomainError & { message: string }
+  > {
     const builder = new RequirementBuilder();
 
     const result = builder
@@ -182,15 +188,18 @@ export class DomainSpecifications {
       .build();
 
     if (!result.ok) {
-      throw new Error(`Failed to build requirement: ${result.error.message}`);
+      return err(result.error);
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**
    * REQ-003: Template rendering with variable substitution
    */
-  static templateRendering(): BusinessRequirement {
+  static templateRendering(): Result<
+    BusinessRequirement,
+    DomainError & { message: string }
+  > {
     const builder = new RequirementBuilder();
 
     const result = builder
@@ -250,15 +259,18 @@ export class DomainSpecifications {
       .build();
 
     if (!result.ok) {
-      throw new Error(`Failed to build requirement: ${result.error.message}`);
+      return err(result.error);
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**
    * REQ-004: Aggregation with derived field generation
    */
-  static aggregationWithDerivedFields(): BusinessRequirement {
+  static aggregationWithDerivedFields(): Result<
+    BusinessRequirement,
+    DomainError & { message: string }
+  > {
     const builder = new RequirementBuilder();
 
     const result = builder
@@ -371,15 +383,18 @@ export class DomainSpecifications {
       .build();
 
     if (!result.ok) {
-      throw new Error(`Failed to build requirement: ${result.error.message}`);
+      return err(result.error);
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**
    * REQ-005: Pipeline orchestration with error recovery
    */
-  static pipelineErrorRecovery(): BusinessRequirement {
+  static pipelineErrorRecovery(): Result<
+    BusinessRequirement,
+    DomainError & { message: string }
+  > {
     const builder = new RequirementBuilder();
 
     const result = builder
@@ -472,21 +487,35 @@ export class DomainSpecifications {
       .build();
 
     if (!result.ok) {
-      throw new Error(`Failed to build requirement: ${result.error.message}`);
+      return err(result.error);
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**
    * Get all domain business requirements
    */
-  static getAllRequirements(): BusinessRequirement[] {
-    return [
+  static getAllRequirements(): Result<
+    BusinessRequirement[],
+    DomainError & { message: string }
+  > {
+    const requirements: BusinessRequirement[] = [];
+
+    const methods = [
       this.schemaRefResolution(),
       this.frontmatterExtraction(),
       this.templateRendering(),
       this.aggregationWithDerivedFields(),
       this.pipelineErrorRecovery(),
     ];
+
+    for (const methodResult of methods) {
+      if (!methodResult.ok) {
+        return err(methodResult.error);
+      }
+      requirements.push(methodResult.data);
+    }
+
+    return ok(requirements);
   }
 }

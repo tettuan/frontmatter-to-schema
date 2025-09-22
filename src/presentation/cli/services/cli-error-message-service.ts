@@ -1,6 +1,7 @@
 import { DomainError } from "../../../domain/shared/types/errors.ts";
 import { ok, Result } from "../../../domain/shared/types/result.ts";
 import { PathExpansionService } from "./path-expansion-service.ts";
+import { SupportedFormats } from "../../../domain/configuration/value-objects/supported-formats.ts";
 
 /**
  * CLI Error Message Service
@@ -10,22 +11,30 @@ import { PathExpansionService } from "./path-expansion-service.ts";
  */
 export class CLIErrorMessageService {
   private pathExpansionService: PathExpansionService;
+  private supportedFormats: SupportedFormats;
 
-  private constructor(pathExpansionService: PathExpansionService) {
+  private constructor(
+    pathExpansionService: PathExpansionService,
+    supportedFormats: SupportedFormats,
+  ) {
     this.pathExpansionService = pathExpansionService;
+    this.supportedFormats = supportedFormats;
   }
 
   /**
    * Smart constructor following Totality principles
    */
-  static create(): Result<CLIErrorMessageService, never> {
+  static create(
+    supportedFormats: SupportedFormats,
+  ): Result<CLIErrorMessageService, never> {
     const pathExpansionResult = PathExpansionService.create();
-    if (!pathExpansionResult.ok) {
-      // This should never happen as PathExpansionService.create() returns Result<T, never>
-      throw new Error("Failed to create PathExpansionService");
-    }
-
-    return ok(new CLIErrorMessageService(pathExpansionResult.data));
+    // Since PathExpansionService.create() returns Result<T, never>,
+    // TypeScript knows it can only be Ok<T>, but we need to satisfy the compiler
+    return pathExpansionResult.ok
+      ? ok(
+        new CLIErrorMessageService(pathExpansionResult.data, supportedFormats),
+      )
+      : pathExpansionResult; // This branch is unreachable but satisfies TypeScript
   }
 
   /**
@@ -336,8 +345,15 @@ export class CLIErrorMessageService {
           suggestions.push("Schema file must be .json format");
           suggestions.push("Example: schema.json, ./config/schema.json");
         } else if ("field" in error && error.field === "outputPath") {
-          suggestions.push("Output file must be .json or .yaml format");
-          suggestions.push("Example: output.json, result.yaml");
+          const supportedExts = this.supportedFormats.getSupportedExtensions();
+          const formatsText = supportedExts.join(", ");
+          suggestions.push(`Output file must be one of: ${formatsText}`);
+
+          // Generate dynamic examples
+          const examples = supportedExts.slice(0, 3).map((ext) =>
+            `output${ext}`
+          ).join(", ");
+          suggestions.push(`Example: ${examples}`);
         }
         break;
 

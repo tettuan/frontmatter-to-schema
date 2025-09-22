@@ -15,25 +15,33 @@ created_by: "climpt-docs generate-robust instruction-doc"
 
 ## 0. 目的・適用範囲
 
-- **目的**: エラー処理の実装にデバッグ出力機能を追加し、出力されたデバッグ情報を体系的に分析することで、エラーの根本要因を特定し、効果的な解決策を導出する。
-- **適用範囲**: 本プロジェクトのDDD/TDD/Totality原則に基づくエラー処理実装に対する全般的な分析・改善作業。
-- **非適用範囲**: インフラレベルの運用監視やリアルタイム性を要求するプロダクション環境のモニタリングシステム構築。
+- **目的**:
+  エラー処理の実装にデバッグ出力機能を追加し、出力されたデバッグ情報を体系的に分析することで、エラーの根本要因を特定し、効果的な解決策を導出する。
+- **適用範囲**:
+  本プロジェクトのDDD/TDD/Totality原則に基づくエラー処理実装に対する全般的な分析・改善作業。
+- **非適用範囲**:
+  インフラレベルの運用監視やリアルタイム性を要求するプロダクション環境のモニタリングシステム構築。
 
 ---
 
 ## 1. 不変条件（壊してはならない性質）
 
-1. デバッグ出力は既存のエラー処理ロジックや型安全性を破壊しない（型システム整合性 100%）。
-2. 追加されるデバッグ情報は構造化され、JSON形式で出力可能である（構造化率 100%）。
-3. 本番環境では適切にログレベル制御され、パフォーマンス影響を最小化する（パフォーマンス劣化 ≤ 5%）。
-4. エラーコンテキストは失われることなく、トレーサビリティが保たれる（情報損失率 = 0%）。
+1. デバッグ出力は既存のエラー処理ロジックや型安全性を破壊しない（型システム整合性
+   100%）。
+2. 追加されるデバッグ情報は構造化され、JSON形式で出力可能である（構造化率
+   100%）。
+3. 本番環境では適切にログレベル制御され、パフォーマンス影響を最小化する（パフォーマンス劣化
+   ≤ 5%）。
+4. エラーコンテキストは失われることなく、トレーサビリティが保たれる（情報損失率
+   = 0%）。
 5. Result<T,E>パターンとの一貫性を維持する（型パターン適合率 100%）。
 
 ---
 
 ## 2. 入力・前提条件
 
-- **入力**: `uv-error-component`, `uv-analysis-scope`, `input_text_file`, `destination_path`
+- **入力**: `uv-error-component`, `uv-analysis-scope`, `input_text_file`,
+  `destination_path`
 - **前提**:
   - TypeScript/Deno環境が利用可能である
   - 既存のエラー型システム（DomainError、ValidationError等）が理解できる
@@ -48,17 +56,24 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ## 3. 前提情報リスト
 
 ### 3.1 プロジェクト構造
-- **アーキテクチャ**: Domain-Driven Design (DDD) + Test-Driven Development (TDD) + Totality原則
+
+- **アーキテクチャ**: Domain-Driven Design (DDD) + Test-Driven Development
+  (TDD) + Totality原則
 - **言語**: TypeScript (Deno環境)
 - **エラーハンドリング**: Result<T,E>パターンによる型安全なエラー処理
 - **ログシステム**: EnhancedDebugLogger + LoggingServiceによる構造化ログ
 
 ### 3.2 既存エラー型システム
-- **DomainError**: ValidationError, SchemaError, FrontmatterError, TemplateError, AggregationError, FileSystemError, SystemError, PerformanceError
+
+- **DomainError**: ValidationError, SchemaError, FrontmatterError,
+  TemplateError, AggregationError, FileSystemError, SystemError,
+  PerformanceError
 - **エラー作成関数**: createError, createContextualError, createEnhancedError
-- **型安全性**: 判別可能ユニオン(discriminated union)パターンでkindフィールドによる分岐
+- **型安全性**: 判別可能ユニオン(discriminated
+  union)パターンでkindフィールドによる分岐
 
 ### 3.3 ログシステム構成
+
 - **LoggingService**: インフラレイヤーの集約ログサービス
 - **EnhancedDebugLogger**: CLI特化の拡張デバッグロガー
 - **LogContext**: 構造化ログコンテキスト（時刻、操作、場所、進捗等）
@@ -78,11 +93,14 @@ created_by: "climpt-docs generate-robust instruction-doc"
 
 ### 5.1 Git ブランチ準備
 
-- Gitブランチ準備: `echo "feature/error-debug-output-implementation" | climpt-git decide-branch working-branch` を実行し、出力結果の指示に従う。
+- Gitブランチ準備:
+  `echo "feature/error-debug-output-implementation" | climpt-git decide-branch working-branch`
+  を実行し、出力結果の指示に従う。
 
 ### 5.2 対象エラー実装の調査・特定
 
 #### 5.2.1 エラー実装箇所の特定
+
 1. **対象コンポーネント特定**:
    ```bash
    # uv-error-componentに関連するエラー実装を検索
@@ -102,6 +120,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    ```
 
 #### 5.2.2 現在のエラーハンドリングパターン分析
+
 1. **Result<T,E>パターンの使用状況確認**
 2. **既存のエラーコンテキスト情報の評価**
 3. **ログ出力の現状把握**
@@ -109,6 +128,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.3 デバッグ出力機能の設計
 
 #### 5.3.1 デバッグコンテキスト拡張
+
 1. **ErrorContext拡張の設計**:
    - 呼び出しスタック情報
    - 処理時点でのアプリケーション状態
@@ -134,6 +154,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    ```
 
 #### 5.3.2 デバッグ可能なエラー作成関数の実装
+
 1. **createDebuggableError関数の実装**:
    ```typescript
    export const createDebuggableError = <T extends DomainError>(
@@ -154,6 +175,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.4 ログ出力機能の強化
 
 #### 5.4.1 LoggingServiceへのエラー解析機能追加
+
 1. **logErrorAnalysis メソッドの実装**:
    ```typescript
    logErrorAnalysis(
@@ -169,6 +191,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    - パフォーマンス影響分析
 
 #### 5.4.2 構造化エラーログの出力設計
+
 1. **JSON形式での構造化出力**
 2. **時系列分析可能な形式**
 3. **外部分析ツール連携可能な形式**
@@ -176,11 +199,13 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.5 実装・統合
 
 #### 5.5.1 段階的実装
+
 1. **Phase 1**: 基本的なデバッグ情報追加
 2. **Phase 2**: 構造化ログ出力機能
 3. **Phase 3**: 分析・レポート機能
 
 #### 5.5.2 既存コードへの統合
+
 1. **createEnhancedError関数の段階的置き換え**
 2. **テストケースの更新**
 3. **型定義の拡張**
@@ -188,6 +213,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.6 デバッグ情報の出力・収集
 
 #### 5.6.1 デバッグセッションの実行
+
 1. **対象エラーの再現実行**:
    ```bash
    # デバッグレベルログを有効化して実行
@@ -201,6 +227,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    ```
 
 #### 5.6.2 ログ情報の構造化保存
+
 1. **`input_text_file`からのエラーログ読み込み**
 2. **時系列順でのソート・整理**
 3. **相関関係のあるエラーのグルーピング**
@@ -208,6 +235,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.7 要因分析の実行
 
 #### 5.7.1 データパターン分析
+
 1. **エラー発生頻度の分析**:
    - エラー種別ごとの発生回数
    - 時間帯別の発生傾向
@@ -219,6 +247,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    - 前後の処理ステップとの関連性
 
 #### 5.7.2 根本要因の特定
+
 1. **5W1H分析の適用**:
    - When: エラー発生タイミング
    - Where: エラー発生箇所
@@ -233,6 +262,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    - システム設計上の課題の抽出
 
 #### 5.7.3 改善案の策定
+
 1. **短期的対策**:
    - エラーハンドリングロジックの改善
    - バリデーション強化
@@ -246,6 +276,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ### 5.8 分析結果の出力・報告
 
 #### 5.8.1 分析レポートの作成
+
 1. **`destination_path`への構造化レポート出力**:
    ```json
    {
@@ -272,6 +303,7 @@ created_by: "climpt-docs generate-robust instruction-doc"
    - 監視強化提案
 
 #### 5.8.2 継続的改善のための仕組み
+
 1. **エラー分析の自動化検討**
 2. **定期的な要因分析の実行計画**
 3. **改善効果の測定方法**
@@ -281,11 +313,13 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ## 6. 成果物定義
 
 ### 6.1 主成果物
+
 - **拡張されたエラー実装**: デバッグ情報付きエラー作成関数群
 - **強化されたログシステム**: エラー解析機能付きLoggingService
 - **分析レポート**: 構造化された要因分析結果（`destination_path`に出力）
 
 ### 6.2 付録
+
 - **用語集**: プロジェクト固有のエラー用語定義
 - **禁止語一覧**: 使用を避けるべき曖昧な表現
 - **変化点リスト**: 既存コードへの変更箇所一覧
@@ -315,17 +349,20 @@ created_by: "climpt-docs generate-robust instruction-doc"
 ## 8. 参照資料
 
 ### 8.1 必須の参照資料（コード変更用）
+
 - **全域性原則**: `docs/development/totality.ja.md`
 - **[AI複雑化防止（科学的制御）](docs/development/ai-complexity-control_compact.ja.md)**
 - **[Prohibit-Hardcoding](prohibit-hardcoding.ja.md)**
 
 ### 8.2 技術参照資料
+
 - **エラー型定義**: `src/domain/shared/types/errors.ts`
 - **ログシステム**: `src/infrastructure/logging/logging-service.ts`
 - **デバッグロガー**: `src/domain/shared/services/debug-logger.ts`
 - **Result型パターン**: `src/domain/shared/types/result.ts`
 
 ### 8.3 設計原則資料
+
 - **DDD実装ガイド**: `docs/architecture/README.md`
 - **テスト戦略**: `docs/tests/README.md`
 - **型安全性ガイドライン**: TypeScript公式ドキュメント

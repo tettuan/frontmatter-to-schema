@@ -220,14 +220,15 @@ export class PathCache<T> {
   /**
    * Set cached property path
    */
-  setPath(pathString: string, path: unknown): void {
+  setPath(pathString: string, path: unknown): Result<void, SchemaError> {
     const result = this.set(pathString, path as T);
     if (!result.ok) {
-      const errorMessage = "message" in result.error
-        ? result.error.message
-        : `Error kind: ${result.error.kind}`;
-      throw new Error(`Failed to cache path: ${errorMessage}`);
+      return err({
+        kind: "SchemaNotFound",
+        path: pathString,
+      });
     }
+    return ok(undefined);
   }
 
   /**
@@ -265,15 +266,16 @@ export class PathCache<T> {
     dataHash: string,
     pathHash: string,
     value: unknown,
-  ): void {
+  ): Result<void, SchemaError> {
     const key = `extract:${dataHash}:${pathHash}`;
     const result = this.set(key, value as T);
     if (!result.ok) {
-      const errorMessage = "message" in result.error
-        ? result.error.message
-        : `Error kind: ${result.error.kind}`;
-      throw new Error(`Failed to cache extraction result: ${errorMessage}`);
+      return err({
+        kind: "SchemaNotFound",
+        path: key,
+      });
     }
+    return ok(undefined);
   }
 
   /**

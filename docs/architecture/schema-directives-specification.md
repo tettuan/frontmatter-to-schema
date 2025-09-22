@@ -79,13 +79,15 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 - **カスタム処理** - アプリケーション固有の処理（x-*ディレクティブ）
   - 上記の全x-*ディレクティブ
 
-**重要**: 本システムはデフォルト値の生成や補完を行いません。JSON Schemaの`default`プロパティも使用しません。
+**重要**: 本システムはデフォルト値の生成や補完を行いません。JSON
+Schemaの`default`プロパティも使用しません。
 
 ## 2. 各ディレクティブの詳細
 
 ### 2.1 処理制御ディレクティブ
 
 #### `x-frontmatter-part`
+
 - **役割**: フロントマター処理の起点指定
 - **適用対象**: 配列プロパティ
 - **処理ステージ**: Stage 1
@@ -95,6 +97,7 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
   それ以降の宣言は同一処理内では無視される。
 - **依存関係**: なし（最初に処理される）
 - **使用例**:
+
 ```json
 {
   "commands": {
@@ -108,6 +111,7 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ### 2.2 データ抽出・フィルタリングディレクティブ
 
 #### `x-extract-from`
+
 - **役割**: プロパティパスからの値抽出
 - **適用対象**: 任意のプロパティ
 - **処理ステージ**: Stage 2
@@ -115,6 +119,7 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 - **特徴**: `[]`記法により配列でも単一要素でも同じ処理で抽出可能
 - **依存関係**: `x-frontmatter-part`の後に処理
 - **使用例**:
+
 ```json
 {
   "id": {
@@ -125,12 +130,14 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ```
 
 #### `x-jmespath-filter`
+
 - **役割**: JMESPath式によるデータ抽出とフィルタリング
 - **適用対象**: 配列プロパティ
 - **処理ステージ**: Stage 3
 - **目的**: 抽出されたデータに対してJMESPath式で選択的抽出やフィルタリング
 - **依存関係**: `x-extract-from`の後に処理（抽出されたデータに対して適用）
 - **使用例**:
+
 ```json
 {
   "activeItems": {
@@ -144,12 +151,14 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ### 2.3 データ変換・集約ディレクティブ
 
 #### `x-merge-arrays`
+
 - **役割**: 配列の統合制御
 - **適用対象**: 配列プロパティ
 - **処理ステージ**: Stage 4
 - **目的**: 複数ファイルから収集した配列を1つのフラット配列に統合
 - **依存関係**: `x-jmespath-filter`と`x-extract-from`の後に処理
 - **使用例**:
+
 ```json
 {
   "allItems": {
@@ -161,36 +170,40 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ```
 
 #### `x-derived-from`
+
 - **役割**: 派生フィールドの生成
 - **適用対象**: 任意のプロパティ
 - **処理ステージ**: Stage 5
 - **目的**: 他のプロパティから値を集約して新しいフィールドを生成
 - **依存関係**: `x-merge-arrays`と`x-extract-from`の後に処理
 - **使用例**:
+
 ```json
 {
   "availableConfigs": {
     "type": "array",
     "x-derived-from": "commands[].c1",
-    "items": {"type": "string"}
+    "items": { "type": "string" }
   }
 }
 ```
 
 #### `x-derived-unique`
+
 - **役割**: 派生値の重複削除
 - **適用対象**: 配列プロパティ（x-derived-fromと併用）
 - **処理ステージ**: Stage 6
 - **目的**: 派生した配列から重複を削除
 - **依存関係**: `x-derived-from`の後に処理
 - **使用例**:
+
 ```json
 {
   "uniqueConfigs": {
     "type": "array",
     "x-derived-from": "commands[].c1",
     "x-derived-unique": true,
-    "items": {"type": "string"}
+    "items": { "type": "string" }
   }
 }
 ```
@@ -198,12 +211,14 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ### 2.4 テンプレート制御ディレクティブ
 
 #### `x-template`
+
 - **役割**: コンテナテンプレートの指定
 - **適用対象**: ルートスキーマ
 - **処理ステージ**: Stage 7
 - **目的**: 最終出力の全体構造を定義するテンプレートファイルを指定
 - **依存関係**: `x-derived-unique`と`x-derived-from`の後（最終段階）
 - **使用例**:
+
 ```json
 {
   "x-template": "registry_template.json"
@@ -211,12 +226,14 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ```
 
 #### `x-template-items`
+
 - **役割**: アイテムテンプレートの指定
 - **適用対象**: ルートスキーマ
 - **処理ステージ**: Stage 7
 - **目的**: `{@items}`展開時に使用する個別アイテム用テンプレートを指定
 - **依存関係**: `x-derived-unique`と`x-derived-from`の後（最終段階）
 - **使用例**:
+
 ```json
 {
   "x-template-items": "command_template.json"
@@ -224,12 +241,15 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 ```
 
 #### `x-template-format`
+
 - **役割**: 出力フォーマットの明示的指定
 - **適用対象**: ルートスキーマ
 - **処理ステージ**: Stage 7（テンプレート適用時）
-- **目的**: 出力形式（JSON/TOML/YAML/Markdown）を明示的に指定し、拡張子の自動判定を上書き
+- **目的**:
+  出力形式（JSON/TOML/YAML/Markdown）を明示的に指定し、拡張子の自動判定を上書き
 - **備考**: テンプレートファイル自体は常にJSON形式で保存・解釈される
 - **使用例**:
+
 ```json
 {
   "x-template-format": "yaml"
@@ -278,27 +298,35 @@ Stage 7: テンプレート適用
 
 ### 3.3 ディレクティブの相互作用
 
-- `x-frontmatter-part` と `x-template-items` は連携して、配列要素の個別処理とテンプレート適用を制御
-- `x-extract-from` の `[]` 記法により、単一要素も配列として扱い、`x-merge-arrays` での統合を可能にする
-- `x-jmespath-filter` は `x-extract-from` の後に適用され、抽出されたデータをさらに絞り込む
-- `x-derived-from` と `x-derived-unique` を組み合わせて、集約データの重複を自動削除
+- `x-frontmatter-part` と `x-template-items`
+  は連携して、配列要素の個別処理とテンプレート適用を制御
+- `x-extract-from` の `[]`
+  記法により、単一要素も配列として扱い、`x-merge-arrays` での統合を可能にする
+- `x-jmespath-filter` は `x-extract-from`
+  の後に適用され、抽出されたデータをさらに絞り込む
+- `x-derived-from` と `x-derived-unique`
+  を組み合わせて、集約データの重複を自動削除
 
 ## 4. 設計原則
 
 ### 4.1 宣言的な定義
+
 すべてのディレクティブは宣言的であり、「どのように」ではなく「何を」するかを記述します。処理順序は依存関係に基づいて自動的に決定されます。
 
 ### 4.2 柔軟性の確保
+
 - フロントマターの構造（配列/単一）に依存しない処理を実現
 - 書き手の自由度と読み手の一貫性を両立
 - Schema変更に対してアプリケーション変更が不要
 
 ### 4.3 関心の分離
+
 - **Schema**: データの構造と抽出ルールを定義
 - **テンプレート**: 出力フォーマットを定義
 - 両者は独立しており、`$ref`はスキーマ構造の再利用にのみ使用
 
 ### 4.4 制約事項
+
 - **デフォルト値の非対応**: 本システムはデフォルト値の生成や補完を行いません
 - **実データのみ処理**: フロントマターに実際に存在するデータのみを扱います
 - **値の生成禁止**: 存在しないデータに対する値の補完や初期値設定は行いません
@@ -306,15 +334,18 @@ Stage 7: テンプレート適用
 ## 5. 実装上の注意点
 
 ### 5.1 処理順序の保証
+
 ディレクティブは7つのステージで順次処理され、各ステージ内での処理は並列化可能ですが、ステージ間の順序は厳密に保証されます。
 
 ### 5.2 エラーハンドリング
+
 - 不正なパス指定：該当するプロパティが見つからない場合は空配列または null を返す
 - 型の不一致：期待する型と異なる場合は適切な変換を試みる
 - テンプレートファイル不在：明確なエラーメッセージを表示
 - 循環依存：DirectiveOrderManagerが検出してエラーを返す
 
 ### 5.3 パフォーマンス最適化
+
 - `x-extract-from` の処理はキャッシュされ、同じパスへの重複アクセスを避ける
 - `x-jmespath-filter` で早期にフィルタリングすることで後続処理を軽量化
 - `x-derived-from` の集約は遅延評価され、必要時のみ実行される
@@ -323,6 +354,7 @@ Stage 7: テンプレート適用
 ## 6. ユースケース別ガイド
 
 ### 6.1 トレーサビリティID収集
+
 ```json
 {
   "trace_ids": {
@@ -337,13 +369,16 @@ Stage 7: テンプレート適用
   }
 }
 ```
+
 処理順序：
+
 1. `x-frontmatter-part`で対象配列を特定
 2. `x-extract-from`で各要素からIDを抽出
 3. `x-merge-arrays`で全ファイルのIDを統合
 4. `x-derived-unique`で重複を削除
 
 ### 6.2 コマンドレジストリ構築
+
 ```json
 {
   "tools": {
@@ -355,18 +390,21 @@ Stage 7: テンプレート適用
     "commands": {
       "type": "array",
       "x-frontmatter-part": true,
-      "items": {"$ref": "command_schema.json"}
+      "items": { "$ref": "command_schema.json" }
     }
   }
 }
 ```
+
 処理順序：
+
 1. `x-frontmatter-part`でcommandsを処理対象に
 2. 各コマンドデータを収集
 3. `x-derived-from`でc1値を集約
 4. `x-derived-unique`で重複を削除
 
 ### 6.3 条件付きアイテム集約
+
 ```json
 {
   "activeItems": {
@@ -378,7 +416,9 @@ Stage 7: テンプレート適用
   }
 }
 ```
+
 処理順序：
+
 1. `x-frontmatter-part`で処理開始
 2. `x-extract-from`でitems配列を抽出
 3. `x-jmespath-filter`でアクティブなものだけ選別

@@ -16,6 +16,7 @@ import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
 import { DirectiveProcessor } from "../../domain/schema/services/directive-processor.ts";
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
+import { ResultValidator } from "../../domain/shared/utilities/result-validator.ts";
 
 /**
  * Processing options using discriminated unions (Totality principle)
@@ -39,113 +40,16 @@ export type ProcessingOptions =
  * - Totality: All methods return Result<T,E>
  */
 export class ProcessingCoordinator {
-  private readonly extractFromProcessor: ExtractFromProcessor;
   private readonly logger: DebugLogger | null;
-  private readonly recoveryRegistry: RecoveryStrategyRegistry;
-  private readonly performanceSettings: PerformanceSettings;
 
-  constructor(
+  private constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
-    propertyExtractor?: PropertyExtractor,
-    logger?: DebugLogger,
-    optimizedExtractor?: boolean,
-    recoveryRegistry?: RecoveryStrategyRegistry,
-    performanceSettings?: PerformanceSettings,
+    private readonly extractFromProcessor: ExtractFromProcessor,
+    private readonly recoveryRegistry: RecoveryStrategyRegistry,
+    private readonly performanceSettings: PerformanceSettings,
+    logger: DebugLogger | null,
   ) {
-    this.logger = logger || null;
-
-    // Initialize recovery registry with defaults if not provided
-    if (recoveryRegistry) {
-      this.recoveryRegistry = recoveryRegistry;
-    } else {
-      const registryResult = RecoveryStrategyRegistry.createWithDefaults();
-      if (!registryResult.ok) {
-        throw new Error(
-          `Failed to create default RecoveryStrategyRegistry: ${registryResult.error.message}`,
-        );
-      }
-      this.recoveryRegistry = registryResult.data;
-    }
-
-    // Initialize performance settings with defaults if not provided
-    if (performanceSettings) {
-      this.performanceSettings = performanceSettings;
-    } else {
-      const settingsResult = PerformanceSettings.createDefault();
-      if (!settingsResult.ok) {
-        throw new Error(
-          `Failed to create default PerformanceSettings: ${settingsResult.error.message}`,
-        );
-      }
-      this.performanceSettings = settingsResult.data;
-    }
-
-    // HIGH-VARIANCE DEBUG POINT: Schema processing optimization strategy
-    // Critical variance point for parallel schema loading and caching
-    const optimizedConfig = {
-      enablePathCache: this.performanceSettings.isPathCacheEnabled(),
-      enableExtractionCache: this.performanceSettings
-        .isExtractionCacheEnabled(),
-      enableMetrics: this.performanceSettings.areMetricsEnabled(),
-      maxConcurrentExtractions: this.performanceSettings
-        .getMaxConcurrentExtractions(),
-    };
-
-    this.logger?.logDebug(
-      "variance-debug-point",
-      "Schema processing optimization configuration - High variance detection",
-      {
-        debugPoint: "schema-optimization-strategy",
-        optimizationConfig: optimizedConfig,
-        performanceProfile: this.performanceSettings.getCurrentProfile(),
-        varianceRisk: "high",
-        parallelismImpact: "schema-loading-variance-300-400%",
-        cachingStrategy: "path-and-extraction-cache",
-        configurationSource: "external-performance-settings",
-        hardcodingViolationFixed: true,
-      },
-    );
-
-    // Use optimized extractor by default for better performance
-    if (optimizedExtractor !== false) {
-      const optimizedResult = ExtractFromProcessor.createOptimized(
-        optimizedConfig,
-      );
-
-      if (optimizedResult.ok) {
-        this.extractFromProcessor = optimizedResult.data;
-        if (this.logger) {
-          this.logger.logDebug(
-            "extractor-optimization",
-            "Using OptimizedPropertyExtractor for enhanced performance",
-            {
-              cacheEnabled: true,
-              metricsEnabled: true,
-              maxConcurrent: 20,
-            },
-          );
-        }
-        return;
-      } else {
-        // Log warning and fall back to basic extractor
-        if (this.logger) {
-          this.logger.logDebug(
-            "extractor-fallback",
-            "Failed to create OptimizedPropertyExtractor, falling back to basic extractor",
-            {
-              error: optimizedResult.error.message,
-            },
-          );
-        }
-      }
-    }
-
-    // Fallback to basic extractor
-    const result = ExtractFromProcessor.create(propertyExtractor);
-    if (!result.ok) {
-      throw new Error("Failed to create ExtractFromProcessor");
-    }
-    this.extractFromProcessor = result.data;
+    this.logger = logger;
   }
 
   /**
@@ -156,7 +60,7 @@ export class ProcessingCoordinator {
     frontmatterTransformer: FrontmatterTransformationService,
     propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
-    optimizedExtractor?: boolean,
+    _optimizedExtractor?: boolean,
     recoveryRegistry?: RecoveryStrategyRegistry,
   ): Result<ProcessingCoordinator, DomainError & { message: string }> {
     if (!frontmatterTransformer) {
@@ -166,13 +70,47 @@ export class ProcessingCoordinator {
       }));
     }
 
+    // Create dependencies with proper error handling
+    let finalRecoveryRegistry: RecoveryStrategyRegistry;
+
+    if (recoveryRegistry) {
+      finalRecoveryRegistry = recoveryRegistry;
+    } else {
+      const registryResult = RecoveryStrategyRegistry.createWithDefaults();
+      if (!registryResult.ok) {
+        return err(createError({
+          kind: "InitializationError",
+          message: "Failed to create RecoveryStrategyRegistry",
+        }));
+      }
+      finalRecoveryRegistry = registryResult.data;
+    }
+
+    const settingsResult = PerformanceSettings.createDefault();
+    if (!settingsResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "Failed to create PerformanceSettings",
+      }));
+    }
+    const finalPerformanceSettings = settingsResult.data;
+
+    // Create ExtractFromProcessor
+    const extractorResult = ExtractFromProcessor.create(propertyExtractor);
+    if (!extractorResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "Failed to create ExtractFromProcessor",
+      }));
+    }
+
     return ok(
       new ProcessingCoordinator(
         frontmatterTransformer,
-        propertyExtractor,
-        logger,
-        optimizedExtractor,
-        recoveryRegistry,
+        extractorResult.data,
+        finalRecoveryRegistry,
+        finalPerformanceSettings,
+        logger || null,
       ),
     );
   }
@@ -191,6 +129,36 @@ export class ProcessingCoordinator {
       true, // Enable optimized extractor
       undefined, // Use default RecoveryStrategyRegistry
     );
+  }
+
+  /**
+   * Common processing pipeline pattern
+   * Reduces duplication across processing methods
+   * @internal
+   */
+  private async processWithPipeline<TInput, TOutput>(
+    baseProcessor: () => Promise<Result<TInput, DomainError & { message: string }>>,
+    transformers: Array<(input: TInput) => Promise<Result<TOutput, DomainError & { message: string }>>>,
+  ): Promise<Result<TOutput, DomainError & { message: string }>> {
+    const baseResult = await baseProcessor();
+
+    if (!baseResult.ok) {
+      return baseResult as Result<TOutput, DomainError & { message: string }>;
+    }
+
+    let currentResult: Result<any, DomainError & { message: string }> = ok(baseResult.data);
+
+    for (const transformer of transformers) {
+      currentResult = await ResultValidator.chainOrReturn(
+        currentResult,
+        transformer,
+      );
+      if (!currentResult.ok) {
+        return currentResult;
+      }
+    }
+
+    return currentResult;
   }
 
   /**
@@ -481,29 +449,25 @@ export class ProcessingCoordinator {
       schema,
       options,
     );
-    if (!processResult.ok) {
-      return processResult;
-    }
 
-    const mainData = processResult.data;
+    return ResultValidator.chainOrReturn(
+      processResult,
+      async (mainData) => {
+        // Check if we need to extract items data
+        const frontmatterPartResult = schema.findFrontmatterPartPath();
+        const hasFrontmatterPart = frontmatterPartResult.ok;
 
-    // Check if we need to extract items data
-    const frontmatterPartResult = schema.findFrontmatterPartPath();
-    const hasFrontmatterPart = frontmatterPartResult.ok;
+        if (hasFrontmatterPart) {
+          const itemsResult = this.extractFrontmatterPartData(mainData, schema);
+          return ResultValidator.mapOrReturn(
+            itemsResult,
+            (itemsData) => ({ mainData, itemsData }),
+          );
+        }
 
-    if (hasFrontmatterPart) {
-      const itemsResult = this.extractFrontmatterPartData(mainData, schema);
-      if (!itemsResult.ok) {
-        return itemsResult;
-      }
-
-      return ok({
-        mainData,
-        itemsData: itemsResult.data,
-      });
-    }
-
-    return ok({ mainData });
+        return ok({ mainData });
+      },
+    );
   }
 
   /**
@@ -523,9 +487,17 @@ export class ProcessingCoordinator {
     // Get extract-from directives from schema
     const directivesResult = schema.getExtractFromDirectives();
     if (!directivesResult.ok) {
+      this.logger?.logError(
+        "extract-from-directives",
+        "Failed to get extract-from directives",
+        {
+          error: directivesResult.error,
+          schemaPath: schema.getPath().toString(),
+        },
+      );
       return err(createError({
         kind: "InvalidSchema",
-        message: "Failed to get extract-from directives from schema",
+        message: `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
       }));
     }
 
@@ -562,9 +534,17 @@ export class ProcessingCoordinator {
     // Get extract-from directives from schema
     const directivesResult = schema.getExtractFromDirectives();
     if (!directivesResult.ok) {
+      this.logger?.logError(
+        "extract-from-directives",
+        "Failed to get extract-from directives",
+        {
+          error: directivesResult.error,
+          schemaPath: schema.getPath().toString(),
+        },
+      );
       return err(createError({
         kind: "InvalidSchema",
-        message: "Failed to get extract-from directives from schema",
+        message: `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
       }));
     }
 
@@ -592,17 +572,12 @@ export class ProcessingCoordinator {
       schema,
       options,
     );
-    if (!processResult.ok) {
-      return processResult;
-    }
 
     // Apply x-extract-from directives if present
-    const extractResult = await this.processExtractFromDirectives(
-      processResult.data,
-      schema,
+    return ResultValidator.chainOrReturn(
+      processResult,
+      async (data) => this.processExtractFromDirectives(data, schema),
     );
-
-    return extractResult;
   }
 
   /**
@@ -620,13 +595,30 @@ export class ProcessingCoordinator {
       itemsData?: FrontmatterData[];
     }, DomainError & { message: string }>
   > {
-    // Track directive processing order with proper logging
+    // HIGH-VARIANCE DEBUG POINT: Track directive processing order variance
+    const processingVarianceDebugId = `processing-variance-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const startTime = performance.now();
+
     this.logger?.logDebug(
-      "processDocumentsWithFullExtraction",
-      "Starting deterministic directive processing",
+      "variance-debug-point",
+      "[HIGH-VARIANCE-DETECTION] Starting deterministic directive processing - Critical variance point",
       {
+        debugPoint: "processDocumentsWithFullExtraction-entry",
+        processingVarianceDebugId,
         inputPattern,
         processingMode: options.kind,
+        varianceRisk: "high",
+        directiveProcessingOrder: "extract-from-first-then-frontmatter-part",
+        expectedProcessingSteps: [
+          "1. x-extract-from directive processing",
+          "2. x-frontmatter-part identification",
+          "3. items data extraction",
+          "4. DirectiveProcessor deterministic ordering",
+        ],
+        performanceSnapshot: {
+          timestamp: new Date().toISOString(),
+          startTime,
+        },
       },
     );
 
@@ -733,27 +725,103 @@ export class ProcessingCoordinator {
           },
         );
 
+        // HIGH-VARIANCE DEBUG POINT: Track DirectiveProcessor completion
+        const endTime = performance.now();
+        const totalProcessingTime = endTime - startTime;
+
+        this.logger?.logDebug(
+          "variance-debug-point",
+          "[HIGH-VARIANCE-DETECTION] Processing completed with DirectiveProcessor - Variance analysis",
+          {
+            debugPoint: "processDocumentsWithFullExtraction-directive-processor-completion",
+            processingVarianceDebugId,
+            processingPath: "frontmatter-part-with-directive-processor",
+            totalProcessingTime,
+            varianceAnalysis: {
+              processedExtractFrom: true,
+              processedFrontmatterPart: true,
+              usedDirectiveProcessor: true,
+              finalDataStructure: "mainData-and-itemsData",
+              itemsProcessed: processedItems.length,
+              totalPhases: processingOrderResult.data.phases.length,
+            },
+            performanceSnapshotEnd: {
+              timestamp: new Date().toISOString(),
+              endTime,
+              totalProcessingTime,
+            },
+            varianceRisk: "low",
+            reason: "Deterministic directive processing completed",
+          },
+        );
+
         return ok({
           mainData,
           itemsData: processedItems,
         });
       }
 
+      // HIGH-VARIANCE DEBUG POINT: Track frontmatter-part only completion
+      const endTime = performance.now();
+      const totalProcessingTime = endTime - startTime;
+
       this.logger?.logDebug(
-        "processDocumentsWithFullExtraction",
-        "No x-extract-from on items, completing frontmatter-part processing",
-        {},
+        "variance-debug-point",
+        "[HIGH-VARIANCE-DETECTION] Processing completed with frontmatter-part only - Variance analysis",
+        {
+          debugPoint: "processDocumentsWithFullExtraction-frontmatter-part-only-completion",
+          processingVarianceDebugId,
+          processingPath: "frontmatter-part-without-directive-processor",
+          totalProcessingTime,
+          varianceAnalysis: {
+            processedExtractFrom: true,
+            processedFrontmatterPart: true,
+            usedDirectiveProcessor: false,
+            finalDataStructure: "mainData-and-itemsData",
+            itemsProcessed: itemsResult.data.length,
+          },
+          performanceSnapshotEnd: {
+            timestamp: new Date().toISOString(),
+            endTime,
+            totalProcessingTime,
+          },
+          varianceRisk: "medium",
+          reason: "No x-extract-from on items, completing frontmatter-part processing",
+        },
       );
+
       return ok({
         mainData,
         itemsData: itemsResult.data,
       });
     }
 
+    // HIGH-VARIANCE DEBUG POINT: Track processing completion variance
+    const endTime = performance.now();
+    const totalProcessingTime = endTime - startTime;
+
     this.logger?.logDebug(
-      "processDocumentsWithFullExtraction",
-      "No frontmatter-part detected, single-pass processing complete",
-      {},
+      "variance-debug-point",
+      "[HIGH-VARIANCE-DETECTION] Processing completed - Variance analysis",
+      {
+        debugPoint: "processDocumentsWithFullExtraction-completion",
+        processingVarianceDebugId,
+        processingPath: "single-pass-no-frontmatter-part",
+        totalProcessingTime,
+        varianceAnalysis: {
+          processedExtractFrom: true,
+          processedFrontmatterPart: false,
+          usedDirectiveProcessor: false,
+          finalDataStructure: "mainData-only",
+        },
+        performanceSnapshotEnd: {
+          timestamp: new Date().toISOString(),
+          endTime,
+          totalProcessingTime,
+        },
+        varianceRisk: "medium",
+        reason: "No frontmatter-part detected, single-pass processing complete",
+      },
     );
     return ok({ mainData });
   }
