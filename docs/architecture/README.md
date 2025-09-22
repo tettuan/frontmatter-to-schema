@@ -22,6 +22,8 @@ frontmatter-to-schema project.
 - **[template-schema-domain-handoff.md](./template-schema-domain-handoff.md)**:
   Domain handoff mechanism for x-template-items between Template and Schema
   domains
+- **[schema-directives-specification.md](./schema-directives-specification.md)**:
+  Schema directives (x-*) processing specification - 7-stage processing order and dependencies
 
 ## Purpose
 
