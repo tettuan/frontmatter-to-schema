@@ -137,10 +137,10 @@ const directiveProcessingRequirements = {
 
 describe("BUSINESS REQUIREMENT: Directive Processor Initialization", () => {
   describe("GIVEN: DirectiveProcessor creation request", () => {
-    it("WHEN: Creating processor THEN: Should initialize successfully", () => {
+    it("WHEN: Creating processor THEN: Should initialize successfully", async () => {
       // Arrange - Business scenario setup
       // Act - Execute business operation
-      const result = DirectiveProcessor.create();
+      const result = await DirectiveProcessor.create();
 
       // Assert - Validate business requirements
       assert(result.ok, "DirectiveProcessor creation should succeed");
@@ -154,12 +154,12 @@ describe("BUSINESS REQUIREMENT: Directive Processor Initialization", () => {
       }
     });
 
-    it("WHEN: Creating processor with custom logger THEN: Should accept logger configuration", () => {
+    it("WHEN: Creating processor with custom logger THEN: Should accept logger configuration", async () => {
       // Arrange - Business scenario with custom logging
       const logger = new InMemoryLogger();
 
       // Act - Execute processor creation with logger
-      const result = DirectiveProcessor.create(logger);
+      const result = await DirectiveProcessor.create(logger);
 
       // Assert - Validate business requirements
       assert(result.ok, "Processor with custom logger should be created");
@@ -176,9 +176,9 @@ describe("BUSINESS REQUIREMENT: Directive Processor Initialization", () => {
 
 describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
   describe("GIVEN: Multiple directives requiring processing", () => {
-    it("WHEN: Determining processing order THEN: Should establish correct dependency order", () => {
+    it("WHEN: Determining processing order THEN: Should establish correct dependency order", async () => {
       // Arrange - Business scenario with common directives
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assert(processorResult.ok, "Processor creation should succeed");
 
       const directives: DirectiveType[] = [
@@ -233,9 +233,9 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
       }
     });
 
-    it("WHEN: Requesting supported directives THEN: Should provide complete directive catalog", () => {
+    it("WHEN: Requesting supported directives THEN: Should provide complete directive catalog", async () => {
       // Arrange - Business scenario for directive discovery
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assert(processorResult.ok);
 
       // Act - Execute supported directives query
@@ -275,9 +275,9 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
       );
     });
 
-    it("WHEN: Processing invalid directives THEN: Should handle gracefully", () => {
+    it("WHEN: Processing invalid directives THEN: Should handle gracefully", async () => {
       // Arrange - Business scenario with invalid input
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assert(processorResult.ok);
 
       const invalidDirectives: any[] = ["invalid-directive"];
@@ -311,7 +311,7 @@ describe("BUSINESS REQUIREMENT: Directive Processing Execution", () => {
   describe("GIVEN: Schema and data for processing", () => {
     it("WHEN: Processing with empty data THEN: Should complete successfully", async () => {
       // Arrange - Business scenario with minimal data
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assert(processorResult.ok);
 
       const schema = new TestSchemaBuilder()
@@ -356,7 +356,7 @@ describe("BUSINESS REQUIREMENT: Directive Processing Execution", () => {
     it("WHEN: Processing with frontmatter-part directive THEN: Should detect and process directive", async () => {
       // Arrange - Business scenario with directive present
       const logger = new InMemoryLogger();
-      const processorResult = DirectiveProcessor.create(logger);
+      const processorResult = await DirectiveProcessor.create(logger);
       assert(processorResult.ok);
 
       const schema = new TestSchemaBuilder()
@@ -407,7 +407,7 @@ describe("BUSINESS REQUIREMENT: Directive Processing Execution", () => {
 
     it("WHEN: Processing multiple schemas THEN: Should handle each independently", async () => {
       // Arrange - Business scenario with multiple processing operations
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assert(processorResult.ok);
 
       const schema1 = new TestSchemaBuilder()
@@ -473,8 +473,8 @@ describe("DOMAIN RULES: Directive Processing", () => {
     }),
   };
 
-  it("Should enforce directive processing domain rules", () => {
-    const processorResult = DirectiveProcessor.create();
+  it("Should enforce directive processing domain rules", async () => {
+    const processorResult = await DirectiveProcessor.create();
     assert(processorResult.ok);
 
     SpecificationAssertions.assertDomainRule(

@@ -5,19 +5,12 @@
 
 import { err, ok, Result } from "../shared/types/result.ts";
 import { createError, DomainError } from "../shared/types/errors.ts";
+import { DirectiveRegistry } from "./directives/directive-registry.ts";
 
 /**
- * Represents the different types of schema directives and their processing characteristics
+ * Directive name type - dynamically determined from configuration
  */
-export type DirectiveType =
-  | "x-frontmatter-part" // Stage 1: Identify target arrays
-  | "x-extract-from" // Stage 2: Extract values (normalize with [] notation)
-  | "x-jmespath-filter" // Stage 3: Apply filtering
-  | "x-merge-arrays" // Stage 4: Array merging
-  | "x-derived-from" // Stage 5: Value aggregation
-  | "x-derived-unique" // Stage 6: Duplicate removal
-  | "x-template" // Stage 7: Template application
-  | "x-template-items"; // Stage 7: Item template application
+export type DirectiveType = string;
 
 /**
  * Directive dependency relationship
@@ -56,70 +49,49 @@ export interface CircularDependencyError {
  */
 export class DirectiveOrderManager {
   private readonly dependencies: readonly DirectiveDependency[];
+  private readonly registry: DirectiveRegistry;
 
-  private constructor(dependencies: readonly DirectiveDependency[]) {
+  private constructor(
+    dependencies: readonly DirectiveDependency[],
+    registry: DirectiveRegistry,
+  ) {
     this.dependencies = dependencies;
+    this.registry = registry;
   }
 
   /**
-   * Create DirectiveOrderManager with predefined dependency rules
+   * Create DirectiveOrderManager with configuration-driven dependency rules
    */
-  static create(): Result<
+  static async create(
+    configPath = "config/directives.yml",
+  ): Promise<
+    Result<
+      DirectiveOrderManager,
+      DomainError & { message: string }
+    >
+  > {
+    const registryResult = await DirectiveRegistry.loadFromFile(configPath);
+    if (!registryResult.ok) {
+      return err(registryResult.error);
+    }
+
+    const registry = registryResult.data;
+    const dependencies = registry.getAllDependencies();
+
+    return ok(new DirectiveOrderManager(dependencies, registry));
+  }
+
+  /**
+   * Create DirectiveOrderManager from existing registry instance
+   */
+  static fromRegistry(
+    registry: DirectiveRegistry,
+  ): Result<
     DirectiveOrderManager,
     DomainError & { message: string }
   > {
-    const dependencies: DirectiveDependency[] = [
-      {
-        directive: "x-frontmatter-part",
-        dependsOn: [],
-        stage: 1,
-        description: "Identify target arrays for processing",
-      },
-      {
-        directive: "x-extract-from",
-        dependsOn: ["x-frontmatter-part"],
-        stage: 2,
-        description: "Extract values using normalized [] notation",
-      },
-      {
-        directive: "x-jmespath-filter",
-        dependsOn: ["x-extract-from"],
-        stage: 3,
-        description: "Apply JMESPath filtering to extracted data",
-      },
-      {
-        directive: "x-merge-arrays",
-        dependsOn: ["x-jmespath-filter", "x-extract-from"],
-        stage: 4,
-        description: "Merge multiple arrays into unified structure",
-      },
-      {
-        directive: "x-derived-from",
-        dependsOn: ["x-merge-arrays", "x-extract-from"],
-        stage: 5,
-        description: "Aggregate values from multiple sources",
-      },
-      {
-        directive: "x-derived-unique",
-        dependsOn: ["x-derived-from"],
-        stage: 6,
-        description: "Remove duplicate values from aggregated data",
-      },
-      {
-        directive: "x-template",
-        dependsOn: ["x-derived-unique", "x-derived-from"],
-        stage: 7,
-        description: "Apply main template to processed data",
-      },
-      {
-        directive: "x-template-items",
-        dependsOn: ["x-derived-unique", "x-derived-from"],
-        stage: 7,
-        description: "Apply item template to individual elements",
-      },
-    ];
-
-    return ok(new DirectiveOrderManager(dependencies));
+    const dependencies = registry.getAllDependencies();
+    return ok(new DirectiveOrderManager(dependencies, registry));
   }
 
   /**
@@ -346,10 +318,10 @@ export class DirectiveOrderManager {
   }
 
   /**
-   * Get all supported directive types
+   * Get all supported directive types from registry
    */
   getSupportedDirectives(): readonly DirectiveType[] {
-    return this.dependencies.map((d) => d.directive);
+    return this.registry.getAllNames();
   }
 
   /**

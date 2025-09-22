@@ -11,8 +11,8 @@ import { MockDomainLogger } from "../../../helpers/mock-domain-logger.ts";
 
 describe("DirectiveProcessor", () => {
   describe("Smart Constructor", () => {
-    it("should create DirectiveProcessor instance successfully", () => {
-      const result = DirectiveProcessor.create();
+    it("should create DirectiveProcessor instance successfully", async () => {
+      const result = await DirectiveProcessor.create();
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -21,9 +21,9 @@ describe("DirectiveProcessor", () => {
       }
     });
 
-    it("should create DirectiveProcessor with custom logger", () => {
+    it("should create DirectiveProcessor with custom logger", async () => {
       const mockLogger = new MockDomainLogger();
-      const result = DirectiveProcessor.create(mockLogger);
+      const result = await DirectiveProcessor.create(mockLogger);
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -34,8 +34,8 @@ describe("DirectiveProcessor", () => {
   });
 
   describe("Processing Order Interface", () => {
-    it("should return correct processing order for given directives", () => {
-      const processorResult = DirectiveProcessor.create();
+    it("should return correct processing order for given directives", async () => {
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -65,8 +65,8 @@ describe("DirectiveProcessor", () => {
       }
     });
 
-    it("should provide list of supported directives", () => {
-      const processorResult = DirectiveProcessor.create();
+    it("should provide list of supported directives", async () => {
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -91,7 +91,7 @@ describe("DirectiveProcessor", () => {
     // These tests focus on the interface and error handling
 
     it("should handle processing with mock schema and data", async () => {
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -121,8 +121,8 @@ describe("DirectiveProcessor", () => {
       }
     });
 
-    it("should handle processing order determination errors gracefully", () => {
-      const processorResult = DirectiveProcessor.create();
+    it("should handle processing order determination errors gracefully", async () => {
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -146,7 +146,7 @@ describe("DirectiveProcessor", () => {
   describe("Logging Integration", () => {
     it("should log processing steps with custom logger", async () => {
       const mockLogger = new MockDomainLogger();
-      const processorResult = DirectiveProcessor.create(mockLogger);
+      const processorResult = await DirectiveProcessor.create(mockLogger);
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -184,7 +184,7 @@ describe("DirectiveProcessor", () => {
 
     it("should include directive order debug information in logs", async () => {
       const mockLogger = new MockDomainLogger();
-      const processorResult = DirectiveProcessor.create(mockLogger);
+      const processorResult = await DirectiveProcessor.create(mockLogger);
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -232,7 +232,7 @@ describe("DirectiveProcessor", () => {
 
   describe("Processing Result Structure", () => {
     it("should return well-structured processing result", async () => {
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {
@@ -275,7 +275,7 @@ describe("DirectiveProcessor", () => {
     });
 
     it("should handle empty processing gracefully", async () => {
-      const processorResult = DirectiveProcessor.create();
+      const processorResult = await DirectiveProcessor.create();
       assertEquals(processorResult.ok, true);
 
       if (processorResult.ok) {

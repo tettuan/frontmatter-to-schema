@@ -12,8 +12,8 @@ import {
 
 describe("DirectiveOrderManager", () => {
   describe("Smart Constructor", () => {
-    it("should create DirectiveOrderManager instance successfully", () => {
-      const result = DirectiveOrderManager.create();
+    it("should create DirectiveOrderManager instance successfully", async () => {
+      const result = await DirectiveOrderManager.create();
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -22,8 +22,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should provide all supported directive types", () => {
-      const result = DirectiveOrderManager.create();
+    it("should provide all supported directive types", async () => {
+      const result = await DirectiveOrderManager.create();
 
       assertEquals(result.ok, true);
       if (result.ok) {
@@ -43,8 +43,8 @@ describe("DirectiveOrderManager", () => {
   });
 
   describe("Processing Order Determination", () => {
-    it("should determine correct order for basic directive sequence", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should determine correct order for basic directive sequence", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -79,8 +79,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should handle complete directive pipeline order", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should handle complete directive pipeline order", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -122,8 +122,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should handle single directive", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should handle single directive", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -144,8 +144,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should handle empty directive list", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should handle empty directive list", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -167,8 +167,8 @@ describe("DirectiveOrderManager", () => {
   });
 
   describe("Dependency Information", () => {
-    it("should provide correct dependency information for each directive", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should provide correct dependency information for each directive", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -222,15 +222,14 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should handle invalid directive type", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should handle invalid directive type", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
         const manager = managerResult.data;
 
         const invalidResult = manager.getDirectiveDependencies(
-          // @ts-expect-error - testing invalid directive
           "x-invalid-directive",
         );
         assertEquals(invalidResult.ok, false);
@@ -252,8 +251,8 @@ describe("DirectiveOrderManager", () => {
     // Note: The current dependency structure doesn't have cycles by design
     // This test verifies that the detection would work if cycles were introduced
 
-    it("should not detect circular dependencies in valid dependency graph", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should not detect circular dependencies in valid dependency graph", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -275,8 +274,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should handle directives with complex dependency chains", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should handle directives with complex dependency chains", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -325,8 +324,8 @@ describe("DirectiveOrderManager", () => {
   });
 
   describe("Dependency Graph Generation", () => {
-    it("should generate correct dependency graph", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should generate correct dependency graph", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -356,8 +355,8 @@ describe("DirectiveOrderManager", () => {
   });
 
   describe("Stage Organization", () => {
-    it("should organize directives into correct processing stages", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should organize directives into correct processing stages", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {
@@ -403,8 +402,8 @@ describe("DirectiveOrderManager", () => {
       }
     });
 
-    it("should provide meaningful stage descriptions", () => {
-      const managerResult = DirectiveOrderManager.create();
+    it("should provide meaningful stage descriptions", async () => {
+      const managerResult = await DirectiveOrderManager.create();
       assertEquals(managerResult.ok, true);
 
       if (managerResult.ok) {

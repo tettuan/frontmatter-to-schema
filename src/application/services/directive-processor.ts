@@ -68,10 +68,11 @@ export class DirectiveProcessor {
   /**
    * Smart Constructor following Totality principles
    */
-  static create(
+  static async create(
     domainLogger?: DomainLogger,
-  ): Result<DirectiveProcessor, DomainError & { message: string }> {
-    const orderManagerResult = DirectiveOrderManager.create();
+    configPath?: string,
+  ): Promise<Result<DirectiveProcessor, DomainError & { message: string }>> {
+    const orderManagerResult = await DirectiveOrderManager.create(configPath);
     if (!orderManagerResult.ok) {
       return err(orderManagerResult.error);
     }
@@ -379,23 +380,24 @@ export class DirectiveProcessor {
     // Check for x-frontmatter-part
     const frontmatterPartResult = schema.findFrontmatterPartSchema();
     if (frontmatterPartResult.ok) {
-      presentDirectives.push("x-frontmatter-part");
+      const directive = supportedDirectives.find((d) =>
+        d === "x-frontmatter-part"
+      );
+      if (directive) {
+        presentDirectives.push(directive);
+      }
     }
 
     // Check for other directives by examining schema extensions
     // This is a simplified detection - real implementation would be more thorough
     const schemaData = schema.getDefinition().getRawSchema();
-    if (this.hasDirectiveInSchema(schemaData, "x-extract-from")) {
-      presentDirectives.push("x-extract-from");
-    }
-    if (this.hasDirectiveInSchema(schemaData, "x-derived-from")) {
-      presentDirectives.push("x-derived-from");
-    }
-    if (this.hasDirectiveInSchema(schemaData, "x-template")) {
-      presentDirectives.push("x-template");
-    }
-    if (this.hasDirectiveInSchema(schemaData, "x-template-items")) {
-      presentDirectives.push("x-template-items");
+    for (const directive of supportedDirectives) {
+      if (
+        directive !== "x-frontmatter-part" &&
+        this.hasDirectiveInSchema(schemaData, directive)
+      ) {
+        presentDirectives.push(directive);
+      }
     }
 
     this.domainLogger.logDebug(

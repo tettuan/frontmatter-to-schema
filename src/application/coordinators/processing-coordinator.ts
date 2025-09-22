@@ -682,7 +682,7 @@ export class ProcessingCoordinator {
           },
         );
 
-        const directiveProcessorResult = DirectiveProcessor.create();
+        const directiveProcessorResult = await DirectiveProcessor.create();
         if (!directiveProcessorResult.ok) {
           return err(createError({
             kind: "ConfigurationError",
