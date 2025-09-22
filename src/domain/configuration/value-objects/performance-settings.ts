@@ -25,6 +25,12 @@ export interface RawPerformanceConfig {
       readonly maxConcurrentTransformations: number;
       readonly description: string;
     };
+    readonly parallelProcessing: {
+      readonly minFilesForParallel: number;
+      readonly defaultMaxWorkers: number;
+      readonly maxWorkersLimit: number;
+      readonly description: string;
+    };
     readonly optimization: {
       readonly enableStreamingProcessing: boolean;
       readonly enableBatchOptimization: boolean;
@@ -67,6 +73,10 @@ export interface RawPerformanceConfig {
         readonly maxConcurrentReads: number;
         readonly maxConcurrentWrites: number;
       };
+      readonly parallelProcessing: {
+        readonly minFilesForParallel: number;
+        readonly defaultMaxWorkers: number;
+      };
       readonly description: string;
     };
     readonly balanced: {
@@ -78,6 +88,10 @@ export interface RawPerformanceConfig {
         readonly maxConcurrentReads: number;
         readonly maxConcurrentWrites: number;
       };
+      readonly parallelProcessing: {
+        readonly minFilesForParallel: number;
+        readonly defaultMaxWorkers: number;
+      };
       readonly description: string;
     };
     readonly aggressive: {
@@ -88,6 +102,10 @@ export interface RawPerformanceConfig {
       readonly fileSystem: {
         readonly maxConcurrentReads: number;
         readonly maxConcurrentWrites: number;
+      };
+      readonly parallelProcessing: {
+        readonly minFilesForParallel: number;
+        readonly defaultMaxWorkers: number;
       };
       readonly description: string;
     };
@@ -126,7 +144,7 @@ export class PerformanceSettings {
     // Validate configuration structure
     if (
       !config.schemaProcessing || !config.fileSystem || !config.memory ||
-      !config.profiles
+      !config.profiles || !config.schemaProcessing.parallelProcessing
     ) {
       return {
         ok: false,
@@ -159,6 +177,31 @@ export class PerformanceSettings {
         error: createError({
           kind: "ConfigurationError",
           message: "maxHeapUsage must be between 64 and 8192 MB",
+        }),
+      };
+    }
+
+    // Validate parallel processing limits
+    const minFiles =
+      config.schemaProcessing.parallelProcessing.minFilesForParallel;
+    if (minFiles < 1 || minFiles > 100) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: "minFilesForParallel must be between 1 and 100",
+        }),
+      };
+    }
+
+    const defaultWorkers =
+      config.schemaProcessing.parallelProcessing.defaultMaxWorkers;
+    if (defaultWorkers < 1 || defaultWorkers > 32) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: "defaultMaxWorkers must be between 1 and 32",
         }),
       };
     }
@@ -200,6 +243,12 @@ export class PerformanceSettings {
           maxConcurrentValidations: 15,
           maxConcurrentTransformations: 10,
           description: "Default concurrency limits",
+        },
+        parallelProcessing: {
+          minFilesForParallel: 2,
+          defaultMaxWorkers: 4,
+          maxWorkersLimit: 16,
+          description: "Default parallel processing configuration",
         },
         optimization: {
           enableStreamingProcessing: true,
@@ -243,6 +292,10 @@ export class PerformanceSettings {
             maxConcurrentReads: 10,
             maxConcurrentWrites: 5,
           },
+          parallelProcessing: {
+            minFilesForParallel: 5,
+            defaultMaxWorkers: 2,
+          },
           description: "Conservative profile",
         },
         balanced: {
@@ -254,6 +307,10 @@ export class PerformanceSettings {
             maxConcurrentReads: 50,
             maxConcurrentWrites: 25,
           },
+          parallelProcessing: {
+            minFilesForParallel: 2,
+            defaultMaxWorkers: 4,
+          },
           description: "Balanced profile",
         },
         aggressive: {
@@ -264,6 +321,10 @@ export class PerformanceSettings {
           fileSystem: {
             maxConcurrentReads: 200,
             maxConcurrentWrites: 100,
+          },
+          parallelProcessing: {
+            minFilesForParallel: 1,
+            defaultMaxWorkers: 8,
           },
           description: "Aggressive profile",
         },
@@ -432,6 +493,31 @@ export class PerformanceSettings {
    */
   getAvailableProfiles(): readonly PerformanceProfile[] {
     return Object.keys(this.config.profiles) as PerformanceProfile[];
+  }
+
+  /**
+   * Get minimum files required for parallel processing based on current profile
+   */
+  getMinFilesForParallel(): number {
+    const profileConfig = this.config.profiles[this.currentProfile];
+    return profileConfig?.parallelProcessing.minFilesForParallel ??
+      this.config.schemaProcessing.parallelProcessing.minFilesForParallel;
+  }
+
+  /**
+   * Get default max workers based on current profile
+   */
+  getDefaultMaxWorkers(): number {
+    const profileConfig = this.config.profiles[this.currentProfile];
+    return profileConfig?.parallelProcessing.defaultMaxWorkers ??
+      this.config.schemaProcessing.parallelProcessing.defaultMaxWorkers;
+  }
+
+  /**
+   * Get max workers limit
+   */
+  getMaxWorkersLimit(): number {
+    return this.config.schemaProcessing.parallelProcessing.maxWorkersLimit;
   }
 
   /**

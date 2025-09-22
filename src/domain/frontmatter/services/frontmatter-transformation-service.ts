@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
-import { DomainError } from "../../shared/types/errors.ts";
+import { createError, DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import {
@@ -21,6 +21,7 @@ import {
   DebugLogger,
   LogContext,
 } from "../../shared/services/debug-logger.ts";
+import { PerformanceSettings } from "../../configuration/value-objects/performance-settings.ts";
 import {
   DomainLogger,
   DomainLoggerAdapter,
@@ -62,9 +63,12 @@ export class ProcessingOptionsFactory {
 
   /**
    * Create parallel processing state with fixed worker count
+   * @param maxWorkers - Number of workers (defaults to performance settings)
    */
-  static createParallel(maxWorkers: number = 4): ProcessingOptionsState {
-    return { kind: "parallel", maxWorkers: Math.max(1, maxWorkers) };
+  static createParallel(maxWorkers?: number): ProcessingOptionsState {
+    // Use default from performance settings if not specified
+    const defaultWorkers = maxWorkers ?? 4; // Fallback if performance settings unavailable
+    return { kind: "parallel", maxWorkers: Math.max(1, defaultWorkers) };
   }
 
   /**
@@ -72,7 +76,7 @@ export class ProcessingOptionsFactory {
    */
   static createAdaptive(
     baseWorkers: number = 4,
-    maxFileThreshold: number = 1,
+    maxFileThreshold: number = 2, // Updated default to match performance settings
   ): ProcessingOptionsState {
     return {
       kind: "adaptive",
@@ -93,7 +97,7 @@ export class ProcessingOptionsFactory {
     }
 
     if (options.parallel === true) {
-      return ProcessingOptionsFactory.createParallel(options.maxWorkers || 4);
+      return ProcessingOptionsFactory.createParallel(options.maxWorkers);
     }
 
     return ProcessingOptionsFactory.createSequential();
@@ -136,6 +140,7 @@ export class FrontmatterTransformationService {
     private readonly frontmatterDataCreationService:
       FrontmatterDataCreationService,
     private readonly domainLogger: DomainLogger,
+    private readonly performanceSettings: PerformanceSettings,
   ) {}
 
   /**
@@ -150,6 +155,7 @@ export class FrontmatterTransformationService {
     fileLister: FileLister,
     frontmatterDataCreationService?: FrontmatterDataCreationService,
     domainLogger?: DomainLogger,
+    performanceSettings?: PerformanceSettings,
   ): Result<
     FrontmatterTransformationService,
     DomainError & { message: string }
@@ -157,6 +163,22 @@ export class FrontmatterTransformationService {
     const creationService = frontmatterDataCreationService ??
       defaultFrontmatterDataCreationService;
     const logger = domainLogger ?? DomainLoggerAdapter.createDisabled();
+
+    // Create default performance settings if not provided
+    let settings = performanceSettings;
+    if (!settings) {
+      const defaultSettingsResult = PerformanceSettings.createDefault();
+      if (!defaultSettingsResult.ok) {
+        return {
+          ok: false,
+          error: createError({
+            kind: "ConfigurationError",
+            message: "Failed to create default performance settings",
+          }),
+        };
+      }
+      settings = defaultSettingsResult.data;
+    }
 
     return ok(
       new FrontmatterTransformationService(
@@ -167,6 +189,7 @@ export class FrontmatterTransformationService {
         fileLister,
         creationService,
         logger,
+        settings,
       ),
     );
   }
@@ -642,9 +665,14 @@ export class FrontmatterTransformationService {
     const documents: MarkdownDocument[] = [];
 
     // Stage 2: Process files (parallel or sequential based on processing options state)
+    // Use configuration instead of hardcoded values (Issue #959 fix)
+    const minFilesForParallel = this.performanceSettings
+      .getMinFilesForParallel();
+    const defaultMaxWorkers = this.performanceSettings.getDefaultMaxWorkers();
+
     let useParallel = legacyOptions?.parallel === true &&
-      filesResult.data.length > 1;
-    let maxWorkers = legacyOptions?.maxWorkers || 4;
+      filesResult.data.length >= minFilesForParallel;
+    let maxWorkers = legacyOptions?.maxWorkers || defaultMaxWorkers;
 
     // Debug: Processing strategy decision variance tracking (Issue #905 Phase 2)
     activeLogger?.debug(
@@ -2105,6 +2133,7 @@ export class FrontmatterTransformationService {
     fileReader: FileReader,
     fileLister: FileLister,
     debugLogger: DebugLogger,
+    performanceSettings: PerformanceSettings,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
@@ -2117,6 +2146,7 @@ export class FrontmatterTransformationService {
       fileLister,
       frontmatterDataCreationService,
       domainLogger,
+      performanceSettings,
     );
   }
 
@@ -2129,6 +2159,7 @@ export class FrontmatterTransformationService {
     basePropertyPopulator: BasePropertyPopulator,
     fileReader: FileReader,
     fileLister: FileLister,
+    performanceSettings: PerformanceSettings,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
@@ -2141,6 +2172,7 @@ export class FrontmatterTransformationService {
       fileLister,
       frontmatterDataCreationService,
       domainLogger,
+      performanceSettings,
     );
   }
 
@@ -2154,6 +2186,7 @@ export class FrontmatterTransformationService {
     basePropertyPopulator: BasePropertyPopulator,
     fileReader: FileReader,
     fileLister: FileLister,
+    performanceSettings: PerformanceSettings,
     logger?: DebugLogger,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
@@ -2167,6 +2200,7 @@ export class FrontmatterTransformationService {
       fileLister,
       frontmatterDataCreationService,
       domainLogger,
+      performanceSettings,
     );
   }
 }

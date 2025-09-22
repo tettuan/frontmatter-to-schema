@@ -24,6 +24,7 @@ import { PathExpansionService } from "./services/path-expansion-service.ts";
 import { CLIErrorMessageService } from "./services/cli-error-message-service.ts";
 import { PromptGeneratorService } from "./services/prompt-generator-service.ts";
 import { SupportedFormats } from "../../domain/configuration/value-objects/supported-formats.ts";
+import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 import { FormatConfigLoaderFactory } from "../../domain/configuration/services/format-config-loader.ts";
 import {
   DenoFileLister,
@@ -158,6 +159,14 @@ export class CLI {
     const aggregator = aggregatorResult.data;
     const basePropertyPopulator = new BasePropertyPopulator();
 
+    const performanceSettings = PerformanceSettings.createDefault();
+    if (!performanceSettings.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Failed to create default performance settings",
+      }));
+    }
+
     const documentProcessor = FrontmatterTransformationService
       .createWithEnabledLogging(
         frontmatterProcessor,
@@ -166,6 +175,7 @@ export class CLI {
         fileReader,
         fileLister,
         logger,
+        performanceSettings.data,
       );
 
     // Create JMESPath Filter Service

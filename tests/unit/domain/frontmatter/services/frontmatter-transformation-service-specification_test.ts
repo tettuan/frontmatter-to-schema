@@ -8,6 +8,7 @@
 import { describe, it } from "jsr:@std/testing/bdd";
 import { assert, assertEquals } from "jsr:@std/assert";
 import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
+import { PerformanceSettings } from "../../../../../src/domain/configuration/value-objects/performance-settings.ts";
 import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -295,12 +296,18 @@ class TransformationScenarioBuilder {
       this.schemaConfig.derivationRules,
     ) as unknown as Schema;
 
+    const performanceSettings = PerformanceSettings.createDefault();
+    if (!performanceSettings.ok) {
+      throw new Error("Failed to create default performance settings");
+    }
+
     const service = FrontmatterTransformationService.createWithDisabledLogging(
       processor as any,
       aggregator as any,
       populator as any,
       reader as any,
       lister as any,
+      performanceSettings.data,
     );
 
     const validationRules = ValidationRules.create([]);

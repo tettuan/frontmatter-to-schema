@@ -13,7 +13,34 @@ import { TemplateRenderer } from "../../../src/domain/template/renderers/templat
 import { OutputRenderingService } from "../../../src/domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../../src/domain/template/services/template-path-resolver.ts";
 import { FrontmatterProcessor } from "../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
+import { PerformanceSettings } from "../../../src/domain/configuration/value-objects/performance-settings.ts";
 import { SchemaCacheFactory } from "../../../src/infrastructure/caching/schema-cache.ts";
+
+/**
+ * Helper function to create test service with default performance settings
+ */
+function createTestServiceWithDisabledLogging(
+  processor: any,
+  aggregator: any,
+  populator: any,
+  reader: any,
+  lister: any,
+  frontmatterDataCreationService?: any,
+): FrontmatterTransformationService {
+  const performanceSettings = PerformanceSettings.createDefault();
+  if (!performanceSettings.ok) {
+    throw new Error("Failed to create default performance settings for test");
+  }
+  return FrontmatterTransformationService.createWithDisabledLogging(
+    processor,
+    aggregator,
+    populator,
+    reader,
+    lister,
+    performanceSettings.data,
+    frontmatterDataCreationService,
+  );
+}
 import { err, ok, Result } from "../../../src/domain/shared/types/result.ts";
 import {
   createError,
@@ -214,14 +241,13 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        frontmatterProcessor,
-        mockAggregator,
-        mockBasePropertyPopulator,
-        fileSystem,
-        fileSystem,
-      );
+    const documentProcessor = createTestServiceWithDisabledLogging(
+      frontmatterProcessor,
+      mockAggregator,
+      mockBasePropertyPopulator,
+      fileSystem,
+      fileSystem,
+    );
 
     // Schema processor needs repository - mock it
     const schemaProcessor = {} as SchemaProcessingService;
@@ -334,14 +360,13 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        frontmatterProcessor,
-        mockAggregator,
-        mockBasePropertyPopulator,
-        fileSystem,
-        fileSystem,
-      );
+    const documentProcessor = createTestServiceWithDisabledLogging(
+      frontmatterProcessor,
+      mockAggregator,
+      mockBasePropertyPopulator,
+      fileSystem,
+      fileSystem,
+    );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -420,14 +445,13 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        frontmatterProcessor,
-        mockAggregator,
-        mockBasePropertyPopulator,
-        fileSystem,
-        fileSystem,
-      );
+    const documentProcessor = createTestServiceWithDisabledLogging(
+      frontmatterProcessor,
+      mockAggregator,
+      mockBasePropertyPopulator,
+      fileSystem,
+      fileSystem,
+    );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -516,14 +540,13 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        frontmatterProcessor,
-        mockAggregator,
-        mockBasePropertyPopulator,
-        fileSystem,
-        fileSystem,
-      );
+    const documentProcessor = createTestServiceWithDisabledLogging(
+      frontmatterProcessor,
+      mockAggregator,
+      mockBasePropertyPopulator,
+      fileSystem,
+      fileSystem,
+    );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
@@ -627,14 +650,13 @@ describe("PipelineOrchestrator Integration Tests", () => {
       populate: (data: FrontmatterData) => ok(data),
     } as any;
 
-    const documentProcessor = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        frontmatterProcessor,
-        mockAggregator,
-        mockBasePropertyPopulator,
-        fileSystem,
-        fileSystem,
-      );
+    const documentProcessor = createTestServiceWithDisabledLogging(
+      frontmatterProcessor,
+      mockAggregator,
+      mockBasePropertyPopulator,
+      fileSystem,
+      fileSystem,
+    );
 
     const schemaProcessor = {} as SchemaProcessingService;
 
