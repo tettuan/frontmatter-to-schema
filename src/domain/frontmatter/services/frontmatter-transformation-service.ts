@@ -36,6 +36,7 @@ import type {
   FileLister,
   FileReader,
 } from "../../../application/interfaces/file-system-interfaces.ts";
+import { ExtractFromProcessor } from "../../schema/services/extract-from-processor.ts";
 
 /**
  * Processing options state using discriminated union for enhanced type safety
@@ -941,7 +942,7 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
-    const finalData = this.processFrontmatterParts(processedData, schema);
+    const finalData = await this.processFrontmatterParts(processedData, schema);
 
     activeLogger?.info(
       "Frontmatter-part processing complete",
@@ -1471,10 +1472,10 @@ export class FrontmatterTransformationService {
    * Process frontmatter parts if schema defines x-frontmatter-part.
    * When x-frontmatter-part is true, extracts the specific part from each markdown file.
    */
-  private processFrontmatterParts(
+  private async processFrontmatterParts(
     data: FrontmatterData[],
     schema: Schema,
-  ): FrontmatterData[] {
+  ): Promise<FrontmatterData[]> {
     const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
       .getValue();
     const activeLogger = this.createActiveLogger();
@@ -1535,7 +1536,60 @@ export class FrontmatterTransformationService {
       // where the final array will be placed in the aggregated result, NOT where
       // to extract data from individual files.
       // Therefore, we extract the entire frontmatter object from each file.
-      const partData = dataObj; // Use the entire frontmatter object
+
+      // CRITICAL FIX for Issue #966: Apply directive processing before using frontmatter data
+      // Process x-extract-from and x-jmespath-filter directives on each frontmatter item
+      let processedFrontmatterData = frontmatterData;
+
+      // Check if the main schema has directives to process
+      if (
+        schema.hasExtractFromDirectives && schema.hasExtractFromDirectives()
+      ) {
+        activeLogger?.debug(
+          "Processing x-extract-from directives for frontmatter-part item",
+          createLogContext({
+            operation: "frontmatter-part-directive-processing",
+            inputs: `availableKeys: ${Object.keys(dataObj).join(", ")}`,
+          }),
+        );
+
+        // Create ExtractFromProcessor for directive processing
+        const extractorResult = ExtractFromProcessor.create();
+        if (extractorResult.ok) {
+          const extractor = extractorResult.data;
+
+          // Get directives from the main schema
+          const directivesResult = schema.getExtractFromDirectives &&
+            schema.getExtractFromDirectives();
+          if (directivesResult.ok) {
+            // Process directives on the frontmatter data
+            const processedResult = await extractor.processDirectives(
+              frontmatterData,
+              directivesResult.data,
+            );
+
+            if (processedResult.ok) {
+              processedFrontmatterData = processedResult.data;
+              activeLogger?.debug(
+                "Successfully processed directives for frontmatter-part item",
+                createLogContext({
+                  operation: "frontmatter-part-directive-processing",
+                }),
+              );
+            } else {
+              activeLogger?.error(
+                `Failed to process directives: ${processedResult.error.message}`,
+                createLogContext({
+                  operation: "frontmatter-part-directive-processing",
+                }),
+              );
+              // Continue with original data if directive processing fails
+            }
+          }
+        }
+      }
+
+      const partData = processedFrontmatterData.getData(); // Use the processed frontmatter object
 
       if (partData && typeof partData === "object") {
         activeLogger?.debug(

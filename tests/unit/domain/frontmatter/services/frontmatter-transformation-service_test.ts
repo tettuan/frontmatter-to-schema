@@ -708,7 +708,7 @@ describe("FrontmatterTransformationService", () => {
   });
 
   describe("Frontmatter Part Processing", () => {
-    it("should handle frontmatter part extraction with nested paths", () => {
+    it("should handle frontmatter part extraction with nested paths", async () => {
       // Arrange
       const service = createTestServiceWithDisabledLogging(
         new MockFrontmatterProcessor() as any,
@@ -724,7 +724,10 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema("tools.commands");
 
       // Act
-      const result = (service as any).processFrontmatterParts(data, schema);
+      const result = await (service as any).processFrontmatterParts(
+        data,
+        schema,
+      );
 
       // Assert
       assertEquals(result.length, 2);
@@ -732,7 +735,7 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result[1].getData().name, "cmd2");
     });
 
-    it("should handle missing frontmatter part schema", () => {
+    it("should handle missing frontmatter part schema", async () => {
       // Arrange
       const service = createTestServiceWithDisabledLogging(
         new MockFrontmatterProcessor() as any,
@@ -745,13 +748,16 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema(); // No frontmatter part
 
       // Act
-      const result = (service as any).processFrontmatterParts(data, schema);
+      const result = await (service as any).processFrontmatterParts(
+        data,
+        schema,
+      );
 
       // Assert
       assertEquals(result, data); // Should return original data
     });
 
-    it("should handle invalid frontmatter part data", () => {
+    it("should handle invalid frontmatter part data", async () => {
       // Arrange
       const service = createTestServiceWithDisabledLogging(
         new MockFrontmatterProcessor() as any,
@@ -764,7 +770,10 @@ describe("FrontmatterTransformationService", () => {
       const schema = createTestSchema("commands");
 
       // Act
-      const result = (service as any).processFrontmatterParts(data, schema);
+      const result = await (service as any).processFrontmatterParts(
+        data,
+        schema,
+      );
 
       // Assert
       assertEquals(result, data); // Should fallback to original data
