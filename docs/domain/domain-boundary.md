@@ -49,7 +49,7 @@ graph TB
 
 ### 1. Schema管理コンテキスト
 
-**責務**: Schema定義の管理、$ref解決、検証ルール提供
+**責務**: Schema定義の管理、$ref解決、検証ルール提供、拡張ディレクティブの管理
 
 ```typescript
 // 境界定義
@@ -60,19 +60,47 @@ interface SchemaContext {
     resolve(schema: Schema): Result<ResolvedSchema, ResolutionError>
     extractRules(schema: ResolvedSchema): ValidationRules
   }
-  
+
+  // エンティティ
+  class Schema {
+    getExtractFromDirectives(): Result<ExtractFromDirective[], SchemaError>
+    hasExtractFromDirectives(): boolean
+    getDerivedFromRules(): DerivedFromRule[]
+    hasFrontmatterPart(path: string): boolean
+  }
+
   // 値オブジェクト
   class SchemaPath { private constructor(value: string) }
   class ValidationRules { private constructor(rules: Rule[]) }
-  
+  class ExtractFromDirective {
+    private constructor(
+      targetPath: string,
+      sourcePath: string,
+      targetPropertyPath: PropertyPath,
+      sourcePropertyPath: PropertyPath,
+    )
+    static create(props: ExtractFromDirectiveProps): Result<ExtractFromDirective, DomainError>
+    hasSourceArrayExpansion(): boolean
+    getSourceSegments(): readonly string[]
+  }
+
   // ドメインサービス
   class RefResolver {
     resolveRecursive(schema: Schema): Result<ResolvedSchema, Error>
+  }
+  class DirectiveProcessor {
+    processExtractFrom(data: any, directives: ExtractFromDirective[]): Result<any, ProcessingError>
   }
 }
 ```
 
 **ライフサイクル**: 長期（アプリケーション起動時に読込、キャッシュ保持）
+
+**拡張ディレクティブの責務**:
+- `x-extract-from`: ネストしたデータ構造からの値抽出（Stage 2で処理）
+- `x-derived-from`: 集約処理での派生フィールド生成（Stage 4で処理）
+- `x-frontmatter-part`: フロントマター配列処理の指定（Stage 1で処理）
+- `x-template`: テンプレートファイルの指定
 
 ### 2. フロントマター処理コンテキスト
 

@@ -58,7 +58,60 @@ Schemaに加えて、アプリケーション固有の機能を提供する。
 派生フィールドの値を一意化するかを指定。`x-derived-from`
 と組み合わせて使用する。
 
+### x-extract-from
+
+ネストされたデータ構造から特定の値を抽出する。`[]`記法により配列と単一要素の両方を統一的に扱う。
+
+```json
+{
+  "traceability": {
+    "type": "array",
+    "x-extract-from": "traceability[].id.full",
+    "items": { "type": "string" }
+  }
+}
+```
+
+**特徴:**
+- `[]`記法による配列正規化
+- ネストしたプロパティパスのサポート
+- Stage 2で処理（`x-frontmatter-part`の後）
+
 ## 値オブジェクト
+
+### ExtractFromDirective
+
+`x-extract-from`ディレクティブを表現する値オブジェクト。ソースパスとターゲットパスを管理し、配列展開の正規化を担う。
+
+```typescript
+export class ExtractFromDirective {
+  private constructor(
+    private readonly targetPath: string,
+    private readonly sourcePath: string,
+    private readonly targetPropertyPath: PropertyPath,
+    private readonly sourcePropertyPath: PropertyPath,
+    private readonly mergeArrays: boolean,
+    private readonly targetIsArray: boolean,
+  ) {}
+
+  static create(
+    props: ExtractFromDirectiveProps,
+  ): Result<ExtractFromDirective, DomainError> {
+    // パスの妥当性検証とPropertyPath生成
+  }
+
+  hasSourceArrayExpansion(): boolean {
+    // []記法の有無を判定
+  }
+}
+```
+
+**責務:**
+- ディレクティブの妥当性検証
+- パスの正規化と解析
+- 配列展開フラグの管理
+
+### SchemaPath
 
 ```typescript
 export class SchemaPath {
