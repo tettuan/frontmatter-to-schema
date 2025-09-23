@@ -98,7 +98,8 @@ Totality principles:
 - **Focus Areas**: Domain models, use cases, and critical business logic
 - **Exclusions**: Infrastructure adapters may have lower coverage
 
-`tmp/` 配下に20以上のフォルダが存在したら、tmp/ 配下のファイルを一掃してリセットする。
+`tmp/` 配下に20以上のフォルダが存在したら、tmp/
+配下のファイルを一掃してリセットする。
 
 ### Test Categories
 
