@@ -11,11 +11,19 @@ import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-d
 import { DirectiveProcessor } from "../../src/domain/schema/services/directive-processor.ts";
 import { DirectiveValidator } from "../../src/domain/schema/validators/directive-validator.ts";
 import { FrontmatterDataFactory } from "../../src/domain/frontmatter/factories/frontmatter-data-factory.ts";
+import { BreakdownLogger } from "@tettuan/breakdownlogger";
 
 Deno.test("x-flatten-arrays Directive Integration", async (t) => {
   await t.step(
     "should validate and process x-flatten-arrays directive end-to-end",
     () => {
+      const logger = new BreakdownLogger("x-flatten-arrays-integration");
+
+      logger.info("Starting x-flatten-arrays end-to-end test", {
+        testType: "integration",
+        objective: "validate and process x-flatten-arrays directive",
+      });
+
       // Schema with x-flatten-arrays directive
       const schemaData = {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -98,11 +106,26 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
         },
       };
 
+      logger.debug("Input data for x-flatten-arrays test", {
+        inputStructure: {
+          traceability: {
+            length: inputData.traceability.length,
+            nestingLevels: "2-3 levels deep",
+            containsNestedArrays: true,
+          },
+          metadata: inputData.metadata,
+        },
+      });
+
       const dataResult = FrontmatterDataFactory.fromParsedData(inputData);
       assertEquals(dataResult.ok, true);
       if (!dataResult.ok) return;
 
       // Resolve processing order
+      logger.debug("Resolving directive processing order", {
+        schemaPath: schema.getPath().getValue(),
+      });
+
       const orderResult = processor.resolveProcessingOrder(schema);
       assertEquals(orderResult.ok, true);
       if (!orderResult.ok) return;
@@ -116,7 +139,23 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       assertExists(flattenArraysNode);
       assertEquals(flattenArraysNode.isPresent, true);
 
+      logger.debug("Processing order analysis", {
+        totalDirectives: order.totalDirectives,
+        phases: order.phases.map((phase) => ({
+          phaseNumber: phase.phaseNumber,
+          description: phase.description,
+          directiveCount: phase.directives.length,
+        })),
+        flattenArraysNodeFound: !!flattenArraysNode,
+        flattenArraysPresent: flattenArraysNode?.isPresent,
+      });
+
       // Process directives
+      logger.debug("Starting directive processing", {
+        inputDataKeys: Object.keys(dataResult.data.getData()),
+        processingPhases: order.phases.length,
+      });
+
       const processResult = processor.processDirectives(
         dataResult.data,
         schema,
@@ -126,6 +165,20 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       if (!processResult.ok) return;
 
       const processedData = processResult.data.getData();
+
+      logger.debug("Processing result analysis", {
+        outputDataKeys: Object.keys(processedData),
+        traceabilityType: Array.isArray(processedData.traceability)
+          ? "array"
+          : typeof processedData.traceability,
+        traceabilityLength: Array.isArray(processedData.traceability)
+          ? processedData.traceability.length
+          : "N/A",
+        actualStructure: {
+          traceability: processedData.traceability,
+          metadata: processedData.metadata,
+        },
+      });
 
       // Verify flattening worked correctly
       const expectedData = {
@@ -142,6 +195,37 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
           version: "1.0",
         },
       };
+
+      logger.debug("Expected vs Actual comparison", {
+        expected: {
+          traceabilityLength: expectedData.traceability.length,
+          traceabilityType: "array",
+          traceabilityItems: expectedData.traceability,
+        },
+        actual: {
+          traceabilityLength: Array.isArray(processedData.traceability)
+            ? processedData.traceability.length
+            : "NOT_ARRAY",
+          traceabilityType: Array.isArray(processedData.traceability)
+            ? "array"
+            : typeof processedData.traceability,
+          traceabilityItems: processedData.traceability,
+        },
+        matches: JSON.stringify(processedData) === JSON.stringify(expectedData),
+      });
+
+      if (JSON.stringify(processedData) !== JSON.stringify(expectedData)) {
+        logger.error("Test failure - Expected vs Actual mismatch", {
+          expectedStructure: expectedData,
+          actualStructure: processedData,
+          differences: {
+            traceabilityMatches: JSON.stringify(processedData.traceability) ===
+              JSON.stringify(expectedData.traceability),
+            metadataMatches: JSON.stringify(processedData.metadata) ===
+              JSON.stringify(expectedData.metadata),
+          },
+        });
+      }
 
       assertEquals(processedData, expectedData);
     },

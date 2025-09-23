@@ -14,6 +14,8 @@ variables:
 
 ## 前提情報リスト
 
+BreakdownLogger は、テスト専用のデバッグライブラリである。メイン実装でのデバッグに利用することは禁止されている。
+
 **プロジェクト構造**:
 
 - Deno + TypeScript + JSR packages
