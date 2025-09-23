@@ -1,6 +1,10 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import {
+  ErrorHandling,
+  type OperationContext,
+} from "../../shared/services/error-handling-service.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import {
@@ -11,6 +15,17 @@ import { ArrayExpansionStrategy } from "./array-expansion-strategy.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { TemplateVariable } from "../value-objects/template-variable.ts";
 import { ARRAY_EXPANSION_PLACEHOLDER } from "../constants/template-variable-constants.ts";
+
+// Template error factory for ErrorHandlingService
+const templateErrorFactory = (
+  message: string,
+  context?: OperationContext,
+): TemplateError & { message: string } => ({
+  kind: "RenderFailed",
+  message: context
+    ? `${context.operation}.${context.method}: ${message}`
+    : message,
+});
 
 /**
  * VariableReplacer handles template variable substitution.
@@ -54,101 +69,101 @@ export class VariableReplacer {
     data: FrontmatterData,
     arrayData?: unknown[],
   ): Result<string, TemplateError & { message: string }> {
-    try {
-      if (!template.includes("{")) {
-        return ok(template);
-      }
+    return ErrorHandling.wrapOperation(
+      () => {
+        if (!template.includes("{")) {
+          return template;
+        }
 
-      this.domainLogger.logDebug(
-        "variable-replacement",
-        "Starting variable replacement",
-        { hasTemplate: !!template, templateLength: template.length },
-      );
-
-      // Support both single and double brace syntax: {var} and {{var}}
-      // Use more restrictive regex to avoid matching across JSON structure
-      let result = template.replace(/\{\{([\w.@-]+)\}\}/g, (match, varName) => {
         this.domainLogger.logDebug(
           "variable-replacement",
-          `Processing variable: ${varName}`,
+          "Starting variable replacement",
+          { hasTemplate: !!template, templateLength: template.length },
         );
 
-        // Handle array expansion variables using type-safe approach
-        const variableResult = TemplateVariable.create(varName);
-        if (
-          variableResult.ok && variableResult.data.isArrayExpansion && arrayData
-        ) {
-          this.domainLogger.logDebug(
-            "variable-replacement",
-            "Processing array expansion variable",
-            { variableName: varName },
-          );
-          // Return special marker for array expansion
-          return "[@ITEMS_EXPANSION]";
-        }
+        // Support both single and double brace syntax: {var} and {{var}}
+        // Use more restrictive regex to avoid matching across JSON structure
+        let result = template.replace(
+          /\{\{([\w.@-]+)\}\}/g,
+          (match, varName) => {
+            this.domainLogger.logDebug(
+              "variable-replacement",
+              `Processing variable: ${varName}`,
+            );
 
-        // Skip other @ variables (special processing markers)
-        if (varName.startsWith("@")) {
-          // Debug logging available via domain logger - skipping @ variable
-          return match;
-        }
+            // Handle array expansion variables using type-safe approach
+            const variableResult = TemplateVariable.create(varName);
+            if (
+              variableResult.ok && variableResult.data.isArrayExpansion &&
+              arrayData
+            ) {
+              this.domainLogger.logDebug(
+                "variable-replacement",
+                "Processing array expansion variable",
+                { variableName: varName },
+              );
+              // Return special marker for array expansion
+              return "[@ITEMS_EXPANSION]";
+            }
 
-        const valueResult = data.get(varName);
-        if (!valueResult.ok) {
+            // Skip other @ variables (special processing markers)
+            if (varName.startsWith("@")) {
+              // Debug logging available via domain logger - skipping @ variable
+              return match;
+            }
+
+            const valueResult = data.get(varName);
+            if (!valueResult.ok) {
+              // Debug logging available via domain logger
+              return match; // Keep placeholder if value not found
+            }
+
+            const formattedValue = this.formatValue(valueResult.data);
+            // Debug logging available via domain logger
+
+            return formattedValue;
+          },
+        );
+
+        // Also support single brace syntax: {var}
+        // Use more restrictive regex to avoid matching across JSON structure
+        result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
           // Debug logging available via domain logger
-          return match; // Keep placeholder if value not found
-        }
 
-        const formattedValue = this.formatValue(valueResult.data);
-        // Debug logging available via domain logger
+          // Handle array expansion variables using type-safe approach
+          const variableResult = TemplateVariable.create(varName);
+          if (
+            variableResult.ok && variableResult.data.isArrayExpansion &&
+            arrayData
+          ) {
+            // Debug logging available via domain logger
+            // Return special marker for array expansion
+            return "[@ITEMS_EXPANSION]";
+          }
 
-        return formattedValue;
-      });
+          // Skip other @ variables (special processing markers)
+          if (varName.startsWith("@")) {
+            // Debug logging available via domain logger
+            return match;
+          }
 
-      // Also support single brace syntax: {var}
-      // Use more restrictive regex to avoid matching across JSON structure
-      result = result.replace(/\{([\w.@-]+)\}/g, (match, varName) => {
-        // Debug logging available via domain logger
+          const valueResult = data.get(varName);
+          if (!valueResult.ok) {
+            // Debug logging available via domain logger
+            return match; // Keep placeholder if value not found
+          }
 
-        // Handle array expansion variables using type-safe approach
-        const variableResult = TemplateVariable.create(varName);
-        if (
-          variableResult.ok && variableResult.data.isArrayExpansion && arrayData
-        ) {
+          const formattedValue = this.formatValue(valueResult.data);
           // Debug logging available via domain logger
-          // Return special marker for array expansion
-          return "[@ITEMS_EXPANSION]";
-        }
 
-        // Skip other @ variables (special processing markers)
-        if (varName.startsWith("@")) {
-          // Debug logging available via domain logger
-          return match;
-        }
+          return formattedValue;
+        });
 
-        const valueResult = data.get(varName);
-        if (!valueResult.ok) {
-          // Debug logging available via domain logger
-          return match; // Keep placeholder if value not found
-        }
-
-        const formattedValue = this.formatValue(valueResult.data);
-        // Debug logging available via domain logger
-
-        return formattedValue;
-      });
-
-      return ok(result);
-    } catch (error) {
-      return ErrorHandler.template({
-        operation: "replaceVariables",
-        method: "processTemplate",
-      }).renderFailed(
-        error instanceof Error
-          ? `Variable replacement failed: ${error.message}`
-          : "Variable replacement failed",
-      );
-    }
+        return result;
+      },
+      templateErrorFactory,
+      { operation: "replaceVariables", method: "processTemplate" },
+    );
   }
 
   /**
@@ -162,64 +177,76 @@ export class VariableReplacer {
     data: FrontmatterData,
     arrayData?: unknown[],
   ): Result<unknown, TemplateError & { message: string }> {
-    try {
-      // Handle Result types first - unwrap successful Results, return empty for errors
-      if (this.isResultType(value)) {
-        const resultValue = value as {
-          ok: boolean;
-          data?: unknown;
-          error?: unknown;
-        };
-        if (resultValue.ok && resultValue.data !== undefined) {
-          // Recursively process the unwrapped data
-          return this.processValue(resultValue.data, data, arrayData);
-        }
-        // For error Results, return empty string
-        return ok("");
-      }
-
-      if (typeof value === "string") {
-        return this.replaceVariables(value, data, arrayData);
-      }
-
-      if (Array.isArray(value)) {
-        const results: unknown[] = [];
-        for (const item of value) {
-          const processedResult = this.processValue(item, data, arrayData);
-          if (!processedResult.ok) {
-            return processedResult;
+    return ErrorHandling.wrapOperation(
+      () => {
+        // Handle Result types first - unwrap successful Results, return empty for errors
+        if (this.isResultType(value)) {
+          const resultValue = value as {
+            ok: boolean;
+            data?: unknown;
+            error?: unknown;
+          };
+          if (resultValue.ok && resultValue.data !== undefined) {
+            // Recursively process the unwrapped data
+            const recursiveResult = this.processValue(
+              resultValue.data,
+              data,
+              arrayData,
+            );
+            if (!recursiveResult.ok) {
+              throw new Error(recursiveResult.error.message);
+            }
+            return recursiveResult.data;
           }
-          results.push(processedResult.data);
+          // For error Results, return empty string
+          return "";
         }
-        return ok(results);
-      }
 
-      if (value && typeof value === "object") {
-        const objResult = SafePropertyAccess.asRecord(value);
-        if (!objResult.ok) {
-          return ErrorHandler.template({
-            operation: "processValue",
-            method: "validateObject",
-          }).renderFailed("Value is not a valid object for processing");
+        if (typeof value === "string") {
+          const replacementResult = this.replaceVariables(
+            value,
+            data,
+            arrayData,
+          );
+          if (!replacementResult.ok) {
+            throw new Error(replacementResult.error.message);
+          }
+          return replacementResult.data;
         }
-        return this.processObject(
-          objResult.data,
-          data,
-          arrayData,
-        );
-      }
 
-      return ok(value);
-    } catch (error) {
-      return ErrorHandler.template({
-        operation: "processValue",
-        method: "handleProcessing",
-      }).renderFailed(
-        error instanceof Error
-          ? `Value processing failed: ${error.message}`
-          : "Value processing failed",
-      );
-    }
+        if (Array.isArray(value)) {
+          const results: unknown[] = [];
+          for (const item of value) {
+            const processedResult = this.processValue(item, data, arrayData);
+            if (!processedResult.ok) {
+              throw new Error(processedResult.error.message);
+            }
+            results.push(processedResult.data);
+          }
+          return results;
+        }
+
+        if (value && typeof value === "object") {
+          const objResult = SafePropertyAccess.asRecord(value);
+          if (!objResult.ok) {
+            throw new Error("Value is not a valid object for processing");
+          }
+          const processObjectResult = this.processObject(
+            objResult.data,
+            data,
+            arrayData,
+          );
+          if (!processObjectResult.ok) {
+            throw new Error(processObjectResult.error.message);
+          }
+          return processObjectResult.data;
+        }
+
+        return value;
+      },
+      templateErrorFactory,
+      { operation: "processValue", method: "handleProcessing" },
+    );
   }
 
   private formatValue(value: unknown): string {

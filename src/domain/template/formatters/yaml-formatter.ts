@@ -1,8 +1,23 @@
 import { ok, Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import {
+  ErrorHandling,
+  type OperationContext,
+} from "../../shared/services/error-handling-service.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 import { stringify as stringifyYaml } from "jsr:@std/yaml@1.0.5";
+
+// YAML error factory for ErrorHandlingService
+const yamlErrorFactory = (
+  message: string,
+  context?: OperationContext,
+): TemplateError & { message: string } => ({
+  kind: "RenderFailed",
+  message: context
+    ? `${context.operation}.${context.method}: ${message}`
+    : message,
+});
 
 /**
  * YAML formatter for template output
@@ -28,22 +43,17 @@ export class YamlFormatter extends BaseFormatter {
       }).invalid("Data contains non-serializable values");
     }
 
-    try {
-      const formatted = stringifyYaml(data, {
-        indent: 2,
-        lineWidth: -1, // Disable line wrapping
-      });
-      return ok(formatted);
-    } catch (error) {
-      return ErrorHandler.template({
-        operation: "format",
-        method: "stringifyYAML",
-      }).invalid(
-        `Failed to format as YAML: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      );
-    }
+    return ErrorHandling.wrapOperation(
+      () => {
+        const formatted = stringifyYaml(data, {
+          indent: 2,
+          lineWidth: -1, // Disable line wrapping
+        });
+        return formatted;
+      },
+      yamlErrorFactory,
+      { operation: "format", method: "stringifyYAML" },
+    );
   }
 
   getFormat(): OutputFormat {

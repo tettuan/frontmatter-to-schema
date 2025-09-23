@@ -6,6 +6,21 @@
 
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { SchemaError } from "../../domain/shared/types/errors.ts";
+import {
+  ErrorHandling,
+  type OperationContext,
+} from "../../domain/shared/services/error-handling-service.ts";
+
+// Cache error factory for ErrorHandlingService
+const cacheErrorFactory = (
+  message: string,
+  context?: OperationContext,
+): SchemaError & { message: string } => ({
+  kind: "InvalidSchema",
+  message: context
+    ? `Cache ${context.operation} failed: ${message}`
+    : `Cache operation failed: ${message}`,
+});
 
 /**
  * Cache entry with TTL and usage tracking
@@ -78,73 +93,67 @@ export class PathCache<T> {
    * Get value from cache
    */
   get(key: string): Result<T | undefined, SchemaError> {
-    try {
-      const entry = this.cache.get(key);
+    return ErrorHandling.wrapOperation(
+      () => {
+        const entry = this.cache.get(key);
 
-      if (!entry) {
-        this.incrementMisses();
-        return ok(undefined);
-      }
+        if (!entry) {
+          this.incrementMisses();
+          return undefined;
+        }
 
-      // Check TTL
-      if (this.isExpired(entry)) {
-        this.cache.delete(key);
-        this.incrementMisses();
-        return ok(undefined);
-      }
+        // Check TTL
+        if (this.isExpired(entry)) {
+          this.cache.delete(key);
+          this.incrementMisses();
+          return undefined;
+        }
 
-      // Update access count
-      const updatedEntry: CacheEntry<T> = {
-        ...entry,
-        accessCount: entry.accessCount + 1,
-      };
-      this.cache.set(key, updatedEntry);
+        // Update access count
+        const updatedEntry: CacheEntry<T> = {
+          ...entry,
+          accessCount: entry.accessCount + 1,
+        };
+        this.cache.set(key, updatedEntry);
 
-      this.incrementHits();
-      return ok(entry.value);
-    } catch (error) {
-      return err({
-        kind: "InvalidSchema" as const,
-        message: `Cache get failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-    }
+        this.incrementHits();
+        return entry.value;
+      },
+      cacheErrorFactory,
+      { operation: "get", method: "cache-access" },
+    );
   }
 
   /**
    * Set value in cache
    */
   set(key: string, value: T, ttl?: number): Result<void, SchemaError> {
-    try {
-      const effectiveTtl = ttl ?? this.config.defaultTtl;
+    return ErrorHandling.wrapOperation(
+      () => {
+        const effectiveTtl = ttl ?? this.config.defaultTtl;
 
-      // Evict if at capacity
-      const maxEntries = this.config.maxPathEntries ?? this.config.maxSize;
-      if (this.cache.size >= maxEntries && !this.cache.has(key)) {
-        const evictResult = this.evictLeastRecentlyUsed();
-        if (!evictResult.ok) {
-          return evictResult;
+        // Evict if at capacity
+        const maxEntries = this.config.maxPathEntries ?? this.config.maxSize;
+        if (this.cache.size >= maxEntries && !this.cache.has(key)) {
+          const evictResult = this.evictLeastRecentlyUsed();
+          if (!evictResult.ok) {
+            throw new Error(`Eviction failed: ${evictResult.error.kind}`);
+          }
         }
-      }
 
-      const entry: CacheEntry<T> = {
-        value,
-        timestamp: Date.now(),
-        accessCount: 1,
-        ttl: effectiveTtl,
-      };
+        const entry: CacheEntry<T> = {
+          value,
+          timestamp: Date.now(),
+          accessCount: 1,
+          ttl: effectiveTtl,
+        };
 
-      this.cache.set(key, entry);
-      return ok(undefined);
-    } catch (error) {
-      return err({
-        kind: "InvalidSchema" as const,
-        message: `Cache set failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-    }
+        this.cache.set(key, entry);
+        // No return needed for void operations
+      },
+      cacheErrorFactory,
+      { operation: "set", method: "cache-write" },
+    );
   }
 
   /**
@@ -282,17 +291,14 @@ export class PathCache<T> {
    * Perform cache maintenance
    */
   performMaintenance(): Result<void, SchemaError> {
-    try {
-      this.cleanup();
-      return ok(undefined);
-    } catch (error) {
-      return err({
-        kind: "InvalidSchema" as const,
-        message: `Cache maintenance failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-    }
+    return ErrorHandling.wrapOperation(
+      () => {
+        this.cleanup();
+        // No return needed for void operations
+      },
+      cacheErrorFactory,
+      { operation: "maintenance", method: "cleanup" },
+    );
   }
 
   /**
@@ -331,31 +337,28 @@ export class PathCache<T> {
   }
 
   private evictLeastRecentlyUsed(): Result<void, SchemaError> {
-    try {
-      let lruKey: string | null = null;
-      let lruEntry: CacheEntry<T> | null = null;
+    return ErrorHandling.wrapOperation(
+      () => {
+        let lruKey: string | null = null;
+        let lruEntry: CacheEntry<T> | null = null;
 
-      for (const [key, entry] of this.cache) {
-        if (!lruEntry || entry.accessCount < lruEntry.accessCount) {
-          lruKey = key;
-          lruEntry = entry;
+        for (const [key, entry] of this.cache) {
+          if (!lruEntry || entry.accessCount < lruEntry.accessCount) {
+            lruKey = key;
+            lruEntry = entry;
+          }
         }
-      }
 
-      if (lruKey) {
-        this.cache.delete(lruKey);
-        this.incrementEvictions();
-      }
+        if (lruKey) {
+          this.cache.delete(lruKey);
+          this.incrementEvictions();
+        }
 
-      return ok(undefined);
-    } catch (error) {
-      return err({
-        kind: "InvalidSchema" as const,
-        message: `Cache eviction failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-    }
+        // No return needed for void operations
+      },
+      cacheErrorFactory,
+      { operation: "eviction", method: "lru-cleanup" },
+    );
   }
 
   private incrementHits(): void {

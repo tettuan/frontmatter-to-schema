@@ -1,8 +1,23 @@
 import { ok, Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import {
+  ErrorHandling,
+  type OperationContext,
+} from "../../shared/services/error-handling-service.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+
+// XML error factory for ErrorHandlingService
+const xmlErrorFactory = (
+  message: string,
+  context?: OperationContext,
+): TemplateError & { message: string } => ({
+  kind: "RenderFailed",
+  message: context
+    ? `${context.operation}.${context.method}: ${message}`
+    : message,
+});
 
 /**
  * XML formatter for template output
@@ -36,19 +51,14 @@ export class XmlFormatter extends BaseFormatter {
       );
     }
 
-    try {
-      const xmlContent = this.convertToXml(data, "root");
-      return ok(`<?xml version="1.0" encoding="UTF-8"?>\n${xmlContent}`);
-    } catch (error) {
-      return ErrorHandler.template({
-        operation: "format",
-        method: "convertToXml",
-      }).invalid(
-        `XML formatting failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      );
-    }
+    return ErrorHandling.wrapOperation(
+      () => {
+        const xmlContent = this.convertToXml(data, "root");
+        return `<?xml version="1.0" encoding="UTF-8"?>\n${xmlContent}`;
+      },
+      xmlErrorFactory,
+      { operation: "format", method: "convertToXml" },
+    );
   }
 
   private convertToXml(data: unknown, elementName: string): string {
