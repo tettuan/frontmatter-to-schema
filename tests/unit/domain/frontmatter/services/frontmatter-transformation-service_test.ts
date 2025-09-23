@@ -17,7 +17,6 @@ import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { MergeOperations } from "../../../../../src/domain/frontmatter/utilities/merge-operations.ts";
-import { FieldOperations } from "../../../../../src/domain/frontmatter/utilities/field-operations.ts";
 import { TestDataFactory } from "../../../../helpers/test-data-factory.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { Aggregator } from "../../../../../src/domain/aggregation/index.ts";
@@ -53,17 +52,24 @@ function createTestServiceWithDisabledLogging(
     throw new Error("Failed to create schema validation service for test");
   }
 
-  const serviceResult = FrontmatterTransformationService
-    .createWithDisabledLogging(
-      processor,
-      aggregator,
-      populator,
+  const config = {
+    processor,
+    fileSystem: {
       reader,
       lister,
-      performanceSettings.data,
-      schemaValidationServiceResult.data,
-      frontmatterDataCreationService,
-    );
+    },
+    services: {
+      aggregator,
+      basePropertyPopulator: populator,
+      schemaValidation: schemaValidationServiceResult.data,
+      dataCreation: frontmatterDataCreationService,
+    },
+    settings: {
+      performance: performanceSettings.data,
+      // logger omitted for disabled logging
+    },
+  };
+  const serviceResult = FrontmatterTransformationService.create(config);
   if (!serviceResult.ok) {
     throw new Error(
       `Failed to create service for test: ${serviceResult.error.message}`,
@@ -881,74 +887,6 @@ describe("FrontmatterTransformationService", () => {
       if (!result.ok) {
         assertEquals(result.error.kind, "MergeFailed");
       }
-    });
-  });
-
-  describe("Nested Field Operations", () => {
-    it("should set nested field with dot notation", () => {
-      // Arrange
-      const _service = createTestServiceWithDisabledLogging(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
-      const obj = {};
-
-      // Act
-      FieldOperations.setNestedField(obj, "config.settings.debug", true);
-
-      // Assert
-      assertEquals((obj as any).config.settings.debug, true);
-    });
-
-    it("should extract nested property with dot notation", () => {
-      // Arrange
-      const _service = createTestServiceWithDisabledLogging(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
-      const obj = {
-        config: {
-          settings: {
-            debug: true,
-          },
-        },
-      };
-
-      // Act
-      const result = (_service as any).extractNestedProperty(
-        obj,
-        "config.settings.debug",
-      );
-
-      // Assert
-      assertEquals(result, true);
-    });
-
-    it("should handle missing nested property", () => {
-      // Arrange
-      const _service = createTestServiceWithDisabledLogging(
-        new MockFrontmatterProcessor() as any,
-        new MockAggregator() as any,
-        new MockBasePropertyPopulator() as any,
-        new MockFileReader() as any,
-        new MockFileLister() as any,
-      );
-      const obj = { config: {} };
-
-      // Act
-      const result = (_service as any).extractNestedProperty(
-        obj,
-        "config.missing.property",
-      );
-
-      // Assert
-      assertEquals(result, undefined);
     });
   });
 

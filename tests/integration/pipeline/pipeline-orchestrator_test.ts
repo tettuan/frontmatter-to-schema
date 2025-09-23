@@ -38,17 +38,24 @@ function createTestServiceWithDisabledLogging(
     throw new Error("Failed to create schema validation service for test");
   }
 
-  const serviceResult = FrontmatterTransformationService
-    .createWithDisabledLogging(
-      processor,
-      aggregator,
-      populator,
+  const config = {
+    processor,
+    fileSystem: {
       reader,
       lister,
-      performanceSettings.data,
-      schemaValidationServiceResult.data,
-      frontmatterDataCreationService,
-    );
+    },
+    services: {
+      aggregator,
+      basePropertyPopulator: populator,
+      schemaValidation: schemaValidationServiceResult.data,
+      dataCreation: frontmatterDataCreationService,
+    },
+    settings: {
+      performance: performanceSettings.data,
+      // logger omitted for disabled logging
+    },
+  };
+  const serviceResult = FrontmatterTransformationService.create(config);
   if (!serviceResult.ok) {
     throw new Error(
       `Failed to create service for test: ${serviceResult.error.message}`,

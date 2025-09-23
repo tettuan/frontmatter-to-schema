@@ -325,16 +325,23 @@ class TransformationScenarioBuilder {
       throw new Error("Failed to create schema validation service");
     }
 
-    const serviceResult = FrontmatterTransformationService
-      .createWithDisabledLogging(
-        processor as any,
-        aggregator as any,
-        populator as any,
-        reader as any,
-        lister as any,
-        performanceSettings.data,
-        schemaValidationServiceResult.data,
-      );
+    const config = {
+      processor: processor as any,
+      fileSystem: {
+        reader: reader as any,
+        lister: lister as any,
+      },
+      services: {
+        aggregator: aggregator as any,
+        basePropertyPopulator: populator as any,
+        schemaValidation: schemaValidationServiceResult.data,
+      },
+      settings: {
+        performance: performanceSettings.data,
+        // logger omitted for disabled logging
+      },
+    };
+    const serviceResult = FrontmatterTransformationService.create(config);
     if (!serviceResult.ok) {
       throw new Error(
         `Failed to create service for test: ${serviceResult.error.message}`,

@@ -18,6 +18,7 @@ import { DefaultSchemaValidationService } from "../../domain/schema/services/sch
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
+import { DomainLoggerAdapter } from "../../domain/shared/services/domain-logger.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import { CLIArguments } from "./value-objects/cli-arguments.ts";
@@ -179,17 +180,25 @@ export class CLI {
       }));
     }
 
-    const documentProcessorResult = FrontmatterTransformationService
-      .createWithEnabledLogging(
-        frontmatterProcessor,
+    const config = {
+      processor: frontmatterProcessor,
+      fileSystem: {
+        reader: fileReader,
+        lister: fileLister,
+      },
+      services: {
         aggregator,
         basePropertyPopulator,
-        fileReader,
-        fileLister,
-        logger,
-        performanceSettings.data,
-        schemaValidationServiceResult.data,
-      );
+        schemaValidation: schemaValidationServiceResult.data,
+      },
+      settings: {
+        performance: performanceSettings.data,
+        logger: DomainLoggerAdapter.createEnabled(logger),
+      },
+    };
+    const documentProcessorResult = FrontmatterTransformationService.create(
+      config,
+    );
     if (!documentProcessorResult.ok) {
       return err(createError({
         kind: "ConfigurationError",

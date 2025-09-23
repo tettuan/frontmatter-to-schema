@@ -104,4 +104,14 @@ export class MergeOperations {
     }
     return ok(merged);
   }
+
+  /**
+   * Create FrontmatterData from raw object data
+   * Public method to access frontmatter data creation functionality
+   */
+  createFromRawData(
+    rawData: Record<string, unknown>,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    return this.frontmatterDataCreationService.createFromRaw(rawData);
+  }
 }
