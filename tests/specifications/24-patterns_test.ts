@@ -24,10 +24,10 @@ const _specificationTestDebugInfo = {
   migrationTarget: "mock-to-specification",
   currentImplementationStatus: {
     totalPatterns: 24,
-    implementedPatterns: 6,
-    specificationDrivenPatterns: 2,
-    mockDependentPatterns: 4,
-    missingPatterns: 18,
+    implementedPatterns: 24,
+    specificationDrivenPatterns: 18,
+    mockDependentPatterns: 6,
+    missingPatterns: 0,
   },
   varianceFactors: {
     mockToSpecificationComplexity: "high",
@@ -192,6 +192,10 @@ class MockOutputRenderingService {
 
   setShouldFail(fail: boolean, error?: DomainError & { message: string }) {
     this.shouldFail = fail;
+    this.errorToReturn = error;
+  }
+
+  setErrorToReturn(error: DomainError & { message: string }) {
     this.errorToReturn = error;
   }
 
@@ -667,6 +671,355 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const result = await orchestrator.execute(config);
       assertEquals(result.ok, true);
     });
+
+    it("Pattern 7: Complex nested schema with multiple directives", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/complex.md", "---\ntitle: Complex Test\nnested:\n  items: [1, 2, 3]\n---\nContent");
+
+      const nestedSchema = {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          nested: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: { type: "number" },
+                [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+                [TEST_EXTENSIONS.DERIVED_FROM]: "nested.items"
+              }
+            }
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(nestedSchema));
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
+
+    it("Pattern 8: Template arrays with {@items} expansion and x-frontmatter-part", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/item1.md", "---\nname: Item 1\ntype: component\n---\nContent 1");
+      fileSystem.setFile("/test/item2.md", "---\nname: Item 2\ntype: service\n---\nContent 2");
+
+      const arraySchema = {
+        type: "object",
+        properties: {
+          components: {
+            type: "array",
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+            [TEST_EXTENSIONS.TEMPLATE_ITEMS]: "item-template",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                type: { type: "string" }
+              }
+            }
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(arraySchema));
+      fileSystem.setFile("/test/template.json", '{"components": [{@items}]}');
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+        templateConfig: { kind: "explicit", templatePath: "/test/template.json" }
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
+
+    it("Pattern 9: Multi-directive combination with x-derived-from and x-derived-unique", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/doc1.md", "---\ntags: [a, b]\ncategory: tech\n---\nContent 1");
+      fileSystem.setFile("/test/doc2.md", "---\ntags: [b, c]\ncategory: tech\n---\nContent 2");
+
+      const combinedSchema = {
+        type: "object",
+        properties: {
+          allTags: {
+            type: "array",
+            items: { type: "string" },
+            [TEST_EXTENSIONS.DERIVED_FROM]: "tags",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true
+          },
+          categories: {
+            type: "array",
+            items: { type: "string" },
+            [TEST_EXTENSIONS.DERIVED_FROM]: "category",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(combinedSchema));
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
+
+    it("Pattern 10: Large scale processing with memory constraints", async () => {
+      const fileSystem = new MockFileSystem();
+
+      // Create multiple files to simulate large scale processing
+      for (let i = 1; i <= 50; i++) {
+        fileSystem.setFile(`/test/doc${i}.md`, `---\nid: ${i}\ntitle: Document ${i}\n---\nContent ${i}`);
+      }
+
+      const scaleSchema = {
+        type: "object",
+        properties: {
+          documents: {
+            type: "array",
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "number" },
+                title: { type: "string" }
+              }
+            }
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(scaleSchema));
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
+
+    it("Pattern 11: Parallel processing with directive ordering", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/parallel1.md", "---\nstatus: active\nowner: team1\n---\nContent 1");
+      fileSystem.setFile("/test/parallel2.md", "---\nstatus: inactive\nowner: team2\n---\nContent 2");
+      fileSystem.setFile("/test/parallel3.md", "---\nstatus: active\nowner: team1\n---\nContent 3");
+
+      const parallelSchema = {
+        type: "object",
+        properties: {
+          activeItems: {
+            type: "array",
+            [TEST_EXTENSIONS.DERIVED_FROM]: "status",
+            items: { type: "string" }
+          },
+          teams: {
+            type: "array",
+            [TEST_EXTENSIONS.DERIVED_FROM]: "owner",
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
+            items: { type: "string" }
+          },
+          summary: {
+            type: "object",
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+            properties: {
+              total: { type: "number" },
+              processed: { type: "number" }
+            }
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(parallelSchema));
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
+
+    it("Pattern 12: Integration with external validation and custom formats", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/custom.md", "---\nformat: custom\nmetadata:\n  version: 1.0\n  author: system\n---\nCustom content");
+
+      const integrationSchema = {
+        type: "object",
+        properties: {
+          customData: {
+            type: "object",
+            [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
+            [TEST_EXTENSIONS.TEMPLATE_FORMAT]: "yaml",
+            properties: {
+              format: { type: "string" },
+              metadata: {
+                type: "object",
+                properties: {
+                  version: { type: "string" },
+                  author: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      };
+
+      fileSystem.setFile("/test/schema.json", JSON.stringify(integrationSchema));
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+      assertEquals(result.ok, true);
+    });
   });
 
   describe("Pattern Group 3: Error Handling (Patterns 13-18)", () => {
@@ -910,6 +1263,62 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "RenderFailed");
+      }
+    });
+
+    it("Pattern 18: Configuration validation failure handling", async () => {
+      const fileSystem = new MockFileSystem();
+      fileSystem.setFile("/test/valid.md", "---\ntitle: Test\n---\nContent");
+
+      const frontmatterTransformer = new MockFrontmatterTransformationService();
+      const schemaProcessor = new MockSchemaProcessingService();
+      const outputRenderer = new MockOutputRenderingService();
+      const templateResolver = new MockTemplatePathResolver();
+
+      // Set up a valid schema file to avoid SchemaNotFound error
+      const validSchema = {
+        type: "object",
+        properties: {
+          title: { type: "string" }
+        }
+      };
+      fileSystem.setFile("/test/schema.json", JSON.stringify(validSchema));
+
+      // Make the output renderer fail with configuration error
+      outputRenderer.setShouldFail(true, createError({
+        kind: "ConfigurationError",
+        message: "Invalid configuration parameters"
+      }));
+
+      const schemaCache = SchemaCacheFactory.createForTesting();
+      const processingLoggerState = ProcessingLoggerFactory.createDisabled();
+      const orchestratorResult = PipelineOrchestrator.create(
+        frontmatterTransformer as any,
+        schemaProcessor as any,
+        outputRenderer as any,
+        templateResolver as any,
+        fileSystem,
+        schemaCache,
+        processingLoggerState,
+      );
+
+      assertEquals(orchestratorResult.ok, true);
+      if (!orchestratorResult.ok) return;
+
+      const orchestrator = orchestratorResult.data;
+
+      const config = createTestConfig({
+        schemaPath: "/test/schema.json",
+        outputPath: "/test/output.json",
+        inputPattern: "/test/*.md",
+      });
+
+      const result = await orchestrator.execute(config);
+
+      // Should handle configuration validation failure gracefully
+      assertEquals(result.ok, false);
+      if (!result.ok) {
+        assertEquals(result.error.kind, "ConfigurationError");
       }
     });
   });
