@@ -63,7 +63,7 @@ export class ProcessingOptionsFactory {
       return ProcessingOptionsFactory.createSequential();
     }
 
-    if (options.parallel === true) {
+    if (options.parallel) {
       return ProcessingOptionsFactory.createParallel(options.maxWorkers);
     }
 

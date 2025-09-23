@@ -2,6 +2,9 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
+import { ProcessingConstants } from "../../shared/constants/processing-constants.ts";
+import { ValidationHelpers } from "../../shared/utils/validation-helpers.ts";
+import { ErrorHandlingUtils } from "../../shared/utils/error-handling-utils.ts";
 import {
   ProcessingBounds,
   ProcessingBoundsFactory,
@@ -699,7 +702,7 @@ export class FrontmatterTransformationService {
         heapUsedMB: Math.round(currentMemory.heapUsed / 1024 / 1024),
         heapTotalMB: Math.round(currentMemory.heapTotal / 1024 / 1024),
         systemMemoryPressure:
-          currentMemory.heapUsed / currentMemory.heapTotal > 0.8
+          ProcessingConstants.isMemoryPressureHigh(currentMemory.heapUsed, currentMemory.heapTotal)
             ? "high"
             : "normal",
         estimatedMemoryAfterProcessing: Math.round(
@@ -928,7 +931,7 @@ export class FrontmatterTransformationService {
           );
 
           // Periodic O(log n) memory growth validation
-          if (processedData.length % 100 === 0 && processedData.length > 0) {
+          if (ProcessingConstants.shouldReportProgress(processedData.length)) {
             const growthResult = boundsMonitor.validateMemoryGrowth(
               processedData.length,
             );
@@ -968,7 +971,7 @@ export class FrontmatterTransformationService {
       }
     }
 
-    if (processedData.length === 0) {
+    if (ValidationHelpers.isEmptyArray(processedData)) {
       const noDataError = ErrorHandler.aggregation({
         operation: "transformDocumentsInternal",
         method: "validateProcessedData",

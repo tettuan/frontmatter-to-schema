@@ -6,6 +6,8 @@ import {
   ProcessingBoundsFactory,
   ProcessingBoundsMonitor,
 } from "../../shared/types/processing-bounds.ts";
+import { ValidationHelpers } from "../../shared/utils/validation-helpers.ts";
+import { ErrorHandlingUtils } from "../../shared/utils/error-handling-utils.ts";
 import { FilePath } from "../value-objects/file-path.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
@@ -413,7 +415,7 @@ export class FrontmatterDocumentTransformationPipeline {
       }
     }
 
-    if (processedData.length === 0) {
+    if (ValidationHelpers.isEmptyArray(processedData)) {
       const noDataError = ErrorHandler.aggregation({
         operation: "processDocuments",
         method: "validateProcessedData",
@@ -517,7 +519,7 @@ export class FrontmatterDocumentTransformationPipeline {
       }
     }
 
-    const result = extractedParts.length > 0 ? extractedParts : data;
+    const result = !ValidationHelpers.isEmptyArray(extractedParts) ? extractedParts : data;
     logger?.info(
       `Frontmatter parts processing complete`,
       createLogContext({
@@ -806,31 +808,28 @@ export class FrontmatterDocumentTransformationPipeline {
       );
 
       // Return results even if some files failed (matching sequential behavior)
-      if (results.length === 0 && errors.length > 0) {
+      if (ValidationHelpers.isEmptyArray(results) && !ValidationHelpers.isEmptyArray(errors)) {
         return err(errors[0]);
       }
 
       return ok(results);
     } catch (error) {
-      const processingError = ErrorHandler.aggregation({
-        operation: "processFilesInParallel",
-        method: "handleParallelProcessing",
-      }).aggregationFailed(
-        `Parallel processing failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+      const processingError = ErrorHandlingUtils.handleException(
+        error,
+        "FrontmatterDocumentTransformationPipeline",
+        "processFilesInParallel"
       );
 
       logger?.error(
         "Parallel processing encountered an unexpected error",
         {
           operation: "parallel-processing-error",
-          error: "Parallel processing failed",
+          error: processingError.message,
           timestamp: new Date().toISOString(),
         },
       );
 
-      return processingError;
+      return err(processingError);
     }
   }
 
@@ -844,7 +843,7 @@ export class FrontmatterDocumentTransformationPipeline {
   ): Result<FrontmatterData, DomainError & { message: string }> {
     const derivationRules = schema.getDerivedRules();
 
-    if (derivationRules.length > 0) {
+    if (!ValidationHelpers.isEmptyArray(derivationRules)) {
       return this.aggregateWithDerivationRules(
         data,
         schema,
@@ -874,7 +873,7 @@ export class FrontmatterDocumentTransformationPipeline {
     }
 
     // Handle empty data by creating empty structure
-    if (data.length === 0) {
+    if (ValidationHelpers.isEmptyArray(data)) {
       const emptyStructureResult = SchemaPathResolver.createEmptyStructure(
         schema,
       );
@@ -931,7 +930,7 @@ export class FrontmatterDocumentTransformationPipeline {
     }
 
     // Handle empty data by creating empty structure
-    if (data.length === 0) {
+    if (ValidationHelpers.isEmptyArray(data)) {
       const emptyStructureResult = SchemaPathResolver.createEmptyStructure(
         schema,
       );
