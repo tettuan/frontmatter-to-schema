@@ -286,6 +286,48 @@ describe("PropertyPath", () => {
     });
   });
 
+  describe("Array Segment Methods", () => {
+    it("should get pre-array segments correctly", () => {
+      const result = PropertyPath.create("data.items[].id");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const preSegments = result.data.getPreArraySegments();
+        assertEquals(preSegments, ["data", "items"]);
+      }
+    });
+
+    it("should get post-array segments correctly", () => {
+      const result = PropertyPath.create("data.items[].id.full");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const postSegments = result.data.getPostArraySegments();
+        assertEquals(postSegments, ["id", "full"]);
+      }
+    });
+
+    it("should handle path with no array notation", () => {
+      const result = PropertyPath.create("data.items.id");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const preSegments = result.data.getPreArraySegments();
+        const postSegments = result.data.getPostArraySegments();
+        assertEquals(preSegments, ["data", "items", "id"]);
+        assertEquals(postSegments, []);
+      }
+    });
+
+    it("should handle array at end of path", () => {
+      const result = PropertyPath.create("data.items[]");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        const preSegments = result.data.getPreArraySegments();
+        const postSegments = result.data.getPostArraySegments();
+        assertEquals(preSegments, ["data", "items"]);
+        assertEquals(postSegments, []);
+      }
+    });
+  });
+
   describe("Typed Segments", () => {
     it("should provide typed segments for simple path", () => {
       const result = PropertyPath.create("user.name");

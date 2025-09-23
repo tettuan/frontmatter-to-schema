@@ -226,6 +226,40 @@ export class PropertyPath {
   }
 
   /**
+   * Get segments before array notation (including the property with array)
+   * Example: "data.items[].id" -> ["data", "items"]
+   */
+  getPreArraySegments(): string[] {
+    if (!this.hasArrayNotation) return [...this.segments];
+
+    // Parse the raw path to find which segment had array notation
+    const rawSegments = this.rawPath.split(".");
+    const arraySegmentIndex = rawSegments.findIndex(s => s.includes("[]"));
+
+    if (arraySegmentIndex === -1) return [...this.segments];
+
+    // Return segments up to and including the array segment (with [] removed)
+    return this.segments.slice(0, arraySegmentIndex + 1);
+  }
+
+  /**
+   * Get segments after array notation
+   * Example: "data.items[].id" -> ["id"]
+   */
+  getPostArraySegments(): string[] {
+    if (!this.hasArrayNotation) return [];
+
+    // Parse the raw path to find which segment had array notation
+    const rawSegments = this.rawPath.split(".");
+    const arraySegmentIndex = rawSegments.findIndex(s => s.includes("[]"));
+
+    if (arraySegmentIndex === -1) return [];
+
+    // Return segments after the array segment
+    return this.segments.slice(arraySegmentIndex + 1);
+  }
+
+  /**
    * Get path segments with type information
    * Returns detailed segment information for advanced use cases
    */

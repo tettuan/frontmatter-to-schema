@@ -173,7 +173,7 @@ export class PropertyExtractor {
 
   /**
    * Extract value with array expansion notation
-   * Handles paths like "traceability[].id.full"
+   * Handles paths like "traceability[].id.full" and complex nested arrays like "data.level1[].level2[].id"
    */
   private extractWithArrayExpansion(
     data: unknown,
@@ -214,7 +214,17 @@ export class PropertyExtractor {
       return ok(arrayData);
     }
 
-    // Extract from each array element
+    // Check if post-array segments contain more array expansions
+    const hasNestedArrayExpansion = postArraySegments.some((segment) =>
+      segment.includes("[]")
+    );
+
+    if (hasNestedArrayExpansion) {
+      // Handle nested array expansions recursively
+      return this.extractNestedArrayExpansions(arrayData, postArraySegments);
+    }
+
+    // Extract from each array element (original simple case)
     const results: unknown[] = [];
     for (const item of arrayData) {
       let itemCurrent: unknown = item;
@@ -233,6 +243,44 @@ export class PropertyExtractor {
       }
       if (itemCurrent !== undefined) {
         results.push(itemCurrent);
+      }
+    }
+
+    return ok(results);
+  }
+
+  /**
+   * Handle nested array expansions recursively
+   * For paths like ["level2[]", "id"] from "data.level1[].level2[].id"
+   */
+  private extractNestedArrayExpansions(
+    arrayData: unknown[],
+    postArraySegments: string[],
+  ): Result<unknown[], SchemaError> {
+    const results: unknown[] = [];
+
+    for (const item of arrayData) {
+      // Create a new path from remaining segments
+      const remainingPath = postArraySegments.join(".");
+      const pathResult = PropertyPath.create(remainingPath);
+
+      if (!pathResult.ok) {
+        // If path creation fails, skip this item
+        continue;
+      }
+
+      // Recursively extract from this item
+      const extractResult = this.extract(item, pathResult.data);
+
+      if (extractResult.ok) {
+        const extracted = extractResult.data;
+        if (Array.isArray(extracted)) {
+          // If result is array, flatten it into results
+          results.push(...extracted);
+        } else if (extracted !== undefined) {
+          // If result is single value, add it
+          results.push(extracted);
+        }
       }
     }
 
