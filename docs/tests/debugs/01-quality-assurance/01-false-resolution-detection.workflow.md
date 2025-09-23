@@ -7,11 +7,13 @@
 ## 問題の背景
 
 ### 発生パターン
+
 - コミットメッセージで「完全解決」を主張するが実際は問題継続
 - Issue を「解決済み」でクローズするが根本原因未解決
 - CI/CD 成功報告と実際の状況の乖離
 
 ### 具体例（Issue #1009）
+
 - コミット`ac593ba8`: "Complete TypeScript type check error resolution"
 - 実際の状況: `deno check **/*.ts` は依然として失敗
 - 結果: 開発プロセスの信頼性喪失
@@ -21,6 +23,7 @@
 ### Phase 1: Immediate Verification (30秒)
 
 #### 基本チェックコマンド
+
 ```bash
 # Step 1: 最新コミットが解決を主張しているかチェック
 git log --oneline -1 | grep -E "(fix|complete|resolve|close)" && echo "🔍 Resolution claim detected"
@@ -36,12 +39,14 @@ echo "⚠️  Architecture violations: $VIOLATIONS files"
 ```
 
 #### 判定基準
+
 - 解決主張があり、かつ技術チェックが失敗 → **False Resolution疑い**
 - アーキテクチャ違反が50+ファイル → **根本解決されていない**
 
 ### Phase 2: Detailed Analysis (5分)
 
 #### GitHub Issue 状況確認
+
 ```bash
 # Step 4: 解決済みとクレームされたIssueの確認
 echo "=== Recently Closed Issues ==="
@@ -58,6 +63,7 @@ git log --oneline --since="7 days ago" | grep -E "(fix|complete|resolve)" | nl
 ```
 
 #### 矛盾検出
+
 ```bash
 # Step 7: 矛盾パターンの検出
 echo "=== Contradiction Detection ==="
@@ -80,6 +86,7 @@ fi
 ### Phase 3: Automated Prevention (設定一回)
 
 #### GitHub Actions Integration
+
 ```yaml
 # .github/workflows/verify-resolution-claims.yml に設定
 name: Verify Resolution Claims
@@ -127,6 +134,7 @@ jobs:
 ## Implementation Scripts
 
 ### Quick Detection Script
+
 ```bash
 #!/bin/bash
 # scripts/detect-false-claims.sh
@@ -196,6 +204,7 @@ fi
 ```
 
 ### Comprehensive Analysis Script
+
 ```bash
 #!/bin/bash
 # scripts/analyze-resolution-integrity.sh
@@ -306,6 +315,7 @@ echo "📄 Full report saved to: $REPORT_FILE"
 ## Usage Instructions
 
 ### Daily Inspection Routine
+
 ```bash
 # 毎日のチェック（30秒）
 scripts/detect-false-claims.sh
@@ -315,11 +325,13 @@ scripts/analyze-resolution-integrity.sh
 ```
 
 ### Integration into Development Workflow
+
 1. **Pre-commit**: 解決主張コミット前に技術確認
 2. **Pre-merge**: PR時の自動検証
 3. **Post-release**: リリース後の整合性確認
 
 ### Alert Triggers
+
 - Type check失敗 + 解決主張コミット
 - 50+アーキテクチャ違反 + 完了主張
 - 5+Critical Issue open + 大量fix主張
@@ -327,11 +339,13 @@ scripts/analyze-resolution-integrity.sh
 ## Expected Outcomes
 
 ### 短期効果
+
 - 虚偽解決の即座検出
 - 開発者の意識向上
 - コミット品質の改善
 
 ### 長期効果
+
 - プロセス信頼性の回復
 - Issue管理の正確性向上
 - 技術債務の可視化
@@ -339,15 +353,18 @@ scripts/analyze-resolution-integrity.sh
 ## Maintenance
 
 ### Script Updates
+
 - 新しい技術チェック項目の追加
 - 検出精度の改善
 - False positive の調整
 
 ### Threshold Tuning
+
 - リスクスコア閾値の調整
 - 違反数上限の見直し
 - アラート感度の最適化
 
 ---
 
-**重要**: このワークフローは技術的問題よりも開発プロセスの整合性を重視します。虚偽解決の根本原因は「検証なしの完了宣言」であり、技術的な自動検証により予防可能です。
+**重要**:
+このワークフローは技術的問題よりも開発プロセスの整合性を重視します。虚偽解決の根本原因は「検証なしの完了宣言」であり、技術的な自動検証により予防可能です。
