@@ -15,7 +15,9 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
       throw new Error("Failed to create performance settings");
     }
 
-    const mergeOperations = new MergeOperations(defaultFrontmatterDataCreationService);
+    const mergeOperations = new MergeOperations(
+      defaultFrontmatterDataCreationService,
+    );
 
     const mockReader = {
       read: () => ok("# Test\nkey: value"),
@@ -41,11 +43,17 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
     };
 
     const mockAggregator = {
-      aggregate: () => ({ ok: true, data: { getData: () => ({ key: "value" }) } }),
+      aggregate: () => ({
+        ok: true,
+        data: { getData: () => ({ key: "value" }) },
+      }),
     };
 
     const mockBasePropertyPopulator = {
-      populate: () => ({ ok: true, data: { getData: () => ({ key: "value" }) } }),
+      populate: () => ({
+        ok: true,
+        data: { getData: () => ({ key: "value" }) },
+      }),
     };
 
     return {
@@ -141,7 +149,7 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
         assertEquals(result.error.kind, "ConfigurationError");
         assertEquals(
           result.error.message,
-          "Configuration error: File system services (reader and lister) are required"
+          "Configuration error: File system services (reader and lister) are required",
         );
       }
     });
@@ -172,7 +180,7 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
         assertEquals(result.error.kind, "ConfigurationError");
         assertEquals(
           result.error.message,
-          "Configuration error: All domain services (schemaValidation, aggregator, basePropertyPopulator) are required"
+          "Configuration error: All domain services (schemaValidation, aggregator, basePropertyPopulator) are required",
         );
       }
     });
@@ -185,7 +193,11 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
       const config = {
         processor: null as any,
         fileSystem: { reader: null as any, lister: null as any },
-        services: { schemaValidation: null as any, aggregator: null as any, basePropertyPopulator: null as any },
+        services: {
+          schemaValidation: null as any,
+          aggregator: null as any,
+          basePropertyPopulator: null as any,
+        },
         frontmatterDataCreationService: defaultFrontmatterDataCreationService,
         performanceSettings: deps.performanceSettings,
         mergeOperations: deps.mergeOperations,
@@ -211,7 +223,11 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
       const config = {
         processor: null as any,
         fileSystem: { reader: deps.mockReader, lister: deps.mockLister },
-        services: { schemaValidation: deps.mockSchemaValidation, aggregator: deps.mockAggregator, basePropertyPopulator: deps.mockBasePropertyPopulator },
+        services: {
+          schemaValidation: deps.mockSchemaValidation,
+          aggregator: deps.mockAggregator,
+          basePropertyPopulator: deps.mockBasePropertyPopulator,
+        },
         frontmatterDataCreationService: defaultFrontmatterDataCreationService,
         performanceSettings: deps.performanceSettings,
         mergeOperations: deps.mergeOperations,
