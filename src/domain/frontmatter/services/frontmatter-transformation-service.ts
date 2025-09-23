@@ -1817,6 +1817,17 @@ export class FrontmatterTransformationService {
       { sourcePath: string; targetField: string; unique: boolean }
     >,
   ): Result<FrontmatterData, DomainError & { message: string }> {
+    // Validate required baseData parameter
+    if (!baseData) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: "Base data is required for derivation rules application",
+        }),
+      };
+    }
+
     // Convert schema rules to domain rules with explicit error tracking
     const ruleConversion = this.convertDerivationRules(derivationRules);
 
@@ -1829,7 +1840,7 @@ export class FrontmatterTransformationService {
       createLogContext({
         operation: "derivation-rules-application",
         inputs: `ruleCount: ${rules.length}, baseDataKeys: ${
-          Object.keys(baseData.getData()).join(", ")
+          baseData ? Object.keys(baseData.getData()).join(", ") : "none"
         }`,
       }),
     );
