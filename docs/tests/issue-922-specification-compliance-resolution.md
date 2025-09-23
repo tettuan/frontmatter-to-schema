@@ -116,7 +116,7 @@ assertEquals(formatResult.data.isExtensionSupported(".json"), true);
 17. **x-template + x-template-items dual template** - Template config
     flexibility
 18. **JMESPath Filter + dynamic data filtering** - Filter config
-19. **x-merge-arrays + multi-file integration** - Merge strategy config
+19. **Array merging + multi-file integration** - Merge strategy config
 20. **Circular reference Schema + configurable detection** - Detection config
 21. **Large file processing + configurable memory limits** - Resource config
 22. **Internationalization + configurable encoding** - Locale config

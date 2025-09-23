@@ -1,6 +1,6 @@
 /**
  * @fileoverview Extraction Errors - Enhanced error types for property extraction operations
- * @description Provides detailed, user-friendly error messages for x-extract-from and related operations
+ * @description Provides detailed, user-friendly error messages for property extraction operations
  * Following DDD and Totality principles for comprehensive error handling
  */
 

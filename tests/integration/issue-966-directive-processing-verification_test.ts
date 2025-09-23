@@ -1,6 +1,6 @@
 /**
- * @fileoverview Issue #994 Verification Tests - Deprecated directive handling in schema processing
- * @description Robust tests to verify that deprecated x-extract-from and x-merge-arrays directives are handled gracefully
+ * @fileoverview Issue #1005 Verification Tests - Schema processing with remaining directives
+ * @description Robust tests to verify that schema processing works correctly with supported directives after deprecated directives removal
  * Following DDD, TDD, and Totality principles
  */
 
@@ -10,13 +10,13 @@ import { SchemaPath } from "../../src/domain/schema/value-objects/schema-path.ts
 import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-definition.ts";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
-Deno.test("Issue #994 Verification - Deprecated Directive Handling", async (t) => {
+Deno.test("Issue #1005 Verification - Supported Directive Processing", async (t) => {
   await t.step(
-    "should handle schemas with modern directives without deprecated ones",
+    "should handle schemas with supported directives",
     () => {
-      // This test verifies the Issue #994 fix:
-      // x-extract-from and x-merge-arrays directives have been deprecated and removed
-      // Schemas should still process successfully with supported directives only
+      // This test verifies the Issue #1005 fix:
+      // Deprecated directives have been removed from codebase and tests
+      // Schemas should process successfully with supported directives only
 
       // Schema without deprecated directives (modern approach)
       const schemaData = {
@@ -125,8 +125,8 @@ Deno.test("Issue #994 Verification - Deprecated Directive Handling", async (t) =
         "req should be an array",
       );
 
-      // Note: x-extract-from and x-merge-arrays directives have been deprecated
-      // Modern approach uses direct data structure without deprecated directives
+      // Note: Deprecated directives have been removed per Issue #1005
+      // Modern approach uses direct data structure with supported directives only
       const reqArray = processedData.req as any[];
       assertEquals(
         reqArray.length > 0,

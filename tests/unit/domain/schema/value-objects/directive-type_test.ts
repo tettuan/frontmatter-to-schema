@@ -54,13 +54,14 @@ describe("DirectiveType", () => {
 
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data.length, 8);
+        assertEquals(result.data.length, 9);
 
         // Verify all expected types are present
         const kinds = result.data.map((d) => d.getKind());
         const expectedKinds = [
           "frontmatter-part",
           "extract-from",
+          "flatten-arrays",
           "merge-arrays",
           "derived-from",
           "derived-unique",
@@ -83,23 +84,27 @@ describe("DirectiveType", () => {
     it("should define correct dependency relationships", () => {
       const frontmatterPartResult = DirectiveType.create("frontmatter-part");
       const extractFromResult = DirectiveType.create("extract-from");
+      const flattenArraysResult = DirectiveType.create("flatten-arrays");
       const mergeArraysResult = DirectiveType.create("merge-arrays");
       const derivedFromResult = DirectiveType.create("derived-from");
 
       assert(frontmatterPartResult.ok);
       assert(extractFromResult.ok);
+      assert(flattenArraysResult.ok);
       assert(mergeArraysResult.ok);
       assert(derivedFromResult.ok);
 
       const frontmatterPart = frontmatterPartResult.data;
       const extractFrom = extractFromResult.data;
+      const flattenArrays = flattenArraysResult.data;
       const mergeArrays = mergeArraysResult.data;
       const derivedFrom = derivedFromResult.data;
 
       // Test dependency relationships
       assertEquals(frontmatterPart.getDependencies().length, 0); // No dependencies
       assertEquals(extractFrom.getDependencies(), ["frontmatter-part"]);
-      assertEquals(mergeArrays.getDependencies(), ["extract-from"]);
+      assertEquals(flattenArrays.getDependencies(), ["extract-from"]);
+      assertEquals(mergeArrays.getDependencies(), ["flatten-arrays"]);
       assertEquals(derivedFrom.getDependencies(), ["merge-arrays"]);
     });
 
@@ -126,12 +131,13 @@ describe("DirectiveType", () => {
       const priorities = new Map<DirectiveTypeKind, number>([
         ["frontmatter-part", 1],
         ["extract-from", 2],
-        ["merge-arrays", 3],
-        ["derived-from", 4],
-        ["derived-unique", 5],
-        ["template", 6],
-        ["template-items", 7],
-        ["template-format", 8],
+        ["flatten-arrays", 3],
+        ["merge-arrays", 4],
+        ["derived-from", 5],
+        ["derived-unique", 6],
+        ["template", 7],
+        ["template-items", 8],
+        ["template-format", 9],
       ]);
 
       for (const [kind, expectedPriority] of priorities) {
@@ -155,6 +161,7 @@ describe("DirectiveType", () => {
         const expectedOrder: DirectiveTypeKind[] = [
           "frontmatter-part",
           "extract-from",
+          "flatten-arrays",
           "merge-arrays",
           "derived-from",
           "derived-unique",

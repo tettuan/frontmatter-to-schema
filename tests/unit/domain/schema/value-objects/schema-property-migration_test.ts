@@ -28,7 +28,6 @@ describe("SchemaPropertyMigration", () => {
   });
 
   it("handles deprecated directives gracefully", () => {
-    // Note: x-extract-from and x-merge-arrays directives have been deprecated
     // This test verifies that schemas with these deprecated directives
     // can still be processed without errors, even though the functionality is removed
     const legacyWithDeprecated = {

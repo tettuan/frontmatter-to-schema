@@ -10,6 +10,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 
 /**
  * Directive Processing Error Types
@@ -201,8 +202,6 @@ export class DirectiveProcessor {
       });
     }
 
-    // Note: x-extract-from directive has been deprecated and removed
-
     // Check for x-derived-from (via ValidationRules)
     // Note: This is detected indirectly through schema analysis
     const derivedFromPresent = this.hasDerivationDirectives(schema);
@@ -225,8 +224,28 @@ export class DirectiveProcessor {
       });
     }
 
+    // Check for x-flatten-arrays (via schema analysis)
+    const flattenArraysPresent = this.hasFlattenArraysDirectives(schema);
+    if (flattenArraysPresent) {
+      const typeResult = DirectiveType.create("flatten-arrays");
+      if (!typeResult.ok) {
+        return err({
+          kind: "ProcessingFailed",
+          directive: "flatten-arrays",
+          error: typeResult.error,
+          message: "Failed to create flatten-arrays directive type",
+        });
+      }
+
+      nodes.push({
+        id: "flatten-arrays",
+        type: typeResult.data,
+        schemaPath: "multiple", // Can be in multiple properties
+        isPresent: true,
+      });
+    }
+
     // Additional directive types will be detected as new features are implemented:
-    // - x-merge-arrays (aggregation directives)
     // - x-derived-unique (validation directives)
     // - x-template, x-template-items, x-template-format (template directives)
 
@@ -404,14 +423,13 @@ export class DirectiveProcessor {
         // Will handle frontmatter section directives when feature is developed
         return ok(data);
 
-      case "extract-from":
-        // Implement x-extract-from directive processing
-        return this.processExtractFromDirective(data, _schema, directiveNode);
-
       case "derived-from":
         // FEATURE: derived-from processing not yet implemented
         // Will handle derived data directives when feature is developed
         return ok(data);
+
+      case "flatten-arrays":
+        return this.processFlattenArraysDirective(data, _schema, directiveNode);
 
       default: {
         // ErrorHandler methods always return error Results
@@ -441,16 +459,18 @@ export class DirectiveProcessor {
       case 2:
         return "Data Extraction";
       case 3:
-        return "Array Merging";
+        return "Array Flattening";
       case 4:
-        return "Field Derivation";
+        return "Array Merging";
       case 5:
-        return "Uniqueness Processing";
+        return "Field Derivation";
       case 6:
-        return "Template Processing";
+        return "Uniqueness Processing";
       case 7:
-        return "Items Template Processing";
+        return "Template Processing";
       case 8:
+        return "Items Template Processing";
+      case 9:
         return "Format Processing";
       default:
         return `Processing Priority ${priority}`;
@@ -475,16 +495,246 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Process x-extract-from directive (deprecated)
-   * Note: x-extract-from directive has been deprecated and removed
+   * Check if schema has x-flatten-arrays directives
    */
-  private processExtractFromDirective(
+  private hasFlattenArraysDirectives(schema: Schema): boolean {
+    try {
+      const schemaDefinition = schema.getDefinition();
+      const schemaData = schemaDefinition.getRawSchema();
+      return this.searchForFlattenArraysInObject(schemaData);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Recursively search for x-flatten-arrays directive in schema object
+   */
+  private searchForFlattenArraysInObject(obj: unknown): boolean {
+    if (!obj || typeof obj !== "object") return false;
+
+    const record = obj as Record<string, unknown>;
+
+    // Check if current object has x-flatten-arrays in extensions
+    if (record.extensions && typeof record.extensions === "object") {
+      const extensions = record.extensions as Record<string, unknown>;
+      if (extensions["x-flatten-arrays"]) {
+        return true;
+      }
+    }
+
+    // Recursively check properties
+    if (record.properties && typeof record.properties === "object") {
+      const properties = record.properties as Record<string, unknown>;
+      for (const value of Object.values(properties)) {
+        if (this.searchForFlattenArraysInObject(value)) {
+          return true;
+        }
+      }
+    }
+
+    // Recursively check items
+    if (record.items && typeof record.items === "object") {
+      if (this.searchForFlattenArraysInObject(record.items)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Process x-flatten-arrays directive
+   */
+  private processFlattenArraysDirective(
     data: FrontmatterData,
-    _schema: Schema,
+    schema: Schema,
     _directiveNode: DirectiveNode,
   ): Result<FrontmatterData, DirectiveProcessingError> {
-    // Note: x-extract-from directive has been deprecated and removed
-    // Return data unchanged since no processing is needed
-    return ok(data);
+    try {
+      const schemaDefinition = schema.getDefinition();
+      const schemaData = schemaDefinition.getRawSchema();
+
+      // Process the data by flattening arrays according to schema directives
+      const processedData = this.applyFlattenArraysToData(
+        data.getData(),
+        schemaData,
+        "root",
+      );
+
+      // Create new FrontmatterData with processed data
+      const newDataResult = FrontmatterDataFactory.fromParsedData(
+        processedData,
+      );
+      if (!newDataResult.ok) {
+        return err({
+          kind: "ProcessingFailed",
+          directive: "flatten-arrays",
+          error: newDataResult.error,
+          message: "Failed to create FrontmatterData after flattening arrays",
+        });
+      }
+
+      return ok(newDataResult.data);
+    } catch (error) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: "flatten-arrays",
+        error: {
+          kind: "InvalidSchema",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        message: `Failed to process flatten-arrays directive: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      });
+    }
+  }
+
+  /**
+   * Apply array flattening to data according to schema directives
+   */
+  private applyFlattenArraysToData(
+    data: unknown,
+    schemaObj: unknown,
+    _currentPath: string,
+  ): unknown {
+    if (!data || !schemaObj || typeof schemaObj !== "object") {
+      return data;
+    }
+
+    let result = data;
+
+    // First, collect all flatten-arrays directives from the entire schema
+    const flattenDirectives = this.collectFlattenDirectives(schemaObj);
+
+    // Apply all flatten directives to the root data
+    if (
+      flattenDirectives.length > 0 && typeof result === "object" &&
+      result !== null
+    ) {
+      let dataRecord = result as Record<string, unknown>;
+
+      for (const directive of flattenDirectives) {
+        const targetValue = this.getNestedProperty(
+          dataRecord,
+          directive.target,
+        );
+        if (Array.isArray(targetValue)) {
+          const flattenedValue = this.flattenArray(targetValue);
+          dataRecord = this.setNestedProperty(
+            dataRecord,
+            directive.target,
+            flattenedValue,
+          );
+        }
+      }
+
+      result = dataRecord;
+    }
+
+    return result;
+  }
+
+  /**
+   * Collect all x-flatten-arrays directives from the schema
+   */
+  private collectFlattenDirectives(
+    schemaObj: unknown,
+  ): Array<{ target: string }> {
+    const directives: Array<{ target: string }> = [];
+
+    if (!schemaObj || typeof schemaObj !== "object") {
+      return directives;
+    }
+
+    const schema = schemaObj as Record<string, unknown>;
+
+    // Check current level for x-flatten-arrays directive
+    const extensions = schema.extensions as Record<string, unknown> | undefined;
+    if (extensions?.["x-flatten-arrays"]) {
+      const target = extensions["x-flatten-arrays"] as string;
+      directives.push({ target });
+    }
+
+    // Recursively check properties
+    if (schema.properties && typeof schema.properties === "object") {
+      const properties = schema.properties as Record<string, unknown>;
+      for (const propSchema of Object.values(properties)) {
+        directives.push(...this.collectFlattenDirectives(propSchema));
+      }
+    }
+
+    // Recursively check items
+    if (schema.items && typeof schema.items === "object") {
+      directives.push(...this.collectFlattenDirectives(schema.items));
+    }
+
+    return directives;
+  }
+
+  /**
+   * Flatten nested arrays recursively
+   */
+  private flattenArray(arr: unknown[]): unknown[] {
+    const result: unknown[] = [];
+
+    for (const item of arr) {
+      if (Array.isArray(item)) {
+        result.push(...this.flattenArray(item));
+      } else {
+        result.push(item);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get nested property value from object using dot notation
+   */
+  private getNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+  ): unknown {
+    const segments = path.split(".");
+    let current: unknown = obj;
+
+    for (const segment of segments) {
+      if (
+        current && typeof current === "object" &&
+        segment in (current as Record<string, unknown>)
+      ) {
+        current = (current as Record<string, unknown>)[segment];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Set nested property value in object using dot notation
+   */
+  private setNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): Record<string, unknown> {
+    const segments = path.split(".");
+    const result = { ...obj };
+    let current = result;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      if (!(segment in current) || typeof current[segment] !== "object") {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+
+    current[segments[segments.length - 1]] = value;
+    return result;
   }
 }

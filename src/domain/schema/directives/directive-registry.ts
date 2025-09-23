@@ -140,7 +140,7 @@ export class DirectiveRegistry {
   }
 
   /**
-   * Get directive configuration by name (e.g., "x-extract-from")
+   * Get directive configuration by name
    */
   getByName(
     name: string,

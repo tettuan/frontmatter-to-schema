@@ -1,5 +1,6 @@
 import { ok, Result } from "../../domain/shared/types/result.ts";
 import { DomainError } from "../../domain/shared/types/errors.ts";
+import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
@@ -131,11 +132,11 @@ export class PipelineCoordinator {
       return templatePathsResult;
     }
 
-    // Step 3: Process documents with optional items extraction and x-extract-from directives
+    // Step 3: Process documents with optional items extraction
     const processingOptions = config.processingOptions ||
       { kind: "sequential" };
     const processResult = await this.processingCoordinator
-      .processDocumentsWithFullExtraction(
+      .processDocuments(
         config.inputPattern,
         validationRules,
         schema,
@@ -145,7 +146,20 @@ export class PipelineCoordinator {
       return processResult;
     }
 
-    const { mainData, itemsData } = processResult.data;
+    const mainData = processResult.data;
+
+    // Extract items data if schema has frontmatter part
+    let itemsData: FrontmatterData[] | undefined;
+    const frontmatterPartResult = schema.findFrontmatterPartPath();
+    if (frontmatterPartResult.ok) {
+      const itemsResult = this.processingCoordinator.extractFrontmatterPartData(
+        mainData,
+        schema,
+      );
+      if (itemsResult.ok) {
+        itemsData = itemsResult.data;
+      }
+    }
 
     // Step 4: Convert verbosity config to mode
     const verbosityMode = this.convertVerbosityConfigToMode(

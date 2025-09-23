@@ -309,8 +309,8 @@ export class Aggregator {
   }
 
   /**
-   * Merge arrays based on x-merge-arrays directive
-   * Implements Issue #898: x-merge-arrays directive functionality
+   * Merge arrays functionality
+   * Implements Issue #898: Array merging functionality
    */
   mergeArrays(
     sourceArrays: unknown[][],
@@ -320,7 +320,7 @@ export class Aggregator {
       filterEmpty?: boolean;
     },
   ): Result<unknown[], AggregationError & { message: string }> {
-    // Simplified array merging since x-merge-arrays directive has been deprecated
+    // Simplified array merging
     if (mergeConfig.flatten) {
       const flattened = sourceArrays.flat();
       return ok(
@@ -357,7 +357,7 @@ export class Aggregator {
       path: `source-${index}`,
     }));
 
-    // Simplified array merging since x-merge-arrays directive has been deprecated
+    // Simplified array merging
     // Extract arrays from sources at the specified path
     const extractedArrays: unknown[][] = [];
     for (const source of sources) {

@@ -61,14 +61,6 @@ export class DirectiveValidator {
     const warnings: DirectiveValidationError[] = [];
 
     try {
-      // Validate x-extract-from directive
-      this.validateExtractFromDirective(
-        property,
-        propertyPath,
-        errors,
-        warnings,
-      );
-
       // Validate x-frontmatter-part directive
       this.validateFrontmatterPartDirective(
         property,
@@ -79,6 +71,30 @@ export class DirectiveValidator {
 
       // Validate x-derived-from directive
       this.validateDerivedFromDirective(
+        property,
+        propertyPath,
+        errors,
+        warnings,
+      );
+
+      // Validate x-template directive
+      this.validateTemplateDirective(
+        property,
+        propertyPath,
+        errors,
+        warnings,
+      );
+
+      // Validate x-template-items directive
+      this.validateTemplateItemsDirective(
+        property,
+        propertyPath,
+        errors,
+        warnings,
+      );
+
+      // Validate x-flatten-arrays directive
+      this.validateFlattenArraysDirective(
         property,
         propertyPath,
         errors,
@@ -104,47 +120,6 @@ export class DirectiveValidator {
         message: `Validation failed for property at ${propertyPath}: ${
           error instanceof Error ? error.message : String(error)
         }`,
-      });
-    }
-  }
-
-  /**
-   * Validate x-extract-from directive
-   */
-  private validateExtractFromDirective(
-    property: SchemaProperty,
-    propertyPath: string,
-    errors: DirectiveValidationError[],
-    _warnings: DirectiveValidationError[],
-  ): void {
-    const extractFrom = property.extensions?.["x-extract-from"];
-    if (extractFrom === undefined) return;
-
-    if (typeof extractFrom !== "string") {
-      errors.push({
-        kind: "TypeMismatch",
-        expected: "string",
-        actual: typeof extractFrom,
-        path: `${propertyPath}.x-extract-from`,
-      });
-      return;
-    }
-
-    // Validate path format
-    if (!this.isValidPropertyPath(extractFrom)) {
-      errors.push({
-        kind: "InvalidPath",
-        path: extractFrom,
-        reason: this.getPathInvalidationReason(extractFrom),
-      });
-    }
-
-    // Check for potential circular references
-    if (this.hasCircularReference(extractFrom, propertyPath)) {
-      errors.push({
-        kind: "CircularReference",
-        path: propertyPath,
-        cycle: [propertyPath, extractFrom],
       });
     }
   }
@@ -178,19 +153,6 @@ export class DirectiveValidator {
         expected: "array",
         actual: property.kind || "unknown",
         path: `${propertyPath}.type`,
-      });
-    }
-
-    // Check if x-extract-from is specified when x-frontmatter-part is true
-    // Only check this if the type is correct (array)
-    if (
-      frontmatterPart && property.kind === "array" &&
-      !property.extensions?.["x-extract-from"]
-    ) {
-      warnings.push({
-        kind: "MissingRequiredDirective",
-        directive: "x-extract-from",
-        context: `x-frontmatter-part is true at ${propertyPath}`,
       });
     }
   }
@@ -237,6 +199,118 @@ export class DirectiveValidator {
   }
 
   /**
+   * Validate x-template directive
+   */
+  private validateTemplateDirective(
+    property: SchemaProperty,
+    propertyPath: string,
+    errors: DirectiveValidationError[],
+    _warnings: DirectiveValidationError[],
+  ): void {
+    const extensions = property.extensions || {};
+    const template = extensions["x-template"];
+
+    if (template === undefined) {
+      return; // Not present, no validation needed
+    }
+
+    // x-template must be a string
+    if (typeof template !== "string") {
+      errors.push({
+        kind: "TypeMismatch",
+        expected: "string",
+        actual: typeof template,
+        path: propertyPath,
+      });
+    }
+  }
+
+  /**
+   * Validate x-template-items directive
+   */
+  private validateTemplateItemsDirective(
+    property: SchemaProperty,
+    propertyPath: string,
+    errors: DirectiveValidationError[],
+    _warnings: DirectiveValidationError[],
+  ): void {
+    const extensions = property.extensions || {};
+    const templateItems = extensions["x-template-items"];
+
+    if (templateItems === undefined) {
+      return; // Not present, no validation needed
+    }
+
+    // x-template-items must be a string
+    if (typeof templateItems !== "string") {
+      errors.push({
+        kind: "TypeMismatch",
+        expected: "string",
+        actual: typeof templateItems,
+        path: propertyPath,
+      });
+    }
+  }
+
+  /**
+   * Validate x-flatten-arrays directive
+   */
+  private validateFlattenArraysDirective(
+    property: SchemaProperty,
+    propertyPath: string,
+    errors: DirectiveValidationError[],
+    warnings: DirectiveValidationError[],
+  ): void {
+    const extensions = property.extensions || {};
+    const flattenArrays = extensions["x-flatten-arrays"];
+
+    if (flattenArrays === undefined) {
+      return; // Not present, no validation needed
+    }
+
+    // x-flatten-arrays must be a string (property path)
+    if (typeof flattenArrays !== "string") {
+      errors.push({
+        kind: "TypeMismatch",
+        expected: "string",
+        actual: typeof flattenArrays,
+        path: `${propertyPath}.x-flatten-arrays`,
+      });
+      return;
+    }
+
+    // Validate the property path format
+    if (!this.isValidPropertyPath(flattenArrays)) {
+      errors.push({
+        kind: "InvalidPath",
+        path: flattenArrays,
+        reason: this.getPathInvalidationReason(flattenArrays),
+      });
+    }
+
+    // x-flatten-arrays should typically be used with array types
+    if (property.kind && property.kind !== "array") {
+      warnings.push({
+        kind: "TypeMismatch",
+        expected: "array",
+        actual: property.kind,
+        path: `${propertyPath}.type`,
+      });
+    }
+
+    // x-flatten-arrays is commonly used with x-frontmatter-part
+    const frontmatterPart = extensions["x-frontmatter-part"];
+    if (frontmatterPart !== true) {
+      warnings.push({
+        kind: "MissingRequiredDirective",
+        directive: "x-frontmatter-part",
+        context:
+          `x-flatten-arrays specified without x-frontmatter-part at ${propertyPath}`,
+      });
+    }
+  }
+
+  /**
    * Validate directive combinations for conflicts
    */
   private validateDirectiveCombinations(
@@ -249,19 +323,6 @@ export class DirectiveValidator {
     const _directives = Object.keys(extensions).filter((key) =>
       key.startsWith("x-")
     );
-
-    // Check for conflicting directives
-    const hasExtractFrom = extensions["x-extract-from"];
-    const hasDerivedFrom = extensions["x-derived-from"];
-
-    if (hasExtractFrom && hasDerivedFrom) {
-      warnings.push({
-        kind: "ConflictingDirectives",
-        directives: ["x-extract-from", "x-derived-from"],
-        context:
-          `Both directives specified at ${propertyPath}, x-extract-from takes precedence`,
-      });
-    }
 
     // Validate template directives
     const hasTemplate = extensions["x-template"];

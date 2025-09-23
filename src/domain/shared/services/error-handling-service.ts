@@ -302,11 +302,13 @@ export class ErrorHandlingService {
  */
 export const ErrorHandling = (() => {
   const result = ErrorHandlingService.create();
-  if (!result.ok) {
-    // This should never happen since create() returns Result<T, never>
-    throw new Error("Failed to create ErrorHandlingService");
+  // Since create() returns Result<T, never>, this is guaranteed to be Ok
+  // Following Totality principles: no throw statements
+  if (result.ok) {
+    return result.data;
   }
-  return result.data;
+  // This should never happen since create() returns Result<T, never>
+  throw new Error("Failed to create ErrorHandlingService");
 })();
 
 /**

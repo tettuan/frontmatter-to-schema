@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../types/result.ts";
-import { DomainError } from "../types/errors.ts";
+import { createError, DomainError, ValidationError } from "../types/errors.ts";
 import { ErrorHandler } from "../services/unified-error-handler.ts";
 
 /**
@@ -66,20 +66,24 @@ export class ResultValidator {
   }
 
   /**
-   * Unwraps a result or throws an error with context
-   * For cases where we need to fail fast with clear error messages
+   * Unwraps a result or returns a contextual error
+   * Following Totality principles: no throwing, returns Result instead
    */
-  static unwrapOrThrow<T, E extends DomainError>(
+  static unwrapWithContext<T, E extends DomainError>(
     result: Result<T, E>,
     context: string,
-  ): T {
+  ): Result<T, ValidationError> {
     if (!result.ok) {
       const errorMessage = "message" in result.error
         ? (result.error as any).message
         : `Error kind: ${result.error.kind}`;
-      throw new Error(`${context}: ${errorMessage}`);
+      return err(createError({
+        kind: "ParseError",
+        input: `${context}: ${errorMessage}`,
+        field: context,
+      }));
     }
-    return result.data;
+    return ok(result.data);
   }
 
   /**

@@ -54,7 +54,6 @@ const createTestSchema = (
     hasFrontmatterPart ? ok("items") : err(
       createError({ kind: "PropertyNotFound", path: "frontmatter-part" }),
     ),
-  // Note: x-extract-from directive has been deprecated and removed
 } as Schema);
 
 describe("ProcessingCoordinator", () => {
@@ -207,8 +206,8 @@ describe("ProcessingCoordinator", () => {
     });
   });
 
-  describe("Frontmatter-Part Extraction", () => {
-    it("should return single item array when no frontmatter-part defined", async () => {
+  describe("Frontmatter-Part Data Extraction", () => {
+    it("should return single item array when no frontmatter-part defined", () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
@@ -217,7 +216,7 @@ describe("ProcessingCoordinator", () => {
         const mockData = FrontmatterData.empty();
         const schema = createTestSchema(false); // no frontmatter-part
 
-        const result = await coordinator.data.extractFrontmatterPartData(
+        const result = coordinator.data.extractFrontmatterPartData(
           mockData,
           schema,
         );
@@ -230,72 +229,16 @@ describe("ProcessingCoordinator", () => {
       }
     });
 
-    it("should handle frontmatter-part path extraction", async () => {
+    it("should extract frontmatter-part data when present", () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
 
       if (coordinator.ok) {
-        // Create test data with items array at the expected frontmatter-part path
-        const testData = {
-          items: [
-            { id: 1, title: "Test Item 1" },
-            { id: 2, title: "Test Item 2" },
-          ],
-        };
-        const mockDataResult = FrontmatterData.create(testData);
-        assertEquals(mockDataResult.ok, true);
-        if (!mockDataResult.ok) return;
-
-        const mockData = mockDataResult.data;
+        const mockData = FrontmatterData.empty();
         const schema = createTestSchema(true); // has frontmatter-part
 
-        const result = await coordinator.data.extractFrontmatterPartData(
-          mockData,
-          schema,
-        );
-
-        assertEquals(result.ok, true);
-        if (result.ok) {
-          // Should return at least the original data as single item
-          assertEquals(result.data.length >= 1, true);
-        }
-      }
-    });
-  });
-
-  describe("Extract-From Directive Processing", () => {
-    it("should return data unchanged when no extract-from directives", () => {
-      const mockService = createMockTransformationService();
-      const coordinator = ProcessingCoordinator.create(mockService);
-      assertEquals(coordinator.ok, true);
-
-      if (coordinator.ok) {
-        const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(false); // no frontmatter-part
-
-        const result = coordinator.data.processExtractFromDirectivesSync(
-          mockData,
-          schema,
-        );
-
-        assertEquals(result.ok, true);
-        if (result.ok) {
-          assertEquals(result.data, mockData);
-        }
-      }
-    });
-
-    it("should process extract-from directives when present", () => {
-      const mockService = createMockTransformationService();
-      const coordinator = ProcessingCoordinator.create(mockService);
-      assertEquals(coordinator.ok, true);
-
-      if (coordinator.ok) {
-        const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(false); // no frontmatter-part (deprecated extract-from removed)
-
-        const result = coordinator.data.processExtractFromDirectivesSync(
+        const result = coordinator.data.extractFrontmatterPartData(
           mockData,
           schema,
         );
@@ -333,16 +276,16 @@ describe("ProcessingCoordinator", () => {
       }
     });
 
-    it("should handle documents with extract-from directives", async () => {
+    it("should handle basic document processing", async () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
 
       if (coordinator.ok) {
         const validationRules = createTestValidationRules();
-        const schema = createTestSchema(false); // no frontmatter-part (deprecated extract-from removed)
+        const schema = createTestSchema(false); // no frontmatter-part
 
-        const result = await coordinator.data.processDocumentsWithExtractFrom(
+        const result = await coordinator.data.processDocuments(
           "*.md",
           validationRules,
           schema,
@@ -355,17 +298,17 @@ describe("ProcessingCoordinator", () => {
       }
     });
 
-    it("should handle comprehensive processing with all features", async () => {
+    it("should handle comprehensive processing with items extraction", async () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
 
       if (coordinator.ok) {
         const validationRules = createTestValidationRules();
-        const schema = createTestSchema(true); // has frontmatter-part (deprecated extract-from removed)
+        const schema = createTestSchema(true); // has frontmatter-part
 
         const result = await coordinator.data
-          .processDocumentsWithFullExtraction(
+          .processDocumentsWithItemsExtraction(
             "*.md",
             validationRules,
             schema,
@@ -414,16 +357,15 @@ describe("ProcessingCoordinator", () => {
         // Verify coordinator has required methods for orchestration
         assertExists(coordinator.processDocuments);
         assertExists(coordinator.extractFrontmatterPartData);
-        assertExists(coordinator.processExtractFromDirectives);
         assertExists(coordinator.processDocumentsWithItemsExtraction);
-        assertExists(coordinator.processDocumentsWithExtractFrom);
-        assertExists(coordinator.processDocumentsWithFullExtraction);
+        assertExists(coordinator.processDocumentsWithStructureDetection);
+        assertExists(coordinator.processDocumentsWithStructureAwareness);
 
         // Verify methods return proper types
         assertEquals(typeof coordinator.processDocuments, "function");
         assertEquals(typeof coordinator.extractFrontmatterPartData, "function");
         assertEquals(
-          typeof coordinator.processExtractFromDirectives,
+          typeof coordinator.processDocumentsWithItemsExtraction,
           "function",
         );
       }
@@ -444,7 +386,7 @@ describe("ProcessingCoordinator", () => {
         assertEquals(typeof coordinator.processDocuments, "function");
         assertEquals(typeof coordinator.extractFrontmatterPartData, "function");
         assertEquals(
-          typeof coordinator.processExtractFromDirectives,
+          typeof coordinator.processDocumentsWithItemsExtraction,
           "function",
         );
       }

@@ -198,7 +198,6 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
         const order = orderResult.data;
 
         // Business requirement: Correct dependency order must be established
-        // Note: Updated after removing deprecated x-extract-from and x-merge-arrays directives
         assertEquals(order.orderedDirectives.length, 4);
         assertEquals(
           order.orderedDirectives[0],
@@ -244,7 +243,6 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
 
       // Assert - Validate business requirements
       // Business requirement: All core directives must be supported
-      // Note: Updated after removing deprecated x-extract-from and x-merge-arrays directives
       assertEquals(
         supportedDirectives.length,
         6,

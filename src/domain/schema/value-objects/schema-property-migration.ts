@@ -46,6 +46,7 @@ export interface LegacySchemaProperty {
   readonly "x-derived-from"?: string;
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string;
+  readonly "x-flatten-arrays"?: string;
   readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
   readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
   readonly default?: unknown; // Standard JSON Schema default property
@@ -135,34 +136,83 @@ export class SchemaPropertyMigration {
     const registry = defaultSchemaExtensionRegistry;
     const extensions = {} as Record<string, unknown>;
 
-    // Only include extensions that actually exist (not undefined)
-    if (legacy["x-template"] !== undefined) {
-      extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
+    // Check for extensions in wrapper object (new format)
+    const extensionsWrapper = (legacy as any).extensions;
+    if (extensionsWrapper && typeof extensionsWrapper === "object") {
+      // Extract from extensions wrapper object
+      if (extensionsWrapper["x-template"] !== undefined) {
+        extensions[registry.getTemplateKey().getValue()] =
+          extensionsWrapper["x-template"];
+      }
+      if (extensionsWrapper["x-frontmatter-part"] !== undefined) {
+        extensions[registry.getFrontmatterPartKey().getValue()] =
+          extensionsWrapper["x-frontmatter-part"];
+      }
+      if (extensionsWrapper["x-derived-from"] !== undefined) {
+        extensions[registry.getDerivedFromKey().getValue()] =
+          extensionsWrapper["x-derived-from"];
+      }
+      if (extensionsWrapper["x-derived-unique"] !== undefined) {
+        extensions[registry.getDerivedUniqueKey().getValue()] =
+          extensionsWrapper["x-derived-unique"];
+      }
+      if (extensionsWrapper["x-template-items"] !== undefined) {
+        extensions[registry.getTemplateItemsKey().getValue()] =
+          extensionsWrapper["x-template-items"];
+      }
+      if (extensionsWrapper["x-template-format"] !== undefined) {
+        extensions[registry.getTemplateFormatKey().getValue()] =
+          extensionsWrapper["x-template-format"];
+      }
+      if (extensionsWrapper["x-jmespath-filter"] !== undefined) {
+        extensions[registry.getJmespathFilterKey().getValue()] =
+          extensionsWrapper["x-jmespath-filter"];
+      }
+      if (extensionsWrapper["x-flatten-arrays"] !== undefined) {
+        extensions[registry.getFlattenArraysKey().getValue()] =
+          extensionsWrapper["x-flatten-arrays"];
+      }
+      if (extensionsWrapper.description !== undefined) {
+        extensions.description = extensionsWrapper.description;
+      }
     }
-    if (legacy["x-frontmatter-part"] !== undefined) {
-      extensions[registry.getFrontmatterPartKey().getValue()] =
-        legacy["x-frontmatter-part"];
+
+    // Check for direct properties (legacy format) - fallback if no extensions wrapper
+    if (Object.keys(extensions).length === 0) {
+      if (legacy["x-template"] !== undefined) {
+        extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
+      }
+      if (legacy["x-frontmatter-part"] !== undefined) {
+        extensions[registry.getFrontmatterPartKey().getValue()] =
+          legacy["x-frontmatter-part"];
+      }
+      if (legacy["x-derived-from"] !== undefined) {
+        extensions[registry.getDerivedFromKey().getValue()] =
+          legacy["x-derived-from"];
+      }
+      if (legacy["x-derived-unique"] !== undefined) {
+        extensions[registry.getDerivedUniqueKey().getValue()] =
+          legacy["x-derived-unique"];
+      }
+      if (legacy["x-template-items"] !== undefined) {
+        extensions[registry.getTemplateItemsKey().getValue()] =
+          legacy["x-template-items"];
+      }
+      if (legacy["x-template-format"] !== undefined) {
+        extensions[registry.getTemplateFormatKey().getValue()] =
+          legacy["x-template-format"];
+      }
+      if (legacy["x-jmespath-filter"] !== undefined) {
+        extensions[registry.getJmespathFilterKey().getValue()] =
+          legacy["x-jmespath-filter"];
+      }
+      if (legacy["x-flatten-arrays"] !== undefined) {
+        extensions[registry.getFlattenArraysKey().getValue()] =
+          legacy["x-flatten-arrays"];
+      }
     }
-    if (legacy["x-derived-from"] !== undefined) {
-      extensions[registry.getDerivedFromKey().getValue()] =
-        legacy["x-derived-from"];
-    }
-    if (legacy["x-derived-unique"] !== undefined) {
-      extensions[registry.getDerivedUniqueKey().getValue()] =
-        legacy["x-derived-unique"];
-    }
-    if (legacy["x-template-items"] !== undefined) {
-      extensions[registry.getTemplateItemsKey().getValue()] =
-        legacy["x-template-items"];
-    }
-    if (legacy["x-template-format"] !== undefined) {
-      extensions[registry.getTemplateFormatKey().getValue()] =
-        legacy["x-template-format"];
-    }
-    if (legacy["x-jmespath-filter"] !== undefined) {
-      extensions[registry.getJmespathFilterKey().getValue()] =
-        legacy["x-jmespath-filter"];
-    }
+
+    // Description can be in either place
     if (legacy.description !== undefined) {
       extensions.description = legacy.description;
     }
@@ -420,6 +470,8 @@ export class SchemaPropertyLegacyAdapter {
           | undefined,
       "x-jmespath-filter": schema.extensions
         ?.[registry.getJmespathFilterKey().getValue()] as string | undefined,
+      "x-flatten-arrays": schema.extensions
+        ?.[registry.getFlattenArraysKey().getValue()] as string | undefined,
     };
 
     switch (schema.kind) {

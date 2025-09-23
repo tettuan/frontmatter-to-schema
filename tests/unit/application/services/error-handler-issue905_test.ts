@@ -69,7 +69,7 @@ describe("ErrorHandler Issue #905 Enhancements", () => {
         properties: {
           field: {
             type: "string",
-            "x-extract-from": "valid.path",
+            "x-frontmatter-part": "valid.path",
           },
         },
       };
