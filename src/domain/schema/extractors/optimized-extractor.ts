@@ -594,6 +594,9 @@ export class OptimizedPropertyExtractorFactory {
       maxConcurrentExtractions: 5,
       timeoutMs: 5000,
       pathCacheConfig: {
+        maxSize: 50,
+        defaultTtl: 1000,
+        enableMetrics: true,
         maxPathEntries: 50,
         maxExtractionEntries: 25,
         pathTtlMs: 1000,
@@ -616,6 +619,9 @@ export class OptimizedPropertyExtractorFactory {
       maxConcurrentExtractions: 50,
       timeoutMs: 60000,
       pathCacheConfig: {
+        maxSize: 5000,
+        defaultTtl: 60 * 60 * 1000, // 1 hour
+        enableMetrics: true,
         maxPathEntries: 5000,
         maxExtractionEntries: 2000,
         pathTtlMs: 60 * 60 * 1000, // 1 hour
