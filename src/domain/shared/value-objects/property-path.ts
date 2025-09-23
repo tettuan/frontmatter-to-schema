@@ -234,7 +234,7 @@ export class PropertyPath {
 
     // Parse the raw path to find which segment had array notation
     const rawSegments = this.rawPath.split(".");
-    const arraySegmentIndex = rawSegments.findIndex(s => s.includes("[]"));
+    const arraySegmentIndex = rawSegments.findIndex((s) => s.includes("[]"));
 
     if (arraySegmentIndex === -1) return [...this.segments];
 
@@ -251,7 +251,7 @@ export class PropertyPath {
 
     // Parse the raw path to find which segment had array notation
     const rawSegments = this.rawPath.split(".");
-    const arraySegmentIndex = rawSegments.findIndex(s => s.includes("[]"));
+    const arraySegmentIndex = rawSegments.findIndex((s) => s.includes("[]"));
 
     if (arraySegmentIndex === -1) return [];
 

@@ -464,10 +464,8 @@ Deno.test("x-extract-from pipeline integration", async (t) => {
 
     const extractedData = extractResult.data.getData();
     assertEquals(Array.isArray(extractedData.ids), true);
-    // Note: The path data.level1[].level2[].id doesn't work as expected
-    // This would require more complex path parsing
-    // For now, just verify it creates an empty array
-    assertEquals((extractedData.ids as any[]).length, 0);
+    // Now complex nested path data.level1[].level2[].id works correctly
+    assertEquals(extractedData.ids, ["1-1", "1-2", "2-1", "2-2"]);
   });
 });
 
