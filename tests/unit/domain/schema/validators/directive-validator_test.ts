@@ -219,6 +219,127 @@ describe("DirectiveValidator", () => {
     });
   });
 
+  describe("x-flatten-arrays Directive Validation", () => {
+    it("should validate correct x-flatten-arrays directive", () => {
+      const property: SchemaProperty = {
+        kind: "array",
+        items: { kind: "string" },
+        extensions: {
+          "x-frontmatter-part": true,
+          "x-flatten-arrays": "traceability",
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, true);
+        assertEquals(result.data.errors.length, 0);
+      }
+    });
+
+    it("should error on invalid x-flatten-arrays type", () => {
+      const property: SchemaProperty = {
+        kind: "array",
+        items: { kind: "string" },
+        extensions: {
+          "x-flatten-arrays": 123, // Should be string
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, false);
+        assertEquals(result.data.errors.length, 1);
+        assertEquals(result.data.errors[0].kind, "TypeMismatch");
+        if (result.data.errors[0].kind === "TypeMismatch") {
+          assertEquals(result.data.errors[0].expected, "string");
+          assertEquals(result.data.errors[0].actual, "number");
+        }
+      }
+    });
+
+    it("should error on invalid property path", () => {
+      const property: SchemaProperty = {
+        kind: "array",
+        items: { kind: "string" },
+        extensions: {
+          "x-flatten-arrays": "..invalid.path", // Invalid path
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, false);
+        assertEquals(result.data.errors.length, 1);
+        assertEquals(result.data.errors[0].kind, "InvalidPath");
+      }
+    });
+
+    it("should warn when x-flatten-arrays is used without x-frontmatter-part", () => {
+      const property: SchemaProperty = {
+        kind: "array",
+        items: { kind: "string" },
+        extensions: {
+          "x-flatten-arrays": "traceability",
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, true);
+        assertEquals(result.data.warnings.length, 1);
+        assertEquals(result.data.warnings[0].kind, "MissingRequiredDirective");
+        if (result.data.warnings[0].kind === "MissingRequiredDirective") {
+          assertEquals(result.data.warnings[0].directive, "x-frontmatter-part");
+        }
+      }
+    });
+
+    it("should warn when x-flatten-arrays is used on non-array type", () => {
+      const property: SchemaProperty = {
+        kind: "string",
+        extensions: {
+          "x-flatten-arrays": "traceability",
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, true);
+        assertEquals(result.data.warnings.length, 2); // Type warning + missing frontmatter-part
+        assertEquals(result.data.warnings[0].kind, "TypeMismatch");
+        if (result.data.warnings[0].kind === "TypeMismatch") {
+          assertEquals(result.data.warnings[0].expected, "array");
+          assertEquals(result.data.warnings[0].actual, "string");
+        }
+      }
+    });
+
+    it("should allow empty string path", () => {
+      const property: SchemaProperty = {
+        kind: "array",
+        items: { kind: "string" },
+        extensions: {
+          "x-frontmatter-part": true,
+          "x-flatten-arrays": "",
+        },
+      };
+
+      const result = validator.validateProperty(property, "test.property");
+      assertEquals(result.ok, true);
+      if (result.ok) {
+        assertEquals(result.data.isValid, false);
+        assertEquals(result.data.errors.length, 1);
+        assertEquals(result.data.errors[0].kind, "InvalidPath");
+      }
+    });
+  });
+
   describe("Schema-wide Validation", () => {
     it("should validate complex schema with multiple directives", () => {
       const schema = {

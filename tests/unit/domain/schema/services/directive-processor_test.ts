@@ -469,4 +469,278 @@ describe("DirectiveProcessor", () => {
       }
     });
   });
+
+  describe("x-flatten-arrays directive processing", () => {
+    it("should discover x-flatten-arrays directive", () => {
+      const schemaData = {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
+            items: { type: "object" },
+          },
+        },
+      };
+
+      const schema = createTestSchema(schemaData);
+      assert(schema !== null);
+
+      const processorResult = DirectiveProcessor.create();
+      assert(processorResult.ok);
+
+      if (schema !== null && processorResult.ok) {
+        const processor = processorResult.data;
+
+        const orderResult = processor.resolveProcessingOrder(schema);
+        assertEquals(orderResult.ok, true);
+
+        if (orderResult.ok) {
+          const order = orderResult.data;
+
+          // Should discover flatten-arrays directive
+          const flattenArraysNode = order.dependencyGraph.find(
+            node => node.id === "flatten-arrays"
+          );
+          assert(flattenArraysNode !== undefined);
+          assertEquals(flattenArraysNode.isPresent, true);
+
+          // Should be in Array Flattening phase
+          const flattenPhase = order.phases.find(
+            phase => phase.description === "Array Flattening"
+          );
+          assert(flattenPhase !== undefined);
+        }
+      }
+    });
+
+    it("should process x-flatten-arrays directive correctly", () => {
+      const inputData = {
+        traceability: ["A", ["B", "C"], "D", [["E"], "F"]],
+        other: "value",
+      };
+
+      const dataResult = FrontmatterDataFactory.fromParsedData(inputData);
+      assert(dataResult.ok);
+
+      const schemaData = {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
+            items: { type: "object" },
+          },
+        },
+      };
+
+      const schema = createTestSchema(schemaData);
+      assert(schema !== null);
+
+      const processorResult = DirectiveProcessor.create();
+      assert(processorResult.ok);
+
+      if (dataResult.ok && schema !== null && processorResult.ok) {
+        const data = dataResult.data;
+        const processor = processorResult.data;
+
+        const orderResult = processor.resolveProcessingOrder(schema);
+        assert(orderResult.ok);
+
+        if (orderResult.ok) {
+          const order = orderResult.data;
+
+          const processResult = processor.processDirectives(
+            data,
+            schema,
+            order,
+          );
+          assertEquals(processResult.ok, true);
+
+          if (processResult.ok) {
+            const processedData = processResult.data.getData();
+
+            // Should flatten the traceability array
+            const expectedData = {
+              traceability: ["A", "B", "C", "D", "E", "F"],
+              other: "value",
+            };
+
+            assertEquals(processedData, expectedData);
+          }
+        }
+      }
+    });
+
+    it("should handle single values in flatten arrays", () => {
+      const inputData = {
+        traceability: "single-value",
+        other: "value",
+      };
+
+      const dataResult = FrontmatterDataFactory.fromParsedData(inputData);
+      assert(dataResult.ok);
+
+      const schemaData = {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            extensions: {
+              "x-frontmatter-part": true,
+              "x-flatten-arrays": "traceability",
+            },
+            items: { type: "object" },
+          },
+        },
+      };
+
+      const schema = createTestSchema(schemaData);
+      assert(schema !== null);
+
+      const processorResult = DirectiveProcessor.create();
+      assert(processorResult.ok);
+
+      if (dataResult.ok && schema !== null && processorResult.ok) {
+        const data = dataResult.data;
+        const processor = processorResult.data;
+
+        const orderResult = processor.resolveProcessingOrder(schema);
+        assert(orderResult.ok);
+
+        if (orderResult.ok) {
+          const order = orderResult.data;
+
+          const processResult = processor.processDirectives(
+            data,
+            schema,
+            order,
+          );
+          assertEquals(processResult.ok, true);
+
+          if (processResult.ok) {
+            const processedData = processResult.data.getData();
+
+            // Should handle non-array values gracefully
+            assertEquals(processedData.traceability, "single-value");
+            assertEquals(processedData.other, "value");
+          }
+        }
+      }
+    });
+
+    it("should handle missing target property", () => {
+      const inputData = {
+        other: "value",
+      };
+
+      const dataResult = FrontmatterDataFactory.fromParsedData(inputData);
+      assert(dataResult.ok);
+
+      const schemaData = {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            extensions: {
+              "x-frontmatter-part": true,
+              "x-flatten-arrays": "traceability", // Property doesn't exist in data
+            },
+            items: { type: "object" },
+          },
+        },
+      };
+
+      const schema = createTestSchema(schemaData);
+      assert(schema !== null);
+
+      const processorResult = DirectiveProcessor.create();
+      assert(processorResult.ok);
+
+      if (dataResult.ok && schema !== null && processorResult.ok) {
+        const data = dataResult.data;
+        const processor = processorResult.data;
+
+        const orderResult = processor.resolveProcessingOrder(schema);
+        assert(orderResult.ok);
+
+        if (orderResult.ok) {
+          const order = orderResult.data;
+
+          const processResult = processor.processDirectives(
+            data,
+            schema,
+            order,
+          );
+          assertEquals(processResult.ok, true);
+
+          if (processResult.ok) {
+            const processedData = processResult.data.getData();
+
+            // Should handle missing property gracefully
+            assertEquals(processedData.other, "value");
+            assertEquals(processedData.traceability, undefined);
+          }
+        }
+      }
+    });
+
+    it("should place flatten-arrays in correct processing order", () => {
+      const schemaData = {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            extensions: {
+              "x-frontmatter-part": true,
+              "x-flatten-arrays": "traceability",
+            },
+            items: { type: "object" },
+          },
+          derived: {
+            type: "string",
+            extensions: {
+              "x-derived-from": "items.field",
+            },
+          },
+        },
+      };
+
+      const schema = createTestSchema(schemaData);
+      assert(schema !== null);
+
+      const processorResult = DirectiveProcessor.create();
+      assert(processorResult.ok);
+
+      if (schema !== null && processorResult.ok) {
+        const processor = processorResult.data;
+
+        const orderResult = processor.resolveProcessingOrder(schema);
+        assertEquals(orderResult.ok, true);
+
+        if (orderResult.ok) {
+          const order = orderResult.data;
+
+          const phaseDescriptions = order.phases.map(p => p.description);
+
+          // Array Flattening should come before Array Merging
+          const flattenIndex = phaseDescriptions.indexOf("Array Flattening");
+          const mergeIndex = phaseDescriptions.indexOf("Array Merging");
+
+          if (flattenIndex !== -1 && mergeIndex !== -1) {
+            assert(flattenIndex < mergeIndex, "Array Flattening should come before Array Merging");
+          }
+
+          // Array Flattening should come after Data Extraction
+          const extractionIndex = phaseDescriptions.indexOf("Data Extraction");
+
+          if (flattenIndex !== -1 && extractionIndex !== -1) {
+            assert(extractionIndex < flattenIndex, "Data Extraction should come before Array Flattening");
+          }
+        }
+      }
+    });
+  });
 });

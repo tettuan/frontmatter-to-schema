@@ -93,14 +93,18 @@ describe("ResultValidator", () => {
     });
   });
 
-  describe("unwrapOrThrow", () => {
-    it("returns value if successful", () => {
+  describe("unwrapWithContext", () => {
+    it("returns successful result with value", () => {
       const result = ok(42);
-      const value = ResultValidator.unwrapOrThrow(result, "test context");
-      assertEquals(value, 42);
+      const contextResult = ResultValidator.unwrapWithContext(
+        result,
+        "test context",
+      );
+      assert(contextResult.ok);
+      assertEquals(contextResult.data, 42);
     });
 
-    it("throws error with context if failed", () => {
+    it("returns error result with context if failed", () => {
       const error = createError({
         kind: "InvalidType",
         expected: "string",
@@ -108,14 +112,17 @@ describe("ResultValidator", () => {
       });
       const result = err(error);
 
-      try {
-        ResultValidator.unwrapOrThrow(result, "test context");
-        throw new Error("Should have thrown");
-      } catch (e) {
-        assertEquals(e instanceof Error, true);
-        if (e instanceof Error) {
+      const contextResult = ResultValidator.unwrapWithContext(
+        result,
+        "test context",
+      );
+      assert(!contextResult.ok);
+      if (!contextResult.ok) {
+        assertEquals(contextResult.error.kind, "ParseError");
+        if (contextResult.error.kind === "ParseError") {
+          assertEquals(contextResult.error.field, "test context");
           assertEquals(
-            e.message,
+            contextResult.error.input,
             "test context: Expected type string, got number",
           );
         }

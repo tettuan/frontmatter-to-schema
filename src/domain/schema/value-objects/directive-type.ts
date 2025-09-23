@@ -15,6 +15,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 export type DirectiveTypeKind =
   | "frontmatter-part"
   | "extract-from"
+  | "flatten-arrays"
   | "merge-arrays"
   | "derived-from"
   | "derived-unique"
@@ -73,6 +74,7 @@ export class DirectiveType {
     const allKinds: DirectiveTypeKind[] = [
       "frontmatter-part",
       "extract-from",
+      "flatten-arrays",
       "merge-arrays",
       "derived-from",
       "derived-unique",
@@ -124,7 +126,8 @@ export class DirectiveType {
     return new Map([
       ["frontmatter-part", []], // No dependencies - foundation
       ["extract-from", ["frontmatter-part"]], // Needs data structure
-      ["merge-arrays", ["extract-from"]], // Needs extracted data
+      ["flatten-arrays", ["extract-from"]], // Needs extracted data
+      ["merge-arrays", ["flatten-arrays"]], // Needs flattened arrays
       ["derived-from", ["merge-arrays"]], // Needs final data structure
       ["derived-unique", ["derived-from"]], // Needs derived fields
       ["template", ["derived-unique"]], // Needs all processing complete
@@ -141,12 +144,13 @@ export class DirectiveType {
     return new Map([
       ["frontmatter-part", 1],
       ["extract-from", 2],
-      ["merge-arrays", 3],
-      ["derived-from", 4],
-      ["derived-unique", 5],
-      ["template", 6],
-      ["template-items", 7],
-      ["template-format", 8],
+      ["flatten-arrays", 3],
+      ["merge-arrays", 4],
+      ["derived-from", 5],
+      ["derived-unique", 6],
+      ["template", 7],
+      ["template-items", 8],
+      ["template-format", 9],
     ]);
   }
 

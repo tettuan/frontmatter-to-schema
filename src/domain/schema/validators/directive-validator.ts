@@ -93,6 +93,14 @@ export class DirectiveValidator {
         warnings,
       );
 
+      // Validate x-flatten-arrays directive
+      this.validateFlattenArraysDirective(
+        property,
+        propertyPath,
+        errors,
+        warnings,
+      );
+
       // Validate directive combinations
       this.validateDirectiveCombinations(
         property,
@@ -240,6 +248,63 @@ export class DirectiveValidator {
         expected: "string",
         actual: typeof templateItems,
         path: propertyPath,
+      });
+    }
+  }
+
+  /**
+   * Validate x-flatten-arrays directive
+   */
+  private validateFlattenArraysDirective(
+    property: SchemaProperty,
+    propertyPath: string,
+    errors: DirectiveValidationError[],
+    warnings: DirectiveValidationError[],
+  ): void {
+    const extensions = property.extensions || {};
+    const flattenArrays = extensions["x-flatten-arrays"];
+
+    if (flattenArrays === undefined) {
+      return; // Not present, no validation needed
+    }
+
+    // x-flatten-arrays must be a string (property path)
+    if (typeof flattenArrays !== "string") {
+      errors.push({
+        kind: "TypeMismatch",
+        expected: "string",
+        actual: typeof flattenArrays,
+        path: `${propertyPath}.x-flatten-arrays`,
+      });
+      return;
+    }
+
+    // Validate the property path format
+    if (!this.isValidPropertyPath(flattenArrays)) {
+      errors.push({
+        kind: "InvalidPath",
+        path: flattenArrays,
+        reason: this.getPathInvalidationReason(flattenArrays),
+      });
+    }
+
+    // x-flatten-arrays should typically be used with array types
+    if (property.kind && property.kind !== "array") {
+      warnings.push({
+        kind: "TypeMismatch",
+        expected: "array",
+        actual: property.kind,
+        path: `${propertyPath}.type`,
+      });
+    }
+
+    // x-flatten-arrays is commonly used with x-frontmatter-part
+    const frontmatterPart = extensions["x-frontmatter-part"];
+    if (frontmatterPart !== true) {
+      warnings.push({
+        kind: "MissingRequiredDirective",
+        directive: "x-frontmatter-part",
+        context: `x-flatten-arrays specified without x-frontmatter-part at ${propertyPath}`,
       });
     }
   }
