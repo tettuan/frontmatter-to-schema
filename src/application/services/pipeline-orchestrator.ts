@@ -485,10 +485,16 @@ export class PipelineOrchestrator {
       "document-processing",
       "document-processing",
       { start: docProcessingStart, end: docProcessingEnd },
-      { resourcesProcessed: documentsResult.data.length },
+      {
+        resourcesProcessed: Array.isArray(documentsResult.data.mainData)
+          ? documentsResult.data.mainData.length
+          : 1,
+      },
       {
         inputPattern: config.inputPattern,
-        documentsProcessed: documentsResult.data.length,
+        documentsProcessed: Array.isArray(documentsResult.data.mainData)
+          ? documentsResult.data.mainData.length
+          : 1,
       },
     );
 
@@ -499,7 +505,9 @@ export class PipelineOrchestrator {
         docProcessingDuration,
         5000,
         {
-          resourceCount: documentsResult.data.length,
+          resourceCount: Array.isArray(documentsResult.data.mainData)
+            ? documentsResult.data.mainData.length
+            : 1,
         },
       );
     }
@@ -516,39 +524,53 @@ export class PipelineOrchestrator {
         ? templatePathsResult.data.outputFormat.format
         : "json";
 
-    // Extract itemsData from x-frontmatter-part if defined
-    let itemsData: FrontmatterData[] | undefined;
+    // Use itemsData from document processing if available, otherwise fallback to original logic
+    let itemsData: FrontmatterData[] | undefined =
+      documentsResult.data.itemsData;
 
-    // Check if schema has x-frontmatter-part directive
-    const frontmatterPartResult = schemaResult.data.findFrontmatterPartPath();
-    if (frontmatterPartResult.ok && documentsResult.data.length > 0) {
-      // Extract items from the frontmatter part path
-      const mainDoc = documentsResult.data[0];
-      const itemsResult = mainDoc.get(frontmatterPartResult.data);
+    // If no itemsData from processing, check for fallback behavior
+    if (!itemsData) {
+      const mainDataArray = Array.isArray(documentsResult.data.mainData)
+        ? documentsResult.data.mainData
+        : [documentsResult.data.mainData];
 
-      if (itemsResult.ok && Array.isArray(itemsResult.data)) {
-        // Convert raw items to FrontmatterData array
-        const convertedItems: FrontmatterData[] = [];
-        for (const item of itemsResult.data) {
-          const itemDataResult = FrontmatterData.create(item);
-          if (itemDataResult.ok) {
-            convertedItems.push(itemDataResult.data);
+      // Check if schema has x-frontmatter-part directive for fallback extraction
+      const frontmatterPartResult = schemaResult.data.findFrontmatterPartPath();
+      if (frontmatterPartResult.ok && mainDataArray.length > 0) {
+        // Extract items from the frontmatter part path
+        const mainDoc = mainDataArray[0];
+        const itemsResult = mainDoc.get(frontmatterPartResult.data);
+
+        if (itemsResult.ok && Array.isArray(itemsResult.data)) {
+          // Convert raw items to FrontmatterData array
+          const convertedItems: FrontmatterData[] = [];
+          for (const item of itemsResult.data) {
+            const itemDataResult = FrontmatterData.create(item);
+            if (itemDataResult.ok) {
+              convertedItems.push(itemDataResult.data);
+            }
           }
+          itemsData = convertedItems.length > 0 ? convertedItems : undefined;
         }
-        itemsData = convertedItems.length > 0 ? convertedItems : undefined;
+      } else if (mainDataArray.length > 1) {
+        // Fallback: if multiple documents, use them as itemsData
+        itemsData = mainDataArray;
       }
-    } else if (documentsResult.data.length > 1) {
-      // Fallback: if multiple documents, use them as itemsData
-      itemsData = documentsResult.data;
     }
 
     const outputResult = this.templateCoordinator.renderOutput(
       templatePathsResult.data.templatePath,
       templatePathsResult.data.itemsTemplatePath,
-      documentsResult.data[0] || (() => {
-        const result = FrontmatterData.create({});
-        return result.ok ? result.data : documentsResult.data[0];
-      })(),
+      (Array.isArray(documentsResult.data.mainData)
+        ? documentsResult.data.mainData[0]
+        : documentsResult.data.mainData) || (() => {
+          const result = FrontmatterData.create({});
+          return result.ok
+            ? result.data
+            : (Array.isArray(documentsResult.data.mainData)
+              ? documentsResult.data.mainData[0]
+              : documentsResult.data.mainData);
+        })(),
       itemsData,
       config.outputPath,
       outputFormat,
@@ -571,7 +593,9 @@ export class PipelineOrchestrator {
       {
         duration,
         reason: "Pipeline execution completed successfully",
-        resourcesProcessed: documentsResult.data.length,
+        resourcesProcessed: Array.isArray(documentsResult.data.mainData)
+          ? documentsResult.data.mainData.length
+          : 1,
       },
     );
 
@@ -585,7 +609,9 @@ export class PipelineOrchestrator {
 
     const metricsEndResult = this.metricsService.completePipelineExecution(
       this.stateManager.getExecutionId(),
-      documentsResult.data.length,
+      Array.isArray(documentsResult.data.mainData)
+        ? documentsResult.data.mainData.length
+        : 1,
       0, // errors count
     );
     if (!metricsEndResult.ok) {
@@ -599,7 +625,9 @@ export class PipelineOrchestrator {
     if (finalMetricsResult.ok) {
       this.loggingService.info("Pipeline execution completed", {
         duration: `${duration}ms`,
-        documentsProcessed: documentsResult.data.length,
+        documentsProcessed: Array.isArray(documentsResult.data.mainData)
+          ? documentsResult.data.mainData.length
+          : 1,
         metrics: finalMetricsResult.data,
       });
     }

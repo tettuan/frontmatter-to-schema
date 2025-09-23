@@ -102,7 +102,12 @@ export class DocumentProcessingService {
     config: DocumentProcessingConfig,
     validationRules: ValidationRules,
     schema: Schema,
-  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
+  ): Promise<
+    Result<
+      { mainData: FrontmatterData[]; itemsData?: FrontmatterData[] },
+      DomainError & { message: string }
+    >
+  > {
     const startTime = performance.now();
     const initialMemory = Deno.memoryUsage();
 
@@ -192,20 +197,29 @@ export class DocumentProcessingService {
         );
 
       if (fullResult.ok) {
-        // Convert to FrontmatterData format expected by the rest of the pipeline
-        processedDataResult = ok(fullResult.data.mainData);
+        // Return both main data and items data for template rendering
+        processedDataResult = ok({
+          mainData: [fullResult.data.mainData],
+          itemsData: fullResult.data.itemsData,
+        });
       } else {
         processedDataResult = fullResult;
       }
     } else if (hasExtractFrom) {
       // Use extract-from processing when only x-extract-from is present
-      processedDataResult = await this.processingCoordinator
+      const extractResult = await this.processingCoordinator
         .processDocumentsWithExtractFrom(
           config.inputPattern,
           validationRules,
           schema,
           processingOptions,
         );
+
+      if (extractResult.ok) {
+        processedDataResult = ok({ mainData: [extractResult.data] });
+      } else {
+        processedDataResult = extractResult;
+      }
     } else if (hasFrontmatterPart) {
       // Use items extraction when only x-frontmatter-part is present
       const itemsResult = await this.processingCoordinator
@@ -217,20 +231,29 @@ export class DocumentProcessingService {
         );
 
       if (itemsResult.ok) {
-        // Convert to FrontmatterData format expected by the rest of the pipeline
-        processedDataResult = ok(itemsResult.data.mainData);
+        // Return both main data and items data for template rendering
+        processedDataResult = ok({
+          mainData: [itemsResult.data.mainData],
+          itemsData: itemsResult.data.itemsData,
+        });
       } else {
         processedDataResult = itemsResult;
       }
     } else {
       // Use basic processing when no special directives are present
-      processedDataResult = await this.processingCoordinator
+      const basicResult = await this.processingCoordinator
         .processDocuments(
           config.inputPattern,
           validationRules,
           schema,
           processingOptions,
         );
+
+      if (basicResult.ok) {
+        processedDataResult = ok({ mainData: [basicResult.data] });
+      } else {
+        processedDataResult = basicResult;
+      }
     }
 
     if (!processedDataResult.ok) {
@@ -264,8 +287,8 @@ export class DocumentProcessingService {
     const finalMemory = Deno.memoryUsage();
 
     const metrics: DocumentProcessingMetrics = {
-      documentsProcessed: Array.isArray(processedDataResult.data)
-        ? processedDataResult.data.length
+      documentsProcessed: Array.isArray(processedDataResult.data.mainData)
+        ? processedDataResult.data.mainData.length
         : 1,
       processingTimeMs: Math.floor(endTime - startTime),
       memoryUsageMB: {
@@ -308,11 +331,7 @@ export class DocumentProcessingService {
       },
     );
 
-    return ok(
-      Array.isArray(processedDataResult.data)
-        ? processedDataResult.data
-        : [processedDataResult.data],
-    );
+    return ok(processedDataResult.data);
   }
 
   /**
