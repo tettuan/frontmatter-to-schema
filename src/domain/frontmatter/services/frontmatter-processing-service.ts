@@ -1,6 +1,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { DebugLogger } from "../../shared/services/debug-logger.ts";
+import { createEnhancedDebugLogger } from "../../shared/services/enhanced-debug-logger.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
@@ -72,11 +73,68 @@ export type DocumentProcessingError =
  * - Handle validation and bounds monitoring
  * - Provide structured error handling with Result<T,E> pattern
  * - Log processing decisions for debugging
+ * - Address Issue #1024: Enhanced debugging with component-based filtering
  */
 export class FrontmatterProcessingService {
+  private readonly enhancedLogger: DebugLogger;
+
   private constructor(
     private readonly config: FrontmatterProcessingServiceConfig,
-  ) {}
+  ) {
+    // Initialize enhanced logger for Issue #1024 resolution
+    const loggerResult = createEnhancedDebugLogger("frontmatter-processing");
+    this.enhancedLogger = loggerResult.ok ? loggerResult.data : {
+      log: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      error: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      warn: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      info: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      debug: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      trace: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      withContext: () => this,
+    } as any;
+  }
 
   /**
    * Smart Constructor following Totality principles
@@ -132,7 +190,19 @@ export class FrontmatterProcessingService {
   ): Promise<
     Result<DocumentProcessingResult, DomainError & { message: string }>
   > {
-    logger?.debug("Starting document processing", {
+    // Use enhanced logger for Issue #1024 - improved debugging efficiency
+    const activeLogger = logger || this.enhancedLogger;
+
+    // Enhanced debugging with data structure analysis
+    if ("analyzeDataStructure" in activeLogger) {
+      (activeLogger as any).analyzeDataStructure("processing-options", options);
+      (activeLogger as any).trackFlow("document-processing-start", {
+        fileCount: filePaths.length,
+        strategy: options.useParallel ? "parallel" : "sequential",
+      });
+    }
+
+    activeLogger?.debug("Starting document processing", {
       operation: "document-processing",
       fileCount: filePaths.length,
       strategy: options.useParallel ? "parallel" : "sequential",
@@ -146,14 +216,14 @@ export class FrontmatterProcessingService {
         validationRules,
         options,
         boundsMonitor,
-        logger,
+        activeLogger,
       );
     } else {
       return this.processDocumentsSequentially(
         filePaths,
         validationRules,
         boundsMonitor,
-        logger,
+        activeLogger,
       );
     }
   }
