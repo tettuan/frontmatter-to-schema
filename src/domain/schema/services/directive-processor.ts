@@ -559,11 +559,13 @@ export class DirectiveProcessor {
       const processedData = this.applyFlattenArraysToData(
         data.getData(),
         schemaData,
-        "root"
+        "root",
       );
 
       // Create new FrontmatterData with processed data
-      const newDataResult = FrontmatterDataFactory.fromParsedData(processedData);
+      const newDataResult = FrontmatterDataFactory.fromParsedData(
+        processedData,
+      );
       if (!newDataResult.ok) {
         return err({
           kind: "ProcessingFailed",
@@ -595,51 +597,80 @@ export class DirectiveProcessor {
   private applyFlattenArraysToData(
     data: unknown,
     schemaObj: unknown,
-    currentPath: string,
+    _currentPath: string,
   ): unknown {
     if (!data || !schemaObj || typeof schemaObj !== "object") {
       return data;
     }
 
-    const schema = schemaObj as Record<string, unknown>;
-    const extensions = schema.extensions as Record<string, unknown> | undefined;
+    let result = data;
 
-    // Check if this schema level has x-flatten-arrays directive
-    if (extensions?.["x-flatten-arrays"]) {
-      const flattenTarget = extensions["x-flatten-arrays"] as string;
+    // First, collect all flatten-arrays directives from the entire schema
+    const flattenDirectives = this.collectFlattenDirectives(schemaObj);
 
-      // Apply flattening to the target property
-      if (typeof data === "object" && data !== null) {
-        const dataRecord = data as Record<string, unknown>;
-        const targetValue = this.getNestedProperty(dataRecord, flattenTarget);
+    // Apply all flatten directives to the root data
+    if (
+      flattenDirectives.length > 0 && typeof result === "object" &&
+      result !== null
+    ) {
+      let dataRecord = result as Record<string, unknown>;
 
+      for (const directive of flattenDirectives) {
+        const targetValue = this.getNestedProperty(
+          dataRecord,
+          directive.target,
+        );
         if (Array.isArray(targetValue)) {
           const flattenedValue = this.flattenArray(targetValue);
-          return this.setNestedProperty(dataRecord, flattenTarget, flattenedValue);
-        }
-      }
-    }
-
-    // Recursively process nested properties
-    if (typeof data === "object" && data !== null && schema.properties) {
-      const dataRecord = data as Record<string, unknown>;
-      const properties = schema.properties as Record<string, unknown>;
-      const result = { ...dataRecord };
-
-      for (const [key, propSchema] of Object.entries(properties)) {
-        if (key in result) {
-          result[key] = this.applyFlattenArraysToData(
-            result[key],
-            propSchema,
-            `${currentPath}.${key}`
+          dataRecord = this.setNestedProperty(
+            dataRecord,
+            directive.target,
+            flattenedValue,
           );
         }
       }
 
-      return result;
+      result = dataRecord;
     }
 
-    return data;
+    return result;
+  }
+
+  /**
+   * Collect all x-flatten-arrays directives from the schema
+   */
+  private collectFlattenDirectives(
+    schemaObj: unknown,
+  ): Array<{ target: string }> {
+    const directives: Array<{ target: string }> = [];
+
+    if (!schemaObj || typeof schemaObj !== "object") {
+      return directives;
+    }
+
+    const schema = schemaObj as Record<string, unknown>;
+
+    // Check current level for x-flatten-arrays directive
+    const extensions = schema.extensions as Record<string, unknown> | undefined;
+    if (extensions?.["x-flatten-arrays"]) {
+      const target = extensions["x-flatten-arrays"] as string;
+      directives.push({ target });
+    }
+
+    // Recursively check properties
+    if (schema.properties && typeof schema.properties === "object") {
+      const properties = schema.properties as Record<string, unknown>;
+      for (const propSchema of Object.values(properties)) {
+        directives.push(...this.collectFlattenDirectives(propSchema));
+      }
+    }
+
+    // Recursively check items
+    if (schema.items && typeof schema.items === "object") {
+      directives.push(...this.collectFlattenDirectives(schema.items));
+    }
+
+    return directives;
   }
 
   /**
@@ -662,12 +693,18 @@ export class DirectiveProcessor {
   /**
    * Get nested property value from object using dot notation
    */
-  private getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
+  private getNestedProperty(
+    obj: Record<string, unknown>,
+    path: string,
+  ): unknown {
     const segments = path.split(".");
     let current: unknown = obj;
 
     for (const segment of segments) {
-      if (current && typeof current === "object" && segment in (current as Record<string, unknown>)) {
+      if (
+        current && typeof current === "object" &&
+        segment in (current as Record<string, unknown>)
+      ) {
         current = (current as Record<string, unknown>)[segment];
       } else {
         return undefined;

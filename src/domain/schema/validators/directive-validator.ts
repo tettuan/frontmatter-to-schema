@@ -304,7 +304,8 @@ export class DirectiveValidator {
       warnings.push({
         kind: "MissingRequiredDirective",
         directive: "x-frontmatter-part",
-        context: `x-flatten-arrays specified without x-frontmatter-part at ${propertyPath}`,
+        context:
+          `x-flatten-arrays specified without x-frontmatter-part at ${propertyPath}`,
       });
     }
   }

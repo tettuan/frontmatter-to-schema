@@ -64,6 +64,13 @@ export class SchemaExtensionKey {
   }
 
   /**
+   * Smart Constructor for flatten-arrays extension key
+   */
+  static flattenArrays(): SchemaExtensionKey {
+    return new SchemaExtensionKey("x-flatten-arrays");
+  }
+
+  /**
    * Get the string value of the extension key
    */
   getValue(): string {
@@ -99,6 +106,7 @@ export class SchemaExtensionRegistry {
     private readonly derivedUniqueKey: SchemaExtensionKey,
     private readonly jmespathFilterKey: SchemaExtensionKey,
     private readonly templateFormatKey: SchemaExtensionKey,
+    private readonly flattenArraysKey: SchemaExtensionKey,
   ) {}
 
   /**
@@ -114,6 +122,7 @@ export class SchemaExtensionRegistry {
       SchemaExtensionKey.derivedUnique(),
       SchemaExtensionKey.jmespathFilter(),
       SchemaExtensionKey.templateFormat(),
+      SchemaExtensionKey.flattenArrays(),
     );
   }
 
@@ -167,6 +176,13 @@ export class SchemaExtensionRegistry {
   }
 
   /**
+   * Get flatten-arrays extension key
+   */
+  getFlattenArraysKey(): SchemaExtensionKey {
+    return this.flattenArraysKey;
+  }
+
+  /**
    * Get all registered extension keys
    */
   getAllKeys(): SchemaExtensionKey[] {
@@ -178,6 +194,7 @@ export class SchemaExtensionRegistry {
       this.derivedUniqueKey,
       this.jmespathFilterKey,
       this.templateFormatKey,
+      this.flattenArraysKey,
     ];
   }
 
