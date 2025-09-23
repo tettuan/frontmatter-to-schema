@@ -17,6 +17,7 @@ import {
   DomainLogger,
   NullDomainLogger,
 } from "../../domain/shared/services/domain-logger.ts";
+import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 
 /**
  * Directive processing context for a single execution
@@ -333,14 +334,13 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Process an individual directive (placeholder implementation)
+   * Process an individual directive with actual implementation
    */
-  private processDirective(
+  private async processDirective(
     directive: DirectiveType,
     data: FrontmatterData[],
     context: DirectiveProcessingContext,
   ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
-    // Placeholder implementation - each directive type would have specific logic
     this.domainLogger.logDebug(
       "directive-processing",
       `[DIRECTIVE-ORDER-DEBUG] Processing ${directive} with ${data.length} data items`,
@@ -351,14 +351,106 @@ export class DirectiveProcessor {
       },
     );
 
-    // FEATURE: Specific directive processing logic to be implemented
-    // This will delegate to existing services:
-    // - x-frontmatter-part: FrontmatterTransformationService
-    // - x-extract-from: ExtractFromProcessor
-    // - x-derived-from: DerivationProcessor
-    // - etc.
+    // Implement actual directive processing logic
+    switch (directive) {
+      case "x-extract-from":
+        return await this.processExtractFromDirective(data, context);
 
-    return Promise.resolve(ok(data)); // Placeholder - return data unchanged
+      case "x-frontmatter-part":
+        // Already handled by FrontmatterTransformationService in pipeline
+        // This processor focuses on post-frontmatter-part directives
+        return ok(data);
+
+      case "x-derived-from":
+        // Future implementation for DerivationProcessor
+        this.domainLogger.logDebug(
+          "directive-processing",
+          `[DIRECTIVE-ORDER-DEBUG] x-derived-from directive not yet implemented`,
+          { executionId: context.executionId },
+        );
+        return ok(data);
+
+      case "x-jmespath-filter":
+        // Future implementation for JMESPathFilterService
+        this.domainLogger.logDebug(
+          "directive-processing",
+          `[DIRECTIVE-ORDER-DEBUG] x-jmespath-filter directive not yet implemented`,
+          { executionId: context.executionId },
+        );
+        return ok(data);
+
+      default:
+        this.domainLogger.logDebug(
+          "directive-processing",
+          `[DIRECTIVE-ORDER-DEBUG] Unknown directive ${directive}, skipping`,
+          { executionId: context.executionId, directive },
+        );
+        return ok(data);
+    }
+  }
+
+  /**
+   * Process x-extract-from directive using ExtractFromProcessor
+   */
+  private async processExtractFromDirective(
+    data: FrontmatterData[],
+    context: DirectiveProcessingContext,
+  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
+    const extractFromProcessorResult = ExtractFromProcessor.create();
+    if (!extractFromProcessorResult.ok) {
+      return extractFromProcessorResult;
+    }
+
+    const processor = extractFromProcessorResult.data;
+    const processedData: FrontmatterData[] = [];
+
+    for (const dataItem of data) {
+      // Get x-extract-from directives from schema
+      const directivesResult = context.schema.getExtractFromDirectives();
+      if (!directivesResult.ok) {
+        this.domainLogger.logError(
+          "directive-processing",
+          `[DIRECTIVE-ORDER-DEBUG] Failed to get extract-from directives: ${directivesResult.error.message}`,
+          { executionId: context.executionId },
+        );
+        continue; // Skip this data item but continue processing others
+      }
+
+      if (directivesResult.data.length === 0) {
+        // No x-extract-from directives, pass data through unchanged
+        processedData.push(dataItem);
+        continue;
+      }
+
+      // Process x-extract-from directives
+      const processResult = await processor.processDirectives(
+        dataItem,
+        directivesResult.data,
+      );
+
+      if (!processResult.ok) {
+        this.domainLogger.logError(
+          "directive-processing",
+          `[DIRECTIVE-ORDER-DEBUG] Failed to process extract-from directives: ${processResult.error.message}`,
+          { executionId: context.executionId },
+        );
+        continue; // Skip this data item but continue processing others
+      }
+
+      processedData.push(processResult.data);
+    }
+
+    this.domainLogger.logDebug(
+      "directive-processing",
+      `[DIRECTIVE-ORDER-DEBUG] Processed ${data.length} items with x-extract-from, resulting in ${processedData.length} items`,
+      {
+        executionId: context.executionId,
+        inputCount: data.length,
+        outputCount: processedData.length,
+      },
+    );
+
+    return ok(processedData);
   }
 
   /**

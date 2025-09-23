@@ -10,6 +10,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { ExtractFromProcessor } from "./extract-from-processor.ts";
 
 /**
  * Directive Processing Error Types
@@ -423,9 +424,8 @@ export class DirectiveProcessor {
         return ok(data);
 
       case "extract-from":
-        // FEATURE: extract-from processing not yet implemented
-        // Will handle data extraction directives when feature is developed
-        return ok(data);
+        // Implement x-extract-from directive processing
+        return this.processExtractFromDirective(data, _schema, directiveNode);
 
       case "derived-from":
         // FEATURE: derived-from processing not yet implemented
@@ -491,5 +491,60 @@ export class DirectiveProcessor {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Process x-extract-from directive using ExtractFromProcessor
+   */
+  private processExtractFromDirective(
+    data: FrontmatterData,
+    schema: Schema,
+    directiveNode: DirectiveNode,
+  ): Result<FrontmatterData, DirectiveProcessingError> {
+    // Create ExtractFromProcessor
+    const extractFromProcessorResult = ExtractFromProcessor.create();
+    if (!extractFromProcessorResult.ok) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: directiveNode.type.getKind(),
+        error: extractFromProcessorResult.error,
+        message: `Failed to create ExtractFromProcessor: ${extractFromProcessorResult.error.message}`,
+      });
+    }
+
+    const processor = extractFromProcessorResult.data;
+
+    // Get x-extract-from directives from schema
+    const directivesResult = schema.getExtractFromDirectives();
+    if (!directivesResult.ok) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: directiveNode.type.getKind(),
+        error: directivesResult.error,
+        message: `Failed to get extract-from directives: ${directivesResult.error.message}`,
+      });
+    }
+
+    if (directivesResult.data.length === 0) {
+      // No x-extract-from directives, pass data through unchanged
+      return ok(data);
+    }
+
+    // Process x-extract-from directives synchronously (domain service requirement)
+    const processResult = processor.processDirectivesSync(
+      data,
+      directivesResult.data,
+    );
+
+    if (!processResult.ok) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: directiveNode.type.getKind(),
+        error: processResult.error,
+        message: `Failed to process extract-from directives: ${processResult.error.message}`,
+      });
+    }
+
+    return ok(processResult.data);
   }
 }
