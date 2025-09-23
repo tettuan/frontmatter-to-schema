@@ -68,22 +68,6 @@ export class Template {
   }
 
   /**
-   * Create template with optional configuration (Legacy compatibility)
-   * @deprecated Use createWithDefaultConfig() or createWithCustomConfig() instead
-   */
-  static create(
-    path: TemplatePath,
-    content: unknown,
-    formatConfig?: TemplateFormatConfig,
-  ): Result<Template, TemplateError & { message: string }> {
-    if (formatConfig) {
-      return Template.createWithCustomConfig(path, content, formatConfig);
-    } else {
-      return Template.createWithDefaultConfig(path, content);
-    }
-  }
-
-  /**
    * Internal template creation logic shared by all factory methods
    */
   private static createInternal(

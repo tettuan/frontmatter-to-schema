@@ -16,7 +16,10 @@ function createTestTemplate(
     throw new Error("Failed to create template path");
   }
 
-  const templateResult = Template.create(pathResult.data, content);
+  const templateResult = Template.createWithDefaultConfig(
+    pathResult.data,
+    content,
+  );
   if (!isOk(templateResult)) {
     throw new Error("Failed to create template");
   }

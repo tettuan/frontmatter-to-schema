@@ -591,8 +591,11 @@ export class OutputRenderingService {
 
     const templateContent = parseResult.data;
 
-    // Create Template entity
-    return Template.create(templatePathResult.data, templateContent);
+    // Create Template entity with default configuration
+    return Template.createWithDefaultConfig(
+      templatePathResult.data,
+      templateContent,
+    );
   }
 
   /**

@@ -24,7 +24,10 @@ function createTestTemplate(content: unknown): Template {
     throw new Error("Failed to create template path");
   }
 
-  const templateResult = Template.create(pathResult.data, content);
+  const templateResult = Template.createWithDefaultConfig(
+    pathResult.data,
+    content,
+  );
   if (!templateResult.ok) {
     throw new Error("Failed to create template");
   }
@@ -185,7 +188,10 @@ describe("TemplateStructureAnalyzer", () => {
         const pathResult = TemplatePath.create("test-template.json");
         if (!pathResult.ok) throw new Error("Failed to create template path");
 
-        const templateResult = Template.create(pathResult.data, "");
+        const templateResult = Template.createWithDefaultConfig(
+          pathResult.data,
+          "",
+        );
 
         // Assert - Should fail to create template with empty content
         assertEquals(templateResult.ok, false);
@@ -525,7 +531,10 @@ describe("TemplateStructureAnalyzer", () => {
         const pathResult = TemplatePath.create("test-template.json");
         if (!pathResult.ok) throw new Error("Failed to create template path");
 
-        const templateResult = Template.create(pathResult.data, null);
+        const templateResult = Template.createWithDefaultConfig(
+          pathResult.data,
+          null,
+        );
 
         // Assert - Should fail to create template with null content
         assertEquals(templateResult.ok, false);

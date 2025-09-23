@@ -172,8 +172,8 @@ export class TemplateCoordinator {
       }));
     }
 
-    // Create template entity using smart constructor
-    return Template.create(pathResult.data, templateData);
+    // Create template entity using smart constructor with default configuration
+    return Template.createWithDefaultConfig(pathResult.data, templateData);
   }
 
   /**
