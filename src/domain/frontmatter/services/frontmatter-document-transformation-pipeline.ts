@@ -519,7 +519,9 @@ export class FrontmatterDocumentTransformationPipeline {
       }
     }
 
-    const result = !ValidationHelpers.isEmptyArray(extractedParts) ? extractedParts : data;
+    const result = !ValidationHelpers.isEmptyArray(extractedParts)
+      ? extractedParts
+      : data;
     logger?.info(
       `Frontmatter parts processing complete`,
       createLogContext({
@@ -808,7 +810,10 @@ export class FrontmatterDocumentTransformationPipeline {
       );
 
       // Return results even if some files failed (matching sequential behavior)
-      if (ValidationHelpers.isEmptyArray(results) && !ValidationHelpers.isEmptyArray(errors)) {
+      if (
+        ValidationHelpers.isEmptyArray(results) &&
+        !ValidationHelpers.isEmptyArray(errors)
+      ) {
         return err(errors[0]);
       }
 
@@ -817,7 +822,7 @@ export class FrontmatterDocumentTransformationPipeline {
       const processingError = ErrorHandlingUtils.handleException(
         error,
         "FrontmatterDocumentTransformationPipeline",
-        "processFilesInParallel"
+        "processFilesInParallel",
       );
 
       logger?.error(

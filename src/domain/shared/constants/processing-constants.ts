@@ -105,7 +105,8 @@ export class ProcessingConstants {
    */
   static shouldReportProgress(processedCount: number): boolean {
     return processedCount > VALIDATION_CONSTANTS.EMPTY_SIZE &&
-           processedCount % PROGRESS_CONSTANTS.REPORTING_INTERVAL === VALIDATION_CONSTANTS.EMPTY_SIZE;
+      processedCount % PROGRESS_CONSTANTS.REPORTING_INTERVAL ===
+        VALIDATION_CONSTANTS.EMPTY_SIZE;
   }
 
   /**

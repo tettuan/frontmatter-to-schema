@@ -4,7 +4,7 @@
  * Following DDD principles with domain-specific validation logic
  */
 
-import { Result, ok, err } from "../types/result.ts";
+import { err, ok, Result } from "../types/result.ts";
 import { createError, DomainError } from "../types/errors.ts";
 import { VALIDATION_CONSTANTS } from "../constants/processing-constants.ts";
 
@@ -39,15 +39,17 @@ export class ValidationHelpers {
    */
   static hasOnlyErrors<T>(processingResults: ProcessingResults<T>): boolean {
     return this.isEmptyArray(processingResults.results) &&
-           !this.isEmptyArray(processingResults.errors);
+      !this.isEmptyArray(processingResults.errors);
   }
 
   /**
    * Check if processing was successful (has results, no errors)
    */
-  static isProcessingSuccessful<T>(processingResults: ProcessingResults<T>): boolean {
+  static isProcessingSuccessful<T>(
+    processingResults: ProcessingResults<T>,
+  ): boolean {
     return !this.isEmptyArray(processingResults.results) &&
-           this.isEmptyArray(processingResults.errors);
+      this.isEmptyArray(processingResults.errors);
   }
 
   /**
@@ -55,7 +57,7 @@ export class ValidationHelpers {
    */
   static hasMixedResults<T>(processingResults: ProcessingResults<T>): boolean {
     return !this.isEmptyArray(processingResults.results) &&
-           !this.isEmptyArray(processingResults.errors);
+      !this.isEmptyArray(processingResults.errors);
   }
 
   /**
@@ -63,7 +65,7 @@ export class ValidationHelpers {
    */
   static hasNoActivity<T>(processingResults: ProcessingResults<T>): boolean {
     return this.isEmptyArray(processingResults.results) &&
-           this.isEmptyArray(processingResults.errors);
+      this.isEmptyArray(processingResults.errors);
   }
 
   /**
@@ -71,13 +73,13 @@ export class ValidationHelpers {
    */
   static validateNotEmpty<T>(
     array: T[],
-    context: string
+    context: string,
   ): ValidationResult<T[]> {
     if (this.isEmptyArray(array)) {
       return err(createError({
         kind: "EMPTY_ARRAY",
         code: "EMPTY_ARRAY",
-        message: `${context}: Array cannot be empty`
+        message: `${context}: Array cannot be empty`,
       }));
     }
     return ok(array);
@@ -88,13 +90,13 @@ export class ValidationHelpers {
    */
   static validateHasResults<T>(
     processingResults: ProcessingResults<T>,
-    context: string
+    context: string,
   ): ValidationResult<T[]> {
     if (this.hasOnlyErrors(processingResults)) {
       return err(createError({
         kind: "NO_SUCCESSFUL_RESULTS",
         code: "NO_SUCCESSFUL_RESULTS",
-        message: `${context}: Processing failed - only errors found`
+        message: `${context}: Processing failed - only errors found`,
       }));
     }
 
@@ -102,7 +104,7 @@ export class ValidationHelpers {
       return err(createError({
         kind: "NO_PROCESSING_ACTIVITY",
         code: "NO_PROCESSING_ACTIVITY",
-        message: `${context}: No processing activity detected`
+        message: `${context}: No processing activity detected`,
       }));
     }
 
@@ -116,7 +118,7 @@ export class ValidationHelpers {
     collection: T[],
     minSize: number,
     maxSize: number,
-    context: string
+    context: string,
   ): ValidationResult<T[]> {
     const size = collection.length;
 
@@ -124,7 +126,7 @@ export class ValidationHelpers {
       return err(createError({
         kind: "COLLECTION_TOO_SMALL",
         code: "COLLECTION_TOO_SMALL",
-        message: `${context}: Collection size ${size} below minimum ${minSize}`
+        message: `${context}: Collection size ${size} below minimum ${minSize}`,
       }));
     }
 
@@ -132,7 +134,8 @@ export class ValidationHelpers {
       return err(createError({
         kind: "COLLECTION_TOO_LARGE",
         code: "COLLECTION_TOO_LARGE",
-        message: `${context}: Collection size ${size} exceeds maximum ${maxSize}`
+        message:
+          `${context}: Collection size ${size} exceeds maximum ${maxSize}`,
       }));
     }
 
@@ -144,7 +147,7 @@ export class ValidationHelpers {
    */
   static createProcessingResults<T>(
     results: T[] = [],
-    errors: (DomainError & { message: string })[] = []
+    errors: (DomainError & { message: string })[] = [],
   ): ProcessingResults<T> {
     return { results, errors };
   }
@@ -153,7 +156,7 @@ export class ValidationHelpers {
    * Merge multiple processing results
    */
   static mergeProcessingResults<T>(
-    resultsList: ProcessingResults<T>[]
+    resultsList: ProcessingResults<T>[],
   ): ProcessingResults<T> {
     const allResults: T[] = [];
     const allErrors: (DomainError & { message: string })[] = [];

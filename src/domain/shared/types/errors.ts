@@ -171,10 +171,26 @@ export type PerformanceError =
   | { readonly kind: "MemoryBoundsExceeded"; readonly content: string };
 
 export type ProcessingError =
-  | { readonly kind: "EXCEPTION_CAUGHT"; readonly code?: string; readonly originalError?: unknown }
-  | { readonly kind: "UNKNOWN_ERROR"; readonly code?: string; readonly originalError?: unknown }
-  | { readonly kind: "CHAIN_FAILURE"; readonly code?: string; readonly originalError?: unknown }
-  | { readonly kind: "RETRY_EXHAUSTED"; readonly code?: string; readonly originalError?: unknown }
+  | {
+    readonly kind: "EXCEPTION_CAUGHT";
+    readonly code?: string;
+    readonly originalError?: unknown;
+  }
+  | {
+    readonly kind: "UNKNOWN_ERROR";
+    readonly code?: string;
+    readonly originalError?: unknown;
+  }
+  | {
+    readonly kind: "CHAIN_FAILURE";
+    readonly code?: string;
+    readonly originalError?: unknown;
+  }
+  | {
+    readonly kind: "RETRY_EXHAUSTED";
+    readonly code?: string;
+    readonly originalError?: unknown;
+  }
   | { readonly kind: "NO_SUCCESSFUL_RESULTS"; readonly code?: string }
   | { readonly kind: "NO_PROCESSING_ACTIVITY"; readonly code?: string };
 
@@ -415,24 +431,38 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Memory bounds exceeded: ${error.content}`;
     // ProcessingError cases
     case "EXCEPTION_CAUGHT":
-      return `Exception caught during processing${error.code ? ` (${error.code})` : ""}`;
+      return `Exception caught during processing${
+        error.code ? ` (${error.code})` : ""
+      }`;
     case "UNKNOWN_ERROR":
-      return `Unknown error occurred during processing${error.code ? ` (${error.code})` : ""}`;
+      return `Unknown error occurred during processing${
+        error.code ? ` (${error.code})` : ""
+      }`;
     case "CHAIN_FAILURE":
       return `Operation chain failed${error.code ? ` (${error.code})` : ""}`;
     case "RETRY_EXHAUSTED":
-      return `All retry attempts exhausted${error.code ? ` (${error.code})` : ""}`;
+      return `All retry attempts exhausted${
+        error.code ? ` (${error.code})` : ""
+      }`;
     case "NO_SUCCESSFUL_RESULTS":
-      return `No successful results from processing${error.code ? ` (${error.code})` : ""}`;
+      return `No successful results from processing${
+        error.code ? ` (${error.code})` : ""
+      }`;
     case "NO_PROCESSING_ACTIVITY":
-      return `No processing activity detected${error.code ? ` (${error.code})` : ""}`;
+      return `No processing activity detected${
+        error.code ? ` (${error.code})` : ""
+      }`;
     // UtilityValidationError cases
     case "EMPTY_ARRAY":
       return `Array cannot be empty${error.code ? ` (${error.code})` : ""}`;
     case "COLLECTION_TOO_SMALL":
-      return `Collection size below minimum${error.code ? ` (${error.code})` : ""}`;
+      return `Collection size below minimum${
+        error.code ? ` (${error.code})` : ""
+      }`;
     case "COLLECTION_TOO_LARGE":
-      return `Collection size exceeds maximum${error.code ? ` (${error.code})` : ""}`;
+      return `Collection size exceeds maximum${
+        error.code ? ` (${error.code})` : ""
+      }`;
     default: {
       // 全域性保証: 到達不可能な分岐 - TypeScriptコンパイル時エラーで保証
       return assertNever(error);
