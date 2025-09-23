@@ -508,7 +508,8 @@ export class DirectiveProcessor {
         kind: "ProcessingFailed",
         directive: directiveNode.type.getKind(),
         error: extractFromProcessorResult.error,
-        message: `Failed to create ExtractFromProcessor: ${extractFromProcessorResult.error.message}`,
+        message:
+          `Failed to create ExtractFromProcessor: ${extractFromProcessorResult.error.message}`,
       });
     }
 
@@ -521,7 +522,8 @@ export class DirectiveProcessor {
         kind: "ProcessingFailed",
         directive: directiveNode.type.getKind(),
         error: directivesResult.error,
-        message: `Failed to get extract-from directives: ${directivesResult.error.message}`,
+        message:
+          `Failed to get extract-from directives: ${directivesResult.error.message}`,
       });
     }
 
@@ -541,7 +543,8 @@ export class DirectiveProcessor {
         kind: "ProcessingFailed",
         directive: directiveNode.type.getKind(),
         error: processResult.error,
-        message: `Failed to process extract-from directives: ${processResult.error.message}`,
+        message:
+          `Failed to process extract-from directives: ${processResult.error.message}`,
       });
     }
 

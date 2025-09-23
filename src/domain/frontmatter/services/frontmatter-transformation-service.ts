@@ -1639,6 +1639,7 @@ export class FrontmatterTransformationService {
                 message: "getExtractFromDirectives method not available",
               },
             };
+
           if (directivesResult.ok && "data" in directivesResult) {
             // Process directives on the frontmatter data
             const processedResult = await extractor.processDirectives(

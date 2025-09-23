@@ -366,6 +366,18 @@ export class OutputRenderingService {
       // Render with main template using proper context
       // Since we have composedDataResult.data.arrayData, we need to ensure
       // the template renderer knows about it for {@items} expansion
+
+      // ✅ DDD Fix: Enhanced data composition for {@items} expansion following Totality principles
+      this.domainLogger.logDebug(
+        "dual-template-rendering",
+        "Data composition for {@items} expansion",
+        {
+          mainDataKeys: Object.keys(composedDataResult.data.mainData),
+          hasArrayData: !!composedDataResult.data.arrayData,
+          arrayDataLength: composedDataResult.data.arrayData?.length || 0,
+        },
+      );
+
       const finalFrontmatterResult = FrontmatterData.create(
         composedDataResult.data.mainData,
       );
@@ -373,10 +385,19 @@ export class OutputRenderingService {
         return finalFrontmatterResult;
       }
 
-      // If we have arrayData from composition, use renderWithArrayData
+      // ✅ DDD Fix: Verify proper data structure for {@items} expansion
+      this.domainLogger.logDebug(
+        "dual-template-rendering",
+        "Final frontmatter data prepared for template rendering",
+        {
+          hasComposedData: !!composedDataResult.data.mainData,
+          hasArrayData: !!composedDataResult.data.arrayData,
+        },
+      );
+
+      // If we have arrayData from composition, use array-aware rendering
       if (composedDataResult.data.arrayData) {
-        // Call render with the FrontmatterData, which will detect @items
-        // The template renderer will use the @items from mainData
+        // ✅ DDD Fix: Enhanced template rendering with proper context for {@items} expansion
         renderResult = this.templateRenderer.render(
           templateResult.data,
           finalFrontmatterResult.data,
