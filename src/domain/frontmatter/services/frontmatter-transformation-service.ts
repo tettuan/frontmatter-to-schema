@@ -1612,50 +1612,9 @@ export class FrontmatterTransformationService {
       let processedFrontmatterData = frontmatterData;
 
       // Check if the main schema has directives to process
-      console.log(
-        `[DEBUG] Schema type analysis: constructor=${schema.constructor.name}, hasExtractFromDirectives=${typeof schema
-          .hasExtractFromDirectives}, getExtractFromDirectives=${typeof schema
-          .getExtractFromDirectives}`,
-      );
-      console.log(
-        `[DEBUG] Schema methods: ${
-          Object.getOwnPropertyNames(schema).join(", ")
-        }`,
-      );
-      console.log(
-        `[DEBUG] Schema prototype methods: ${
-          Object.getOwnPropertyNames(Object.getPrototypeOf(schema)).join(", ")
-        }`,
-      );
-
-      activeLogger?.debug(
-        `Schema type analysis: constructor=${schema.constructor.name}, hasExtractFromDirectives=${typeof schema
-          .hasExtractFromDirectives}, getExtractFromDirectives=${typeof schema
-          .getExtractFromDirectives}`,
-        createLogContext({
-          operation: "schema-method-debugging",
-          inputs: `methods: ${Object.getOwnPropertyNames(schema).join(", ")}`,
-        }),
-      );
-
       const hasDirectives = schema.hasExtractFromDirectives
         ? schema.hasExtractFromDirectives()
         : false;
-      console.log(
-        `[DEBUG] hasExtractFromDirectives() returned: ${hasDirectives}`,
-      );
-
-      // Let's also check what getExtractFromDirectives returns
-      const directivesResult = schema.getExtractFromDirectives
-        ? schema.getExtractFromDirectives()
-        : { ok: false };
-      console.log(
-        `[DEBUG] getExtractFromDirectives() returned: ok=${directivesResult.ok}, length=${
-          directivesResult.ok && "data" in directivesResult
-            ? directivesResult.data?.length
-            : "N/A"
-        }`,
-      );
 
       if (hasDirectives) {
         activeLogger?.debug(
