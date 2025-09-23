@@ -4,38 +4,28 @@ directives:
     stage: 1
     description: Identify target arrays for processing
     dependsOn: []
-  extract-from:
-    name: x-extract-from
-    stage: 2
-    description: Extract values using normalized [] notation
-    dependsOn: [frontmatter-part]
   jmespath-filter:
     name: x-jmespath-filter
-    stage: 3
+    stage: 2
     description: Apply JMESPath filtering to extracted data
-    dependsOn: [extract-from]
-  merge-arrays:
-    name: x-merge-arrays
-    stage: 4
-    description: Merge multiple arrays into unified structure
-    dependsOn: [jmespath-filter, extract-from]
+    dependsOn: [frontmatter-part]
   derived-from:
     name: x-derived-from
-    stage: 5
+    stage: 3
     description: Aggregate values from multiple sources
-    dependsOn: [merge-arrays, extract-from]
+    dependsOn: [jmespath-filter]
   derived-unique:
     name: x-derived-unique
-    stage: 6
+    stage: 4
     description: Remove duplicate values from aggregated data
     dependsOn: [derived-from]
   template:
     name: x-template
-    stage: 7
+    stage: 5
     description: Apply main template to processed data
     dependsOn: [derived-unique, derived-from]
   template-items:
     name: x-template-items
-    stage: 7
+    stage: 5
     description: Apply item template to individual elements
     dependsOn: [derived-unique, derived-from]

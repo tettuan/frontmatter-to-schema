@@ -44,7 +44,7 @@ describe("DirectiveProcessor", () => {
           "x-template",
           "x-derived-from",
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
         ];
 
         const orderResult = processor.getProcessingOrder(directives);
@@ -55,7 +55,7 @@ describe("DirectiveProcessor", () => {
 
           assertEquals(order.orderedDirectives.length, 4);
           assertEquals(order.orderedDirectives[0], "x-frontmatter-part");
-          assertEquals(order.orderedDirectives[1], "x-extract-from");
+          assertEquals(order.orderedDirectives[1], "x-jmespath-filter");
           assertEquals(order.orderedDirectives[2], "x-derived-from");
           assertEquals(order.orderedDirectives[3], "x-template");
 
@@ -73,11 +73,9 @@ describe("DirectiveProcessor", () => {
         const processor = processorResult.data;
         const supportedDirectives = processor.getSupportedDirectives();
 
-        assertEquals(supportedDirectives.length, 8);
+        assertEquals(supportedDirectives.length, 6);
         assert(supportedDirectives.includes("x-frontmatter-part"));
-        assert(supportedDirectives.includes("x-extract-from"));
         assert(supportedDirectives.includes("x-jmespath-filter"));
-        assert(supportedDirectives.includes("x-merge-arrays"));
         assert(supportedDirectives.includes("x-derived-from"));
         assert(supportedDirectives.includes("x-derived-unique"));
         assert(supportedDirectives.includes("x-template"));
@@ -201,7 +199,7 @@ describe("DirectiveProcessor", () => {
             getRawSchema: () => ({
               properties: {
                 testField: {
-                  "x-extract-from": "test.path",
+                  "x-jmespath-filter": "test.path",
                 },
               },
             }),

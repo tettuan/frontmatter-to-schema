@@ -41,6 +41,115 @@ import type {
 } from "../../../application/interfaces/file-system-interfaces.ts";
 
 /**
+ * Configuration object grouping related dependencies for FrontmatterTransformationService
+ * Follows DDD dependency management patterns and Totality principles
+ */
+export interface FrontmatterTransformationConfig {
+  readonly processor: FrontmatterProcessor;
+  readonly fileSystem: {
+    readonly reader: FileReader;
+    readonly lister: FileLister;
+  };
+  readonly services: {
+    readonly aggregator: Aggregator;
+    readonly basePropertyPopulator: BasePropertyPopulator;
+    readonly schemaValidation: SchemaValidationService;
+    readonly dataCreation?: FrontmatterDataCreationService;
+  };
+  readonly settings: {
+    readonly performance?: PerformanceSettings;
+    readonly logger?: DomainLogger;
+  };
+}
+
+/**
+ * Factory for creating FrontmatterTransformationConfig with validation
+ * Implements Smart Constructor pattern following Totality principles
+ */
+export class FrontmatterTransformationConfigFactory {
+  /**
+   * Create configuration with all required dependencies
+   */
+  static create(
+    processor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    schemaValidation: SchemaValidationService,
+    options?: {
+      readonly dataCreation?: FrontmatterDataCreationService;
+      readonly performance?: PerformanceSettings;
+      readonly logger?: DomainLogger;
+    },
+  ): Result<
+    FrontmatterTransformationConfig,
+    DomainError & { message: string }
+  > {
+    // Validate required dependencies
+    if (!processor) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "FrontmatterProcessor is required",
+      }));
+    }
+
+    if (!aggregator) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "Aggregator is required",
+      }));
+    }
+
+    if (!basePropertyPopulator) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "BasePropertyPopulator is required",
+      }));
+    }
+
+    if (!fileReader) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "FileReader is required",
+      }));
+    }
+
+    if (!fileLister) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "FileLister is required",
+      }));
+    }
+
+    if (!schemaValidation) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "SchemaValidationService is required",
+      }));
+    }
+
+    return ok({
+      processor,
+      fileSystem: {
+        reader: fileReader,
+        lister: fileLister,
+      },
+      services: {
+        aggregator,
+        basePropertyPopulator,
+        schemaValidation,
+        dataCreation: options?.dataCreation,
+      },
+      settings: {
+        performance: options?.performance,
+        logger: options?.logger,
+      },
+    });
+  }
+}
+
+/**
  * Processing options state using discriminated union for enhanced type safety
  * Follows Totality principles by eliminating optional dependencies
  */
@@ -135,44 +244,32 @@ export type RuleConversionResult = {
  */
 export class FrontmatterTransformationService {
   private constructor(
-    private readonly frontmatterProcessor: FrontmatterProcessor,
-    private readonly aggregator: Aggregator,
-    private readonly basePropertyPopulator: BasePropertyPopulator,
-    private readonly fileReader: FileReader,
-    private readonly fileLister: FileLister,
+    private readonly config: FrontmatterTransformationConfig,
     private readonly frontmatterDataCreationService:
       FrontmatterDataCreationService,
     private readonly domainLogger: DomainLogger,
     private readonly performanceSettings: PerformanceSettings,
-    private readonly schemaValidationService: SchemaValidationService,
     private readonly extractionService: FrontmatterExtractionService,
     private readonly validationService: FrontmatterValidationService,
   ) {}
 
   /**
    * Smart Constructor following Totality principles
-   * Creates a frontmatter transformation service with all required dependencies
+   * Creates a frontmatter transformation service with configuration object
    */
   static create(
-    frontmatterProcessor: FrontmatterProcessor,
-    aggregator: Aggregator,
-    basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
-    schemaValidationService: SchemaValidationService,
-    frontmatterDataCreationService?: FrontmatterDataCreationService,
-    domainLogger?: DomainLogger,
-    performanceSettings?: PerformanceSettings,
+    config: FrontmatterTransformationConfig,
   ): Result<
     FrontmatterTransformationService,
     DomainError & { message: string }
   > {
-    const creationService = frontmatterDataCreationService ??
+    const creationService = config.services.dataCreation ??
       defaultFrontmatterDataCreationService;
-    const logger = domainLogger ?? DomainLoggerAdapter.createDisabled();
+    const logger = config.settings.logger ??
+      DomainLoggerAdapter.createDisabled();
 
     // Create default performance settings if not provided
-    let settings = performanceSettings;
+    let settings = config.settings.performance;
     if (!settings) {
       const defaultSettingsResult = PerformanceSettings.createDefault();
       if (!defaultSettingsResult.ok) {
@@ -189,7 +286,7 @@ export class FrontmatterTransformationService {
 
     // Initialize extraction service
     const extractionResult = FrontmatterExtractionService.create(
-      frontmatterProcessor,
+      config.processor,
     );
     if (!extractionResult.ok) {
       return extractionResult;
@@ -197,7 +294,7 @@ export class FrontmatterTransformationService {
 
     // Initialize validation service
     const validationResult = FrontmatterValidationService.create(
-      schemaValidationService,
+      config.services.schemaValidation,
     );
     if (!validationResult.ok) {
       return validationResult;
@@ -205,19 +302,53 @@ export class FrontmatterTransformationService {
 
     return ok(
       new FrontmatterTransformationService(
-        frontmatterProcessor,
-        aggregator,
-        basePropertyPopulator,
-        fileReader,
-        fileLister,
+        config,
         creationService,
         logger,
         settings,
-        schemaValidationService,
         extractionResult.data,
         validationResult.data,
       ),
     );
+  }
+
+  /**
+   * Legacy compatibility method - maintains backward compatibility
+   * @deprecated Use create(config) instead
+   */
+  static createLegacy(
+    frontmatterProcessor: FrontmatterProcessor,
+    aggregator: Aggregator,
+    basePropertyPopulator: BasePropertyPopulator,
+    fileReader: FileReader,
+    fileLister: FileLister,
+    schemaValidationService: SchemaValidationService,
+    frontmatterDataCreationService?: FrontmatterDataCreationService,
+    domainLogger?: DomainLogger,
+    performanceSettings?: PerformanceSettings,
+  ): Result<
+    FrontmatterTransformationService,
+    DomainError & { message: string }
+  > {
+    const configResult = FrontmatterTransformationConfigFactory.create(
+      frontmatterProcessor,
+      aggregator,
+      basePropertyPopulator,
+      fileReader,
+      fileLister,
+      schemaValidationService,
+      {
+        dataCreation: frontmatterDataCreationService,
+        logger: domainLogger,
+        performance: performanceSettings,
+      },
+    );
+
+    if (!configResult.ok) {
+      return configResult;
+    }
+
+    return this.create(configResult.data);
   }
 
   /**
@@ -396,7 +527,7 @@ export class FrontmatterTransformationService {
 
     // Use schema validation service to get proper validation rules for frontmatter part
     // This follows DDD boundaries: Schema domain provides validation rules to frontmatter domain
-    const validationRulesResult = this.schemaValidationService
+    const validationRulesResult = this.config.services.schemaValidation
       .getValidationRulesForFrontmatterPart(schema);
 
     if (validationRulesResult.ok) {
@@ -619,7 +750,7 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
-    const filesResult = this.fileLister.list(inputPattern);
+    const filesResult = this.config.fileSystem.lister.list(inputPattern);
     if (!filesResult.ok) {
       activeLogger?.error(
         `Failed to list files with pattern: ${inputPattern}`,
@@ -1089,7 +1220,7 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
-    const result = this.basePropertyPopulator.populate(
+    const result = this.config.services.basePropertyPopulator.populate(
       aggregatedData.data,
       schema,
     );
@@ -1156,7 +1287,7 @@ export class FrontmatterTransformationService {
         location: filePath,
       }),
     );
-    const contentResult = this.fileReader.read(filePath);
+    const contentResult = this.config.fileSystem.reader.read(filePath);
     if (!contentResult.ok) {
       activeLogger?.error(
         `File reading failed: ${contentResult.error.message}`,
@@ -1176,7 +1307,7 @@ export class FrontmatterTransformationService {
         location: filePath,
       }),
     );
-    const extractResult = this.frontmatterProcessor.extract(contentResult.data);
+    const extractResult = this.config.processor.extract(contentResult.data);
     if (!extractResult.ok) {
       activeLogger?.error(
         `Frontmatter extraction failed: ${extractResult.error.message}`,
@@ -1229,7 +1360,7 @@ export class FrontmatterTransformationService {
       );
     }
 
-    const validationResult = this.frontmatterProcessor.validate(
+    const validationResult = this.config.processor.validate(
       frontmatter,
       validationRules,
     );
@@ -1867,7 +1998,7 @@ export class FrontmatterTransformationService {
     );
 
     // Apply derivation rules and merge with base data
-    const aggregationResult = this.aggregator.aggregate(
+    const aggregationResult = this.config.services.aggregator.aggregate(
       [baseData],
       rules,
       baseData,
@@ -1877,7 +2008,9 @@ export class FrontmatterTransformationService {
     }
 
     // Use aggregator's mergeWithBase to properly apply derived fields
-    const mergeResult = this.aggregator.mergeWithBase(aggregationResult.data);
+    const mergeResult = this.config.services.aggregator.mergeWithBase(
+      aggregationResult.data,
+    );
     if (!mergeResult.ok) {
       return mergeResult;
     }
@@ -2258,19 +2391,36 @@ export class FrontmatterTransformationService {
       );
     }
 
-    return new FrontmatterTransformationService(
+    const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
       basePropertyPopulator,
       fileReader,
       fileLister,
-      frontmatterDataCreationService,
-      domainLogger,
-      performanceSettings,
       schemaValidationService,
-      extractionResult.data,
-      validationResult.data,
+      {
+        dataCreation: frontmatterDataCreationService,
+        logger: domainLogger,
+        performance: performanceSettings,
+      },
     );
+
+    if (!configResult.ok) {
+      throw new Error(
+        `Failed to create configuration: ${configResult.error.message}`,
+      );
+    }
+
+    const serviceResult = FrontmatterTransformationService.create(
+      configResult.data,
+    );
+    if (!serviceResult.ok) {
+      throw new Error(
+        `Failed to create service: ${serviceResult.error.message}`,
+      );
+    }
+
+    return serviceResult.data;
   }
 
   /**
@@ -2309,19 +2459,36 @@ export class FrontmatterTransformationService {
       );
     }
 
-    return new FrontmatterTransformationService(
+    const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
       basePropertyPopulator,
       fileReader,
       fileLister,
-      frontmatterDataCreationService,
-      domainLogger,
-      performanceSettings,
       schemaValidationService,
-      extractionResult.data,
-      validationResult.data,
+      {
+        dataCreation: frontmatterDataCreationService,
+        logger: domainLogger,
+        performance: performanceSettings,
+      },
     );
+
+    if (!configResult.ok) {
+      throw new Error(
+        `Failed to create configuration: ${configResult.error.message}`,
+      );
+    }
+
+    const serviceResult = FrontmatterTransformationService.create(
+      configResult.data,
+    );
+    if (!serviceResult.ok) {
+      throw new Error(
+        `Failed to create service: ${serviceResult.error.message}`,
+      );
+    }
+
+    return serviceResult.data;
   }
 
   /**
@@ -2362,18 +2529,35 @@ export class FrontmatterTransformationService {
       );
     }
 
-    return new FrontmatterTransformationService(
+    const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
       basePropertyPopulator,
       fileReader,
       fileLister,
-      frontmatterDataCreationService,
-      domainLogger,
-      performanceSettings,
       schemaValidationService,
-      extractionResult.data,
-      validationResult.data,
+      {
+        dataCreation: frontmatterDataCreationService,
+        logger: domainLogger,
+        performance: performanceSettings,
+      },
     );
+
+    if (!configResult.ok) {
+      throw new Error(
+        `Failed to create configuration: ${configResult.error.message}`,
+      );
+    }
+
+    const serviceResult = FrontmatterTransformationService.create(
+      configResult.data,
+    );
+    if (!serviceResult.ok) {
+      throw new Error(
+        `Failed to create service: ${serviceResult.error.message}`,
+      );
+    }
+
+    return serviceResult.data;
   }
 }

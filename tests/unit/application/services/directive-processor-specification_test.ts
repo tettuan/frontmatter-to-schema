@@ -116,8 +116,8 @@ const directiveProcessingRequirements = {
     name: "supported-directives-availability",
     description: "All supported directives must be available for processing",
     validator: (data: any) => ({
-      isValid: Array.isArray(data.directives) && data.directives.length >= 8,
-      violation: !Array.isArray(data.directives) || data.directives.length < 8
+      isValid: Array.isArray(data.directives) && data.directives.length >= 6,
+      violation: !Array.isArray(data.directives) || data.directives.length < 6
         ? "Minimum required directives must be supported"
         : undefined,
     }),
@@ -185,7 +185,7 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
         "x-template",
         "x-derived-from",
         "x-frontmatter-part",
-        "x-extract-from",
+        "x-jmespath-filter",
       ];
 
       // Act - Execute order determination
@@ -198,6 +198,7 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
         const order = orderResult.data;
 
         // Business requirement: Correct dependency order must be established
+        // Note: Updated after removing deprecated x-extract-from and x-merge-arrays directives
         assertEquals(order.orderedDirectives.length, 4);
         assertEquals(
           order.orderedDirectives[0],
@@ -206,18 +207,18 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
         );
         assertEquals(
           order.orderedDirectives[1],
-          "x-extract-from",
+          "x-jmespath-filter",
           "Extraction must follow frontmatter processing",
         );
         assertEquals(
           order.orderedDirectives[2],
           "x-derived-from",
-          "Derivation must follow extraction",
+          "Derivation must follow jmespath filtering",
         );
         assertEquals(
           order.orderedDirectives[3],
           "x-template",
-          "Templates must be processed last",
+          "Template must follow derivation",
         );
 
         // Validate order determination requirement
@@ -243,17 +244,16 @@ describe("BUSINESS REQUIREMENT: Directive Processing Order", () => {
 
       // Assert - Validate business requirements
       // Business requirement: All core directives must be supported
+      // Note: Updated after removing deprecated x-extract-from and x-merge-arrays directives
       assertEquals(
         supportedDirectives.length,
-        8,
+        6,
         "Must support all required directives",
       );
 
       const requiredDirectives: DirectiveType[] = [
         "x-frontmatter-part",
-        "x-extract-from",
         "x-jmespath-filter",
-        "x-merge-arrays",
         "x-derived-from",
         "x-derived-unique",
         "x-template",

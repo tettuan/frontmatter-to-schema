@@ -29,11 +29,9 @@ describe("DirectiveOrderManager", () => {
       if (result.ok) {
         const supportedDirectives = result.data.getSupportedDirectives();
 
-        assertEquals(supportedDirectives.length, 8);
+        assertEquals(supportedDirectives.length, 6);
         assert(supportedDirectives.includes("x-frontmatter-part"));
-        assert(supportedDirectives.includes("x-extract-from"));
         assert(supportedDirectives.includes("x-jmespath-filter"));
-        assert(supportedDirectives.includes("x-merge-arrays"));
         assert(supportedDirectives.includes("x-derived-from"));
         assert(supportedDirectives.includes("x-derived-unique"));
         assert(supportedDirectives.includes("x-template"));
@@ -53,7 +51,7 @@ describe("DirectiveOrderManager", () => {
           "x-template",
           "x-derived-from",
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
         ];
 
         const orderResult = manager.determineProcessingOrder(directives);
@@ -65,7 +63,7 @@ describe("DirectiveOrderManager", () => {
           // Verify correct order
           assertEquals(order.orderedDirectives.length, 4);
           assertEquals(order.orderedDirectives[0], "x-frontmatter-part");
-          assertEquals(order.orderedDirectives[1], "x-extract-from");
+          assertEquals(order.orderedDirectives[1], "x-jmespath-filter");
           assertEquals(order.orderedDirectives[2], "x-derived-from");
           assertEquals(order.orderedDirectives[3], "x-template");
 
@@ -74,7 +72,7 @@ describe("DirectiveOrderManager", () => {
           assertEquals(order.stages[0].stage, 1);
           assertEquals(order.stages[0].directives[0], "x-frontmatter-part");
           assertEquals(order.stages[1].stage, 2);
-          assertEquals(order.stages[1].directives[0], "x-extract-from");
+          assertEquals(order.stages[1].directives[0], "x-jmespath-filter");
         }
       }
     });
@@ -90,9 +88,7 @@ describe("DirectiveOrderManager", () => {
           "x-template",
           "x-derived-unique",
           "x-derived-from",
-          "x-merge-arrays",
           "x-jmespath-filter",
-          "x-extract-from",
           "x-frontmatter-part",
         ];
 
@@ -103,21 +99,19 @@ describe("DirectiveOrderManager", () => {
           const order = orderResult.data;
 
           // Verify complete correct order
-          assertEquals(order.orderedDirectives.length, 8);
+          assertEquals(order.orderedDirectives.length, 6);
           assertEquals(order.orderedDirectives[0], "x-frontmatter-part");
-          assertEquals(order.orderedDirectives[1], "x-extract-from");
-          assertEquals(order.orderedDirectives[2], "x-jmespath-filter");
-          assertEquals(order.orderedDirectives[3], "x-merge-arrays");
-          assertEquals(order.orderedDirectives[4], "x-derived-from");
-          assertEquals(order.orderedDirectives[5], "x-derived-unique");
+          assertEquals(order.orderedDirectives[1], "x-jmespath-filter");
+          assertEquals(order.orderedDirectives[2], "x-derived-from");
+          assertEquals(order.orderedDirectives[3], "x-derived-unique");
 
           // Both template directives should be last (same stage)
           assert(order.orderedDirectives.includes("x-template"));
           assert(order.orderedDirectives.includes("x-template-items"));
 
           // Verify stage grouping
-          assertEquals(order.stages.length, 7); // Stages 1-7
-          assertEquals(order.stages[6].directives.length, 2); // Stage 7 has both template directives
+          assertEquals(order.stages.length, 5); // Stages 1-5
+          assertEquals(order.stages[4].directives.length, 2); // Stage 5 has both template directives
         }
       }
     });
@@ -184,30 +178,31 @@ describe("DirectiveOrderManager", () => {
           assertEquals(frontmatterPartResult.data.stage, 1);
         }
 
-        // Test x-extract-from (depends on x-frontmatter-part)
-        const extractFromResult = manager.getDirectiveDependencies(
-          "x-extract-from",
+        // Test x-jmespath-filter (depends on x-frontmatter-part)
+        const jmespathFilterResult = manager.getDirectiveDependencies(
+          "x-jmespath-filter",
         );
-        assertEquals(extractFromResult.ok, true);
-        if (extractFromResult.ok) {
-          assertEquals(extractFromResult.data.dependsOn.length, 1);
+        assertEquals(jmespathFilterResult.ok, true);
+        if (jmespathFilterResult.ok) {
+          assertEquals(jmespathFilterResult.data.dependsOn.length, 1);
           assertEquals(
-            extractFromResult.data.dependsOn[0],
+            jmespathFilterResult.data.dependsOn[0],
             "x-frontmatter-part",
           );
-          assertEquals(extractFromResult.data.stage, 2);
+          assertEquals(jmespathFilterResult.data.stage, 2);
         }
 
-        // Test x-derived-from (depends on x-merge-arrays and x-extract-from)
+        // Test x-derived-from (depends on x-jmespath-filter)
         const derivedFromResult = manager.getDirectiveDependencies(
           "x-derived-from",
         );
         assertEquals(derivedFromResult.ok, true);
         if (derivedFromResult.ok) {
-          assertEquals(derivedFromResult.data.dependsOn.length, 2);
-          assert(derivedFromResult.data.dependsOn.includes("x-merge-arrays"));
-          assert(derivedFromResult.data.dependsOn.includes("x-extract-from"));
-          assertEquals(derivedFromResult.data.stage, 5);
+          assertEquals(derivedFromResult.data.dependsOn.length, 1);
+          assert(
+            derivedFromResult.data.dependsOn.includes("x-jmespath-filter"),
+          );
+          assertEquals(derivedFromResult.data.stage, 3);
         }
 
         // Test x-template (depends on x-derived-unique and x-derived-from)
@@ -217,7 +212,7 @@ describe("DirectiveOrderManager", () => {
           assertEquals(templateResult.data.dependsOn.length, 2);
           assert(templateResult.data.dependsOn.includes("x-derived-unique"));
           assert(templateResult.data.dependsOn.includes("x-derived-from"));
-          assertEquals(templateResult.data.stage, 7);
+          assertEquals(templateResult.data.stage, 5);
         }
       }
     });
@@ -259,7 +254,7 @@ describe("DirectiveOrderManager", () => {
         const manager = managerResult.data;
         const validDirectives: DirectiveType[] = [
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
           "x-derived-from",
           "x-template",
         ];
@@ -284,9 +279,7 @@ describe("DirectiveOrderManager", () => {
           "x-template",
           "x-derived-unique",
           "x-derived-from",
-          "x-merge-arrays",
           "x-jmespath-filter",
-          "x-extract-from",
           "x-frontmatter-part",
         ];
 
@@ -300,10 +293,9 @@ describe("DirectiveOrderManager", () => {
           const frontmatterIndex = order.orderedDirectives.indexOf(
             "x-frontmatter-part",
           );
-          const extractIndex = order.orderedDirectives.indexOf(
-            "x-extract-from",
+          const jmespathIndex = order.orderedDirectives.indexOf(
+            "x-jmespath-filter",
           );
-          const mergeIndex = order.orderedDirectives.indexOf("x-merge-arrays");
           const derivedIndex = order.orderedDirectives.indexOf(
             "x-derived-from",
           );
@@ -313,9 +305,8 @@ describe("DirectiveOrderManager", () => {
           const templateIndex = order.orderedDirectives.indexOf("x-template");
 
           // Assert dependency order
-          assert(frontmatterIndex < extractIndex);
-          assert(extractIndex < mergeIndex);
-          assert(mergeIndex < derivedIndex);
+          assert(frontmatterIndex < jmespathIndex);
+          assert(jmespathIndex < derivedIndex);
           assert(derivedIndex < uniqueIndex);
           assert(uniqueIndex < templateIndex);
         }
@@ -332,7 +323,7 @@ describe("DirectiveOrderManager", () => {
         const manager = managerResult.data;
         const directives: DirectiveType[] = [
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
           "x-derived-from",
         ];
 
@@ -344,11 +335,10 @@ describe("DirectiveOrderManager", () => {
 
           // Verify graph structure
           assertEquals(graph["x-frontmatter-part"].length, 0);
-          assertEquals(graph["x-extract-from"].length, 1);
-          assertEquals(graph["x-extract-from"][0], "x-frontmatter-part");
-          assertEquals(graph["x-derived-from"].length, 2);
-          assert(graph["x-derived-from"].includes("x-merge-arrays"));
-          assert(graph["x-derived-from"].includes("x-extract-from"));
+          assertEquals(graph["x-jmespath-filter"].length, 1);
+          assertEquals(graph["x-jmespath-filter"][0], "x-frontmatter-part");
+          assertEquals(graph["x-derived-from"].length, 1);
+          assert(graph["x-derived-from"].includes("x-jmespath-filter"));
         }
       }
     });
@@ -366,7 +356,7 @@ describe("DirectiveOrderManager", () => {
           "x-template-items",
           "x-derived-unique",
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
         ];
 
         const orderResult = manager.determineProcessingOrder(directives);
@@ -376,25 +366,25 @@ describe("DirectiveOrderManager", () => {
           const stages = orderResult.data.stages;
 
           // Verify stage organization
-          assertEquals(stages.length, 4); // Stages 1, 2, 6, 7
+          assertEquals(stages.length, 4); // Stages 1, 2, 4, 5
 
           // Stage 1: x-frontmatter-part
           assertEquals(stages[0].stage, 1);
           assertEquals(stages[0].directives.length, 1);
           assertEquals(stages[0].directives[0], "x-frontmatter-part");
 
-          // Stage 2: x-extract-from
+          // Stage 2: x-jmespath-filter
           assertEquals(stages[1].stage, 2);
           assertEquals(stages[1].directives.length, 1);
-          assertEquals(stages[1].directives[0], "x-extract-from");
+          assertEquals(stages[1].directives[0], "x-jmespath-filter");
 
-          // Stage 6: x-derived-unique
-          assertEquals(stages[2].stage, 6);
+          // Stage 4: x-derived-unique
+          assertEquals(stages[2].stage, 4);
           assertEquals(stages[2].directives.length, 1);
           assertEquals(stages[2].directives[0], "x-derived-unique");
 
-          // Stage 7: both template directives
-          assertEquals(stages[3].stage, 7);
+          // Stage 5: both template directives
+          assertEquals(stages[3].stage, 5);
           assertEquals(stages[3].directives.length, 2);
           assert(stages[3].directives.includes("x-template"));
           assert(stages[3].directives.includes("x-template-items"));
@@ -410,7 +400,7 @@ describe("DirectiveOrderManager", () => {
         const manager = managerResult.data;
         const directives: DirectiveType[] = [
           "x-frontmatter-part",
-          "x-extract-from",
+          "x-jmespath-filter",
         ];
 
         const orderResult = manager.determineProcessingOrder(directives);
@@ -421,7 +411,7 @@ describe("DirectiveOrderManager", () => {
 
           // Verify descriptions are meaningful
           assert(stages[0].description.includes("Identify target arrays"));
-          assert(stages[1].description.includes("Extract values"));
+          assert(stages[1].description.includes("Apply JMESPath filtering"));
         }
       }
     });
