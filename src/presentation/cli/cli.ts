@@ -14,6 +14,7 @@ import { OutputRenderingService } from "../../domain/template/services/output-re
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
 import { Aggregator } from "../../domain/aggregation/aggregators/aggregator.ts";
 import { BasePropertyPopulator } from "../../domain/schema/services/base-property-populator.ts";
+import { DefaultSchemaValidationService } from "../../domain/schema/services/schema-validation-service.ts";
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
@@ -167,6 +168,17 @@ export class CLI {
       }));
     }
 
+    // Create schema validation service
+    const schemaValidationServiceResult = DefaultSchemaValidationService
+      .create();
+    if (!schemaValidationServiceResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create SchemaValidationService: ${schemaValidationServiceResult.error.message}`,
+      }));
+    }
+
     const documentProcessor = FrontmatterTransformationService
       .createWithEnabledLogging(
         frontmatterProcessor,
@@ -176,6 +188,7 @@ export class CLI {
         fileLister,
         logger,
         performanceSettings.data,
+        schemaValidationServiceResult.data,
       );
 
     // Create JMESPath Filter Service

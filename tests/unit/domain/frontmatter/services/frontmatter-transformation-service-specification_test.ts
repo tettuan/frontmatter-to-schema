@@ -10,6 +10,7 @@ import { assert, assertEquals } from "jsr:@std/assert";
 import { FrontmatterTransformationService } from "../../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { PerformanceSettings } from "../../../../../src/domain/configuration/value-objects/performance-settings.ts";
 import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
+import { DefaultSchemaValidationService } from "../../../../../src/domain/schema/services/schema-validation-service.ts";
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import {
@@ -181,7 +182,24 @@ class InMemorySchema {
     if (this.frontmatterPartPath === null) {
       return err({ kind: "FrontmatterPartNotFound" as const });
     }
-    return ok({});
+    // Return a mock SchemaDefinition with getItems method
+    const mockSchemaDefinition = {
+      getItems() {
+        return {
+          ok: true,
+          data: {
+            kind: "object",
+            properties: {
+              c1: { kind: "string" },
+              c2: { kind: "string" },
+              c3: { kind: "string" },
+            },
+            required: ["c1", "c2", "c3"],
+          },
+        };
+      },
+    };
+    return ok(mockSchemaDefinition);
   }
 
   getDerivedRules(): any[] {
@@ -301,6 +319,12 @@ class TransformationScenarioBuilder {
       throw new Error("Failed to create default performance settings");
     }
 
+    const schemaValidationServiceResult = DefaultSchemaValidationService
+      .create();
+    if (!schemaValidationServiceResult.ok) {
+      throw new Error("Failed to create schema validation service");
+    }
+
     const service = FrontmatterTransformationService.createWithDisabledLogging(
       processor as any,
       aggregator as any,
@@ -308,6 +332,7 @@ class TransformationScenarioBuilder {
       reader as any,
       lister as any,
       performanceSettings.data,
+      schemaValidationServiceResult.data,
     );
 
     const validationRules = ValidationRules.create([]);

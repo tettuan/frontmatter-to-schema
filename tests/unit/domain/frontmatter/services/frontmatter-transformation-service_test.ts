@@ -27,6 +27,7 @@ import { ProcessingBoundsFactory } from "../../../../../src/domain/shared/types/
 import { DebugLoggerFactory } from "../../../../../src/infrastructure/logging/debug-logger-factory.ts";
 import { NullDebugLogger } from "../../../../../src/infrastructure/logging/null-debug-logger.ts";
 import { PerformanceSettings } from "../../../../../src/domain/configuration/value-objects/performance-settings.ts";
+import { DefaultSchemaValidationService } from "../../../../../src/domain/schema/services/schema-validation-service.ts";
 
 /**
  * Helper function to create test service with default performance settings
@@ -43,6 +44,12 @@ function createTestServiceWithDisabledLogging(
   if (!performanceSettings.ok) {
     throw new Error("Failed to create default performance settings for test");
   }
+
+  const schemaValidationServiceResult = DefaultSchemaValidationService.create();
+  if (!schemaValidationServiceResult.ok) {
+    throw new Error("Failed to create schema validation service for test");
+  }
+
   return FrontmatterTransformationService.createWithDisabledLogging(
     processor,
     aggregator,
@@ -50,6 +57,7 @@ function createTestServiceWithDisabledLogging(
     reader,
     lister,
     performanceSettings.data,
+    schemaValidationServiceResult.data,
     frontmatterDataCreationService,
   );
 }
@@ -131,7 +139,24 @@ class MockSchema {
     if (this.frontmatterPartPath === null) {
       return err({ kind: "FrontmatterPartNotFound" as const });
     }
-    return ok({});
+    // Return a mock SchemaDefinition with getItems method
+    const mockSchemaDefinition = {
+      getItems() {
+        return {
+          ok: true,
+          data: {
+            kind: "object",
+            properties: {
+              c1: { kind: "string" },
+              c2: { kind: "string" },
+              c3: { kind: "string" },
+            },
+            required: ["c1", "c2", "c3"],
+          },
+        };
+      },
+    };
+    return ok(mockSchemaDefinition);
   }
 
   getDerivedRules() {

@@ -14,6 +14,7 @@ import { OutputRenderingService } from "../../../src/domain/template/services/ou
 import { TemplatePathResolver } from "../../../src/domain/template/services/template-path-resolver.ts";
 import { FrontmatterProcessor } from "../../../src/domain/frontmatter/processors/frontmatter-processor.ts";
 import { PerformanceSettings } from "../../../src/domain/configuration/value-objects/performance-settings.ts";
+import { DefaultSchemaValidationService } from "../../../src/domain/schema/services/schema-validation-service.ts";
 import { SchemaCacheFactory } from "../../../src/infrastructure/caching/schema-cache.ts";
 
 /**
@@ -31,6 +32,12 @@ function createTestServiceWithDisabledLogging(
   if (!performanceSettings.ok) {
     throw new Error("Failed to create default performance settings for test");
   }
+
+  const schemaValidationServiceResult = DefaultSchemaValidationService.create();
+  if (!schemaValidationServiceResult.ok) {
+    throw new Error("Failed to create schema validation service for test");
+  }
+
   return FrontmatterTransformationService.createWithDisabledLogging(
     processor,
     aggregator,
@@ -38,6 +45,7 @@ function createTestServiceWithDisabledLogging(
     reader,
     lister,
     performanceSettings.data,
+    schemaValidationServiceResult.data,
     frontmatterDataCreationService,
   );
 }

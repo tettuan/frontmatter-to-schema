@@ -12,6 +12,7 @@ import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
 import { FrontmatterProcessor } from "../processors/frontmatter-processor.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
+import { SchemaValidationService } from "../../schema/services/schema-validation-service.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { Aggregator, DerivationRule } from "../../aggregation/index.ts";
 import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
@@ -142,6 +143,7 @@ export class FrontmatterTransformationService {
       FrontmatterDataCreationService,
     private readonly domainLogger: DomainLogger,
     private readonly performanceSettings: PerformanceSettings,
+    private readonly schemaValidationService: SchemaValidationService,
   ) {}
 
   /**
@@ -154,6 +156,7 @@ export class FrontmatterTransformationService {
     basePropertyPopulator: BasePropertyPopulator,
     fileReader: FileReader,
     fileLister: FileLister,
+    schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService?: FrontmatterDataCreationService,
     domainLogger?: DomainLogger,
     performanceSettings?: PerformanceSettings,
@@ -191,6 +194,7 @@ export class FrontmatterTransformationService {
         creationService,
         logger,
         settings,
+        schemaValidationService,
       ),
     );
   }
@@ -369,6 +373,37 @@ export class FrontmatterTransformationService {
     // against the array element schema, not the top-level schema
     let effectiveValidationRules = validationRules;
 
+    // Use schema validation service to get proper validation rules for frontmatter part
+    // This follows DDD boundaries: Schema domain provides validation rules to frontmatter domain
+    const validationRulesResult = this.schemaValidationService
+      .getValidationRulesForFrontmatterPart(schema);
+
+    if (validationRulesResult.ok) {
+      effectiveValidationRules = validationRulesResult.data;
+
+      activeLogger?.info(
+        `Generated validation rules from resolved schema`,
+        {
+          operation: "validation-adjustment",
+          totalRules: effectiveValidationRules.getRules().length,
+          usingResolvedSchema: true,
+          timestamp: new Date().toISOString(),
+        },
+      );
+    } else {
+      activeLogger?.warn(
+        "Failed to get validation rules from schema service, using default rules",
+        {
+          error: validationRulesResult.error.message,
+          operation: "validation-adjustment",
+          timestamp: new Date().toISOString(),
+        },
+      );
+      // Keep using original validation rules as fallback
+    }
+
+    // OLD LOGIC (replaced by SchemaValidationService above)
+    /*
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
     if (frontmatterPartSchemaResult.ok) {
       // Debug: Validation rules variance coordination (Issue #905 Phase 2)
@@ -552,6 +587,7 @@ export class FrontmatterTransformationService {
         }
       }
     }
+    */
 
     // Stage 1: List matching files
     activeLogger?.info(
@@ -2271,6 +2307,7 @@ export class FrontmatterTransformationService {
     fileLister: FileLister,
     debugLogger: DebugLogger,
     performanceSettings: PerformanceSettings,
+    schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
@@ -2284,6 +2321,7 @@ export class FrontmatterTransformationService {
       frontmatterDataCreationService,
       domainLogger,
       performanceSettings,
+      schemaValidationService,
     );
   }
 
@@ -2297,6 +2335,7 @@ export class FrontmatterTransformationService {
     fileReader: FileReader,
     fileLister: FileLister,
     performanceSettings: PerformanceSettings,
+    schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
@@ -2310,6 +2349,7 @@ export class FrontmatterTransformationService {
       frontmatterDataCreationService,
       domainLogger,
       performanceSettings,
+      schemaValidationService,
     );
   }
 
@@ -2324,6 +2364,7 @@ export class FrontmatterTransformationService {
     fileReader: FileReader,
     fileLister: FileLister,
     performanceSettings: PerformanceSettings,
+    schemaValidationService: SchemaValidationService,
     logger?: DebugLogger,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
@@ -2338,6 +2379,7 @@ export class FrontmatterTransformationService {
       frontmatterDataCreationService,
       domainLogger,
       performanceSettings,
+      schemaValidationService,
     );
   }
 }
