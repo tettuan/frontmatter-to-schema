@@ -310,6 +310,42 @@ export class CLIErrorMessageService {
         return `Streaming error: ${error.content}`;
       case "MemoryBoundsExceeded":
         return `Memory bounds exceeded: ${error.content}`;
+
+      // ProcessingError cases
+      case "EXCEPTION_CAUGHT":
+        return `Exception caught during processing${
+          error.code ? ` (${error.code})` : ""
+        }`;
+      case "UNKNOWN_ERROR":
+        return `Unknown error occurred during processing${
+          error.code ? ` (${error.code})` : ""
+        }`;
+      case "CHAIN_FAILURE":
+        return `Operation chain failed${error.code ? ` (${error.code})` : ""}`;
+      case "RETRY_EXHAUSTED":
+        return `All retry attempts exhausted${
+          error.code ? ` (${error.code})` : ""
+        }`;
+      case "NO_SUCCESSFUL_RESULTS":
+        return `No successful results from processing${
+          error.code ? ` (${error.code})` : ""
+        }`;
+      case "NO_PROCESSING_ACTIVITY":
+        return `No processing activity detected${
+          error.code ? ` (${error.code})` : ""
+        }`;
+
+      // UtilityValidationError cases
+      case "EMPTY_ARRAY":
+        return `Array cannot be empty${error.code ? ` (${error.code})` : ""}`;
+      case "COLLECTION_TOO_SMALL":
+        return `Collection size below minimum${
+          error.code ? ` (${error.code})` : ""
+        }`;
+      case "COLLECTION_TOO_LARGE":
+        return `Collection size exceeds maximum${
+          error.code ? ` (${error.code})` : ""
+        }`;
     }
   }
 

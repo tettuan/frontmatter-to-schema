@@ -4,7 +4,7 @@
  * Eliminates code duplication and ensures consistent error processing
  */
 
-import { Result, ok, err } from "../types/result.ts";
+import { err, ok, Result } from "../types/result.ts";
 import { createError, DomainError } from "../types/errors.ts";
 
 /**
@@ -34,14 +34,14 @@ export class ErrorHandlingUtils {
   static handleException(
     error: unknown,
     context: string,
-    operation: string
+    operation: string,
   ): ProcessingError {
     if (error instanceof Error) {
       return createError({
         kind: "EXCEPTION_CAUGHT",
         code: "EXCEPTION_CAUGHT",
         message: `${context}: ${operation} failed - ${error.message}`,
-        originalError: error
+        originalError: error,
       });
     }
 
@@ -49,7 +49,7 @@ export class ErrorHandlingUtils {
       kind: "UNKNOWN_ERROR",
       code: "UNKNOWN_ERROR",
       message: `${context}: ${operation} failed - Unknown error occurred`,
-      originalError: error
+      originalError: error,
     });
   }
 
@@ -60,7 +60,7 @@ export class ErrorHandlingUtils {
   static async executeWithErrorBoundary<T>(
     operation: () => Promise<T>,
     context: string,
-    operationName: string
+    operationName: string,
   ): Promise<Result<T, ProcessingError>> {
     try {
       const result = await operation();
@@ -77,7 +77,7 @@ export class ErrorHandlingUtils {
   static executeSync<T>(
     operation: () => T,
     context: string,
-    operationName: string
+    operationName: string,
   ): Result<T, ProcessingError> {
     try {
       const result = operation();
@@ -93,7 +93,7 @@ export class ErrorHandlingUtils {
    */
   static aggregateErrors(
     errors: ProcessingError[],
-    context: string
+    context: string,
   ): ErrorAggregation {
     const criticalErrors = errors.filter(this.isCriticalError);
     const warnings = errors.filter(this.isWarning);
@@ -103,7 +103,7 @@ export class ErrorHandlingUtils {
       errorCount: errors.length,
       criticalErrors,
       warnings,
-      summary: this.createErrorSummary(errors, context)
+      summary: this.createErrorSummary(errors, context),
     };
   }
 
@@ -118,7 +118,7 @@ export class ErrorHandlingUtils {
       "ReadFailed",
       "WriteFailed",
       "PermissionDenied",
-      "EXCEPTION_CAUGHT"
+      "EXCEPTION_CAUGHT",
     ];
     return criticalKinds.includes(error.kind);
   }
@@ -131,7 +131,7 @@ export class ErrorHandlingUtils {
       "PerformanceViolation",
       "MemoryMonitorError",
       "RETRY_EXHAUSTED",
-      "NO_PROCESSING_ACTIVITY"
+      "NO_PROCESSING_ACTIVITY",
     ];
     return warningKinds.includes(error.kind);
   }
@@ -141,7 +141,7 @@ export class ErrorHandlingUtils {
    */
   static createErrorSummary(
     errors: ProcessingError[],
-    context: string
+    context: string,
   ): string {
     if (errors.length === 0) {
       return `${context}: No errors`;
@@ -169,7 +169,7 @@ export class ErrorHandlingUtils {
    */
   static async chainOperations<T>(
     operations: Array<() => Promise<Result<T, ProcessingError>>>,
-    context: string
+    context: string,
   ): Promise<Result<T[], ProcessingError>> {
     const results: T[] = [];
 
@@ -179,8 +179,10 @@ export class ErrorHandlingUtils {
         return err(createError({
           kind: "CHAIN_FAILURE",
           code: "CHAIN_FAILURE",
-          message: `${context}: Operation ${i + 1} failed - ${result.error.message}`,
-          originalError: result.error
+          message: `${context}: Operation ${
+            i + 1
+          } failed - ${result.error.message}`,
+          originalError: result.error,
         }));
       }
       results.push(result.data);
@@ -195,7 +197,7 @@ export class ErrorHandlingUtils {
    */
   static async collectAllResults<T>(
     operations: Array<() => Promise<Result<T, ProcessingError>>>,
-    context: string
+    _context: string,
   ): Promise<{ results: T[]; errors: ProcessingError[] }> {
     const results: T[] = [];
     const errors: ProcessingError[] = [];
@@ -219,7 +221,7 @@ export class ErrorHandlingUtils {
     operation: () => Promise<Result<T, ProcessingError>>,
     maxRetries: number,
     baseDelayMs: number,
-    context: string
+    context: string,
   ): Promise<Result<T, ProcessingError>> {
     let lastError: ProcessingError | null = null;
 
@@ -235,7 +237,7 @@ export class ErrorHandlingUtils {
       // Don't delay after the last attempt
       if (attempt < maxRetries) {
         const delay = baseDelayMs * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -243,7 +245,7 @@ export class ErrorHandlingUtils {
       kind: "RETRY_EXHAUSTED",
       code: "RETRY_EXHAUSTED",
       message: `${context}: All ${maxRetries + 1} attempts failed`,
-      originalError: lastError
+      originalError: lastError,
     }));
   }
 }

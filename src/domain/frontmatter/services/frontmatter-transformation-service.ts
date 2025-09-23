@@ -4,7 +4,6 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { ProcessingConstants } from "../../shared/constants/processing-constants.ts";
 import { ValidationHelpers } from "../../shared/utils/validation-helpers.ts";
-import { ErrorHandlingUtils } from "../../shared/utils/error-handling-utils.ts";
 import {
   ProcessingBounds,
   ProcessingBoundsFactory,
@@ -701,10 +700,12 @@ export class FrontmatterTransformationService {
       currentSystemState: {
         heapUsedMB: Math.round(currentMemory.heapUsed / 1024 / 1024),
         heapTotalMB: Math.round(currentMemory.heapTotal / 1024 / 1024),
-        systemMemoryPressure:
-          ProcessingConstants.isMemoryPressureHigh(currentMemory.heapUsed, currentMemory.heapTotal)
-            ? "high"
-            : "normal",
+        systemMemoryPressure: ProcessingConstants.isMemoryPressureHigh(
+            currentMemory.heapUsed,
+            currentMemory.heapTotal,
+          )
+          ? "high"
+          : "normal",
         estimatedMemoryAfterProcessing: Math.round(
           (currentMemory.heapUsed + filesResult.data.length * 2 * 1024 * 1024) /
             1024 / 1024,
