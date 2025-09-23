@@ -58,16 +58,12 @@ export class RefResolver {
       return resolvedResult;
     }
 
-    const resolvedDef = SchemaDefinition.create(resolvedResult.data);
-    if (!resolvedDef.ok) {
-      return ErrorHandler.schema({
-        operation: "resolve",
-        method: "createResolvedDefinition",
-      }).invalid("Failed to create resolved schema definition");
-    }
+    const resolvedDef = SchemaDefinition.fromSchemaProperty(
+      resolvedResult.data,
+    );
 
     return ok({
-      definition: resolvedDef.data,
+      definition: resolvedDef,
       referencedSchemas,
     });
   }
@@ -179,15 +175,9 @@ export class RefResolver {
       }).refResolutionFailed(ref, loadResult.error.message);
     }
 
-    const schemaDef = SchemaDefinition.create(loadResult.data);
-    if (!schemaDef.ok) {
-      return ErrorHandler.schema({
-        operation: "resolveRef",
-        method: "createDefinition",
-      }).refResolutionFailed(ref, "Invalid referenced schema");
-    }
+    const schemaDef = SchemaDefinition.fromSchemaProperty(loadResult.data);
 
-    referencedSchemas.set(ref, schemaDef.data);
+    referencedSchemas.set(ref, schemaDef);
 
     const resolved = this.resolveRecursive(loadResult.data, referencedSchemas);
     this.visitedRefs.delete(ref);
@@ -206,16 +196,14 @@ export class RefResolver {
 
     if (loadResult.ok) {
       // If the loader can handle the internal reference, use it
-      const schemaDef = SchemaDefinition.create(loadResult.data);
-      if (schemaDef.ok) {
-        referencedSchemas.set(ref, schemaDef.data);
-        const resolved = this.resolveRecursive(
-          loadResult.data,
-          referencedSchemas,
-        );
-        this.visitedRefs.delete(ref);
-        return resolved;
-      }
+      const schemaDef = SchemaDefinition.fromSchemaProperty(loadResult.data);
+      referencedSchemas.set(ref, schemaDef);
+      const resolved = this.resolveRecursive(
+        loadResult.data,
+        referencedSchemas,
+      );
+      this.visitedRefs.delete(ref);
+      return resolved;
     }
 
     // If loader failed, propagate the failure for proper error handling

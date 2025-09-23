@@ -476,6 +476,8 @@ export class Schema {
     let found = false;
 
     if (definition.hasExtractFrom()) {
+      // Only reject x-extract-from when it's truly at the schema root (empty path)
+      // Allow it on properties (path will be non-empty like "req", "items", etc.)
       if (!currentPath) {
         return ErrorHandler.schema().invalid(
           "x-extract-from directive cannot target the schema root",

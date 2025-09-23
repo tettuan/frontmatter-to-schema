@@ -483,10 +483,44 @@ export class FrontmatterTransformationService {
             }
           } else {
             // Create validation rules from the array items schema
-            effectiveValidationRules = ValidationRules.fromSchema(
-              actualItemsSchema,
-              "",
-            );
+            // TEMPORARY FIX: Only apply migration when we detect the specific Issue #970 problem
+            // Check if this is a raw JSON schema that needs migration vs already migrated SchemaProperty
+            const needsMigration =
+              (actualItemsSchema as any).kind === undefined &&
+              typeof actualItemsSchema === "object" &&
+              actualItemsSchema !== null;
+
+            if (needsMigration) {
+              // Need to apply migration to convert raw schema to SchemaProperty
+              const { SchemaPropertyMigration } = await import(
+                "../../schema/value-objects/schema-property-migration.ts"
+              );
+              const migrationResult = SchemaPropertyMigration.migrate(
+                actualItemsSchema,
+              );
+
+              if (migrationResult.ok) {
+                effectiveValidationRules = ValidationRules.fromSchema(
+                  migrationResult.data,
+                  "",
+                );
+              } else {
+                activeLogger?.warn(
+                  "Cannot adjust validation: failed to migrate items schema",
+                  createLogContext({
+                    operation: "validation-adjustment",
+                    inputs: `error: ${migrationResult.error}`,
+                  }),
+                );
+                // Keep using original validation rules
+              }
+            } else {
+              // Already a SchemaProperty, use directly (legacy behavior)
+              effectiveValidationRules = ValidationRules.fromSchema(
+                actualItemsSchema,
+                "",
+              );
+            }
           }
 
           const frontmatterPartPath = schema.findFrontmatterPartPath();
@@ -1542,9 +1576,52 @@ export class FrontmatterTransformationService {
       let processedFrontmatterData = frontmatterData;
 
       // Check if the main schema has directives to process
-      if (
-        schema.hasExtractFromDirectives && schema.hasExtractFromDirectives()
-      ) {
+      console.log(
+        `[DEBUG] Schema type analysis: constructor=${schema.constructor.name}, hasExtractFromDirectives=${typeof schema
+          .hasExtractFromDirectives}, getExtractFromDirectives=${typeof schema
+          .getExtractFromDirectives}`,
+      );
+      console.log(
+        `[DEBUG] Schema methods: ${
+          Object.getOwnPropertyNames(schema).join(", ")
+        }`,
+      );
+      console.log(
+        `[DEBUG] Schema prototype methods: ${
+          Object.getOwnPropertyNames(Object.getPrototypeOf(schema)).join(", ")
+        }`,
+      );
+
+      activeLogger?.debug(
+        `Schema type analysis: constructor=${schema.constructor.name}, hasExtractFromDirectives=${typeof schema
+          .hasExtractFromDirectives}, getExtractFromDirectives=${typeof schema
+          .getExtractFromDirectives}`,
+        createLogContext({
+          operation: "schema-method-debugging",
+          inputs: `methods: ${Object.getOwnPropertyNames(schema).join(", ")}`,
+        }),
+      );
+
+      const hasDirectives = schema.hasExtractFromDirectives
+        ? schema.hasExtractFromDirectives()
+        : false;
+      console.log(
+        `[DEBUG] hasExtractFromDirectives() returned: ${hasDirectives}`,
+      );
+
+      // Let's also check what getExtractFromDirectives returns
+      const directivesResult = schema.getExtractFromDirectives
+        ? schema.getExtractFromDirectives()
+        : { ok: false };
+      console.log(
+        `[DEBUG] getExtractFromDirectives() returned: ok=${directivesResult.ok}, length=${
+          directivesResult.ok && "data" in directivesResult
+            ? directivesResult.data?.length
+            : "N/A"
+        }`,
+      );
+
+      if (hasDirectives) {
         activeLogger?.debug(
           "Processing x-extract-from directives for frontmatter-part item",
           createLogContext({
@@ -1559,9 +1636,15 @@ export class FrontmatterTransformationService {
           const extractor = extractorResult.data;
 
           // Get directives from the main schema
-          const directivesResult = schema.getExtractFromDirectives &&
-            schema.getExtractFromDirectives();
-          if (directivesResult.ok) {
+          const directivesResult = schema.getExtractFromDirectives
+            ? schema.getExtractFromDirectives()
+            : {
+              ok: false,
+              error: {
+                message: "getExtractFromDirectives method not available",
+              },
+            };
+          if (directivesResult.ok && "data" in directivesResult) {
             // Process directives on the frontmatter data
             const processedResult = await extractor.processDirectives(
               frontmatterData,

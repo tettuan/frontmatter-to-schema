@@ -8,7 +8,7 @@ import {
 } from "../../domain/schema/index.ts";
 import { DenoFileReader } from "../file-system/file-reader.ts";
 import { DebugLogger } from "./debug-logger.ts";
-import { dirname, isAbsolute, join } from "@std/path";
+import { dirname, isAbsolute, join } from "jsr:@std/path@^1.1.2";
 import { RefResolver } from "../../domain/schema/services/ref-resolver.ts";
 
 export interface FileReader {

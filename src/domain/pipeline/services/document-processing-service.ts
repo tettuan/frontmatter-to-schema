@@ -164,8 +164,22 @@ export class DocumentProcessingService {
     let processedDataResult;
 
     // Check for x-extract-from and x-frontmatter-part directives
+    // Debug: Check schema resolution status for Issue #966
+    this.loggingService.debug("Schema directive analysis for Issue #966", {
+      operation: "schema-directive-check",
+      schemaState: schema.isResolved() ? "resolved" : "unresolved",
+      schemaPath: schema.getPath().toString(),
+    });
+
     const hasExtractFrom = schema.hasExtractFromDirectives();
     const hasFrontmatterPart = schema.hasFrontmatterPart();
+
+    this.loggingService.debug("Schema directive detection results", {
+      operation: "directive-detection",
+      hasExtractFrom,
+      hasFrontmatterPart,
+      schemaState: schema.isResolved() ? "resolved" : "unresolved",
+    });
 
     if (hasExtractFrom && hasFrontmatterPart) {
       // Use full extraction when both directives are present

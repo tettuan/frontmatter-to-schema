@@ -1,5 +1,5 @@
-import { assert, assertEquals } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import { assert, assertEquals } from "jsr:@std/assert@^1.0.6";
+import { describe, it } from "jsr:@std/testing@^1.0.5/bdd";
 import { ResultValidator } from "./result-validator.ts";
 import { err, ok, Result } from "../types/result.ts";
 import { createError } from "../types/errors.ts";

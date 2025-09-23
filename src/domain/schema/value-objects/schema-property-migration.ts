@@ -135,19 +135,49 @@ export class SchemaPropertyMigration {
     legacy: LegacySchemaProperty,
   ): SchemaExtensions {
     const registry = defaultSchemaExtensionRegistry;
-    return {
-      [registry.getTemplateKey().getValue()]: legacy["x-template"],
-      [registry.getFrontmatterPartKey().getValue()]:
-        legacy["x-frontmatter-part"],
-      [registry.getDerivedFromKey().getValue()]: legacy["x-derived-from"],
-      [registry.getDerivedUniqueKey().getValue()]: legacy["x-derived-unique"],
-      [registry.getTemplateItemsKey().getValue()]: legacy["x-template-items"], // Support user-requested directive
-      [registry.getTemplateFormatKey().getValue()]: legacy["x-template-format"], // User-requested: output format specification
-      [registry.getJmespathFilterKey().getValue()]: legacy["x-jmespath-filter"], // JMESPath filtering expression
-      [registry.getExtractFromKey().getValue()]: legacy["x-extract-from"],
-      [registry.getMergeArraysKey().getValue()]: legacy["x-merge-arrays"],
-      description: legacy.description,
-    };
+    const extensions = {} as Record<string, unknown>;
+
+    // Only include extensions that actually exist (not undefined)
+    if (legacy["x-template"] !== undefined) {
+      extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
+    }
+    if (legacy["x-frontmatter-part"] !== undefined) {
+      extensions[registry.getFrontmatterPartKey().getValue()] =
+        legacy["x-frontmatter-part"];
+    }
+    if (legacy["x-derived-from"] !== undefined) {
+      extensions[registry.getDerivedFromKey().getValue()] =
+        legacy["x-derived-from"];
+    }
+    if (legacy["x-derived-unique"] !== undefined) {
+      extensions[registry.getDerivedUniqueKey().getValue()] =
+        legacy["x-derived-unique"];
+    }
+    if (legacy["x-template-items"] !== undefined) {
+      extensions[registry.getTemplateItemsKey().getValue()] =
+        legacy["x-template-items"];
+    }
+    if (legacy["x-template-format"] !== undefined) {
+      extensions[registry.getTemplateFormatKey().getValue()] =
+        legacy["x-template-format"];
+    }
+    if (legacy["x-jmespath-filter"] !== undefined) {
+      extensions[registry.getJmespathFilterKey().getValue()] =
+        legacy["x-jmespath-filter"];
+    }
+    if (legacy["x-extract-from"] !== undefined) {
+      extensions[registry.getExtractFromKey().getValue()] =
+        legacy["x-extract-from"];
+    }
+    if (legacy["x-merge-arrays"] !== undefined) {
+      extensions[registry.getMergeArraysKey().getValue()] =
+        legacy["x-merge-arrays"];
+    }
+    if (legacy.description !== undefined) {
+      extensions.description = legacy.description;
+    }
+
+    return extensions as SchemaExtensions;
   }
 
   private static determineEnumBaseType(
