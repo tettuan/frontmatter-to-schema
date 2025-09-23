@@ -6,7 +6,10 @@ import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-dat
 import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
 import { PipelineStrategyConfig } from "../../../application/value-objects/pipeline-strategy-config.ts";
 import { ProcessingCoordinator } from "../../../application/coordinators/processing-coordinator.ts";
-import { LoggingService } from "../../../infrastructure/logging/logging-service.ts";
+import {
+  DomainLogger,
+  NullDomainLogger,
+} from "../../shared/services/domain-logger.ts";
 
 /**
  * Document processing configuration
@@ -57,7 +60,7 @@ export interface ProcessingStrategyDecision {
 export class DocumentProcessingService {
   private constructor(
     private readonly processingCoordinator: ProcessingCoordinator,
-    private readonly loggingService: LoggingService,
+    private readonly domainLogger: DomainLogger,
   ) {}
 
   /**
@@ -65,7 +68,7 @@ export class DocumentProcessingService {
    */
   static create(
     processingCoordinator: ProcessingCoordinator,
-    loggingService: LoggingService,
+    domainLogger?: DomainLogger,
   ): Result<DocumentProcessingService, DomainError & { message: string }> {
     if (!processingCoordinator) {
       return {
@@ -77,12 +80,12 @@ export class DocumentProcessingService {
       };
     }
 
-    if (!loggingService) {
+    if (!domainLogger) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message: "LoggingService is required",
+          message: "DomainLogger is required",
         }),
       };
     }
@@ -90,7 +93,7 @@ export class DocumentProcessingService {
     return ok(
       new DocumentProcessingService(
         processingCoordinator,
-        loggingService,
+        domainLogger ?? new NullDomainLogger(),
       ),
     );
   }
@@ -122,25 +125,29 @@ export class DocumentProcessingService {
     const strategy = strategyDecisionResult.data;
 
     // Enhanced debug logging: Strategy decision with variance analysis
-    this.loggingService.debug("Document processing strategy selected", {
-      operation: "document-batch-processing",
-      strategy: {
-        parallel: strategy.shouldUseParallel,
-        batchSize: strategy.optimalBatchSize,
-        concurrency: strategy.concurrencyLevel,
-        estimatedTime: strategy.estimatedTimeMs,
-        estimatedMemory: strategy.estimatedMemoryMB,
+    this.domainLogger.logDebug(
+      "document-processing",
+      "Document processing strategy selected",
+      {
+        operation: "document-batch-processing",
+        strategy: {
+          parallel: strategy.shouldUseParallel,
+          batchSize: strategy.optimalBatchSize,
+          concurrency: strategy.concurrencyLevel,
+          estimatedTime: strategy.estimatedTimeMs,
+          estimatedMemory: strategy.estimatedMemoryMB,
+        },
+        varianceAnalysis: {
+          strategyVolatility: strategy.shouldUseParallel ? "high" : "low",
+          memoryPredictability: strategy.estimatedMemoryMB < 50
+            ? "stable"
+            : "variable",
+          errorRecoveryComplexity: strategy.shouldUseParallel
+            ? "complex"
+            : "simple",
+        },
       },
-      varianceAnalysis: {
-        strategyVolatility: strategy.shouldUseParallel ? "high" : "low",
-        memoryPredictability: strategy.estimatedMemoryMB < 50
-          ? "stable"
-          : "variable",
-        errorRecoveryComplexity: strategy.shouldUseParallel
-          ? "complex"
-          : "simple",
-      },
-    });
+    );
 
     // Process documents using coordinator
     const processingOptions = strategy.shouldUseParallel
@@ -151,7 +158,8 @@ export class DocumentProcessingService {
     const processingStartTime = performance.now();
     const preProcessingMemory = Deno.memoryUsage();
 
-    this.loggingService.debug(
+    this.domainLogger.logDebug(
+      "document-processing",
       "Starting document processing with variance monitoring",
       {
         operation: "document-processing-start",
@@ -170,21 +178,30 @@ export class DocumentProcessingService {
 
     // Check for x-extract-from and x-frontmatter-part directives
     // Debug: Check schema resolution status for Issue #966
-    this.loggingService.debug("Schema directive analysis for Issue #966", {
-      operation: "schema-directive-check",
-      schemaState: schema.isResolved() ? "resolved" : "unresolved",
-      schemaPath: schema.getPath().toString(),
-    });
+    this.domainLogger.logDebug(
+      "schema-directive-check",
+      "Schema directive analysis for Issue #966",
+      {
+        operation: "schema-directive-check",
+        schemaState: schema.isResolved() ? "resolved" : "unresolved",
+        schemaPath: schema.getPath().toString(),
+      },
+    );
 
-    const hasExtractFrom = schema.hasExtractFromDirectives();
+    // Note: x-extract-from directive has been deprecated and removed
+    const hasExtractFrom = false;
     const hasFrontmatterPart = schema.hasFrontmatterPart();
 
-    this.loggingService.debug("Schema directive detection results", {
-      operation: "directive-detection",
-      hasExtractFrom,
-      hasFrontmatterPart,
-      schemaState: schema.isResolved() ? "resolved" : "unresolved",
-    });
+    this.domainLogger.logDebug(
+      "directive-detection",
+      "Schema directive detection results",
+      {
+        operation: "directive-detection",
+        hasExtractFrom,
+        hasFrontmatterPart,
+        schemaState: schema.isResolved() ? "resolved" : "unresolved",
+      },
+    );
 
     if (hasExtractFrom && hasFrontmatterPart) {
       // Use full extraction when both directives are present
@@ -261,7 +278,8 @@ export class DocumentProcessingService {
       const errorProcessingTime = performance.now() - processingStartTime;
       const errorMemory = Deno.memoryUsage();
 
-      this.loggingService.error(
+      this.domainLogger.logError(
+        "document-processing-error",
         "Document processing failed with variance impact",
         {
           operation: "document-processing-error",
@@ -310,7 +328,8 @@ export class DocumentProcessingService {
     const timeVariance = actualProcessingTime /
       Math.max(strategy.estimatedTimeMs, 1);
 
-    this.loggingService.info(
+    this.domainLogger.logInfo(
+      "document-processing-complete",
       "Document processing completed with variance analysis",
       {
         operation: "document-processing-complete",
@@ -433,10 +452,14 @@ export class DocumentProcessingService {
     for (let i = 0; i < documents.length; i += batchSize) {
       const batch = documents.slice(i, i + batchSize);
 
-      this.loggingService.debug(`Processing batch ${i / batchSize + 1}`, {
-        batchSize: batch.length,
-        progress: `${i + batch.length}/${documents.length}`,
-      });
+      this.domainLogger.logDebug(
+        "batch-processing",
+        `Processing batch ${i / batchSize + 1}`,
+        {
+          batchSize: batch.length,
+          progress: `${i + batch.length}/${documents.length}`,
+        },
+      );
 
       // Process batch (simplified - actual implementation would use ProcessingCoordinator)
       for (const doc of batch) {

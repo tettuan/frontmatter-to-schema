@@ -493,7 +493,8 @@ export function extractionErrorToSchemaError(
       };
     case "ExtractionRecoverable":
       return {
-        kind: "ExtractFromNotDefined",
+        kind: "PropertyNotFound",
+        path: extractionError.path,
         message: extractionError.message,
       };
   }

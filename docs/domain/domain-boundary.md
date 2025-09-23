@@ -97,7 +97,8 @@ interface SchemaContext {
 
 **拡張ディレクティブの責務**:
 
-- `x-flatten-arrays`: フロントマター内部のネスト配列のフラット化（Stage 2で処理）
+- `x-flatten-arrays`: フロントマター内部のネスト配列のフラット化（Stage
+  2で処理）
 - `x-derived-from`: 集約処理での派生フィールド生成（Stage 4で処理）
 - `x-frontmatter-part`: フロントマター配列処理の指定（Stage 1で処理）
 - `x-template`: テンプレートファイルの指定

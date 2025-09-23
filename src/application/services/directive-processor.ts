@@ -17,7 +17,6 @@ import {
   DomainLogger,
   NullDomainLogger,
 } from "../../domain/shared/services/domain-logger.ts";
-import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 
 /**
  * Directive processing context for a single execution
@@ -90,12 +89,10 @@ export class DirectiveProcessor {
   /**
    * Process all directives in the schema according to dependency order
    */
-  async processDirectives(
+  processDirectives(
     schema: Schema,
     inputData: FrontmatterData[],
-  ): Promise<
-    Result<DirectiveProcessingResult, DomainError & { message: string }>
-  > {
+  ): Result<DirectiveProcessingResult, DomainError & { message: string }> {
     const executionId = `directive-proc-${Date.now()}-${
       Math.random().toString(36).substring(2, 9)
     }`;
@@ -176,7 +173,7 @@ export class DirectiveProcessor {
         },
       );
 
-      const stageResult = await this.processStage(
+      const stageResult = this.processStage(
         stage,
         currentData,
         context,
@@ -231,7 +228,7 @@ export class DirectiveProcessor {
   /**
    * Process a single stage with all its directives
    */
-  private async processStage(
+  private processStage(
     stage: {
       readonly stage: number;
       readonly directives: readonly DirectiveType[];
@@ -239,7 +236,7 @@ export class DirectiveProcessor {
     },
     inputData: FrontmatterData[],
     context: DirectiveProcessingContext,
-  ): Promise<StageProcessingResult> {
+  ): StageProcessingResult {
     const stageStartTime = performance.now();
     const errors: (DomainError & { message: string })[] = [];
     let processedData = inputData;
@@ -271,7 +268,7 @@ export class DirectiveProcessor {
       try {
         // This is a placeholder for actual directive processing
         // Each directive type would have its own processing logic
-        const directiveResult = await this.processDirective(
+        const directiveResult = this.processDirective(
           directive,
           processedData,
           context,
@@ -336,11 +333,11 @@ export class DirectiveProcessor {
   /**
    * Process an individual directive with actual implementation
    */
-  private async processDirective(
+  private processDirective(
     directive: DirectiveType,
     data: FrontmatterData[],
     context: DirectiveProcessingContext,
-  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
+  ): Result<FrontmatterData[], DomainError & { message: string }> {
     this.domainLogger.logDebug(
       "directive-processing",
       `[DIRECTIVE-ORDER-DEBUG] Processing ${directive} with ${data.length} data items`,
@@ -353,9 +350,6 @@ export class DirectiveProcessor {
 
     // Implement actual directive processing logic
     switch (directive) {
-      case "x-extract-from":
-        return await this.processExtractFromDirective(data, context);
-
       case "x-frontmatter-part":
         // Already handled by FrontmatterTransformationService in pipeline
         // This processor focuses on post-frontmatter-part directives
@@ -387,70 +381,6 @@ export class DirectiveProcessor {
         );
         return ok(data);
     }
-  }
-
-  /**
-   * Process x-extract-from directive using ExtractFromProcessor
-   */
-  private async processExtractFromDirective(
-    data: FrontmatterData[],
-    context: DirectiveProcessingContext,
-  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
-    const extractFromProcessorResult = ExtractFromProcessor.create();
-    if (!extractFromProcessorResult.ok) {
-      return extractFromProcessorResult;
-    }
-
-    const processor = extractFromProcessorResult.data;
-    const processedData: FrontmatterData[] = [];
-
-    for (const dataItem of data) {
-      // Get x-extract-from directives from schema
-      const directivesResult = context.schema.getExtractFromDirectives();
-      if (!directivesResult.ok) {
-        this.domainLogger.logError(
-          "directive-processing",
-          `[DIRECTIVE-ORDER-DEBUG] Failed to get extract-from directives: ${directivesResult.error.message}`,
-          { executionId: context.executionId },
-        );
-        continue; // Skip this data item but continue processing others
-      }
-
-      if (directivesResult.data.length === 0) {
-        // No x-extract-from directives, pass data through unchanged
-        processedData.push(dataItem);
-        continue;
-      }
-
-      // Process x-extract-from directives
-      const processResult = await processor.processDirectives(
-        dataItem,
-        directivesResult.data,
-      );
-
-      if (!processResult.ok) {
-        this.domainLogger.logError(
-          "directive-processing",
-          `[DIRECTIVE-ORDER-DEBUG] Failed to process extract-from directives: ${processResult.error.message}`,
-          { executionId: context.executionId },
-        );
-        continue; // Skip this data item but continue processing others
-      }
-
-      processedData.push(processResult.data);
-    }
-
-    this.domainLogger.logDebug(
-      "directive-processing",
-      `[DIRECTIVE-ORDER-DEBUG] Processed ${data.length} items with x-extract-from, resulting in ${processedData.length} items`,
-      {
-        executionId: context.executionId,
-        inputCount: data.length,
-        outputCount: processedData.length,
-      },
-    );
-
-    return ok(processedData);
   }
 
   /**

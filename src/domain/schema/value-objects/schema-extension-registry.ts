@@ -64,22 +64,6 @@ export class SchemaExtensionKey {
   }
 
   /**
-   * Smart Constructor for extract-from extension key
-   * Used for extracting values from nested property paths
-   */
-  static extractFrom(): SchemaExtensionKey {
-    return new SchemaExtensionKey("x-extract-from");
-  }
-
-  /**
-   * Smart Constructor for merge-arrays extension key
-   * Used for merging arrays from multiple files
-   */
-  static mergeArrays(): SchemaExtensionKey {
-    return new SchemaExtensionKey("x-merge-arrays");
-  }
-
-  /**
    * Get the string value of the extension key
    */
   getValue(): string {
@@ -115,8 +99,6 @@ export class SchemaExtensionRegistry {
     private readonly derivedUniqueKey: SchemaExtensionKey,
     private readonly jmespathFilterKey: SchemaExtensionKey,
     private readonly templateFormatKey: SchemaExtensionKey,
-    private readonly extractFromKey: SchemaExtensionKey,
-    private readonly mergeArraysKey: SchemaExtensionKey,
   ) {}
 
   /**
@@ -132,8 +114,6 @@ export class SchemaExtensionRegistry {
       SchemaExtensionKey.derivedUnique(),
       SchemaExtensionKey.jmespathFilter(),
       SchemaExtensionKey.templateFormat(),
-      SchemaExtensionKey.extractFrom(),
-      SchemaExtensionKey.mergeArrays(),
     );
   }
 
@@ -187,20 +167,6 @@ export class SchemaExtensionRegistry {
   }
 
   /**
-   * Get extract-from extension key
-   */
-  getExtractFromKey(): SchemaExtensionKey {
-    return this.extractFromKey;
-  }
-
-  /**
-   * Get merge-arrays extension key
-   */
-  getMergeArraysKey(): SchemaExtensionKey {
-    return this.mergeArraysKey;
-  }
-
-  /**
    * Get all registered extension keys
    */
   getAllKeys(): SchemaExtensionKey[] {
@@ -212,8 +178,6 @@ export class SchemaExtensionRegistry {
       this.derivedUniqueKey,
       this.jmespathFilterKey,
       this.templateFormatKey,
-      this.extractFromKey,
-      this.mergeArraysKey,
     ];
   }
 

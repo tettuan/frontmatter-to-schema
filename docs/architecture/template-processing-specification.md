@@ -118,7 +118,9 @@ graph TD
 }
 ```
 
-**Note**: This represents Stage 6 (Data Collection Complete) where all data from multiple files has been collected and aggregated. The {@items} expansion happens after this, during Stage 7 (Template Application).
+**Note**: This represents Stage 6 (Data Collection Complete) where all data from
+multiple files has been collected and aggregated. The {@items} expansion happens
+after this, during Stage 7 (Template Application).
 
 ## 3. Data Partitioning Specification
 
@@ -393,12 +395,12 @@ Support for array operations:
 
 ### 9.1 Error Categories
 
-| Category          | Description                          | Recovery Strategy             |
-| ----------------- | ------------------------------------ | ----------------------------- |
-| Schema Errors     | Invalid schema or missing references | Fail fast with clear message  |
-| Template Errors   | Missing templates or syntax errors   | Provide fallback or fail      |
-| Data Errors       | Missing required data                | Use defaults or skip item     |
-| Resolution Errors | Unresolvable variables               | Replace with `null`            |
+| Category          | Description                          | Recovery Strategy            |
+| ----------------- | ------------------------------------ | ---------------------------- |
+| Schema Errors     | Invalid schema or missing references | Fail fast with clear message |
+| Template Errors   | Missing templates or syntax errors   | Provide fallback or fail     |
+| Data Errors       | Missing required data                | Use defaults or skip item    |
+| Resolution Errors | Unresolvable variables               | Replace with `null`          |
 
 ### 9.2 Error Propagation
 

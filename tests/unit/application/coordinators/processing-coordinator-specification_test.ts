@@ -132,23 +132,17 @@ class ProcessingCoordinationScenarioBuilder {
   }
 
   private createTestSchema(
-    hasExtractFrom = false,
+    _hasExtractFrom = false,
     hasFrontmatterPart = false,
   ): Schema {
     return {
-      hasExtractFromDirectives: () => hasExtractFrom,
       findFrontmatterPartPath: () =>
         hasFrontmatterPart ? ok("items") : err({
           kind: "PropertyNotFound" as const,
           path: "frontmatter-part",
           message: "Frontmatter part not found",
         }),
-      getExtractFromDirectives: () =>
-        hasExtractFrom ? ok([]) : err({
-          kind: "PropertyNotFound" as const,
-          path: "extract-from",
-          message: "Extract-from directives not found",
-        }),
+      // Note: x-extract-from directive has been deprecated and removed
     } as Schema;
   }
 }
@@ -477,7 +471,16 @@ describe("BUSINESS REQUIREMENT: Frontmatter Part Extraction", () => {
         .withSchema(false, true) // has frontmatter-part
         .build();
 
-      const mockData = FrontmatterData.empty();
+      // Create test data with array at frontmatter-part path ("items")
+      const testData = {
+        items: [
+          { id: 1, title: "Test Item 1" },
+          { id: 2, title: "Test Item 2" },
+        ],
+      };
+      const mockDataResult = FrontmatterData.create(testData);
+      assert(mockDataResult.ok, "Test data creation should succeed");
+      const mockData = mockDataResult.data;
 
       // Act - Execute frontmatter part extraction with defined part
       const result = await scenario.coordinator.extractFrontmatterPartData(

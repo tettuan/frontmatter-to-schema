@@ -128,32 +128,29 @@ export class PathCache<T> {
    * Set value in cache
    */
   set(key: string, value: T, ttl?: number): Result<void, SchemaError> {
-    return ErrorHandling.wrapOperation(
-      () => {
-        const effectiveTtl = ttl ?? this.config.defaultTtl;
+    const effectiveTtl = ttl ?? this.config.defaultTtl;
 
-        // Evict if at capacity
-        const maxEntries = this.config.maxPathEntries ?? this.config.maxSize;
-        if (this.cache.size >= maxEntries && !this.cache.has(key)) {
-          const evictResult = this.evictLeastRecentlyUsed();
-          if (!evictResult.ok) {
-            throw new Error(`Eviction failed: ${evictResult.error.kind}`);
-          }
-        }
+    // Evict if at capacity
+    const maxEntries = this.config.maxPathEntries ?? this.config.maxSize;
+    if (this.cache.size >= maxEntries && !this.cache.has(key)) {
+      const evictResult = this.evictLeastRecentlyUsed();
+      if (!evictResult.ok) {
+        return err({
+          kind: "InvalidSchema",
+          message: `Cache eviction failed: ${evictResult.error.kind}`,
+        });
+      }
+    }
 
-        const entry: CacheEntry<T> = {
-          value,
-          timestamp: Date.now(),
-          accessCount: 1,
-          ttl: effectiveTtl,
-        };
+    const entry: CacheEntry<T> = {
+      value,
+      timestamp: Date.now(),
+      accessCount: 1,
+      ttl: effectiveTtl,
+    };
 
-        this.cache.set(key, entry);
-        // No return needed for void operations
-      },
-      cacheErrorFactory,
-      { operation: "set", method: "cache-write" },
-    );
+    this.cache.set(key, entry);
+    return ok(void 0);
   }
 
   /**

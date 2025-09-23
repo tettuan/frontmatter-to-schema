@@ -17,8 +17,7 @@ import {
 import { PropertyExtractor, PropertyPath } from "./property-extractor.ts";
 import {
   PathCache,
-  PathCacheConfig,
-  PathCacheFactory,
+  // PathCacheFactory, // Removed unused import
 } from "../../../infrastructure/cache/path-cache.ts";
 
 /**
@@ -44,7 +43,15 @@ export interface OptimizedExtractorConfig {
   readonly enableMetrics: boolean;
   readonly maxConcurrentExtractions: number;
   readonly timeoutMs: number;
-  readonly pathCacheConfig?: Partial<PathCacheConfig>;
+  readonly pathCacheConfig?: {
+    maxSize?: number;
+    defaultTtl?: number;
+    enableMetrics?: boolean;
+    maxPathEntries?: number;
+    maxExtractionEntries?: number;
+    pathTtlMs?: number;
+    extractionTtlMs?: number;
+  };
 }
 
 /**
@@ -108,19 +115,7 @@ export class OptimizedPropertyExtractor {
     // Create path cache if enabled
     let pathCache: PathCache<unknown> | null = null;
     if (validatedConfig.enablePathCache) {
-      const cacheResult = PathCacheFactory.create(
-        validatedConfig.pathCacheConfig,
-      );
-      if (!cacheResult.ok) {
-        const errorMessage = "message" in cacheResult.error
-          ? cacheResult.error.message
-          : `Error kind: ${cacheResult.error.kind}`;
-        return err({
-          kind: "InvalidSchema",
-          message: `Failed to create path cache: ${errorMessage}`,
-        });
-      }
-      pathCache = cacheResult.data;
+      pathCache = PathCache.create<unknown>(validatedConfig.pathCacheConfig);
     }
 
     return ok(

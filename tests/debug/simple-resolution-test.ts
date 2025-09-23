@@ -34,31 +34,37 @@ Deno.test("Schema Resolution Test - Issue #966 Verification", async () => {
   const schema = schemaResult.data;
 
   console.log(`📊 Schema isResolved(): ${schema.isResolved()}`);
+
+  // Note: x-extract-from directive has been deprecated and removed as per Issue #994
   console.log(
-    `🎯 Schema hasExtractFromDirectives(): ${schema.hasExtractFromDirectives()}`,
+    "🎯 UPDATE: x-extract-from directive has been deprecated and removed",
+  );
+  console.log(
+    "   Issue #994 completed: Deprecated directives removed from codebase",
   );
 
-  // This demonstrates the Issue #966 problem
-  const directivesResult = schema.getExtractFromDirectives();
-  console.log(`📋 getExtractFromDirectives() ok: ${directivesResult.ok}`);
+  // Test frontmatter-part functionality instead
+  const frontmatterPartResult = schema.findFrontmatterPartPath();
+  console.log(`📋 findFrontmatterPartPath() ok: ${frontmatterPartResult.ok}`);
 
-  if (directivesResult.ok) {
-    console.log(`✅ SUCCESS: Found ${directivesResult.data.length} directives`);
-    console.log("✅ Issue #966 would be FIXED if schema was properly resolved");
-  } else {
-    console.log(`❌ ISSUE #966 CONFIRMED: ${directivesResult.error.message}`);
+  if (frontmatterPartResult.ok) {
     console.log(
-      "❌ Root cause: Schema is unresolved, $ref not available for directive traversal",
+      `✅ SUCCESS: Found frontmatter-part path: ${frontmatterPartResult.data}`,
+    );
+    console.log("✅ Schema resolution works for supported directives");
+  } else {
+    console.log(`❌ ERROR: ${frontmatterPartResult.error.message}`);
+    console.log(
+      "❌ Root cause: Schema is unresolved, $ref not available for frontmatter-part processing",
     );
   }
 
-  // Key insight: The x-extract-from is in the main schema (req property)
-  // but getExtractFromDirectives() fails when it tries to traverse the $ref
+  // Updated insight: Focus on current supported functionality
   console.log(
-    "\n🎯 SOLUTION: Ensure schema is resolved before directive processing",
+    "\n🎯 CURRENT STATE: x-extract-from removed, focus on frontmatter-part processing",
   );
   console.log("   - Schema coordinator should call resolve() properly");
   console.log(
-    "   - All $ref references must be loaded before hasExtractFromDirectives()",
+    "   - All $ref references must be loaded before frontmatter-part processing",
   );
 });

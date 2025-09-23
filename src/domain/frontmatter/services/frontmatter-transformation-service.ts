@@ -11,6 +11,8 @@ import { FilePath } from "../value-objects/file-path.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
 import { FrontmatterProcessor } from "../processors/frontmatter-processor.ts";
+import { FrontmatterExtractionService } from "./frontmatter-extraction-service.ts";
+import { FrontmatterValidationService } from "./frontmatter-validation-service.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { SchemaValidationService } from "../../schema/services/schema-validation-service.ts";
 import { Schema } from "../../schema/entities/schema.ts";
@@ -37,7 +39,6 @@ import type {
   FileLister,
   FileReader,
 } from "../../../application/interfaces/file-system-interfaces.ts";
-import { ExtractFromProcessor } from "../../schema/services/extract-from-processor.ts";
 
 /**
  * Processing options state using discriminated union for enhanced type safety
@@ -144,6 +145,8 @@ export class FrontmatterTransformationService {
     private readonly domainLogger: DomainLogger,
     private readonly performanceSettings: PerformanceSettings,
     private readonly schemaValidationService: SchemaValidationService,
+    private readonly extractionService: FrontmatterExtractionService,
+    private readonly validationService: FrontmatterValidationService,
   ) {}
 
   /**
@@ -184,6 +187,22 @@ export class FrontmatterTransformationService {
       settings = defaultSettingsResult.data;
     }
 
+    // Initialize extraction service
+    const extractionResult = FrontmatterExtractionService.create(
+      frontmatterProcessor,
+    );
+    if (!extractionResult.ok) {
+      return extractionResult;
+    }
+
+    // Initialize validation service
+    const validationResult = FrontmatterValidationService.create(
+      schemaValidationService,
+    );
+    if (!validationResult.ok) {
+      return validationResult;
+    }
+
     return ok(
       new FrontmatterTransformationService(
         frontmatterProcessor,
@@ -195,6 +214,8 @@ export class FrontmatterTransformationService {
         logger,
         settings,
         schemaValidationService,
+        extractionResult.data,
+        validationResult.data,
       ),
     );
   }
@@ -1012,7 +1033,7 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
-    const finalData = await this.processFrontmatterParts(processedData, schema);
+    const finalData = this.processFrontmatterParts(processedData, schema);
 
     activeLogger?.info(
       "Frontmatter-part processing complete",
@@ -1542,10 +1563,10 @@ export class FrontmatterTransformationService {
    * Process frontmatter parts if schema defines x-frontmatter-part.
    * When x-frontmatter-part is true, extracts the specific part from each markdown file.
    */
-  private async processFrontmatterParts(
+  private processFrontmatterParts(
     data: FrontmatterData[],
     schema: Schema,
-  ): Promise<FrontmatterData[]> {
+  ): FrontmatterData[] {
     const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
       .getValue();
     const activeLogger = this.createActiveLogger();
@@ -1608,65 +1629,9 @@ export class FrontmatterTransformationService {
       // Therefore, we extract the entire frontmatter object from each file.
 
       // CRITICAL FIX for Issue #966: Apply directive processing before using frontmatter data
-      // Process x-extract-from and x-jmespath-filter directives on each frontmatter item
-      let processedFrontmatterData = frontmatterData;
-
-      // Check if the main schema has directives to process
-      const hasDirectives = schema.hasExtractFromDirectives
-        ? schema.hasExtractFromDirectives()
-        : false;
-
-      if (hasDirectives) {
-        activeLogger?.debug(
-          "Processing x-extract-from directives for frontmatter-part item",
-          createLogContext({
-            operation: "frontmatter-part-directive-processing",
-            inputs: `availableKeys: ${Object.keys(dataObj).join(", ")}`,
-          }),
-        );
-
-        // Create ExtractFromProcessor for directive processing
-        const extractorResult = ExtractFromProcessor.create();
-        if (extractorResult.ok) {
-          const extractor = extractorResult.data;
-
-          // Get directives from the main schema
-          const directivesResult = schema.getExtractFromDirectives
-            ? schema.getExtractFromDirectives()
-            : {
-              ok: false,
-              error: {
-                message: "getExtractFromDirectives method not available",
-              },
-            };
-
-          if (directivesResult.ok && "data" in directivesResult) {
-            // Process directives on the frontmatter data
-            const processedResult = await extractor.processDirectives(
-              frontmatterData,
-              directivesResult.data,
-            );
-
-            if (processedResult.ok) {
-              processedFrontmatterData = processedResult.data;
-              activeLogger?.debug(
-                "Successfully processed directives for frontmatter-part item",
-                createLogContext({
-                  operation: "frontmatter-part-directive-processing",
-                }),
-              );
-            } else {
-              activeLogger?.error(
-                `Failed to process directives: ${processedResult.error.message}`,
-                createLogContext({
-                  operation: "frontmatter-part-directive-processing",
-                }),
-              );
-              // Continue with original data if directive processing fails
-            }
-          }
-        }
-      }
+      // Note: x-extract-from and x-merge-arrays directives have been deprecated and removed
+      // Process frontmatter data directly without deprecated directive processing
+      const processedFrontmatterData = frontmatterData;
 
       const partData = processedFrontmatterData.getData(); // Use the processed frontmatter object
 
@@ -2272,6 +2237,27 @@ export class FrontmatterTransformationService {
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
     const domainLogger = DomainLoggerFactory.createEnabled(debugLogger);
+
+    // Initialize extraction service
+    const extractionResult = FrontmatterExtractionService.create(
+      frontmatterProcessor,
+    );
+    if (!extractionResult.ok) {
+      throw new Error(
+        `Failed to create extraction service: ${extractionResult.error.message}`,
+      );
+    }
+
+    // Initialize validation service
+    const validationResult = FrontmatterValidationService.create(
+      schemaValidationService,
+    );
+    if (!validationResult.ok) {
+      throw new Error(
+        `Failed to create validation service: ${validationResult.error.message}`,
+      );
+    }
+
     return new FrontmatterTransformationService(
       frontmatterProcessor,
       aggregator,
@@ -2282,6 +2268,8 @@ export class FrontmatterTransformationService {
       domainLogger,
       performanceSettings,
       schemaValidationService,
+      extractionResult.data,
+      validationResult.data,
     );
   }
 
@@ -2300,6 +2288,27 @@ export class FrontmatterTransformationService {
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
     const domainLogger = DomainLoggerFactory.createDisabled();
+
+    // Initialize extraction service
+    const extractionResult = FrontmatterExtractionService.create(
+      frontmatterProcessor,
+    );
+    if (!extractionResult.ok) {
+      throw new Error(
+        `Failed to create extraction service: ${extractionResult.error.message}`,
+      );
+    }
+
+    // Initialize validation service
+    const validationResult = FrontmatterValidationService.create(
+      schemaValidationService,
+    );
+    if (!validationResult.ok) {
+      throw new Error(
+        `Failed to create validation service: ${validationResult.error.message}`,
+      );
+    }
+
     return new FrontmatterTransformationService(
       frontmatterProcessor,
       aggregator,
@@ -2310,6 +2319,8 @@ export class FrontmatterTransformationService {
       domainLogger,
       performanceSettings,
       schemaValidationService,
+      extractionResult.data,
+      validationResult.data,
     );
   }
 
@@ -2330,6 +2341,27 @@ export class FrontmatterTransformationService {
       defaultFrontmatterDataCreationService,
   ): FrontmatterTransformationService {
     const domainLogger = DomainLoggerFactory.fromOptional(logger);
+
+    // Initialize extraction service
+    const extractionResult = FrontmatterExtractionService.create(
+      frontmatterProcessor,
+    );
+    if (!extractionResult.ok) {
+      throw new Error(
+        `Failed to create extraction service: ${extractionResult.error.message}`,
+      );
+    }
+
+    // Initialize validation service
+    const validationResult = FrontmatterValidationService.create(
+      schemaValidationService,
+    );
+    if (!validationResult.ok) {
+      throw new Error(
+        `Failed to create validation service: ${validationResult.error.message}`,
+      );
+    }
+
     return new FrontmatterTransformationService(
       frontmatterProcessor,
       aggregator,
@@ -2340,6 +2372,8 @@ export class FrontmatterTransformationService {
       domainLogger,
       performanceSettings,
       schemaValidationService,
+      extractionResult.data,
+      validationResult.data,
     );
   }
 }

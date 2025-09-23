@@ -11,7 +11,6 @@ import {
   CircuitBreakerFactory,
 } from "../services/circuit-breaker.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
-import { ArrayMergeConfig, ArrayMerger } from "../services/array-merger.ts";
 import {
   DomainLogger,
   NullDomainLogger,
@@ -26,17 +25,14 @@ export class Aggregator {
   private readonly evaluator = new ExpressionEvaluator();
   private readonly circuitBreakerState: CircuitBreakerConfigurationState;
   private readonly circuitBreaker?: CircuitBreaker;
-  private readonly arrayMerger: ArrayMerger;
   private readonly logger: DomainLogger;
 
   private constructor(
     circuitBreakerState: CircuitBreakerConfigurationState,
-    arrayMerger: ArrayMerger,
     circuitBreaker?: CircuitBreaker,
     logger?: DomainLogger,
   ) {
     this.circuitBreakerState = circuitBreakerState;
-    this.arrayMerger = arrayMerger;
     this.circuitBreaker = circuitBreaker;
     this.logger = logger ?? new NullDomainLogger();
   }
@@ -60,16 +56,7 @@ export class Aggregator {
       finalCircuitBreakerState = standardStateResult.data;
     }
 
-    // Initialize ArrayMerger with proper error handling
-    const arrayMergerResult = ArrayMerger.create();
-    if (!arrayMergerResult.ok) {
-      return ErrorHandler.aggregation({
-        operation: "create",
-        method: "initializeArrayMerger",
-      }).aggregationFailed(
-        `Failed to create ArrayMerger: ${arrayMergerResult.error.message}`,
-      );
-    }
+    // Note: ArrayMerger has been deprecated and removed
 
     // Create CircuitBreaker if not disabled
     let circuitBreaker: CircuitBreaker | undefined;
@@ -91,7 +78,6 @@ export class Aggregator {
     return ok(
       new Aggregator(
         finalCircuitBreakerState,
-        arrayMergerResult.data,
         circuitBreaker,
         logger,
       ),
@@ -334,22 +320,22 @@ export class Aggregator {
       filterEmpty?: boolean;
     },
   ): Result<unknown[], AggregationError & { message: string }> {
-    const config = mergeConfig.flatten
-      ? ArrayMergeConfig.createFlattening({
-        preserveOrder: mergeConfig.preserveOrder,
-        filterEmpty: mergeConfig.filterEmpty,
-      })
-      : ArrayMergeConfig.createPreserving({
-        preserveOrder: mergeConfig.preserveOrder,
-        filterEmpty: mergeConfig.filterEmpty,
-      });
-
-    const mergeResult = this.arrayMerger.merge(sourceArrays, config);
-    if (!mergeResult.ok) {
-      return mergeResult;
+    // Simplified array merging since x-merge-arrays directive has been deprecated
+    if (mergeConfig.flatten) {
+      const flattened = sourceArrays.flat();
+      return ok(
+        mergeConfig.filterEmpty
+          ? flattened.filter((item) => item != null)
+          : flattened,
+      );
+    } else {
+      // Preserve array structure
+      return ok(
+        mergeConfig.filterEmpty
+          ? sourceArrays.filter((arr) => arr.length > 0)
+          : sourceArrays,
+      );
     }
-
-    return ok(mergeResult.data.getData());
   }
 
   /**
@@ -371,25 +357,38 @@ export class Aggregator {
       path: `source-${index}`,
     }));
 
-    const config = mergeConfig.flatten
-      ? ArrayMergeConfig.createFlattening({
-        preserveOrder: mergeConfig.preserveOrder,
-        filterEmpty: mergeConfig.filterEmpty,
-      })
-      : ArrayMergeConfig.createPreserving({
-        preserveOrder: mergeConfig.preserveOrder,
-        filterEmpty: mergeConfig.filterEmpty,
-      });
-
-    const mergeResult = this.arrayMerger.mergeFromSources(
-      sources,
-      arrayPath,
-      config,
-    );
-    if (!mergeResult.ok) {
-      return mergeResult;
+    // Simplified array merging since x-merge-arrays directive has been deprecated
+    // Extract arrays from sources at the specified path
+    const extractedArrays: unknown[][] = [];
+    for (const source of sources) {
+      try {
+        const pathResult = SafePropertyAccess.navigatePath(
+          source.data,
+          arrayPath.split("."),
+        );
+        if (pathResult.ok && Array.isArray(pathResult.data)) {
+          extractedArrays.push(pathResult.data);
+        }
+      } catch (_error) {
+        // Skip invalid sources
+        continue;
+      }
     }
 
-    return ok(mergeResult.data.getData());
+    if (mergeConfig.flatten) {
+      const flattened = extractedArrays.flat();
+      return ok(
+        mergeConfig.filterEmpty
+          ? flattened.filter((item) => item != null)
+          : flattened,
+      );
+    } else {
+      // Preserve array structure
+      return ok(
+        mergeConfig.filterEmpty
+          ? extractedArrays.filter((arr) => arr.length > 0)
+          : extractedArrays,
+      );
+    }
   }
 }

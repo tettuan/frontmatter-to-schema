@@ -4,6 +4,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+// Removed unused imports - DomainLogger, NullDomainLogger
 import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
 
 /**

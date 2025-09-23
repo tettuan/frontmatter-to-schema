@@ -83,11 +83,11 @@ the template for each array element.
 
 ### Template Resolution Rule
 
-**x-template-items in Main Schema**: Optional directive that is required only when
-`{@items}` expansion is needed. If not specified, `{@items}` expansion cannot occur
-and will remain unexpanded. **Fallback Behavior**: When the schema omits `x-template-items`, the
-renderer must leave each literal `{@items}` token untouched—no implicit array
-serialization or default expansion is permitted.
+**x-template-items in Main Schema**: Optional directive that is required only
+when `{@items}` expansion is needed. If not specified, `{@items}` expansion
+cannot occur and will remain unexpanded. **Fallback Behavior**: When the schema
+omits `x-template-items`, the renderer must leave each literal `{@items}` token
+untouched—no implicit array serialization or default expansion is permitted.
 
 ### Schema Independence
 
@@ -213,7 +213,8 @@ Apply item_template.json to each array element
 
 This specification establishes clear separation of concerns:
 
-- `x-template-items` is **OPTIONAL** - required only when `{@items}` expansion is needed
+- `x-template-items` is **OPTIONAL** - required only when `{@items}` expansion
+  is needed
 - `$ref` is for schema structure only, not template resolution
 - Templates are specified exclusively through `x-template` and
   `x-template-items`

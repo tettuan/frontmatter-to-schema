@@ -33,38 +33,34 @@ async function testSchemaResolutionFix() {
     console.log(`🔍 Has frontmatter part: ${schema.hasFrontmatterPart()}`);
 
     try {
-      const hasDirectives = schema.hasExtractFromDirectives();
-      console.log(`🎯 Has extract-from directives: ${hasDirectives}`);
+      // Note: x-extract-from directive has been deprecated and removed as per Issue #994
+      console.log(
+        "🎯 UPDATE: x-extract-from directive has been deprecated and removed",
+      );
+      console.log(
+        "   Issue #994 completed: Deprecated directives removed from codebase",
+      );
 
-      if (hasDirectives) {
-        const directivesResult = schema.getExtractFromDirectives();
-        console.log(`📋 getExtractFromDirectives() ok: ${directivesResult.ok}`);
-        if (directivesResult.ok) {
-          console.log(`📈 Directives count: ${directivesResult.data.length}`);
-          directivesResult.data.forEach((directive, i) => {
-            console.log(
-              `   ${
-                i + 1
-              }. ${directive.getTargetPath()} <- ${directive.getSourcePath()}`,
-            );
-          });
-          console.log(
-            "✅ Issue #966 FIX VERIFIED: Schema resolution and directive processing working!",
-          );
-        } else {
-          console.log(
-            `❌ getExtractFromDirectives() error: ${directivesResult.error.message}`,
-          );
-          console.log("❌ Issue #966 still exists: Schema resolution failed");
-        }
+      // Test frontmatter-part functionality instead
+      const frontmatterPartResult = schema.findFrontmatterPartPath();
+      console.log(
+        `📋 findFrontmatterPartPath() ok: ${frontmatterPartResult.ok}`,
+      );
+
+      if (frontmatterPartResult.ok) {
+        console.log(`📈 Frontmatter-part path: ${frontmatterPartResult.data}`);
+        console.log(
+          "✅ Schema resolution and frontmatter-part processing working!",
+        );
       } else {
         console.log(
-          "❌ Issue #966 still exists: No extract-from directives detected",
+          `❌ findFrontmatterPartPath() error: ${frontmatterPartResult.error.message}`,
         );
+        console.log("❌ Schema resolution failed for frontmatter-part");
       }
     } catch (error) {
       console.error(
-        "❌ Error during directive processing:",
+        "❌ Error during schema processing:",
         error instanceof Error ? error.message : String(error),
       );
     }

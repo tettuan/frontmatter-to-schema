@@ -177,76 +177,73 @@ export class VariableReplacer {
     data: FrontmatterData,
     arrayData?: unknown[],
   ): Result<unknown, TemplateError & { message: string }> {
-    return ErrorHandling.wrapOperation(
-      () => {
-        // Handle Result types first - unwrap successful Results, return empty for errors
-        if (this.isResultType(value)) {
-          const resultValue = value as {
-            ok: boolean;
-            data?: unknown;
-            error?: unknown;
-          };
-          if (resultValue.ok && resultValue.data !== undefined) {
-            // Recursively process the unwrapped data
-            const recursiveResult = this.processValue(
-              resultValue.data,
-              data,
-              arrayData,
-            );
-            if (!recursiveResult.ok) {
-              throw new Error(recursiveResult.error.message);
-            }
-            return recursiveResult.data;
-          }
-          // For error Results, return empty string
-          return "";
+    // Handle Result types first - unwrap successful Results, return empty for errors
+    if (this.isResultType(value)) {
+      const resultValue = value as {
+        ok: boolean;
+        data?: unknown;
+        error?: unknown;
+      };
+      if (resultValue.ok && resultValue.data !== undefined) {
+        // Recursively process the unwrapped data
+        const recursiveResult = this.processValue(
+          resultValue.data,
+          data,
+          arrayData,
+        );
+        if (!recursiveResult.ok) {
+          return recursiveResult;
         }
+        return ok(recursiveResult.data);
+      }
+      // For error Results, return empty string
+      return ok("");
+    }
 
-        if (typeof value === "string") {
-          const replacementResult = this.replaceVariables(
-            value,
-            data,
-            arrayData,
-          );
-          if (!replacementResult.ok) {
-            throw new Error(replacementResult.error.message);
-          }
-          return replacementResult.data;
+    if (typeof value === "string") {
+      const replacementResult = this.replaceVariables(
+        value,
+        data,
+        arrayData,
+      );
+      if (!replacementResult.ok) {
+        return replacementResult;
+      }
+      return ok(replacementResult.data);
+    }
+
+    if (Array.isArray(value)) {
+      const results: unknown[] = [];
+      for (const item of value) {
+        const processedResult = this.processValue(item, data, arrayData);
+        if (!processedResult.ok) {
+          return processedResult;
         }
+        results.push(processedResult.data);
+      }
+      return ok(results);
+    }
 
-        if (Array.isArray(value)) {
-          const results: unknown[] = [];
-          for (const item of value) {
-            const processedResult = this.processValue(item, data, arrayData);
-            if (!processedResult.ok) {
-              throw new Error(processedResult.error.message);
-            }
-            results.push(processedResult.data);
-          }
-          return results;
-        }
+    if (value && typeof value === "object") {
+      const objResult = SafePropertyAccess.asRecord(value);
+      if (!objResult.ok) {
+        return ErrorHandler.template({
+          operation: "processValue",
+          method: "validateObject",
+        }).renderFailed("Value is not a valid object for processing");
+      }
+      const processObjectResult = this.processObject(
+        objResult.data,
+        data,
+        arrayData,
+      );
+      if (!processObjectResult.ok) {
+        return processObjectResult;
+      }
+      return ok(processObjectResult.data);
+    }
 
-        if (value && typeof value === "object") {
-          const objResult = SafePropertyAccess.asRecord(value);
-          if (!objResult.ok) {
-            throw new Error("Value is not a valid object for processing");
-          }
-          const processObjectResult = this.processObject(
-            objResult.data,
-            data,
-            arrayData,
-          );
-          if (!processObjectResult.ok) {
-            throw new Error(processObjectResult.error.message);
-          }
-          return processObjectResult.data;
-        }
-
-        return value;
-      },
-      templateErrorFactory,
-      { operation: "processValue", method: "handleProcessing" },
-    );
+    return ok(value);
   }
 
   private formatValue(value: unknown): string {

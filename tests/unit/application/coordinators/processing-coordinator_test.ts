@@ -48,18 +48,13 @@ const createMockTransformationService = (
 const createTestValidationRules =
   () => ({ rules: [] } as unknown as ValidationRules);
 const createTestSchema = (
-  hasExtractFrom = false,
   hasFrontmatterPart = false,
 ) => ({
-  hasExtractFromDirectives: () => hasExtractFrom,
   findFrontmatterPartPath: () =>
     hasFrontmatterPart ? ok("items") : err(
       createError({ kind: "PropertyNotFound", path: "frontmatter-part" }),
     ),
-  getExtractFromDirectives: () =>
-    hasExtractFrom
-      ? ok([])
-      : err(createError({ kind: "PropertyNotFound", path: "extract-from" })),
+  // Note: x-extract-from directive has been deprecated and removed
 } as Schema);
 
 describe("ProcessingCoordinator", () => {
@@ -220,7 +215,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(false, false); // no extract-from, no frontmatter-part
+        const schema = createTestSchema(false); // no frontmatter-part
 
         const result = await coordinator.data.extractFrontmatterPartData(
           mockData,
@@ -241,8 +236,19 @@ describe("ProcessingCoordinator", () => {
       assertEquals(coordinator.ok, true);
 
       if (coordinator.ok) {
-        const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(false, true); // has frontmatter-part
+        // Create test data with items array at the expected frontmatter-part path
+        const testData = {
+          items: [
+            { id: 1, title: "Test Item 1" },
+            { id: 2, title: "Test Item 2" },
+          ],
+        };
+        const mockDataResult = FrontmatterData.create(testData);
+        assertEquals(mockDataResult.ok, true);
+        if (!mockDataResult.ok) return;
+
+        const mockData = mockDataResult.data;
+        const schema = createTestSchema(true); // has frontmatter-part
 
         const result = await coordinator.data.extractFrontmatterPartData(
           mockData,
@@ -266,7 +272,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(false, false); // no extract-from
+        const schema = createTestSchema(false); // no frontmatter-part
 
         const result = coordinator.data.processExtractFromDirectivesSync(
           mockData,
@@ -287,7 +293,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const mockData = FrontmatterData.empty();
-        const schema = createTestSchema(true, false); // has extract-from
+        const schema = createTestSchema(false); // no frontmatter-part (deprecated extract-from removed)
 
         const result = coordinator.data.processExtractFromDirectivesSync(
           mockData,
@@ -310,7 +316,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const validationRules = createTestValidationRules();
-        const schema = createTestSchema(false, true); // has frontmatter-part
+        const schema = createTestSchema(true); // has frontmatter-part
 
         const result = await coordinator.data
           .processDocumentsWithItemsExtraction(
@@ -334,7 +340,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const validationRules = createTestValidationRules();
-        const schema = createTestSchema(true, false); // has extract-from
+        const schema = createTestSchema(false); // no frontmatter-part (deprecated extract-from removed)
 
         const result = await coordinator.data.processDocumentsWithExtractFrom(
           "*.md",
@@ -356,7 +362,7 @@ describe("ProcessingCoordinator", () => {
 
       if (coordinator.ok) {
         const validationRules = createTestValidationRules();
-        const schema = createTestSchema(true, true); // has both extract-from and frontmatter-part
+        const schema = createTestSchema(true); // has frontmatter-part (deprecated extract-from removed)
 
         const result = await coordinator.data
           .processDocumentsWithFullExtraction(

@@ -19,6 +19,7 @@ import {
   LoggingServiceFactory,
   ProcessingLoggerState,
 } from "../../infrastructure/logging/logging-service.ts";
+import { NullDomainLogger } from "../../domain/shared/services/domain-logger.ts";
 import { ProcessingStateMachine } from "./processing-state-machine.ts";
 import { ComplexityMetricsService } from "../../domain/monitoring/services/complexity-metrics-service.ts";
 import { EntropyManagementService } from "../../domain/monitoring/services/entropy-management-service.ts";
@@ -130,9 +131,10 @@ export class PipelineOrchestrator {
       read: (path: string) => {
         const result = fileSystem.read(path);
         if (result instanceof Promise) {
-          throw new Error(
-            "Synchronous file reading expected in schema repository",
-          );
+          return err({
+            kind: "FileSystemError",
+            message: "Synchronous file reading expected in schema repository",
+          });
         }
         return result;
       },
@@ -189,7 +191,7 @@ export class PipelineOrchestrator {
     if (!stateManagerResult.ok) return err(stateManagerResult.error);
     const documentServiceResult = DocumentProcessingService.create(
       processingCoordinatorResult.data,
-      loggingService,
+      new NullDomainLogger(),
     );
     if (!documentServiceResult.ok) return err(documentServiceResult.error);
 

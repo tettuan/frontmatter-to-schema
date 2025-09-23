@@ -6,7 +6,6 @@ import { ValidationRules } from "../../domain/schema/value-objects/validation-ru
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { FrontmatterDataFactory } from "../../domain/frontmatter/factories/frontmatter-data-factory.ts";
-import { ExtractFromProcessor } from "../../domain/schema/services/extract-from-processor.ts";
 import { PropertyExtractor } from "../../domain/schema/extractors/property-extractor.ts";
 import {
   ProcessingHints,
@@ -15,7 +14,7 @@ import {
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
 import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
-import { DirectiveProcessor } from "../../domain/schema/services/directive-processor.ts";
+// Removed unused import - DirectiveProcessor
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 import { ResultValidator } from "../../domain/shared/utilities/result-validator.ts";
 
@@ -45,7 +44,6 @@ export class ProcessingCoordinator {
 
   private constructor(
     private readonly frontmatterTransformer: FrontmatterTransformationService,
-    private readonly extractFromProcessor: ExtractFromProcessor,
     private readonly recoveryRegistry: RecoveryStrategyRegistry,
     private readonly performanceSettings: PerformanceSettings,
     logger: DebugLogger | null,
@@ -59,7 +57,7 @@ export class ProcessingCoordinator {
    */
   static create(
     frontmatterTransformer: FrontmatterTransformationService,
-    propertyExtractor?: PropertyExtractor,
+    _propertyExtractor?: PropertyExtractor,
     logger?: DebugLogger,
     _optimizedExtractor?: boolean,
     recoveryRegistry?: RecoveryStrategyRegistry,
@@ -96,19 +94,9 @@ export class ProcessingCoordinator {
     }
     const finalPerformanceSettings = settingsResult.data;
 
-    // Create ExtractFromProcessor
-    const extractorResult = ExtractFromProcessor.create(propertyExtractor);
-    if (!extractorResult.ok) {
-      return ErrorHandler.system({
-        operation: "create",
-        method: "createExtractFromProcessor",
-      }).initializationError("Failed to create ExtractFromProcessor");
-    }
-
     return ok(
       new ProcessingCoordinator(
         frontmatterTransformer,
-        extractorResult.data,
         finalRecoveryRegistry,
         finalPerformanceSettings,
         logger || null,
@@ -327,10 +315,10 @@ export class ProcessingCoordinator {
    * FIX for Issue #977: This method now coordinates with FrontmatterTransformationService
    * to ensure x-extract-from directives are properly processed before array extraction.
    */
-  async extractFrontmatterPartData(
+  extractFrontmatterPartData(
     data: FrontmatterData,
     schema: Schema,
-  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
+  ): Result<FrontmatterData[], DomainError & { message: string }> {
     // Debug: Frontmatter-part extraction variance tracking (Issue #905 Phase 1)
     this.logger?.logDebug(
       "frontmatter-part-extraction",
@@ -425,85 +413,17 @@ export class ProcessingCoordinator {
 
       return ok(result);
     } else {
-      // CRITICAL FIX for Issue #977: Process directives if no processed array exists
-      // This handles the case where x-extract-from directives need to be applied
-      // to create the array data at the frontmatter-part path
-      if (schema.hasExtractFromDirectives()) {
-        this.logger?.logDebug(
-          "frontmatter-part-extraction",
-          "No pre-processed array found, applying x-extract-from directives",
-          {
-            reason: "directive-processing-required",
-            strategy: "apply-extract-from-then-extract",
-          },
-        );
-
-        // Apply x-extract-from directives to create the array data
-        const processedDataResult = await this.processExtractFromDirectives(
-          data,
-          schema,
-        );
-        if (processedDataResult.ok) {
-          // Check again for array data after directive processing
-          const postProcessArrayDataResult = processedDataResult.data.get(
-            frontmatterPartPath,
-          );
-          const hasPostProcessArrayData = postProcessArrayDataResult.ok &&
-            Array.isArray(postProcessArrayDataResult.data);
-
-          if (hasPostProcessArrayData) {
-            this.logger?.logDebug(
-              "frontmatter-part-extraction",
-              "Successfully created array data through directive processing",
-              {
-                arrayLength: postProcessArrayDataResult.data.length,
-                strategy: "extract-from-then-extract",
-              },
-            );
-
-            // Process the array items as before
-            const result: FrontmatterData[] = [];
-            let processedCount = 0;
-            let skippedCount = 0;
-
-            for (let i = 0; i < postProcessArrayDataResult.data.length; i++) {
-              const item = postProcessArrayDataResult.data[i];
-
-              // Skip invalid items gracefully (null, primitives, etc.)
-              if (!item || typeof item !== "object") {
-                skippedCount++;
-                continue;
-              }
-
-              const itemDataResult = FrontmatterDataFactory.fromParsedData(
-                item,
-              );
-              if (itemDataResult.ok) {
-                result.push(itemDataResult.data);
-                processedCount++;
-              } else {
-                skippedCount++;
-              }
-            }
-
-            return ok(result);
-          }
-        }
-      }
-
-      // Default case: individual file contributes directly as one item
+      // Since deprecated directives (x-extract-from) have been removed,
+      // return empty array when no processed array exists
       this.logger?.logDebug(
         "frontmatter-part-extraction",
-        "No array data found after directive processing, using single-item fallback",
+        "No frontmatter-part array found, returning empty result",
         {
-          reason: "no-array-after-directives",
-          fallbackStrategy: "single-item-array",
-          dataType: arrayDataResult.ok
-            ? typeof arrayDataResult.data
-            : "unknown",
+          reason: "no-array-data-available",
         },
       );
-      return ok([data]);
+
+      return ok([]);
     }
   }
 
@@ -538,7 +458,7 @@ export class ProcessingCoordinator {
         const hasFrontmatterPart = frontmatterPartResult.ok;
 
         if (hasFrontmatterPart) {
-          const itemsResult = await this.extractFrontmatterPartData(
+          const itemsResult = this.extractFrontmatterPartData(
             mainData,
             schema,
           );
@@ -558,49 +478,13 @@ export class ProcessingCoordinator {
    * Extracts specified property paths from the data structure
    * Enhanced with async support for optimized extractors
    */
-  async processExtractFromDirectives(
+  processExtractFromDirectives(
     data: FrontmatterData,
-    schema: Schema,
-  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
-    // Check if schema has extract-from directives
-    if (!schema.hasExtractFromDirectives()) {
-      return ok(data);
-    }
-
-    // Get extract-from directives from schema
-    const directivesResult = schema.getExtractFromDirectives();
-    if (!directivesResult.ok) {
-      this.logger?.logError(
-        "extract-from-directives",
-        directivesResult.error,
-        {
-          schemaPath: schema.getPath().toString(),
-        },
-      );
-      return ErrorHandler.validation({
-        operation: "processExtractFromDirectives",
-        method: "getExtractFromDirectives",
-      }).invalidStructure(
-        "schema",
-        `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
-      );
-    }
-
-    // Check if we have an optimized extractor to use async processing
-    const stats = this.extractFromProcessor.getPerformanceStats();
-    if (stats.isOptimized) {
-      // Use async processing for optimized extractor
-      return await this.extractFromProcessor.processDirectives(
-        data,
-        directivesResult.data,
-      );
-    } else {
-      // Use sync processing for backward compatibility
-      return this.extractFromProcessor.processDirectivesSync(
-        data,
-        directivesResult.data,
-      );
-    }
+    _schema: Schema,
+  ): Result<FrontmatterData, DomainError & { message: string }> {
+    // Note: x-extract-from directive has been deprecated and removed
+    // Return data unchanged since no processing is needed
+    return ok(data);
   }
 
   /**
@@ -609,37 +493,11 @@ export class ProcessingCoordinator {
    */
   processExtractFromDirectivesSync(
     data: FrontmatterData,
-    schema: Schema,
+    _schema: Schema,
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Check if schema has extract-from directives
-    if (!schema.hasExtractFromDirectives()) {
-      return ok(data);
-    }
-
-    // Get extract-from directives from schema
-    const directivesResult = schema.getExtractFromDirectives();
-    if (!directivesResult.ok) {
-      this.logger?.logError(
-        "extract-from-directives",
-        directivesResult.error,
-        {
-          schemaPath: schema.getPath().toString(),
-        },
-      );
-      return ErrorHandler.validation({
-        operation: "processExtractFromDirectives",
-        method: "getExtractFromDirectives",
-      }).invalidStructure(
-        "schema",
-        `Failed to get extract-from directives from schema: ${directivesResult.error.message}`,
-      );
-    }
-
-    // Use sync processing
-    return this.extractFromProcessor.processDirectivesSync(
-      data,
-      directivesResult.data,
-    );
+    // Note: x-extract-from directive has been deprecated and removed
+    // Return data unchanged since no processing is needed
+    return ok(data);
   }
 
   /**
@@ -663,7 +521,8 @@ export class ProcessingCoordinator {
     // Apply x-extract-from directives if present
     return ResultValidator.chainOrReturn(
       processResult,
-      async (data) => await this.processExtractFromDirectives(data, schema),
+      (data) =>
+        Promise.resolve(this.processExtractFromDirectives(data, schema)),
     );
   }
 
@@ -744,7 +603,7 @@ export class ProcessingCoordinator {
     }
 
     if (hasFrontmatterPart) {
-      const itemsResult = await this.extractFrontmatterPartData(
+      const itemsResult = this.extractFrontmatterPartData(
         mainData,
         schema,
       );
@@ -752,138 +611,13 @@ export class ProcessingCoordinator {
         return itemsResult;
       }
 
-      // Use DirectiveProcessor for deterministic processing order
-      // This eliminates the order dependency variance by processing all directives
-      // in a canonical sequence defined by the DirectiveProcessor
-      if (schema.hasExtractFromDirectives()) {
-        this.logger?.logDebug(
-          "processDocumentsWithFullExtraction",
-          "Using DirectiveProcessor for deterministic x-extract-from on items",
-          {
-            itemCount: itemsResult.data.length,
-          },
-        );
-
-        const directiveProcessorResult = await DirectiveProcessor.create();
-        if (!directiveProcessorResult.ok) {
-          return ErrorHandler.system({
-            operation: "processDocumentsWithFullExtraction",
-            method: "createDirectiveProcessor",
-          }).configurationError(
-            `Failed to create DirectiveProcessor: ${directiveProcessorResult.error.message}`,
-          );
-        }
-
-        const directiveProcessor = directiveProcessorResult.data;
-        const processingOrderResult = directiveProcessor.resolveProcessingOrder(
-          schema,
-        );
-
-        if (!processingOrderResult.ok) {
-          return ErrorHandler.aggregation({
-            operation: "processDocumentsWithFullExtraction",
-            method: "resolveProcessingOrder",
-          }).aggregationFailed(
-            `Failed to resolve directive processing order: ${processingOrderResult.error.message}`,
-          );
-        }
-
-        const processedItems: FrontmatterData[] = [];
-        for (const item of itemsResult.data) {
-          const processedItemResult = directiveProcessor.processDirectives(
-            item,
-            schema,
-            processingOrderResult.data,
-          );
-          if (processedItemResult.ok) {
-            processedItems.push(processedItemResult.data);
-          } else {
-            this.logger?.logDebug(
-              "directive-processing-error",
-              "Failed to process directives for item using DirectiveProcessor",
-              {
-                error: processedItemResult.error.kind,
-                item: item.getAllKeys(),
-              },
-            );
-            processedItems.push(item);
-          }
-        }
-
-        this.logger?.logDebug(
-          "processDocumentsWithFullExtraction",
-          "Completed deterministic directive processing on items",
-          {
-            processedCount: processedItems.length,
-            totalPhases: processingOrderResult.data.phases.length,
-          },
-        );
-
-        // HIGH-VARIANCE DEBUG POINT: Track DirectiveProcessor completion
-        const endTime = performance.now();
-        const totalProcessingTime = endTime - startTime;
-
-        this.logger?.logDebug(
-          "variance-debug-point",
-          "[HIGH-VARIANCE-DETECTION] Processing completed with DirectiveProcessor - Variance analysis",
-          {
-            debugPoint:
-              "processDocumentsWithFullExtraction-directive-processor-completion",
-            processingVarianceDebugId,
-            processingPath: "frontmatter-part-with-directive-processor",
-            totalProcessingTime,
-            varianceAnalysis: {
-              processedExtractFrom: true,
-              processedFrontmatterPart: true,
-              usedDirectiveProcessor: true,
-              finalDataStructure: "mainData-and-itemsData",
-              itemsProcessed: processedItems.length,
-              totalPhases: processingOrderResult.data.phases.length,
-            },
-            performanceSnapshotEnd: {
-              timestamp: new Date().toISOString(),
-              endTime,
-              totalProcessingTime,
-            },
-            varianceRisk: "low",
-            reason: "Deterministic directive processing completed",
-          },
-        );
-
-        return ok({
-          mainData,
-          itemsData: processedItems,
-        });
-      }
-
-      // HIGH-VARIANCE DEBUG POINT: Track frontmatter-part only completion
-      const endTime = performance.now();
-      const totalProcessingTime = endTime - startTime;
-
+      // Since x-extract-from directive has been deprecated and removed,
+      // process items directly without deprecated directive processing
       this.logger?.logDebug(
-        "variance-debug-point",
-        "[HIGH-VARIANCE-DETECTION] Processing completed with frontmatter-part only - Variance analysis",
+        "processDocumentsWithFullExtraction",
+        "Processing items directly (deprecated directive processing removed)",
         {
-          debugPoint:
-            "processDocumentsWithFullExtraction-frontmatter-part-only-completion",
-          processingVarianceDebugId,
-          processingPath: "frontmatter-part-without-directive-processor",
-          totalProcessingTime,
-          varianceAnalysis: {
-            processedExtractFrom: true,
-            processedFrontmatterPart: true,
-            usedDirectiveProcessor: false,
-            finalDataStructure: "mainData-and-itemsData",
-            itemsProcessed: itemsResult.data.length,
-          },
-          performanceSnapshotEnd: {
-            timestamp: new Date().toISOString(),
-            endTime,
-            totalProcessingTime,
-          },
-          varianceRisk: "medium",
-          reason:
-            "No x-extract-from on items, completing frontmatter-part processing",
+          itemCount: itemsResult.data.length,
         },
       );
 
