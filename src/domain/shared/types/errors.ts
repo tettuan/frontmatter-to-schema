@@ -170,6 +170,19 @@ export type PerformanceError =
   | { readonly kind: "StreamingError"; readonly content: string }
   | { readonly kind: "MemoryBoundsExceeded"; readonly content: string };
 
+export type ProcessingError =
+  | { readonly kind: "EXCEPTION_CAUGHT"; readonly code?: string; readonly originalError?: unknown }
+  | { readonly kind: "UNKNOWN_ERROR"; readonly code?: string; readonly originalError?: unknown }
+  | { readonly kind: "CHAIN_FAILURE"; readonly code?: string; readonly originalError?: unknown }
+  | { readonly kind: "RETRY_EXHAUSTED"; readonly code?: string; readonly originalError?: unknown }
+  | { readonly kind: "NO_SUCCESSFUL_RESULTS"; readonly code?: string }
+  | { readonly kind: "NO_PROCESSING_ACTIVITY"; readonly code?: string };
+
+export type UtilityValidationError =
+  | { readonly kind: "EMPTY_ARRAY"; readonly code?: string }
+  | { readonly kind: "COLLECTION_TOO_SMALL"; readonly code?: string }
+  | { readonly kind: "COLLECTION_TOO_LARGE"; readonly code?: string };
+
 export type DomainError =
   | ValidationError
   | SchemaError
@@ -178,7 +191,9 @@ export type DomainError =
   | AggregationError
   | FileSystemError
   | SystemError
-  | PerformanceError;
+  | PerformanceError
+  | ProcessingError
+  | UtilityValidationError;
 
 export interface ErrorWithMessage {
   readonly message: string;
@@ -228,7 +243,7 @@ const getDefaultMessage = (error: DomainError): string => {
   // 全域性デバッグ: error.kind別の完全性確認
   const _errorKindDebugInfo = {
     errorKind: error.kind,
-    totalErrorTypes: 58, // DomainErrorの全型数
+    totalErrorTypes: 67, // DomainErrorの全型数 (added ProcessingError+UtilityValidationError)
     exhaustivenessCheck: "required",
     partialFunctionRisk: "eliminated",
   };
@@ -398,6 +413,26 @@ const getDefaultMessage = (error: DomainError): string => {
       return `Streaming error: ${error.content}`;
     case "MemoryBoundsExceeded":
       return `Memory bounds exceeded: ${error.content}`;
+    // ProcessingError cases
+    case "EXCEPTION_CAUGHT":
+      return `Exception caught during processing${error.code ? ` (${error.code})` : ""}`;
+    case "UNKNOWN_ERROR":
+      return `Unknown error occurred during processing${error.code ? ` (${error.code})` : ""}`;
+    case "CHAIN_FAILURE":
+      return `Operation chain failed${error.code ? ` (${error.code})` : ""}`;
+    case "RETRY_EXHAUSTED":
+      return `All retry attempts exhausted${error.code ? ` (${error.code})` : ""}`;
+    case "NO_SUCCESSFUL_RESULTS":
+      return `No successful results from processing${error.code ? ` (${error.code})` : ""}`;
+    case "NO_PROCESSING_ACTIVITY":
+      return `No processing activity detected${error.code ? ` (${error.code})` : ""}`;
+    // UtilityValidationError cases
+    case "EMPTY_ARRAY":
+      return `Array cannot be empty${error.code ? ` (${error.code})` : ""}`;
+    case "COLLECTION_TOO_SMALL":
+      return `Collection size below minimum${error.code ? ` (${error.code})` : ""}`;
+    case "COLLECTION_TOO_LARGE":
+      return `Collection size exceeds maximum${error.code ? ` (${error.code})` : ""}`;
     default: {
       // 全域性保証: 到達不可能な分岐 - TypeScriptコンパイル時エラーで保証
       return assertNever(error);
