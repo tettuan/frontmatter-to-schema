@@ -475,11 +475,13 @@ describe("DirectiveProcessor", () => {
       const schemaData = {
         type: "object",
         properties: {
-          items: {
+          traceability: {
             type: "array",
-            "x-frontmatter-part": true,
-            "x-flatten-arrays": "traceability",
-            items: { type: "object" },
+            extensions: {
+              "x-frontmatter-part": true,
+              "x-flatten-arrays": "traceability",
+            },
+            items: { type: "string" },
           },
         },
       };
@@ -501,14 +503,14 @@ describe("DirectiveProcessor", () => {
 
           // Should discover flatten-arrays directive
           const flattenArraysNode = order.dependencyGraph.find(
-            node => node.id === "flatten-arrays"
+            (node) => node.id === "flatten-arrays",
           );
           assert(flattenArraysNode !== undefined);
           assertEquals(flattenArraysNode.isPresent, true);
 
           // Should be in Array Flattening phase
           const flattenPhase = order.phases.find(
-            phase => phase.description === "Array Flattening"
+            (phase) => phase.description === "Array Flattening",
           );
           assert(flattenPhase !== undefined);
         }
@@ -527,11 +529,16 @@ describe("DirectiveProcessor", () => {
       const schemaData = {
         type: "object",
         properties: {
-          items: {
+          traceability: {
             type: "array",
-            "x-frontmatter-part": true,
-            "x-flatten-arrays": "traceability",
-            items: { type: "object" },
+            extensions: {
+              "x-frontmatter-part": true,
+              "x-flatten-arrays": "traceability",
+            },
+            items: { type: "string" },
+          },
+          other: {
+            type: "string",
           },
         },
       };
@@ -586,13 +593,16 @@ describe("DirectiveProcessor", () => {
       const schemaData = {
         type: "object",
         properties: {
-          items: {
+          traceability: {
             type: "array",
             extensions: {
               "x-frontmatter-part": true,
               "x-flatten-arrays": "traceability",
             },
-            items: { type: "object" },
+            items: { type: "string" },
+          },
+          other: {
+            type: "string",
           },
         },
       };
@@ -642,13 +652,16 @@ describe("DirectiveProcessor", () => {
       const schemaData = {
         type: "object",
         properties: {
-          items: {
+          missingTarget: {
             type: "array",
             extensions: {
               "x-frontmatter-part": true,
               "x-flatten-arrays": "traceability", // Property doesn't exist in data
             },
-            items: { type: "object" },
+            items: { type: "string" },
+          },
+          other: {
+            type: "string",
           },
         },
       };
@@ -691,18 +704,18 @@ describe("DirectiveProcessor", () => {
       const schemaData = {
         type: "object",
         properties: {
-          items: {
+          traceability: {
             type: "array",
             extensions: {
               "x-frontmatter-part": true,
               "x-flatten-arrays": "traceability",
             },
-            items: { type: "object" },
+            items: { type: "string" },
           },
           derived: {
             type: "string",
             extensions: {
-              "x-derived-from": "items.field",
+              "x-derived-from": "traceability.field",
             },
           },
         },
@@ -723,21 +736,27 @@ describe("DirectiveProcessor", () => {
         if (orderResult.ok) {
           const order = orderResult.data;
 
-          const phaseDescriptions = order.phases.map(p => p.description);
+          const phaseDescriptions = order.phases.map((p) => p.description);
 
           // Array Flattening should come before Array Merging
           const flattenIndex = phaseDescriptions.indexOf("Array Flattening");
           const mergeIndex = phaseDescriptions.indexOf("Array Merging");
 
           if (flattenIndex !== -1 && mergeIndex !== -1) {
-            assert(flattenIndex < mergeIndex, "Array Flattening should come before Array Merging");
+            assert(
+              flattenIndex < mergeIndex,
+              "Array Flattening should come before Array Merging",
+            );
           }
 
           // Array Flattening should come after Data Extraction
           const extractionIndex = phaseDescriptions.indexOf("Data Extraction");
 
           if (flattenIndex !== -1 && extractionIndex !== -1) {
-            assert(extractionIndex < flattenIndex, "Data Extraction should come before Array Flattening");
+            assert(
+              extractionIndex < flattenIndex,
+              "Data Extraction should come before Array Flattening",
+            );
           }
         }
       }
