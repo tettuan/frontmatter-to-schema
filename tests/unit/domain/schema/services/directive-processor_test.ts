@@ -78,44 +78,6 @@ describe("DirectiveProcessor", () => {
       }
     });
 
-    it("should discover extract-from directives", () => {
-      const schemaData = {
-        type: "object",
-        properties: {
-          field1: {
-            type: "string",
-            "x-extract-from": "source.path",
-          },
-          field2: {
-            type: "array",
-            "x-extract-from": "another.path",
-            items: { type: "string" },
-          },
-        },
-      };
-
-      const schema = createTestSchema(schemaData);
-      assert(schema !== null);
-
-      const processorResult = DirectiveProcessor.create();
-      assert(processorResult.ok);
-
-      if (schema !== null && processorResult.ok) {
-        const processor = processorResult.data;
-
-        const orderResult = processor.resolveProcessingOrder(schema);
-        assertEquals(orderResult.ok, true);
-
-        if (orderResult.ok) {
-          const order = orderResult.data;
-          // Test algorithm logic rather than exact discovery
-          assert(order.totalDirectives >= 0);
-          assert(order.dependencyGraph.length >= 0);
-          assert(order.phases.length >= 0);
-        }
-      }
-    });
-
     it("should handle schema with no directives", () => {
       const schemaData = {
         type: "object",
@@ -156,7 +118,7 @@ describe("DirectiveProcessor", () => {
         properties: {
           field1: {
             type: "string",
-            "x-extract-from": "source.path",
+            "x-derived-from": "source.path",
           },
         },
       };
@@ -204,7 +166,7 @@ describe("DirectiveProcessor", () => {
               properties: {
                 extracted: {
                   type: "string",
-                  "x-extract-from": "source.field",
+                  "x-derived-from": "source.field",
                 },
               },
             },
@@ -262,7 +224,7 @@ describe("DirectiveProcessor", () => {
               properties: {
                 extracted: {
                   type: "string",
-                  "x-extract-from": "source.field",
+                  "x-derived-from": "source.field",
                 },
               },
             },
@@ -357,7 +319,7 @@ describe("DirectiveProcessor", () => {
         properties: {
           field: {
             type: "string",
-            "x-extract-from": "source.path",
+            "x-derived-from": "source.path",
           },
         },
       };
@@ -484,7 +446,7 @@ describe("DirectiveProcessor", () => {
                 properties: {
                   extracted: {
                     type: "string",
-                    "x-extract-from": "source.field",
+                    "x-derived-from": "source.field",
                   },
                 },
               },
@@ -502,8 +464,6 @@ describe("DirectiveProcessor", () => {
 
         if (schema !== null) {
           const orderResult = processor.resolveProcessingOrder(schema);
-
-          // Should handle complex combinations successfully
           assertEquals(orderResult.ok, true);
         }
       }

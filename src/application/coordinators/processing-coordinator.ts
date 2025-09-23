@@ -313,7 +313,7 @@ export class ProcessingCoordinator {
    * Following DDD - coordination of domain operations
    *
    * FIX for Issue #977: This method now coordinates with FrontmatterTransformationService
-   * to ensure x-extract-from directives are properly processed before array extraction.
+   * to ensure proper data processing before array extraction.
    */
   extractFrontmatterPartData(
     data: FrontmatterData,
@@ -413,8 +413,7 @@ export class ProcessingCoordinator {
 
       return ok(result);
     } else {
-      // Since deprecated directives (x-extract-from) have been removed,
-      // return empty array when no processed array exists
+      // Return empty array when no processed array exists
       this.logger?.logDebug(
         "frontmatter-part-extraction",
         "No frontmatter-part array found, returning empty result",
@@ -474,188 +473,9 @@ export class ProcessingCoordinator {
   }
 
   /**
-   * Process x-extract-from directives on frontmatter data
-   * Extracts specified property paths from the data structure
-   * Enhanced with async support for optimized extractors
-   */
-  processExtractFromDirectives(
-    data: FrontmatterData,
-    _schema: Schema,
-  ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Note: x-extract-from directive has been deprecated and removed
-    // Return data unchanged since no processing is needed
-    return ok(data);
-  }
-
-  /**
    * Synchronous version for backward compatibility
    * Use when you need synchronous processing or with basic extractors
    */
-  processExtractFromDirectivesSync(
-    data: FrontmatterData,
-    _schema: Schema,
-  ): Result<FrontmatterData, DomainError & { message: string }> {
-    // Note: x-extract-from directive has been deprecated and removed
-    // Return data unchanged since no processing is needed
-    return ok(data);
-  }
-
-  /**
-   * Process documents with x-extract-from directives applied
-   * Combines document processing with directive application
-   */
-  async processDocumentsWithExtractFrom(
-    inputPattern: string,
-    validationRules: ValidationRules,
-    schema: Schema,
-    options: ProcessingOptions = { kind: "sequential" },
-  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
-    // Process documents first
-    const processResult = await this.processDocuments(
-      inputPattern,
-      validationRules,
-      schema,
-      options,
-    );
-
-    // Apply x-extract-from directives if present
-    return ResultValidator.chainOrReturn(
-      processResult,
-      (data) =>
-        Promise.resolve(this.processExtractFromDirectives(data, schema)),
-    );
-  }
-
-  /**
-   * Process documents with both items extraction and x-extract-from directives
-   * Comprehensive coordination combining all processing steps
-   */
-  async processDocumentsWithFullExtraction(
-    inputPattern: string,
-    validationRules: ValidationRules,
-    schema: Schema,
-    options: ProcessingOptions = { kind: "sequential" },
-  ): Promise<
-    Result<{
-      mainData: FrontmatterData;
-      itemsData?: FrontmatterData[];
-    }, DomainError & { message: string }>
-  > {
-    // HIGH-VARIANCE DEBUG POINT: Track directive processing order variance
-    const processingVarianceDebugId = `processing-variance-${Date.now()}-${
-      Math.random().toString(36).substring(2, 9)
-    }`;
-    const startTime = performance.now();
-
-    this.logger?.logDebug(
-      "variance-debug-point",
-      "[HIGH-VARIANCE-DETECTION] Starting deterministic directive processing - Critical variance point",
-      {
-        debugPoint: "processDocumentsWithFullExtraction-entry",
-        processingVarianceDebugId,
-        inputPattern,
-        processingMode: options.kind,
-        varianceRisk: "high",
-        directiveProcessingOrder: "extract-from-first-then-frontmatter-part",
-        expectedProcessingSteps: [
-          "1. x-extract-from directive processing",
-          "2. x-frontmatter-part identification",
-          "3. items data extraction",
-          "4. DirectiveProcessor deterministic ordering",
-        ],
-        performanceSnapshot: {
-          timestamp: new Date().toISOString(),
-          startTime,
-        },
-      },
-    );
-
-    // Process documents with x-extract-from directives
-    const processResult = await this.processDocumentsWithExtractFrom(
-      inputPattern,
-      validationRules,
-      schema,
-      options,
-    );
-    if (!processResult.ok) {
-      return processResult;
-    }
-
-    const mainData = processResult.data;
-    this.logger?.logDebug(
-      "processDocumentsWithFullExtraction",
-      "x-extract-from processing complete, checking for x-frontmatter-part",
-      {},
-    );
-
-    // Check if we need to extract items data
-    const frontmatterPartResult = schema.findFrontmatterPartPath();
-    const hasFrontmatterPart = frontmatterPartResult.ok;
-
-    if (hasFrontmatterPart) {
-      this.logger?.logDebug(
-        "processDocumentsWithFullExtraction",
-        "x-frontmatter-part detected, extracting items",
-        {
-          frontmatterPartPath: frontmatterPartResult.data,
-        },
-      );
-    }
-
-    if (hasFrontmatterPart) {
-      const itemsResult = this.extractFrontmatterPartData(
-        mainData,
-        schema,
-      );
-      if (!itemsResult.ok) {
-        return itemsResult;
-      }
-
-      // Since x-extract-from directive has been deprecated and removed,
-      // process items directly without deprecated directive processing
-      this.logger?.logDebug(
-        "processDocumentsWithFullExtraction",
-        "Processing items directly (deprecated directive processing removed)",
-        {
-          itemCount: itemsResult.data.length,
-        },
-      );
-
-      return ok({
-        mainData,
-        itemsData: itemsResult.data,
-      });
-    }
-
-    // HIGH-VARIANCE DEBUG POINT: Track processing completion variance
-    const endTime = performance.now();
-    const totalProcessingTime = endTime - startTime;
-
-    this.logger?.logDebug(
-      "variance-debug-point",
-      "[HIGH-VARIANCE-DETECTION] Processing completed - Variance analysis",
-      {
-        debugPoint: "processDocumentsWithFullExtraction-completion",
-        processingVarianceDebugId,
-        processingPath: "single-pass-no-frontmatter-part",
-        totalProcessingTime,
-        varianceAnalysis: {
-          processedExtractFrom: true,
-          processedFrontmatterPart: false,
-          usedDirectiveProcessor: false,
-          finalDataStructure: "mainData-only",
-        },
-        performanceSnapshotEnd: {
-          timestamp: new Date().toISOString(),
-          endTime,
-          totalProcessingTime,
-        },
-        varianceRisk: "medium",
-        reason: "No frontmatter-part detected, single-pass processing complete",
-      },
-    );
-    return ok({ mainData });
-  }
 
   /**
    * Process documents with StructureType detection (basic variant)
@@ -732,8 +552,8 @@ export class ProcessingCoordinator {
       structureType,
     );
 
-    // Use existing processing logic with structure intelligence
-    const processResult = await this.processDocumentsWithFullExtraction(
+    // Use basic processing logic with structure intelligence
+    const processResult = await this.processDocuments(
       inputPattern,
       validationRules,
       schema,
@@ -744,7 +564,7 @@ export class ProcessingCoordinator {
     }
 
     return ok({
-      ...processResult.data,
+      mainData: processResult.data,
       structureType,
       processingHints,
     });

@@ -346,8 +346,8 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
     });
 
-    it("Pattern 2: Multiple MD + x-extract-from + YAML Template - Directive configurability", async () => {
-      // Arrange - Configuration that supports x-extract-from directives
+    it("Pattern 2: Multiple MD + configurable processing + YAML Template - Directive configurability", async () => {
+      // Arrange - Configuration that supports configurable processing directives
       const mockFs = new MockFileSystemAdapter();
       const mockYaml = new MockYamlParser();
 
@@ -355,7 +355,8 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         formats: {
           schema: {
             extensions: [".jsonschema"],
-            description: "Schema with x-extract-from directive support",
+            description:
+              "Schema with configurable processing directive support",
             mimeType: "application/json",
             default: false,
           },
@@ -400,7 +401,7 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         // Test specification: Multiple markdown file support
         assertEquals(formats.isExtensionSupported(".md"), true);
 
-        // Test specification: x-extract-from directive support via schema
+        // Test specification: configurable processing directive support via schema
         const schemaFormat = formats.getFormat("schema");
         assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
 
@@ -871,7 +872,7 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
     });
 
-    it("Pattern 12: x-extract-from failure + Configurable Path Adjustment - Path config", async () => {
+    it("Pattern 12: Processing failure + Configurable Path Adjustment - Path config", async () => {
       // Test configurable path adjustment strategies
       const mockFs = new MockFileSystemAdapter();
       const mockYaml = new MockYamlParser();
@@ -1210,7 +1211,7 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
       }
     });
 
-    it("Pattern 19: x-merge-arrays + multi-file integration - Merge strategy config", async () => {
+    it("Pattern 19: Array processing + multi-file integration - Merge strategy config", async () => {
       // Test configurable array merge strategies
       const mockFs = new MockFileSystemAdapter();
       const mockYaml = new MockYamlParser();

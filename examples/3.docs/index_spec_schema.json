@@ -26,7 +26,6 @@
       "description": "Specification level traceability items",
       "x-frontmatter-part": true,
       "x-jmespath-filter": "[?id.level == 'spec']",
-      "x-merge-arrays": true,
       "items": {
         "$ref": "traceability_item_schema.json"
       }

@@ -37,8 +37,8 @@ Deno.test("Real schema resolution test for Issue #966", async () => {
   );
   console.log(`Has frontmatter part: ${schema.hasFrontmatterPart()}`);
 
-  // Note: x-extract-from directive has been deprecated and removed as per Issue #994
-  console.log("x-extract-from directive has been deprecated and removed");
+  // Note: Deprecated directives have been removed as per Issue #1005
+  console.log("Deprecated directives have been removed per Issue #1005");
 
   // Test frontmatter-part functionality instead
   const frontmatterPartResult = schema.findFrontmatterPartPath();
@@ -49,7 +49,7 @@ Deno.test("Real schema resolution test for Issue #966", async () => {
     console.log(`Error: ${frontmatterPartResult.error.message}`);
   }
 
-  // Important: The x-extract-from directive is in the main schema, not the referenced schema
-  // So even an unresolved schema should find it
-  // If this is not working, the issue is elsewhere
+  // Important: The deprecated directives have been removed from schemas
+  // Focus should be on supported directives and frontmatter-part functionality
+  // Schema resolution should work properly with remaining features
 });

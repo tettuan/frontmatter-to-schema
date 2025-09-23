@@ -25,9 +25,7 @@
       "type": "array",
       "description": "Test level traceability items",
       "x-frontmatter-part": true,
-      "x-extract-from": "traceability[]",
       "x-jmespath-filter": "[?id.level == 'test']",
-      "x-merge-arrays": true,
       "items": {
         "$ref": "traceability_item_schema.json"
       }

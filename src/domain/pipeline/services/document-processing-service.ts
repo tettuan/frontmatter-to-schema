@@ -176,7 +176,7 @@ export class DocumentProcessingService {
     // Determine which processing method to use based on schema directives
     let processedDataResult;
 
-    // Check for x-extract-from and x-frontmatter-part directives
+    // Check for x-frontmatter-part directive
     // Debug: Check schema resolution status for Issue #966
     this.domainLogger.logDebug(
       "schema-directive-check",
@@ -188,8 +188,6 @@ export class DocumentProcessingService {
       },
     );
 
-    // Note: x-extract-from directive has been deprecated and removed
-    const hasExtractFrom = false;
     const hasFrontmatterPart = schema.hasFrontmatterPart();
 
     this.domainLogger.logDebug(
@@ -197,49 +195,14 @@ export class DocumentProcessingService {
       "Schema directive detection results",
       {
         operation: "directive-detection",
-        hasExtractFrom,
         hasFrontmatterPart,
         schemaState: schema.isResolved() ? "resolved" : "unresolved",
       },
     );
 
-    if (hasExtractFrom && hasFrontmatterPart) {
-      // Use full extraction when both directives are present
-      const fullResult = await this.processingCoordinator
-        .processDocumentsWithFullExtraction(
-          config.inputPattern,
-          validationRules,
-          schema,
-          processingOptions,
-        );
-
-      if (fullResult.ok) {
-        // Return both main data and items data for template rendering
-        processedDataResult = ok({
-          mainData: [fullResult.data.mainData],
-          itemsData: fullResult.data.itemsData,
-        });
-      } else {
-        processedDataResult = fullResult;
-      }
-    } else if (hasExtractFrom) {
-      // Use extract-from processing when only x-extract-from is present
+    if (hasFrontmatterPart) {
+      // Process documents with frontmatter-part extraction
       const extractResult = await this.processingCoordinator
-        .processDocumentsWithExtractFrom(
-          config.inputPattern,
-          validationRules,
-          schema,
-          processingOptions,
-        );
-
-      if (extractResult.ok) {
-        processedDataResult = ok({ mainData: [extractResult.data] });
-      } else {
-        processedDataResult = extractResult;
-      }
-    } else if (hasFrontmatterPart) {
-      // Use items extraction when only x-frontmatter-part is present
-      const itemsResult = await this.processingCoordinator
         .processDocumentsWithItemsExtraction(
           config.inputPattern,
           validationRules,
@@ -247,14 +210,10 @@ export class DocumentProcessingService {
           processingOptions,
         );
 
-      if (itemsResult.ok) {
-        // Return both main data and items data for template rendering
-        processedDataResult = ok({
-          mainData: [itemsResult.data.mainData],
-          itemsData: itemsResult.data.itemsData,
-        });
+      if (extractResult.ok) {
+        processedDataResult = ok({ mainData: [extractResult.data.mainData] });
       } else {
-        processedDataResult = itemsResult;
+        processedDataResult = extractResult;
       }
     } else {
       // Use basic processing when no special directives are present

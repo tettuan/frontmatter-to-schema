@@ -201,8 +201,6 @@ export class DirectiveProcessor {
       });
     }
 
-    // Note: x-extract-from directive has been deprecated and removed
-
     // Check for x-derived-from (via ValidationRules)
     // Note: This is detected indirectly through schema analysis
     const derivedFromPresent = this.hasDerivationDirectives(schema);
@@ -226,7 +224,6 @@ export class DirectiveProcessor {
     }
 
     // Additional directive types will be detected as new features are implemented:
-    // - x-merge-arrays (aggregation directives)
     // - x-derived-unique (validation directives)
     // - x-template, x-template-items, x-template-format (template directives)
 
@@ -404,10 +401,6 @@ export class DirectiveProcessor {
         // Will handle frontmatter section directives when feature is developed
         return ok(data);
 
-      case "extract-from":
-        // Implement x-extract-from directive processing
-        return this.processExtractFromDirective(data, _schema, directiveNode);
-
       case "derived-from":
         // FEATURE: derived-from processing not yet implemented
         // Will handle derived data directives when feature is developed
@@ -472,19 +465,5 @@ export class DirectiveProcessor {
     } catch {
       return false;
     }
-  }
-
-  /**
-   * Process x-extract-from directive (deprecated)
-   * Note: x-extract-from directive has been deprecated and removed
-   */
-  private processExtractFromDirective(
-    data: FrontmatterData,
-    _schema: Schema,
-    _directiveNode: DirectiveNode,
-  ): Result<FrontmatterData, DirectiveProcessingError> {
-    // Note: x-extract-from directive has been deprecated and removed
-    // Return data unchanged since no processing is needed
-    return ok(data);
   }
 }

@@ -179,7 +179,7 @@ export class CLI {
       }));
     }
 
-    const documentProcessor = FrontmatterTransformationService
+    const documentProcessorResult = FrontmatterTransformationService
       .createWithEnabledLogging(
         frontmatterProcessor,
         aggregator,
@@ -190,6 +190,14 @@ export class CLI {
         performanceSettings.data,
         schemaValidationServiceResult.data,
       );
+    if (!documentProcessorResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create FrontmatterTransformationService: ${documentProcessorResult.error.message}`,
+      }));
+    }
+    const documentProcessor = documentProcessorResult.data;
 
     // Create JMESPath Filter Service
     const jmespathFilterServiceResult = JMESPathFilterService.create();

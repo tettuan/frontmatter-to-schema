@@ -850,7 +850,7 @@ export class ErrorHandler {
             type: "alternative",
             description: "Use one of these similar paths instead",
             example: error.availablePaths.slice(0, 3).join(", "),
-            action: "Update x-extract-from to use correct path",
+            action: "Update directive to use correct path",
           },
         ];
       case "TypeMismatchInExtraction":

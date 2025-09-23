@@ -33,9 +33,9 @@ async function testSchemaResolutionFix() {
     console.log(`🔍 Has frontmatter part: ${schema.hasFrontmatterPart()}`);
 
     try {
-      // Note: x-extract-from directive has been deprecated and removed as per Issue #994
+      // Note: Deprecated directives have been removed as per Issue #1005
       console.log(
-        "🎯 UPDATE: x-extract-from directive has been deprecated and removed",
+        "🎯 UPDATE: Deprecated directives have been removed per Issue #1005",
       );
       console.log(
         "   Issue #994 completed: Deprecated directives removed from codebase",

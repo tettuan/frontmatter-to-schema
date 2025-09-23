@@ -176,7 +176,7 @@ describe("Anti-Hardcoding Demonstration - Core Principle", () => {
         assertExists(formats.getFormat("schema"));
         assertEquals(formats.isExtensionSupported(".json"), true);
 
-        // ✅ Pattern 2: Multiple MD + x-extract-from + Template Format
+        // ✅ Pattern 2: Multiple MD + configurable processing + Template Format
         // Test that template format is configurable
         assertExists(formats.getFormat("template"));
         const templateFormat = formats.getFormat("template");

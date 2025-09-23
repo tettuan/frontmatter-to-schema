@@ -1,6 +1,6 @@
 /**
  * @fileoverview Property Extractor - Extracts values from nested property paths
- * @description Implements the x-extract-from directive for extracting values from frontmatter data
+ * @description Implements property extraction for extracting values from frontmatter data
  * Following DDD and Totality principles
  */
 

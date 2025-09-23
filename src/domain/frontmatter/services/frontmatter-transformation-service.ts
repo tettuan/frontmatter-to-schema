@@ -39,182 +39,16 @@ import type {
   FileLister,
   FileReader,
 } from "../../../application/interfaces/file-system-interfaces.ts";
-
-/**
- * Configuration object grouping related dependencies for FrontmatterTransformationService
- * Follows DDD dependency management patterns and Totality principles
- */
-export interface FrontmatterTransformationConfig {
-  readonly processor: FrontmatterProcessor;
-  readonly fileSystem: {
-    readonly reader: FileReader;
-    readonly lister: FileLister;
-  };
-  readonly services: {
-    readonly aggregator: Aggregator;
-    readonly basePropertyPopulator: BasePropertyPopulator;
-    readonly schemaValidation: SchemaValidationService;
-    readonly dataCreation?: FrontmatterDataCreationService;
-  };
-  readonly settings: {
-    readonly performance?: PerformanceSettings;
-    readonly logger?: DomainLogger;
-  };
-}
-
-/**
- * Factory for creating FrontmatterTransformationConfig with validation
- * Implements Smart Constructor pattern following Totality principles
- */
-export class FrontmatterTransformationConfigFactory {
-  /**
-   * Create configuration with all required dependencies
-   */
-  static create(
-    processor: FrontmatterProcessor,
-    aggregator: Aggregator,
-    basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
-    schemaValidation: SchemaValidationService,
-    options?: {
-      readonly dataCreation?: FrontmatterDataCreationService;
-      readonly performance?: PerformanceSettings;
-      readonly logger?: DomainLogger;
-    },
-  ): Result<
-    FrontmatterTransformationConfig,
-    DomainError & { message: string }
-  > {
-    // Validate required dependencies
-    if (!processor) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "FrontmatterProcessor is required",
-      }));
-    }
-
-    if (!aggregator) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "Aggregator is required",
-      }));
-    }
-
-    if (!basePropertyPopulator) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "BasePropertyPopulator is required",
-      }));
-    }
-
-    if (!fileReader) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "FileReader is required",
-      }));
-    }
-
-    if (!fileLister) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "FileLister is required",
-      }));
-    }
-
-    if (!schemaValidation) {
-      return err(createError({
-        kind: "InitializationError",
-        message: "SchemaValidationService is required",
-      }));
-    }
-
-    return ok({
-      processor,
-      fileSystem: {
-        reader: fileReader,
-        lister: fileLister,
-      },
-      services: {
-        aggregator,
-        basePropertyPopulator,
-        schemaValidation,
-        dataCreation: options?.dataCreation,
-      },
-      settings: {
-        performance: options?.performance,
-        logger: options?.logger,
-      },
-    });
-  }
-}
-
-/**
- * Processing options state using discriminated union for enhanced type safety
- * Follows Totality principles by eliminating optional dependencies
- */
-export type ProcessingOptionsState =
-  | { readonly kind: "sequential" }
-  | { readonly kind: "parallel"; readonly maxWorkers: number }
-  | {
-    readonly kind: "adaptive";
-    readonly baseWorkers: number;
-    readonly maxFileThreshold: number;
-  };
-
-/**
- * Factory for creating ProcessingOptionsState instances following Totality principles
- */
-export class ProcessingOptionsFactory {
-  /**
-   * Create sequential processing state - processes one file at a time
-   */
-  static createSequential(): ProcessingOptionsState {
-    return { kind: "sequential" };
-  }
-
-  /**
-   * Create parallel processing state with fixed worker count
-   * @param maxWorkers - Number of workers (defaults to performance settings)
-   */
-  static createParallel(maxWorkers?: number): ProcessingOptionsState {
-    // Use default from performance settings if not specified
-    const defaultWorkers = maxWorkers ?? 4; // Fallback if performance settings unavailable
-    return { kind: "parallel", maxWorkers: Math.max(1, defaultWorkers) };
-  }
-
-  /**
-   * Create adaptive processing state - switches based on file count
-   */
-  static createAdaptive(
-    baseWorkers: number = 4,
-    maxFileThreshold: number = 2, // Updated default to match performance settings
-  ): ProcessingOptionsState {
-    return {
-      kind: "adaptive",
-      baseWorkers: Math.max(1, baseWorkers),
-      maxFileThreshold: Math.max(1, maxFileThreshold),
-    };
-  }
-
-  /**
-   * Create processing options state from legacy optional object (for backward compatibility)
-   * @deprecated Use explicit factory methods instead
-   */
-  static fromOptional(
-    options?: { parallel?: boolean; maxWorkers?: number },
-  ): ProcessingOptionsState {
-    if (!options) {
-      return ProcessingOptionsFactory.createSequential();
-    }
-
-    if (options.parallel === true) {
-      return ProcessingOptionsFactory.createParallel(options.maxWorkers);
-    }
-
-    return ProcessingOptionsFactory.createSequential();
-  }
-}
+import {
+  FrontmatterTransformationConfig,
+  FrontmatterTransformationConfigFactory,
+} from "../configuration/frontmatter-transformation-config.ts";
+import {
+  ProcessingOptionsFactory,
+  ProcessingOptionsState,
+} from "../configuration/processing-options-factory.ts";
+import { MergeOperations } from "../utilities/merge-operations.ts";
+import { FieldOperations } from "../utilities/field-operations.ts";
 
 export interface ProcessedDocuments {
   readonly documents: MarkdownDocument[];
@@ -243,6 +77,8 @@ export type RuleConversionResult = {
  * 5. Generate final integrated domain data
  */
 export class FrontmatterTransformationService {
+  private readonly mergeOperations: MergeOperations;
+
   private constructor(
     private readonly config: FrontmatterTransformationConfig,
     private readonly frontmatterDataCreationService:
@@ -251,7 +87,9 @@ export class FrontmatterTransformationService {
     private readonly performanceSettings: PerformanceSettings,
     private readonly extractionService: FrontmatterExtractionService,
     private readonly validationService: FrontmatterValidationService,
-  ) {}
+  ) {
+    this.mergeOperations = new MergeOperations(frontmatterDataCreationService);
+  }
 
   /**
    * Smart Constructor following Totality principles
@@ -1760,8 +1598,7 @@ export class FrontmatterTransformationService {
       // Therefore, we extract the entire frontmatter object from each file.
 
       // CRITICAL FIX for Issue #966: Apply directive processing before using frontmatter data
-      // Note: x-extract-from and x-merge-arrays directives have been deprecated and removed
-      // Process frontmatter data directly without deprecated directive processing
+      // Process frontmatter data directly
       const processedFrontmatterData = frontmatterData;
 
       const partData = processedFrontmatterData.getData(); // Use the processed frontmatter object
@@ -1851,7 +1688,7 @@ export class FrontmatterTransformationService {
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
 
     if (!frontmatterPartSchemaResult.ok) {
-      return this.mergeDataDirectly(data);
+      return this.mergeOperations.mergeDataDirectly(data);
     }
 
     // Handle empty data by creating empty structure
@@ -1942,7 +1779,7 @@ export class FrontmatterTransformationService {
     const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
 
     if (!frontmatterPartSchemaResult.ok) {
-      return this.mergeDataDirectly(data);
+      return this.mergeOperations.mergeDataDirectly(data);
     }
 
     // Handle empty data by creating empty structure
@@ -2074,7 +1911,7 @@ export class FrontmatterTransformationService {
         const finalValues = rule.isUnique() ? [...new Set(values)] : values;
 
         // Set derived field using targetField path
-        const setFieldResult = this.setNestedField(
+        const setFieldResult = FieldOperations.setNestedField(
           derivedFields,
           rule.getTargetField(),
           finalValues,
@@ -2123,132 +1960,6 @@ export class FrontmatterTransformationService {
    * Deep merge two FrontmatterData objects, preserving existing nested structures.
    * Required to merge derived fields without overwriting frontmatter-part data.
    */
-  private deepMerge(
-    baseData: FrontmatterData,
-    derivedData: FrontmatterData,
-  ): Result<FrontmatterData, DomainError> {
-    const baseObj = baseData.getData();
-    const derivedObj = derivedData.getData();
-
-    const mergedObj = this.deepMergeObjects(baseObj, derivedObj);
-    const mergedResult = this.frontmatterDataCreationService.createFromRaw(
-      mergedObj,
-    );
-
-    if (!mergedResult.ok) {
-      return ErrorHandler.aggregation({
-        operation: "deepMerge",
-        method: "createMergedData",
-      }).mergeFailed(`Deep merge failed: ${mergedResult.error.message}`);
-    }
-
-    return ok(mergedResult.data);
-  }
-
-  /**
-   * Deep merge two objects recursively.
-   */
-  private deepMergeObjects(
-    target: Record<string, unknown>,
-    source: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const result = { ...target };
-
-    for (const key in source) {
-      if (source[key] !== undefined) {
-        if (
-          typeof source[key] === "object" &&
-          source[key] !== null &&
-          !Array.isArray(source[key]) &&
-          typeof result[key] === "object" &&
-          result[key] !== null &&
-          !Array.isArray(result[key])
-        ) {
-          // Both are objects - merge recursively
-          const resultValueResult = SafePropertyAccess.asRecord(result[key]);
-          const sourceValueResult = SafePropertyAccess.asRecord(source[key]);
-
-          if (resultValueResult.ok && sourceValueResult.ok) {
-            result[key] = this.deepMergeObjects(
-              resultValueResult.data,
-              sourceValueResult.data,
-            );
-          } else {
-            // Fallback to source value if type conversion fails
-            result[key] = source[key];
-          }
-        } else {
-          // Replace value (for arrays, primitives, or when target is not object)
-          result[key] = source[key];
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Set nested field in object using dot notation path.
-   * Helper method for applying derived field values to nested structure.
-   */
-  private setNestedField(
-    obj: Record<string, unknown>,
-    path: string,
-    value: unknown,
-  ): Result<void, DomainError & { message: string }> {
-    const parts = path.split(".");
-    let current = obj;
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!current[parts[i]] || typeof current[parts[i]] !== "object") {
-        current[parts[i]] = {};
-      }
-
-      // Use SafePropertyAccess to eliminate type assertion
-      const propertyResult = SafePropertyAccess.asRecord(current[parts[i]]);
-      if (!propertyResult.ok) {
-        // If property is not a record, create a new one
-        current[parts[i]] = {};
-        const newRecordResult = SafePropertyAccess.asRecord(current[parts[i]]);
-        if (newRecordResult.ok) {
-          current = newRecordResult.data;
-        } else {
-          // This should never happen since we just created an empty object
-          // But following Totality principles, we return an error instead of throwing
-          return ErrorHandler.validation({
-            operation: "setNestedField",
-            method: "createNestedRecord",
-          }).invalidStructure(
-            path,
-            "Failed to create record for nested path after initialization",
-          );
-        }
-      } else {
-        current = propertyResult.data;
-      }
-    }
-
-    current[parts[parts.length - 1]] = value;
-    return ok(void 0);
-  }
-
-  /**
-   * Fallback for direct merging when no frontmatter-part schema exists.
-   * Follows Totality principle with proper error handling.
-   */
-  private mergeDataDirectly(
-    data: FrontmatterData[],
-  ): Result<FrontmatterData, DomainError & { message: string }> {
-    if (data.length === 0) {
-      return ok(FrontmatterData.empty());
-    }
-
-    let merged = data[0];
-    for (let i = 1; i < data.length; i++) {
-      merged = merged.merge(data[i]);
-    }
-    return ok(merged);
-  }
 
   /**
    * Convert schema derivation rules to domain rules with explicit error handling.
@@ -2368,7 +2079,10 @@ export class FrontmatterTransformationService {
     schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
-  ): FrontmatterTransformationService {
+  ): Result<
+    FrontmatterTransformationService,
+    DomainError & { message: string }
+  > {
     const domainLogger = DomainLoggerFactory.createEnabled(debugLogger);
 
     // Initialize extraction service
@@ -2376,9 +2090,7 @@ export class FrontmatterTransformationService {
       frontmatterProcessor,
     );
     if (!extractionResult.ok) {
-      throw new Error(
-        `Failed to create extraction service: ${extractionResult.error.message}`,
-      );
+      return { ok: false, error: extractionResult.error };
     }
 
     // Initialize validation service
@@ -2386,9 +2098,7 @@ export class FrontmatterTransformationService {
       schemaValidationService,
     );
     if (!validationResult.ok) {
-      throw new Error(
-        `Failed to create validation service: ${validationResult.error.message}`,
-      );
+      return { ok: false, error: validationResult.error };
     }
 
     const configResult = FrontmatterTransformationConfigFactory.create(
@@ -2406,21 +2116,17 @@ export class FrontmatterTransformationService {
     );
 
     if (!configResult.ok) {
-      throw new Error(
-        `Failed to create configuration: ${configResult.error.message}`,
-      );
+      return { ok: false, error: configResult.error };
     }
 
     const serviceResult = FrontmatterTransformationService.create(
       configResult.data,
     );
     if (!serviceResult.ok) {
-      throw new Error(
-        `Failed to create service: ${serviceResult.error.message}`,
-      );
+      return { ok: false, error: serviceResult.error };
     }
 
-    return serviceResult.data;
+    return { ok: true, data: serviceResult.data };
   }
 
   /**
@@ -2436,7 +2142,10 @@ export class FrontmatterTransformationService {
     schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
-  ): FrontmatterTransformationService {
+  ): Result<
+    FrontmatterTransformationService,
+    DomainError & { message: string }
+  > {
     const domainLogger = DomainLoggerFactory.createDisabled();
 
     // Initialize extraction service
@@ -2444,9 +2153,7 @@ export class FrontmatterTransformationService {
       frontmatterProcessor,
     );
     if (!extractionResult.ok) {
-      throw new Error(
-        `Failed to create extraction service: ${extractionResult.error.message}`,
-      );
+      return { ok: false, error: extractionResult.error };
     }
 
     // Initialize validation service
@@ -2454,9 +2161,7 @@ export class FrontmatterTransformationService {
       schemaValidationService,
     );
     if (!validationResult.ok) {
-      throw new Error(
-        `Failed to create validation service: ${validationResult.error.message}`,
-      );
+      return { ok: false, error: validationResult.error };
     }
 
     const configResult = FrontmatterTransformationConfigFactory.create(
@@ -2474,21 +2179,17 @@ export class FrontmatterTransformationService {
     );
 
     if (!configResult.ok) {
-      throw new Error(
-        `Failed to create configuration: ${configResult.error.message}`,
-      );
+      return { ok: false, error: configResult.error };
     }
 
     const serviceResult = FrontmatterTransformationService.create(
       configResult.data,
     );
     if (!serviceResult.ok) {
-      throw new Error(
-        `Failed to create service: ${serviceResult.error.message}`,
-      );
+      return { ok: false, error: serviceResult.error };
     }
 
-    return serviceResult.data;
+    return { ok: true, data: serviceResult.data };
   }
 
   /**
@@ -2506,7 +2207,10 @@ export class FrontmatterTransformationService {
     logger?: DebugLogger,
     frontmatterDataCreationService: FrontmatterDataCreationService =
       defaultFrontmatterDataCreationService,
-  ): FrontmatterTransformationService {
+  ): Result<
+    FrontmatterTransformationService,
+    DomainError & { message: string }
+  > {
     const domainLogger = DomainLoggerFactory.fromOptional(logger);
 
     // Initialize extraction service
@@ -2514,9 +2218,7 @@ export class FrontmatterTransformationService {
       frontmatterProcessor,
     );
     if (!extractionResult.ok) {
-      throw new Error(
-        `Failed to create extraction service: ${extractionResult.error.message}`,
-      );
+      return { ok: false, error: extractionResult.error };
     }
 
     // Initialize validation service
@@ -2524,9 +2226,7 @@ export class FrontmatterTransformationService {
       schemaValidationService,
     );
     if (!validationResult.ok) {
-      throw new Error(
-        `Failed to create validation service: ${validationResult.error.message}`,
-      );
+      return { ok: false, error: validationResult.error };
     }
 
     const configResult = FrontmatterTransformationConfigFactory.create(
@@ -2544,20 +2244,16 @@ export class FrontmatterTransformationService {
     );
 
     if (!configResult.ok) {
-      throw new Error(
-        `Failed to create configuration: ${configResult.error.message}`,
-      );
+      return { ok: false, error: configResult.error };
     }
 
     const serviceResult = FrontmatterTransformationService.create(
       configResult.data,
     );
     if (!serviceResult.ok) {
-      throw new Error(
-        `Failed to create service: ${serviceResult.error.message}`,
-      );
+      return { ok: false, error: serviceResult.error };
     }
 
-    return serviceResult.data;
+    return { ok: true, data: serviceResult.data };
   }
 }

@@ -35,9 +35,9 @@ Deno.test("Schema Resolution Test - Issue #966 Verification", async () => {
 
   console.log(`📊 Schema isResolved(): ${schema.isResolved()}`);
 
-  // Note: x-extract-from directive has been deprecated and removed as per Issue #994
+  // Note: Deprecated directives have been removed as per Issue #1005
   console.log(
-    "🎯 UPDATE: x-extract-from directive has been deprecated and removed",
+    "🎯 UPDATE: Deprecated directives have been removed per Issue #1005",
   );
   console.log(
     "   Issue #994 completed: Deprecated directives removed from codebase",
@@ -61,7 +61,7 @@ Deno.test("Schema Resolution Test - Issue #966 Verification", async () => {
 
   // Updated insight: Focus on current supported functionality
   console.log(
-    "\n🎯 CURRENT STATE: x-extract-from removed, focus on frontmatter-part processing",
+    "\n🎯 CURRENT STATE: Deprecated directives removed, focus on supported directives processing",
   );
   console.log("   - Schema coordinator should call resolve() properly");
   console.log(

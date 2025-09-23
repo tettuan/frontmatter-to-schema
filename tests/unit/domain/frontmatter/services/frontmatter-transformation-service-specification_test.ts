@@ -325,15 +325,22 @@ class TransformationScenarioBuilder {
       throw new Error("Failed to create schema validation service");
     }
 
-    const service = FrontmatterTransformationService.createWithDisabledLogging(
-      processor as any,
-      aggregator as any,
-      populator as any,
-      reader as any,
-      lister as any,
-      performanceSettings.data,
-      schemaValidationServiceResult.data,
-    );
+    const serviceResult = FrontmatterTransformationService
+      .createWithDisabledLogging(
+        processor as any,
+        aggregator as any,
+        populator as any,
+        reader as any,
+        lister as any,
+        performanceSettings.data,
+        schemaValidationServiceResult.data,
+      );
+    if (!serviceResult.ok) {
+      throw new Error(
+        `Failed to create service for test: ${serviceResult.error.message}`,
+      );
+    }
+    const service = serviceResult.data;
 
     const validationRules = ValidationRules.create([]);
 

@@ -314,7 +314,7 @@ const schemaResult = validator.validateSchema(schemaObject);
 ```json
 {
   "kind": "MissingRequiredDirective",
-  "directive": "x-extract-from",
+  "directive": "x-frontmatter-part",
   "context": "x-frontmatter-part is true at array.property"
 }
 ```

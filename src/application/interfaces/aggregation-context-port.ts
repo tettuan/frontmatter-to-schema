@@ -84,8 +84,8 @@ export interface AggregationContextPort {
   ): Result<EnrichedResult, AggregationErrorType>;
 
   /**
-   * Merge arrays based on x-merge-arrays directive
-   * Implements Issue #898: x-merge-arrays directive functionality
+   * Merge arrays functionality
+   * Implements Issue #898: Array merging functionality
    */
   mergeArrays(
     sourceArrays: unknown[][],
