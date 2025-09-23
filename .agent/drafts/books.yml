@@ -1,0 +1,31 @@
+books:
+  - |
+      title: Getting Started with Claude Code
+      emoji: "\U0001F680"
+      type: tech
+      topics:
+        - claudecode
+        - ai
+        - development
+      published: true
+      published_at: '2025-01-15 10:00'
+  - |
+      title: Domain-Driven Design with TypeScript
+      emoji: "\U0001F3D7️"
+      type: tech
+      topics:
+        - ddd
+        - typescript
+        - architecture
+      published: true
+      published_at: '2025-01-16 14:30'
+  - |
+      title: Future of AI Development
+      emoji: "\U0001F916"
+      type: opinion
+      topics:
+        - ai
+        - future
+        - development
+      published: false
+      published_at: ''

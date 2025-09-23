@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Books Index Schema",
+  "x-template": "books_template.yml",
+  "x-template-items": "book_item_template.yml",
+  "description": "Schema for books index with articles",
+  "properties": {
+    "books": {
+      "type": "array",
+      "description": "Book entries - populated from article markdown files",
+      "x-frontmatter-part": true,
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Article title"
+          },
+          "emoji": {
+            "type": "string",
+            "description": "Article emoji"
+          },
+          "type": {
+            "type": "string",
+            "description": "Article type"
+          },
+          "topics": {
+            "type": "array",
+            "description": "Article topics",
+            "items": { "type": "string" }
+          },
+          "published": {
+            "type": "boolean",
+            "description": "Publication status"
+          },
+          "published_at": {
+            "type": "string",
+            "description": "Publication date",
+            "format": "date-time"
+          }
+        },
+        "required": ["title", "type", "published"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["books"],
+  "additionalProperties": false
+}

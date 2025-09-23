@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Command Registry Schema for YAML",
+  "x-template": "registry_template.yml",
+  "x-template-items": "command_template.yml",
+  "description": "Schema for command registry with tools and commands",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Registry version"
+    },
+    "description": {
+      "type": "string",
+      "description": "Registry description"
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool configuration and command registry",
+      "properties": {
+        "availableConfigs": {
+          "type": "array",
+          "description": "Available configuration names derived from commands",
+          "x-derived-from": "tools.commands[].c1",
+          "x-derived-unique": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "Command registry - populated from markdown files",
+          "x-frontmatter-part": true,
+          "items": { "$ref": "command_schema.json" }
+        }
+      },
+      "required": ["availableConfigs", "commands"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "description", "tools"],
+  "additionalProperties": false
+}

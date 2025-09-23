@@ -4,7 +4,7 @@
   "tools": {
     "availableConfigs": [
       "git",
-      "spec"
+      "spec",
     ],
     "commands": [
       {
@@ -16,21 +16,21 @@
         "usage": "git checkout -b feature/new-feature",
         "options": {
           "input": [
-            "string"
+            "string",
           ],
           "adaptation": [
-            "default"
+            "default",
           ],
           "input_file": [
-            false
+            false,
           ],
           "stdin": [
-            false
+            false,
           ],
           "destination": [
-            false
-          ]
-        }
+            false,
+          ],
+        },
       },
       {
         "c1": "spec",
@@ -42,24 +42,24 @@
         "options": {
           "input": [
             "file",
-            "stdin"
+            "stdin",
           ],
           "adaptation": [
             "default",
-            "detailed"
+            "detailed",
           ],
           "input_file": [
-            true
+            true,
           ],
           "stdin": [
-            true
+            true,
           ],
           "destination": [
             true,
-            false
-          ]
-        }
-      }
-    ]
-  }
+            false,
+          ],
+        },
+      },
+    ],
+  },
 }

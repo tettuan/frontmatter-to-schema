@@ -1,0 +1,8 @@
+{
+  "category": "{category}",
+  "title": "{title}",
+  "status": "{status}",
+  "priority": "{priority}",
+  "author": "{author}",
+  "tags": "{tags}"
+}

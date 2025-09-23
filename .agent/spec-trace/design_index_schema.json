@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Design Index Schema",
+  "x-template": "index_template.json",
+  "x-template-items": "doc_item_template.json",
+  "description": "Schema for design document index",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Document category"
+    },
+    "documents": {
+      "type": "array",
+      "description": "Design documents - filtered from markdown files",
+      "x-frontmatter-part": true,
+      "x-jmespath-filter": "[?category == 'design']",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Document category"
+          },
+          "title": {
+            "type": "string",
+            "description": "Document title"
+          },
+          "status": {
+            "type": "string",
+            "description": "Document status"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Document priority"
+          },
+          "author": {
+            "type": "string",
+            "description": "Document author"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Document tags",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["category", "title", "status", "priority", "author"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["category", "documents"],
+  "additionalProperties": false
+}
