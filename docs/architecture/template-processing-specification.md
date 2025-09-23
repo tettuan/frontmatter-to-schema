@@ -102,7 +102,7 @@ graph TD
 }
 ```
 
-#### Stage 3: After x-derived-from Processing
+#### Stage 3: After x-derived-from Processing (Stage 6: Data Collection Complete)
 
 ```json
 {
@@ -117,6 +117,8 @@ graph TD
   }
 }
 ```
+
+**Note**: This represents Stage 6 (Data Collection Complete) where all data from multiple files has been collected and aggregated. The {@items} expansion happens after this, during Stage 7 (Template Application).
 
 ## 3. Data Partitioning Specification
 
@@ -236,10 +238,13 @@ graph LR
    - Combine processed items within the JSON template structure
    - Replace `{@items}` marker in the container template when an items template
      exists
+   - This occurs during Stage 7 (Template Application) after all data collection
+     is complete (Stage 6)
 
 5. **Fallback Handling**
    - Without `x-template-items`, leave `{@items}` unchanged in the rendered
      output
+   - When no value exists for a variable, explicitly replace with `null`
 
 ## 6. Domain Interaction Model
 
@@ -393,7 +398,7 @@ Support for array operations:
 | Schema Errors     | Invalid schema or missing references | Fail fast with clear message  |
 | Template Errors   | Missing templates or syntax errors   | Provide fallback or fail      |
 | Data Errors       | Missing required data                | Use defaults or skip item     |
-| Resolution Errors | Unresolvable variables               | Keep placeholder or use empty |
+| Resolution Errors | Unresolvable variables               | Replace with `null`            |
 
 ### 9.2 Error Propagation
 

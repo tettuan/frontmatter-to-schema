@@ -23,7 +23,7 @@ should be used when processing `{@items}` expansion, eliminating the need for
 // Main schema
 {
   "x-template": "main_template.json",
-  "x-template-items": "item_template.json",  // Optional, but needed for {@items}
+  "x-template-items": "item_template.json",  // Optional: required only for {@items} expansion
   "properties": {
     "items": {
       "type": "array",
@@ -83,9 +83,9 @@ the template for each array element.
 
 ### Template Resolution Rule
 
-**x-template-items in Main Schema**: Optional, but required for `{@items}`
-expansion. If not specified, `{@items}` expansion cannot occur and will remain
-unexpanded. **Fallback Behavior**: When the schema omits `x-template-items`, the
+**x-template-items in Main Schema**: Optional directive that is required only when
+`{@items}` expansion is needed. If not specified, `{@items}` expansion cannot occur
+and will remain unexpanded. **Fallback Behavior**: When the schema omits `x-template-items`, the
 renderer must leave each literal `{@items}` token untouched—no implicit array
 serialization or default expansion is permitted.
 
@@ -118,13 +118,14 @@ contain template specifications:
 
 ```typescript
 interface TemplateResolutionLogic {
-  resolveItemTemplate(schema: Schema): string {
-    // Check main schema for x-template-items (optional)
+  resolveItemTemplate(schema: Schema): string | null {
+    // Check main schema for x-template-items (optional directive)
     if (schema.hasMainSchemaTemplateItems()) {
       return schema.getMainSchemaTemplateItems();
     }
 
     // No x-template-items - {@items} will not be expanded
+    // Values that don't exist will be replaced with null
     return null;  // {@items} remains as placeholder
   }
 }
@@ -212,7 +213,7 @@ Apply item_template.json to each array element
 
 This specification establishes clear separation of concerns:
 
-- `x-template-items` is **OPTIONAL** but necessary for `{@items}` expansion
+- `x-template-items` is **OPTIONAL** - required only when `{@items}` expansion is needed
 - `$ref` is for schema structure only, not template resolution
 - Templates are specified exclusively through `x-template` and
   `x-template-items`
