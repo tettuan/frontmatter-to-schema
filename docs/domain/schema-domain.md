@@ -58,51 +58,50 @@ Schemaに加えて、アプリケーション固有の機能を提供する。
 派生フィールドの値を一意化するかを指定。`x-derived-from`
 と組み合わせて使用する。
 
-### x-extract-from
+### x-flatten-arrays
 
-ネストされたデータ構造から特定の値を抽出する。`[]`記法により配列と単一要素の両方を統一的に扱う。
+フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成する。指定時のみ適用されるオプション機能。
 
 ```json
 {
-  "traceability": {
+  "items": {
     "type": "array",
-    "x-extract-from": "traceability[].id.full",
-    "items": { "type": "string" }
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-template-items": "item_template.json"
   }
 }
 ```
 
 **特徴:**
 
-- `[]`記法による配列正規化
-- ネストしたプロパティパスのサポート
+- 指定時のみ適用される配列フラット化機能
+- デフォルトではフロントマター構造をそのまま保持
 - Stage 2で処理（`x-frontmatter-part`の後）
 
 ## 値オブジェクト
 
-### ExtractFromDirective
+### FlattenArraysDirective
 
-`x-extract-from`ディレクティブを表現する値オブジェクト。ソースパスとターゲットパスを管理し、配列展開の正規化を担う。
+`x-flatten-arrays`ディレクティブを表現する値オブジェクト。フラット化対象プロパティと処理オプションを管理する。
 
 ```typescript
-export class ExtractFromDirective {
+export class FlattenArraysDirective {
   private constructor(
-    private readonly targetPath: string,
-    private readonly sourcePath: string,
-    private readonly targetPropertyPath: PropertyPath,
-    private readonly sourcePropertyPath: PropertyPath,
-    private readonly mergeArrays: boolean,
-    private readonly targetIsArray: boolean,
+    private readonly targetPropertyName: string,
+    private readonly sourcePropertyName: string,
+    private readonly isOptional: boolean,
   ) {}
 
   static create(
-    props: ExtractFromDirectiveProps,
-  ): Result<ExtractFromDirective, DomainError> {
-    // パスの妥当性検証とPropertyPath生成
+    targetProperty: string,
+    sourceProperty: string,
+  ): Result<FlattenArraysDirective, DomainError> {
+    // プロパティ名の妥当性検証
   }
 
-  hasSourceArrayExpansion(): boolean {
-    // []記法の有無を判定
+  isApplicable(): boolean {
+    // フラット化処理の適用可否を判定
   }
 }
 ```
@@ -110,8 +109,8 @@ export class ExtractFromDirective {
 **責務:**
 
 - ディレクティブの妥当性検証
-- パスの正規化と解析
-- 配列展開フラグの管理
+- フラット化対象プロパティの管理
+- オプション処理の制御
 
 ### SchemaPath
 

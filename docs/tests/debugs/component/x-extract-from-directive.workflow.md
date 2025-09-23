@@ -5,6 +5,9 @@ workflow:
   scope: "component"
   version: "1.0"
   xml_convertible: true
+  deprecated: true
+  deprecation_reason: "x-extract-from directive removed in favor of x-flatten-arrays"
+  replacement: "x-flatten-arrays-directive.workflow.md"
 dependencies:
   - breakdownlogger: "@tettuan/breakdownlogger@^1.0.0"
   - environment_vars: ["LOG_KEY", "LOG_LENGTH", "LOG_LEVEL"]
@@ -13,11 +16,17 @@ outputs:
   - evidence: "tmp/evidence-x-extract-from.json"
 ---
 
-# x-extract-from Directive Processing Debug Workflow
+# ⚠️ DEPRECATED: x-extract-from Directive Processing Debug Workflow
+
+> **Notice**: This workflow is deprecated as the `x-extract-from` directive has been removed.
+> **Replacement**: Use `x-flatten-arrays` directive instead.
+> **Migration**: See `docs/requirements.ja.md` for `x-flatten-arrays` usage.
 
 ## 目的
 
-Issue #966: x-extract-from ディレクティブが空IDを生成する問題の根本原因特定とデバッグ。
+**⚠️ DEPRECATED**: Issue #966: x-extract-from ディレクティブが空IDを生成する問題の根本原因特定とデバッグ。
+
+**現在の代替手段**: `x-flatten-arrays` ディレクティブを使用してください。
 
 ## 前提条件
 

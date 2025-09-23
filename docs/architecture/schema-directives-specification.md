@@ -11,19 +11,22 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 1. **Stage 1: 対象配列の特定**
    - `x-frontmatter-part` - 処理対象の配列を識別
 
-2. **Stage 2: 値の抽出**
-   - `x-extract-from` - []記法で正規化された値抽出
+2. **Stage 2: 配列フラット化**
+   - `x-flatten-arrays` - 指定プロパティの配列フラット化（オプション）
 
 3. **Stage 3: フィルタリング適用**
    - `x-jmespath-filter` - 抽出されたデータへのJMESPathフィルタリング
 
-4. **Stage 4: 配列の統合**
-   - `x-merge-arrays` - 複数配列を統一構造に統合
-
-5. **Stage 5: 値の集約**
+4. **Stage 4: 値の集約**
    - `x-derived-from` - 複数ソースからの値集約
 
-6. **Stage 6: 重複削除**
+3. **Stage 3: フィルタリング適用**
+   - `x-jmespath-filter` - フラット化されたデータへのJMESPathフィルタリング
+
+4. **Stage 4: 値の集約**
+   - `x-derived-from` - 複数ソースからの値集約
+
+5. **Stage 5: 重複削除**
    - `x-derived-unique` - 集約データからの重複削除
 
 7. **Stage 7: テンプレート適用**
@@ -39,11 +42,10 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
   - `x-frontmatter-part`
 
 - **データ抽出・フィルタリング** - フロントマターから値を抽出・選別する
-  - `x-extract-from`
+  - `x-flatten-arrays`
   - `x-jmespath-filter`
 
 - **データ変換・集約** - 抽出したデータを変換・統合する
-  - `x-merge-arrays`
   - `x-derived-from`
   - `x-derived-unique`
 
@@ -110,21 +112,56 @@ Schemaの`default`プロパティも使用しません。
 
 ### 2.2 データ抽出・フィルタリングディレクティブ
 
-#### `x-extract-from`
+#### `x-flatten-arrays`
 
-- **役割**: プロパティパスからの値抽出
-- **適用対象**: 任意のプロパティ
+- **役割**: 配列のフラット化処理
+- **適用対象**: 配列プロパティ（`x-frontmatter-part: true`と併用）
 - **処理ステージ**: Stage 2
-- **目的**: フロントマターの特定パスから値を抽出（配列・単一要素の両対応）
-- **特徴**: `[]`記法により配列でも単一要素でも同じ処理で抽出可能
+- **目的**: フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成
+- **特徴**: 指定時のみ適用されるオプション機能。デフォルトでは元構造を維持
 - **依存関係**: `x-frontmatter-part`の後に処理
 - **使用例**:
 
 ```json
 {
-  "id": {
-    "type": "string",
-    "x-extract-from": "traceability[].id.full"
+  "trace_ids": {
+    "type": "array",
+    "description": "フラット化されたトレーサビリティIDの一覧",
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-derived-unique": true,
+    "x-template-items": "trace_item_template.json"
+  }
+}
+```
+
+**フラット化の動作原理**:
+
+| フロントマター構造 | 指定 | 処理結果 |
+|-------------------|------|----------|
+| `traceability: ["A", ["B", "C"]]` | `"x-flatten-arrays": "traceability"` | `["A", "B", "C"]` |
+| `traceability: "D"` | 同上 | `["D"]` |
+| `traceability: ["A", ["B", "C"]]` | **指定なし** | `["A", ["B", "C"]]` (構造維持) |
+| 複数ファイル | 指定時 | 全要素が`{@items}`で展開 |
+| 複数ファイル | **指定なし** | 元構造のまま`{@items}`で展開 |
+
+#### `x-flatten-arrays`
+
+- **役割**: 配列のフラット化
+- **適用対象**: 配列プロパティ
+- **処理ステージ**: Stage 2
+- **目的**: フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成
+- **特徴**: 指定時のみ適用される配列フラット化機能
+- **依存関係**: `x-frontmatter-part`の後に処理
+- **使用例**:
+
+```json
+{
+  "items": {
+    "type": "array",
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-template-items": "item_template.json"
   }
 }
 ```
@@ -135,7 +172,7 @@ Schemaの`default`プロパティも使用しません。
 - **適用対象**: 配列プロパティ
 - **処理ステージ**: Stage 3
 - **目的**: 抽出されたデータに対してJMESPath式で選択的抽出やフィルタリング
-- **依存関係**: `x-extract-from`の後に処理（抽出されたデータに対して適用）
+- **依存関係**: `x-flatten-arrays`の後に処理（フラット化されたデータに対して適用）
 - **使用例**:
 
 ```json
@@ -150,24 +187,6 @@ Schemaの`default`プロパティも使用しません。
 
 ### 2.3 データ変換・集約ディレクティブ
 
-#### `x-merge-arrays`
-
-- **役割**: 配列の統合制御
-- **適用対象**: 配列プロパティ
-- **処理ステージ**: Stage 4
-- **目的**: 複数ファイルから収集した配列を1つのフラット配列に統合
-- **依存関係**: `x-jmespath-filter`と`x-extract-from`の後に処理
-- **使用例**:
-
-```json
-{
-  "allItems": {
-    "type": "array",
-    "x-merge-arrays": true,
-    "items": {...}
-  }
-}
-```
 
 #### `x-derived-from`
 
@@ -175,7 +194,7 @@ Schemaの`default`プロパティも使用しません。
 - **適用対象**: 任意のプロパティ
 - **処理ステージ**: Stage 5
 - **目的**: 他のプロパティから値を集約して新しいフィールドを生成
-- **依存関係**: `x-merge-arrays`と`x-extract-from`の後に処理
+- **依存関係**: `x-flatten-arrays`の後に処理
 - **使用例**:
 
 ```json
@@ -264,22 +283,19 @@ Schemaの`default`プロパティも使用しません。
 Stage 1: 対象配列の特定
    └─ x-frontmatter-part: 処理対象配列を識別
         ↓
-Stage 2: 値の抽出
-   └─ x-extract-from: []記法で正規化された抽出
+Stage 2: 配列フラット化
+   └─ x-flatten-arrays: 指定プロパティの配列フラット化（オプション）
         ↓
-Stage 3: フィルタリング
-   └─ x-jmespath-filter: 抽出データへのフィルタリング
+Stage 3: フィルタリング適用
+   └─ x-jmespath-filter: フラット化データへのフィルタリング
         ↓
-Stage 4: 配列統合
-   └─ x-merge-arrays: 複数配列の統合
-        ↓
-Stage 5: 値の集約
+Stage 4: 値の集約
    └─ x-derived-from: 複数ソースからの集約
         ↓
-Stage 6: 重複削除
+Stage 5: 重複削除
    └─ x-derived-unique: 重複値の除去
         ↓
-Stage 7: テンプレート適用
+Stage 6: テンプレート適用
    ├─ x-template: メインテンプレート
    ├─ x-template-items: アイテムテンプレート
    └─ x-template-format: 出力形式指定
@@ -288,10 +304,9 @@ Stage 7: テンプレート適用
 ### 3.2 ディレクティブの依存グラフ
 
 - `x-frontmatter-part` → なし（起点）
-- `x-extract-from` → `x-frontmatter-part`
-- `x-jmespath-filter` → `x-extract-from`
-- `x-merge-arrays` → `x-jmespath-filter`, `x-extract-from`
-- `x-derived-from` → `x-merge-arrays`, `x-extract-from`
+- `x-flatten-arrays` → `x-frontmatter-part`
+- `x-jmespath-filter` → `x-flatten-arrays`
+- `x-derived-from` → `x-jmespath-filter`, `x-flatten-arrays`
 - `x-derived-unique` → `x-derived-from`
 - `x-template` → `x-derived-unique`, `x-derived-from`
 - `x-template-items` → `x-derived-unique`, `x-derived-from`
@@ -300,10 +315,9 @@ Stage 7: テンプレート適用
 
 - `x-frontmatter-part` と `x-template-items`
   は連携して、配列要素の個別処理とテンプレート適用を制御
-- `x-extract-from` の `[]`
-  記法により、単一要素も配列として扱い、`x-merge-arrays` での統合を可能にする
-- `x-jmespath-filter` は `x-extract-from`
-  の後に適用され、抽出されたデータをさらに絞り込む
+- `x-flatten-arrays` は指定時のみ適用され、ネストした配列をフラット化してテンプレート処理を簡素化
+- `x-jmespath-filter` は `x-flatten-arrays`
+  の後に適用され、フラット化されたデータをさらに絞り込む
 - `x-derived-from` と `x-derived-unique`
   を組み合わせて、集約データの重複を自動削除
 
@@ -353,19 +367,17 @@ Stage 7: テンプレート適用
 
 ## 6. ユースケース別ガイド
 
-### 6.1 トレーサビリティID収集
+### 6.1 トレーサビリティID収集（フラット化あり）
 
 ```json
 {
   "trace_ids": {
     "type": "array",
+    "description": "フラット化されたトレーサビリティIDの一覧",
     "x-frontmatter-part": true,
-    "x-merge-arrays": true,
+    "x-flatten-arrays": "traceability",
     "x-derived-unique": true,
-    "items": {
-      "type": "string",
-      "x-extract-from": "traceability[].id.full"
-    }
+    "x-template-items": "trace_item_template.json"
   }
 }
 ```
@@ -373,8 +385,8 @@ Stage 7: テンプレート適用
 処理順序：
 
 1. `x-frontmatter-part`で対象配列を特定
-2. `x-extract-from`で各要素からIDを抽出
-3. `x-merge-arrays`で全ファイルのIDを統合
+2. `x-flatten-arrays`でtraceabilityプロパティをフラット化
+3. 全ファイルのフラット化結果を統合
 4. `x-derived-unique`で重複を削除
 
 ### 6.2 コマンドレジストリ構築
@@ -399,20 +411,19 @@ Stage 7: テンプレート適用
 処理順序：
 
 1. `x-frontmatter-part`でcommandsを処理対象に
-2. 各コマンドデータを収集
+2. 各コマンドデータを収集（フラット化なし）
 3. `x-derived-from`でc1値を集約
 4. `x-derived-unique`で重複を削除
 
-### 6.3 条件付きアイテム集約
+### 6.3 条件付きアイテム集約（構造維持）
 
 ```json
 {
   "activeItems": {
     "type": "array",
+    "description": "アクティブなアイテムの集約（元構造維持）",
     "x-frontmatter-part": true,
-    "x-extract-from": "items[]",
-    "x-jmespath-filter": "[?status=='active']",
-    "x-merge-arrays": true
+    "x-jmespath-filter": "items[?status=='active']"
   }
 }
 ```
@@ -420,9 +431,9 @@ Stage 7: テンプレート適用
 処理順序：
 
 1. `x-frontmatter-part`で処理開始
-2. `x-extract-from`でitems配列を抽出
+2. フロントマターの元構造を維持（フラット化なし）
 3. `x-jmespath-filter`でアクティブなものだけ選別
-4. `x-merge-arrays`で全ファイルの結果を統合
+4. 全ファイルの結果を自動統合
 
 ## まとめ
 

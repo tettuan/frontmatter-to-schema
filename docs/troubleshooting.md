@@ -132,7 +132,7 @@ and debugging capabilities.
 **Causes:**
 
 - `x-derived-from` references create cycles
-- `x-extract-from` references point back to same property
+- `x-flatten-arrays` processing creates circular dependencies
 - Complex dependency chains form loops
 
 **Solutions:**
@@ -148,8 +148,8 @@ and debugging capabilities.
 **Error Message:**
 
 ```
-⚠️  Directive conflict at "property": x-extract-from, x-derived-from
-   🔧 Resolution: x-extract-from takes precedence
+⚠️  Directive conflict at "property": x-flatten-arrays, x-derived-from
+   🔧 Resolution: x-flatten-arrays takes precedence
 ```
 
 **Causes:**
@@ -319,8 +319,8 @@ const schemaResult = validator.validateSchema(schemaObject);
 }
 ```
 
-**Solution:** Add required `x-extract-from` directive when using
-`x-frontmatter-part: true`
+**Solution:** Add required `x-flatten-arrays` directive when using
+`x-frontmatter-part: true` for array flattening
 
 #### Invalid Directive Values
 

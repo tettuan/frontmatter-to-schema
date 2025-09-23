@@ -72,16 +72,15 @@ interface SchemaContext {
   // 値オブジェクト
   class SchemaPath { private constructor(value: string) }
   class ValidationRules { private constructor(rules: Rule[]) }
-  class ExtractFromDirective {
+  class FlattenArraysDirective {
     private constructor(
-      targetPath: string,
-      sourcePath: string,
-      targetPropertyPath: PropertyPath,
-      sourcePropertyPath: PropertyPath,
+      targetPropertyName: string,
+      sourcePropertyName: string,
+      isOptional: boolean,
     )
-    static create(props: ExtractFromDirectiveProps): Result<ExtractFromDirective, DomainError>
-    hasSourceArrayExpansion(): boolean
-    getSourceSegments(): readonly string[]
+    static create(targetProperty: string, sourceProperty: string): Result<FlattenArraysDirective, DomainError>
+    isApplicable(): boolean
+    getSourcePropertyName(): string
   }
 
   // ドメインサービス
@@ -89,7 +88,7 @@ interface SchemaContext {
     resolveRecursive(schema: Schema): Result<ResolvedSchema, Error>
   }
   class DirectiveProcessor {
-    processExtractFrom(data: any, directives: ExtractFromDirective[]): Result<any, ProcessingError>
+    processFlattenArrays(data: any, directives: FlattenArraysDirective[]): Result<any, ProcessingError>
   }
 }
 ```
@@ -98,7 +97,7 @@ interface SchemaContext {
 
 **拡張ディレクティブの責務**:
 
-- `x-extract-from`: ネストしたデータ構造からの値抽出（Stage 2で処理）
+- `x-flatten-arrays`: フロントマター内部のネスト配列のフラット化（Stage 2で処理）
 - `x-derived-from`: 集約処理での派生フィールド生成（Stage 4で処理）
 - `x-frontmatter-part`: フロントマター配列処理の指定（Stage 1で処理）
 - `x-template`: テンプレートファイルの指定

@@ -88,7 +88,7 @@ assertEquals(formatResult.data.isExtensionSupported(".json"), true);
 #### **Basic Scenarios (Patterns 1-8) - ✅ Addressed**
 
 1. **Single MD + Simple Schema + JSON Template** - External config loading
-2. **Multiple MD + x-extract-from + YAML Template** - Directive configurability
+2. **Multiple MD + x-flatten-arrays + YAML Template** - Directive configurability
 3. **Nested frontmatter + x-frontmatter-part array** - Array processing config
 4. **Single→Array normalization + [] notation** - Notation configurability
 5. **x-derived-from aggregation + unique processing** - Aggregation config
@@ -102,7 +102,7 @@ assertEquals(formatResult.data.isExtensionSupported(".json"), true);
 10. **Frontmatter parse failure + Configurable Recovery** - Recovery config
     testing
 11. **Template load failure + Configurable Default** - Default template config
-12. **x-extract-from failure + Configurable Path Adjustment** - Path config
+12. **x-flatten-arrays failure + Configurable Array Processing** - Array processing config
 13. **Validation failure + Configurable Error Details** - Error detail config
 14. **Output write failure + Configurable Alternative Path** - Path fallback
     config
