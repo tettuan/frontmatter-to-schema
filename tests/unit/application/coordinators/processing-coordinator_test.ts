@@ -213,7 +213,7 @@ describe("ProcessingCoordinator", () => {
   });
 
   describe("Frontmatter-Part Extraction", () => {
-    it("should return single item array when no frontmatter-part defined", () => {
+    it("should return single item array when no frontmatter-part defined", async () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
@@ -222,7 +222,7 @@ describe("ProcessingCoordinator", () => {
         const mockData = FrontmatterData.empty();
         const schema = createTestSchema(false, false); // no extract-from, no frontmatter-part
 
-        const result = coordinator.data.extractFrontmatterPartData(
+        const result = await coordinator.data.extractFrontmatterPartData(
           mockData,
           schema,
         );
@@ -235,7 +235,7 @@ describe("ProcessingCoordinator", () => {
       }
     });
 
-    it("should handle frontmatter-part path extraction", () => {
+    it("should handle frontmatter-part path extraction", async () => {
       const mockService = createMockTransformationService();
       const coordinator = ProcessingCoordinator.create(mockService);
       assertEquals(coordinator.ok, true);
@@ -244,7 +244,7 @@ describe("ProcessingCoordinator", () => {
         const mockData = FrontmatterData.empty();
         const schema = createTestSchema(false, true); // has frontmatter-part
 
-        const result = coordinator.data.extractFrontmatterPartData(
+        const result = await coordinator.data.extractFrontmatterPartData(
           mockData,
           schema,
         );

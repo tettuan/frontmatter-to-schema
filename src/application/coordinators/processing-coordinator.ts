@@ -323,19 +323,22 @@ export class ProcessingCoordinator {
    * Extract frontmatter-part data as array for items expansion
    * Extracted from PipelineOrchestrator.extractFrontmatterPartData()
    * Following DDD - coordination of domain operations
+   *
+   * FIX for Issue #977: This method now coordinates with FrontmatterTransformationService
+   * to ensure x-extract-from directives are properly processed before array extraction.
    */
-  extractFrontmatterPartData(
+  async extractFrontmatterPartData(
     data: FrontmatterData,
     schema: Schema,
-  ): Result<FrontmatterData[], DomainError & { message: string }> {
+  ): Promise<Result<FrontmatterData[], DomainError & { message: string }>> {
     // Debug: Frontmatter-part extraction variance tracking (Issue #905 Phase 1)
     this.logger?.logDebug(
       "frontmatter-part-extraction",
-      "Starting frontmatter-part data extraction",
+      "Starting frontmatter-part data extraction with directive coordination",
       {
         dataKeys: data.getAllKeys(),
         schemaPath: schema.getPath().toString(),
-        extractionStrategy: "array-expansion",
+        extractionStrategy: "directive-aware-array-expansion",
       },
     );
 
@@ -366,7 +369,8 @@ export class ProcessingCoordinator {
       },
     );
 
-    // Check if this data already contains an array at the frontmatter-part path
+    // CRITICAL FIX for Issue #977: Check for processed array data first
+    // The data might already contain processed results from FrontmatterTransformationService.processFrontmatterParts()
     const arrayDataResult = data.get(frontmatterPartPath);
     const hasArrayData = arrayDataResult.ok &&
       Array.isArray(arrayDataResult.data);
@@ -375,11 +379,12 @@ export class ProcessingCoordinator {
       // File contains array at target path - extract individual items
       this.logger?.logDebug(
         "array-processing-variance",
-        "Processing array data at frontmatter-part path",
+        "Processing array data at frontmatter-part path (directive-processed)",
         {
           arrayLength: arrayDataResult.data.length,
           processingStrategy: "item-by-item-extraction",
           expectedVariance: "item-validation-failures",
+          directiveProcessed: true,
         },
       );
 
@@ -420,12 +425,78 @@ export class ProcessingCoordinator {
 
       return ok(result);
     } else {
+      // CRITICAL FIX for Issue #977: Process directives if no processed array exists
+      // This handles the case where x-extract-from directives need to be applied
+      // to create the array data at the frontmatter-part path
+      if (schema.hasExtractFromDirectives()) {
+        this.logger?.logDebug(
+          "frontmatter-part-extraction",
+          "No pre-processed array found, applying x-extract-from directives",
+          {
+            reason: "directive-processing-required",
+            strategy: "apply-extract-from-then-extract",
+          },
+        );
+
+        // Apply x-extract-from directives to create the array data
+        const processedDataResult = await this.processExtractFromDirectives(
+          data,
+          schema,
+        );
+        if (processedDataResult.ok) {
+          // Check again for array data after directive processing
+          const postProcessArrayDataResult = processedDataResult.data.get(
+            frontmatterPartPath,
+          );
+          const hasPostProcessArrayData = postProcessArrayDataResult.ok &&
+            Array.isArray(postProcessArrayDataResult.data);
+
+          if (hasPostProcessArrayData) {
+            this.logger?.logDebug(
+              "frontmatter-part-extraction",
+              "Successfully created array data through directive processing",
+              {
+                arrayLength: postProcessArrayDataResult.data.length,
+                strategy: "extract-from-then-extract",
+              },
+            );
+
+            // Process the array items as before
+            const result: FrontmatterData[] = [];
+            let processedCount = 0;
+            let skippedCount = 0;
+
+            for (let i = 0; i < postProcessArrayDataResult.data.length; i++) {
+              const item = postProcessArrayDataResult.data[i];
+
+              // Skip invalid items gracefully (null, primitives, etc.)
+              if (!item || typeof item !== "object") {
+                skippedCount++;
+                continue;
+              }
+
+              const itemDataResult = FrontmatterDataFactory.fromParsedData(
+                item,
+              );
+              if (itemDataResult.ok) {
+                result.push(itemDataResult.data);
+                processedCount++;
+              } else {
+                skippedCount++;
+              }
+            }
+
+            return ok(result);
+          }
+        }
+      }
+
       // Default case: individual file contributes directly as one item
       this.logger?.logDebug(
         "frontmatter-part-extraction",
-        "No array data found, using single-item fallback",
+        "No array data found after directive processing, using single-item fallback",
         {
-          reason: "no-array-at-path",
+          reason: "no-array-after-directives",
           fallbackStrategy: "single-item-array",
           dataType: arrayDataResult.ok
             ? typeof arrayDataResult.data
@@ -467,7 +538,10 @@ export class ProcessingCoordinator {
         const hasFrontmatterPart = frontmatterPartResult.ok;
 
         if (hasFrontmatterPart) {
-          const itemsResult = this.extractFrontmatterPartData(mainData, schema);
+          const itemsResult = await this.extractFrontmatterPartData(
+            mainData,
+            schema,
+          );
           return await Promise.resolve(ResultValidator.mapOrReturn(
             itemsResult,
             (itemsData) => ({ mainData, itemsData }),
@@ -670,7 +744,10 @@ export class ProcessingCoordinator {
     }
 
     if (hasFrontmatterPart) {
-      const itemsResult = this.extractFrontmatterPartData(mainData, schema);
+      const itemsResult = await this.extractFrontmatterPartData(
+        mainData,
+        schema,
+      );
       if (!itemsResult.ok) {
         return itemsResult;
       }

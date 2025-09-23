@@ -437,7 +437,7 @@ describe("BUSINESS REQUIREMENT: Document Processing Orchestration", () => {
 
 describe("BUSINESS REQUIREMENT: Frontmatter Part Extraction", () => {
   describe("GIVEN: Schemas with and without frontmatter parts", () => {
-    it("WHEN: No frontmatter part defined THEN: Should return single item array", () => {
+    it("WHEN: No frontmatter part defined THEN: Should return single item array", async () => {
       // Arrange - No frontmatter part business scenario
       const scenario = new ProcessingCoordinationScenarioBuilder()
         .withSchema(false, false) // no extract-from, no frontmatter-part
@@ -446,7 +446,7 @@ describe("BUSINESS REQUIREMENT: Frontmatter Part Extraction", () => {
       const mockData = FrontmatterData.empty();
 
       // Act - Execute frontmatter part extraction
-      const result = scenario.coordinator.extractFrontmatterPartData(
+      const result = await scenario.coordinator.extractFrontmatterPartData(
         mockData,
         scenario.schema,
       );
@@ -471,7 +471,7 @@ describe("BUSINESS REQUIREMENT: Frontmatter Part Extraction", () => {
       }
     });
 
-    it("WHEN: Frontmatter part defined THEN: Should extract part data", () => {
+    it("WHEN: Frontmatter part defined THEN: Should extract part data", async () => {
       // Arrange - Frontmatter part present business scenario
       const scenario = new ProcessingCoordinationScenarioBuilder()
         .withSchema(false, true) // has frontmatter-part
@@ -480,7 +480,7 @@ describe("BUSINESS REQUIREMENT: Frontmatter Part Extraction", () => {
       const mockData = FrontmatterData.empty();
 
       // Act - Execute frontmatter part extraction with defined part
-      const result = scenario.coordinator.extractFrontmatterPartData(
+      const result = await scenario.coordinator.extractFrontmatterPartData(
         mockData,
         scenario.schema,
       );
