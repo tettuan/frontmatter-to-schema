@@ -13,7 +13,11 @@
 
 ## When Climpt MCP failed
 
-Run bash instead. Comamnds are listed in `.agent/climpt/registry.json`.
+Run bash instead.
+
+## When climpt command does not found:
+
+Comamnds are listed in `.agent/climpt/registry.json`.
 
 `inspector-*` commands are in `.agent/inspector/registry.json`.
 
@@ -93,6 +97,8 @@ Totality principles:
 - **Target Coverage**: 80.1% achieved (281 tests passing)
 - **Focus Areas**: Domain models, use cases, and critical business logic
 - **Exclusions**: Infrastructure adapters may have lower coverage
+
+`tmp/` 配下に20以上のフォルダが存在したら、tmp/ 配下のファイルを一掃してリセットする。
 
 ### Test Categories
 

@@ -4,9 +4,7 @@
   "description": "Convert frontmatter to JSON schema",
   "license": "MIT",
   "exports": "./mod.ts",
-  "exclude": [
-    "tests/e2e/test-output/"
-  ],
+  "exclude": ["tests/e2e/test-output/"],
   "publish": {
     "exclude": [
       "tests/**/*",
@@ -17,9 +15,7 @@
     ]
   },
   "lint": {
-    "exclude": [
-      "tests/integration/process-documents.orchestrator.test.ts"
-    ],
+    "exclude": ["tests/integration/process-documents.orchestrator.test.ts"],
     "rules": {
       "tags": ["recommended"],
       "exclude": ["no-explicit-any"]
@@ -33,8 +29,9 @@
     ]
   },
   "tasks": {
-    "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
+    "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
+    "ci:undirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci",
     "test": "deno run --allow-all scripts/robust-test-runner.ts",
     "test:legacy": "deno test --allow-all --config=deno.test.json --jobs=4",
     "test:unit": "deno test --allow-all tests/unit/ --jobs=8",
