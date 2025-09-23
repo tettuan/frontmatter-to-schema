@@ -4,6 +4,7 @@ import {
   createLogContext,
   DebugLogger,
 } from "../../shared/services/debug-logger.ts";
+import { createEnhancedDebugLogger } from "../../shared/services/enhanced-debug-logger.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { DerivationRule } from "../../aggregation/index.ts";
@@ -93,11 +94,68 @@ export interface DerivationRuleConversion {
  * - Populate base properties from schema defaults
  * - Provide structured error handling with Result<T,E> pattern
  * - Log aggregation decisions for debugging and monitoring
+ * - Address Issue #1024: Enhanced debugging with component-based filtering
  */
 export class AggregationProcessingService {
+  private readonly enhancedLogger: DebugLogger;
+
   private constructor(
     private readonly config: AggregationProcessingServiceConfig,
-  ) {}
+  ) {
+    // Initialize enhanced logger for Issue #1024 resolution
+    const loggerResult = createEnhancedDebugLogger("aggregation-processing");
+    this.enhancedLogger = loggerResult.ok ? loggerResult.data : {
+      log: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      error: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      warn: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      info: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      debug: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      trace: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      withContext: () => this,
+    } as any;
+  }
 
   /**
    * Smart Constructor following Totality principles
@@ -150,7 +208,22 @@ export class AggregationProcessingService {
     options: AggregationProcessingOptions,
     logger?: DebugLogger,
   ): Result<AggregationProcessingResult, DomainError & { message: string }> {
-    logger?.debug(
+    // Use enhanced logger for Issue #1024 - improved debugging efficiency
+    const activeLogger = logger || this.enhancedLogger;
+
+    // Enhanced debugging with data structure analysis
+    if ("analyzeDataStructure" in activeLogger) {
+      (activeLogger as any).analyzeDataStructure(
+        "aggregation-options",
+        options,
+      );
+      (activeLogger as any).trackFlow("aggregation-start", {
+        dataCount: options.data.length,
+        hasSchema: !!options.schema,
+      });
+    }
+
+    activeLogger?.debug(
       "Starting data aggregation with derivation rules",
       {
         operation: "aggregation",
@@ -162,7 +235,15 @@ export class AggregationProcessingService {
     // Get derivation rules from schema
     const derivationRules = options.schema.getDerivedRules();
 
-    logger?.info(
+    // Enhanced debugging for derivation rules analysis
+    if ("analyzeDataStructure" in activeLogger) {
+      (activeLogger as any).analyzeDataStructure(
+        "derivation-rules",
+        derivationRules,
+      );
+    }
+
+    activeLogger?.info(
       `Found ${derivationRules.length} derivation rules`,
       {
         operation: "aggregation",
@@ -175,11 +256,11 @@ export class AggregationProcessingService {
     const aggregationResult = this.aggregateData(
       options.data,
       options.schema,
-      logger,
+      activeLogger,
     );
 
     if (!aggregationResult.ok) {
-      logger?.error(
+      activeLogger?.error(
         "Data aggregation failed",
         {
           operation: "aggregation",
@@ -191,7 +272,11 @@ export class AggregationProcessingService {
     }
 
     // Populate base properties from schema defaults
-    logger?.debug(
+    if ("trackFlow" in activeLogger) {
+      (activeLogger as any).trackFlow("base-property-population-start");
+    }
+
+    activeLogger?.debug(
       "Starting base property population",
       {
         operation: "base-property-population",
@@ -206,7 +291,7 @@ export class AggregationProcessingService {
       );
 
     if (!basePropertyResult.ok) {
-      logger?.error(
+      activeLogger?.error(
         "Base property population failed",
         {
           operation: "base-property-population",
@@ -217,7 +302,14 @@ export class AggregationProcessingService {
       return basePropertyResult;
     }
 
-    logger?.info(
+    if ("trackFlow" in activeLogger) {
+      (activeLogger as any).trackFlow("aggregation-completion", {
+        method: aggregationResult.data.processingMethod,
+        rulesApplied: aggregationResult.data.derivationRulesApplied,
+      });
+    }
+
+    activeLogger?.info(
       "Aggregation and base property population completed successfully",
       {
         operation: "aggregation-completion",

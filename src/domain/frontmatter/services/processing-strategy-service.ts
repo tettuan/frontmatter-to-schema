@@ -6,6 +6,7 @@ import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../entities/markdown-document.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { DebugLogger } from "../../shared/services/debug-logger.ts";
+import { createEnhancedDebugLogger } from "../../shared/services/enhanced-debug-logger.ts";
 import { PerformanceSettings } from "../../configuration/value-objects/performance-settings.ts";
 import { ProcessingOptionsState } from "../configuration/processing-options-factory.ts";
 
@@ -84,11 +85,68 @@ export interface ProcessingStrategy {
  * - Monitor memory bounds during processing
  * - Provide structured error handling with Result<T,E> pattern
  * - Log processing decisions for debugging and monitoring
+ * - Address Issue #1024: Enhanced debugging with component-based filtering
  */
 export class ProcessingStrategyService {
+  private readonly enhancedLogger: DebugLogger;
+
   private constructor(
     private readonly config: ProcessingStrategyServiceConfig,
-  ) {}
+  ) {
+    // Initialize enhanced logger for Issue #1024 resolution
+    const loggerResult = createEnhancedDebugLogger("processing-strategy");
+    this.enhancedLogger = loggerResult.ok ? loggerResult.data : {
+      log: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      error: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      warn: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      info: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      debug: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      trace: () => ({
+        ok: false,
+        error: {
+          kind: "LoggerDisabled",
+          reason: "Logger disabled",
+          message: "Logger disabled",
+        },
+      }),
+      withContext: () => this,
+    } as any;
+  }
 
   /**
    * Smart Constructor following Totality principles
@@ -133,7 +191,19 @@ export class ProcessingStrategyService {
   ): Promise<
     Result<DocumentProcessingResult, DomainError & { message: string }>
   > {
-    logger?.debug("Starting document processing strategy evaluation", {
+    // Use enhanced logger for Issue #1024 - improved debugging efficiency
+    const activeLogger = logger || this.enhancedLogger;
+
+    // Enhanced debugging with data structure analysis
+    if ("analyzeDataStructure" in activeLogger) {
+      (activeLogger as any).analyzeDataStructure("processing-options", options);
+      (activeLogger as any).trackFlow("strategy-evaluation-start", {
+        fileCount: options.files.length,
+        hasLegacyOptions: !!options.legacyOptions,
+      });
+    }
+
+    activeLogger?.debug("Starting document processing strategy evaluation", {
       operation: "processing-strategy",
       fileCount: options.files.length,
       hasLegacyOptions: !!options.legacyOptions,
@@ -146,10 +216,19 @@ export class ProcessingStrategyService {
       options.files.length,
       options.legacyOptions,
       options.processingOptionsState,
-      logger,
+      activeLogger,
     );
 
-    logger?.info(
+    // Enhanced debugging for strategy decision
+    if ("trackFlow" in activeLogger) {
+      (activeLogger as any).trackFlow("strategy-decision", {
+        strategy: strategy.useParallel ? "parallel" : "sequential",
+        fileCount: options.files.length,
+        workerCount: strategy.maxWorkers,
+      });
+    }
+
+    activeLogger?.info(
       `Selected ${
         strategy.useParallel ? "parallel" : "sequential"
       } processing strategy`,
@@ -170,7 +249,7 @@ export class ProcessingStrategyService {
         options.validationRules,
         strategy.maxWorkers,
         options.boundsMonitor,
-        logger,
+        activeLogger,
       );
 
       if (!result.ok) {
@@ -188,7 +267,7 @@ export class ProcessingStrategyService {
         options.files,
         options.validationRules,
         options.boundsMonitor,
-        logger,
+        activeLogger,
       );
 
       if (!result.ok) {

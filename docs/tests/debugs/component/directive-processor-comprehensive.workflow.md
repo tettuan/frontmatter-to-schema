@@ -29,16 +29,19 @@ target_directives:
 
 ## 目的
 
-DirectiveProcessor クラスの全ディレクティブ処理機能を包括的にデバッグし、実装状況、処理フロー、品質問題を体系的に特定・解決する。
+DirectiveProcessor
+クラスの全ディレクティブ処理機能を包括的にデバッグし、実装状況、処理フロー、品質問題を体系的に特定・解決する。
 
 ## 対象範囲
 
 ### 実装ファイル
+
 - **メイン**: `src/domain/schema/services/directive-processor.ts`
 - **型定義**: `src/domain/schema/value-objects/directive-type.ts`
 - **検証**: `src/domain/schema/validators/directive-validator.ts`
 
 ### テストファイル
+
 - **ユニット**: `tests/unit/domain/schema/services/directive-processor_test.ts`
 - **統合**: `tests/integration/x-flatten-arrays-directive-integration_test.ts`
 - **E2E**: `tests/e2e/` (該当ファイル)
@@ -159,6 +162,7 @@ export LOG_KEY=x-flatten-arrays-detailed
 **問題症状**: Issue #1010 - 期待される配列フラット化が機能しない
 
 **詳細調査項目**:
+
 1. `processFlattenArraysDirective()` のデータフロー
    - 入力データ構造の確認
    - `applyFlattenArraysToData()` の実行結果
@@ -185,6 +189,7 @@ export LOG_KEY=x-frontmatter-part-implementation
 **現在の状況**: 未実装（返り値 `ok(data)`）
 
 **実装要求分析**:
+
 1. フロントマター部分指定の機能要件確認
 2. 既存の `schema.findFrontmatterPartPath()` との連携方法
 3. データ抽出・分離ロジックの設計必要性
@@ -198,6 +203,7 @@ export LOG_KEY=x-derived-from-implementation
 **現在の状況**: 未実装（返り値 `ok(data)`）
 
 **実装要求分析**:
+
 1. 派生データ生成の機能要件確認
 2. ValidationRules との連携方法
 3. 依存データからの計算ロジック設計必要性
@@ -233,14 +239,17 @@ export LOG_KEY=directive-integration
 #### 6.1 優先度付き修正計画
 
 **Priority 1: x-flatten-arrays バグ修正**
+
 - Issue #1010 の根本原因修正
 - 3つの失敗テストの解決
 
 **Priority 2: 未実装ディレクティブの段階的実装**
+
 - x-frontmatter-part の基本実装
 - x-derived-from の基本実装
 
 **Priority 3: エラーハンドリング強化**
+
 - より詳細なエラーメッセージ
 - デバッグ情報の充実
 
@@ -267,11 +276,13 @@ export LOG_KEY=directive-integration
 ## 出力成果物
 
 ### デバッグレポート
+
 - **ログファイル**: `tmp/debug-directive-processor-{timestamp}.log`
 - **証跡データ**: `tmp/evidence-directive-processor.json`
 - **分析レポート**: `tmp/analysis-directive-processor.md`
 
 ### 修正計画
+
 - **即座修正**: x-flatten-arrays バグ修正
 - **短期実装**: 未実装ディレクティブの基本機能
 - **中長期改善**: パフォーマンス最適化とエラーハンドリング強化
@@ -279,16 +290,19 @@ export LOG_KEY=directive-integration
 ## 成功基準
 
 ### 機能的基準
+
 - [ ] x-flatten-arrays の3つの失敗テストが成功
 - [ ] 384の既存テストが継続成功
 - [ ] 未実装ディレクティブの基本動作確認
 
 ### 品質基準
+
 - [ ] TypeScript型チェック継続成功
 - [ ] テストカバレッジ80%以上維持
 - [ ] パフォーマンス劣化なし（±5%以内）
 
 ### ドキュメント基準
+
 - [ ] デバッグプロセス完全記録
 - [ ] 修正内容の明確な文書化
 - [ ] 今後の実装ガイドライン整備

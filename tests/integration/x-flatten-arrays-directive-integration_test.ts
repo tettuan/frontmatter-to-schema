@@ -11,7 +11,7 @@ import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-d
 import { DirectiveProcessor } from "../../src/domain/schema/services/directive-processor.ts";
 import { DirectiveValidator } from "../../src/domain/schema/validators/directive-validator.ts";
 import { FrontmatterDataFactory } from "../../src/domain/frontmatter/factories/frontmatter-data-factory.ts";
-import { BreakdownLogger } from "@tettuan/breakdownlogger";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 
 Deno.test("x-flatten-arrays Directive Integration", async (t) => {
   await t.step(

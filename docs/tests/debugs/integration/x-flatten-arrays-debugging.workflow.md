@@ -23,7 +23,8 @@ related_issues:
 
 ## 目的
 
-Issue #1010で特定されたx-flatten-arrays directive実装の3つの失敗テストを体系的にデバッグし、根本原因を特定して修正する。
+Issue #1010で特定されたx-flatten-arrays
+directive実装の3つの失敗テストを体系的にデバッグし、根本原因を特定して修正する。
 
 ## 前提条件
 
@@ -35,7 +36,8 @@ Issue #1010で特定されたx-flatten-arrays directive実装の3つの失敗テ
 ## 入力
 
 - **対象**: x-flatten-arrays directive processing logic
-- **症状**: 配列のフラット化が期待通りに動作せず、複雑なネストオブジェクト構造を返す
+- **症状**:
+  配列のフラット化が期待通りに動作せず、複雑なネストオブジェクト構造を返す
 - **コンテキスト**: Integration test failures with correct type checking
 
 ## ワークフロー手順
@@ -53,7 +55,8 @@ Issue #1010で特定されたx-flatten-arrays directive実装の3つの失敗テ
    deno check src/**/*.ts
    ```
 3. 失敗テストの詳細分析
-   - Expected: フラット化された配列 `["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006"]`
+   - Expected: フラット化された配列
+     `["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006"]`
    - Actual: 複雑なネストオブジェクト構造
 
 {/xml:step}
@@ -74,7 +77,8 @@ Issue #1010で特定されたx-flatten-arrays directive実装の3つの失敗テ
    ```
 3. BreakdownLogger統合対象ファイル特定
    - `src/domain/schema/services/directive-processor.ts` (主要実装)
-   - `tests/integration/x-flatten-arrays-directive-integration_test.ts` (失敗テスト)
+   - `tests/integration/x-flatten-arrays-directive-integration_test.ts`
+     (失敗テスト)
 
 {/xml:step}
 
@@ -115,18 +119,21 @@ Issue #1010で特定されたx-flatten-arrays directive実装の3つの失敗テ
 #### 4.1 仮説1: スキーマディレクティブ解析の問題
 
 **症状分析**: `x-flatten-arrays: "traceability"` の解析が不正確
+
 - `collectFlattenDirectives()` の戻り値確認
 - スキーマ構造とディレクティブターゲットの不一致
 
 #### 4.2 仮説2: データ適用ロジックの問題
 
 **症状分析**: `applyFlattenArraysToData()` の実装バグ
+
 - `getNestedProperty()` が正しい配列を取得していない
 - `setNestedProperty()` が間違った構造を作成している
 
 #### 4.3 仮説3: フラット化アルゴリズムの問題
 
 **症状分析**: `flattenArray()` の再帰処理
+
 - ネストした配列の正しい展開ができていない
 - 結果配列の構造が期待と異なる
 
