@@ -1,6 +1,6 @@
 import { ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
-import { PipelineStrategyConfig } from "../../application/value-objects/pipeline-strategy-config.ts";
+import { PipelineStrategyConfig } from "../../domain/pipeline/value-objects/pipeline-strategy-config.ts";
 import {
   ComplexityMetricsService,
 } from "../../domain/monitoring/services/complexity-metrics-service.ts";

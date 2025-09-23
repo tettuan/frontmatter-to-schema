@@ -10,7 +10,7 @@ import { FileSystemSchemaRepository } from "../../infrastructure/adapters/schema
 import { SchemaCoordinator } from "../coordinators/schema-coordinator.ts";
 import { ProcessingCoordinator } from "../coordinators/processing-coordinator.ts";
 import { TemplateCoordinator } from "../coordinators/template-coordinator.ts";
-import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import { PipelineStrategyConfig } from "../../domain/pipeline/value-objects/pipeline-strategy-config.ts";
 import { MetricsCollectionService } from "../../infrastructure/metrics/metrics-collection-service.ts";
 import { PipelineStateManager } from "./pipeline-state-manager.ts";
 import { DocumentProcessingService } from "../../domain/pipeline/services/document-processing-service.ts";

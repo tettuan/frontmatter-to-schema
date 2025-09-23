@@ -4,8 +4,8 @@ import { Schema } from "../../schema/entities/schema.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
-import { PipelineStrategyConfig } from "../../../application/value-objects/pipeline-strategy-config.ts";
-import { ProcessingCoordinator } from "../../../application/coordinators/processing-coordinator.ts";
+import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import { DocumentProcessingCoordinator } from "../interfaces/document-processing-coordinator.ts";
 import {
   DomainLogger,
   NullDomainLogger,
@@ -59,7 +59,7 @@ export interface ProcessingStrategyDecision {
  */
 export class DocumentProcessingService {
   private constructor(
-    private readonly processingCoordinator: ProcessingCoordinator,
+    private readonly processingCoordinator: DocumentProcessingCoordinator,
     private readonly domainLogger: DomainLogger,
   ) {}
 
@@ -67,7 +67,7 @@ export class DocumentProcessingService {
    * Smart constructor following Totality principle
    */
   static create(
-    processingCoordinator: ProcessingCoordinator,
+    processingCoordinator: DocumentProcessingCoordinator,
     domainLogger?: DomainLogger,
   ): Result<DocumentProcessingService, DomainError & { message: string }> {
     if (!processingCoordinator) {
@@ -75,7 +75,7 @@ export class DocumentProcessingService {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message: "ProcessingCoordinator is required",
+          message: "DocumentProcessingCoordinator is required",
         }),
       };
     }
@@ -420,7 +420,7 @@ export class DocumentProcessingService {
         },
       );
 
-      // Process batch (simplified - actual implementation would use ProcessingCoordinator)
+      // Process batch (simplified - actual implementation would use DocumentProcessingCoordinator)
       for (const doc of batch) {
         const dataResult = { ok: true as const, data: doc.getFrontmatter() };
         if (dataResult.ok) {

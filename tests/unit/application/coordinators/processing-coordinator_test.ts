@@ -18,10 +18,8 @@
 
 import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
-import {
-  ProcessingCoordinator,
-  ProcessingOptions,
-} from "../../../../src/application/coordinators/processing-coordinator.ts";
+import { ProcessingCoordinator } from "../../../../src/application/coordinators/processing-coordinator.ts";
+import { ProcessingOptions } from "../../../../src/domain/pipeline/interfaces/document-processing-coordinator.ts";
 import { FrontmatterTransformationService } from "../../../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { ValidationRules } from "../../../../src/domain/schema/value-objects/validation-rules.ts";
 import { Schema } from "../../../../src/domain/schema/entities/schema.ts";

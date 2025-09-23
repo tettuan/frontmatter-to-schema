@@ -14,9 +14,9 @@ import { PerformanceSettings } from "../../configuration/value-objects/performan
 import { DomainLogger } from "../../shared/services/domain-logger.ts";
 import { FrontmatterDataCreationService } from "../services/frontmatter-data-creation-service.ts";
 import type {
-  FileLister,
-  FileReader,
-} from "../../../application/interfaces/file-system-interfaces.ts";
+  DomainFileLister,
+  DomainFileReader,
+} from "../../shared/interfaces/file-operations.ts";
 
 /**
  * Configuration object grouping related dependencies for FrontmatterTransformationService
@@ -25,8 +25,8 @@ import type {
 export interface FrontmatterTransformationConfig {
   readonly processor: FrontmatterProcessor;
   readonly fileSystem: {
-    readonly reader: FileReader;
-    readonly lister: FileLister;
+    readonly reader: DomainFileReader;
+    readonly lister: DomainFileLister;
   };
   readonly services: {
     readonly aggregator: Aggregator;
@@ -52,8 +52,8 @@ export class FrontmatterTransformationConfigFactory {
     processor: FrontmatterProcessor,
     aggregator: Aggregator,
     basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
+    fileReader: DomainFileReader,
+    fileLister: DomainFileLister,
     schemaValidation: SchemaValidationService,
     options?: {
       readonly dataCreation?: FrontmatterDataCreationService;
@@ -89,14 +89,14 @@ export class FrontmatterTransformationConfigFactory {
     if (!fileReader) {
       return err(createError({
         kind: "InitializationError",
-        message: "FileReader is required",
+        message: "DomainFileReader is required",
       }));
     }
 
     if (!fileLister) {
       return err(createError({
         kind: "InitializationError",
-        message: "FileLister is required",
+        message: "DomainFileLister is required",
       }));
     }
 

@@ -17,18 +17,10 @@ import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recover
 // Removed unused import - DirectiveProcessor
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 import { ResultValidator } from "../../domain/shared/utilities/result-validator.ts";
-
-/**
- * Processing options using discriminated unions (Totality principle)
- */
-export type ProcessingOptions =
-  | {
-    readonly kind: "sequential";
-  }
-  | {
-    readonly kind: "parallel";
-    readonly maxWorkers: number;
-  };
+import {
+  DocumentProcessingCoordinator,
+  ProcessingOptions,
+} from "../../domain/pipeline/interfaces/document-processing-coordinator.ts";
 
 /**
  * Processing Coordinator - Application Service
@@ -39,7 +31,7 @@ export type ProcessingOptions =
  * - Clean boundaries: Uses domain services, no infrastructure coupling
  * - Totality: All methods return Result<T,E>
  */
-export class ProcessingCoordinator {
+export class ProcessingCoordinator implements DocumentProcessingCoordinator {
   private readonly logger: DebugLogger | null;
 
   private constructor(

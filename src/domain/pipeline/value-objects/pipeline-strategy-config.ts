@@ -1,6 +1,6 @@
-import { ok, Result } from "../../domain/shared/types/result.ts";
-import { SystemError } from "../../domain/shared/types/errors.ts";
-import { ErrorHandler } from "../../domain/shared/services/unified-error-handler.ts";
+import { ok, Result } from "../../shared/types/result.ts";
+import { SystemError } from "../../shared/types/errors.ts";
+import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 
 /**
  * Pipeline processing strategy configuration

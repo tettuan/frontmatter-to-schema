@@ -36,9 +36,9 @@ import {
   FrontmatterDataCreationService,
 } from "./frontmatter-data-creation-service.ts";
 import type {
-  FileLister,
-  FileReader,
-} from "../../../application/interfaces/file-system-interfaces.ts";
+  DomainFileLister,
+  DomainFileReader,
+} from "../../shared/interfaces/file-operations.ts";
 import {
   FrontmatterTransformationConfig,
   FrontmatterTransformationConfigFactory,
@@ -158,8 +158,8 @@ export class FrontmatterTransformationService {
     frontmatterProcessor: FrontmatterProcessor,
     aggregator: Aggregator,
     basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
+    fileReader: DomainFileReader,
+    fileLister: DomainFileLister,
     schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService?: FrontmatterDataCreationService,
     domainLogger?: DomainLogger,
@@ -2072,8 +2072,8 @@ export class FrontmatterTransformationService {
     frontmatterProcessor: FrontmatterProcessor,
     aggregator: Aggregator,
     basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
+    fileReader: DomainFileReader,
+    fileLister: DomainFileLister,
     debugLogger: DebugLogger,
     performanceSettings: PerformanceSettings,
     schemaValidationService: SchemaValidationService,
@@ -2136,8 +2136,8 @@ export class FrontmatterTransformationService {
     frontmatterProcessor: FrontmatterProcessor,
     aggregator: Aggregator,
     basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
+    fileReader: DomainFileReader,
+    fileLister: DomainFileLister,
     performanceSettings: PerformanceSettings,
     schemaValidationService: SchemaValidationService,
     frontmatterDataCreationService: FrontmatterDataCreationService =
@@ -2200,8 +2200,8 @@ export class FrontmatterTransformationService {
     frontmatterProcessor: FrontmatterProcessor,
     aggregator: Aggregator,
     basePropertyPopulator: BasePropertyPopulator,
-    fileReader: FileReader,
-    fileLister: FileLister,
+    fileReader: DomainFileReader,
+    fileLister: DomainFileLister,
     performanceSettings: PerformanceSettings,
     schemaValidationService: SchemaValidationService,
     logger?: DebugLogger,

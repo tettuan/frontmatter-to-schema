@@ -8,7 +8,7 @@ import {
 } from "../../domain/pipeline/services/pipeline-state-service.ts";
 import { LoggingService } from "../../infrastructure/logging/logging-service.ts";
 import { PipelineConfig } from "./pipeline-orchestrator.ts";
-import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
+import { PipelineStrategyConfig } from "../../domain/pipeline/value-objects/pipeline-strategy-config.ts";
 import {
   ExplicitTemplateStrategy,
   TemplateConfig,

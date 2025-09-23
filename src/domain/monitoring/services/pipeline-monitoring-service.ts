@@ -8,7 +8,7 @@ import {
   MonitoringStateFactory,
   MonitoringStateGuards,
 } from "../types/monitoring-state.ts";
-import { PipelineStrategyConfig } from "../../../application/value-objects/pipeline-strategy-config.ts";
+import { PipelineStrategyConfig } from "../../pipeline/value-objects/pipeline-strategy-config.ts";
 
 /**
  * Pipeline monitoring service following DDD and Totality principles

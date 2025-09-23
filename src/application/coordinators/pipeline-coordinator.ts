@@ -8,10 +8,8 @@ import { OutputRenderingService } from "../../domain/template/services/output-re
 import { SchemaCache } from "../../infrastructure/caching/schema-cache.ts";
 import { FileSystemSchemaRepository } from "../../infrastructure/adapters/schema-loader.ts";
 import { SchemaCoordinator } from "./schema-coordinator.ts";
-import {
-  ProcessingCoordinator,
-  ProcessingOptions,
-} from "./processing-coordinator.ts";
+import { ProcessingCoordinator } from "./processing-coordinator.ts";
+import { ProcessingOptions } from "../../domain/pipeline/interfaces/document-processing-coordinator.ts";
 import {
   TemplateCoordinator,
   TemplateFileSystem,

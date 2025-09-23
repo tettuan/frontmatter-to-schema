@@ -674,7 +674,10 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
     it("Pattern 7: Complex nested schema with multiple directives", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setFile("/test/complex.md", "---\ntitle: Complex Test\nnested:\n  items: [1, 2, 3]\n---\nContent");
+      fileSystem.setFile(
+        "/test/complex.md",
+        "---\ntitle: Complex Test\nnested:\n  items: [1, 2, 3]\n---\nContent",
+      );
 
       const nestedSchema = {
         type: "object",
@@ -687,11 +690,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
                 type: "array",
                 items: { type: "number" },
                 [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
-                [TEST_EXTENSIONS.DERIVED_FROM]: "nested.items"
-              }
-            }
-          }
-        }
+                [TEST_EXTENSIONS.DERIVED_FROM]: "nested.items",
+              },
+            },
+          },
+        },
       };
 
       fileSystem.setFile("/test/schema.json", JSON.stringify(nestedSchema));
@@ -729,8 +732,14 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
     it("Pattern 8: Template arrays with {@items} expansion and x-frontmatter-part", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setFile("/test/item1.md", "---\nname: Item 1\ntype: component\n---\nContent 1");
-      fileSystem.setFile("/test/item2.md", "---\nname: Item 2\ntype: service\n---\nContent 2");
+      fileSystem.setFile(
+        "/test/item1.md",
+        "---\nname: Item 1\ntype: component\n---\nContent 1",
+      );
+      fileSystem.setFile(
+        "/test/item2.md",
+        "---\nname: Item 2\ntype: service\n---\nContent 2",
+      );
 
       const arraySchema = {
         type: "object",
@@ -743,11 +752,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
               type: "object",
               properties: {
                 name: { type: "string" },
-                type: { type: "string" }
-              }
-            }
-          }
-        }
+                type: { type: "string" },
+              },
+            },
+          },
+        },
       };
 
       fileSystem.setFile("/test/schema.json", JSON.stringify(arraySchema));
@@ -778,7 +787,10 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
         schemaPath: "/test/schema.json",
         outputPath: "/test/output.json",
         inputPattern: "/test/*.md",
-        templateConfig: { kind: "explicit", templatePath: "/test/template.json" }
+        templateConfig: {
+          kind: "explicit",
+          templatePath: "/test/template.json",
+        },
       });
 
       const result = await orchestrator.execute(config);
@@ -787,8 +799,14 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
     it("Pattern 9: Multi-directive combination with x-derived-from and x-derived-unique", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setFile("/test/doc1.md", "---\ntags: [a, b]\ncategory: tech\n---\nContent 1");
-      fileSystem.setFile("/test/doc2.md", "---\ntags: [b, c]\ncategory: tech\n---\nContent 2");
+      fileSystem.setFile(
+        "/test/doc1.md",
+        "---\ntags: [a, b]\ncategory: tech\n---\nContent 1",
+      );
+      fileSystem.setFile(
+        "/test/doc2.md",
+        "---\ntags: [b, c]\ncategory: tech\n---\nContent 2",
+      );
 
       const combinedSchema = {
         type: "object",
@@ -797,15 +815,15 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
             type: "array",
             items: { type: "string" },
             [TEST_EXTENSIONS.DERIVED_FROM]: "tags",
-            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
           },
           categories: {
             type: "array",
             items: { type: "string" },
             [TEST_EXTENSIONS.DERIVED_FROM]: "category",
-            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true
-          }
-        }
+            [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
+          },
+        },
       };
 
       fileSystem.setFile("/test/schema.json", JSON.stringify(combinedSchema));
@@ -846,7 +864,10 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
       // Create multiple files to simulate large scale processing
       for (let i = 1; i <= 50; i++) {
-        fileSystem.setFile(`/test/doc${i}.md`, `---\nid: ${i}\ntitle: Document ${i}\n---\nContent ${i}`);
+        fileSystem.setFile(
+          `/test/doc${i}.md`,
+          `---\nid: ${i}\ntitle: Document ${i}\n---\nContent ${i}`,
+        );
       }
 
       const scaleSchema = {
@@ -859,11 +880,11 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
               type: "object",
               properties: {
                 id: { type: "number" },
-                title: { type: "string" }
-              }
-            }
-          }
-        }
+                title: { type: "string" },
+              },
+            },
+          },
+        },
       };
 
       fileSystem.setFile("/test/schema.json", JSON.stringify(scaleSchema));
@@ -901,9 +922,18 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
     it("Pattern 11: Parallel processing with directive ordering", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setFile("/test/parallel1.md", "---\nstatus: active\nowner: team1\n---\nContent 1");
-      fileSystem.setFile("/test/parallel2.md", "---\nstatus: inactive\nowner: team2\n---\nContent 2");
-      fileSystem.setFile("/test/parallel3.md", "---\nstatus: active\nowner: team1\n---\nContent 3");
+      fileSystem.setFile(
+        "/test/parallel1.md",
+        "---\nstatus: active\nowner: team1\n---\nContent 1",
+      );
+      fileSystem.setFile(
+        "/test/parallel2.md",
+        "---\nstatus: inactive\nowner: team2\n---\nContent 2",
+      );
+      fileSystem.setFile(
+        "/test/parallel3.md",
+        "---\nstatus: active\nowner: team1\n---\nContent 3",
+      );
 
       const parallelSchema = {
         type: "object",
@@ -911,23 +941,23 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
           activeItems: {
             type: "array",
             [TEST_EXTENSIONS.DERIVED_FROM]: "status",
-            items: { type: "string" }
+            items: { type: "string" },
           },
           teams: {
             type: "array",
             [TEST_EXTENSIONS.DERIVED_FROM]: "owner",
             [TEST_EXTENSIONS.DERIVED_UNIQUE]: true,
-            items: { type: "string" }
+            items: { type: "string" },
           },
           summary: {
             type: "object",
             [TEST_EXTENSIONS.FRONTMATTER_PART]: true,
             properties: {
               total: { type: "number" },
-              processed: { type: "number" }
-            }
-          }
-        }
+              processed: { type: "number" },
+            },
+          },
+        },
       };
 
       fileSystem.setFile("/test/schema.json", JSON.stringify(parallelSchema));
@@ -965,7 +995,10 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
 
     it("Pattern 12: Integration with external validation and custom formats", async () => {
       const fileSystem = new MockFileSystem();
-      fileSystem.setFile("/test/custom.md", "---\nformat: custom\nmetadata:\n  version: 1.0\n  author: system\n---\nCustom content");
+      fileSystem.setFile(
+        "/test/custom.md",
+        "---\nformat: custom\nmetadata:\n  version: 1.0\n  author: system\n---\nCustom content",
+      );
 
       const integrationSchema = {
         type: "object",
@@ -980,15 +1013,18 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
                 type: "object",
                 properties: {
                   version: { type: "string" },
-                  author: { type: "string" }
-                }
-              }
-            }
-          }
-        }
+                  author: { type: "string" },
+                },
+              },
+            },
+          },
+        },
       };
 
-      fileSystem.setFile("/test/schema.json", JSON.stringify(integrationSchema));
+      fileSystem.setFile(
+        "/test/schema.json",
+        JSON.stringify(integrationSchema),
+      );
 
       const frontmatterTransformer = new MockFrontmatterTransformationService();
       const schemaProcessor = new MockSchemaProcessingService();
@@ -1279,16 +1315,19 @@ describe("24 Execution Patterns - Comprehensive Coverage", () => {
       const validSchema = {
         type: "object",
         properties: {
-          title: { type: "string" }
-        }
+          title: { type: "string" },
+        },
       };
       fileSystem.setFile("/test/schema.json", JSON.stringify(validSchema));
 
       // Make the output renderer fail with configuration error
-      outputRenderer.setShouldFail(true, createError({
-        kind: "ConfigurationError",
-        message: "Invalid configuration parameters"
-      }));
+      outputRenderer.setShouldFail(
+        true,
+        createError({
+          kind: "ConfigurationError",
+          message: "Invalid configuration parameters",
+        }),
+      );
 
       const schemaCache = SchemaCacheFactory.createForTesting();
       const processingLoggerState = ProcessingLoggerFactory.createDisabled();

@@ -20,6 +20,8 @@ export const TEST_EXTENSIONS = {
     .getValue(),
   TEMPLATE_FORMAT: defaultSchemaExtensionRegistry.getTemplateFormatKey()
     .getValue(),
+  FLATTEN_ARRAYS: defaultSchemaExtensionRegistry.getFlattenArraysKey()
+    .getValue(),
 } as const;
 
 /**
@@ -45,6 +47,7 @@ export function createExtensions(extensions: {
   derivedUnique?: boolean;
   jmespathFilter?: string;
   templateFormat?: "json" | "yaml" | "markdown";
+  flattenArrays?: string;
   description?: string;
 }): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -69,6 +72,9 @@ export function createExtensions(extensions: {
   }
   if (extensions.templateFormat !== undefined) {
     result[TEST_EXTENSIONS.TEMPLATE_FORMAT] = extensions.templateFormat;
+  }
+  if (extensions.flattenArrays !== undefined) {
+    result[TEST_EXTENSIONS.FLATTEN_ARRAYS] = extensions.flattenArrays;
   }
   if (extensions.description !== undefined) {
     result.description = extensions.description;

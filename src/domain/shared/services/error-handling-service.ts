@@ -245,12 +245,9 @@ export class ErrorHandlingService {
     context?: OperationContext,
   ): Promise<Result<T[], E & { message: string }>> {
     try {
+      // Following Totality principles: eliminate inner try-catch and re-throw pattern
       const promises = operations.map(async (operation) => {
-        try {
-          return await operation();
-        } catch (error) {
-          throw error; // Re-throw to be caught by outer try-catch
-        }
+        return await operation();
       });
 
       const results = await Promise.all(promises);
@@ -299,16 +296,18 @@ export class ErrorHandlingService {
 /**
  * Singleton instance for global use
  * Following the same pattern as UnifiedErrorHandler
+ * Implements strict Totality principles: no throw statements anywhere
  */
 export const ErrorHandling = (() => {
   const result = ErrorHandlingService.create();
-  // Since create() returns Result<T, never>, this is guaranteed to be Ok
-  // Following Totality principles: no throw statements
+  // Since create() returns Result<ErrorHandlingService, never>, this is guaranteed to be Ok
+  // Following Totality principles: type-safe extraction with exhaustive checking
   if (result.ok) {
     return result.data;
   }
-  // This should never happen since create() returns Result<T, never>
-  throw new Error("Failed to create ErrorHandlingService");
+  // This branch is unreachable due to Result<T, never> but needed for totality
+  // TypeScript will ensure this is never reached
+  return result.error; // This will be of type never
 })();
 
 /**

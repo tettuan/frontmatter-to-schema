@@ -37,9 +37,9 @@ import {
   ProcessingProgress,
 } from "../../shared/types/error-context.ts";
 import type {
-  FileReader,
-  FileWriter,
-} from "../../../application/interfaces/file-system-interfaces.ts";
+  DomainFileReader,
+  DomainFileWriter,
+} from "../../shared/interfaces/file-operations.ts";
 
 export type RenderingMode =
   | {
@@ -61,8 +61,8 @@ export class OutputRenderingService {
 
   private constructor(
     private readonly templateRenderer: TemplateRenderer,
-    private readonly fileReader: FileReader,
-    private readonly fileWriter: FileWriter,
+    private readonly fileReader: DomainFileReader,
+    private readonly fileWriter: DomainFileWriter,
     private readonly structureAnalyzerInstance: TemplateStructureAnalyzer,
     private readonly dataComposerInstance: DynamicDataComposer,
     private readonly domainLogger: DomainLogger = new NullDomainLogger(),
@@ -73,8 +73,8 @@ export class OutputRenderingService {
 
   static create(
     templateRenderer: TemplateRenderer,
-    fileReader: FileReader,
-    fileWriter: FileWriter,
+    fileReader: DomainFileReader,
+    fileWriter: DomainFileWriter,
     domainLogger?: DomainLogger,
   ): Result<OutputRenderingService, DomainError> {
     // Initialize DDD services following Totality pattern
