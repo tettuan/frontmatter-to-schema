@@ -20,16 +20,19 @@ template_parameters:
 
 ## 概要
 
-このテンプレートは、フロントマター処理システムにおけるすべてのディレクティブ（x-frontmatter-part, x-derived-from, x-flatten-arrays等）の統一的なデバッグワークフローを提供する。
+このテンプレートは、フロントマター処理システムにおけるすべてのディレクティブ（x-frontmatter-part,
+x-derived-from, x-flatten-arrays等）の統一的なデバッグワークフローを提供する。
 
 ## 対象ディレクティブ
 
 ### 実装済みディレクティブ
+
 - **x-frontmatter-part**: フロントマター部分指定
 - **x-derived-from**: 派生データ生成
 - **x-flatten-arrays**: 配列フラット化
 
 ### 将来実装予定ディレクティブ
+
 - **x-derived-unique**: 重複除去
 - **x-template**: テンプレート処理
 - **x-template-items**: アイテムテンプレート
@@ -41,11 +44,11 @@ template_parameters:
 
 ```yaml
 directive_parameters:
-  name: "{DIRECTIVE_NAME}"           # e.g., "x-flatten-arrays"
-  priority: "{PROCESSING_PRIORITY}"   # 1-9 (DirectiveType)
-  dependencies: ["{DEP_LIST}"]       # e.g., ["frontmatter-part"]
-  test_scope: "{TEST_SCOPE}"         # unit|integration|e2e
-  implementation_status: "{STATUS}"   # implemented|planned|deprecated
+  name: "{DIRECTIVE_NAME}" # e.g., "x-flatten-arrays"
+  priority: "{PROCESSING_PRIORITY}" # 1-9 (DirectiveType)
+  dependencies: ["{DEP_LIST}"] # e.g., ["frontmatter-part"]
+  test_scope: "{TEST_SCOPE}" # unit|integration|e2e
+  implementation_status: "{STATUS}" # implemented|planned|deprecated
 ```
 
 ### 2. BreakdownLogger設定
@@ -63,21 +66,25 @@ export LOG_KEY="directive-{DIRECTIVE_NAME}-{SCOPE}"
 ### 3. 段階的デバッグプロセス
 
 #### Phase 1: ディレクティブ発見と認識
+
 - スキーマ内のディレクティブ検出確認
 - `DirectiveProcessor.discoverDirectives()` の動作検証
 - 依存関係グラフの構築確認
 
 #### Phase 2: 処理順序解決
+
 - `resolveProcessingOrder()` の結果確認
 - トポロジカルソートの正確性検証
 - 循環依存の検出確認
 
 #### Phase 3: 個別ディレクティブ処理
+
 - `processDirective()` の実装状況確認
 - ディレクティブ固有ロジックの動作検証
 - エラーハンドリングの適切性確認
 
 #### Phase 4: 統合動作確認
+
 - 複数ディレクティブの連携動作
 - データフローの一貫性確認
 - 期待結果との比較検証
@@ -163,6 +170,7 @@ investigation:
 ## 共通検証項目
 
 ### 機能検証
+
 - [ ] ディレクティブ検出の正確性
 - [ ] 処理順序の正当性
 - [ ] 個別処理の実装完了度
@@ -170,6 +178,7 @@ investigation:
 - [ ] データ変換の正確性
 
 ### 品質検証
+
 - [ ] テストカバレッジの十分性
 - [ ] パフォーマンスの受容性
 - [ ] メモリ使用量の適切性
@@ -177,6 +186,7 @@ investigation:
 - [ ] ログ出力の有用性
 
 ### 統合検証
+
 - [ ] 他ディレクティブとの連携
 - [ ] 全体パイプラインでの動作
 - [ ] 複雑なスキーマでの動作
@@ -186,16 +196,21 @@ investigation:
 ## 関連リソース
 
 ### 実装ファイル
+
 - `src/domain/schema/services/directive-processor.ts` - メイン実装
 - `src/domain/schema/value-objects/directive-type.ts` - ディレクティブ型定義
 - `src/domain/schema/validators/directive-validator.ts` - 検証ロジック
 
 ### テストファイル
-- `tests/unit/domain/schema/services/directive-processor_test.ts` - ユニットテスト
-- `tests/integration/x-flatten-arrays-directive-integration_test.ts` - 統合テスト
+
+- `tests/unit/domain/schema/services/directive-processor_test.ts` -
+  ユニットテスト
+- `tests/integration/x-flatten-arrays-directive-integration_test.ts` -
+  統合テスト
 - `tests/e2e/` - エンドツーエンドテスト
 
 ### ドキュメント
+
 - `docs/architecture/schema-directives-specification.md` - ディレクティブ仕様
 - `docs/domain/schema-domain.md` - スキーマドメイン設計
 - `docs/tests/testing_guidelines.md` - テスト方針
