@@ -128,9 +128,9 @@ export class DirectiveType {
     return new Map([
       ["frontmatter-part", []], // No dependencies - foundation
       ["extract-from", ["frontmatter-part"]], // Needs data structure
-      ["flatten-arrays", ["extract-from"]], // Needs extracted data
-      ["jmespath-filter", ["flatten-arrays"]], // Needs flattened arrays to filter
-      ["merge-arrays", ["jmespath-filter"]], // Needs filtered arrays
+      ["jmespath-filter", ["extract-from"]], // Needs extracted data to filter
+      ["flatten-arrays", ["jmespath-filter"]], // Needs filtered data to flatten nested arrays
+      ["merge-arrays", ["flatten-arrays"]], // Needs flattened arrays
       ["derived-from", ["merge-arrays"]], // Needs final data structure
       ["derived-unique", ["derived-from"]], // Needs derived fields
       ["template", ["derived-unique"]], // Needs all processing complete
@@ -147,8 +147,8 @@ export class DirectiveType {
     return new Map([
       ["frontmatter-part", 1],
       ["extract-from", 2],
-      ["flatten-arrays", 3],
-      ["jmespath-filter", 4],
+      ["jmespath-filter", 3],
+      ["flatten-arrays", 4],
       ["merge-arrays", 5],
       ["derived-from", 6],
       ["derived-unique", 7],

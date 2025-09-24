@@ -337,9 +337,45 @@ export class OutputRenderingService {
       // First render each item with the items template
       const renderedItems: string[] = [];
       for (const item of itemsData) {
+        this.domainLogger.logDebug(
+          "template-rendering-stage",
+          "Processing item for template rendering",
+          {
+            itemType: typeof item,
+            itemKeys: typeof item === "object" && item !== null
+              ? Object.keys(item)
+              : "N/A",
+            itemPreview: JSON.stringify(item).slice(0, 200),
+          },
+        );
+
+        // The item should already be a FrontmatterData object
+        // (itemsData parameter is typed as FrontmatterData[])
+        const itemData = item;
+
+        this.domainLogger.logDebug(
+          "template-rendering-stage",
+          "Using existing FrontmatterData item",
+          {
+            canAccessId: itemData.get("id").ok,
+            canAccessIdFull: itemData.get("id.full").ok,
+            canAccessC1: itemData.get("c1").ok,
+            canAccessC2: itemData.get("c2").ok,
+            canAccessDescription: itemData.get("description").ok,
+            c1Value: (() => {
+              const r = itemData.get("c1");
+              return r.ok ? r.data : "NOT_FOUND";
+            })(),
+            c2Value: (() => {
+              const r = itemData.get("c2");
+              return r.ok ? r.data : "NOT_FOUND";
+            })(),
+          },
+        );
+
         const itemResult = this.templateRenderer.render(
           itemsTemplateResult.data,
-          item,
+          itemData,
           verbosityMode,
         );
         if (!itemResult.ok) {

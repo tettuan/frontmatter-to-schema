@@ -109,9 +109,9 @@ describe("DirectiveType", () => {
       // Test dependency relationships
       assertEquals(frontmatterPart.getDependencies().length, 0); // No dependencies
       assertEquals(extractFrom.getDependencies(), ["frontmatter-part"]);
-      assertEquals(flattenArrays.getDependencies(), ["extract-from"]);
-      assertEquals(jmespathFilter.getDependencies(), ["flatten-arrays"]);
-      assertEquals(mergeArrays.getDependencies(), ["jmespath-filter"]);
+      assertEquals(jmespathFilter.getDependencies(), ["extract-from"]);
+      assertEquals(flattenArrays.getDependencies(), ["jmespath-filter"]);
+      assertEquals(mergeArrays.getDependencies(), ["flatten-arrays"]);
       assertEquals(derivedFrom.getDependencies(), ["merge-arrays"]);
     });
 
@@ -138,8 +138,8 @@ describe("DirectiveType", () => {
       const priorities = new Map<DirectiveTypeKind, number>([
         ["frontmatter-part", 1],
         ["extract-from", 2],
-        ["flatten-arrays", 3],
-        ["jmespath-filter", 4],
+        ["jmespath-filter", 3],
+        ["flatten-arrays", 4],
         ["merge-arrays", 5],
         ["derived-from", 6],
         ["derived-unique", 7],
@@ -169,8 +169,8 @@ describe("DirectiveType", () => {
         const expectedOrder: DirectiveTypeKind[] = [
           "frontmatter-part",
           "extract-from",
-          "flatten-arrays",
           "jmespath-filter",
+          "flatten-arrays",
           "merge-arrays",
           "derived-from",
           "derived-unique",
