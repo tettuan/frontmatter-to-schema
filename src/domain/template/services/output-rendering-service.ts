@@ -336,31 +336,7 @@ export class OutputRenderingService {
     ) {
       // First render each item with the items template
       const renderedItems: string[] = [];
-
-      console.log(
-        "[DEBUG] Template rendering - itemsData structure:",
-        {
-          itemsDataType: typeof itemsData,
-          itemsDataLength: itemsData?.length,
-          itemsDataSample: itemsData?.slice(0, 2).map((item, index) => ({
-            index,
-            type: typeof item,
-            keys: typeof item === "object" && item ? Object.keys(item) : [],
-            sample: JSON.stringify(item, null, 2).substring(0, 200),
-          })),
-        },
-      );
-
-      for (const [index, item] of itemsData.entries()) {
-        console.log(
-          `[DEBUG] Rendering item ${index}:`,
-          {
-            itemType: typeof item,
-            itemKeys: typeof item === "object" && item ? Object.keys(item) : [],
-            itemSample: JSON.stringify(item, null, 2).substring(0, 300),
-          },
-        );
-
+      for (const item of itemsData) {
         const itemResult = this.templateRenderer.render(
           itemsTemplateResult.data,
           item,

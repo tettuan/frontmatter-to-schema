@@ -962,28 +962,11 @@ export class DirectiveProcessor {
       ) {
         // Flatten the nested array result from JMESPath
         let flattenedData = filterResult.data;
-        console.log(
-          "[DEBUG] DirectiveProcessor - Pre-flatten data:",
-          JSON.stringify(flattenedData, null, 2),
-        );
-
-        console.log(
-          "[DEBUG] DirectiveProcessor - Flatten condition check:",
-          {
-            isArray: Array.isArray(flattenedData),
-            length: Array.isArray(flattenedData) ? flattenedData.length : "N/A",
-            firstIsArray:
-              Array.isArray(flattenedData) && flattenedData.length > 0
-                ? Array.isArray(flattenedData[0])
-                : "N/A",
-          },
-        );
 
         if (
           Array.isArray(flattenedData) && flattenedData.length > 0 &&
           Array.isArray(flattenedData[0])
         ) {
-          console.log("[DEBUG] DirectiveProcessor - Flattening condition met!");
           // Flatten nested arrays and filter out empty arrays
           flattenedData = flattenedData
             .flat()
@@ -992,26 +975,10 @@ export class DirectiveProcessor {
               !(Array.isArray(item) && item.length === 0) &&
               (typeof item === "object" && Object.keys(item).length > 0)
             );
-          console.log(
-            "[DEBUG] DirectiveProcessor - Post-flatten data:",
-            JSON.stringify(flattenedData, null, 2),
-          );
-        } else {
-          console.log(
-            "[DEBUG] DirectiveProcessor - Flattening condition NOT met, keeping original data",
-          );
         }
 
         // Update the result with flattened data
         this.setNestedProperty(result, path, flattenedData);
-        console.log(
-          "[DEBUG] DirectiveProcessor - Updated result:",
-          JSON.stringify(result, null, 2),
-        );
-      } else {
-        console.log(
-          "[DEBUG] DirectiveProcessor - Filter failed or returned null/undefined",
-        );
       }
     });
 
