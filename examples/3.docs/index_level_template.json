@@ -1,5 +1,271 @@
 {
-  "version": "{version}",
-  "description": "{description}",
-  "{level}": "{@items}"
+  "version": "1.0.0",
+  "description": "Requirement level traceability IDs",
+  "req": [
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    },
+    {
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
+    }
+  ]
 }
