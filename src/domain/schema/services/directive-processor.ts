@@ -972,8 +972,11 @@ export class DirectiveProcessor {
           {
             isArray: Array.isArray(flattenedData),
             length: Array.isArray(flattenedData) ? flattenedData.length : "N/A",
-            firstIsArray: Array.isArray(flattenedData) && flattenedData.length > 0 ? Array.isArray(flattenedData[0]) : "N/A"
-          }
+            firstIsArray:
+              Array.isArray(flattenedData) && flattenedData.length > 0
+                ? Array.isArray(flattenedData[0])
+                : "N/A",
+          },
         );
 
         if (
@@ -984,15 +987,19 @@ export class DirectiveProcessor {
           // Flatten nested arrays and filter out empty arrays
           flattenedData = flattenedData
             .flat()
-            .filter(item => item !== null && item !== undefined &&
-                    !(Array.isArray(item) && item.length === 0) &&
-                    (typeof item === 'object' && Object.keys(item).length > 0));
+            .filter((item) =>
+              item !== null && item !== undefined &&
+              !(Array.isArray(item) && item.length === 0) &&
+              (typeof item === "object" && Object.keys(item).length > 0)
+            );
           console.log(
             "[DEBUG] DirectiveProcessor - Post-flatten data:",
             JSON.stringify(flattenedData, null, 2),
           );
         } else {
-          console.log("[DEBUG] DirectiveProcessor - Flattening condition NOT met, keeping original data");
+          console.log(
+            "[DEBUG] DirectiveProcessor - Flattening condition NOT met, keeping original data",
+          );
         }
 
         // Update the result with flattened data
