@@ -16,6 +16,7 @@ export type DirectiveTypeKind =
   | "frontmatter-part"
   | "extract-from"
   | "flatten-arrays"
+  | "jmespath-filter"
   | "merge-arrays"
   | "derived-from"
   | "derived-unique"
@@ -75,6 +76,7 @@ export class DirectiveType {
       "frontmatter-part",
       "extract-from",
       "flatten-arrays",
+      "jmespath-filter",
       "merge-arrays",
       "derived-from",
       "derived-unique",
@@ -127,7 +129,8 @@ export class DirectiveType {
       ["frontmatter-part", []], // No dependencies - foundation
       ["extract-from", ["frontmatter-part"]], // Needs data structure
       ["flatten-arrays", ["extract-from"]], // Needs extracted data
-      ["merge-arrays", ["flatten-arrays"]], // Needs flattened arrays
+      ["jmespath-filter", ["flatten-arrays"]], // Needs flattened arrays to filter
+      ["merge-arrays", ["jmespath-filter"]], // Needs filtered arrays
       ["derived-from", ["merge-arrays"]], // Needs final data structure
       ["derived-unique", ["derived-from"]], // Needs derived fields
       ["template", ["derived-unique"]], // Needs all processing complete
@@ -145,12 +148,13 @@ export class DirectiveType {
       ["frontmatter-part", 1],
       ["extract-from", 2],
       ["flatten-arrays", 3],
-      ["merge-arrays", 4],
-      ["derived-from", 5],
-      ["derived-unique", 6],
-      ["template", 7],
-      ["template-items", 8],
-      ["template-format", 9],
+      ["jmespath-filter", 4],
+      ["merge-arrays", 5],
+      ["derived-from", 6],
+      ["derived-unique", 7],
+      ["template", 8],
+      ["template-items", 9],
+      ["template-format", 10],
     ]);
   }
 

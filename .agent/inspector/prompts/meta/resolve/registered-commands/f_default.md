@@ -4,9 +4,7 @@ c2: resolve
 c3: registered-commands
 title: inspector実行コマンドを構築するinspector
 description: 渡された内容に相応しい inspector-* を構築し、示す。
-usage: |
-  使いたいファイルリストや内容を入力として、適切なinspector-*コマンドを構築して提示します。
-  登録済みコマンドから最適なものを選択または新規提案します。
+usage: "inspector-meta resolve registered-commands"
 options:
   input: ["default"]
   adaptation: ["default"]

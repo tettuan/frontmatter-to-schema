@@ -1,9 +1,30 @@
 ---
+c1: "debug"
+c2: "design-flow"
+c3: "reproducible-steps"
+title: "自然言語ワークフロー作成：再現可能デバッグ手順の体系化"
+description: "Deno DDDプロジェクトにおいてデバッグ手順を自然言語ワークフローとして体系化し、XML構造化データへの変換を可能にする実装手順。BreakdownLogger統合による再現可能性の確立"
+usage: "inspector-debug design-flow reproducible-steps"
+options:
+  input:
+    - "workflow-template"
+    - "markdown"
+    - "yaml"
+  adaptation:
+    - "default"
+    - "detailed"
+    - "minimal"
+  input_file: true
+  stdin: false
+  destination: true
 variables:
   - uv-workflow-type: ワークフロータイプ（debug/test/validation/analysis）を指定する変数
   - uv-target-scope: 対象スコープ（component/integration/e2e）を指定する変数
   - uv-output-format: 出力フォーマット（xml/json/markdown）を指定する変数
   - destination_path: ワークフローファイルの出力先ディレクトリパス
+version: "1.0"
+date: "2025-09-25"
+created_by: "inspector-debug design-flow reproducible-steps"
 ---
 
 # 自然言語ワークフロー作成指示書：再現可能デバッグ手順の体系化

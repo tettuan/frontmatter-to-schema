@@ -3,16 +3,18 @@
   "type": "object",
   "title": "Registry Schema",
   "x-template": "registry_template.json",
+  "x-template-items": "registry_command_template.json",
   "description": "Schema for registry configuration with tools and commands",
   "properties": {
     "version": {
       "type": "string",
-      "description": "Registry version (e.g., \"1.0.0\")",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      "description": "Registry version",
+      "default": "1.0.0"
     },
     "description": {
       "type": "string",
-      "description": "Overall registry description"
+      "description": "Overall registry description",
+      "default": "Command Registry"
     },
     "tools": {
       "type": "object",
@@ -20,8 +22,8 @@
       "properties": {
         "availableConfigs": {
           "type": "array",
-          "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
-          "x-derived-from": "commands[].c1",
+          "description": "Tool names array - derived from commands[].c1",
+          "x-derived-from": "tools.commands[].c1",
           "x-derived-unique": true,
           "items": {
             "type": "string"
@@ -29,12 +31,14 @@
         },
         "commands": {
           "type": "array",
-          "description": "Command registry - defines all available C3L commands",
+          "description": "Command registry",
           "x-frontmatter-part": true,
-          "items": { "$ref": "registry_command_schema.json" }
+          "items": {
+            "$ref": "registry_command_schema.json"
+          }
         }
       },
-      "required": ["availableConfigs", "commands"],
+      "required": ["commands"],
       "additionalProperties": false
     }
   },

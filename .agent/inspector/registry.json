@@ -1,8 +1,11 @@
 {
-  "version": "",
-  "description": "",
+  "version": "1.0.0",
+  "description": "Command Registry",
   "tools": {
-    "availableConfigs": [],
+    "availableConfigs": [
+      "debug",
+      "meta"
+    ],
     "commands": [
       {
         "c1": "debug",
@@ -10,13 +13,84 @@
         "c3": "project-issues",
         "title": "プロジェクト全体の深掘り調査と修正タスク洗い出し",
         "description": "プロジェクト全体を深く調査し、リファクタ課題や重複コード、修正すべき問題を洗い出し、ドメイン駆動設計からテスト駆動設計への移行を支援する",
-        "usage": "プロジェクト全体の深掘り調査と修正タスクの洗い出しを実行します。\n既存のissue一覧を確認し、適切な処理を行います。\n",
+        "usage": "inspector-debug analyze-deep project-issues",
         "options": {
           "input": [],
           "adaptation": [],
-          "file": false,
+          "file": [
+            false
+          ],
           "stdin": true,
           "destination": false
+        }
+      },
+      {
+        "c1": "debug",
+        "c2": "design-flow",
+        "c3": "reproducible-steps",
+        "title": "自然言語ワークフロー作成：再現可能デバッグ手順の体系化",
+        "description": "Deno DDDプロジェクトにおいてデバッグ手順を自然言語ワークフローとして体系化し、XML構造化データへの変換を可能にする実装手順。BreakdownLogger統合による再現可能性の確立",
+        "usage": "inspector-debug design-flow reproducible-steps",
+        "options": {
+          "input": [
+            "workflow-template",
+            "markdown",
+            "yaml"
+          ],
+          "adaptation": [
+            "default",
+            "detailed",
+            "minimal"
+          ],
+          "input_file": true,
+          "stdin": false,
+          "destination": true
+        }
+      },
+      {
+        "c1": "debug",
+        "c2": "plan-logger",
+        "c3": "debug-strategy",
+        "title": "BreakdownLoggerを用いたテストコードデバッグ戦略実装",
+        "description": "Deno DDDプロジェクトにjsr:@tettuan/breakdownloggerを活用してテストコードのデバッグ出力を強化し、体系的なテストデバッグ戦略を確立する実装手順",
+        "usage": "inspector-debug plan-logger debug-strategy",
+        "options": {
+          "input": [
+            "test-config",
+            "component-list",
+            "json"
+          ],
+          "adaptation": [
+            "default",
+            "comprehensive",
+            "minimal"
+          ],
+          "input_file": true,
+          "stdin": false,
+          "destination": true
+        }
+      },
+      {
+        "c1": "debug",
+        "c2": "trace-error",
+        "c3": "cause-analysis",
+        "title": "エラー実装へのデバッグ出力追加と要因分析",
+        "description": "エラー実装にデバッグ出力を追加し、出力情報を元に根本要因を分析するための体系的手順書。DDD/TDD/Totality原則に基づくエラー処理実装の分析・改善作業",
+        "usage": "inspector-debug trace-error cause-analysis",
+        "options": {
+          "input": [
+            "error-log",
+            "json",
+            "text"
+          ],
+          "adaptation": [
+            "default",
+            "comprehensive",
+            "quick-analysis"
+          ],
+          "input_file": true,
+          "stdin": true,
+          "destination": true
         }
       },
       {
@@ -38,7 +112,7 @@
         "c3": "registered-commands",
         "title": "inspector実行コマンドを構築するinspector",
         "description": "渡された内容に相応しい inspector-* を構築し、示す。",
-        "usage": "使いたいファイルリストや内容を入力として、適切なinspector-*コマンドを構築して提示します。\n登録済みコマンドから最適なものを選択または新規提案します。\n",
+        "usage": "inspector-meta resolve registered-commands",
         "options": {
           "input": [
             "default"
@@ -46,7 +120,9 @@
           "adaptation": [
             "default"
           ],
-          "file": false,
+          "file": [
+            false
+          ],
           "stdin": true,
           "destination": true
         }

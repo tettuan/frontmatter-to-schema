@@ -1,13 +1,29 @@
 ---
-title: エラー実装へのデバッグ出力追加と要因分析手順書
-version: 1.0
-date: 2025-09-22
-description: エラー実装にデバッグ出力を追加し、出力情報を元に根本要因を分析するための体系的手順書
+c1: "debug"
+c2: "trace-error"
+c3: "cause-analysis"
+title: "エラー実装へのデバッグ出力追加と要因分析"
+description: "エラー実装にデバッグ出力を追加し、出力情報を元に根本要因を分析するための体系的手順書。DDD/TDD/Totality原則に基づくエラー処理実装の分析・改善作業"
+usage: "inspector-debug trace-error cause-analysis"
+options:
+  input:
+    - "error-log"
+    - "json"
+    - "text"
+  adaptation:
+    - "default"
+    - "comprehensive"
+    - "quick-analysis"
+  input_file: true
+  stdin: true
+  destination: true
 variables:
   - uv-error-component: 対象のエラー処理コンポーネント名
   - uv-analysis-scope: 分析対象とするエラーの範囲または条件
   - input_text_file: 分析対象のエラーログファイルパス
   - destination_path: 分析結果の出力先パス
+version: "1.0"
+date: "2025-09-22"
 created_by: "climpt-docs generate-robust instruction-doc"
 ---
 

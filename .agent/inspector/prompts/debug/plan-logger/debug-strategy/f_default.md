@@ -1,8 +1,29 @@
 ---
+c1: "debug"
+c2: "plan-logger"
+c3: "debug-strategy"
+title: "BreakdownLoggerを用いたテストコードデバッグ戦略実装"
+description: "Deno DDDプロジェクトにjsr:@tettuan/breakdownloggerを活用してテストコードのデバッグ出力を強化し、体系的なテストデバッグ戦略を確立する実装手順"
+usage: "inspector-debug plan-logger debug-strategy"
+options:
+  input:
+    - "test-config"
+    - "component-list"
+    - "json"
+  adaptation:
+    - "default"
+    - "comprehensive"
+    - "minimal"
+  input_file: true
+  stdin: false
+  destination: true
 variables:
   - uv-test-scope: テスト範囲（unit/integration/e2e）を指定する変数
   - uv-debug-level: デバッグレベル（debug/info/warn/error）を指定する変数
   - uv-component-key: 対象コンポーネントのキー名を指定する変数
+version: "1.0"
+date: "2025-09-25"
+created_by: "inspector-debug plan-logger debug-strategy"
 ---
 
 # BreakdownLoggerを用いたテストコードデバッグ戦略実装指示書

@@ -11,6 +11,7 @@ import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
+import { JMESPathFilterService } from "./jmespath-filter-service.ts";
 
 /**
  * Directive Processing Error Types
@@ -245,6 +246,27 @@ export class DirectiveProcessor {
       });
     }
 
+    // Check for x-jmespath-filter (via schema analysis)
+    const jmespathFilterPresent = this.hasJMESPathFilterDirectives(schema);
+    if (jmespathFilterPresent) {
+      const typeResult = DirectiveType.create("jmespath-filter");
+      if (!typeResult.ok) {
+        return err({
+          kind: "ProcessingFailed",
+          directive: "jmespath-filter",
+          error: typeResult.error,
+          message: "Failed to create jmespath-filter directive type",
+        });
+      }
+
+      nodes.push({
+        id: "jmespath-filter",
+        type: typeResult.data,
+        schemaPath: "multiple", // Can be in multiple properties
+        isPresent: true,
+      });
+    }
+
     // Additional directive types will be detected as new features are implemented:
     // - x-derived-unique (validation directives)
     // - x-template, x-template-items, x-template-format (template directives)
@@ -431,6 +453,13 @@ export class DirectiveProcessor {
       case "flatten-arrays":
         return this.processFlattenArraysDirective(data, _schema, directiveNode);
 
+      case "jmespath-filter":
+        return this.processJMESPathFilterDirective(
+          data,
+          _schema,
+          directiveNode,
+        );
+
       default: {
         // ErrorHandler methods always return error Results
         const configErrorResult = ErrorHandler.system({
@@ -461,16 +490,18 @@ export class DirectiveProcessor {
       case 3:
         return "Array Flattening";
       case 4:
-        return "Array Merging";
+        return "JMESPath Filtering";
       case 5:
-        return "Field Derivation";
+        return "Array Merging";
       case 6:
-        return "Uniqueness Processing";
+        return "Field Derivation";
       case 7:
-        return "Template Processing";
+        return "Uniqueness Processing";
       case 8:
-        return "Items Template Processing";
+        return "Template Processing";
       case 9:
+        return "Items Template Processing";
+      case 10:
         return "Format Processing";
       default:
         return `Processing Priority ${priority}`;
@@ -759,5 +790,195 @@ export class DirectiveProcessor {
 
     current[segments[segments.length - 1]] = value;
     return result;
+  }
+
+  /**
+   * Check if schema has x-jmespath-filter directives
+   */
+  private hasJMESPathFilterDirectives(schema: Schema): boolean {
+    try {
+      const schemaDefinition = schema.getDefinition();
+      const schemaData = schemaDefinition.getRawSchema();
+      return this.searchForJMESPathFilterInObject(schemaData);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Recursively search for x-jmespath-filter directive in schema object
+   */
+  private searchForJMESPathFilterInObject(obj: unknown): boolean {
+    if (!obj || typeof obj !== "object") return false;
+
+    const record = obj as Record<string, unknown>;
+
+    // Check in extensions object (for migrated schema)
+    if (record.extensions && typeof record.extensions === "object") {
+      const extensions = record.extensions as Record<string, unknown>;
+      if (extensions["x-jmespath-filter"]) {
+        return true;
+      }
+    }
+
+    // Check for direct property (standard JSON Schema extension pattern)
+    if (record["x-jmespath-filter"]) {
+      return true;
+    }
+
+    // Recursively check properties
+    if (record.properties && typeof record.properties === "object") {
+      const properties = record.properties as Record<string, unknown>;
+      for (const value of Object.values(properties)) {
+        if (this.searchForJMESPathFilterInObject(value)) {
+          return true;
+        }
+      }
+    }
+
+    // Check items if array
+    if (record.items) {
+      if (this.searchForJMESPathFilterInObject(record.items)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Process x-jmespath-filter directive
+   */
+  private processJMESPathFilterDirective(
+    data: FrontmatterData,
+    schema: Schema,
+    _directiveNode: DirectiveNode,
+  ): Result<FrontmatterData, DirectiveProcessingError> {
+    try {
+      // Create service instance
+      const serviceResult = JMESPathFilterService.create();
+      if (!serviceResult.ok) {
+        return err({
+          kind: "ProcessingFailed",
+          directive: "jmespath-filter",
+          error: serviceResult.error,
+          message: "Failed to create JMESPath filter service",
+        });
+      }
+
+      const service = serviceResult.data;
+
+      const schemaDefinition = schema.getDefinition();
+      const schemaData = schemaDefinition.getRawSchema();
+
+      // Process the data by applying JMESPath filters according to schema directives
+      const processedData = this.applyJMESPathFiltersToData(
+        data,
+        schemaData,
+        service,
+      );
+
+      // Create new FrontmatterData with processed data
+      const newDataResult = FrontmatterDataFactory.fromParsedData(
+        processedData,
+      );
+
+      if (!newDataResult.ok) {
+        return err({
+          kind: "ProcessingFailed",
+          directive: "jmespath-filter",
+          error: newDataResult.error,
+          message: "Failed to create FrontmatterData after JMESPath filtering",
+        });
+      }
+
+      return ok(newDataResult.data);
+    } catch (error) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: "jmespath-filter",
+        error: error as DomainError,
+        message: `Error processing JMESPath filter directive: ${
+          (error as Error).message
+        }`,
+      });
+    }
+  }
+
+  /**
+   * Apply JMESPath filters to data based on schema directives
+   */
+  private applyJMESPathFiltersToData(
+    data: FrontmatterData,
+    schemaData: unknown,
+    service: any, // JMESPathFilterService type
+  ): unknown {
+    const currentData = data.getData();
+    const result = { ...currentData };
+
+    // Find and apply JMESPath filters
+    this.collectJMESPathFilters(schemaData).forEach(({ path, expression }) => {
+      // The expression should include the path
+      // For example, if path is "req" and expression is "[?id.level == 'req']"
+      // We need to create "req[?id.level == 'req']"
+      const fullExpression = `${path}${expression}`;
+
+      // Apply the filter
+      const filterResult = service.applyFilter(data, fullExpression);
+      if (
+        filterResult.ok && filterResult.data !== null &&
+        filterResult.data !== undefined
+      ) {
+        // Update the result with filtered data
+        this.setNestedProperty(result, path, filterResult.data);
+      }
+    });
+
+    return result;
+  }
+
+  /**
+   * Collect all JMESPath filter directives from schema
+   */
+  private collectJMESPathFilters(
+    schemaData: unknown,
+    currentPath: string = "",
+  ): Array<{ path: string; expression: string }> {
+    const filters: Array<{ path: string; expression: string }> = [];
+
+    if (!schemaData || typeof schemaData !== "object") {
+      return filters;
+    }
+
+    const record = schemaData as Record<string, unknown>;
+
+    // Check for x-jmespath-filter in current level
+    let filterExpression: string | undefined;
+
+    if (record.extensions && typeof record.extensions === "object") {
+      const extensions = record.extensions as Record<string, unknown>;
+      if (typeof extensions["x-jmespath-filter"] === "string") {
+        filterExpression = extensions["x-jmespath-filter"];
+      }
+    }
+
+    if (!filterExpression && typeof record["x-jmespath-filter"] === "string") {
+      filterExpression = record["x-jmespath-filter"];
+    }
+
+    if (filterExpression && currentPath) {
+      filters.push({ path: currentPath, expression: filterExpression });
+    }
+
+    // Recursively check properties
+    if (record.properties && typeof record.properties === "object") {
+      const properties = record.properties as Record<string, unknown>;
+      for (const [key, value] of Object.entries(properties)) {
+        const newPath = currentPath ? `${currentPath}.${key}` : key;
+        filters.push(...this.collectJMESPathFilters(value, newPath));
+      }
+    }
+
+    return filters;
   }
 }

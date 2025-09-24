@@ -3,6 +3,6 @@
   "description": "{description}",
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
-    "commands": "{tools.commands}"
+    "commands": "{@items}"
   }
 }

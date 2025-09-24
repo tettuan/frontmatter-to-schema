@@ -21,6 +21,8 @@ describe("DirectiveType", () => {
       const validTypes: DirectiveTypeKind[] = [
         "frontmatter-part",
         "extract-from",
+        "flatten-arrays",
+        "jmespath-filter",
         "merge-arrays",
         "derived-from",
         "derived-unique",
@@ -54,7 +56,7 @@ describe("DirectiveType", () => {
 
       assertEquals(result.ok, true);
       if (result.ok) {
-        assertEquals(result.data.length, 9);
+        assertEquals(result.data.length, 10);
 
         // Verify all expected types are present
         const kinds = result.data.map((d) => d.getKind());
@@ -62,6 +64,7 @@ describe("DirectiveType", () => {
           "frontmatter-part",
           "extract-from",
           "flatten-arrays",
+          "jmespath-filter",
           "merge-arrays",
           "derived-from",
           "derived-unique",
@@ -85,18 +88,21 @@ describe("DirectiveType", () => {
       const frontmatterPartResult = DirectiveType.create("frontmatter-part");
       const extractFromResult = DirectiveType.create("extract-from");
       const flattenArraysResult = DirectiveType.create("flatten-arrays");
+      const jmespathFilterResult = DirectiveType.create("jmespath-filter");
       const mergeArraysResult = DirectiveType.create("merge-arrays");
       const derivedFromResult = DirectiveType.create("derived-from");
 
       assert(frontmatterPartResult.ok);
       assert(extractFromResult.ok);
       assert(flattenArraysResult.ok);
+      assert(jmespathFilterResult.ok);
       assert(mergeArraysResult.ok);
       assert(derivedFromResult.ok);
 
       const frontmatterPart = frontmatterPartResult.data;
       const extractFrom = extractFromResult.data;
       const flattenArrays = flattenArraysResult.data;
+      const jmespathFilter = jmespathFilterResult.data;
       const mergeArrays = mergeArraysResult.data;
       const derivedFrom = derivedFromResult.data;
 
@@ -104,7 +110,8 @@ describe("DirectiveType", () => {
       assertEquals(frontmatterPart.getDependencies().length, 0); // No dependencies
       assertEquals(extractFrom.getDependencies(), ["frontmatter-part"]);
       assertEquals(flattenArrays.getDependencies(), ["extract-from"]);
-      assertEquals(mergeArrays.getDependencies(), ["flatten-arrays"]);
+      assertEquals(jmespathFilter.getDependencies(), ["flatten-arrays"]);
+      assertEquals(mergeArrays.getDependencies(), ["jmespath-filter"]);
       assertEquals(derivedFrom.getDependencies(), ["merge-arrays"]);
     });
 
@@ -132,12 +139,13 @@ describe("DirectiveType", () => {
         ["frontmatter-part", 1],
         ["extract-from", 2],
         ["flatten-arrays", 3],
-        ["merge-arrays", 4],
-        ["derived-from", 5],
-        ["derived-unique", 6],
-        ["template", 7],
-        ["template-items", 8],
-        ["template-format", 9],
+        ["jmespath-filter", 4],
+        ["merge-arrays", 5],
+        ["derived-from", 6],
+        ["derived-unique", 7],
+        ["template", 8],
+        ["template-items", 9],
+        ["template-format", 10],
       ]);
 
       for (const [kind, expectedPriority] of priorities) {
@@ -162,6 +170,7 @@ describe("DirectiveType", () => {
           "frontmatter-part",
           "extract-from",
           "flatten-arrays",
+          "jmespath-filter",
           "merge-arrays",
           "derived-from",
           "derived-unique",
