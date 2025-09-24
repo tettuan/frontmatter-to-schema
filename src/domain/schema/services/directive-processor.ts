@@ -916,24 +916,85 @@ export class DirectiveProcessor {
     const currentData = data.getData();
     const result = { ...currentData };
 
-    // Find and apply JMESPath filters
-    this.collectJMESPathFilters(schemaData).forEach(({ path, expression }) => {
-      // The expression should include the path
-      // For example, if path is "req" and expression is "[?id.level == 'req']"
-      // We need to create "req[?id.level == 'req']"
-      const fullExpression = `${path}${expression}`;
+    // DEBUG: Log input data structure
+    console.log(
+      "[DEBUG] DirectiveProcessor - Input data structure:",
+      JSON.stringify(currentData, null, 2),
+    );
 
-      // Apply the filter
+    // Find and apply JMESPath filters
+    const filters = this.collectJMESPathFilters(schemaData);
+    console.log(
+      "[DEBUG] DirectiveProcessor - Collected JMESPath filters:",
+      filters,
+    );
+
+    filters.forEach(({ path, expression }) => {
+      // Apply the filter to the nested traceability array
+      // The data structure is nested: { "traceability": [{ "traceability": [...] }] }
+      const fullExpression = `${path}[].traceability${expression}`;
+      console.log(
+        "[DEBUG] DirectiveProcessor - Full JMESPath expression:",
+        fullExpression,
+      );
+
       const filterResult = service.applyFilter(data, fullExpression);
+      console.log(
+        "[DEBUG] DirectiveProcessor - Filter result:",
+        JSON.stringify(
+          {
+            ok: filterResult.ok,
+            dataType: typeof filterResult.data,
+            dataLength: Array.isArray(filterResult.data)
+              ? filterResult.data.length
+              : "N/A",
+            data: filterResult.data,
+          },
+          null,
+          2,
+        ),
+      );
+
       if (
-        filterResult.ok && filterResult.data !== null &&
+        filterResult.ok &&
+        filterResult.data !== null &&
         filterResult.data !== undefined
       ) {
-        // Update the result with filtered data
-        this.setNestedProperty(result, path, filterResult.data);
+        // Flatten the nested array result from JMESPath
+        let flattenedData = filterResult.data;
+        console.log(
+          "[DEBUG] DirectiveProcessor - Pre-flatten data:",
+          JSON.stringify(flattenedData, null, 2),
+        );
+
+        if (
+          Array.isArray(flattenedData) && flattenedData.length > 0 &&
+          Array.isArray(flattenedData[0])
+        ) {
+          flattenedData = flattenedData.flat();
+          console.log(
+            "[DEBUG] DirectiveProcessor - Post-flatten data:",
+            JSON.stringify(flattenedData, null, 2),
+          );
+        }
+
+        // Update the result with flattened data
+        this.setNestedProperty(result, path, flattenedData);
+        console.log(
+          "[DEBUG] DirectiveProcessor - Updated result:",
+          JSON.stringify(result, null, 2),
+        );
+      } else {
+        console.log(
+          "[DEBUG] DirectiveProcessor - Filter failed or returned null/undefined",
+        );
       }
     });
 
+    console.log(
+      "[DEBUG] DirectiveProcessor - Final result:",
+      JSON.stringify(result, null, 2),
+    );
     return result;
   }
 

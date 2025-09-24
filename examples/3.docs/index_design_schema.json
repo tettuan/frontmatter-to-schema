@@ -21,11 +21,10 @@
       "description": "Level name for template",
       "default": "design"
     },
-    "design": {
+    "traceability": {
       "type": "array",
       "description": "Design level traceability items",
       "x-frontmatter-part": true,
-      "x-flatten-arrays": "traceability",
       "x-jmespath-filter": "[?id.level == 'design']",
       "items": {
         "$ref": "traceability_item_schema.json"

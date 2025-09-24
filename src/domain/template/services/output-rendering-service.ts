@@ -227,6 +227,23 @@ export class OutputRenderingService {
 
     const currentContext = context.withProgress(progressResult.data);
 
+    // 🔍 DEBUG: Input data analysis
+    this.domainLogger.logInfo(
+      "input-data-debug",
+      `Input data analysis for template rendering`,
+      {
+        mainDataKeys: mainData.getAllKeys(),
+        mainDataSample: JSON.stringify(mainData.toJSON(), null, 2).slice(
+          0,
+          500,
+        ),
+        itemsDataCount: itemsData?.length || 0,
+        itemsDataFirstSample: itemsData?.[0]
+          ? JSON.stringify(itemsData[0].toJSON(), null, 2).slice(0, 300)
+          : "none",
+      },
+    );
+
     this.domainLogger.logInfo(
       "template-rendering",
       `Starting template rendering pipeline`,
@@ -352,6 +369,21 @@ export class OutputRenderingService {
       }
 
       // Create variable context from composed data
+      this.domainLogger.logDebug(
+        "variable-context-debug",
+        "Creating VariableContext from composed data",
+        {
+          composedDataKeys: Object.keys(composedDataResult.data.mainData),
+          composedDataSample: JSON.stringify(
+            composedDataResult.data.mainData,
+            null,
+            2,
+          ).slice(0, 500),
+          hasArrayData: !!composedDataResult.data.arrayData,
+          arrayDataLength: composedDataResult.data.arrayData?.length || 0,
+        },
+      );
+
       const contextResult = VariableContext.fromComposedData(
         composedDataResult.data,
       );
@@ -362,6 +394,15 @@ export class OutputRenderingService {
         );
         return contextResult;
       }
+
+      this.domainLogger.logDebug(
+        "variable-context-debug",
+        "VariableContext created successfully",
+        {
+          contextType: typeof contextResult.data,
+          contextHasData: !!contextResult.data,
+        },
+      );
 
       // Render with main template using proper context
       // Since we have composedDataResult.data.arrayData, we need to ensure
@@ -382,8 +423,27 @@ export class OutputRenderingService {
         composedDataResult.data.mainData,
       );
       if (!finalFrontmatterResult.ok) {
+        this.domainLogger.logError(
+          "frontmatter-data-creation",
+          finalFrontmatterResult.error,
+        );
         return finalFrontmatterResult;
       }
+
+      this.domainLogger.logDebug(
+        "template-variable-debug",
+        "FrontmatterData created for template rendering",
+        {
+          frontmatterDataKeys: Object.keys(
+            finalFrontmatterResult.data.toJSON(),
+          ),
+          frontmatterDataSample: JSON.stringify(
+            finalFrontmatterResult.data.toJSON(),
+            null,
+            2,
+          ).slice(0, 500),
+        },
+      );
 
       // ✅ DDD Fix: Verify proper data structure for {@items} expansion
       this.domainLogger.logDebug(
@@ -397,6 +457,22 @@ export class OutputRenderingService {
 
       // If we have arrayData from composition, use array-aware rendering
       if (composedDataResult.data.arrayData) {
+        this.domainLogger.logDebug(
+          "template-rendering-debug",
+          "Rendering with array data for {@items} expansion",
+          {
+            templateContent: String(
+              (templateResult.data as any).getContent?.() ||
+                templateResult.data,
+            ).slice(0, 200),
+            arrayDataCount: composedDataResult.data.arrayData.length,
+            firstArrayItem: composedDataResult.data.arrayData[0]
+              ? JSON.stringify(composedDataResult.data.arrayData[0], null, 2)
+                .slice(0, 300)
+              : "none",
+          },
+        );
+
         // ✅ DDD Fix: Enhanced template rendering with proper context for {@items} expansion
         renderResult = this.templateRenderer.render(
           templateResult.data,
@@ -404,12 +480,36 @@ export class OutputRenderingService {
           verbosityMode,
         );
       } else {
+        this.domainLogger.logDebug(
+          "template-rendering-debug",
+          "Rendering without array data",
+          {
+            templateContent: String(
+              (templateResult.data as any).getContent?.() ||
+                templateResult.data,
+            ).slice(0, 200),
+            frontmatterKeys: Object.keys(finalFrontmatterResult.data.toJSON()),
+          },
+        );
+
         renderResult = this.templateRenderer.render(
           templateResult.data,
           finalFrontmatterResult.data,
           verbosityMode,
         );
       }
+
+      this.domainLogger.logDebug(
+        "template-rendering-result",
+        "Template rendering completed",
+        {
+          renderSuccess: renderResult.ok,
+          renderError: renderResult.ok ? null : renderResult.error.message,
+          renderResultPreview: renderResult.ok
+            ? renderResult.data.slice(0, 300)
+            : "failed",
+        },
+      );
     } else if (itemsData) {
       // ✅ DDD Fix: Use dynamic data composition for array rendering
       const composedDataResult = this.dataComposer.compose(

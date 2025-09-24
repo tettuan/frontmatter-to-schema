@@ -62,13 +62,33 @@ export class TemplateVariableResolver {
 
   /**
    * Resolves a standard template variable from data context.
+   * Handles both simple variables and hierarchical dot-notation variables.
    */
   private static resolveStandardVariable(
     variableName: string,
     context: VariableResolutionContext,
   ): Result<unknown, TemplateError & { message: string }> {
+    console.log(`[DEBUG] Resolving variable: ${variableName}`);
+    console.log(
+      `[DEBUG] Available data keys:`,
+      Object.keys(context.data.getData()),
+    );
+
+    // Handle hierarchical variables (e.g., "id.full")
+    if (variableName.includes(".")) {
+      return this.resolveHierarchicalVariable(variableName, context);
+    }
+
+    // Handle simple variables
     const dataResult = context.data.get(variableName);
     if (!dataResult.ok) {
+      console.log(
+        `[DEBUG] Variable '${variableName}' not found in data context`,
+      );
+      console.log(
+        `[DEBUG] Full data context:`,
+        JSON.stringify(context.data.getData(), null, 2),
+      );
       return ErrorHandler.template({
         operation: "resolveStandardVariable",
         method: "getFromData",
@@ -78,7 +98,147 @@ export class TemplateVariableResolver {
       );
     }
 
+    console.log(
+      `[DEBUG] Variable '${variableName}' resolved to:`,
+      JSON.stringify(dataResult.data, null, 2),
+    );
     return ok(dataResult.data);
+  }
+
+  /**
+   * Resolves hierarchical template variables using DDD + Totality principles.
+   * Handles dot-notation variables by attempting direct path resolution first,
+   * then fallback transformation patterns.
+   */
+  private static resolveHierarchicalVariable(
+    variableName: string,
+    context: VariableResolutionContext,
+  ): Result<unknown, TemplateError & { message: string }> {
+    console.log(`[DEBUG] Resolving hierarchical variable: ${variableName}`);
+
+    // First attempt: Direct path resolution (e.g., data contains {"id": {"full": "value"}})
+    const directResult = context.data.get(variableName);
+    if (directResult.ok) {
+      console.log(
+        `[DEBUG] Direct path resolution successful for ${variableName}`,
+      );
+      return directResult;
+    }
+
+    // Second attempt: Smart transformation for common patterns
+    // Handle "id.full" when data contains {"id": "value"} - transform to hierarchical structure
+    const pathParts = variableName.split(".");
+    if (pathParts.length === 2) {
+      const [baseName, property] = pathParts;
+      return this.resolveTransformedHierarchicalVariable(
+        baseName,
+        property,
+        context,
+      );
+    }
+
+    console.log(
+      `[DEBUG] Hierarchical variable '${variableName}' could not be resolved`,
+    );
+    return ErrorHandler.template({
+      operation: "resolveHierarchicalVariable",
+      method: "pathResolution",
+    }).variableResolutionFailed(
+      variableName,
+      `Hierarchical variable '${variableName}' not found and no transformation pattern matched`,
+    );
+  }
+
+  /**
+   * Transforms flat data structure to support hierarchical variable access.
+   * Implements domain-specific transformation logic following Totality principles.
+   */
+  private static resolveTransformedHierarchicalVariable(
+    baseName: string,
+    property: string,
+    context: VariableResolutionContext,
+  ): Result<unknown, TemplateError & { message: string }> {
+    console.log(
+      `[DEBUG] Attempting transformation for ${baseName}.${property}`,
+    );
+
+    // Get base value from flat structure
+    const baseResult = context.data.get(baseName);
+    if (!baseResult.ok) {
+      return ErrorHandler.template({
+        operation: "resolveTransformedHierarchicalVariable",
+        method: "getBaseValue",
+      }).variableResolutionFailed(
+        baseName,
+        `Base variable '${baseName}' not found for hierarchical access`,
+      );
+    }
+
+    // Apply domain-specific transformation patterns
+    const transformedValue = this.applyHierarchicalTransformation(
+      baseResult.data,
+      property,
+      baseName,
+    );
+
+    if (transformedValue !== null) {
+      console.log(
+        `[DEBUG] Transformation successful: ${baseName}.${property} = ${transformedValue}`,
+      );
+      return ok(transformedValue);
+    }
+
+    return ErrorHandler.template({
+      operation: "resolveTransformedHierarchicalVariable",
+      method: "applyTransformation",
+    }).variableResolutionFailed(
+      `${baseName}.${property}`,
+      `Could not transform '${baseName}' value for property '${property}'`,
+    );
+  }
+
+  /**
+   * Applies domain-specific transformation logic for hierarchical variable access.
+   * Following DDD principles, this encapsulates business rules for data transformation.
+   */
+  private static applyHierarchicalTransformation(
+    baseValue: unknown,
+    property: string,
+    baseName: string,
+  ): unknown {
+    // Pattern 1: "id.full" -> use the base value directly as the "full" representation
+    if (baseName === "id" && property === "full") {
+      console.log(
+        `[DEBUG] Applying id.full transformation: ${baseValue} -> ${baseValue}`,
+      );
+      return baseValue;
+    }
+
+    // Pattern 2: For other properties, check if base value contains the property
+    if (typeof baseValue === "object" && baseValue !== null) {
+      const obj = baseValue as Record<string, unknown>;
+      if (property in obj) {
+        return obj[property];
+      }
+    }
+
+    // Pattern 3: Property-specific transformations
+    switch (property) {
+      case "full":
+        // For "full" property, return the base value as-is (common pattern for IDs)
+        return baseValue;
+      case "short":
+        // For "short" property, attempt to abbreviate string values
+        if (typeof baseValue === "string") {
+          return baseValue.substring(0, 8);
+        }
+        return baseValue;
+      default:
+        console.log(
+          `[DEBUG] No transformation pattern for ${baseName}.${property}`,
+        );
+        return null;
+    }
   }
 
   /**
@@ -88,10 +248,22 @@ export class TemplateVariableResolver {
   private static resolveArrayExpansionVariable(
     context: VariableResolutionContext,
   ): Result<unknown, TemplateError & { message: string }> {
+    console.log("[DEBUG] @items resolver - arrayDataState:", {
+      kind: context.arrayDataState.kind,
+      data: context.arrayDataState.kind === "available"
+        ? JSON.stringify(context.arrayDataState.data, null, 2)
+        : "N/A",
+    });
+
     if (context.arrayDataState.kind === "available") {
+      console.log(
+        "[DEBUG] @items resolver - returning data:",
+        JSON.stringify(context.arrayDataState.data, null, 2),
+      );
       return ok(context.arrayDataState.data);
     }
 
+    console.log("[DEBUG] @items resolver - array data not available");
     return ErrorHandler.template({
       operation: "resolveArrayExpansionVariable",
       method: "checkArrayDataState",

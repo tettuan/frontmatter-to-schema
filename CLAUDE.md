@@ -153,3 +153,7 @@ For detailed testing guidelines and best practices:
 # Naming Conventions
 
 - use TypeScript and Deno standard.
+
+# Inspections
+
+- 1つの原因を特定したら、裏どりのために他の方法を試し、問題特定の確度を高めること。少なくとも二種類の異なったアプローチで検証すること。（テスト結果、コード読了、実際のコードデバッグ出力、テストコードでのBreakdownLogger戦略実行）

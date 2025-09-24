@@ -3,25 +3,39 @@
   "description": "Test level traceability IDs",
   "test": [
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     }
   ]
 }

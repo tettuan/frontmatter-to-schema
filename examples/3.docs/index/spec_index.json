@@ -3,25 +3,39 @@
   "description": "Specification level traceability IDs",
   "spec": [
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     }
   ]
 }

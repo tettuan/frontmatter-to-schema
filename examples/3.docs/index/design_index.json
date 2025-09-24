@@ -3,25 +3,39 @@
   "description": "Design level traceability IDs",
   "design": [
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     }
   ]
 }

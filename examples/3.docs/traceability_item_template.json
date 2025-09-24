@@ -1,1 +1,5 @@
-{ "id": "{id.full}" }
+{
+  "id": "{id.full}",
+  "derived_from": "{derived_from}",
+  "trace_to": "{trace_to}"
+}

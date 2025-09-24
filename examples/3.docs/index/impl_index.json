@@ -3,25 +3,39 @@
   "description": "Implementation level traceability IDs",
   "impl": [
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     }
   ]
 }

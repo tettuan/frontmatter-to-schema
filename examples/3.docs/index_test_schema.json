@@ -21,11 +21,10 @@
       "description": "Level name for template",
       "default": "test"
     },
-    "test": {
+    "traceability": {
       "type": "array",
       "description": "Test level traceability items",
       "x-frontmatter-part": true,
-      "x-flatten-arrays": "traceability",
       "x-jmespath-filter": "[?id.level == 'test']",
       "items": {
         "$ref": "traceability_item_schema.json"

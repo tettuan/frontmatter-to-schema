@@ -3,25 +3,39 @@
   "description": "Requirement level traceability IDs",
   "req": [
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     },
     {
-      "id": ""
+      "id": "",
+      "derived_from": "",
+      "trace_to": ""
     }
   ]
 }
