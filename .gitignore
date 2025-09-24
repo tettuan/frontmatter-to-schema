@@ -153,3 +153,7 @@ tmp/
 # frontmatter-to-schema binary is now a shell script, not ignored
 cov_profile/
 .DS_Store
+
+# Examples output files
+examples/**/output.json
+examples/**/*output*.json
