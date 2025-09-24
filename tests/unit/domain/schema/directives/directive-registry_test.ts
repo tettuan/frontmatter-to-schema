@@ -24,7 +24,7 @@ describe("DirectiveRegistry Integration", () => {
       assert(registryResult.ok);
       if (registryResult.ok) {
         assertExists(registryResult.data.registry);
-        assertEquals(registryResult.data.handlersRegistered.length, 3);
+        assertEquals(registryResult.data.handlersRegistered.length, 4);
         assertEquals(
           registryResult.data.handlersRegistered.includes("template"),
           true,
@@ -35,6 +35,10 @@ describe("DirectiveRegistry Integration", () => {
         );
         assertEquals(
           registryResult.data.handlersRegistered.includes("flatten-arrays"),
+          true,
+        );
+        assertEquals(
+          registryResult.data.handlersRegistered.includes("template-items"),
           true,
         );
       }
@@ -216,9 +220,10 @@ describe("DirectiveRegistry Integration", () => {
       const handlers = registry.getAllHandlers();
 
       // Assert
-      assertEquals(handlers.length, 3);
+      assertEquals(handlers.length, 4);
       const handlerNames = handlers.map((h) => h.directiveName);
       assert(handlerNames.includes("template"));
+      assert(handlerNames.includes("template-items"));
       assert(handlerNames.includes("jmespath-filter"));
       assert(handlerNames.includes("flatten-arrays"));
     });
@@ -234,8 +239,9 @@ describe("DirectiveRegistry Integration", () => {
       const directiveNames = registry.getSupportedDirectiveNames();
 
       // Assert
-      assertEquals(directiveNames.length, 3);
+      assertEquals(directiveNames.length, 4);
       assert(directiveNames.includes("template"));
+      assert(directiveNames.includes("template-items"));
       assert(directiveNames.includes("jmespath-filter"));
       assert(directiveNames.includes("flatten-arrays"));
     });
@@ -377,9 +383,9 @@ describe("DirectiveRegistry Integration", () => {
       assert(orderResult.ok);
       if (orderResult.ok) {
         const handlers = orderResult.data;
-        assertEquals(handlers.length, 3);
+        assertEquals(handlers.length, 4);
 
-        // Should be ordered by priority: flatten-arrays (3), jmespath-filter (4), template (8)
+        // Should be ordered by priority: flatten-arrays (3), jmespath-filter (4), template (8), template-items (9)
         assertEquals(handlers[0].directiveName, "flatten-arrays");
         assertEquals(handlers[0].getPriority(), 3);
 
@@ -388,6 +394,9 @@ describe("DirectiveRegistry Integration", () => {
 
         assertEquals(handlers[2].directiveName, "template");
         assertEquals(handlers[2].getPriority(), 8);
+
+        assertEquals(handlers[3].directiveName, "template-items");
+        assertEquals(handlers[3].getPriority(), 9);
       }
     });
 

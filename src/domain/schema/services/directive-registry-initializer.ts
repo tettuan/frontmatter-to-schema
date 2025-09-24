@@ -10,6 +10,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { DirectiveRegistry } from "../directives/directive-registry.ts";
 import { DirectiveHandlerError } from "../interfaces/directive-handler.ts";
 import { TemplateDirectiveHandler } from "../handlers/template-directive-handler.ts";
+import { TemplateItemsDirectiveHandler } from "../handlers/template-items-directive-handler.ts";
 import { JMESPathFilterDirectiveHandler } from "../handlers/jmespath-filter-directive-handler.ts";
 import { FlattenArraysDirectiveHandler } from "../handlers/flatten-arrays-directive-handler.ts";
 
@@ -108,6 +109,25 @@ export class DirectiveRegistryInitializer {
     }
     registeredHandlers.push("template");
 
+    // Register Template Items Handler
+    const templateItemsHandlerResult = TemplateItemsDirectiveHandler.create();
+    if (!templateItemsHandlerResult.ok) {
+      return err({
+        kind: "ConfigurationError",
+        directiveName: "template-items",
+        message: "Failed to create TemplateItemsDirectiveHandler",
+        details: templateItemsHandlerResult.error,
+      });
+    }
+
+    const templateItemsRegisterResult = registry.registerHandler(
+      templateItemsHandlerResult.data,
+    );
+    if (!templateItemsRegisterResult.ok) {
+      return templateItemsRegisterResult;
+    }
+    registeredHandlers.push("template-items");
+
     // Register JMESPath Filter Handler
     const jmespathHandlerResult = JMESPathFilterDirectiveHandler.create();
     if (!jmespathHandlerResult.ok) {
@@ -150,7 +170,6 @@ export class DirectiveRegistryInitializer {
     // - FrontmatterPartDirectiveHandler
     // - DerivedFromDirectiveHandler
     // - DerivedUniqueDirectiveHandler
-    // - TemplateItemsDirectiveHandler
     // - TemplateFormatDirectiveHandler
 
     return ok(registeredHandlers);
