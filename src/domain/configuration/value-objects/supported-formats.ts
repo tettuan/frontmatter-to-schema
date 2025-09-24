@@ -242,21 +242,69 @@ export class SupportedFormats {
 
   /**
    * Get format configuration by extension
+   * Follows Totality principle - returns Result type instead of undefined
    */
-  getFormatByExtension(extension: string): FormatConfig | undefined {
+  getFormatByExtension(extension: string): Result<
+    FormatConfig,
+    ValidationError & { message: string }
+  > {
+    if (!extension || extension.trim().length === 0) {
+      return err(createError({
+        kind: "EmptyInput",
+        field: "extension",
+        message: "Extension cannot be empty",
+      }));
+    }
+
     for (const [, formatConfig] of this.formats) {
       if (formatConfig.extensions.includes(extension)) {
-        return formatConfig;
+        return ok(formatConfig);
       }
     }
-    return undefined;
+
+    return err(createError(
+      {
+        kind: "ConfigNotFound",
+        path: extension,
+        field: "extension",
+      },
+      `No format found for extension '${extension}'. Supported extensions: ${
+        this.allExtensions.join(", ")
+      }`,
+    ));
   }
 
   /**
    * Get format configuration by name
+   * Follows Totality principle - returns Result type instead of undefined
    */
-  getFormat(formatName: string): FormatConfig | undefined {
-    return this.formats.get(formatName);
+  getFormat(formatName: string): Result<
+    FormatConfig,
+    ValidationError & { message: string }
+  > {
+    if (!formatName || formatName.trim().length === 0) {
+      return err(createError({
+        kind: "EmptyInput",
+        field: "formatName",
+        message: "Format name cannot be empty",
+      }));
+    }
+
+    const formatConfig = this.formats.get(formatName);
+    if (!formatConfig) {
+      return err(createError(
+        {
+          kind: "ConfigNotFound",
+          path: formatName,
+          field: "formatName",
+        },
+        `Format '${formatName}' not found. Available formats: ${
+          Array.from(this.formats.keys()).join(", ")
+        }`,
+      ));
+    }
+
+    return ok(formatConfig);
   }
 
   /**

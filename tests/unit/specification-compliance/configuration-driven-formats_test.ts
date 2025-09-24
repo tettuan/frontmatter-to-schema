@@ -11,7 +11,7 @@
  * Following DDD, TDD, and Totality principles with specification-first testing.
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { FormatConfigLoader } from "../../../src/domain/configuration/services/format-config-loader.ts";
 import { SupportedFormats as _SupportedFormats } from "../../../src/domain/configuration/value-objects/supported-formats.ts";
@@ -263,17 +263,17 @@ describe.ignore("Configuration-Driven Formats - Specification Compliance", () =>
         const formats = formatResult.data;
 
         // ✅ Specification requirement: Format detection via configuration
-        const schemaFormat = formats.getFormatByExtension(".json");
-        assertExists(schemaFormat);
-        assertEquals(schemaFormat.mimeType, "application/json");
+        const schemaFormatResult = formats.getFormatByExtension(".json");
+        assert(schemaFormatResult.ok);
+        assertEquals(schemaFormatResult.data.mimeType, "application/json");
 
-        const markdownFormat = formats.getFormatByExtension(".md");
-        assertExists(markdownFormat);
-        assertEquals(markdownFormat.mimeType, "text/markdown");
+        const markdownFormatResult = formats.getFormatByExtension(".md");
+        assert(markdownFormatResult.ok);
+        assertEquals(markdownFormatResult.data.mimeType, "text/markdown");
 
-        const yamlFormat = formats.getFormatByExtension(".yaml");
-        assertExists(yamlFormat);
-        assertEquals(yamlFormat.mimeType, "application/json");
+        const yamlFormatResult = formats.getFormatByExtension(".yaml");
+        assert(yamlFormatResult.ok);
+        assertEquals(yamlFormatResult.data.mimeType, "application/json");
       }
     });
   });
@@ -346,11 +346,19 @@ describe.ignore("Configuration-Driven Formats - Specification Compliance", () =>
         assertEquals(formats.isExtensionSupported(".parquet"), true); // Parquet output
 
         // ✅ Specification requirement: Extended format metadata
-        const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.description.includes("Avro"), true);
+        const schemaFormatResult = formats.getFormat("schema");
+        assert(schemaFormatResult.ok);
+        assertEquals(
+          schemaFormatResult.data.description.includes("Avro"),
+          true,
+        );
 
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.description.includes("handlebars"), true);
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(
+          templateFormatResult.data.description.includes("handlebars"),
+          true,
+        );
       }
     });
 

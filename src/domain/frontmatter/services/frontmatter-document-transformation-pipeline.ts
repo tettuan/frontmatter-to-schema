@@ -33,6 +33,9 @@ import {
 import { MergeOperations } from "../utilities/merge-operations.ts";
 import { FrontmatterProcessor } from "../processors/frontmatter-processor.ts";
 import { PerformanceSettings } from "../../configuration/value-objects/performance-settings.ts";
+import { SchemaValidationService } from "../../schema/services/schema-validation-service.ts";
+import { Aggregator } from "../../aggregation/aggregators/aggregator.ts";
+import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 
 /**
  * Configuration interface for the document transformation pipeline
@@ -45,9 +48,9 @@ export interface FrontmatterDocumentTransformationPipelineConfig {
     readonly lister: DomainFileLister;
   };
   readonly services: {
-    readonly schemaValidation: any; // SchemaValidationService type
-    readonly aggregator: any; // Aggregator type
-    readonly basePropertyPopulator: any; // BasePropertyPopulator type
+    readonly schemaValidation: SchemaValidationService;
+    readonly aggregator: Aggregator;
+    readonly basePropertyPopulator: BasePropertyPopulator;
   };
   readonly frontmatterDataCreationService: FrontmatterDataCreationService;
   readonly performanceSettings: PerformanceSettings;

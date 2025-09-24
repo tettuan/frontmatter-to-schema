@@ -65,7 +65,7 @@ export class ResolveTemplateCommand implements PipelineCommand {
           config,
           templateResult.error,
           "template-resolving",
-          { schema },
+          { kind: "schema-loaded", schema },
         );
         return ok(failedState);
       }
@@ -83,7 +83,7 @@ export class ResolveTemplateCommand implements PipelineCommand {
               `Template configuration is not a valid object: ${templateConfigResult.error.message}`,
           }),
           "template-resolving",
-          { schema },
+          { kind: "schema-loaded", schema },
         );
         return ok(failedState);
       }
@@ -98,7 +98,7 @@ export class ResolveTemplateCommand implements PipelineCommand {
           config,
           templateValidation.error,
           "template-resolving",
-          { schema },
+          { kind: "schema-loaded", schema },
         );
         return ok(failedState);
       }
@@ -119,10 +119,13 @@ export class ResolveTemplateCommand implements PipelineCommand {
       const templatePath = typeof templateConfig.templatePath === "string"
         ? templateConfig.templatePath
         : "";
-      const itemsTemplatePath =
+      const itemsTemplatePathValue =
         typeof templateConfig.itemsTemplatePath === "string"
           ? templateConfig.itemsTemplatePath
           : undefined;
+      const itemsTemplatePath = itemsTemplatePathValue
+        ? { kind: "defined" as const, path: itemsTemplatePathValue }
+        : { kind: "not-defined" as const };
       const outputFormat = typeof templateConfig.outputFormat === "string"
         ? templateConfig.outputFormat
         : "";
@@ -148,7 +151,7 @@ export class ResolveTemplateCommand implements PipelineCommand {
           },
         ),
         "template-resolving",
-        { schema: templateResolvingState.schema },
+        { kind: "schema-loaded", schema: templateResolvingState.schema },
       );
       return ok(failedState);
     }

@@ -12,7 +12,6 @@
     "jsr:@std/assert@^1.0.8": "1.0.14",
     "jsr:@std/cli@*": "1.0.21",
     "jsr:@std/cli@1.0.21": "1.0.21",
-    "jsr:@std/cli@1.0.9": "1.0.9",
     "jsr:@std/front-matter@*": "1.0.9",
     "jsr:@std/front-matter@1.0.5": "1.0.5",
     "jsr:@std/fs@*": "1.0.19",
@@ -33,7 +32,6 @@
     "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.5": "1.0.5",
     "jsr:@tettuan/breakdownlogger@*": "1.0.8",
-    "npm:@anthropic-ai/claude-code@^1.0.89": "1.0.89",
     "npm:jsonpath-plus@7.2.0": "7.2.0"
   },
   "jsr": {
@@ -54,9 +52,6 @@
       "dependencies": [
         "jsr:@std/internal@^1.0.10"
       ]
-    },
-    "@std/cli@1.0.9": {
-      "integrity": "557e5865af000efbf3f737dcfea5b8ab86453594f4a9cd8d08c9fa83d8e3f3bc"
     },
     "@std/cli@1.0.21": {
       "integrity": "cd25b050bdf6282e321854e3822bee624f07aca7636a3a76d95f77a3a919ca2a"
@@ -123,88 +118,6 @@
     }
   },
   "npm": {
-    "@anthropic-ai/claude-code@1.0.89": {
-      "integrity": "sha512-FKzFA0whQ1oVqdq3HG7gE3aojcZfGxrhza9z7OMDUFm4YMADHQxn6TWxWss5dhzXze7vd+QOn8CuH+uHnhAr4w==",
-      "optionalDependencies": [
-        "@img/sharp-darwin-arm64",
-        "@img/sharp-darwin-x64",
-        "@img/sharp-linux-arm",
-        "@img/sharp-linux-arm64",
-        "@img/sharp-linux-x64",
-        "@img/sharp-win32-x64"
-      ],
-      "bin": true
-    },
-    "@img/sharp-darwin-arm64@0.33.5": {
-      "integrity": "sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==",
-      "optionalDependencies": [
-        "@img/sharp-libvips-darwin-arm64"
-      ],
-      "os": ["darwin"],
-      "cpu": ["arm64"]
-    },
-    "@img/sharp-darwin-x64@0.33.5": {
-      "integrity": "sha512-fyHac4jIc1ANYGRDxtiqelIbdWkIuQaI84Mv45KvGRRxSAa7o7d1ZKAOBaYbnepLC1WqxfpimdeWfvqqSGwR2Q==",
-      "optionalDependencies": [
-        "@img/sharp-libvips-darwin-x64"
-      ],
-      "os": ["darwin"],
-      "cpu": ["x64"]
-    },
-    "@img/sharp-libvips-darwin-arm64@1.0.4": {
-      "integrity": "sha512-XblONe153h0O2zuFfTAbQYAX2JhYmDHeWikp1LM9Hul9gVPjFY427k6dFEcOL72O01QxQsWi761svJ/ev9xEDg==",
-      "os": ["darwin"],
-      "cpu": ["arm64"]
-    },
-    "@img/sharp-libvips-darwin-x64@1.0.4": {
-      "integrity": "sha512-xnGR8YuZYfJGmWPvmlunFaWJsb9T/AO2ykoP3Fz/0X5XV2aoYBPkX6xqCQvUTKKiLddarLaxpzNe+b1hjeWHAQ==",
-      "os": ["darwin"],
-      "cpu": ["x64"]
-    },
-    "@img/sharp-libvips-linux-arm64@1.0.4": {
-      "integrity": "sha512-9B+taZ8DlyyqzZQnoeIvDVR/2F4EbMepXMc/NdVbkzsJbzkUjhXv/70GQJ7tdLA4YJgNP25zukcxpX2/SueNrA==",
-      "os": ["linux"],
-      "cpu": ["arm64"]
-    },
-    "@img/sharp-libvips-linux-arm@1.0.5": {
-      "integrity": "sha512-gvcC4ACAOPRNATg/ov8/MnbxFDJqf/pDePbBnuBDcjsI8PssmjoKMAz4LtLaVi+OnSb5FK/yIOamqDwGmXW32g==",
-      "os": ["linux"],
-      "cpu": ["arm"]
-    },
-    "@img/sharp-libvips-linux-x64@1.0.4": {
-      "integrity": "sha512-MmWmQ3iPFZr0Iev+BAgVMb3ZyC4KeFc3jFxnNbEPas60e1cIfevbtuyf9nDGIzOaW9PdnDciJm+wFFaTlj5xYw==",
-      "os": ["linux"],
-      "cpu": ["x64"]
-    },
-    "@img/sharp-linux-arm64@0.33.5": {
-      "integrity": "sha512-JMVv+AMRyGOHtO1RFBiJy/MBsgz0x4AWrT6QoEVVTyh1E39TrCUpTRI7mx9VksGX4awWASxqCYLCV4wBZHAYxA==",
-      "optionalDependencies": [
-        "@img/sharp-libvips-linux-arm64"
-      ],
-      "os": ["linux"],
-      "cpu": ["arm64"]
-    },
-    "@img/sharp-linux-arm@0.33.5": {
-      "integrity": "sha512-JTS1eldqZbJxjvKaAkxhZmBqPRGmxgu+qFKSInv8moZ2AmT5Yib3EQ1c6gp493HvrvV8QgdOXdyaIBrhvFhBMQ==",
-      "optionalDependencies": [
-        "@img/sharp-libvips-linux-arm"
-      ],
-      "os": ["linux"],
-      "cpu": ["arm"]
-    },
-    "@img/sharp-linux-x64@0.33.5": {
-      "integrity": "sha512-opC+Ok5pRNAzuvq1AG0ar+1owsu842/Ab+4qvU879ippJBHvyY5n2mxF1izXqkPYlGuP/M556uh53jRLJmzTWA==",
-      "optionalDependencies": [
-        "@img/sharp-libvips-linux-x64"
-      ],
-      "os": ["linux"],
-      "cpu": ["x64"]
-    },
-    "@img/sharp-win32-x64@0.33.5": {
-      "integrity": "sha512-MpY/o8/8kj+EcnxwvrP4aTJSWw/aZ7JIGR4aBeZkZw5B7/Jn+tY9/VNwtcoGmdT7GfggGIU4kygOMSbYnOrAbg==",
-      "os": ["win32"],
-      "cpu": ["x64"]
-    },
     "jsonpath-plus@7.2.0": {
       "integrity": "sha512-zBfiUPM5nD0YZSBT/o/fbCUlCcepMIdP0CJZxM1+KgA4f2T206f6VAg9e7mX35+KlMaIc5qXW34f3BnwJ3w+RA=="
     }

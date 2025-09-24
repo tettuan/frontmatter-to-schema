@@ -4,6 +4,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { TemplateVariable } from "./template-variable.ts";
+import { Schema } from "../../schema/entities/schema.ts";
 
 /**
  * Hierarchy root state using discriminated union for Totality
@@ -35,7 +36,7 @@ export class VariableContext {
    * @deprecated Use fromSingleData, fromComposedData, or fromArrayData instead
    */
   static create(
-    schema: any,
+    schema: Schema,
     data: FrontmatterData,
   ): Result<VariableContext, TemplateError & { message: string }> {
     try {
@@ -54,10 +55,13 @@ export class VariableContext {
       let arrayDataState: ArrayDataState = { kind: "not-available" };
       if (hierarchyRootState.kind === "defined") {
         const parts = hierarchyRootState.value.split(".");
-        let current: any = contextData;
+        let current: unknown = contextData;
         for (const part of parts) {
-          if (current && typeof current === "object" && part in current) {
-            current = current[part];
+          if (
+            current && typeof current === "object" && current !== null &&
+            part in current
+          ) {
+            current = (current as Record<string, unknown>)[part];
           } else {
             current = undefined;
             break;
@@ -282,7 +286,7 @@ export class VariableContext {
     path: string,
   ): Result<unknown, TemplateError & { message: string }> {
     const segments = path.split(".");
-    let current: any = this.data;
+    let current: unknown = this.data;
 
     for (const segment of segments) {
       if (current === null || current === undefined) {
@@ -292,14 +296,14 @@ export class VariableContext {
         }).variableNotFound(path);
       }
 
-      if (typeof current !== "object") {
+      if (typeof current !== "object" || current === null) {
         return ErrorHandler.template({
           operation: "resolveDataPath",
           method: "accessProperty",
         }).invalid(`Cannot access property '${segment}' on non-object value`);
       }
 
-      current = current[segment];
+      current = (current as Record<string, unknown>)[segment];
     }
 
     return ok(current);

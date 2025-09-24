@@ -353,14 +353,7 @@ export class SchemaPropertyMigration {
 
   private static extractStringConstraints(
     legacy: LegacySchemaProperty,
-  ): StringConstraints | undefined {
-    const hasConstraints = legacy.pattern || legacy.minLength !== undefined ||
-      legacy.maxLength !== undefined || legacy.format;
-
-    if (!hasConstraints) {
-      return undefined;
-    }
-
+  ): StringConstraints {
     return {
       pattern: legacy.pattern,
       minLength: legacy.minLength,
@@ -371,17 +364,7 @@ export class SchemaPropertyMigration {
 
   private static extractNumberConstraints(
     legacy: LegacySchemaProperty,
-  ): NumberConstraints | undefined {
-    const hasConstraints = legacy.minimum !== undefined ||
-      legacy.maximum !== undefined ||
-      legacy.exclusiveMinimum !== undefined ||
-      legacy.exclusiveMaximum !== undefined ||
-      legacy.multipleOf !== undefined;
-
-    if (!hasConstraints) {
-      return undefined;
-    }
-
+  ): NumberConstraints {
     return {
       minimum: legacy.minimum,
       maximum: legacy.maximum,
@@ -393,15 +376,7 @@ export class SchemaPropertyMigration {
 
   private static extractArrayConstraints(
     legacy: LegacySchemaProperty,
-  ): ArrayConstraints | undefined {
-    const hasConstraints = legacy.minItems !== undefined ||
-      legacy.maxItems !== undefined ||
-      legacy.uniqueItems !== undefined;
-
-    if (!hasConstraints) {
-      return undefined;
-    }
-
+  ): ArrayConstraints {
     return {
       minItems: legacy.minItems,
       maxItems: legacy.maxItems,
@@ -411,15 +386,7 @@ export class SchemaPropertyMigration {
 
   private static extractObjectConstraints(
     legacy: LegacySchemaProperty,
-  ): ObjectConstraints | undefined {
-    const hasConstraints = legacy.minProperties !== undefined ||
-      legacy.maxProperties !== undefined ||
-      legacy.additionalProperties !== undefined;
-
-    if (!hasConstraints) {
-      return undefined;
-    }
-
+  ): ObjectConstraints {
     let additionalProperties: boolean | NewSchemaProperty | undefined;
     if (typeof legacy.additionalProperties === "boolean") {
       additionalProperties = legacy.additionalProperties;

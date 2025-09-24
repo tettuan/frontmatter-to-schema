@@ -148,10 +148,8 @@ export class TemplatePathResolver {
       outputFormat = this.detectFormatFromExtension(mainTemplateResult.data);
     }
 
-    // Create ItemsTemplateState based on whether items template exists
-    const itemsTemplate: ItemsTemplateState = itemsTemplateResult.data
-      ? { kind: "defined", path: itemsTemplateResult.data }
-      : { kind: "not-defined" };
+    // Items template state is already in the correct format from the method
+    const itemsTemplate = itemsTemplateResult.data;
 
     // Create OutputFormatState based on output format
     const outputFormatState: OutputFormatState =
@@ -160,12 +158,17 @@ export class TemplatePathResolver {
         ? { kind: "specified", format: outputFormat }
         : { kind: "default" };
 
+    // Extract backward compatible path for legacy support
+    const backwardCompatiblePath = itemsTemplate.kind === "defined"
+      ? itemsTemplate.path
+      : undefined;
+
     return ok({
       templatePath: mainTemplateResult.data,
       itemsTemplate,
       outputFormat: outputFormatState,
       // Backward compatibility - provide the old property
-      itemsTemplatePath: itemsTemplateResult.data,
+      itemsTemplatePath: backwardCompatiblePath,
     });
   }
 
@@ -202,27 +205,34 @@ export class TemplatePathResolver {
 
   /**
    * Resolve items template path from schema's x-template-items.
+   * Follows Totality principle - uses discriminated union instead of undefined
    *
    * @param schema - Schema entity
    * @param config - Template path configuration
-   * @returns Result containing resolved items template path (undefined if not specified) or error
+   * @returns Result containing items template state (defined or not-defined) or error
    */
   resolveItemsTemplatePath(
     schema: Schema,
     config: TemplatePathConfig,
-  ): Result<string | undefined, DomainError & { message: string }> {
+  ): Result<ItemsTemplateState, DomainError & { message: string }> {
     // Get x-template-items from schema using proper method
     const templateItemsResult = schema.getDefinition().getTemplateItems();
 
     if (!templateItemsResult.ok) {
-      // If x-template-items is not defined, return undefined (not an error)
-      return ok(undefined);
+      // If x-template-items is not defined, return not-defined state (not an error)
+      return ok({ kind: "not-defined" });
     }
 
-    return this.resolveRelativePath(
+    const resolvedPathResult = this.resolveRelativePath(
       templateItemsResult.data,
       config.schemaPath,
     );
+
+    if (!resolvedPathResult.ok) {
+      return resolvedPathResult;
+    }
+
+    return ok({ kind: "defined", path: resolvedPathResult.data });
   }
 
   /**

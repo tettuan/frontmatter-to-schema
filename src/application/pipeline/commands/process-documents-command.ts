@@ -68,6 +68,7 @@ export class ProcessDocumentsCommand implements PipelineCommand {
           inputPatternResult.error,
           "document-processing",
           {
+            kind: "template-resolved",
             schema,
             templatePath,
           },
@@ -93,6 +94,7 @@ export class ProcessDocumentsCommand implements PipelineCommand {
           documentsResult.error,
           "document-processing",
           {
+            kind: "template-resolved",
             schema,
             templatePath,
           },
@@ -112,6 +114,7 @@ export class ProcessDocumentsCommand implements PipelineCommand {
           documentsValidation.error,
           "document-processing",
           {
+            kind: "template-resolved",
             schema,
             templatePath,
           },
@@ -155,6 +158,7 @@ export class ProcessDocumentsCommand implements PipelineCommand {
         ),
         "document-processing",
         {
+          kind: "template-resolved",
           schema: documentProcessingState.schema,
           templatePath: documentProcessingState.templatePath,
         },

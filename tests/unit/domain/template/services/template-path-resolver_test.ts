@@ -179,10 +179,17 @@ describe("TemplatePathResolver", () => {
       assertExists(result.ok, "Items template resolution should succeed");
       if (result.ok) {
         assertEquals(
-          result.data,
-          "/project/items.json",
-          "Should resolve items template relative to schema directory",
+          result.data.kind,
+          "defined",
+          "Items template should be defined",
         );
+        if (result.data.kind === "defined") {
+          assertEquals(
+            result.data.path,
+            "/project/items.json",
+            "Should resolve items template relative to schema directory",
+          );
+        }
       }
     });
 
@@ -206,10 +213,17 @@ describe("TemplatePathResolver", () => {
       );
       if (result.ok) {
         assertEquals(
-          result.data,
-          "/project/schemas/templates/item.json",
-          "Should resolve relative items template path",
+          result.data.kind,
+          "defined",
+          "Items template should be defined",
         );
+        if (result.data.kind === "defined") {
+          assertEquals(
+            result.data.path,
+            "/project/schemas/templates/item.json",
+            "Should resolve relative items template path",
+          );
+        }
       }
     });
 
@@ -230,9 +244,9 @@ describe("TemplatePathResolver", () => {
       assertExists(result.ok, "Should succeed even without items template");
       if (result.ok) {
         assertEquals(
-          result.data,
-          undefined,
-          "Should return undefined when not specified",
+          result.data.kind,
+          "not-defined",
+          "Should return not-defined when not specified",
         );
       }
     });

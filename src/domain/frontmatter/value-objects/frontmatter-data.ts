@@ -269,13 +269,13 @@ export class FrontmatterData {
     const parts = path.split(".");
     const newData = JSON.parse(JSON.stringify(this.data));
 
-    let current: any = newData;
+    let current: Record<string, unknown> = newData;
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       if (!current[part] || typeof current[part] !== "object") {
         current[part] = {};
       }
-      current = current[part];
+      current = current[part] as Record<string, unknown>;
     }
 
     current[parts[parts.length - 1]] = value;

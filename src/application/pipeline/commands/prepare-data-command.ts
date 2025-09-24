@@ -78,6 +78,7 @@ export class PrepareDataCommand implements PipelineCommand {
             itemsResult.error,
             "data-preparing",
             {
+              kind: "documents-processed",
               schema,
               templatePath,
               processedDocuments,
@@ -98,6 +99,7 @@ export class PrepareDataCommand implements PipelineCommand {
             itemsValidation.error,
             "data-preparing",
             {
+              kind: "documents-processed",
               schema,
               templatePath,
               processedDocuments,
@@ -117,6 +119,7 @@ export class PrepareDataCommand implements PipelineCommand {
           mainDataValidation.error,
           "data-preparing",
           {
+            kind: "documents-processed",
             schema,
             templatePath,
             processedDocuments,
@@ -137,6 +140,11 @@ export class PrepareDataCommand implements PipelineCommand {
         preparationTime,
       };
 
+      // Convert itemsData to proper discriminated union format
+      const itemsDataState = itemsData
+        ? { kind: "available" as const, data: itemsData }
+        : { kind: "not-available" as const };
+
       // Transition to output rendering state
       const newState = PipelineStateFactory.createOutputRendering(
         config,
@@ -145,7 +153,7 @@ export class PrepareDataCommand implements PipelineCommand {
         itemsTemplatePath,
         outputFormat,
         mainData,
-        itemsData,
+        itemsDataState,
       );
 
       return ok(newState);
@@ -162,6 +170,7 @@ export class PrepareDataCommand implements PipelineCommand {
         ),
         "data-preparing",
         {
+          kind: "documents-processed",
           schema: dataPreparingState.schema,
           templatePath: dataPreparingState.templatePath,
           processedDocuments: dataPreparingState.processedDocuments,

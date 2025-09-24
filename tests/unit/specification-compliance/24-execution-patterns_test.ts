@@ -9,7 +9,7 @@
  * Following DDD, TDD, and Totality principles with specification-first testing.
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { FormatConfigLoader } from "../../../src/domain/configuration/services/format-config-loader.ts";
 import { SupportedFormats as _SupportedFormats } from "../../../src/domain/configuration/value-objects/supported-formats.ts";
@@ -235,8 +235,12 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         assertExists(formats.getFormat("markdown"));
 
         // Test specification requirement: Configurable extensions
-        const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
+        const schemaFormatResult = formats.getFormat("schema");
+        assert(schemaFormatResult.ok);
+        assertEquals(
+          schemaFormatResult.data.extensions.includes(".jsonschema"),
+          true,
+        );
 
         // Test specification requirement: Configurable defaults
         assertEquals(formats.defaultFormat, "template");
@@ -336,13 +340,18 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
 
         // Test specification: Simple schema support
         assertEquals(formats.isExtensionSupported(".jsonschema"), true);
-        const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
+        const schemaFormatResult = formats.getFormat("schema");
+        assert(schemaFormatResult.ok);
+        assertEquals(
+          schemaFormatResult.data.extensions.includes(".jsonschema"),
+          true,
+        );
 
         // Test specification: JSON template output
         assertEquals(formats.defaultFormat, "template");
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.mimeType, "application/json");
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(templateFormatResult.data.mimeType, "application/json");
       }
     });
 
@@ -402,14 +411,22 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         assertEquals(formats.isExtensionSupported(".md"), true);
 
         // Test specification: configurable processing directive support via schema
-        const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
+        const schemaFormatResult = formats.getFormat("schema");
+        assert(schemaFormatResult.ok);
+        assertEquals(
+          schemaFormatResult.data.extensions.includes(".jsonschema"),
+          true,
+        );
 
         // Test specification: YAML template output configurability
         assertEquals(formats.defaultFormat, "template");
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.mimeType, "application/x-yaml");
-        assertEquals(templateFormat?.extensions.includes(".yaml"), true);
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(templateFormatResult.data.mimeType, "application/x-yaml");
+        assertEquals(
+          templateFormatResult.data.extensions.includes(".yaml"),
+          true,
+        );
       }
     });
 
@@ -472,13 +489,21 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         assertEquals(formats.isExtensionSupported(".md"), true);
 
         // Test specification: x-frontmatter-part array schema support
-        const schemaFormat = formats.getFormat("schema");
-        assertEquals(schemaFormat?.extensions.includes(".jsonschema"), true);
+        const schemaFormatResult = formats.getFormat("schema");
+        assert(schemaFormatResult.ok);
+        assertEquals(
+          schemaFormatResult.data.extensions.includes(".jsonschema"),
+          true,
+        );
 
         // Test specification: Array-aware template output
         assertEquals(formats.defaultFormat, "template");
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.extensions.includes(".json"), true);
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(
+          templateFormatResult.data.extensions.includes(".json"),
+          true,
+        );
       }
     });
 
@@ -775,9 +800,16 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         assertExists(formats.getFormat("fallback"));
 
         // Test specification: Error recovery through configuration
-        const fallbackFormat = formats.getFormat("fallback");
-        assertEquals(fallbackFormat?.extensions.includes(".json"), true);
-        assertEquals(fallbackFormat?.description.includes("Fallback"), true);
+        const fallbackFormatResult = formats.getFormat("fallback");
+        assert(fallbackFormatResult.ok);
+        assertEquals(
+          fallbackFormatResult.data.extensions.includes(".json"),
+          true,
+        );
+        assertEquals(
+          fallbackFormatResult.data.description.includes("Fallback"),
+          true,
+        );
       }
 
       // Test fallback mechanism
@@ -1154,13 +1186,21 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
 
         // Test specification: x-template support through config
         assertExists(formats.getFormat("template"));
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.extensions.includes(".hbs"), true);
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(
+          templateFormatResult.data.extensions.includes(".hbs"),
+          true,
+        );
 
         // Test specification: x-template-items support through config
         assertExists(formats.getFormat("itemTemplate"));
-        const itemFormat = formats.getFormat("itemTemplate");
-        assertEquals(itemFormat?.extensions.includes(".mustache"), true);
+        const itemFormatResult = formats.getFormat("itemTemplate");
+        assert(itemFormatResult.ok);
+        assertEquals(
+          itemFormatResult.data.extensions.includes(".mustache"),
+          true,
+        );
 
         // Test specification: Template engine configurability
         assertEquals(formats.defaultFormat, "template");
@@ -1491,9 +1531,13 @@ describe("24 Execution Patterns - Specification Compliance Test Suite", () => {
         assertEquals(formats.isExtensionSupported(".ext"), true);
 
         // Test specification: Plugin-loaded format configuration
-        const customFormat = formats.getFormat("custom");
-        assertEquals(customFormat?.mimeType, "application/x-custom");
-        assertEquals(customFormat?.description.includes("plugin"), true);
+        const customFormatResult = formats.getFormat("custom");
+        assert(customFormatResult.ok);
+        assertEquals(customFormatResult.data.mimeType, "application/x-custom");
+        assertEquals(
+          customFormatResult.data.description.includes("plugin"),
+          true,
+        );
 
         // Test specification: Standard format fallback
         assertEquals(formats.defaultFormat, "standard");

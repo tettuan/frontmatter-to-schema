@@ -9,7 +9,7 @@
  * Following DDD, TDD, and Totality principles with specification-first testing.
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { SupportedFormats } from "../../../src/domain/configuration/value-objects/supported-formats.ts";
 
@@ -131,9 +131,9 @@ describe("Anti-Hardcoding Demonstration - Core Principle", () => {
         assertExists(fallbackFormats.defaultFormat);
 
         // ✅ Test requirement: Fallback is minimal but functional
-        const jsonFormat = fallbackFormats.getFormat("json");
-        assertExists(jsonFormat);
-        assertEquals(jsonFormat.mimeType, "application/json");
+        const jsonFormatResult = fallbackFormats.getFormat("json");
+        assert(jsonFormatResult.ok);
+        assertEquals(jsonFormatResult.data.mimeType, "application/json");
       }
     });
   });
@@ -179,8 +179,12 @@ describe("Anti-Hardcoding Demonstration - Core Principle", () => {
         // ✅ Pattern 2: Multiple MD + configurable processing + Template Format
         // Test that template format is configurable
         assertExists(formats.getFormat("template"));
-        const templateFormat = formats.getFormat("template");
-        assertEquals(templateFormat?.extensions.includes(".template"), true);
+        const templateFormatResult = formats.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(
+          templateFormatResult.data.extensions.includes(".template"),
+          true,
+        );
 
         // ✅ Test requirement: Default output format configurable
         assertEquals(formats.defaultFormat, "output");
@@ -291,10 +295,15 @@ describe("Anti-Hardcoding Demonstration - Core Principle", () => {
       if (basicResult.ok) {
         // ✅ Patterns 1-8: Basic scenarios configurable
         assertEquals(basicResult.data.isExtensionSupported(".json"), true);
-        const templateFormat = basicResult.data.getFormat("template");
-        assertEquals(templateFormat?.extensions.includes(".hbs"), true);
-        const outputFormat = basicResult.data.getFormat("output");
-        assertEquals(outputFormat?.extensions.includes(".csv"), true);
+        const templateFormatResult = basicResult.data.getFormat("template");
+        assert(templateFormatResult.ok);
+        assertEquals(
+          templateFormatResult.data.extensions.includes(".hbs"),
+          true,
+        );
+        const outputFormatResult = basicResult.data.getFormat("output");
+        assert(outputFormatResult.ok);
+        assertEquals(outputFormatResult.data.extensions.includes(".csv"), true);
       }
 
       // Error Handling Scenarios (Patterns 9-16): Recovery strategies

@@ -56,10 +56,18 @@ export class RenderOutputCommand implements PipelineCommand {
       // Extract required data from current state
       const config = outputRenderingState.config;
       const templatePath = outputRenderingState.templatePath;
-      const itemsTemplatePath = outputRenderingState.itemsTemplatePath;
+      const itemsTemplatePathState = outputRenderingState.itemsTemplatePath;
       const outputFormat = outputRenderingState.outputFormat;
       const mainData = outputRenderingState.mainData;
-      const itemsData = outputRenderingState.itemsData;
+      const itemsDataState = outputRenderingState.itemsData;
+
+      // Extract actual values from discriminated unions
+      const itemsTemplatePath = itemsTemplatePathState.kind === "defined"
+        ? itemsTemplatePathState.path
+        : undefined;
+      const itemsData = itemsDataState.kind === "available"
+        ? itemsDataState.data
+        : undefined;
 
       // Extract output path from config using safe accessor
       const outputPathResult = PipelineConfigAccessor.getOutputPath(config);
@@ -106,9 +114,10 @@ export class RenderOutputCommand implements PipelineCommand {
           renderResult.error,
           "output-rendering",
           {
+            kind: "data-prepared",
             schema: outputRenderingState.schema,
             templatePath,
-            processedDocuments: undefined, // Not available at this stage
+            processedDocuments: [], // Empty array if not available
             mainData,
           },
         );
@@ -154,8 +163,10 @@ export class RenderOutputCommand implements PipelineCommand {
         ),
         "output-rendering",
         {
+          kind: "data-prepared",
           schema: outputRenderingState.schema,
           templatePath: outputRenderingState.templatePath,
+          processedDocuments: [], // Empty array if not available
           mainData: outputRenderingState.mainData,
         },
       );

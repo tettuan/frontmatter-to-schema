@@ -6,6 +6,14 @@ import { defaultFrontmatterDataCreationService } from "../../../../../src/domain
 import { PerformanceSettings } from "../../../../../src/domain/configuration/value-objects/performance-settings.ts";
 import { MergeOperations } from "../../../../../src/domain/frontmatter/utilities/merge-operations.ts";
 import { ok } from "../../../../../src/domain/shared/types/result.ts";
+import { SchemaValidationService } from "../../../../../src/domain/schema/services/schema-validation-service.ts";
+import { Aggregator } from "../../../../../src/domain/aggregation/aggregators/aggregator.ts";
+import { BasePropertyPopulator } from "../../../../../src/domain/schema/services/base-property-populator.ts";
+import { ValidationRules } from "../../../../../src/domain/schema/value-objects/validation-rules.ts";
+import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
+import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { DerivationRule } from "../../../../../src/domain/aggregation/value-objects/derivation-rule.ts";
+import { AggregatedResult } from "../../../../../src/domain/aggregation/aggregators/aggregator.ts";
 
 describe("FrontmatterDocumentTransformationPipeline", () => {
   // Helper function to create valid dependencies
@@ -38,23 +46,35 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
       }),
     } as unknown as FrontmatterProcessor;
 
-    const mockSchemaValidation = {
-      validate: () => ({ ok: true, data: { key: "value" } }),
+    const mockSchemaValidation: SchemaValidationService = {
+      getValidationRulesForFrontmatterPart: (_schema: Schema) => {
+        // Create mock validation rules using factory method
+        const mockRules = ValidationRules.create([{
+          kind: "string",
+          path: "key",
+          required: false,
+        }]);
+        return ok(mockRules);
+      },
     };
 
     const mockAggregator = {
-      aggregate: () => ({
-        ok: true,
-        data: { getData: () => ({ key: "value" }) },
-      }),
-    };
+      aggregate: (
+        _data: FrontmatterData[],
+        _rules: DerivationRule[],
+        baseData?: FrontmatterData,
+      ) =>
+        ok({
+          baseData: baseData || FrontmatterData.create({ key: "value" }),
+          derivedFields: { key: "value" },
+        } as AggregatedResult),
+      aggregateMultiple: () => ok([]),
+    } as unknown as Aggregator;
 
     const mockBasePropertyPopulator = {
-      populate: () => ({
-        ok: true,
-        data: { getData: () => ({ key: "value" }) },
-      }),
-    };
+      populate: (_data: FrontmatterData, _schema: Schema) =>
+        ok(FrontmatterData.create({ key: "value" })),
+    } as unknown as BasePropertyPopulator;
 
     return {
       performanceSettings: performanceSettingsResult.data,

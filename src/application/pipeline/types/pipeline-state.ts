@@ -3,6 +3,48 @@ import { PipelineConfig } from "../../services/pipeline-orchestrator.ts";
 import { Schema } from "../../../domain/schema/entities/schema.ts";
 
 /**
+ * Items template state using discriminated union for Totality compliance
+ */
+export type ItemsTemplatePathState =
+  | { readonly kind: "defined"; readonly path: string }
+  | { readonly kind: "not-defined" };
+
+/**
+ * Items data state using discriminated union for Totality compliance
+ */
+export type ItemsDataState =
+  | { readonly kind: "available"; readonly data: unknown[] }
+  | { readonly kind: "not-available" };
+
+/**
+ * Partial data state for failed pipeline execution using Totality principles
+ */
+export type PartialDataState =
+  | { readonly kind: "no-partial-data" }
+  | {
+    readonly kind: "schema-loaded";
+    readonly schema: Schema;
+  }
+  | {
+    readonly kind: "template-resolved";
+    readonly schema: Schema;
+    readonly templatePath: string;
+  }
+  | {
+    readonly kind: "documents-processed";
+    readonly schema: Schema;
+    readonly templatePath: string;
+    readonly processedDocuments: unknown[];
+  }
+  | {
+    readonly kind: "data-prepared";
+    readonly schema: Schema;
+    readonly templatePath: string;
+    readonly processedDocuments: unknown[];
+    readonly mainData: unknown[];
+  };
+
+/**
  * Pipeline state discriminated union following Totality principles
  * Represents the complete lifecycle of pipeline execution
  */
@@ -28,7 +70,7 @@ export type PipelineState =
     readonly config: PipelineConfig;
     readonly schema: Schema;
     readonly templatePath: string;
-    readonly itemsTemplatePath?: string;
+    readonly itemsTemplatePath: ItemsTemplatePathState;
     readonly outputFormat: string;
     readonly processingStartTime: number;
   }
@@ -37,7 +79,7 @@ export type PipelineState =
     readonly config: PipelineConfig;
     readonly schema: Schema;
     readonly templatePath: string;
-    readonly itemsTemplatePath?: string;
+    readonly itemsTemplatePath: ItemsTemplatePathState;
     readonly outputFormat: string;
     readonly processedDocuments: unknown[]; // Will be typed more specifically later
     readonly preparationStartTime: number;
@@ -47,10 +89,10 @@ export type PipelineState =
     readonly config: PipelineConfig;
     readonly schema: Schema;
     readonly templatePath: string;
-    readonly itemsTemplatePath?: string;
+    readonly itemsTemplatePath: ItemsTemplatePathState;
     readonly outputFormat: string;
     readonly mainData: unknown[];
-    readonly itemsData?: unknown[];
+    readonly itemsData: ItemsDataState;
     readonly renderingStartTime: number;
   }
   | {
@@ -66,12 +108,7 @@ export type PipelineState =
     readonly error: DomainError;
     readonly failedAt: number;
     readonly failedStage: string;
-    readonly partialData?: {
-      schema?: Schema;
-      templatePath?: string;
-      processedDocuments?: unknown[];
-      mainData?: unknown[];
-    };
+    readonly partialData: PartialDataState;
   };
 
 /**
@@ -112,7 +149,7 @@ export class PipelineStateFactory {
     config: PipelineConfig,
     schema: Schema,
     templatePath: string,
-    itemsTemplatePath: string | undefined,
+    itemsTemplatePath: ItemsTemplatePathState,
     outputFormat: string,
   ): PipelineState {
     return {
@@ -130,7 +167,7 @@ export class PipelineStateFactory {
     config: PipelineConfig,
     schema: Schema,
     templatePath: string,
-    itemsTemplatePath: string | undefined,
+    itemsTemplatePath: ItemsTemplatePathState,
     outputFormat: string,
     processedDocuments: unknown[],
   ): PipelineState {
@@ -150,10 +187,10 @@ export class PipelineStateFactory {
     config: PipelineConfig,
     schema: Schema,
     templatePath: string,
-    itemsTemplatePath: string | undefined,
+    itemsTemplatePath: ItemsTemplatePathState,
     outputFormat: string,
     mainData: unknown[],
-    itemsData: unknown[] | undefined,
+    itemsData: ItemsDataState,
   ): PipelineState {
     return {
       kind: "output-rendering",
@@ -185,12 +222,7 @@ export class PipelineStateFactory {
     config: PipelineConfig,
     error: DomainError,
     failedStage: string,
-    partialData?: {
-      schema?: Schema;
-      templatePath?: string;
-      processedDocuments?: unknown[];
-      mainData?: unknown[];
-    },
+    partialData: PartialDataState = { kind: "no-partial-data" },
   ): PipelineState {
     return {
       kind: "failed",
@@ -256,24 +288,32 @@ export const PipelineStateGuards = {
     state.kind === "data-preparing" ||
     state.kind === "output-rendering" ||
     state.kind === "completed" ||
-    (state.kind === "failed" && state.partialData?.schema !== undefined),
+    (state.kind === "failed" &&
+      (state.partialData.kind === "schema-loaded" ||
+        state.partialData.kind === "template-resolved" ||
+        state.partialData.kind === "documents-processed" ||
+        state.partialData.kind === "data-prepared")),
 
   hasTemplateInfo: (state: PipelineState): boolean =>
     state.kind === "document-processing" ||
     state.kind === "data-preparing" ||
     state.kind === "output-rendering" ||
     state.kind === "completed" ||
-    (state.kind === "failed" && state.partialData?.templatePath !== undefined),
+    (state.kind === "failed" &&
+      (state.partialData.kind === "template-resolved" ||
+        state.partialData.kind === "documents-processed" ||
+        state.partialData.kind === "data-prepared")),
 
   hasProcessedDocuments: (state: PipelineState): boolean =>
     state.kind === "data-preparing" ||
     state.kind === "output-rendering" ||
     state.kind === "completed" ||
     (state.kind === "failed" &&
-      state.partialData?.processedDocuments !== undefined),
+      (state.partialData.kind === "documents-processed" ||
+        state.partialData.kind === "data-prepared")),
 
   hasRenderingData: (state: PipelineState): boolean =>
     state.kind === "output-rendering" ||
     state.kind === "completed" ||
-    (state.kind === "failed" && state.partialData?.mainData !== undefined),
+    (state.kind === "failed" && state.partialData.kind === "data-prepared"),
 };
