@@ -1,10 +1,14 @@
-# BreakdownLogger Integration Guide
+# Test Debugging Strategy
 
 ## Overview
 
-This project integrates `@tettuan/breakdownlogger` for strategic test debugging
-using environment variable-based configuration. The logger provides structured
-debugging with `LOG_KEY` filtering and `LOG_LENGTH` control.
+This document defines the test debugging strategy using `@tettuan/breakdownlogger` for strategic test analysis, comparison testing, and debugging. The logger provides structured debugging with `LOG_KEY` filtering and `LOG_LENGTH` control.
+
+## Document Relationships
+
+- **[Test Overview](./README.md)**: High-level testing philosophy and architecture
+- **[Test Execution Guide](./test-execution.ja.md)**: Practical execution guide (Japanese)
+- **This Document**: Debugging strategy and BreakdownLogger integration
 
 ## Environment Variables
 
@@ -116,7 +120,74 @@ LOG_LEVEL=error LOG_LENGTH=S deno test --allow-all
 LOG_KEY=failing-component LOG_LEVEL=debug LOG_LENGTH=L deno test --allow-all
 ```
 
-## Strategic Debugging Patterns
+## Strategic Testing Patterns
+
+### Comparison Testing Strategy
+
+BreakdownLogger enables **Comparison Testing** - a strategic approach to validate processing effectiveness by comparing results with and without specific operations.
+
+#### Purpose of Comparison Testing
+
+1. **Quantitative Validation**: Measure the actual impact of processing operations
+2. **Process Effectiveness**: Verify that filters, transformations, and optimizations work correctly
+3. **Behavioral Verification**: Ensure consistent behavior across different execution paths
+4. **Runtime Process Evaluation**: Detailed tracking of execution flow for analysis
+
+#### Implementation Pattern
+
+```typescript
+import { BreakdownLogger } from "@tettuan/breakdownlogger";
+import { assertEquals } from "@std/assert";
+
+Deno.test("Comparison Test: Filter Processing Effectiveness", async () => {
+  const logger = new BreakdownLogger("comparison-test");
+
+  // Test data with filterable items
+  const testData = [
+    { id: 1, active: true, name: "Alice" },
+    { id: 2, active: false, name: "Bob" },  // Should be filtered
+    { id: 3, active: true, name: "Charlie" },
+  ];
+
+  // Log initial state
+  logger.debug("Pre-filter state", { count: testData.length });
+
+  // Process WITHOUT filtering
+  const withoutFilter = testData;
+
+  // Process WITH filtering
+  logger.debug("Starting filter process");
+  const withFilter = testData.filter(item => {
+    const keep = item.active;
+    logger.trace("Filter decision", {
+      id: item.id,
+      active: item.active,
+      decision: keep ? "keep" : "remove"
+    });
+    return keep;
+  });
+
+  // Compare results
+  logger.info("Comparison results", {
+    original: withoutFilter.length,
+    filtered: withFilter.length,
+    removed: withoutFilter.length - withFilter.length,
+    effectiveness: `${((withoutFilter.length - withFilter.length) / withoutFilter.length * 100).toFixed(1)}%`
+  });
+
+  // Assertions
+  assertEquals(withFilter.length, 2);
+  assertEquals(withFilter.every(item => item.active), true);
+});
+```
+
+#### Application Scenarios
+
+1. **Filtering Operations**: Validate data reduction effectiveness
+2. **Transformation Processing**: Verify format conversion accuracy
+3. **Optimization Processing**: Measure performance improvements
+4. **Cache Processing**: Ensure consistency with/without caching
+5. **Conditional Branching**: Compare different execution path results
 
 ### 1. Data Structure Analysis
 

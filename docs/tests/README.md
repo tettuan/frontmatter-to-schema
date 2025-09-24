@@ -16,16 +16,24 @@ on:
 
 ## Testing Architecture
 
+### Test Strategy Layers
+
+1. **Unit Tests**: Individual component validation
+2. **Integration Tests**: Cross-component interaction verification
+3. **Comparison Tests**: Process effectiveness evaluation using BreakdownLogger
+
 ### Test Structure
 
 ```
 tests/
-├── unit/           # Unit tests for individual components
-├── integration/    # Integration tests for component interactions
-├── e2e/           # End-to-end CLI workflow tests
-├── domain/         # Domain logic and business rule tests
-├── infrastructure/ # Infrastructure adapter tests
-└── fixtures/       # Test data and fixtures
+├── 0_core_domain/      # Core domain tests
+├── 1_supporting_domain/ # Supporting domain tests
+├── 2_generic_domain/   # Technical foundation tests
+├── 3_interface_layer/  # Interface layer tests
+├── 4_cross_domain/     # Cross-domain integration tests
+│   ├── collaboration/  # Inter-domain collaboration tests
+│   └── e2e/           # End-to-end system tests
+└── fixtures/          # Test data and fixtures
 ```
 
 ### Test File Naming Convention
@@ -121,26 +129,22 @@ For detailed debugging strategies, see
 
 ## Running Tests
 
-### Local Development
+For detailed execution instructions, see [Testing Execution Guide (Japanese)](./testing.ja.md).
+
+### Quick Start
 
 ```bash
 # Run all tests
-deno test --allow-read --allow-write --allow-run --allow-env
-
-# Run specific test categories
-deno test tests/unit/ --allow-read --allow-write --allow-run --allow-env
-deno test tests/integration/ --allow-read --allow-write --allow-run --allow-env
-deno test tests/e2e/ --allow-read --allow-write --allow-run --allow-env
-
-# Run specific test file
-deno test --allow-read --allow-write tests/domain/schema_analyzer_test.ts
+deno test --allow-all
 
 # Run with coverage
-deno test --coverage=coverage --allow-read --allow-write --allow-run --allow-env
+deno task test:coverage
 
-# Run with breakdownlogger debug output
+# Run CI pipeline
+deno task ci
+
+# Debug specific component
 LOG_KEY=component-name LOG_LENGTH=L deno test --allow-all
-./scripts/test-with-debug.sh component-name
 ```
 
 ### CI/CD Pipeline
@@ -187,24 +191,17 @@ Tests are automatically executed as part of the CI pipeline:
 
 ## Related Documentation
 
-- [Testing Guidelines](./testing_guidelines.md) - Detailed TDD and testing
-  practices
-- [Test Debugging Strategy](./test-debugging-strategy.md) - Comprehensive
-  debugging approach using breakdownlogger
-- [BreakdownLogger Integration](./breakdownlogger-integration.md) - Strategic
-  test debugging with LOG_KEY and LOG_LENGTH features
-- [E2E Test Execution Guide](../../tmp/e2e-test-execution-guide.md) -
-  Comprehensive E2E testing strategy and execution instructions
-- [E2E Test Architecture](../../tests/e2e/README.md) - End-to-end test design
-  principles
-- [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing
-  infrastructure for parallel-safe, change-resistant tests
-- [Comprehensive Test Strategy](../testing/comprehensive-test-strategy.md) -
-  Overall testing approach
-- [Schema Matching Test Spec](../test-specifications/schema-matching-test-spec.md) -
-  Schema validation testing
-- [Testing (Japanese)](../testing.ja.md) - Japanese version of testing
-  documentation
+### Core Test Documentation
+
+- **[Test Execution Guide](./test-execution.ja.md)** - Practical execution guide with DDD-based structure (Japanese)
+- **[Test Debugging Strategy](./test-debugging.md)** - BreakdownLogger integration and comparison testing
+- **[Testing Guidelines](./testing_guidelines.md)** - Detailed TDD practices and implementation guide
+
+### Additional Resources
+
+- [E2E Test Execution Guide](../../tmp/e2e-test-execution-guide.md) - Comprehensive E2E testing strategy
+- [E2E Test Architecture](../../tests/e2e/README.md) - End-to-end test design principles
+- [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing infrastructure
 
 ## Best Practices
 

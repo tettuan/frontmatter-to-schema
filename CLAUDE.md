@@ -135,12 +135,8 @@ For detailed testing guidelines and best practices:
 
 - **[Test Overview](docs/tests/README.md)**: Comprehensive testing strategy and
   architecture
-- **[Testing Guidelines](docs/tests/testing_guidelines.md)**: Detailed TDD
-  practices and implementation guide
-- **[Comprehensive Test Strategy](docs/testing/comprehensive-test-strategy.md)**:
-  Overall testing approach
-- **[Schema Test Specification](docs/test-specifications/schema-matching-test-spec.md)**:
-  Schema validation testing details
+- **[Test Execution Guide (Japanese)](docs/tests/test-execution.ja.md)**: Practical test
+  execution guide
 
 # Git
 
