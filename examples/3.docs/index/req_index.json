@@ -1,5 +1,27 @@
 {
   "version": "1.0.0",
   "description": "Requirement level traceability IDs",
-  "req": ""
+  "req": [
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    },
+    {
+      "id": ""
+    }
+  ]
 }

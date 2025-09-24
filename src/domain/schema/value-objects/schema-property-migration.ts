@@ -136,83 +136,82 @@ export class SchemaPropertyMigration {
     const registry = defaultSchemaExtensionRegistry;
     const extensions = {} as Record<string, unknown>;
 
-    // Check for extensions in wrapper object (new format)
-    const extensionsWrapper = (legacy as any).extensions;
-    if (extensionsWrapper && typeof extensionsWrapper === "object") {
-      // Extract from extensions wrapper object
-      if (extensionsWrapper["x-template"] !== undefined) {
+    // Check for extensions object first (legacy format)
+    const extensionsObj = (legacy as any).extensions;
+    if (extensionsObj && typeof extensionsObj === "object") {
+      // Extract from extensions object
+      if (extensionsObj["x-template"] !== undefined) {
         extensions[registry.getTemplateKey().getValue()] =
-          extensionsWrapper["x-template"];
+          extensionsObj["x-template"];
       }
-      if (extensionsWrapper["x-frontmatter-part"] !== undefined) {
+      if (extensionsObj["x-frontmatter-part"] !== undefined) {
         extensions[registry.getFrontmatterPartKey().getValue()] =
-          extensionsWrapper["x-frontmatter-part"];
+          extensionsObj["x-frontmatter-part"];
       }
-      if (extensionsWrapper["x-derived-from"] !== undefined) {
+      if (extensionsObj["x-derived-from"] !== undefined) {
         extensions[registry.getDerivedFromKey().getValue()] =
-          extensionsWrapper["x-derived-from"];
+          extensionsObj["x-derived-from"];
       }
-      if (extensionsWrapper["x-derived-unique"] !== undefined) {
+      if (extensionsObj["x-derived-unique"] !== undefined) {
         extensions[registry.getDerivedUniqueKey().getValue()] =
-          extensionsWrapper["x-derived-unique"];
+          extensionsObj["x-derived-unique"];
       }
-      if (extensionsWrapper["x-template-items"] !== undefined) {
+      if (extensionsObj["x-template-items"] !== undefined) {
         extensions[registry.getTemplateItemsKey().getValue()] =
-          extensionsWrapper["x-template-items"];
+          extensionsObj["x-template-items"];
       }
-      if (extensionsWrapper["x-template-format"] !== undefined) {
+      if (extensionsObj["x-template-format"] !== undefined) {
         extensions[registry.getTemplateFormatKey().getValue()] =
-          extensionsWrapper["x-template-format"];
+          extensionsObj["x-template-format"];
       }
-      if (extensionsWrapper["x-jmespath-filter"] !== undefined) {
+      if (extensionsObj["x-jmespath-filter"] !== undefined) {
         extensions[registry.getJmespathFilterKey().getValue()] =
-          extensionsWrapper["x-jmespath-filter"];
+          extensionsObj["x-jmespath-filter"];
       }
-      if (extensionsWrapper["x-flatten-arrays"] !== undefined) {
+      if (extensionsObj["x-flatten-arrays"] !== undefined) {
         extensions[registry.getFlattenArraysKey().getValue()] =
-          extensionsWrapper["x-flatten-arrays"];
+          extensionsObj["x-flatten-arrays"];
       }
-      if (extensionsWrapper.description !== undefined) {
-        extensions.description = extensionsWrapper.description;
+      if (extensionsObj.description !== undefined) {
+        extensions.description = extensionsObj.description;
       }
     }
 
-    // Check for direct properties (legacy format) - fallback if no extensions wrapper
-    if (Object.keys(extensions).length === 0) {
-      if (legacy["x-template"] !== undefined) {
-        extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
-      }
-      if (legacy["x-frontmatter-part"] !== undefined) {
-        extensions[registry.getFrontmatterPartKey().getValue()] =
-          legacy["x-frontmatter-part"];
-      }
-      if (legacy["x-derived-from"] !== undefined) {
-        extensions[registry.getDerivedFromKey().getValue()] =
-          legacy["x-derived-from"];
-      }
-      if (legacy["x-derived-unique"] !== undefined) {
-        extensions[registry.getDerivedUniqueKey().getValue()] =
-          legacy["x-derived-unique"];
-      }
-      if (legacy["x-template-items"] !== undefined) {
-        extensions[registry.getTemplateItemsKey().getValue()] =
-          legacy["x-template-items"];
-      }
-      if (legacy["x-template-format"] !== undefined) {
-        extensions[registry.getTemplateFormatKey().getValue()] =
-          legacy["x-template-format"];
-      }
-      if (legacy["x-jmespath-filter"] !== undefined) {
-        extensions[registry.getJmespathFilterKey().getValue()] =
-          legacy["x-jmespath-filter"];
-      }
-      if (legacy["x-flatten-arrays"] !== undefined) {
-        extensions[registry.getFlattenArraysKey().getValue()] =
-          legacy["x-flatten-arrays"];
-      }
+    // Extract direct properties (standard JSON Schema extension pattern)
+    // These take precedence over extensions object if both exist
+    if (legacy["x-template"] !== undefined) {
+      extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
+    }
+    if (legacy["x-frontmatter-part"] !== undefined) {
+      extensions[registry.getFrontmatterPartKey().getValue()] =
+        legacy["x-frontmatter-part"];
+    }
+    if (legacy["x-derived-from"] !== undefined) {
+      extensions[registry.getDerivedFromKey().getValue()] =
+        legacy["x-derived-from"];
+    }
+    if (legacy["x-derived-unique"] !== undefined) {
+      extensions[registry.getDerivedUniqueKey().getValue()] =
+        legacy["x-derived-unique"];
+    }
+    if (legacy["x-template-items"] !== undefined) {
+      extensions[registry.getTemplateItemsKey().getValue()] =
+        legacy["x-template-items"];
+    }
+    if (legacy["x-template-format"] !== undefined) {
+      extensions[registry.getTemplateFormatKey().getValue()] =
+        legacy["x-template-format"];
+    }
+    if (legacy["x-jmespath-filter"] !== undefined) {
+      extensions[registry.getJmespathFilterKey().getValue()] =
+        legacy["x-jmespath-filter"];
+    }
+    if (legacy["x-flatten-arrays"] !== undefined) {
+      extensions[registry.getFlattenArraysKey().getValue()] =
+        legacy["x-flatten-arrays"];
     }
 
-    // Description can be in either place
+    // Description property
     if (legacy.description !== undefined) {
       extensions.description = legacy.description;
     }

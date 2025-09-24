@@ -25,6 +25,7 @@
       "type": "array",
       "description": "Requirement level traceability items",
       "x-frontmatter-part": true,
+      "x-flatten-arrays": "traceability",
       "x-jmespath-filter": "[?id.level == 'req']",
       "items": {
         "$ref": "traceability_item_schema.json"

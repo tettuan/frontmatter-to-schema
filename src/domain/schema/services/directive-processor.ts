@@ -515,12 +515,17 @@ export class DirectiveProcessor {
 
     const record = obj as Record<string, unknown>;
 
-    // Check if current object has x-flatten-arrays in extensions
+    // Check in extensions object (for migrated schema)
     if (record.extensions && typeof record.extensions === "object") {
       const extensions = record.extensions as Record<string, unknown>;
       if (extensions["x-flatten-arrays"]) {
         return true;
       }
+    }
+
+    // Check for direct property (standard JSON Schema extension pattern)
+    if (record["x-flatten-arrays"]) {
+      return true;
     }
 
     // Recursively check properties
@@ -650,11 +655,29 @@ export class DirectiveProcessor {
 
     const schema = schemaObj as Record<string, unknown>;
 
-    // Check current level for x-flatten-arrays directive
-    const extensions = schema.extensions as Record<string, unknown> | undefined;
-    if (extensions?.["x-flatten-arrays"]) {
-      const target = extensions["x-flatten-arrays"] as string;
-      directives.push({ target });
+    // Check in extensions object (for migrated schema)
+    if (schema.extensions && typeof schema.extensions === "object") {
+      const extensions = schema.extensions as Record<string, unknown>;
+      if (
+        extensions["x-flatten-arrays"] &&
+        typeof extensions["x-flatten-arrays"] === "string"
+      ) {
+        const target = extensions["x-flatten-arrays"] as string;
+        directives.push({ target });
+      }
+    }
+
+    // Check for direct property (standard JSON Schema extension pattern)
+    // Only add if not already added from extensions
+    if (
+      schema["x-flatten-arrays"] &&
+      typeof schema["x-flatten-arrays"] === "string"
+    ) {
+      const target = schema["x-flatten-arrays"] as string;
+      // Check if not already added
+      if (!directives.some((d) => d.target === target)) {
+        directives.push({ target });
+      }
     }
 
     // Recursively check properties

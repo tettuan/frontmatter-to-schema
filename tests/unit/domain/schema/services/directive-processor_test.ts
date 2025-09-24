@@ -477,10 +477,8 @@ describe("DirectiveProcessor", () => {
         properties: {
           traceability: {
             type: "array",
-            extensions: {
-              "x-frontmatter-part": true,
-              "x-flatten-arrays": "traceability",
-            },
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
             items: { type: "string" },
           },
         },
@@ -501,11 +499,22 @@ describe("DirectiveProcessor", () => {
         if (orderResult.ok) {
           const order = orderResult.data;
 
+          // Debug: Log what was actually discovered
+          console.log(
+            "Dependency graph nodes:",
+            order.dependencyGraph.map((n) => n.id),
+          );
+
           // Should discover flatten-arrays directive
           const flattenArraysNode = order.dependencyGraph.find(
             (node) => node.id === "flatten-arrays",
           );
-          assert(flattenArraysNode !== undefined);
+          assert(
+            flattenArraysNode !== undefined,
+            `flatten-arrays not found. Found nodes: ${
+              order.dependencyGraph.map((n) => n.id).join(", ")
+            }`,
+          );
           assertEquals(flattenArraysNode.isPresent, true);
 
           // Should be in Array Flattening phase
@@ -531,10 +540,8 @@ describe("DirectiveProcessor", () => {
         properties: {
           traceability: {
             type: "array",
-            extensions: {
-              "x-frontmatter-part": true,
-              "x-flatten-arrays": "traceability",
-            },
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
             items: { type: "string" },
           },
           other: {
@@ -595,10 +602,8 @@ describe("DirectiveProcessor", () => {
         properties: {
           traceability: {
             type: "array",
-            extensions: {
-              "x-frontmatter-part": true,
-              "x-flatten-arrays": "traceability",
-            },
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
             items: { type: "string" },
           },
           other: {
@@ -654,10 +659,8 @@ describe("DirectiveProcessor", () => {
         properties: {
           missingTarget: {
             type: "array",
-            extensions: {
-              "x-frontmatter-part": true,
-              "x-flatten-arrays": "traceability", // Property doesn't exist in data
-            },
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability", // Property doesn't exist in data
             items: { type: "string" },
           },
           other: {
@@ -706,17 +709,13 @@ describe("DirectiveProcessor", () => {
         properties: {
           traceability: {
             type: "array",
-            extensions: {
-              "x-frontmatter-part": true,
-              "x-flatten-arrays": "traceability",
-            },
+            "x-frontmatter-part": true,
+            "x-flatten-arrays": "traceability",
             items: { type: "string" },
           },
           derived: {
             type: "string",
-            extensions: {
-              "x-derived-from": "traceability.field",
-            },
+            "x-derived-from": "traceability.field",
           },
         },
       };

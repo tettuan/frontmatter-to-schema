@@ -1041,7 +1041,7 @@ export class FrontmatterTransformationService {
       },
     );
 
-    const aggregatedData = this.aggregateData(finalData, schema);
+    let aggregatedData = this.aggregateData(finalData, schema);
     if (!aggregatedData.ok) {
       activeLogger?.error(
         "Data aggregation failed",
@@ -1052,6 +1052,91 @@ export class FrontmatterTransformationService {
         },
       );
       return aggregatedData;
+    }
+
+    // Stage 4.5: Apply directive processing (x-flatten-arrays, x-jmespath-filter, etc.)
+    activeLogger?.debug(
+      "Starting directive processing",
+      {
+        operation: "directive-processing",
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    // Import and create DirectiveProcessor
+    const { DirectiveProcessor } = await import(
+      "../../schema/services/directive-processor.ts"
+    );
+    const directiveProcessorResult = DirectiveProcessor.create();
+
+    if (directiveProcessorResult.ok) {
+      const directiveProcessor = directiveProcessorResult.data;
+
+      // First resolve the processing order for directives
+      const processingOrderResult = directiveProcessor.resolveProcessingOrder(
+        schema,
+      );
+
+      if (processingOrderResult.ok) {
+        const processingOrder = processingOrderResult.data;
+
+        activeLogger?.debug(
+          "Resolved directive processing order",
+          {
+            operation: "directive-processing",
+            totalDirectives: processingOrder.totalDirectives,
+            phases: processingOrder.phases.length,
+            timestamp: new Date().toISOString(),
+          },
+        );
+
+        // Process directives on the aggregated data
+        const directiveResult = directiveProcessor.processDirectives(
+          aggregatedData.data,
+          schema,
+          processingOrder,
+        );
+
+        if (!directiveResult.ok) {
+          activeLogger?.warn(
+            "Directive processing failed, continuing with unprocessed data",
+            {
+              operation: "directive-processing",
+              error: directiveResult.error,
+              timestamp: new Date().toISOString(),
+            },
+          );
+          // Continue with original data if directive processing fails
+        } else {
+          // Update aggregated data with directive-processed data
+          aggregatedData = ok(directiveResult.data);
+          activeLogger?.info(
+            "Directive processing completed successfully",
+            {
+              operation: "directive-processing",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+      } else {
+        activeLogger?.warn(
+          "Failed to resolve directive processing order, skipping directive processing",
+          {
+            operation: "directive-processing",
+            error: processingOrderResult.error,
+            timestamp: new Date().toISOString(),
+          },
+        );
+      }
+    } else {
+      activeLogger?.warn(
+        "Failed to create DirectiveProcessor, skipping directive processing",
+        {
+          operation: "directive-processing",
+          error: directiveProcessorResult.error,
+          timestamp: new Date().toISOString(),
+        },
+      );
     }
 
     // Stage 5: Populate base properties from schema defaults

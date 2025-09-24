@@ -25,6 +25,7 @@
       "type": "array",
       "description": "Implementation level traceability items",
       "x-frontmatter-part": true,
+      "x-flatten-arrays": "traceability",
       "x-jmespath-filter": "[?id.level == 'impl']",
       "items": {
         "$ref": "traceability_item_schema.json"
