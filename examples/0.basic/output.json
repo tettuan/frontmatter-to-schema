@@ -2,10 +2,7 @@
   "version": "1.0.0",
   "description": "Basic command registry example",
   "tools": {
-    "availableConfigs": [
-      "git",
-      "spec"
-    ],
+    "availableConfigs": "",
     "commands": [
       {
         "c1": "git",

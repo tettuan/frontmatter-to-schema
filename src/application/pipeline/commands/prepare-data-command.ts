@@ -3,10 +3,8 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -17,10 +15,12 @@ import {
  * Prepare Data command - Extracts and prepares data for template rendering
  * Transitions from data-preparing -> output-rendering
  */
-export class PrepareDataCommand implements PipelineCommand {
+export class PrepareDataCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "PrepareDataCommand";
@@ -30,16 +30,10 @@ export class PrepareDataCommand implements PipelineCommand {
     return PipelineStateGuards.isDataPreparing(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute PrepareDataCommand from ${currentState.kind} state`,
-      }));
-    }
+    // DEBUG: PrepareDataCommand execution started (no logging available in context)
 
     // State is data-preparing, so we can safely access all required fields
     // Use type guard to ensure proper state access
@@ -59,6 +53,8 @@ export class PrepareDataCommand implements PipelineCommand {
       const itemsTemplatePath = dataPreparingState.itemsTemplatePath;
       const outputFormat = dataPreparingState.outputFormat;
       const processedDocuments = dataPreparingState.processedDocuments;
+
+      // DEBUG: Check for schema defaults before data preparation (debug variables removed for lint compliance)
 
       // Prepare main data from processed documents
       const mainData = processedDocuments;

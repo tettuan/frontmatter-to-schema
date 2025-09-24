@@ -29,6 +29,7 @@ import {
   DomainLogger,
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
+import { VariableTransformationRegistry } from "../strategies/variable-transformation-strategy.ts";
 
 /**
  * Array data state for template variable resolution.
@@ -60,9 +61,13 @@ export interface VariableResolutionContext {
  * - Immutable operations following functional programming principles
  */
 export class TemplateVariableResolver {
+  private readonly transformationRegistry: VariableTransformationRegistry;
+
   private constructor(
     private readonly domainLogger: DomainLogger = new NullDomainLogger(),
-  ) {}
+  ) {
+    this.transformationRegistry = new VariableTransformationRegistry();
+  }
 
   /**
    * Smart Constructor for TemplateVariableResolver
@@ -420,13 +425,17 @@ export class TemplateVariableResolver {
       },
     );
 
-    // Pattern 1: "id.full" -> use the base value directly as the "full" representation
-    if (baseName === "id" && property === "full") {
+    // Check for registered transformation strategies
+    const strategy = this.transformationRegistry.findStrategy(
+      baseName,
+      property,
+    );
+    if (strategy) {
       this.domainLogger.logDebug(
         "transformation-logic",
-        `Applying id.full transformation: ${baseValue} -> ${baseValue}`,
+        `Applying transformation strategy for ${baseName}.${property}`,
       );
-      return ok(baseValue);
+      return strategy.apply(baseValue);
     }
 
     // Pattern 2: For other properties, check if base value contains the property

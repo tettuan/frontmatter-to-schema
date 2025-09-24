@@ -135,8 +135,8 @@ For detailed testing guidelines and best practices:
 
 - **[Test Overview](docs/tests/README.md)**: Comprehensive testing strategy and
   architecture
-- **[Test Execution Guide (Japanese)](docs/tests/test-execution.ja.md)**: Practical test
-  execution guide
+- **[Test Execution Guide (Japanese)](docs/tests/test-execution.ja.md)**:
+  Practical test execution guide
 
 # Git
 

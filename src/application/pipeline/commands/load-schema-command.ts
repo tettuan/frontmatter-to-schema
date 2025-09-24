@@ -3,10 +3,8 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -19,10 +17,12 @@ import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-acces
  * Load Schema command - Loads and validates schema from file system
  * Transitions from schema-loading -> template-resolving
  */
-export class LoadSchemaCommand implements PipelineCommand {
+export class LoadSchemaCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "LoadSchemaCommand";
@@ -32,17 +32,9 @@ export class LoadSchemaCommand implements PipelineCommand {
     return PipelineStateGuards.isSchemaLoading(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute LoadSchemaCommand from ${currentState.kind} state`,
-      }));
-    }
-
     // State is schema-loading, so we can safely access config
     const schemaLoadingState = currentState;
 

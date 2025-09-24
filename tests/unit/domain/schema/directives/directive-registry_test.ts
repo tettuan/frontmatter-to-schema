@@ -24,7 +24,7 @@ describe("DirectiveRegistry Integration", () => {
       assert(registryResult.ok);
       if (registryResult.ok) {
         assertExists(registryResult.data.registry);
-        assertEquals(registryResult.data.handlersRegistered.length, 4);
+        assertEquals(registryResult.data.handlersRegistered.length, 5);
         assertEquals(
           registryResult.data.handlersRegistered.includes("template"),
           true,
@@ -220,8 +220,9 @@ describe("DirectiveRegistry Integration", () => {
       const handlers = registry.getAllHandlers();
 
       // Assert
-      assertEquals(handlers.length, 4);
+      assertEquals(handlers.length, 5);
       const handlerNames = handlers.map((h) => h.directiveName);
+      assert(handlerNames.includes("frontmatter-part"));
       assert(handlerNames.includes("template"));
       assert(handlerNames.includes("template-items"));
       assert(handlerNames.includes("jmespath-filter"));
@@ -239,7 +240,8 @@ describe("DirectiveRegistry Integration", () => {
       const directiveNames = registry.getSupportedDirectiveNames();
 
       // Assert
-      assertEquals(directiveNames.length, 4);
+      assertEquals(directiveNames.length, 5);
+      assert(directiveNames.includes("frontmatter-part"));
       assert(directiveNames.includes("template"));
       assert(directiveNames.includes("template-items"));
       assert(directiveNames.includes("jmespath-filter"));
@@ -383,20 +385,23 @@ describe("DirectiveRegistry Integration", () => {
       assert(orderResult.ok);
       if (orderResult.ok) {
         const handlers = orderResult.data;
-        assertEquals(handlers.length, 4);
+        assertEquals(handlers.length, 5);
 
-        // Should be ordered by priority: flatten-arrays (3), jmespath-filter (4), template (8), template-items (9)
-        assertEquals(handlers[0].directiveName, "flatten-arrays");
-        assertEquals(handlers[0].getPriority(), 3);
+        // Should be ordered by priority: frontmatter-part (1), flatten-arrays (3), jmespath-filter (4), template (8), template-items (9)
+        assertEquals(handlers[0].directiveName, "frontmatter-part");
+        assertEquals(handlers[0].getPriority(), 1);
 
-        assertEquals(handlers[1].directiveName, "jmespath-filter");
-        assertEquals(handlers[1].getPriority(), 4);
+        assertEquals(handlers[1].directiveName, "flatten-arrays");
+        assertEquals(handlers[1].getPriority(), 3);
 
-        assertEquals(handlers[2].directiveName, "template");
-        assertEquals(handlers[2].getPriority(), 8);
+        assertEquals(handlers[2].directiveName, "jmespath-filter");
+        assertEquals(handlers[2].getPriority(), 4);
 
-        assertEquals(handlers[3].directiveName, "template-items");
-        assertEquals(handlers[3].getPriority(), 9);
+        assertEquals(handlers[3].directiveName, "template");
+        assertEquals(handlers[3].getPriority(), 8);
+
+        assertEquals(handlers[4].directiveName, "template-items");
+        assertEquals(handlers[4].getPriority(), 9);
       }
     });
 

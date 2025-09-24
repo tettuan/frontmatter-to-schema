@@ -3,10 +3,8 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -18,10 +16,12 @@ import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-acces
  * Initialize command - Sets up strategy and configuration
  * Transitions from initializing -> schema-loading
  */
-export class InitializeCommand implements PipelineCommand {
+export class InitializeCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "InitializeCommand";
@@ -31,17 +31,9 @@ export class InitializeCommand implements PipelineCommand {
     return PipelineStateGuards.isInitializing(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return Promise.resolve(err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute InitializeCommand from ${currentState.kind} state`,
-      })));
-    }
-
     // Use type guard to ensure proper state access
     if (!PipelineStateGuards.isInitializing(currentState)) {
       return Promise.resolve(err(createError({

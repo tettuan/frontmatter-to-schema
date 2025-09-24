@@ -30,13 +30,15 @@ issues that have been addressed in the project.
 
 ### ✅ Hardcoding Elimination
 
-**Based on Issue #835**
+**Based on Issues #835, #1056**
 
 - [ ] No hardcoded "x-frontmatter-part" strings
 - [ ] No hardcoded "x-template" strings
 - [ ] No hardcoded "x-derived-from" strings
 - [ ] SchemaExtensionRegistry used consistently
 - [ ] Dynamic extension key lookups implemented
+- [ ] No hardcoded variable name special handling (e.g., "id.full")
+- [ ] Strategy pattern used for variable transformations
 
 ### ✅ Test Coverage Requirements
 
@@ -50,13 +52,15 @@ issues that have been addressed in the project.
 
 ### ✅ Template and Variable Handling
 
-**Based on Issues #807, #806**
+**Based on Issues #807, #806, #1055**
 
 - [ ] CLI template arguments properly parsed
 - [ ] VariableContext API correctly implemented
 - [ ] Template variable resolution works
 - [ ] {@items} expansion properly handled
 - [ ] Variable scope isolation maintained
+- [ ] Schema default values properly applied to template variables
+- [ ] Default value fallback mechanism working
 
 ### ✅ Schema and Validation
 
@@ -96,6 +100,16 @@ issues that have been addressed in the project.
 - [ ] x-jmespath-filter extension working
 - [ ] Issue #811 status reconciled with implementation
 - [ ] Documentation reflects JMESPath capabilities
+
+### ✅ Code Quality and DRY Principle
+
+**Based on Issues #1042, #1058**
+
+- [ ] No duplicate error handling patterns
+- [ ] Common logic extracted to base classes or utilities
+- [ ] Pipeline commands follow DRY principle
+- [ ] Shared validation logic properly abstracted
+- [ ] No copy-paste code blocks
 
 ## Quality Gates
 

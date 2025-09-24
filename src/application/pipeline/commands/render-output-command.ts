@@ -3,10 +3,8 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -18,10 +16,12 @@ import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-acces
  * Render Output command - Renders final output using templates and data
  * Transitions from output-rendering -> completed
  */
-export class RenderOutputCommand implements PipelineCommand {
+export class RenderOutputCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "RenderOutputCommand";
@@ -31,17 +31,9 @@ export class RenderOutputCommand implements PipelineCommand {
     return PipelineStateGuards.isOutputRendering(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute RenderOutputCommand from ${currentState.kind} state`,
-      }));
-    }
-
     // State is output-rendering, so we can safely access all required fields
     // Use type guard to ensure proper state access
     if (!PipelineStateGuards.isOutputRendering(currentState)) {

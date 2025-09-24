@@ -4,10 +4,8 @@ import {
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
 import { SafePropertyAccess } from "../../../domain/shared/utils/safe-property-access.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -18,10 +16,12 @@ import {
  * Resolve Template command - Resolves template paths and output format
  * Transitions from template-resolving -> document-processing
  */
-export class ResolveTemplateCommand implements PipelineCommand {
+export class ResolveTemplateCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "ResolveTemplateCommand";
@@ -31,17 +31,9 @@ export class ResolveTemplateCommand implements PipelineCommand {
     return PipelineStateGuards.isTemplateResolving(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute ResolveTemplateCommand from ${currentState.kind} state`,
-      }));
-    }
-
     // State is template-resolving, so we can safely access config and schema
     // Use type guard to ensure proper state access
     if (!PipelineStateGuards.isTemplateResolving(currentState)) {

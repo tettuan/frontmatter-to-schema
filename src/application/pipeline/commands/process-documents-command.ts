@@ -3,10 +3,8 @@ import {
   createError,
   DomainError,
 } from "../../../domain/shared/types/errors.ts";
-import {
-  CommandExecutionContext,
-  PipelineCommand,
-} from "./pipeline-command.ts";
+import { CommandExecutionContext } from "./pipeline-command.ts";
+import { BasePipelineCommand } from "./base-pipeline-command.ts";
 import {
   PipelineState,
   PipelineStateFactory,
@@ -18,10 +16,12 @@ import { PipelineConfigAccessor } from "../../shared/utils/pipeline-config-acces
  * Process Documents command - Transforms and validates input documents
  * Transitions from document-processing -> data-preparing
  */
-export class ProcessDocumentsCommand implements PipelineCommand {
+export class ProcessDocumentsCommand extends BasePipelineCommand {
   constructor(
-    private readonly context: CommandExecutionContext,
-  ) {}
+    context: CommandExecutionContext,
+  ) {
+    super(context);
+  }
 
   getName(): string {
     return "ProcessDocumentsCommand";
@@ -31,17 +31,9 @@ export class ProcessDocumentsCommand implements PipelineCommand {
     return PipelineStateGuards.isDocumentProcessing(currentState);
   }
 
-  async execute(
+  protected async executeInternal(
     currentState: PipelineState,
   ): Promise<Result<PipelineState, DomainError & { message: string }>> {
-    if (!this.canExecute(currentState)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message:
-          `Cannot execute ProcessDocumentsCommand from ${currentState.kind} state`,
-      }));
-    }
-
     // State is document-processing, so we can safely access all required fields
     // Use type guard to ensure proper state access
     if (!PipelineStateGuards.isDocumentProcessing(currentState)) {

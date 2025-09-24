@@ -129,7 +129,8 @@ For detailed debugging strategies, see
 
 ## Running Tests
 
-For detailed execution instructions, see [Testing Execution Guide (Japanese)](./testing.ja.md).
+For detailed execution instructions, see
+[Testing Execution Guide (Japanese)](./testing.ja.md).
 
 ### Quick Start
 
@@ -193,15 +194,21 @@ Tests are automatically executed as part of the CI pipeline:
 
 ### Core Test Documentation
 
-- **[Test Execution Guide](./test-execution.ja.md)** - Practical execution guide with DDD-based structure (Japanese)
-- **[Test Debugging Strategy](./test-debugging.md)** - BreakdownLogger integration and comparison testing
-- **[Testing Guidelines](./testing_guidelines.md)** - Detailed TDD practices and implementation guide
+- **[Test Execution Guide](./test-execution.ja.md)** - Practical execution guide
+  with DDD-based structure (Japanese)
+- **[Test Debugging Strategy](./test-debugging.md)** - BreakdownLogger
+  integration and comparison testing
+- **[Testing Guidelines](./testing_guidelines.md)** - Detailed TDD practices and
+  implementation guide
 
 ### Additional Resources
 
-- [E2E Test Execution Guide](../../tmp/e2e-test-execution-guide.md) - Comprehensive E2E testing strategy
-- [E2E Test Architecture](../../tests/e2e/README.md) - End-to-end test design principles
-- [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing infrastructure
+- [E2E Test Execution Guide](../../tmp/e2e-test-execution-guide.md) -
+  Comprehensive E2E testing strategy
+- [E2E Test Architecture](../../tests/e2e/README.md) - End-to-end test design
+  principles
+- [Robust Testing Framework](./robust-testing-framework.md) - Enhanced testing
+  infrastructure
 
 ## Best Practices
 

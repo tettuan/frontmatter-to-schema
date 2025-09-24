@@ -22,376 +22,272 @@ variables:
   - uv-analysis-scope: 分析対象とするエラーの範囲または条件
   - input_text_file: 分析対象のエラーログファイルパス
   - destination_path: 分析結果の出力先パス
-version: "1.0"
-date: "2025-09-22"
+version: "2.0"
+date: "2025-09-25"
 created_by: "climpt-docs generate-robust instruction-doc"
 ---
 
 # エラー実装へのデバッグ出力追加と要因分析手順書
 
-## 0. 目的・適用範囲
+## 背景と意図
 
-- **目的**:
-  エラー処理の実装にデバッグ出力機能を追加し、出力されたデバッグ情報を体系的に分析することで、エラーの根本要因を特定し、効果的な解決策を導出する。
-- **適用範囲**:
-  本プロジェクトのDDD/TDD/Totality原則に基づくエラー処理実装に対する全般的な分析・改善作業。
-- **非適用範囲**:
-  インフラレベルの運用監視やリアルタイム性を要求するプロダクション環境のモニタリングシステム構築。
+### なぜこの指示書が必要か
 
----
+エラー発生時の根本原因特定には、適切なデバッグ情報の収集と体系的な分析が不可欠。本指示書は、DDD/TDD/Totality原則に基づく本プロジェクトのエラー処理実装に対し、効果的なデバッグ出力を追加し、収集した情報から迅速に原因を特定するための標準手順を定義する。
 
-## 1. 不変条件（壊してはならない性質）
+### デバッグ戦略との連携
 
-1. デバッグ出力は既存のエラー処理ロジックや型安全性を破壊しない（型システム整合性
-   100%）。
-2. 追加されるデバッグ情報は構造化され、JSON形式で出力可能である（構造化率
-   100%）。
-3. 本番環境では適切にログレベル制御され、パフォーマンス影響を最小化する（パフォーマンス劣化
-   ≤ 5%）。
-4. エラーコンテキストは失われることなく、トレーサビリティが保たれる（情報損失率
-   = 0%）。
-5. Result<T,E>パターンとの一貫性を維持する（型パターン適合率 100%）。
+本指示書は以下のデバッグ戦略ドキュメントと連携して使用する：
 
----
+- **[BreakdownLogger統合ガイド](docs/tests/breakdownlogger-integration.md)**:
+  テスト専用デバッグツール
+- **[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)**:
+  環境変数制御とログレベル設定
+- **[比較テスト戦略](docs/tests/test-debugging.md)**:
+  問題特定のための比較分析手法
 
-## 2. 入力・前提条件
+**重要な制約**:
+BreakdownLoggerはテストコード（`*_test.ts`ファイル）でのみ使用可能。本番コードでは動作しないため、エラー分析は必ずテストファイルを作成して実施する。
 
-- **入力**: `uv-error-component`, `uv-analysis-scope`, `input_text_file`,
-  `destination_path`
-- **前提**:
-  - TypeScript/Deno環境が利用可能である
-  - 既存のエラー型システム（DomainError、ValidationError等）が理解できる
-  - LoggingServiceとDebugLoggerの実装パターンが把握できる
-  - Result<T,E>パターンによるエラーハンドリングが理解できる
-- **禁止事項**:
-  - console.log等の直接的なコンソール出力は使用しない
-  - 既存のエラー型定義を破壊的に変更しない
+### 適用範囲
+
+- ✅ ドメインエラー（DomainError）の原因分析
+- ✅ バリデーションエラーの詳細追跡
+- ✅ Result<T,E>パターンでのエラー伝播分析
+- ❌ インフラレベルの運用監視（スコープ外）
 
 ---
 
-## 3. 前提情報リスト
+## 核心原則（守るべき不変条件）
 
-### 3.1 プロジェクト構造
+1. **型安全性保持**: デバッグ出力追加で既存の型システムを破壊しない
+2. **構造化必須**: 全デバッグ情報をJSON形式で構造化出力
+3. **性能維持**: ログレベル制御で性能劣化を5%以内に抑制
+4. **機密保護**: パスワード・トークン等をログから完全排除
+5. **Result<T,E>一貫性**: エラーパターンとの整合性維持
 
-- **アーキテクチャ**: Domain-Driven Design (DDD) + Test-Driven Development
-  (TDD) + Totality原則
-- **言語**: TypeScript (Deno環境)
-- **エラーハンドリング**: Result<T,E>パターンによる型安全なエラー処理
-- **ログシステム**: EnhancedDebugLogger + LoggingServiceによる構造化ログ
+## 前提条件と制約
 
-### 3.2 既存エラー型システム
+### 必要な知識
 
-- **DomainError**: ValidationError, SchemaError, FrontmatterError,
-  TemplateError, AggregationError, FileSystemError, SystemError,
-  PerformanceError
-- **エラー作成関数**: createError, createContextualError, createEnhancedError
-- **型安全性**: 判別可能ユニオン(discriminated
-  union)パターンでkindフィールドによる分岐
+- TypeScript/Deno環境の基本理解
+- DomainErrorとResult<T,E>パターンの理解
+- テストファイル（`*_test.ts`）の作成能力
+- [BreakdownLogger統合](docs/tests/breakdownlogger-integration.md)の制約理解
 
-### 3.3 ログシステム構成
+### 禁止事項
 
-- **LoggingService**: インフラレイヤーの集約ログサービス
-- **EnhancedDebugLogger**: CLI特化の拡張デバッグロガー
-- **LogContext**: 構造化ログコンテキスト（時刻、操作、場所、進捗等）
-- **ログレベル**: error, warn, info, debug, trace
+- ❌ 本番コードでのBreakdownLogger使用（テストコード専用、本番では動作しない）
+- ❌ console.log等の直接出力
+- ❌ 既存エラー型の破壊的変更
+- ❌ 機密情報のログ出力
 
----
+## システム構造の概要
 
-## 4. 仮定リスト
+### エラー処理アーキテクチャ
 
-1. 既存のエラー処理実装は型安全性が保たれており、破壊的変更は最小限に留める
-2. デバッグ出力は開発・テスト環境での問題解決を主目的とし、本番運用の詳細監視は対象外
-3. 分析対象エラーは再現可能な状況で発生している、または十分なログが蓄積されている
+```
+DomainError (基底型)
+├── ValidationError
+├── SchemaError
+├── FrontmatterError
+└── TemplateError
 
----
+作成関数:
+- createError()
+- createContextualError()
+- createEnhancedError()
+```
 
-## 5. 手順
+### ログシステム構成
 
-### 5.1 Git ブランチ準備
+詳細は[テストデバッグ戦略](docs/tests/test-debugging-strategy.md)を参照。
 
-- Gitブランチ準備:
-  `echo "feature/error-debug-output-implementation" | climpt-git decide-branch working-branch`
-  を実行し、出力結果の指示に従う。
-
-### 5.2 対象エラー実装の調査・特定
-
-#### 5.2.1 エラー実装箇所の特定
-
-1. **対象コンポーネント特定**:
-   ```bash
-   # uv-error-componentに関連するエラー実装を検索
-   grep -r "uv-error-component" src/ --include="*.ts"
-   ```
-
-2. **エラー型定義の確認**:
-   ```bash
-   # 関連するDomainError型を特定
-   grep -r "kind.*Error" src/domain/shared/types/errors.ts
-   ```
-
-3. **エラー発生箇所の特定**:
-   ```bash
-   # createError, createContextualError, createEnhancedErrorの使用箇所
-   grep -r "createError\|createContextualError\|createEnhancedError" src/
-   ```
-
-#### 5.2.2 現在のエラーハンドリングパターン分析
-
-1. **Result<T,E>パターンの使用状況確認**
-2. **既存のエラーコンテキスト情報の評価**
-3. **ログ出力の現状把握**
-
-### 5.3 デバッグ出力機能の設計
-
-#### 5.3.1 デバッグコンテキスト拡張
-
-1. **ErrorContext拡張の設計**:
-   - 呼び出しスタック情報
-   - 処理時点でのアプリケーション状態
-   - 入力データのスナップショット
-   - パフォーマンス指標（メモリ使用量、処理時間）
-
-2. **StructuredLogContextの活用**:
-   ```typescript
-   // 拡張例
-   type ErrorAnalysisContext = StructuredLogContext & {
-     errorDetails: {
-       errorKind: string;
-       stackTrace: string[];
-       applicationState: Record<string, unknown>;
-       inputSnapshot: unknown;
-       performanceMetrics: {
-         memoryUsage: number;
-         processingTime: number;
-         timestamp: string;
-       };
-     };
-   };
-   ```
-
-#### 5.3.2 デバッグ可能なエラー作成関数の実装
-
-1. **createDebuggableError関数の実装**:
-   ```typescript
-   export const createDebuggableError = <T extends DomainError>(
-     error: T,
-     context: ErrorContext,
-     debugInfo: {
-       stackTrace?: string[];
-       applicationState?: Record<string, unknown>;
-       inputData?: unknown;
-       performanceMetrics?: PerformanceMetrics;
-     },
-     customMessage?: string,
-   ): T & ErrorWithContext & { debugInfo: typeof debugInfo }
-   ```
-
-2. **既存関数との互換性保持**
-
-### 5.4 ログ出力機能の強化
-
-#### 5.4.1 LoggingServiceへのエラー解析機能追加
-
-1. **logErrorAnalysis メソッドの実装**:
-   ```typescript
-   logErrorAnalysis(
-     error: DomainError & ErrorWithContext,
-     analysisLevel: "basic" | "detailed" | "comprehensive",
-     correlationId?: string,
-   ): void
-   ```
-
-2. **エラーパターン分析機能**:
-   - 同種エラーの発生頻度
-   - エラー発生のコンテキストパターン
-   - パフォーマンス影響分析
-
-#### 5.4.2 構造化エラーログの出力設計
-
-1. **JSON形式での構造化出力**
-2. **時系列分析可能な形式**
-3. **外部分析ツール連携可能な形式**
-
-### 5.5 実装・統合
-
-#### 5.5.1 段階的実装
-
-1. **Phase 1**: 基本的なデバッグ情報追加
-2. **Phase 2**: 構造化ログ出力機能
-3. **Phase 3**: 分析・レポート機能
-
-#### 5.5.2 既存コードへの統合
-
-1. **createEnhancedError関数の段階的置き換え**
-2. **テストケースの更新**
-3. **型定義の拡張**
-
-### 5.6 デバッグ情報の出力・収集
-
-#### 5.6.1 デバッグセッションの実行
-
-1. **対象エラーの再現実行**:
-   ```bash
-   # デバッグレベルログを有効化して実行
-   DEBUG_LEVEL=3 deno run --allow-all cli.ts [parameters]
-   ```
-
-2. **構造化ログの収集**:
-   ```bash
-   # ログ出力をJSONファイルに保存
-   DEBUG_LEVEL=3 deno run --allow-all cli.ts [parameters] 2>error-debug.json
-   ```
-
-#### 5.6.2 ログ情報の構造化保存
-
-1. **`input_text_file`からのエラーログ読み込み**
-2. **時系列順でのソート・整理**
-3. **相関関係のあるエラーのグルーピング**
-
-### 5.7 要因分析の実行
-
-#### 5.7.1 データパターン分析
-
-1. **エラー発生頻度の分析**:
-   - エラー種別ごとの発生回数
-   - 時間帯別の発生傾向
-   - 特定入力パターンとの相関
-
-2. **コンテキスト分析**:
-   - エラー発生時のアプリケーション状態
-   - 処理フローでの発生位置
-   - 前後の処理ステップとの関連性
-
-#### 5.7.2 根本要因の特定
-
-1. **5W1H分析の適用**:
-   - When: エラー発生タイミング
-   - Where: エラー発生箇所
-   - What: エラーの内容・種類
-   - Who: エラーに関与するコンポーネント
-   - Why: エラー発生の直接的原因
-   - How: エラー発生に至るプロセス
-
-2. **因果関係の分析**:
-   - 直接的原因の特定
-   - 間接的要因の洗い出し
-   - システム設計上の課題の抽出
-
-#### 5.7.3 改善案の策定
-
-1. **短期的対策**:
-   - エラーハンドリングロジックの改善
-   - バリデーション強化
-   - エラーメッセージの改善
-
-2. **中長期的改善**:
-   - アーキテクチャレベルの見直し
-   - 予防的機能の追加
-   - 監視・早期発見機能の強化
-
-### 5.8 分析結果の出力・報告
-
-#### 5.8.1 分析レポートの作成
-
-1. **`destination_path`への構造化レポート出力**:
-   ```json
-   {
-     "analysisId": "uuid",
-     "timestamp": "2025-09-22T12:00:00Z",
-     "scope": "uv-analysis-scope",
-     "summary": {
-       "totalErrors": 42,
-       "errorTypes": ["ValidationError", "SchemaError"],
-       "criticalErrors": 3,
-       "patterns": ["高頻度: 入力データ不正", "中頻度: スキーマ不整合"]
-     },
-     "detailedAnalysis": {
-       "errorBreakdown": {...},
-       "rootCauses": [...],
-       "recommendations": [...]
-     }
-   }
-   ```
-
-2. **実行可能な改善提案**:
-   - 具体的なコード修正案
-   - テストケース追加提案
-   - 監視強化提案
-
-#### 5.8.2 継続的改善のための仕組み
-
-1. **エラー分析の自動化検討**
-2. **定期的な要因分析の実行計画**
-3. **改善効果の測定方法**
+- **ログレベル**: `LOG_LEVEL=error|warn|info|debug`
+- **環境変数制御**: `LOG_KEY`, `LOG_LENGTH`による絞り込み
 
 ---
 
-## 6. 成果物定義
+## 実装手順
 
-### 6.1 主成果物
+### Phase 1: エラー箇所の特定
 
-- **拡張されたエラー実装**: デバッグ情報付きエラー作成関数群
-- **強化されたログシステム**: エラー解析機能付きLoggingService
-- **分析レポート**: 構造化された要因分析結果（`destination_path`に出力）
+#### 1.1 対象エラーの探索
 
-### 6.2 付録
+```bash
+# エラー実装箇所を特定
+grep -r "{uv-error-component}" src/ --include="*.ts"
+grep -r "createError.*{uv-error-component}" src/
 
-- **用語集**: プロジェクト固有のエラー用語定義
-- **禁止語一覧**: 使用を避けるべき曖昧な表現
-- **変化点リスト**: 既存コードへの変更箇所一覧
-- **レビュー票**: 実装品質確認チェックリスト
+# エラー型定義の確認
+grep -r "kind.*Error" src/domain/shared/types/errors.ts
+```
 
----
+#### 1.2 現状分析
 
-## 7. Definition of Done (DoD)
+[比較テスト戦略](docs/tests/test-debugging.md#comparison-tests)を参照し、エラー発生前後の状態を比較分析する。
 
-1. **機能完全性**:
-   - すべての対象エラータイプにデバッグ出力が追加されている
-   - 構造化ログ出力が正常に動作する
-   - 分析レポートが期待される形式で出力される
+```typescript
+// Before: エラー発生前の状態
+logger.debug("処理前", { data: inputData });
 
-2. **品質基準**:
-   - 既存のテストがすべてパスする
-   - 新規追加コードのテストカバレッジが80%以上
-   - 型安全性が保たれている（TypeScriptコンパイルエラーなし）
+// After: エラー発生後の状態
+logger.error("エラー発生", { error: error.kind, context });
+```
 
-3. **運用要件**:
-   - 本番環境でのパフォーマンス影響が5%以下
-   - ログレベル制御が適切に機能する
-   - メモリリークが発生しない
+### Phase 2: テスト経由のデバッグ実装
 
----
+#### 2.1 エラー再現テストの作成
 
-## 8. 参照資料
+**重要**: BreakdownLoggerはテストコード（`*_test.ts`）専用のデバッグツール。
+本番コードのエラーを分析する際は、必ず対応するテストファイルを作成し、
+そこでBreakdownLoggerを使用してエラーコンテキストを取得する。
 
-### 8.1 必須の参照資料（コード変更用）
+```typescript
+// src/domain/errors/{uv-error-component}_debug_test.ts
+import { BreakdownLogger } from "@tettuan/breakdownlogger";
+import { describe, it } from "jsr:@std/testing/bdd";
 
-- **全域性原則**: `docs/development/totality.ja.md`
-- **[AI複雑化防止（科学的制御）](docs/development/ai-complexity-control_compact.ja.md)**
-- **[Prohibit-Hardcoding](prohibit-hardcoding.ja.md)**
+describe("エラーデバッグ分析", () => {
+  const logger = new BreakdownLogger("{uv-error-component}-debug");
 
-### 8.2 技術参照資料
+  it("should capture error context", () => {
+    // エラーを再現する処理
+    const result = targetFunction(problematicInput);
 
-- **エラー型定義**: `src/domain/shared/types/errors.ts`
-- **ログシステム**: `src/infrastructure/logging/logging-service.ts`
-- **デバッグロガー**: `src/domain/shared/services/debug-logger.ts`
-- **Result型パターン**: `src/domain/shared/types/result.ts`
+    if (!result.ok) {
+      logger.error("エラー詳細", {
+        kind: result.error.kind,
+        context: result.error.context,
+        input: problematicInput,
+        stackTrace: new Error().stack,
+      });
+    }
+  });
+});
+```
 
-### 8.3 設計原則資料
+#### 2.2 本番コードのデバッグ情報埋め込み
 
-- **DDD実装ガイド**: `docs/architecture/README.md`
-- **テスト戦略**: `docs/tests/README.md`
-- **型安全性ガイドライン**: TypeScript公式ドキュメント
+本番コードにはBreakdownLoggerを使用できないため、
+テストから取得可能なデバッグ情報を返却値に含める：
 
----
+```typescript
+// 本番コード側（BreakdownLoggerは使用不可）
+const createDebuggableError = <T extends DomainError>(
+  error: T,
+  debugInfo: {
+    stackTrace?: string[];
+    inputData?: unknown;
+    timestamp?: string;
+  }
+): T & { debugInfo: typeof debugInfo }
 
-## 9. 品質検証方法（24本評価）
+// テストコードからこのデバッグ情報を取得して分析
+```
 
-本指示書の品質は以下の方法で検証される：
+### Phase 3: エラーの収集と分析
 
-- **正規化手順**: 記号除去 → 全半角統一 → 数値を`<NUM>`化 → 日本語2-gram化
-- **類似度計算**:
-  - レーベンシュタイン類似度: `sim_lev(a,b) = 1 - Lev(a,b) / max(|a|, |b|)`
-  - ジャッカード係数（2-gram）: `sim_jac(A,B) = |A∩B| / |A∪B|`
-  - 合成スコア: `sim(a,b) = 0.5*sim_lev + 0.5*sim_jac`
-- **品質基準**: MedSim ≥ 0.82（中央値類似度）で確定
+#### 3.1 デバッグ実行
+
+[テストデバッグ戦略](docs/tests/test-debugging-strategy.md#環境変数設定)に従って実行:
+
+```bash
+# テストファイルでのデバッグ実行（BreakdownLogger使用）
+LOG_LEVEL=debug deno test --allow-all src/domain/errors/{uv-error-component}_debug_test.ts
+
+# CLIでのデバッグ実行（環境変数制御）
+LOG_LEVEL=debug LOG_KEY={uv-error-component} deno run --allow-all cli.ts
+
+# JSON形式で保存
+LOG_LEVEL=debug LOG_LENGTH=W deno run --allow-all cli.ts 2>error-debug.json
+```
+
+#### 3.2 要因分析
+
+**比較分析パターン**（[比較テスト戦略](docs/tests/test-debugging.md#段階的比較)参照）:
+
+1. **Before/After比較**: エラー発生前後の状態差分
+2. **成功/失敗比較**: 正常系と異常系の処理フロー差分
+3. **段階的分析**: 処理ステップごとのデータ変化追跡
+
+### Phase 4: 根本原因の特定
+
+#### 4.1 5W1H分析
+
+- **When**: タイミング（初期化/処理中/終了時）
+- **Where**: 発生箇所（ドメイン層/アプリケーション層）
+- **What**: エラー種別（ValidationError/SchemaError等）
+- **Why**: 直接原因（入力不正/型不整合/null参照）
+- **How**: 発生経路（呼び出しスタックトレース）
+
+#### 4.2 改善提案
+
+1. **即時対応**: エラーハンドリングの修正
+2. **予防策**: バリデーション強化
+3. **監視強化**: ログレベル調整
+
+## 成果物
+
+### 分析レポート形式
+
+```json
+{
+  "metadata": {
+    "component": "{uv-error-component}",
+    "scope": "{uv-analysis-scope}",
+    "timestamp": "ISO8601"
+  },
+  "errorSummary": {
+    "totalErrors": 0,
+    "errorTypes": [],
+    "criticalErrors": 0
+  },
+  "rootCause": {
+    "primary": "特定された根本原因",
+    "factors": ["要因1", "要因2"]
+  },
+  "recommendations": {
+    "immediate": ["即時対応"],
+    "preventive": ["予防策"]
+  }
+}
+```
+
+結果を`{destination_path}`へ出力する。
+
+## チェックリスト
+
+### 実装確認
+
+- [ ] エラー再現テストファイル（`*_test.ts`）の作成
+- [ ] BreakdownLoggerのテストコード内での実装
+- [ ] デバッグ可能エラー関数の実装
+- [ ] 構造化ログ出力の確認
+- [ ] 環境変数制御の動作確認
+
+### 品質保証
+
+- [ ] 型安全性の維持（破壊的変更なし）
+- [ ] パフォーマンス劣化5%以内
+- [ ] 機密情報マスキング確認
+- [ ] テストコードでのBreakdownLogger動作確認
+
+## 参照資料
+
+### プロジェクト内
+
+- エラー型: `src/domain/shared/types/errors.ts`
+- ログシステム: `src/infrastructure/logging/`
+
+### デバッグ戦略ドキュメント
+
+- [BreakdownLogger統合](docs/tests/breakdownlogger-integration.md)
+- [テストデバッグ戦略](docs/tests/test-debugging-strategy.md)
+- [比較テスト手法](docs/tests/test-debugging.md)
+
+## DoD (Definition of Done)
+
+✅ デバッグ出力機能が実装され、構造化ログがJSON形式で出力可能 ✅
+ログレベル制御で性能影響を5%以内に抑制 ✅ 分析レポートが指定形式で出力 ✅
+既存テストが全て成功

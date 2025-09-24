@@ -2,12 +2,17 @@
 
 ## Overview
 
-This document defines the test debugging strategy using `@tettuan/breakdownlogger` for strategic test analysis, comparison testing, and debugging. The logger provides structured debugging with `LOG_KEY` filtering and `LOG_LENGTH` control.
+This document defines the test debugging strategy using
+`@tettuan/breakdownlogger` for strategic test analysis, comparison testing, and
+debugging. The logger provides structured debugging with `LOG_KEY` filtering and
+`LOG_LENGTH` control.
 
 ## Document Relationships
 
-- **[Test Overview](./README.md)**: High-level testing philosophy and architecture
-- **[Test Execution Guide](./test-execution.ja.md)**: Practical execution guide (Japanese)
+- **[Test Overview](./README.md)**: High-level testing philosophy and
+  architecture
+- **[Test Execution Guide](./test-execution.ja.md)**: Practical execution guide
+  (Japanese)
 - **This Document**: Debugging strategy and BreakdownLogger integration
 
 ## Environment Variables
@@ -124,14 +129,20 @@ LOG_KEY=failing-component LOG_LEVEL=debug LOG_LENGTH=L deno test --allow-all
 
 ### Comparison Testing Strategy
 
-BreakdownLogger enables **Comparison Testing** - a strategic approach to validate processing effectiveness by comparing results with and without specific operations.
+BreakdownLogger enables **Comparison Testing** - a strategic approach to
+validate processing effectiveness by comparing results with and without specific
+operations.
 
 #### Purpose of Comparison Testing
 
-1. **Quantitative Validation**: Measure the actual impact of processing operations
-2. **Process Effectiveness**: Verify that filters, transformations, and optimizations work correctly
-3. **Behavioral Verification**: Ensure consistent behavior across different execution paths
-4. **Runtime Process Evaluation**: Detailed tracking of execution flow for analysis
+1. **Quantitative Validation**: Measure the actual impact of processing
+   operations
+2. **Process Effectiveness**: Verify that filters, transformations, and
+   optimizations work correctly
+3. **Behavioral Verification**: Ensure consistent behavior across different
+   execution paths
+4. **Runtime Process Evaluation**: Detailed tracking of execution flow for
+   analysis
 
 #### Implementation Pattern
 
@@ -145,7 +156,7 @@ Deno.test("Comparison Test: Filter Processing Effectiveness", async () => {
   // Test data with filterable items
   const testData = [
     { id: 1, active: true, name: "Alice" },
-    { id: 2, active: false, name: "Bob" },  // Should be filtered
+    { id: 2, active: false, name: "Bob" }, // Should be filtered
     { id: 3, active: true, name: "Charlie" },
   ];
 
@@ -157,12 +168,12 @@ Deno.test("Comparison Test: Filter Processing Effectiveness", async () => {
 
   // Process WITH filtering
   logger.debug("Starting filter process");
-  const withFilter = testData.filter(item => {
+  const withFilter = testData.filter((item) => {
     const keep = item.active;
     logger.trace("Filter decision", {
       id: item.id,
       active: item.active,
-      decision: keep ? "keep" : "remove"
+      decision: keep ? "keep" : "remove",
     });
     return keep;
   });
@@ -172,12 +183,15 @@ Deno.test("Comparison Test: Filter Processing Effectiveness", async () => {
     original: withoutFilter.length,
     filtered: withFilter.length,
     removed: withoutFilter.length - withFilter.length,
-    effectiveness: `${((withoutFilter.length - withFilter.length) / withoutFilter.length * 100).toFixed(1)}%`
+    effectiveness: `${
+      ((withoutFilter.length - withFilter.length) / withoutFilter.length * 100)
+        .toFixed(1)
+    }%`,
   });
 
   // Assertions
   assertEquals(withFilter.length, 2);
-  assertEquals(withFilter.every(item => item.active), true);
+  assertEquals(withFilter.every((item) => item.active), true);
 });
 ```
 

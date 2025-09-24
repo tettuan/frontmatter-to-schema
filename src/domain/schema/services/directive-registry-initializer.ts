@@ -13,6 +13,7 @@ import { TemplateDirectiveHandler } from "../handlers/template-directive-handler
 import { TemplateItemsDirectiveHandler } from "../handlers/template-items-directive-handler.ts";
 import { JMESPathFilterDirectiveHandler } from "../handlers/jmespath-filter-directive-handler.ts";
 import { FlattenArraysDirectiveHandler } from "../handlers/flatten-arrays-directive-handler.ts";
+import { FrontmatterPartDirectiveHandler } from "../handlers/frontmatter-part-directive-handler.ts";
 
 /**
  * Registry initialization result
@@ -89,6 +90,26 @@ export class DirectiveRegistryInitializer {
     registry: DirectiveRegistry,
   ): Result<readonly string[], DirectiveHandlerError> {
     const registeredHandlers: string[] = [];
+
+    // Register Frontmatter Part Handler
+    const frontmatterPartHandlerResult = FrontmatterPartDirectiveHandler
+      .create();
+    if (!frontmatterPartHandlerResult.ok) {
+      return err({
+        kind: "ConfigurationError",
+        directiveName: "frontmatter-part",
+        message: "Failed to create FrontmatterPartDirectiveHandler",
+        details: frontmatterPartHandlerResult.error,
+      });
+    }
+
+    const frontmatterPartRegisterResult = registry.registerHandler(
+      frontmatterPartHandlerResult.data,
+    );
+    if (!frontmatterPartRegisterResult.ok) {
+      return frontmatterPartRegisterResult;
+    }
+    registeredHandlers.push("frontmatter-part");
 
     // Register Template Handler
     const templateHandlerResult = TemplateDirectiveHandler.create();
@@ -167,7 +188,6 @@ export class DirectiveRegistryInitializer {
     registeredHandlers.push("flatten-arrays");
 
     // TODO: Add more handlers as they are implemented
-    // - FrontmatterPartDirectiveHandler
     // - DerivedFromDirectiveHandler
     // - DerivedUniqueDirectiveHandler
     // - TemplateFormatDirectiveHandler

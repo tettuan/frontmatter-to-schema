@@ -1,9 +1,9 @@
 # テスト実行ガイド
 
-> **役割**:
-> このドキュメントは**テスト実行の実践的ガイド**です。
+> **役割**: このドキュメントは**テスト実行の実践的ガイド**です。
 >
 > **関連ドキュメント**:
+>
 > - [テスト概要](./README.md): テスト哲学とアーキテクチャ
 > - [デバッグ戦略](./test-debugging.md): BreakdownLoggerを使用したデバッグ手法
 > - このドキュメント: 実践的な実行手順とDDD基盤の構造
@@ -55,7 +55,7 @@ Deno.test("比較テスト: フィルタリング処理の効果検証", async (
   // テストデータ（フィルタリング対象を含む）
   const testData = [
     { id: 1, active: true, name: "Alice" },
-    { id: 2, active: false, name: "Bob" },  // フィルタリング対象
+    { id: 2, active: false, name: "Bob" }, // フィルタリング対象
     { id: 3, active: true, name: "Charlie" },
   ];
 
@@ -65,12 +65,12 @@ Deno.test("比較テスト: フィルタリング処理の効果検証", async (
 
   // フィルタリング処理ありの場合
   logger.debug("フィルタリング処理開始");
-  const withFilter = testData.filter(item => {
+  const withFilter = testData.filter((item) => {
     const keep = item.active;
     logger.trace("フィルタリング判定", {
       id: item.id,
       active: item.active,
-      keep
+      keep,
     });
     return keep;
   });
@@ -79,12 +79,12 @@ Deno.test("比較テスト: フィルタリング処理の効果検証", async (
   logger.info("比較結果", {
     before: withoutFilter.length,
     after: withFilter.length,
-    filtered: withoutFilter.length - withFilter.length
+    filtered: withoutFilter.length - withFilter.length,
   });
 
   // アサーション
   assertEquals(withFilter.length, 2);
-  assertEquals(withFilter.every(item => item.active), true);
+  assertEquals(withFilter.every((item) => item.active), true);
 });
 ```
 
