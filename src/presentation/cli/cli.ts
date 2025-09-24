@@ -28,6 +28,7 @@ import { PromptGeneratorService } from "./services/prompt-generator-service.ts";
 import { SupportedFormats } from "../../domain/configuration/value-objects/supported-formats.ts";
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 import { FormatConfigLoaderFactory } from "../../domain/configuration/services/format-config-loader.ts";
+import { DirectiveRegistryInitializer } from "../../domain/schema/services/directive-registry-initializer.ts";
 import {
   DenoFileLister,
   DenoFileReader,
@@ -68,6 +69,18 @@ export class CLI {
       return err(createError({
         kind: "ConfigurationError",
         message: "Failed to create logger",
+      }));
+    }
+
+    // Initialize DirectiveRegistry with all handlers
+    // This ensures registry-based processing is available throughout the application
+    const registryInitResult = DirectiveRegistryInitializer
+      .initializeWithDefaults();
+    if (!registryInitResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to initialize DirectiveRegistry: ${registryInitResult.error.message}`,
       }));
     }
 

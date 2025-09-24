@@ -12,6 +12,8 @@ import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
 import { JMESPathFilterService } from "./jmespath-filter-service.ts";
+import { DirectiveRegistryInitializer } from "./directive-registry-initializer.ts";
+import type { DirectiveRegistry } from "../directives/directive-registry.ts";
 
 /**
  * Directive Processing Error Types
@@ -430,9 +432,78 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Process individual directive
+   * Process individual directive using registry pattern
    */
   private processDirective(
+    data: FrontmatterData,
+    schema: Schema,
+    directiveNode: DirectiveNode,
+  ): Result<FrontmatterData, DirectiveProcessingError> {
+    const kind = directiveNode.type.getKind();
+
+    // Try to use registry pattern first
+    const registryResult = this.getRegistryInstance();
+    if (registryResult.ok) {
+      const registry = registryResult.data;
+      const handlerResult = registry.getHandler(kind);
+
+      if (handlerResult.ok) {
+        const handler = handlerResult.data;
+
+        // Extract configuration from schema
+        const schemaData = schema.getDefinition().getRawSchema();
+        const configResult = handler.extractConfig(schemaData);
+
+        if (!configResult.ok) {
+          return err({
+            kind: "ProcessingFailed",
+            directive: kind,
+            error: {
+              kind: "ConfigurationError",
+              message: configResult.error.message ||
+                `Failed to extract config for directive: ${kind}`,
+            } as DomainError,
+            message: `Failed to extract config for directive: ${kind}`,
+          });
+        }
+
+        if (!configResult.data.isPresent) {
+          // Directive not present in schema, skip processing
+          return ok(data);
+        }
+
+        // Process data using handler
+        const processResult = handler.processData(
+          data,
+          configResult.data,
+          schema,
+        );
+
+        if (!processResult.ok) {
+          return err({
+            kind: "ProcessingFailed",
+            directive: kind,
+            error: {
+              kind: "ConfigurationError",
+              message: processResult.error.message ||
+                `Handler processing failed for directive: ${kind}`,
+            } as DomainError,
+            message: `Handler processing failed for directive: ${kind}`,
+          });
+        }
+
+        return ok(processResult.data.processedData);
+      }
+    }
+
+    // Fallback to legacy hardcoded processing if registry not available
+    return this.processDirectiveLegacy(data, schema, directiveNode);
+  }
+
+  /**
+   * Legacy hardcoded directive processing (fallback)
+   */
+  private processDirectiveLegacy(
     data: FrontmatterData,
     _schema: Schema,
     directiveNode: DirectiveNode,
@@ -1032,5 +1103,26 @@ export class DirectiveProcessor {
     }
 
     return filters;
+  }
+
+  /**
+   * Get registry instance for directive processing
+   * Returns registry if available, otherwise returns error
+   */
+  private getRegistryInstance(): Result<
+    DirectiveRegistry,
+    DirectiveProcessingError
+  > {
+    const registryResult = DirectiveRegistryInitializer.getRegistry();
+    if (!registryResult.ok) {
+      return err({
+        kind: "ProcessingFailed",
+        directive: "registry",
+        error: registryResult.error,
+        message: "DirectiveRegistry not available",
+      });
+    }
+
+    return ok(registryResult.data);
   }
 }

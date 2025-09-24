@@ -13,44 +13,13 @@ import {
   SchemaPropertyFactory,
   StringConstraints,
 } from "./schema-property-types.ts";
+import { DirectiveRegistryInitializer } from "../services/directive-registry-initializer.ts";
+import { LegacySchemaProperty } from "../interfaces/directive-handler.ts";
 
-/**
- * Legacy schema property interface (for migration only)
- * This represents the old optional properties approach that violates Totality
- */
-export interface LegacySchemaProperty {
-  readonly type?: string;
-  readonly description?: string;
-  readonly properties?: { readonly [key: string]: LegacySchemaProperty };
-  readonly items?: LegacySchemaProperty | { readonly $ref: string };
-  readonly $ref?: string;
-  readonly required?: readonly string[];
-  readonly enum?: readonly unknown[];
-  readonly pattern?: string;
-  readonly minimum?: number;
-  readonly maximum?: number;
-  readonly exclusiveMinimum?: boolean;
-  readonly exclusiveMaximum?: boolean;
-  readonly multipleOf?: number;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-  readonly format?: string;
-  readonly minItems?: number;
-  readonly maxItems?: number;
-  readonly uniqueItems?: boolean;
-  readonly minProperties?: number;
-  readonly maxProperties?: number;
-  readonly additionalProperties?: boolean | LegacySchemaProperty;
-  readonly "x-template"?: string;
-  readonly "x-frontmatter-part"?: boolean;
-  readonly "x-derived-from"?: string;
-  readonly "x-derived-unique"?: boolean;
-  readonly "x-template-items"?: string;
-  readonly "x-flatten-arrays"?: string;
-  readonly "x-template-format"?: "json" | "yaml" | "markdown"; // User-requested: output format specification
-  readonly "x-jmespath-filter"?: string; // JMESPath filtering expression
-  readonly default?: unknown; // Standard JSON Schema default property
-}
+// Note: LegacySchemaProperty interface is now imported from directive-handler.ts
+// This eliminates duplicate interface definitions and centralizes the legacy type
+// Re-export for backward compatibility with existing imports
+export type { LegacySchemaProperty } from "../interfaces/directive-handler.ts";
 
 /**
  * Migration utility to convert legacy schema properties to Totality-compliant discriminated unions
@@ -72,17 +41,24 @@ export class SchemaPropertyMigration {
 
     const legacySchema = legacy as LegacySchemaProperty;
 
+    // Type assertion helper for safer casting (unused in current implementation)
+    // const _safeCast = <T>(value: unknown): T | undefined => {
+    //   return value as T;
+    // };
+
     // Extract extensions first
     const extensions = this.extractExtensions(legacySchema);
 
     // Handle $ref case
-    if (legacySchema.$ref) {
+    if (typeof legacySchema.$ref === "string") {
       return ok(SchemaPropertyFactory.createRef(legacySchema.$ref, extensions));
     }
 
     // Handle enum case
-    if (legacySchema.enum) {
-      const baseType = this.determineEnumBaseType(legacySchema.type);
+    if (Array.isArray(legacySchema.enum)) {
+      const baseType = this.determineEnumBaseType(
+        typeof legacySchema.type === "string" ? legacySchema.type : undefined,
+      );
       return ok(
         SchemaPropertyFactory.createEnum(
           legacySchema.enum,
@@ -93,12 +69,14 @@ export class SchemaPropertyMigration {
     }
 
     // Handle typed schemas
-    if (legacySchema.type) {
+    if (typeof legacySchema.type === "string") {
       return this.migrateTypedSchema(legacySchema, extensions);
     }
 
     // Handle object without explicit type (has properties)
-    if (legacySchema.properties) {
+    if (
+      legacySchema.properties && typeof legacySchema.properties === "object"
+    ) {
       return this.migrateObjectSchema(legacySchema, extensions);
     }
 
@@ -130,7 +108,41 @@ export class SchemaPropertyMigration {
     return ok(migratedProperties);
   }
 
+  /**
+   * Extract extensions using DirectiveRegistry (replaces hardcoded if-conditions)
+   * Following DDD and Totality principles with registry pattern
+   */
   private static extractExtensions(
+    legacy: LegacySchemaProperty,
+  ): SchemaExtensions {
+    // Try to use DirectiveRegistry if available
+    const registryResult = DirectiveRegistryInitializer.getRegistry();
+    if (registryResult.ok) {
+      const extractionResult = registryResult.data.extractAllExtensions(legacy);
+      if (extractionResult.ok) {
+        return extractionResult.data;
+      }
+      // If registry extraction fails, fall back to legacy method with logging
+      console.warn(
+        `DirectiveRegistry extraction failed: ${extractionResult.error.message}. Falling back to legacy extraction.`,
+      );
+    } else {
+      // Registry not initialized, use fallback
+      console.warn(
+        `DirectiveRegistry not available: ${registryResult.error.message}. Using legacy extraction method.`,
+      );
+    }
+
+    // Fallback to legacy hardcoded method (for backward compatibility during transition)
+    return this.extractExtensionsLegacy(legacy);
+  }
+
+  /**
+   * Legacy extension extraction method (DEPRECATED - for transition only)
+   * This method contains the original hardcoded if-conditions
+   * TODO: Remove this method once DirectiveRegistry is fully integrated
+   */
+  private static extractExtensionsLegacy(
     legacy: LegacySchemaProperty,
   ): SchemaExtensions {
     const registry = defaultSchemaExtensionRegistry;
@@ -240,7 +252,8 @@ export class SchemaPropertyMigration {
     legacy: LegacySchemaProperty,
     extensions: SchemaExtensions,
   ): Result<NewSchemaProperty, SchemaError & { message: string }> {
-    switch (legacy.type) {
+    const legacyType = legacy.type as string; // We already checked it's a string in caller
+    switch (legacyType) {
       case "string":
         return ok(SchemaPropertyFactory.createString(
           this.extractStringConstraints(legacy),
@@ -281,7 +294,7 @@ export class SchemaPropertyMigration {
           operation: "migrateByType",
           method: "validate",
         }).invalid(
-          `Unknown schema type: ${legacy.type}`,
+          `Unknown schema type: ${legacyType}`,
         );
     }
   }
@@ -301,8 +314,11 @@ export class SchemaPropertyMigration {
 
     let items: NewSchemaProperty | RefSchema;
 
-    if ("$ref" in legacy.items && legacy.items.$ref) {
-      items = { $ref: legacy.items.$ref };
+    if (
+      legacy.items && typeof legacy.items === "object" &&
+      "$ref" in legacy.items && typeof (legacy.items as any).$ref === "string"
+    ) {
+      items = { $ref: (legacy.items as any).$ref };
     } else {
       const itemsResult = this.migrate(legacy.items);
       if (!itemsResult.ok) {
@@ -331,20 +347,22 @@ export class SchemaPropertyMigration {
       // Object without properties
       return ok(SchemaPropertyFactory.createObject(
         {},
-        legacy.required || [],
+        Array.isArray(legacy.required) ? legacy.required : [],
         this.extractObjectConstraints(legacy),
         extensions,
       ));
     }
 
-    const propertiesResult = this.migrateProperties(legacy.properties);
+    const propertiesResult = this.migrateProperties(
+      legacy.properties as { readonly [key: string]: LegacySchemaProperty },
+    );
     if (!propertiesResult.ok) {
       return err(propertiesResult.error);
     }
 
     return ok(SchemaPropertyFactory.createObject(
       propertiesResult.data,
-      legacy.required || [],
+      Array.isArray(legacy.required) ? legacy.required : [],
       this.extractObjectConstraints(legacy),
       extensions,
     ));
@@ -354,10 +372,14 @@ export class SchemaPropertyMigration {
     legacy: LegacySchemaProperty,
   ): StringConstraints {
     return {
-      pattern: legacy.pattern,
-      minLength: legacy.minLength,
-      maxLength: legacy.maxLength,
-      format: legacy.format,
+      pattern: typeof legacy.pattern === "string" ? legacy.pattern : undefined,
+      minLength: typeof legacy.minLength === "number"
+        ? legacy.minLength
+        : undefined,
+      maxLength: typeof legacy.maxLength === "number"
+        ? legacy.maxLength
+        : undefined,
+      format: typeof legacy.format === "string" ? legacy.format : undefined,
     };
   }
 
@@ -365,11 +387,17 @@ export class SchemaPropertyMigration {
     legacy: LegacySchemaProperty,
   ): NumberConstraints {
     return {
-      minimum: legacy.minimum,
-      maximum: legacy.maximum,
-      exclusiveMinimum: legacy.exclusiveMinimum,
-      exclusiveMaximum: legacy.exclusiveMaximum,
-      multipleOf: legacy.multipleOf,
+      minimum: typeof legacy.minimum === "number" ? legacy.minimum : undefined,
+      maximum: typeof legacy.maximum === "number" ? legacy.maximum : undefined,
+      exclusiveMinimum: typeof legacy.exclusiveMinimum === "boolean"
+        ? legacy.exclusiveMinimum
+        : undefined,
+      exclusiveMaximum: typeof legacy.exclusiveMaximum === "boolean"
+        ? legacy.exclusiveMaximum
+        : undefined,
+      multipleOf: typeof legacy.multipleOf === "number"
+        ? legacy.multipleOf
+        : undefined,
     };
   }
 
@@ -377,9 +405,15 @@ export class SchemaPropertyMigration {
     legacy: LegacySchemaProperty,
   ): ArrayConstraints {
     return {
-      minItems: legacy.minItems,
-      maxItems: legacy.maxItems,
-      uniqueItems: legacy.uniqueItems,
+      minItems: typeof legacy.minItems === "number"
+        ? legacy.minItems
+        : undefined,
+      maxItems: typeof legacy.maxItems === "number"
+        ? legacy.maxItems
+        : undefined,
+      uniqueItems: typeof legacy.uniqueItems === "boolean"
+        ? legacy.uniqueItems
+        : undefined,
     };
   }
 
@@ -389,7 +423,10 @@ export class SchemaPropertyMigration {
     let additionalProperties: boolean | NewSchemaProperty | undefined;
     if (typeof legacy.additionalProperties === "boolean") {
       additionalProperties = legacy.additionalProperties;
-    } else if (legacy.additionalProperties) {
+    } else if (
+      legacy.additionalProperties &&
+      typeof legacy.additionalProperties === "object"
+    ) {
       const migrationResult = this.migrate(legacy.additionalProperties);
       if (migrationResult.ok) {
         additionalProperties = migrationResult.data;
@@ -397,8 +434,12 @@ export class SchemaPropertyMigration {
     }
 
     return {
-      minProperties: legacy.minProperties,
-      maxProperties: legacy.maxProperties,
+      minProperties: typeof legacy.minProperties === "number"
+        ? legacy.minProperties
+        : undefined,
+      maxProperties: typeof legacy.maxProperties === "number"
+        ? legacy.maxProperties
+        : undefined,
       additionalProperties,
     };
   }
@@ -411,6 +452,7 @@ export class SchemaPropertyMigration {
 export class SchemaPropertyLegacyAdapter {
   /**
    * Convert new schema property back to legacy format
+   * Enhanced to use DirectiveRegistry when available
    * This is a temporary measure during migration
    */
   static toLegacy(schema: NewSchemaProperty): LegacySchemaProperty {
@@ -439,6 +481,9 @@ export class SchemaPropertyLegacyAdapter {
       "x-flatten-arrays": schema.extensions
         ?.[registry.getFlattenArraysKey().getValue()] as string | undefined,
     };
+
+    // TODO: Future enhancement - use DirectiveRegistry to dynamically build legacy properties
+    // This would eliminate hardcoded property mappings entirely
 
     switch (schema.kind) {
       case "string":
