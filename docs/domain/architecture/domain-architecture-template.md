@@ -4,6 +4,16 @@
 
 本書は、テンプレート管理とレンダリングを担うTemplateドメインのアーキテクチャを定義する。
 
+### 最新の拡張
+
+#### 中間表現層（IR）の統合
+
+テンプレート変数解決の精度向上のため、以下の拡張を導入：
+
+1. **TemplatePathSegment**: 配列ショートハンド（`@items`, `items[]`）をサポート
+2. **中間表現層との統合**: [IRアーキテクチャ](./domain-architecture-intermediate-representation.md)と連携
+3. **TemplateContext**: スコープ管理による正確な変数解決（[仕様](../../architecture/template-context-specification.md)参照）
+
 ## Templateドメインモデル
 
 ### 1. 値オブジェクト
@@ -154,15 +164,16 @@ export class TemplateVariable {
 /**
  * テンプレート変数パス
  * {variable.nested.path} 形式のパスを表現
+ * 配列ショートハンド ({@items}, items[]) もサポート
  */
 export class VariablePath {
   private constructor(
-    private readonly segments: string[],
+    private readonly segments: TemplatePathSegment[],
     private readonly raw: string,
   ) {}
 
   static parse(expression: string): Result<VariablePath, ParseError> {
-    // {variable} または {variable.nested.path} 形式
+    // {variable}, {variable.nested.path}, {@items}, {items[]} 形式
     const match = expression.match(/^\{([^}]+)\}$/);
     if (!match) {
       return {
@@ -176,11 +187,21 @@ export class VariablePath {
     }
 
     const path = match[1];
-    const segments = path.split(".");
+    const segments: TemplatePathSegment[] = [];
 
-    // 各セグメントの検証
-    for (const segment of segments) {
-      if (!segment || segment.trim().length === 0) {
+    // 特殊マーカーのチェック
+    if (path.startsWith("@")) {
+      segments.push({ kind: "array-marker", marker: path });
+      return {
+        ok: true,
+        data: new VariablePath(segments, expression),
+      };
+    }
+
+    // 配列インデックスと通常パスの解析
+    const parts = path.split(".");
+    for (const part of parts) {
+      if (!part || part.trim().length === 0) {
         return {
           ok: false,
           error: {
@@ -190,6 +211,19 @@ export class VariablePath {
           },
         };
       }
+
+      // 配列アクセス (e.g., items[0] or items[])
+      const arrayMatch = part.match(/^([^[]+)\[(\d*)\]$/);
+      if (arrayMatch) {
+        segments.push({ kind: "property", name: arrayMatch[1] });
+        if (arrayMatch[2]) {
+          segments.push({ kind: "index", value: parseInt(arrayMatch[2], 10) });
+        } else {
+          segments.push({ kind: "array-marker", marker: `${arrayMatch[1]}[]` });
+        }
+      } else {
+        segments.push({ kind: "property", name: part });
+      }
     }
 
     return {
@@ -198,7 +232,7 @@ export class VariablePath {
     };
   }
 
-  getSegments(): string[] {
+  getSegments(): TemplatePathSegment[] {
     return [...this.segments];
   }
   getRaw(): string {
@@ -748,6 +782,14 @@ export interface TemplateRepository {
 ### 5. エラー型定義
 
 ```typescript
+/**
+ * Template path segment types for enhanced path resolution
+ */
+export type TemplatePathSegment =
+  | { kind: "property"; name: string }
+  | { kind: "index"; value: number }
+  | { kind: "array-marker"; marker: string }; // @items, items[]
+
 export type TemplateError =
   | TemplatePathError
   | ParseError

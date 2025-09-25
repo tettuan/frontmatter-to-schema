@@ -45,7 +45,7 @@ templates.
 
 ## 3. Processing Flow Architecture
 
-### 3.1 Data Processing Pipeline
+### 3.1 Data Processing Pipeline with Intermediate Representation
 
 ```mermaid
 graph TD
@@ -59,16 +59,34 @@ graph TD
     F --> G[Aggregation via x-derived-from]
 
     G --> H[Final Data Structure]
-    H --> I[TemplateRenderer]
+    H --> IR[Intermediate Representation Builder]
+    IR --> TC[Template Context Factory]
 
-    I --> J[Variable Resolution]
-    J --> K[{@items} Expansion]
+    TC --> I[TemplateRenderer]
+    I --> J[Context-aware Variable Resolution]
+    J --> K[Scoped {@items} Expansion]
     K --> L[Final Output]
 
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style H fill:#9f9,stroke:#333,stroke-width:2px
+    style IR fill:#ff9,stroke:#333,stroke-width:3px
+    style TC fill:#9ff,stroke:#333,stroke-width:3px
     style L fill:#99f,stroke:#333,stroke-width:2px
 ```
+
+#### New Components in Pipeline
+
+1. **Intermediate Representation (IR) Builder**:
+   - Converts processed FrontmatterData to normalized IR structure
+   - Creates IRNode tree (IRScalar, IRObject, IRArray)
+   - Preserves path information for deep resolution
+   - See [IR Architecture](../domain/architecture/domain-architecture-intermediate-representation.md)
+
+2. **Template Context Factory**:
+   - Creates scope-aware contexts from IR
+   - Manages scope stack for nested resolution
+   - Configures fallback policies
+   - See [Template Context Specification](./template-context-specification.md)
 
 ### 3.2 Data Structure Transformation
 

@@ -134,7 +134,7 @@ interface FrontmatterContext {
 
 ### 3. テンプレート管理コンテキスト
 
-**責務**: テンプレート定義の管理と変数置換処理
+**責務**: テンプレート定義の管理と変数置換処理（中間表現層を含む）
 
 ```typescript
 // 境界定義
@@ -144,22 +144,51 @@ interface TemplateContext {
     load(path: TemplatePath): Result<Template, TemplateError>
     resolveVariables(template: Template): VariableMap
   }
-  
+
   // エンティティ
   class Template {
     readonly content: string
     readonly variables: Variable[]
     readonly format: OutputFormat
   }
-  
+
+  // 中間表現層（新規追加）
+  class TemplateIntermediateRepresentation {
+    readonly root: IRObject
+    resolve(path: TemplatePath): Result<IRNode, VariableResolutionError>
+    createScope(path: TemplatePath): Result<TemplateScope, VariableResolutionError>
+  }
+
+  // テンプレートコンテキスト（新規追加）
+  class TemplateContext {
+    readonly scopeStack: TemplateScope[]
+    readonly fallbackPolicy: FallbackPolicy
+    resolve(variable: string): Result<ResolvedValue, ResolutionError>
+    enterArray(arrayPath: TemplatePath): Result<ArrayContext, ContextError>
+  }
+
   // ドメインサービス
   class TemplateRenderer {
-    render(template: Template, data: ValidatedData): Result<Output, RenderError>
+    render(template: Template, context: TemplateContext): Result<Output, RenderError>
+  }
+
+  // IRビルダー（新規追加）
+  class TemplateIntermediateBuilder {
+    static fromFrontmatterData(data: FrontmatterData[]): Result<TemplateIntermediateBuilder, BuildError>
+    build(): Result<TemplateIntermediateRepresentation, BuildError>
   }
 }
 ```
 
-**ライフサイクル**: 中期（Schema単位でキャッシュ）
+**ライフサイクル**:
+- Template: 中期（Schema単位でキャッシュ）
+- IR/Context: 短期（レンダリング処理ごとに生成）
+
+**新規コンポーネントの責務**:
+- **中間表現層（IR）**: ディレクティブ処理後のデータを正規化し、パス情報を保持
+- **TemplateContext**: スコープ管理による正確な変数解決
+- **TemplateScope**: 配列展開時の要素スコープ管理
+- 詳細は[IR Architecture](./architecture/domain-architecture-intermediate-representation.md)および[Template Context Specification](../architecture/template-context-specification.md)参照
 
 ### 4. ファイル管理コンテキスト
 

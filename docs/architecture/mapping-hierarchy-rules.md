@@ -131,27 +131,40 @@ boundary:
 
 ## Core Mapping Rules
 
-### Rule 1: {@items} Resolution with Data Partitioning
+### Rule 1: {@items} Resolution with Scope-Based Context
 
-`{@items}` is always resolved in the context of `x-template` which receives full
-schema root data:
+`{@items}` resolution now uses the Intermediate Representation (IR) and Template Context system for accurate scope management:
 
-**Data Flow for {@items}:**
+**Enhanced Data Flow with IR:**
 
 ```
-1. x-template receives: Full frontmatter data (schema root)
-2. x-template-items receives: Array data only (from x-frontmatter-part location)
-3. x-template-items processes: Each array item with its template
-4. {@items} in x-template: Replaced with processed array from step 3
+1. FrontmatterData → IR Builder → Normalized IR tree
+2. IR → Template Context Factory → Scoped contexts
+3. x-template receives: Full context with IR root scope
+4. x-template-items receives: Array element scopes
+5. {@items} expansion: Each element has its own TemplateScope
+6. Variable resolution: Scope-aware with fallback chain
 ```
 
-**Key Points**:
+**Scope Resolution Process:**
 
-- `{@items}` appears in `x-template` but references processed results from
-  `x-template-items`
-- Data partitioning allows `x-template` to access all schema properties
-- `x-template-items` works independently on array partition
-- The two templates collaborate through `{@items}` substitution
+```typescript
+// When resolving {id.full} inside {@items}
+1. Current Scope: Array element scope (commands[i])
+   → Resolves: element.id.full ✅
+2. Parent Scope: Array scope (commands)
+   → Fallback if not in element
+3. Root Scope: Schema root (frontmatter)
+   → Final fallback
+```
+
+**Key Improvements**:
+
+- **Scope Stack Management**: Each `{@items}` iteration maintains proper scope
+- **Deep Path Resolution**: `{id.full}` correctly resolves within array elements
+- **Fallback Chain**: Variables can fall back to parent scopes if needed
+- **Context Preservation**: Array index and iteration metadata available
+- See [Template Context Specification](./template-context-specification.md) for details
 
 ### Rule 2: Schema Reference Independence
 
