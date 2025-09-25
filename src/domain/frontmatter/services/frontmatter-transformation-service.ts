@@ -51,6 +51,18 @@ import {
 } from "../configuration/processing-options-factory.ts";
 import { MergeOperations } from "../utilities/merge-operations.ts";
 import { FieldOperations } from "../utilities/field-operations.ts";
+import { FrontmatterConfigurationService } from "./frontmatter-configuration-service.ts";
+import { FrontmatterValidationOrchestrator } from "./frontmatter-validation-orchestrator.ts";
+import {
+  TransformationStrategySelector,
+  // TransformationStrategy - will be used in next integration step
+} from "../strategies/transformation-strategy.ts";
+// import {
+//   ProcessingStrategyState,
+//   ValidationState,
+//   StateTransitions,
+//   DocumentProcessingResult
+// } from "../types/transformation-states.ts"; // Will be used in next integration steps
 
 export interface ProcessedDocuments {
   readonly documents: MarkdownDocument[];
@@ -80,6 +92,9 @@ export type RuleConversionResult = {
  */
 export class FrontmatterTransformationService {
   private readonly mergeOperations: MergeOperations;
+  private readonly configurationService: FrontmatterConfigurationService;
+  private readonly validationOrchestrator: FrontmatterValidationOrchestrator;
+  private readonly strategySelector: TransformationStrategySelector;
 
   private constructor(
     private readonly config: FrontmatterTransformationConfig,
@@ -89,8 +104,13 @@ export class FrontmatterTransformationService {
     private readonly performanceSettings: PerformanceSettings,
     private readonly extractionService: FrontmatterExtractionService,
     private readonly validationService: FrontmatterValidationService,
+    configurationService: FrontmatterConfigurationService,
+    validationOrchestrator: FrontmatterValidationOrchestrator,
   ) {
     this.mergeOperations = new MergeOperations(frontmatterDataCreationService);
+    this.configurationService = configurationService;
+    this.validationOrchestrator = validationOrchestrator;
+    this.strategySelector = new TransformationStrategySelector();
   }
 
   /**
@@ -140,6 +160,24 @@ export class FrontmatterTransformationService {
       return validationResult;
     }
 
+    // Initialize configuration service
+    const configurationServiceResult = FrontmatterConfigurationService.create(
+      settings,
+    );
+    if (!configurationServiceResult.ok) {
+      return configurationServiceResult;
+    }
+
+    // Initialize validation orchestrator
+    const validationOrchestratorResult = FrontmatterValidationOrchestrator
+      .create(
+        config.services.schemaValidation,
+        validationResult.data,
+      );
+    if (!validationOrchestratorResult.ok) {
+      return validationOrchestratorResult;
+    }
+
     return ok(
       new FrontmatterTransformationService(
         config,
@@ -148,6 +186,8 @@ export class FrontmatterTransformationService {
         settings,
         extractionResult.data,
         validationResult.data,
+        configurationServiceResult.data,
+        validationOrchestratorResult.data,
       ),
     );
   }
