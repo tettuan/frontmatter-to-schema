@@ -916,44 +916,15 @@ export class DirectiveProcessor {
     const currentData = data.getData();
     const result = { ...currentData };
 
-    // DEBUG: Log input data structure
-    console.log(
-      "[DEBUG] DirectiveProcessor - Input data structure:",
-      JSON.stringify(currentData, null, 2),
-    );
-
     // Find and apply JMESPath filters
     const filters = this.collectJMESPathFilters(schemaData);
-    console.log(
-      "[DEBUG] DirectiveProcessor - Collected JMESPath filters:",
-      filters,
-    );
 
     filters.forEach(({ path, expression }) => {
       // Apply the filter to the nested traceability array
       // The data structure is nested: { "traceability": [{ "traceability": [...] }] }
       const fullExpression = `${path}[].traceability${expression}`;
-      console.log(
-        "[DEBUG] DirectiveProcessor - Full JMESPath expression:",
-        fullExpression,
-      );
 
       const filterResult = service.applyFilter(data, fullExpression);
-      console.log(
-        "[DEBUG] DirectiveProcessor - Filter result:",
-        JSON.stringify(
-          {
-            ok: filterResult.ok,
-            dataType: typeof filterResult.data,
-            dataLength: Array.isArray(filterResult.data)
-              ? filterResult.data.length
-              : "N/A",
-            data: filterResult.data,
-          },
-          null,
-          2,
-        ),
-      );
 
       if (
         filterResult.ok &&
@@ -982,10 +953,6 @@ export class DirectiveProcessor {
       }
     });
 
-    console.log(
-      "[DEBUG] DirectiveProcessor - Final result:",
-      JSON.stringify(result, null, 2),
-    );
     return result;
   }
 
