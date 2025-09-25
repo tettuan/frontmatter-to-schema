@@ -184,8 +184,8 @@ directive実装の3つの失敗テストを体系的にデバッグし、根本�
 ## 関連ワークフロー
 
 - [基本デバッグテンプレート](../meta/workflow-template.workflow.md)
-- [コンポーネントデバッグ](../component/directive-processor-debug.workflow.md)
-- [回帰テスト確認](../integration/regression-test-verification.workflow.md)
+- [DirectiveProcessor分析](../component/directive-processor-comprehensive.workflow.md)
+- [テンプレート変数解決](../component/template-variable-resolution.workflow.md)
 
 ## トラブルシューティング
 
