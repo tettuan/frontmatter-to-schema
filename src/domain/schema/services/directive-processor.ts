@@ -16,6 +16,28 @@ import { DirectiveRegistryInitializer } from "./directive-registry-initializer.t
 import type { DirectiveRegistry } from "../directives/directive-registry.ts";
 
 /**
+ * Type guards for safe unknown type handling
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isRecordWithProperty(
+  value: unknown,
+  property: string,
+): value is Record<string, unknown> & { [K in typeof property]: unknown } {
+  return isRecord(value) && property in value;
+}
+
+function isRecordWithStringProperty(
+  value: unknown,
+  property: string,
+): value is Record<string, unknown> & { [K in typeof property]: string } {
+  return isRecordWithProperty(value, property) &&
+    typeof (value as Record<string, unknown>)[property] === "string";
+}
+
+/**
  * Directive Processing Error Types
  */
 export type DirectiveProcessingError =
@@ -538,13 +560,26 @@ export class DirectiveProcessor {
           method: "switchKind",
         }).configurationError(`Directive processing not implemented: ${kind}`);
 
-        // Since ErrorHandler always returns errors, we can safely assert this is an Err
-        return err({
-          kind: "ProcessingFailed",
-          directive: kind,
-          error: (configErrorResult as any).error, // ErrorHandler always returns Err results
-          message: `Directive processing not implemented: ${kind}`,
-        });
+        // ErrorHandler always returns Err results, handle it type-safely
+        if (!configErrorResult.ok) {
+          return err({
+            kind: "ProcessingFailed",
+            directive: kind,
+            error: configErrorResult.error,
+            message: `Directive processing not implemented: ${kind}`,
+          });
+        } else {
+          // This should never happen as ErrorHandler always returns errors
+          return err({
+            kind: "ProcessingFailed",
+            directive: kind,
+            error: {
+              kind: "ConfigurationError",
+              message: "Unexpected success from ErrorHandler",
+            },
+            message: `Directive processing not implemented: ${kind}`,
+          });
+        }
       }
     }
   }
@@ -613,27 +648,23 @@ export class DirectiveProcessor {
    * Recursively search for x-flatten-arrays directive in schema object
    */
   private searchForFlattenArraysInObject(obj: unknown): boolean {
-    if (!obj || typeof obj !== "object") return false;
-
-    const record = obj as Record<string, unknown>;
+    if (!isRecord(obj)) return false;
 
     // Check in extensions object (for migrated schema)
-    if (record.extensions && typeof record.extensions === "object") {
-      const extensions = record.extensions as Record<string, unknown>;
-      if (extensions["x-flatten-arrays"]) {
+    if (isRecordWithProperty(obj, "extensions") && isRecord(obj.extensions)) {
+      if (obj.extensions["x-flatten-arrays"]) {
         return true;
       }
     }
 
     // Check for direct property (standard JSON Schema extension pattern)
-    if (record["x-flatten-arrays"]) {
+    if (obj["x-flatten-arrays"]) {
       return true;
     }
 
     // Recursively check properties
-    if (record.properties && typeof record.properties === "object") {
-      const properties = record.properties as Record<string, unknown>;
-      for (const value of Object.values(properties)) {
+    if (isRecordWithProperty(obj, "properties") && isRecord(obj.properties)) {
+      for (const value of Object.values(obj.properties)) {
         if (this.searchForFlattenArraysInObject(value)) {
           return true;
         }
@@ -641,8 +672,8 @@ export class DirectiveProcessor {
     }
 
     // Recursively check items
-    if (record.items && typeof record.items === "object") {
-      if (this.searchForFlattenArraysInObject(record.items)) {
+    if (isRecordWithProperty(obj, "items") && isRecord(obj.items)) {
+      if (this.searchForFlattenArraysInObject(obj.items)) {
         return true;
       }
     }
@@ -751,31 +782,27 @@ export class DirectiveProcessor {
   ): Array<{ target: string }> {
     const directives: Array<{ target: string }> = [];
 
-    if (!schemaObj || typeof schemaObj !== "object") {
+    if (!isRecord(schemaObj)) {
       return directives;
     }
 
-    const schema = schemaObj as Record<string, unknown>;
-
     // Check in extensions object (for migrated schema)
-    if (schema.extensions && typeof schema.extensions === "object") {
-      const extensions = schema.extensions as Record<string, unknown>;
+    if (
+      isRecordWithProperty(schemaObj, "extensions") &&
+      isRecord(schemaObj.extensions)
+    ) {
       if (
-        extensions["x-flatten-arrays"] &&
-        typeof extensions["x-flatten-arrays"] === "string"
+        isRecordWithStringProperty(schemaObj.extensions, "x-flatten-arrays")
       ) {
-        const target = extensions["x-flatten-arrays"] as string;
+        const target = schemaObj.extensions["x-flatten-arrays"];
         directives.push({ target });
       }
     }
 
     // Check for direct property (standard JSON Schema extension pattern)
     // Only add if not already added from extensions
-    if (
-      schema["x-flatten-arrays"] &&
-      typeof schema["x-flatten-arrays"] === "string"
-    ) {
-      const target = schema["x-flatten-arrays"] as string;
+    if (isRecordWithStringProperty(schemaObj, "x-flatten-arrays")) {
+      const target = schemaObj["x-flatten-arrays"];
       // Check if not already added
       if (!directives.some((d) => d.target === target)) {
         directives.push({ target });
@@ -783,16 +810,18 @@ export class DirectiveProcessor {
     }
 
     // Recursively check properties
-    if (schema.properties && typeof schema.properties === "object") {
-      const properties = schema.properties as Record<string, unknown>;
-      for (const propSchema of Object.values(properties)) {
+    if (
+      isRecordWithProperty(schemaObj, "properties") &&
+      isRecord(schemaObj.properties)
+    ) {
+      for (const propSchema of Object.values(schemaObj.properties)) {
         directives.push(...this.collectFlattenDirectives(propSchema));
       }
     }
 
     // Recursively check items
-    if (schema.items && typeof schema.items === "object") {
-      directives.push(...this.collectFlattenDirectives(schema.items));
+    if (isRecordWithProperty(schemaObj, "items") && isRecord(schemaObj.items)) {
+      directives.push(...this.collectFlattenDirectives(schemaObj.items));
     }
 
     return directives;
@@ -965,13 +994,21 @@ export class DirectiveProcessor {
 
       return ok(newDataResult.data);
     } catch (error) {
+      // Safe error handling following totality principles
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      const domainError: DomainError =
+        error instanceof Error && "kind" in error &&
+          typeof error.kind === "string"
+          ? error as DomainError
+          : { kind: "ConfigurationError", message: errorMessage };
+
       return err({
         kind: "ProcessingFailed",
         directive: "jmespath-filter",
-        error: error as DomainError,
-        message: `Error processing JMESPath filter directive: ${
-          (error as Error).message
-        }`,
+        error: domainError,
+        message: `Error processing JMESPath filter directive: ${errorMessage}`,
       });
     }
   }
@@ -982,49 +1019,20 @@ export class DirectiveProcessor {
   private applyJMESPathFiltersToData(
     data: FrontmatterData,
     schemaData: unknown,
-    service: any, // JMESPathFilterService type
+    service: JMESPathFilterService,
   ): unknown {
     const currentData = data.getData();
     const result = { ...currentData };
 
-    // DEBUG: Log input data structure
-    console.log(
-      "[DEBUG] DirectiveProcessor - Input data structure:",
-      JSON.stringify(currentData, null, 2),
-    );
-
     // Find and apply JMESPath filters
     const filters = this.collectJMESPathFilters(schemaData);
-    console.log(
-      "[DEBUG] DirectiveProcessor - Collected JMESPath filters:",
-      filters,
-    );
 
     filters.forEach(({ path, expression }) => {
       // Apply the filter to the nested traceability array
       // The data structure is nested: { "traceability": [{ "traceability": [...] }] }
       const fullExpression = `${path}[].traceability${expression}`;
-      console.log(
-        "[DEBUG] DirectiveProcessor - Full JMESPath expression:",
-        fullExpression,
-      );
 
       const filterResult = service.applyFilter(data, fullExpression);
-      console.log(
-        "[DEBUG] DirectiveProcessor - Filter result:",
-        JSON.stringify(
-          {
-            ok: filterResult.ok,
-            dataType: typeof filterResult.data,
-            dataLength: Array.isArray(filterResult.data)
-              ? filterResult.data.length
-              : "N/A",
-            data: filterResult.data,
-          },
-          null,
-          2,
-        ),
-      );
 
       if (
         filterResult.ok &&
@@ -1053,10 +1061,6 @@ export class DirectiveProcessor {
       }
     });
 
-    console.log(
-      "[DEBUG] DirectiveProcessor - Final result:",
-      JSON.stringify(result, null, 2),
-    );
     return result;
   }
 

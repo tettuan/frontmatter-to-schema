@@ -1,188 +1,191 @@
 ---
+# XML変換メタデータ
 workflow:
   id: "template-variable-defaults"
-  type: "debug"
-  scope: "component"
+  type: "component-analysis"
+  scope: "template-domain"
   version: "1.0"
   xml_convertible: true
 dependencies:
   - breakdownlogger: "@tettuan/breakdownlogger@^1.0.0"
   - environment_vars: ["LOG_KEY", "LOG_LENGTH", "LOG_LEVEL"]
+  - inspector: "inspector-debug analyze-deep project-issues"
 outputs:
-  - debug_logs: "tmp/debug-template-defaults-{timestamp}.log"
-  - evidence: "tmp/evidence-template-defaults.json"
+  - debug_logs: "tmp/debug-template-variable-{timestamp}.log"
+  - evidence: "tmp/evidence-template-analysis.json"
+  - issue_tracking: "GitHub Issues #1068, #1067"
 ---
 
-# Template Variable Defaults Resolution Workflow
+# Template Variable Defaults and x-template-items Implementation Analysis Workflow
 
 ## 目的
 
-テンプレート変数がスキーマのデフォルト値で置換されない問題（Issue
-#1055）を調査・解決する
+OutputRenderingService(943行)とTemplate関連サービスにおける`x-template-items`機能の未実装状況を調査し、要求仕様24パターンのうち約30%が実行不可能な問題の根本要因を特定する。
 
 ## 前提条件
 
-- [ ] Denoランタイムがインストールされている
-- [ ] プロジェクトルートからコマンドを実行できる
-- [ ] `examples/0.basic/` ディレクトリが存在する
-- [ ] `tmp/` ディレクトリが書き込み可能
+- [ ] 条件1: Issue #1068 (x-template-items未実装) が作成済み
+- [ ] 条件2: Issue #1067 (テスト設計不足) が作成済み
+- [ ] 条件3: inspector-debug analyze-deep project-issuesが実行可能
+- [ ] 条件4: 398テスト通過状態を維持
 
 ## 入力
 
-- **対象**: テンプレート変数解決処理
-- **症状**: `{version}`, `{description}` が空文字列として出力される
-- **コンテキスト**: スキーマにデフォルト値が定義されているが適用されない
+- **対象**: `src/domain/template/services/output-rendering-service.ts` (943行)
+- **症状**: x-template-items機能が完全未実装、{@items}展開処理なし
+- **コンテキスト**: 要求仕様の核心機能が欠如し、24実行例の30%が不可能
 
 ## ワークフロー手順
 
-### ステップ1: 初期確認
+### ステップ1: Template Domain 実装状況調査
 
 {xml:step id="step1" type="verification"}
 
-1. テストデータの確認:
+1. Template関連ファイル構造確認
    ```bash
-   ls -la examples/0.basic/*.json examples/0.basic/*.md
+   find src/domain/template -name "*.ts" -type f | head -10
    ```
 
-2. スキーマのデフォルト値確認:
+2. x-template-items関連実装検索
    ```bash
-   grep -A2 '"default":' examples/0.basic/registry_schema.json
+   export LOG_KEY=template-items-search LOG_LEVEL=debug
+   grep -r "x-template-items" src/domain/template/
    ```
 
-3. テンプレート変数の確認:
+3. {@items}展開機能検索
    ```bash
-   grep -o '{[^}]*}' examples/0.basic/registry_template.json
+   grep -r "@items" src/domain/template/
+   ```
+
+期待される結果: 両方とも0件のヒット（未実装確認）
+
+{/xml:step}
+
+### ステップ2: OutputRenderingService 詳細分析
+
+{xml:step id="step2" type="investigation"}
+
+1. サービス構造の把握
+   ```bash
+   export LOG_KEY=output-rendering-analysis LOG_LEVEL=info
+   mcp-serena get-symbols-overview src/domain/template/services/output-rendering-service.ts
+   ```
+
+2. ArrayData処理の現状確認
+   ```bash
+   grep -n -A5 -B5 "ArrayData" src/domain/template/services/output-rendering-service.ts
+   ```
+
+3. 配列処理ロジックの限界調査
+   ```bash
+   grep -n -A10 "itemsData" src/domain/template/services/output-rendering-service.ts
    ```
 
 {/xml:step}
 
-### ステップ2: デバッグ環境設定
+### ステップ3: 要求仕様との対応関係分析
 
-{xml:step id="step2" type="setup"}
+{xml:step id="step3" type="diagnosis"}
 
-1. 環境変数設定:
+1. 要求仕様の再確認
    ```bash
-   export LOG_KEY=template-defaults LOG_LEVEL=debug LOG_LENGTH=L
+   grep -n -A5 -B5 "x-template-items" docs/requirements.ja.md
    ```
 
-2. デバッグ出力ディレクトリ作成:
+2. 24実行例との対応分析
+   - 例17: x-template-items + {@items} → **実装不可能**
+   - 例18: x-flatten-arrays + 多階層 → **部分実装のみ**
+   - 例19: $ref + x-template → **$ref処理は実装済み**
+
+3. 影響範囲の特定
    ```bash
-   mkdir -p tmp/
-   ```
-
-3. 既存出力のクリア:
-   ```bash
-   rm -f tmp/test-output.json tmp/debug-*.log
-   ```
-
-{/xml:step}
-
-### ステップ3: 段階的調査
-
-{xml:step id="step3" type="investigation"}
-
-1. CLI実行とログ収集:
-   ```bash
-   ./cli.ts examples/0.basic/registry_schema.json "examples/0.basic/*.md" tmp/test-output.json --verbose 2>&1 | tee tmp/debug-cli-output.log
-   ```
-
-2. PrepareDataCommand の処理確認:
-   ```bash
-   grep -A5 -B5 "PrepareDataCommand\|data-preparing" tmp/debug-cli-output.log
-   ```
-
-3. テンプレート変数解決の確認:
-   ```bash
-   grep -A3 -B3 "variable-resolution\|replaceVariables\|template-render" tmp/debug-cli-output.log
-   ```
-
-4. FrontmatterData の内容確認:
-   ```bash
-   grep -A10 "mainDataKeys\|frontmatterDataKeys" tmp/debug-cli-output.log
+   # テンプレート処理に関連する全ファイルを調査
+   find src -name "*.ts" -type f -exec grep -l "template" {} \; | wc -l
    ```
 
 {/xml:step}
 
-### ステップ4: 問題特定
+### ステップ4: テンプレート処理アーキテクチャの評価
 
 {xml:step id="step4" type="diagnosis"}
 
-1. 出力ファイルの確認:
+1. Template Domain境界の確認
    ```bash
-   jq '.' tmp/test-output.json
+   ls -la src/domain/template/
    ```
 
-2. 期待値との比較:
+2. Schema-Template連携の現状
    ```bash
-   diff -u <(jq '.' examples/0.basic/output.json) <(jq '.' tmp/test-output.json)
+   grep -r "x-template" src/domain/schema/
    ```
 
-3. デフォルト値の適用有無確認:
-   - PrepareDataCommand でスキーマのデフォルト値が FrontmatterData
-     に含まれていない
-   - TemplateVariableResolver で `data.get("version")` が失敗している
-   - variable-replacer.ts:117-118 でプレースホルダーがそのまま返される
+3. 既存のテンプレート展開機能の限界
+   ```bash
+   export LOG_KEY=template-limitations LOG_LENGTH=W
+   grep -n -A15 "renderOutput" src/domain/template/services/output-rendering-service.ts
+   ```
 
-4. 根本原因仮説:
-   - スキーマのデフォルト値がデータ準備段階で適用されていない
-   - BasePropertyPopulator がデフォルト値を正しく設定していない {/xml:step}
+{/xml:step}
 
-### ステップ5: 検証・解決
+### ステップ5: 実装戦略と課題の明確化
 
 {xml:step id="step5" type="resolution"}
 
-1. 一時的な修正の適用（PrepareDataCommandでデフォルト値追加）:
-   ```typescript
-   // src/application/pipeline/commands/prepare-data-command.ts
-   // Line 63-64の後に追加
-   const defaultValues = this.extractDefaultValues(schema);
-   const mergedData = this.mergeDefaults(mainData, defaultValues);
+1. 必要な実装コンポーネントの特定
+   - **TemplateItemsProcessor**: x-template-items処理専門
+   - **ItemsExpansionEngine**: {@items}展開機能
+   - **DynamicTemplateLoader**: 動的テンプレート読み込み
+
+2. 既存アーキテクチャとの統合点分析
+   ```bash
+   # OutputRenderingServiceとの統合ポイント特定
+   grep -n "interface\|class" src/domain/template/services/output-rendering-service.ts
    ```
 
-2. 修正後の再実行:
+3. Issue更新とワークフロー完了記録
    ```bash
-   ./cli.ts examples/0.basic/registry_schema.json "examples/0.basic/*.md" tmp/test-output-fixed.json --verbose
-   ```
-
-3. 結果確認:
-   ```bash
-   jq '.version, .description' tmp/test-output-fixed.json
+   echo "$(date): Template analysis workflow completed" >> tmp/template-investigation.log
    ```
 
 {/xml:step}
 
 ## 出力
 
-- **ログファイル**: `tmp/debug-cli-output.log`
-- **証跡データ**: `tmp/test-output.json`
-- **解決策**: PrepareDataCommand でスキーマデフォルト値を FrontmatterData に適用
+- **分析結果**: `tmp/evidence-template-analysis.json`
+- **実装差分**: 要求仕様と現実装のギャップマップ
+- **実装戦略**: 段階的x-template-items実装計画
 
 ## 成功基準
 
-- [ ] 問題の根本原因（デフォルト値の未適用）が特定されている
-- [ ] 修正後、`{version}` が "1.0.0" として出力される
-- [ ] 修正後、`{description}` が適切な値として出力される
-- [ ] デバッグプロセスが完全に記録されている
-- [ ] 再現手順が他者によって実行可能
+- [ ] x-template-items機能の未実装状況が完全に把握されている
+- [ ] 24実行例パターンの実行不可能項目が特定されている
+- [ ] OutputRenderingServiceの改修ポイントが明確化されている
+- [ ] Issue #1068への具体的な実装戦略が提示されている
 
 ## 関連ワークフロー
 
-- [Schema Validation Workflow](./schema-validation.workflow.md)
-- [Template Rendering Workflow](./template-rendering.workflow.md)
-- [Pipeline Orchestrator Workflow](../integration/pipeline-orchestrator.workflow.md)
+- [Architecture Analysis](../02-architecture/01-totality-verification.workflow.md)
+- [Component Debugging](./directive-processor-comprehensive.workflow.md)
+- [Integration Testing](../integration/x-flatten-arrays-debugging.workflow.md)
 
 ## トラブルシューティング
 
 ### よくある問題
 
-#### 問題1: デバッグログが出力されない
+#### 問題1: Template処理の複雑性による実装困難
 
-- **症状**: LOG_KEY設定後もログが表示されない
-- **原因**: BreakdownLoggerが有効化されていない
-- **解決策**: 環境変数の確認と再設定
+- **症状**: x-template-items実装時の既存機能への影響
+- **原因**: OutputRenderingService(943行)の責任過多
+- **解決策**: Template処理の段階的分離、專門Service分割
 
-#### 問題2: テンプレート変数が {variable} のまま出力される
+#### 問題2: Schema-Template境界の曖昧性
 
-- **症状**: 変数がプレースホルダーのまま残る
-- **原因**: FrontmatterData にキーが存在しない
-- **解決策**: データ準備段階でのデフォルト値適用を確認
+- **症状**: x-template-items情報の取得元不明確
+- **原因**: Domain間の責任境界が不明確
+- **解決策**: DDD原則に基づく明確な境界定義とハンドオフ機構
+
+#### 問題3: 既存テストとの整合性
+
+- **症状**: x-template-items実装後の既存テスト破綻
+- **原因**: 仕様拡張に対するテスト設計の不足
+- **解決策**: Specification-driven testアプローチでの段階的テスト拡張

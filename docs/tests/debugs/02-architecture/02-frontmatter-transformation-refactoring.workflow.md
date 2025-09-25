@@ -1,173 +1,199 @@
 ---
+# XML変換メタデータ
 workflow:
   id: "frontmatter-transformation-refactoring"
-  type: "refactor"
-  scope: "architecture"
+  type: "architecture-analysis"
+  scope: "domain-service"
   version: "1.0"
   xml_convertible: true
 dependencies:
   - breakdownlogger: "@tettuan/breakdownlogger@^1.0.0"
   - environment_vars: ["LOG_KEY", "LOG_LENGTH", "LOG_LEVEL"]
+  - inspector: "inspector-debug analyze-deep project-issues"
 outputs:
-  - debug_logs: "tmp/debug-refactor-transformation-{timestamp}.log"
-  - evidence: "tmp/evidence-transformation-complexity.json"
+  - debug_logs: "tmp/debug-frontmatter-refactoring-{timestamp}.log"
+  - evidence: "tmp/evidence-frontmatter-service-analysis.json"
+  - issue_update: "GitHub Issue #1059"
 ---
 
-# FrontmatterTransformationService責任分離リファクタリング
+# FrontmatterTransformationService 責任分離リファクタリング分析ワークフロー
 
 ## 目的
 
-114個の分岐を持つFrontmatterTransformationServiceをDDD原則に従い、責任分離を行う（Issue
-#1059）
+FrontmatterTransformationService（2392行、284分岐）の責任過多問題を解決するため、DDD原則に基づくサービス分離戦略を分析し、実装可能なリファクタリングプランを作成する。
 
 ## 前提条件
 
-- [ ] Denoランタイムがインストールされている
-- [ ] プロジェクトルートからコマンドを実行できる
-- [ ] 全テスト（405件）が成功している状態
+- [ ] 条件1: Issue #1059が作成されている
+- [ ] 条件2: inspector-debug analyze-deep project-issuesが実行可能
+- [ ] 条件3: 既存テストスイートが397テスト通過状態
+- [ ] 条件4: BreakdownLogger環境変数設定済み
 
 ## 入力
 
-- **対象**: FrontmatterTransformationService
-- **症状**: 114分岐、20+依存関係、単一責任原則違反
-- **コンテキスト**: DDD境界の混在、高結合
+- **対象**: `src/domain/frontmatter/services/frontmatter-transformation-service.ts`
+- **症状**: 単一責任原則違反、284分岐による複雑度過多
+- **コンテキスト**: DDD設計原則との乖離、24実行例パターンの過剰集約
 
 ## ワークフロー手順
 
-### ステップ1: 現状分析
+### ステップ1: 現状分析・複雑度測定
 
 {xml:step id="step1" type="verification"}
 
-1. 分岐数の確認:
+1. ファイルサイズ確認
    ```bash
-   grep -c "if\|switch\|case" src/domain/frontmatter/services/frontmatter-transformation-service.ts
+   wc -l src/domain/frontmatter/services/frontmatter-transformation-service.ts
    ```
 
-2. 依存関係の確認:
+2. 分岐数測定
    ```bash
-   grep "^import" src/domain/frontmatter/services/frontmatter-transformation-service.ts | wc -l
+   grep -c -E "if\s*\(|else|switch\s*\(|case\s|[?]|&&|\|\|" src/domain/frontmatter/services/frontmatter-transformation-service.ts
    ```
 
-3. 責任領域の特定:
+3. クラス・メソッド構造分析
    ```bash
-   grep -o "class.*Service\|interface.*Service" src/domain/frontmatter/services/*.ts | sort | uniq
+   export LOG_KEY=frontmatter-service-analysis LOG_LEVEL=debug
+   mcp-serena get-symbols-overview src/domain/frontmatter/services/frontmatter-transformation-service.ts
+   ```
+
+期待される結果: 2392行、284分岐の確認
+
+{/xml:step}
+
+### ステップ2: 責任領域の特定
+
+{xml:step id="step2" type="investigation"}
+
+1. import文分析による依存関係把握
+   ```bash
+   head -50 src/domain/frontmatter/services/frontmatter-transformation-service.ts | grep "import"
+   ```
+
+2. 24実行例パターンとの対応分析
+   - 基本処理パターン (1-8): フロントマター抽出、Schema解析
+   - エラーハンドリングパターン (9-16): ValidationError、SchemaError
+   - 複雑処理パターン (17-24): 大量データ、ネスト、多段階処理
+
+3. メソッド責任の分類
+   ```bash
+   export LOG_KEY=method-responsibility-analysis
+   grep -n "public\|private.*(" src/domain/frontmatter/services/frontmatter-transformation-service.ts
    ```
 
 {/xml:step}
 
-### ステップ2: デバッグ環境設定
+### ステップ3: DDD原則に基づく分離設計
 
-{xml:step id="step2" type="setup"}
+{xml:step id="step3" type="diagnosis"}
 
-1. 環境変数設定:
-   ```bash
-   export LOG_KEY=transformation-refactor LOG_LEVEL=debug LOG_LENGTH=L
-   ```
+1. サブドメイン境界の特定
+   - **Extraction Domain**: フロントマター抽出専門
+   - **Validation Domain**: バリデーション・型安全性
+   - **Transformation Domain**: データ変換・構造化
+   - **Integration Domain**: 外部サービス統合
 
-2. テスト実行前の状態保存:
-   ```bash
-   deno test --allow-all > tmp/test-before-refactor.log 2>&1
-   ```
-
-{/xml:step}
-
-### ステップ3: 責任分離の実施
-
-{xml:step id="step3" type="investigation"}
-
-1. 責任の識別:
-   - FrontmatterExtraction: 抽出責任
-   - SchemaValidation: 検証責任
-   - AggregationProcessing: 集約責任
-   - TransformationCoordination: 調整責任
-
-2. インターフェース定義:
+2. 分離後サービス設計
    ```typescript
-   interface FrontmatterExtractionResponsibility {
-     extract(document: MarkdownDocument): Result<FrontmatterData, DomainError>;
-   }
+   // 設計案
+   class FrontmatterExtractionService     // 抽出専門 (~400行)
+   class FrontmatterValidationService     // バリデーション専門 (~300行)
+   class DataTransformationService        // データ変換専門 (~500行)
+   class ProcessingCoordinationService    // 統合調整専門 (~200行)
    ```
 
-3. 責任クラスの作成:
-   - 各責任を独立したクラスへ分離
-   - 30分岐以下を目標
-
-{/xml:step}
-
-### ステップ4: 問題特定
-
-{xml:step id="step4" type="diagnosis"}
-
-1. 循環依存の検出:
+3. 既存テストへの影響分析
    ```bash
-   deno run --allow-read scripts/detect-circular-deps.ts src/domain/frontmatter/
-   ```
-
-2. 結合度の測定:
-   ```bash
-   inspector-debug analyze coupling-metric frontmatter-transformation
-   ```
-
-3. テストカバレッジ確認:
-   ```bash
-   deno test --coverage=tmp/coverage src/domain/frontmatter/
+   find tests -name "*frontmatter-transformation-service*test.ts"
    ```
 
 {/xml:step}
 
-### ステップ5: 検証・解決
+### ステップ4: 段階的リファクタリング計画
 
-{xml:step id="step5" type="resolution"}
+{xml:step id="step4" type="resolution"}
 
-1. リファクタリング後のテスト:
+1. **Phase 1**: インターフェース抽出
+   - 現在のpublicメソッドをインターフェースとして定義
+   - 外部依存への影響最小化
+
+2. **Phase 2**: 責任別クラス分離
+   - Extract Method → Extract Class パターン適用
+   - 各サービス独立実装
+
+3. **Phase 3**: 統合・テスト更新
+   - ProcessingCoordinationServiceでの統合
+   - テストスイート更新・検証
+
+実装検証コマンド:
+```bash
+# 分離後の構造検証
+export LOG_KEY=refactoring-verification LOG_LEVEL=info
+deno test --allow-all tests/unit/domain/frontmatter/services/
+```
+
+{/xml:step}
+
+### ステップ5: Issue進捗更新
+
+{xml:step id="step5" type="documentation"}
+
+1. GitHub Issue #1059への進捗報告
    ```bash
-   deno test --allow-all > tmp/test-after-refactor.log 2>&1
+   gh issue comment 1059 --body "## リファクタリング分析完了
+
+   **分析結果**:
+   - 現状: 2392行、284分岐
+   - 分離案: 4サービスに責任分散
+   - 推定分離後: 各400-500行以下
+
+   **次段階**: Phase 1インターフェース抽出を開始"
    ```
 
-2. 分岐数の再確認:
+2. ワークフロー実行ログの保存
    ```bash
-   for file in src/domain/frontmatter/services/*Responsibility.ts; do
-     echo "$file: $(grep -c "if\|switch\|case" $file)"
-   done
-   ```
-
-3. 統合テスト確認:
-   ```bash
-   deno test tests/integration/ --allow-all
+   echo "$(date): Workflow completed" >> tmp/frontmatter-refactoring-progress.log
    ```
 
 {/xml:step}
 
 ## 出力
 
-- **ログファイル**: `tmp/debug-refactor-transformation-*.log`
-- **証跡データ**: `tmp/evidence-transformation-complexity.json`
-- **解決策**: 4つの責任クラスへの分離
+- **分析レポート**: `tmp/evidence-frontmatter-service-analysis.json`
+- **リファクタリング計画**: 段階的実装ロードマップ
+- **Issue更新**: GitHub Issue #1059への進捗反映
 
 ## 成功基準
 
-- [ ] 各責任クラスの分岐が30個以下
-- [ ] 全405テストが継続して成功
-- [ ] 循環依存が存在しない
-- [ ] ドメイン境界が明確に定義されている
+- [ ] 284分岐の責任領域分類が完了している
+- [ ] 4つの専門サービスへの分離設計が明確化されている
+- [ ] 既存テストへの影響が最小限に抑制されている
+- [ ] Issue #1059に具体的なリファクタリング計画が記載されている
 
 ## 関連ワークフロー
 
-- [Totality検証](./01-totality-verification.workflow.md)
-- [ドメイン境界検証](../03-features/domain-boundary-check.workflow.md)
+- [Totality原則検証](./01-totality-verification.workflow.md)
+- [DDD境界分析](../component/domain-boundary-analysis.workflow.md)
+- [テスト影響分析](../integration/test-impact-analysis.workflow.md)
 
 ## トラブルシューティング
 
 ### よくある問題
 
-#### 問題1: テスト失敗
+#### 問題1: 依存関係の循環参照
 
-- **症状**: リファクタリング後にテストが失敗
-- **原因**: インターフェース変更による互換性破壊
-- **解決策**: アダプターパターンでの互換性維持
+- **症状**: 分離後サービス間で相互依存が発生
+- **原因**: ドメイン境界の不明確さ
+- **解決策**: Dependency Inversionパターン適用、共通インターフェース定義
 
-#### 問題2: 循環依存
+#### 問題2: テスト実行時間の大幅増加
 
-- **症状**: コンパイルエラーまたは実行時エラー
-- **原因**: 責任分離が不完全
-- **解決策**: 依存性逆転の原則適用
+- **症状**: 分離後のテスト実行が2倍以上に増加
+- **原因**: サービス間統合テストの追加負荷
+- **解決策**: テスト並列実行、MockService活用による分離テスト
+
+#### 問題3: 既存API互換性の破綻
+
+- **症状**: 分離後に外部呼び出し元でコンパイルエラー
+- **原因**: publicメソッドシグネチャの変更
+- **解決策**: Facade Pattern適用、段階的移行期間の設定
