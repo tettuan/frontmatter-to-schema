@@ -1023,38 +1023,7 @@ export class FrontmatterTransformationService {
       },
     );
 
-    // CONSOLE DEBUG: Direct output for debugging
-    console.error("🔍 TRACE BEFORE processFrontmatterParts:");
-    if (processedData[0]) {
-      const firstData = processedData[0].getData();
-      console.error("   Keys:", Object.keys(firstData));
-      console.error("   Sample:", JSON.stringify(firstData).substring(0, 400));
-      if (firstData.traceability && Array.isArray(firstData.traceability)) {
-        console.error(
-          "   Traceability[0]:",
-          JSON.stringify(firstData.traceability[0] || "empty"),
-        );
-      }
-    }
-
     const finalData = this.processFrontmatterParts(processedData, schema);
-
-    // CONSOLE DEBUG: After frontmatter-part processing
-    console.error("🔍 TRACE AFTER processFrontmatterParts:");
-    if (finalData[0]) {
-      const finalFirstData = finalData[0].getData();
-      console.error("   Keys:", Object.keys(finalFirstData));
-      console.error(
-        "   Sample:",
-        JSON.stringify(finalFirstData).substring(0, 400),
-      );
-      if (finalFirstData.req && Array.isArray(finalFirstData.req)) {
-        console.error(
-          "   Req[0]:",
-          JSON.stringify(finalFirstData.req[0] || "empty"),
-        );
-      }
-    }
 
     // DEBUG: Log data after frontmatter-part processing
     activeLogger?.debug(
