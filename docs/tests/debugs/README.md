@@ -1,57 +1,90 @@
-# Debugging Workflows Documentation
+# Debug Workflows Index
 
-## Quick Start
+This index organizes all debug workflows by category and their execution relationships.
 
-### Daily Quality Check (30 seconds)
+## Workflow Categories
 
-```bash
-# Navigate to debugging workflows
-cd docs/tests/debugs
+### 01. Quality Assurance
+- `01-quality-assurance/01-false-resolution-detection.workflow.md` - False positive detection
 
-# Quick false resolution detection
-./01-quality-assurance/01-false-resolution-detection.workflow.md
+### 02. Architecture
+- `02-architecture/01-totality-verification.workflow.md` - Totality principle verification
+- `02-architecture/02-frontmatter-transformation-refactoring.workflow.md` - Transformation refactoring
+- `02-architecture/03-layered-architecture-dependency-analysis.workflow.md` - Dependency analysis
+
+### 03. Features
+- `03-features/01-directive-implementation.workflow.md` - Directive implementation testing
+
+### Component Level
+- `component/directive-processor-comprehensive.workflow.md` - DirectiveProcessor analysis
+- `component/template-variable-defaults.workflow.md` - Default value handling
+- `component/template-variable-resolution.workflow.md` - Variable resolution debugging
+
+### Integration Level
+- `integration/x-flatten-arrays-debugging.workflow.md` - x-flatten-arrays directive debugging
+
+### Meta
+- `meta/workflow-template.workflow.md` - Template for creating new workflows
+
+## Workflow Execution Relationships
+
+### Primary Processing Flow
+
+```mermaid
+graph TD
+    A[directive-processor-comprehensive] --> B[x-flatten-arrays-debugging]
+    B --> C[template-variable-resolution]
+    C --> D[template-variable-defaults]
+
+    E[totality-verification] --> A
+    F[frontmatter-transformation-refactoring] --> A
+
+    G[false-resolution-detection] --> H[All Workflows]
 ```
 
-### Weekly Analysis (15 minutes)
+### Dependency Matrix
 
+| Workflow | Dependencies | Outputs To |
+|----------|-------------|------------|
+| directive-processor-comprehensive | totality-verification | x-flatten-arrays-debugging, template-variable-resolution |
+| x-flatten-arrays-debugging | directive-processor-comprehensive | template-variable-resolution |
+| template-variable-resolution | x-flatten-arrays-debugging, directive-processor | template-variable-defaults |
+| template-variable-defaults | template-variable-resolution | - |
+| frontmatter-transformation-refactoring | - | directive-processor-comprehensive |
+| layered-architecture-dependency-analysis | - | All component workflows |
+| totality-verification | - | All workflows |
+| false-resolution-detection | - | Quality gates for all |
+
+## Execution Order for Specific Issues
+
+### Issue #1071: x-flatten-arrays data loss in template rendering
 ```bash
-# Full quality and architecture assessment
-cd docs/tests/debugs
+# Execute in order:
+1. integration/x-flatten-arrays-debugging.workflow.md
+2. component/template-variable-resolution.workflow.md
+3. component/template-variable-defaults.workflow.md
+```
 
-# Execute in dependency order
-./01-quality-assurance/01-false-resolution-detection.workflow.md
-./02-architecture/01-totality-verification.workflow.md
-./03-features/01-directive-implementation.workflow.md
+### Template Variable Resolution Issues
+```bash
+# Execute in order:
+1. component/template-variable-resolution.workflow.md
+2. component/directive-processor-comprehensive.workflow.md
 ```
 
 ## Structure Overview
 
 ```
 docs/tests/debugs/
-├── debugging-workflows.md                   # Master index and execution guide
-├── README.md                               # This quick start guide
-├── 01-quality-assurance/                  # Process integrity workflows
-├── 02-architecture/                       # Architecture compliance workflows
-├── 03-features/                          # Feature implementation workflows
-└── templates/                            # Reusable workflow templates
+├── README.md                               # This workflow relationship index
+├── debugging-workflows.md                  # Master index and execution guide
+├── 01-quality-assurance/                   # Process integrity workflows
+├── 02-architecture/                        # Architecture compliance workflows
+├── 03-features/                            # Feature implementation workflows
+├── component/                              # Component-level debugging
+├── integration/                            # Integration-level debugging
+└── meta/                                   # Meta workflows and templates
 ```
-
-## Workflow Categories
-
-### 01. Quality Assurance
-
-**Focus**: Development process integrity **Frequency**: Daily/Commit-time
-**Purpose**: Detect false resolution claims, process inconsistencies
-
-### 02. Architecture
-
-**Focus**: DDD, Totality, AI-complexity-control compliance **Frequency**:
-Weekly/Release-time **Purpose**: Ensure architectural principles adherence
-
-### 03. Features
-
-**Focus**: Implementation completeness and quality **Frequency**:
-Sprint/Feature-time **Purpose**: Verify feature implementation and test coverage
 
 ## Quick Reference
 

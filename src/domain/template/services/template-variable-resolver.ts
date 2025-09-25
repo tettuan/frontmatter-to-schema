@@ -30,6 +30,7 @@ import {
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
 import { VariableTransformationRegistry } from "../strategies/variable-transformation-strategy.ts";
+import { PropertyTransformationRegistry } from "../strategies/property-transformation-strategy.ts";
 
 /**
  * Array data state for template variable resolution.
@@ -62,11 +63,14 @@ export interface VariableResolutionContext {
  */
 export class TemplateVariableResolver {
   private readonly transformationRegistry: VariableTransformationRegistry;
+  private readonly propertyTransformationRegistry:
+    PropertyTransformationRegistry;
 
   private constructor(
     private readonly domainLogger: DomainLogger = new NullDomainLogger(),
   ) {
     this.transformationRegistry = new VariableTransformationRegistry();
+    this.propertyTransformationRegistry = new PropertyTransformationRegistry();
   }
 
   /**
@@ -484,61 +488,34 @@ export class TemplateVariableResolver {
     baseValue: unknown,
     property: string,
   ): Result<unknown, TemplateError & { message: string }> {
-    switch (property) {
-      case "full":
-        // For "full" property, return the base value as-is (common pattern for IDs)
-        this.domainLogger.logDebug(
-          "property-transformation",
-          `Applying 'full' transformation: returning base value`,
-          { baseValue },
-        );
-        return ok(baseValue);
+    // Use PropertyTransformationRegistry instead of hardcoded switch
+    // This follows the Open/Closed principle and fixes Issue #1072
+    this.domainLogger.logDebug(
+      "property-transformation",
+      `Applying transformation for property '${property}'`,
+      { baseValue, property },
+    );
 
-      case "short":
-        // For "short" property, attempt to abbreviate string values
-        if (typeof baseValue === "string") {
-          const shortened = baseValue.substring(0, 8);
-          this.domainLogger.logDebug(
-            "property-transformation",
-            `Applying 'short' transformation to string`,
-            { original: baseValue, shortened },
-          );
-          return ok(shortened);
-        }
-        this.domainLogger.logDebug(
-          "property-transformation",
-          `'Short' transformation: returning base value for non-string`,
-          { baseValue, type: typeof baseValue },
-        );
-        return ok(baseValue);
+    const result = this.propertyTransformationRegistry.transform(
+      property,
+      baseValue,
+    );
 
-      case "name":
-        // Extract name from various object structures
-        if (typeof baseValue === "object" && baseValue !== null) {
-          const obj = baseValue as Record<string, unknown>;
-          if ("name" in obj) return ok(obj.name);
-          if ("title" in obj) return ok(obj.title);
-        }
-        if (typeof baseValue === "string") {
-          return ok(baseValue);
-        }
-        return ErrorHandler.template({
-          operation: "applyPropertySpecificTransformation",
-          method: "extractName",
-        }).variableResolutionFailed(
-          property,
-          `Cannot extract 'name' from value of type ${typeof baseValue}`,
-        );
-
-      default:
-        return ErrorHandler.template({
-          operation: "applyPropertySpecificTransformation",
-          method: "unknownProperty",
-        }).variableResolutionFailed(
-          property,
-          `Unknown property transformation: '${property}'`,
-        );
+    if (result.ok) {
+      this.domainLogger.logDebug(
+        "property-transformation",
+        `Transformation successful for property '${property}'`,
+        { original: baseValue, transformed: result.data },
+      );
+    } else {
+      this.domainLogger.logDebug(
+        "property-transformation",
+        `Transformation failed for property '${property}'`,
+        { error: result.error },
+      );
     }
+
+    return result;
   }
 
   /**
