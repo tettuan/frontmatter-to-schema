@@ -12,7 +12,10 @@ import {
   SchemaStructureDetector,
 } from "../../domain/schema/services/schema-structure-detector.ts";
 import { StructureType } from "../../domain/schema/value-objects/structure-type.ts";
-import { DebugLogger } from "../../infrastructure/adapters/debug-logger.ts";
+import {
+  createLogContext,
+  DebugLogger,
+} from "../../domain/shared/services/debug-logger.ts";
 import { RecoveryStrategyRegistry } from "../../domain/recovery/services/recovery-strategy-registry.ts";
 // Removed unused import - DirectiveProcessor
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
@@ -162,29 +165,27 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     options: ProcessingOptions = { kind: "sequential" },
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
     // Debug: ValidationRules application timing (Issue #905 Phase 1)
-    this.logger?.logDebug(
-      "validation-timing",
-      "ValidationRules application started",
-      {
+    this.logger?.debug(
+      "validation-timing: ValidationRules application started",
+      createLogContext({
         inputPattern,
         validationStrategy: "fail-fast", // Current implementation strategy
         ruleCount: validationRules.getRules().length,
         processingMode: options.kind,
-      },
+      }),
     );
 
     // Convert ProcessingOptions to transformation service options
     const transformationOptions = this.convertProcessingOptions(options);
 
     // Debug: Processing variance tracking (Issue #905 Phase 1)
-    this.logger?.logDebug(
-      "processing-variance",
-      "Processing options converted for transformation",
-      {
+    this.logger?.debug(
+      "processing-variance: Processing options converted for transformation",
+      createLogContext({
         originalOptions: options,
         transformationOptions,
         expectedVariance: "low",
-      },
+      }),
     );
 
     const result = await this.frontmatterTransformer.transformDocuments(
@@ -197,28 +198,26 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
 
     // Debug: Error propagation tracking (Issue #905 Phase 1)
     if (!result.ok) {
-      this.logger?.logDebug(
-        "error-propagation",
-        "Document processing failed - evaluating recovery options",
-        {
+      this.logger?.debug(
+        "error-propagation: Document processing failed - evaluating recovery options",
+        createLogContext({
           errorKind: result.error.kind,
           propagationStrategy: "error-classification",
           recoveryEvaluation: "determining-if-recoverable",
-        },
+        }),
       );
 
       // Check if error is recoverable using RecoveryStrategyRegistry (Issue #905 Phase 3)
       const isRecoverable = this.recoveryRegistry.canRecover(result.error.kind);
 
       if (!isRecoverable) {
-        this.logger?.logDebug(
-          "error-propagation",
-          "Error is non-recoverable - propagating unchanged",
-          {
+        this.logger?.debug(
+          "error-propagation: Error is non-recoverable - propagating unchanged",
+          createLogContext({
             errorKind: result.error.kind,
             propagationStrategy: "direct-propagation",
             reason: "non-recoverable-error-type",
-          },
+          }),
         );
         return result;
       }
@@ -231,10 +230,9 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
         ? recoveryStrategyResult.data
         : undefined;
 
-      this.logger?.logDebug(
-        "error-propagation",
-        "Error is recoverable - attempting recovery",
-        {
+      this.logger?.debug(
+        "error-propagation: Error is recoverable - attempting recovery",
+        createLogContext({
           errorKind: result.error.kind,
           propagationStrategy: "recovery-attempt",
           recoveryStrategy: recoveryStrategy
@@ -249,7 +247,7 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
             "fallback-validation",
             "user-guidance",
           ],
-        },
+        }),
       );
 
       // Issue #905 Phase 3: Error recovery mechanisms
@@ -262,37 +260,34 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       );
 
       if (recoveryResult.ok) {
-        this.logger?.logDebug(
-          "error-recovery-success",
-          "Error recovery completed successfully",
-          {
+        this.logger?.debug(
+          "error-recovery-success: Error recovery completed successfully",
+          createLogContext({
             originalError: result.error.kind,
             recoveryStrategy: recoveryResult.data.strategy,
             recoveredDataSize: recoveryResult.data.data.getAllKeys().length,
             partialSuccess: true,
-          },
+          }),
         );
         return ok(recoveryResult.data.data);
       } else {
-        this.logger?.logDebug(
-          "error-recovery-failed",
-          "Error recovery unsuccessful - returning enhanced error",
-          {
+        this.logger?.debug(
+          "error-recovery-failed: Error recovery unsuccessful - returning enhanced error",
+          createLogContext({
             originalError: result.error.kind,
             recoveryError: recoveryResult.error.kind,
             userGuidance: recoveryResult.error.message,
-          },
+          }),
         );
         return recoveryResult;
       }
     } else {
-      this.logger?.logDebug(
-        "processing-success",
-        "Document processing completed successfully",
-        {
+      this.logger?.debug(
+        "processing-success: Document processing completed successfully",
+        createLogContext({
           dataSize: result.data.getAllKeys().length,
           processingVariance: "within-tolerance",
-        },
+        }),
       );
     }
 
@@ -312,27 +307,25 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     schema: Schema,
   ): Result<FrontmatterData[], DomainError & { message: string }> {
     // Debug: Frontmatter-part extraction variance tracking (Issue #905 Phase 1)
-    this.logger?.logDebug(
-      "frontmatter-part-extraction",
-      "Starting frontmatter-part data extraction with directive coordination",
-      {
+    this.logger?.debug(
+      "frontmatter-part-extraction: Starting frontmatter-part data extraction with directive coordination",
+      createLogContext({
         dataKeys: data.getAllKeys(),
         schemaPath: schema.getPath().toString(),
         extractionStrategy: "directive-aware-array-expansion",
-      },
+      }),
     );
 
     // Check if schema has frontmatter-part definition
     const pathResult = schema.findFrontmatterPartPath();
     if (!pathResult.ok) {
       // No frontmatter-part defined, return data as single item array
-      this.logger?.logDebug(
-        "frontmatter-part-extraction",
-        "No frontmatter-part path found, using single-item strategy",
-        {
+      this.logger?.debug(
+        "frontmatter-part-extraction: No frontmatter-part path found, using single-item strategy",
+        createLogContext({
           reason: "no-frontmatter-part-defined",
           fallbackStrategy: "single-item-array",
-        },
+        }),
       );
       return ok([data]);
     }
@@ -340,13 +333,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     const frontmatterPartPath = pathResult.data;
 
     // Debug: Path resolution tracking (Issue #905 Phase 1)
-    this.logger?.logDebug(
-      "frontmatter-part-path",
-      "Frontmatter-part path resolved",
-      {
+    this.logger?.debug(
+      "frontmatter-part-path: Frontmatter-part path resolved",
+      createLogContext({
         path: frontmatterPartPath,
         pathResolutionStrategy: "schema-traversal",
-      },
+      }),
     );
 
     // CRITICAL FIX for Issue #977: Check for processed array data first
@@ -357,15 +349,14 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
 
     if (hasArrayData) {
       // File contains array at target path - extract individual items
-      this.logger?.logDebug(
-        "array-processing-variance",
-        "Processing array data at frontmatter-part path (directive-processed)",
-        {
+      this.logger?.debug(
+        "array-processing-variance: Processing array data at frontmatter-part path (directive-processed)",
+        createLogContext({
           arrayLength: arrayDataResult.data.length,
           processingStrategy: "item-by-item-extraction",
           expectedVariance: "item-validation-failures",
           directiveProcessed: true,
-        },
+        }),
       );
 
       const result: FrontmatterData[] = [];
@@ -392,26 +383,24 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       }
 
       // Debug: Array processing results (Issue #905 Phase 1)
-      this.logger?.logDebug(
-        "array-processing-results",
-        "Array processing completed",
-        {
+      this.logger?.debug(
+        "array-processing-results: Array processing completed",
+        createLogContext({
           totalItems: arrayDataResult.data.length,
           processedItems: processedCount,
           skippedItems: skippedCount,
           processingVariance: skippedCount > 0 ? "high" : "low",
-        },
+        }),
       );
 
       return ok(result);
     } else {
       // Return empty array when no processed array exists
-      this.logger?.logDebug(
-        "frontmatter-part-extraction",
-        "No frontmatter-part array found, returning empty result",
-        {
+      this.logger?.debug(
+        "frontmatter-part-extraction: No frontmatter-part array found, returning empty result",
+        createLogContext({
           reason: "no-array-data-available",
-        },
+        }),
       );
 
       return ok([]);
@@ -594,17 +583,16 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       DomainError & { message: string }
     >
   > {
-    this.logger?.logDebug(
-      "error-recovery-attempt",
-      "Starting error recovery process",
-      {
+    this.logger?.debug(
+      "error-recovery-attempt: Starting error recovery process",
+      createLogContext({
         errorKind: error.kind,
         recoveryStrategies: [
           "partial-processing",
           "fallback-validation",
           "user-guidance",
         ],
-      },
+      }),
     );
 
     // HIGH-VARIANCE DEBUG POINT: Error recovery strategy selection
@@ -616,10 +604,9 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       error.kind,
     );
 
-    this.logger?.logDebug(
-      "variance-debug-point",
-      "Error recovery strategy evaluation - High variance detection",
-      {
+    this.logger?.debug(
+      "variance-debug-point: Error recovery strategy evaluation - High variance detection",
+      createLogContext({
         debugPoint: "error-recovery-strategy-selection",
         errorKind: error.kind,
         canRecover: canRecoverFromValidationError,
@@ -629,7 +616,7 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
         processingMode: "fallback-validation",
         varianceRisk: "high",
         parallelismImpact: "strategy-selection-variance-300-400%",
-      },
+      }),
     );
 
     // Strategy 1: Attempt partial processing with relaxed validation
@@ -637,14 +624,13 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       canRecoverFromValidationError && validationStrategy.ok &&
       validationStrategy.data
     ) {
-      this.logger?.logDebug(
-        "error-recovery-strategy",
-        "Attempting partial processing with fallback validation",
-        {
+      this.logger?.debug(
+        "error-recovery-strategy: Attempting partial processing with fallback validation",
+        createLogContext({
           strategy: "fallback-validation",
           originalError: error.kind,
           debugContext: "high-variance-execution-path",
-        },
+        }),
       );
 
       const fallbackResult = await this.attemptFallbackValidation(
@@ -671,10 +657,9 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       error.kind,
     );
 
-    this.logger?.logDebug(
-      "variance-debug-point",
-      "File system error recovery evaluation - High variance detection",
-      {
+    this.logger?.debug(
+      "variance-debug-point: File system error recovery evaluation - High variance detection",
+      createLogContext({
         debugPoint: "filesystem-error-recovery-strategy",
         errorKind: error.kind,
         canRecover: canRecoverFromFileSystemError,
@@ -685,7 +670,7 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
         varianceRisk: "high",
         parallelismImpact: "filesystem-recovery-variance-200-500%",
         memoryImpact: "partial-result-accumulation",
-      },
+      }),
     );
 
     // Strategy 2: Attempt partial result extraction for file system or frontmatter errors
@@ -693,14 +678,13 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       canRecoverFromFileSystemError && fileSystemStrategy.ok &&
       fileSystemStrategy.data
     ) {
-      this.logger?.logDebug(
-        "error-recovery-strategy",
-        "Attempting partial result extraction",
-        {
+      this.logger?.debug(
+        "error-recovery-strategy: Attempting partial result extraction",
+        createLogContext({
           strategy: "partial-processing",
           originalError: error.kind,
           debugContext: "high-variance-filesystem-path",
-        },
+        }),
       );
 
       const partialResult = this.attemptPartialProcessing(
@@ -719,13 +703,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     }
 
     // Strategy 3: Return enhanced error with user guidance
-    this.logger?.logDebug(
-      "error-recovery-strategy",
-      "Providing enhanced error with user guidance",
-      {
+    this.logger?.debug(
+      "error-recovery-strategy: Providing enhanced error with user guidance",
+      createLogContext({
         strategy: "user-guidance",
         originalError: error.kind,
-      },
+      }),
     );
 
     return ErrorHandler.system({
@@ -746,13 +729,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     schema: Schema,
     options: ProcessingOptions,
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
-    this.logger?.logDebug(
-      "fallback-validation",
-      "Creating relaxed validation rules for recovery",
-      {
+    this.logger?.debug(
+      "fallback-validation: Creating relaxed validation rules for recovery",
+      createLogContext({
         originalRules: validationRules.getRules().length,
         fallbackStrategy: "optional-fields",
-      },
+      }),
     );
 
     // Create fallback validation rules (make all fields optional)
@@ -770,13 +752,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     );
 
     if (result.ok) {
-      this.logger?.logDebug(
-        "fallback-validation-success",
-        "Fallback validation recovered partial data",
-        {
+      this.logger?.debug(
+        "fallback-validation-success: Fallback validation recovered partial data",
+        createLogContext({
           recoveredDataSize: result.data.getAllKeys().length,
           strategy: "relaxed-validation",
-        },
+        }),
       );
     }
 
@@ -793,13 +774,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
     _schema: Schema,
     _options: ProcessingOptions,
   ): Result<FrontmatterData, DomainError & { message: string }> {
-    this.logger?.logDebug(
-      "partial-processing",
-      "Attempting partial result extraction",
-      {
+    this.logger?.debug(
+      "partial-processing: Attempting partial result extraction",
+      createLogContext({
         strategy: "best-effort-processing",
         skipErrors: true,
-      },
+      }),
     );
 
     // Implementation would involve file-by-file processing with error tolerance
@@ -809,13 +789,12 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
       return emptyDataResult;
     }
 
-    this.logger?.logDebug(
-      "partial-processing-fallback",
-      "Created minimal data structure for partial recovery",
-      {
+    this.logger?.debug(
+      "partial-processing-fallback: Created minimal data structure for partial recovery",
+      createLogContext({
         strategy: "minimal-data",
         dataSize: 0,
-      },
+      }),
     );
 
     return ok(emptyDataResult.data);
