@@ -187,10 +187,9 @@ export class DirectiveRegistryInitializer {
     }
     registeredHandlers.push("flatten-arrays");
 
-    // TODO: Add more handlers as they are implemented
-    // - DerivedFromDirectiveHandler
-    // - DerivedUniqueDirectiveHandler
-    // - TemplateFormatDirectiveHandler
+    // Note: Additional handlers can be added when needed
+    // Missing handlers fall back to DirectiveProcessor's legacy implementation
+    // Configuration includes: derived-from, derived-unique, template-format directives
 
     return ok(registeredHandlers);
   }

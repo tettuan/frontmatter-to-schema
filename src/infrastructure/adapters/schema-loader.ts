@@ -97,10 +97,11 @@ export class FileSystemSchemaRepository implements SchemaRepository {
       return err(definitionResult.error);
     }
 
+    // Infrastructure layer doesn't provide domain logger - schema will use undefined
     const schemaResult = Schema.create(
       path,
       definitionResult.data,
-      this.debugLogger,
+      undefined,
     );
     if (!schemaResult.ok) {
       return schemaResult;
