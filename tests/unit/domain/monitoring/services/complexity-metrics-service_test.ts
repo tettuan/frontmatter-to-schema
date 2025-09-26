@@ -3,7 +3,7 @@ import { assert, assertEquals } from "jsr:@std/assert";
 import {
   ComplexityMetricsConfigurationFactory,
   ComplexityMetricsService,
-} from "./complexity-metrics-service.ts";
+} from "../../../../../src/domain/monitoring/services/complexity-metrics-service.ts";
 
 describe("ComplexityMetricsService", () => {
   describe("Smart Constructor", () => {

@@ -4,7 +4,7 @@ import {
   ComplexityFactors,
   EntropyManagementConfigFactory,
   EntropyManagementService,
-} from "./entropy-management-service.ts";
+} from "../../../../../src/domain/monitoring/services/entropy-management-service.ts";
 
 describe("EntropyManagementService", () => {
   describe("Smart Constructor", () => {

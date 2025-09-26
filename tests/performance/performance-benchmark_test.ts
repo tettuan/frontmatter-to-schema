@@ -260,7 +260,7 @@ describe("Performance Benchmark Tests", () => {
     }
 
     // Add small delay to allow system to stabilize after previous tests
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     benchmark = new PerformanceBenchmark();
   });
@@ -269,7 +269,7 @@ describe("Performance Benchmark Tests", () => {
     // Ensure cleanup of any leftover test resources
     if (benchmark) {
       // Force another cleanup cycle
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
   });
 
@@ -346,7 +346,9 @@ describe("Performance Benchmark Tests", () => {
       // Enhanced error handling for test suite interference diagnosis
       if (!result.ok) {
         console.error("Benchmark execution failed:", result.error);
-        console.error("This likely indicates test interference from previous tests");
+        console.error(
+          "This likely indicates test interference from previous tests",
+        );
       }
       assertEquals(result.ok, true);
       if (!result.ok) return;

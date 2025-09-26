@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { PipelineMonitoringService } from "./pipeline-monitoring-service.ts";
-import { PipelineStrategyConfig } from "../../pipeline/value-objects/pipeline-strategy-config.ts";
+import { PipelineMonitoringService } from "../../../../../src/domain/monitoring/services/pipeline-monitoring-service.ts";
+import { PipelineStrategyConfig } from "../../../../../src/domain/pipeline/value-objects/pipeline-strategy-config.ts";
 
 Deno.test("PipelineMonitoringService - Smart Constructor", () => {
   const result = PipelineMonitoringService.create();
