@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import {
   PipelineConfig,
   PipelineOrchestrator,
@@ -239,6 +240,7 @@ class MockFrontmatterParser {
 }
 
 describe("PipelineOrchestrator Integration Tests", () => {
+  const _logger = new BreakdownLogger("pipeline-orchestrator");
   it("should process complete pipeline from frontmatter to template output", async () => {
     // Setup
     const fileSystem = new MockFileSystem();

@@ -14,6 +14,7 @@
 
 import { assert, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { ProcessingCoordinator } from "../../src/application/coordinators/processing-coordinator.ts";
 import { FrontmatterTransformationService } from "../../src/domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { ValidationRules } from "../../src/domain/schema/value-objects/validation-rules.ts";
@@ -116,6 +117,7 @@ const createTestSchema = (hasFrontmatterPart = false) => ({
 } as Schema);
 
 describe("24 Execution Patterns - Boundary Conditions & Error Recovery", () => {
+  const _logger = new BreakdownLogger("24-patterns-boundary");
   describe("Large Volume Processing (Issue #1067 Priority)", () => {
     it("Pattern 21: Should handle 100+ documents efficiently", async () => {
       // Test large volume processing (scaled for CI stability)

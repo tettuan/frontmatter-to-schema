@@ -1,4 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { SchemaStructureDetector } from "../../src/domain/schema/services/schema-structure-detector.ts";
 import { StructureTypeUtils } from "../../src/domain/schema/value-objects/structure-type.ts";
 import { Schema } from "../../src/domain/schema/entities/schema.ts";
@@ -17,6 +18,7 @@ import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-d
  * 4. Example 2 compatibility validation
  */
 Deno.test("StructureType Coordinator Integration - Issue #528 Resolution", async (t) => {
+  const _logger = new BreakdownLogger("structure-type-coordinator");
   // Helper function to create books schema (Example 2)
   function createBooksSchema(): Schema {
     const schemaData = {

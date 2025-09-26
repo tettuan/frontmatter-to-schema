@@ -18,10 +18,10 @@ import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-d
 import { FrontmatterDataFactory } from "../../src/domain/frontmatter/factories/frontmatter-data-factory.ts";
 
 Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
-  const logger = new BreakdownLogger("x-flatten-arrays-relay");
+  const _logger = new BreakdownLogger("x-flatten-arrays-relay");
 
   await t.step("Step 1: Verify directive recognition and processing", () => {
-    logger.info("=== Testing Directive Recognition ===");
+    _logger.info("=== Testing Directive Recognition ===");
 
     // Create test schema with x-flatten-arrays
     const schemaData = {
@@ -58,7 +58,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
     );
     assert(orderResult.ok);
 
-    logger.debug("Processing order resolved", {
+    _logger.debug("Processing order resolved", {
       phaseCount: orderResult.data.phases.length,
       phases: orderResult.data.phases.map((p) => ({
         phase: p.phaseNumber,
@@ -80,7 +80,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
   });
 
   await t.step("Step 2: Test nested array flattening", () => {
-    logger.info("=== Testing Array Flattening ===");
+    _logger.info("=== Testing Array Flattening ===");
 
     const schemaData = {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -106,7 +106,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
       ],
     };
 
-    logger.debug("Input data structure", {
+    _logger.debug("Input data structure", {
       topLevelLength: testData.items.length,
       hasNestedArrays: testData.items.some((item) => Array.isArray(item)),
     });
@@ -138,7 +138,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
     assert(processedResult.ok);
     const processedData = processedResult.data.getData() as Record<string, any>;
 
-    logger.info("After directive processing", {
+    _logger.info("After directive processing", {
       itemsType: typeof processedData.items,
       itemsIsArray: Array.isArray(processedData.items),
       itemsLength: (processedData.items as any[])?.length,
@@ -169,14 +169,14 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
 
     // Log each item for verification
     (processedData.items as any[]).forEach((item: unknown, index: number) => {
-      logger.debug(`Flattened item ${index}`, { value: item });
+      _logger.debug(`Flattened item ${index}`, { value: item });
     });
   });
 
   await t.step(
     "Step 3: Compare processing with and without x-flatten-arrays",
     () => {
-      logger.info("=== Comparison Test: With vs Without Directive ===");
+      _logger.info("=== Comparison Test: With vs Without Directive ===");
 
       const testData = {
         requirements: [
@@ -273,7 +273,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
         any
       >;
 
-      logger.info("Comparison Results", {
+      _logger.info("Comparison Results", {
         without: {
           length: withoutDirectiveData.requirements?.length,
           hasNestedArrays: withoutDirectiveData.requirements?.some((
@@ -311,14 +311,14 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
         "With directive: should have 4 flattened items",
       );
 
-      logger.info(
+      _logger.info(
         "✅ x-flatten-arrays directive successfully processes and flattens nested arrays",
       );
     },
   );
 
   await t.step("Step 4: Test deep nesting and complex structures", () => {
-    logger.info("=== Testing Deep Nesting ===");
+    _logger.info("=== Testing Deep Nesting ===");
 
     const complexData = {
       deeply: {
@@ -385,7 +385,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
     const deeply = processedData.deeply as any;
     const items = deeply?.nested?.items as any[];
 
-    logger.info("Deep nesting result", {
+    _logger.info("Deep nesting result", {
       originalPath: "deeply.nested.items",
       flattenedLength: items?.length,
       allFlat: Array.isArray(items) &&
@@ -398,7 +398,7 @@ Deno.test("x-flatten-arrays Value Relay Integration Test", async (t) => {
       "Should flatten deeply nested arrays to 7 items",
     );
 
-    logger.info(
+    _logger.info(
       "✅ All tests passed: x-flatten-arrays directive correctly processes and relays values",
     );
   });

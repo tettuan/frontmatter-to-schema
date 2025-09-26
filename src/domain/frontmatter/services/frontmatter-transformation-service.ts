@@ -58,10 +58,10 @@ import {
   // TransformationStrategy - will be used in next integration step
 } from "../strategies/transformation-strategy.ts";
 import {
+  DocumentProcessingResult as _DocumentProcessingResult,
   ProcessingStrategyState,
-  ValidationState,
-  StateTransitions,
-  DocumentProcessingResult,
+  StateTransitions as _StateTransitions,
+  ValidationState as _ValidationState,
 } from "../types/transformation-states.ts";
 
 export interface ProcessedDocuments {
@@ -797,19 +797,23 @@ export class FrontmatterTransformationService {
     } else if (legacyOptions?.parallel === true) {
       processingStrategyState = {
         kind: "parallel",
-        workers: legacyOptions.maxWorkers || this.performanceSettings.getDefaultMaxWorkers(),
+        workers: legacyOptions.maxWorkers ||
+          this.performanceSettings.getDefaultMaxWorkers(),
       };
     } else {
       processingStrategyState = { kind: "sequential" };
     }
 
-    const strategyResult = strategySelector.selectStrategy(processingStrategyState);
+    const strategyResult = strategySelector.selectStrategy(
+      processingStrategyState,
+    );
     if (!strategyResult.ok) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message: `Failed to select processing strategy: ${strategyResult.error.message}`,
+          message:
+            `Failed to select processing strategy: ${strategyResult.error.message}`,
         }),
       };
     }
@@ -827,20 +831,24 @@ export class FrontmatterTransformationService {
 
     // Execute the selected strategy
     // Convert string paths to FilePath objects, handling errors properly
-    const filePathResults = filesResult.data.map((path) => FilePath.create(path));
+    const filePathResults = filesResult.data.map((path) =>
+      FilePath.create(path)
+    );
     const invalidPaths = filePathResults.filter((result) => !result.ok);
     if (invalidPaths.length > 0) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message: `Invalid file paths: ${invalidPaths.map((p) => p.error.message).join(", ")}`,
+          message: `Invalid file paths: ${
+            invalidPaths.map((p) => p.error.message).join(", ")
+          }`,
         }),
       };
     }
 
     const filePaths = filePathResults.filter((result) => result.ok).map(
-      (result) => (result as { ok: true; data: FilePath }).data
+      (result) => (result as { ok: true; data: FilePath }).data,
     );
 
     const strategyExecutionResult = await strategy.execute(
@@ -856,12 +864,12 @@ export class FrontmatterTransformationService {
               kind: "success" as const,
               data: docResult.data.frontmatterData,
               document: docResult.data.document,
-            }
+            },
           };
         } else {
           return {
             ok: false,
-            error: docResult.error
+            error: docResult.error,
           };
         }
       },
@@ -870,12 +878,10 @@ export class FrontmatterTransformationService {
     );
 
     if (!strategyExecutionResult.ok) {
+      // Preserve original error type for memory bounds violations and other specific errors
       return {
         ok: false,
-        error: createError({
-          kind: "ConfigurationError",
-          message: `Strategy execution failed: ${strategyExecutionResult.error.message}`,
-        }),
+        error: strategyExecutionResult.error,
       };
     }
 

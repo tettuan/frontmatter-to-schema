@@ -12,11 +12,13 @@
 
 import { assert, assertEquals } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { Aggregator } from "../../src/domain/aggregation/aggregators/aggregator.ts";
 import { DerivationRule } from "../../src/domain/aggregation/value-objects/derivation-rule.ts";
 import { TestDataFactory } from "../helpers/test-data-factory.ts";
 
 describe("Registry Merge Integration Tests - Issue #527", () => {
+  const _logger = new BreakdownLogger("registry-merge");
   describe("Real-world Registry Aggregation Scenarios", () => {
     it("should aggregate multiple climpt registry files and derive availableConfigs", () => {
       // Arrange: Simulate multiple registry markdown files as would be processed

@@ -71,17 +71,19 @@ domain/template/document-processing/
 
 ### List Aggregation Subdomain
 
-- **Input**: `FrontmatterData[]` (array of all documents)
-- **Processing**: Aggregate operations (merge, group, sort)
+- **Input**: `TemplateIntermediateRepresentation` containing aggregated document
+  data
+- **Processing**: Aggregate operations (merge, group, sort) via IR-managed scope
 - **Output**: Single file (e.g., `registry.json`, `index.json`)
-- **Template Variables**: Array-level variables, summary statistics
+- **Template Variables**: Array-level variables, summary statistics from IR
+  context
 
 ### Document Processing Subdomain
 
-- **Input**: `FrontmatterData` (single document)
-- **Processing**: Individual transformations
+- **Input**: `TemplateContext` for individual document processing
+- **Processing**: Individual transformations via IR variable resolution
 - **Output**: Multiple files (one per document)
-- **Template Variables**: Document-level variables, {@items} expansion
+- **Template Variables**: Document-level variables, {@items} expansion from IR
 
 ## Integration Points
 

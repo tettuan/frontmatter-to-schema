@@ -5,12 +5,14 @@
  */
 
 import { assertEquals, assertExists } from "jsr:@std/assert";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { Schema } from "../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../src/domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../src/domain/schema/value-objects/schema-definition.ts";
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 Deno.test("Issue #1005 Verification - Supported Directive Processing", async (t) => {
+  const _logger = new BreakdownLogger("issue-966-verification");
   await t.step(
     "should handle schemas with supported directives",
     () => {

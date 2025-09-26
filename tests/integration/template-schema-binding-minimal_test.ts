@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { VariableContext } from "../../src/domain/template/value-objects/variable-context.ts";
 import { TestDataFactory } from "../helpers/test-data-factory.ts";
 
@@ -10,6 +11,8 @@ import { TestDataFactory } from "../helpers/test-data-factory.ts";
  * with proper Result type handling.
  */
 describe("Template-Schema Binding Minimal", () => {
+  const _logger = new BreakdownLogger("template-schema-binding-minimal");
+
   describe("Variable Context Legacy Support", () => {
     it("should create and use variable context in legacy mode", () => {
       // Arrange

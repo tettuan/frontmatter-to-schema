@@ -1,5 +1,6 @@
 import { describe, it } from "jsr:@std/testing/bdd";
 import { assert, assertEquals } from "jsr:@std/assert";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { DomainSpecifications } from "../../src/testing/specification-driven/domain-specifications.ts";
 import { SpecificationTestRunner } from "../../src/testing/specification-driven/framework.ts";
 import { err, ok, Result } from "../../src/domain/shared/types/result.ts";
@@ -16,6 +17,7 @@ import {
  * rather than testing implementation details with mocks.
  */
 describe("Business Requirements Integration Tests", () => {
+  const _logger = new BreakdownLogger("business-requirements");
   /**
    * File system implementation for testing real business scenarios
    */

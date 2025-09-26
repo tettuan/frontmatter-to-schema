@@ -44,11 +44,11 @@ import { JMESPathFilterService } from "../../src/domain/schema/services/jmespath
 import { FrontmatterData } from "../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
 describe("DirectiveProcessor JMESPath Filter Comparison", () => {
-  const logger = new BreakdownLogger("jmespath-filter-comparison");
+  const _logger = new BreakdownLogger("jmespath-filter-comparison");
 
   describe("Data filtering comparison", () => {
     it("should demonstrate data flow with vs without JMESPath filtering", () => {
-      logger.info("Starting JMESPath filter comparison test");
+      _logger.info("Starting JMESPath filter comparison test");
 
       /**
        * テストデータ構造の説明:
@@ -103,7 +103,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
 
       const testData = testDataResult.data;
       const rawData = testData.getData() as any;
-      logger.debug("Original test data created", {
+      _logger.debug("Original test data created", {
         totalItems: rawData.traceability.length,
         reqItems: rawData.traceability.filter((item: any) =>
           item.id.level === "req"
@@ -120,9 +120,9 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
        * Test 1: フィルタリングなしのデータ確認
        * 目的: 元のデータ構造とアクセス可能性を確認
        */
-      logger.info("Test 1: Processing without JMESPath filtering");
+      _logger.info("Test 1: Processing without JMESPath filtering");
       const originalData = rawData;
-      logger.debug("Data without filtering", {
+      _logger.debug("Data without filtering", {
         itemCount: originalData.traceability.length,
         levels: originalData.traceability.map((item: any) => item.id.level),
         firstItem: originalData.traceability[0],
@@ -133,14 +133,16 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
        * 目的: [?id.level == 'req']フィルタが正しく動作することを確認
        * 期待結果: 4件から2件の'req'レベルのみに絞り込まれる
        */
-      logger.info("Test 2: Processing with JMESPath filtering for 'req' level");
+      _logger.info(
+        "Test 2: Processing with JMESPath filtering for 'req' level",
+      );
 
       const jmespathServiceResult = JMESPathFilterService.create();
       assertExists(jmespathServiceResult.ok);
       if (!jmespathServiceResult.ok) return;
 
       const filterExpression = "[?id.level == 'req']";
-      logger.debug("Applying JMESPath filter", {
+      _logger.debug("Applying JMESPath filter", {
         expression: filterExpression,
       });
 
@@ -151,14 +153,14 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
 
       assertExists(filteredResult.ok);
       if (!filteredResult.ok) {
-        logger.error("JMESPath filtering failed", {
+        _logger.error("JMESPath filtering failed", {
           error: filteredResult.error,
         });
         return;
       }
 
       const filteredData = filteredResult.data as any[];
-      logger.debug("Data after JMESPath filtering", {
+      _logger.debug("Data after JMESPath filtering", {
         originalCount: originalData.traceability.length,
         filteredCount: filteredData.length,
         filteredItems: filteredData.map((item: any) => ({
@@ -172,13 +174,13 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
        * Test 3: フィルタリング結果の比較分析
        * 目的: フィルタリング前後のデータ件数と内容の違いを明確化
        */
-      logger.info("Test 3: Comparing filtered vs unfiltered results");
+      _logger.info("Test 3: Comparing filtered vs unfiltered results");
 
       const originalReqItems = originalData.traceability.filter((item: any) =>
         item.id.level === "req"
       );
 
-      logger.debug("Comparison analysis", {
+      _logger.debug("Comparison analysis", {
         originalTotal: originalData.traceability.length,
         originalReqItems: originalReqItems.length,
         filteredCount: filteredData.length,
@@ -212,7 +214,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
        * 目的: {id.full}のような変数アクセスが両方のケースで機能するか確認
        * これがexamples/3.docs/で空になる問題の核心部分
        */
-      logger.info("Test 4: Simulating template variable context");
+      _logger.info("Test 4: Simulating template variable context");
 
       // Simulate what happens in template variable resolution
       const templateContext = {
@@ -226,7 +228,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
         },
       };
 
-      logger.debug("Template context simulation", {
+      _logger.debug("Template context simulation", {
         unfilteredContext: {
           totalItems: templateContext.unfiltered.count,
           firstItemId: (templateContext.unfiltered.items as any)[0]?.id?.full,
@@ -248,7 +250,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
         ?.full;
       const filteredFirstId = templateContext.filtered.items[0]?.id?.full;
 
-      logger.debug("Template variable simulation", {
+      _logger.debug("Template variable simulation", {
         unfilteredFirstId,
         filteredFirstId,
         variableAccessWorking: !!unfilteredFirstId && !!filteredFirstId,
@@ -262,11 +264,11 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
         "Filtered first item should be req level",
       );
 
-      logger.info("JMESPath filter comparison test completed successfully");
+      _logger.info("JMESPath filter comparison test completed successfully");
     });
 
     it("should demonstrate nested data structure filtering", () => {
-      logger.info("Starting nested data structure filtering test");
+      _logger.info("Starting nested data structure filtering test");
 
       /**
        * ネスト構造のテスト
@@ -307,7 +309,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
       if (!nestedDataResult.ok) return;
 
       const nestedRawData = nestedDataResult.data.getData() as any;
-      logger.debug("Nested data structure created", {
+      _logger.debug("Nested data structure created", {
         outerTraceabilityLength: nestedRawData.traceability.length,
         innerTraceabilityLength:
           nestedRawData.traceability[0].traceability.length,
@@ -322,7 +324,7 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
       // This represents the complex filtering needed for nested structures
       const nestedFilterExpression =
         "traceability[].traceability[?id.level == 'req']";
-      logger.debug("Applying nested JMESPath filter", {
+      _logger.debug("Applying nested JMESPath filter", {
         expression: nestedFilterExpression,
       });
 
@@ -333,21 +335,21 @@ describe("DirectiveProcessor JMESPath Filter Comparison", () => {
 
       assertExists(nestedFilterResult.ok);
       if (!nestedFilterResult.ok) {
-        logger.error("Nested JMESPath filtering failed", {
+        _logger.error("Nested JMESPath filtering failed", {
           error: nestedFilterResult.error,
         });
         return;
       }
 
       const nestedFilteredData = nestedFilterResult.data as any[];
-      logger.debug("Nested filtering results", {
+      _logger.debug("Nested filtering results", {
         originalStructure: "traceability[0].traceability[0,1]",
         filteredCount: nestedFilteredData.length,
         filteredLevels: nestedFilteredData.map((item: any) => item.id?.level)
           .filter(Boolean),
       });
 
-      logger.info("Nested data structure filtering test completed");
+      _logger.info("Nested data structure filtering test completed");
     });
   });
 });

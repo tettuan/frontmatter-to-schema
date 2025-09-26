@@ -106,7 +106,9 @@ Schemaは、利用すべきテンプレートファイル名を有する。
 最初にフロントマター部分を抽出する。これはTypeScriptで実施する。(成果B)
 成果Bから、TypeScriptで解析する。（成果C）
 成果Cを元にTypeScriptでSchema構造データで保持する（成果D）
-成果Dをテンプレートの変数へ当てこむ。（成果E）
+成果Dから中間表現（IR: Intermediate
+Representation）を構築する。IRは変数のスコープ管理と正規化を担う。（成果D')
+成果D'を元にTemplateContextを生成し、テンプレート変数への値の配置を行う。（成果E）
 成果Eを統合し、最終成果物Zを得る。成果物Zは、Schemaで指定されたx-templateとx-template-items
 を用いて得られた成果Eを統合したものである。なお、$ref
 はスキーマ構造の再利用にのみ使用され、テンプレート処理とは独立している。

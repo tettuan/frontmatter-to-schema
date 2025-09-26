@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
+import { BreakdownLogger } from "jsr:@tettuan/breakdownlogger";
 import { VariableContext } from "../../src/domain/template/value-objects/variable-context.ts";
 import { FrontmatterTestFactory } from "../helpers/frontmatter-test-factory.ts";
 
@@ -13,6 +14,7 @@ import { FrontmatterTestFactory } from "../helpers/frontmatter-test-factory.ts";
  * constraint: {@items} resolution from schema hierarchy.
  */
 describe("Template-Schema Binding Integration", () => {
+  const _logger = new BreakdownLogger("template-schema-binding");
   describe("Variable Context with Legacy Support", () => {
     it("should resolve regular variables in legacy mode", () => {
       // Arrange: Use legacy context creation

@@ -7,6 +7,78 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+
+/**
+ * Debug Logger for DirectiveProcessor
+ * Environment-controlled debug logging with configurable levels
+ */
+class DirectiveDebugLogger {
+  private static isEnabled(
+    level: "error" | "warn" | "info" | "debug" | "verbose" = "debug",
+  ): boolean {
+    const debugLevel = Deno.env.get("DEBUG_LEVEL") || "none";
+    const debugComponents = Deno.env.get("DEBUG_COMPONENTS")?.split(",") || [];
+
+    if (debugLevel === "none") return false;
+    if (debugComponents.length > 0 && !debugComponents.includes("directive")) {
+      return false;
+    }
+
+    const levelPriority = { error: 0, warn: 1, info: 2, debug: 3, verbose: 4 };
+    const currentPriority =
+      levelPriority[debugLevel as keyof typeof levelPriority] ?? 0;
+    const messagePriority = levelPriority[level];
+
+    return messagePriority <= currentPriority;
+  }
+
+  static log(
+    level: "error" | "warn" | "info" | "debug" | "verbose",
+    message: string,
+    data?: unknown,
+  ): void {
+    if (!this.isEnabled(level)) return;
+
+    const outputFormat = Deno.env.get("DEBUG_OUTPUT_FORMAT") || "plain";
+
+    if (outputFormat === "json") {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level,
+        component: "directive",
+        message,
+        data,
+      }));
+    } else {
+      const prefix = `[${level.toUpperCase()}] [DIRECTIVE] ${message}`;
+      if (data) {
+        console.log(prefix, JSON.stringify(data, null, 2));
+      } else {
+        console.log(prefix);
+      }
+    }
+  }
+
+  static error(message: string, data?: unknown): void {
+    this.log("error", message, data);
+  }
+
+  static warn(message: string, data?: unknown): void {
+    this.log("warn", message, data);
+  }
+
+  static info(message: string, data?: unknown): void {
+    this.log("info", message, data);
+  }
+
+  static debug(message: string, data?: unknown): void {
+    this.log("debug", message, data);
+  }
+
+  static verbose(message: string, data?: unknown): void {
+    this.log("verbose", message, data);
+  }
+}
 import { DirectiveType } from "../value-objects/directive-type.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
@@ -126,29 +198,70 @@ export class DirectiveProcessor {
   resolveProcessingOrder(
     schema: Schema,
   ): Result<DirectiveProcessingOrder, DirectiveProcessingError> {
+    DirectiveDebugLogger.info("Starting directive processing order resolution");
     // 1. Discover all directives present in schema
+    DirectiveDebugLogger.debug("Discovering directives in schema");
     const discoveryResult = this.discoverDirectives(schema);
     if (!discoveryResult.ok) {
+      DirectiveDebugLogger.error("Directive discovery failed", {
+        error: discoveryResult.error,
+      });
       return discoveryResult;
     }
     const presentDirectives = discoveryResult.data;
+    DirectiveDebugLogger.debug("Discovered directives", {
+      count: presentDirectives.length,
+      directives: presentDirectives.map((d) => ({
+        id: d.id,
+        present: d.isPresent,
+        path: d.schemaPath,
+      })),
+    });
 
     // 2. Build complete dependency graph (including missing dependencies)
+    DirectiveDebugLogger.debug("Building dependency graph");
     const graphResult = this.buildDependencyGraph(presentDirectives);
     if (!graphResult.ok) {
+      DirectiveDebugLogger.error("Dependency graph building failed", {
+        error: graphResult.error,
+      });
       return graphResult;
     }
     const dependencyGraph = graphResult.data;
+    DirectiveDebugLogger.debug("Built dependency graph", {
+      totalNodes: dependencyGraph.length,
+      presentNodes: dependencyGraph.filter((n) => n.isPresent).length,
+      missingNodes: dependencyGraph.filter((n) => !n.isPresent).length,
+    });
 
     // 3. Perform topological sort
+    DirectiveDebugLogger.debug("Performing topological sort");
     const sortResult = this.topologicalSort(dependencyGraph);
     if (!sortResult.ok) {
+      DirectiveDebugLogger.error("Topological sort failed", {
+        error: sortResult.error,
+      });
       return sortResult;
     }
     const sortedNodes = sortResult.data;
+    DirectiveDebugLogger.debug("Topological sort completed", {
+      sortedOrder: sortedNodes.map((n) => n.id),
+    });
 
     // 4. Group into processing phases
+    DirectiveDebugLogger.debug("Grouping into processing phases");
     const phases = this.groupIntoPhases(sortedNodes);
+
+    DirectiveDebugLogger.info("Processing order resolution completed", {
+      totalPhases: phases.length,
+      totalDirectives: presentDirectives.length,
+      phases: phases.map((p) => ({
+        phase: p.phaseNumber,
+        description: p.description,
+        directiveCount: p.directives.length,
+        directives: p.directives.map((d) => d.id),
+      })),
+    });
 
     return ok({
       phases,
@@ -166,21 +279,52 @@ export class DirectiveProcessor {
     schema: Schema,
     processingOrder: DirectiveProcessingOrder,
   ): Result<FrontmatterData, DirectiveProcessingError> {
+    DirectiveDebugLogger.info("Starting directive processing", {
+      totalPhases: processingOrder.phases.length,
+      totalDirectives: processingOrder.totalDirectives,
+      inputDataKeys: Object.keys(data.getData()),
+    });
+
     let currentData = data;
 
     // Process each phase in order
     for (const phase of processingOrder.phases) {
-      // Phase processing debug information removed for production
-      // Phase ${phase.phaseNumber}: ${phase.description}
+      DirectiveDebugLogger.debug(
+        `Processing phase ${phase.phaseNumber}: ${phase.description}`,
+        {
+          phaseNumber: phase.phaseNumber,
+          description: phase.description,
+          directiveCount: phase.directives.length,
+          directives: phase.directives.map((d) => ({
+            id: d.id,
+            present: d.isPresent,
+          })),
+        },
+      );
 
       // Process all directives in current phase
       for (const directiveNode of phase.directives) {
         if (!directiveNode.isPresent) {
+          DirectiveDebugLogger.verbose(
+            `Skipping directive: ${directiveNode.id} (not present in schema)`,
+            {
+              directive: directiveNode.id,
+              reason: "not_present",
+              schemaPath: directiveNode.schemaPath,
+            },
+          );
           continue; // Skip directives not present in schema
         }
 
-        // Directive processing debug information removed for production
-        // Processing: ${directiveNode.type.getKind()} at ${directiveNode.schemaPath}
+        DirectiveDebugLogger.debug(
+          `Processing directive: ${directiveNode.type.getKind()}`,
+          {
+            directive: directiveNode.type.getKind(),
+            schemaPath: directiveNode.schemaPath,
+            phase: phase.phaseNumber,
+            inputDataKeys: Object.keys(currentData.getData()),
+          },
+        );
 
         const processResult = this.processDirective(
           currentData,
@@ -188,13 +332,44 @@ export class DirectiveProcessor {
           directiveNode,
         );
         if (!processResult.ok) {
+          DirectiveDebugLogger.error(
+            `Directive processing failed: ${directiveNode.type.getKind()}`,
+            {
+              directive: directiveNode.type.getKind(),
+              error: processResult.error,
+              phase: phase.phaseNumber,
+              context: { schemaPath: directiveNode.schemaPath },
+            },
+          );
           return processResult;
         }
+
+        DirectiveDebugLogger.debug(
+          `Directive completed: ${directiveNode.type.getKind()}`,
+          {
+            directive: directiveNode.type.getKind(),
+            success: true,
+            outputDataKeys: Object.keys(processResult.data.getData()),
+          },
+        );
+
         currentData = processResult.data;
       }
+
+      DirectiveDebugLogger.debug(`Phase ${phase.phaseNumber} completed`, {
+        phaseNumber: phase.phaseNumber,
+        processedDirectives: phase.directives.filter((d) => d.isPresent).length,
+      });
     }
 
-    // All directive processing complete - debug information removed for production
+    DirectiveDebugLogger.info(
+      "All directive processing completed successfully",
+      {
+        totalPhases: processingOrder.phases.length,
+        finalDataKeys: Object.keys(currentData.getData()),
+      },
+    );
+
     return ok(currentData);
   }
 

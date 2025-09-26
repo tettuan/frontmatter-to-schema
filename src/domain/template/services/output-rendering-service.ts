@@ -11,6 +11,13 @@ import {
   NullDomainLogger,
 } from "../../shared/services/domain-logger.ts";
 import { TemplateConfiguration } from "../value-objects/template-configuration.ts";
+import {
+  TemplateIntermediateRepresentation,
+} from "../value-objects/template-intermediate-representation.ts";
+import {
+  TemplateContext,
+  TemplateContextBuilder,
+} from "../value-objects/template-context.ts";
 
 export type DataConfiguration =
   | { readonly kind: "SingleData"; readonly data: FrontmatterData }
@@ -33,6 +40,7 @@ import { DynamicDataComposer } from "./dynamic-data-composer.ts";
 import { VariableContext } from "../value-objects/variable-context.ts";
 import { FormatterFactory } from "../formatters/formatter-factory.ts";
 import {
+  ErrorContext,
   ErrorContextFactory,
   ProcessingProgress,
 } from "../../shared/types/error-context.ts";
@@ -176,8 +184,150 @@ export class OutputRenderingService {
   }
 
   /**
+   * Renders output to file using Template Intermediate Representation
+   *
+   * This method accepts IR containing normalized variable mappings, template paths,
+   * and metadata to produce the final output. The IR provides scope management
+   * and variable resolution, eliminating the need for direct data partitioning.
+   *
+   * @param intermediateRepresentation - IR containing normalized variable scope and template info
+   * @param outputPath - Output file path
+   * @param verbosityMode - Logging verbosity configuration
+   * @returns Success/failure result
+   */
+  renderOutputFromIR(
+    intermediateRepresentation: TemplateIntermediateRepresentation,
+    outputPath: string,
+    verbosityMode: VerbosityMode = { kind: "normal" },
+  ): Result<void, DomainError & { message: string }> {
+    // Create ErrorContext for output rendering operation
+    const contextResult = ErrorContextFactory.forDomainService(
+      "OutputRenderingService",
+      "Render output from IR",
+      "renderOutputFromIR",
+    );
+    if (!contextResult.ok) {
+      return contextResult;
+    }
+
+    // Create TemplateContext from IR
+    const templateContext = TemplateContextBuilder.fromIR(
+      intermediateRepresentation,
+    );
+
+    // Use existing template rendering infrastructure
+    return this.renderFromTemplateContext(
+      templateContext,
+      outputPath,
+      verbosityMode,
+      contextResult.data,
+    );
+  }
+
+  /**
+   * Internal method to render from TemplateContext
+   */
+  private renderFromTemplateContext(
+    context: TemplateContext,
+    outputPath: string,
+    _verbosityMode: VerbosityMode,
+    _currentContext: ErrorContext,
+  ): Result<void, DomainError & { message: string }> {
+    // Load main template
+    const mainPathResult = TemplatePath.create(
+      context.renderingOptions.templatePaths.main,
+    );
+    if (!mainPathResult.ok) {
+      return mainPathResult;
+    }
+
+    const mainContentResult = this.fileReader.read(
+      context.renderingOptions.templatePaths.main,
+    );
+    if (!mainContentResult.ok) {
+      return mainContentResult;
+    }
+
+    const mainTemplateResult = Template.createWithDefaultConfig(
+      mainPathResult.data,
+      mainContentResult.data,
+    );
+    if (!mainTemplateResult.ok) {
+      return mainTemplateResult;
+    }
+
+    // Load items template if specified
+    let _itemsTemplate: Template | undefined;
+    if (context.renderingOptions.templatePaths.items) {
+      const itemsPathResult = TemplatePath.create(
+        context.renderingOptions.templatePaths.items,
+      );
+      if (!itemsPathResult.ok) {
+        return itemsPathResult;
+      }
+
+      const itemsContentResult = this.fileReader.read(
+        context.renderingOptions.templatePaths.items,
+      );
+      if (!itemsContentResult.ok) {
+        return itemsContentResult;
+      }
+
+      const itemsTemplateResult = Template.createWithDefaultConfig(
+        itemsPathResult.data,
+        itemsContentResult.data,
+      );
+      if (!itemsTemplateResult.ok) {
+        return itemsTemplateResult;
+      }
+      _itemsTemplate = itemsTemplateResult.data;
+    }
+
+    // Render using the template context
+    const frontmatterResult = FrontmatterData.create(context.mainVariables);
+    if (!frontmatterResult.ok) {
+      return frontmatterResult;
+    }
+
+    const renderedResult = this.templateRenderer.render(
+      mainTemplateResult.data,
+      frontmatterResult.data,
+      { kind: "normal" },
+    );
+
+    if (!renderedResult.ok) {
+      return renderedResult;
+    }
+
+    // Write output to file
+    const outputFormat = (context.renderingOptions.format || "json") as
+      | "json"
+      | "yaml"
+      | "markdown";
+    const formatResult = FormatterFactory.createFormatter(outputFormat);
+    if (!formatResult.ok) {
+      return formatResult;
+    }
+
+    // Parse and format the output
+    let finalOutput: string;
+    try {
+      const parsed = JSON.parse(renderedResult.data);
+      const formattedResult = formatResult.data.format(parsed);
+      if (!formattedResult.ok) {
+        return formattedResult;
+      }
+      finalOutput = formattedResult.data;
+    } catch {
+      finalOutput = renderedResult.data;
+    }
+
+    return this.fileWriter.write(outputPath, finalOutput);
+  }
+
+  /**
    * Legacy render method using optional parameters.
-   * @deprecated Use renderOutputWithConfiguration for better type safety
+   * @deprecated Use renderOutputFromIR for IR-based processing
    *
    * Render data using template and write to output file.
    * Follows Totality principle - all error paths handled explicitly.

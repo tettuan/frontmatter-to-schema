@@ -295,25 +295,27 @@ responsibilities:
 
 - Accepts two templates: main template (`x-template`) and items template
   (`x-template-items`)
-- Accepts two data inputs: main data (FrontmatterData) and items data array
-  (FrontmatterData[])
+- Accepts TemplateContext containing normalized variable scope and metadata
 - Orchestrates the rendering process in two stages:
-  1. Renders each item in the items array using the items template
+  1. Renders each item in the IR-provided items array using the items template
   2. Combines rendered items and applies the main template to create final
      output
 
 **Processing Flow**:
 
-1. Load and validate both templates from file paths
-2. If items template and data exist:
-   - Render each item with items template
-   - Combine rendered items inside the JSON template context
-   - Merge combined items with main data
+1. Receive TemplateIntermediateRepresentation containing normalized variable
+   mappings
+2. Load and validate both templates from file paths specified in IR
+3. If items template and IR items array exist:
+   - Extract items array from IR-managed scope
+   - Render each item with items template using IR variable resolution
+   - Combine rendered items within the template context
+   - Merge combined items with main IR context data
    - Apply main template to produce final output
-3. If only main template exists:
-   - Render the container template with available data
+4. If only main template exists:
+   - Render the container template with IR-provided context
    - Leave any `{@items}` tokens untouched because no items template is defined
-4. Write final rendered output to specified file path
+5. Write final rendered output to specified file path
 
 **Key Features**:
 

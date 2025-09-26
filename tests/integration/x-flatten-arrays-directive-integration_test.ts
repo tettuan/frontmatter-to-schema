@@ -17,9 +17,9 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
   await t.step(
     "should validate and process x-flatten-arrays directive end-to-end",
     () => {
-      const logger = new BreakdownLogger("x-flatten-arrays-integration");
+      const _logger = new BreakdownLogger("x-flatten-arrays-integration");
 
-      logger.info("Starting x-flatten-arrays end-to-end test", {
+      _logger.info("Starting x-flatten-arrays end-to-end test", {
         testType: "integration",
         objective: "validate and process x-flatten-arrays directive",
       });
@@ -106,7 +106,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
         },
       };
 
-      logger.debug("Input data for x-flatten-arrays test", {
+      _logger.debug("Input data for x-flatten-arrays test", {
         inputStructure: {
           traceability: {
             length: inputData.traceability.length,
@@ -122,7 +122,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       if (!dataResult.ok) return;
 
       // Resolve processing order
-      logger.debug("Resolving directive processing order", {
+      _logger.debug("Resolving directive processing order", {
         schemaPath: schema.getPath().getValue(),
       });
 
@@ -139,7 +139,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       assertExists(flattenArraysNode);
       assertEquals(flattenArraysNode.isPresent, true);
 
-      logger.debug("Processing order analysis", {
+      _logger.debug("Processing order analysis", {
         totalDirectives: order.totalDirectives,
         phases: order.phases.map((phase) => ({
           phaseNumber: phase.phaseNumber,
@@ -151,7 +151,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       });
 
       // Process directives
-      logger.debug("Starting directive processing", {
+      _logger.debug("Starting directive processing", {
         inputDataKeys: Object.keys(dataResult.data.getData()),
         processingPhases: order.phases.length,
       });
@@ -166,7 +166,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
 
       const processedData = processResult.data.getData();
 
-      logger.debug("Processing result analysis", {
+      _logger.debug("Processing result analysis", {
         outputDataKeys: Object.keys(processedData),
         traceabilityType: Array.isArray(processedData.traceability)
           ? "array"
@@ -196,7 +196,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
         },
       };
 
-      logger.debug("Expected vs Actual comparison", {
+      _logger.debug("Expected vs Actual comparison", {
         expected: {
           traceabilityLength: expectedData.traceability.length,
           traceabilityType: "array",
@@ -215,7 +215,7 @@ Deno.test("x-flatten-arrays Directive Integration", async (t) => {
       });
 
       if (JSON.stringify(processedData) !== JSON.stringify(expectedData)) {
-        logger.error("Test failure - Expected vs Actual mismatch", {
+        _logger.error("Test failure - Expected vs Actual mismatch", {
           expectedStructure: expectedData,
           actualStructure: processedData,
           differences: {
