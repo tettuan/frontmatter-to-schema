@@ -4,8 +4,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { SchemaPath } from "../value-objects/schema-path.ts";
 import { SchemaDefinition } from "../value-objects/schema-definition.ts";
 import { ValidationRules } from "../value-objects/validation-rules.ts";
-// Removed unused imports - DomainLogger, NullDomainLogger
-import { DebugLogger } from "../../../infrastructure/adapters/debug-logger.ts";
+import { DomainLogger } from "../../shared/services/domain-logger.ts";
 import { defaultSchemaExtensionRegistry } from "../value-objects/schema-extension-registry.ts";
 // Removed unused import - isRefSchema
 
@@ -20,21 +19,21 @@ export type SchemaState =
     kind: "initial";
     path: SchemaPath;
     definition: SchemaDefinition;
-    logger: DebugLogger | null;
+    logger: DomainLogger | null;
   }
   | {
     kind: "resolved";
     path: SchemaPath;
     definition: SchemaDefinition;
     resolved: ResolvedSchema;
-    logger: DebugLogger | null;
+    logger: DomainLogger | null;
   }
   | {
     kind: "validated";
     path: SchemaPath;
     definition: SchemaDefinition;
     validationRules: ValidationRules;
-    logger: DebugLogger | null;
+    logger: DomainLogger | null;
   }
   | {
     kind: "complete";
@@ -42,7 +41,7 @@ export type SchemaState =
     definition: SchemaDefinition;
     validationRules: ValidationRules;
     resolved: ResolvedSchema;
-    logger: DebugLogger | null;
+    logger: DomainLogger | null;
   };
 
 export class Schema {
@@ -52,7 +51,7 @@ export class Schema {
   static create(
     path: SchemaPath,
     definition: SchemaDefinition,
-    debugLogger?: DebugLogger,
+    debugLogger?: DomainLogger,
   ): Result<Schema, SchemaError & { message: string }> {
     const logger = debugLogger || null;
     logger?.logInfo("schema-creation", "Creating Schema instance", {
@@ -200,10 +199,17 @@ export class Schema {
       def: SchemaDefinition,
     ): Result<SchemaDefinition, SchemaError & { message: string }> => {
       if (def.hasFrontmatterPart()) {
-        this.state.logger?.logExtensionDetection(
-          defaultSchemaExtensionRegistry.getFrontmatterPartKey().getValue(),
-          true,
-          true,
+        this.state.logger?.logInfo(
+          "extension-detection",
+          `Extension detected: ${defaultSchemaExtensionRegistry.getFrontmatterPartKey().getValue()}`,
+          {
+            kind: "with-context",
+            context: {
+              extensionName: defaultSchemaExtensionRegistry
+                .getFrontmatterPartKey().getValue(),
+              detected: true,
+            },
+          },
         );
         return ok(def);
       }
@@ -318,16 +324,30 @@ export class Schema {
           unique: def.isDerivedUnique(),
         };
         rules.push(rule);
-        this.state.logger?.logDerivationRule(
-          derivedFromResult.data,
-          path,
-          true,
-          `unique=${def.isDerivedUnique()}`,
+        this.state.logger?.logInfo(
+          "derivation-rule",
+          `Derivation rule extracted: ${derivedFromResult.data} -> ${path}`,
+          {
+            kind: "with-context",
+            context: {
+              sourcePath: derivedFromResult.data,
+              targetField: path,
+              unique: def.isDerivedUnique(),
+            },
+          },
         );
       } else {
-        this.state.logger?.logExtensionDetection(
-          defaultSchemaExtensionRegistry.getDerivedFromKey().getValue(),
-          false,
+        this.state.logger?.logDebug(
+          "extension-detection",
+          `Extension not found: ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`,
+          {
+            kind: "with-context",
+            context: {
+              extensionName: defaultSchemaExtensionRegistry.getDerivedFromKey()
+                .getValue(),
+              detected: false,
+            },
+          },
         );
       }
 

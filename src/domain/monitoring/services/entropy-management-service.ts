@@ -2,6 +2,87 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 
 /**
+ * Configuration state for entropy management using discriminated union (Totality principle)
+ * Eliminates optional properties in favor of explicit configuration variants
+ */
+export type EntropyManagementConfig =
+  | {
+    readonly kind: "default";
+  }
+  | {
+    readonly kind: "custom";
+    readonly acceptableThreshold: number;
+    readonly warningThreshold: number;
+    readonly criticalThreshold: number;
+    readonly baseComplexity: number;
+  }
+  | {
+    readonly kind: "preset";
+    readonly preset: "strict" | "normal" | "relaxed";
+  };
+
+/**
+ * Factory for creating entropy management configurations
+ * Following Totality principle with explicit configuration states
+ */
+export class EntropyManagementConfigFactory {
+  static default(): EntropyManagementConfig {
+    return { kind: "default" };
+  }
+
+  static custom(
+    acceptableThreshold: number,
+    warningThreshold: number,
+    criticalThreshold: number,
+    baseComplexity: number,
+  ): Result<EntropyManagementConfig, DomainError & { message: string }> {
+    // Validate all thresholds are positive
+    if (
+      acceptableThreshold <= 0 || warningThreshold <= 0 ||
+      criticalThreshold <= 0
+    ) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "All thresholds must be positive",
+      }));
+    }
+
+    // Validate threshold ordering
+    if (
+      acceptableThreshold >= warningThreshold ||
+      warningThreshold >= criticalThreshold
+    ) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          "Thresholds must be in ascending order: acceptable < warning < critical",
+      }));
+    }
+
+    if (baseComplexity <= 0) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "Base complexity must be positive",
+      }));
+    }
+
+    return ok({
+      kind: "custom",
+      acceptableThreshold,
+      warningThreshold,
+      criticalThreshold,
+      baseComplexity,
+    });
+  }
+
+  static preset(
+    preset: "strict" | "normal" | "relaxed",
+  ): EntropyManagementConfig {
+    return { kind: "preset", preset };
+  }
+}
+
+/**
  * Complexity factors for entropy calculation
  * Following Totality principle with constrained values
  */
@@ -96,28 +177,35 @@ export class EntropyManagementService {
   ) {}
 
   /**
-   * Smart Constructor for EntropyManagementService
-   * Ensures all invariants are satisfied
+   * Smart Constructor for EntropyManagementService using discriminated union configuration
+   * Ensures all invariants are satisfied and follows Totality principles
    */
   static create(
-    config?: {
-      acceptableThreshold?: number;
-      warningThreshold?: number;
-      criticalThreshold?: number;
-      baseComplexity?: number;
-    },
+    config: EntropyManagementConfig = { kind: "default" },
   ): Result<EntropyManagementService, DomainError & { message: string }> {
+    // Resolve configuration values based on discriminated union
+    const resolvedConfig = this.resolveConfiguration(config);
+    if (!resolvedConfig.ok) {
+      return err(resolvedConfig.error);
+    }
+
+    const {
+      acceptableThreshold,
+      warningThreshold,
+      criticalThreshold,
+      baseComplexity,
+    } = resolvedConfig.data;
+
     const thresholdsResult = EntropyThresholds.create(
-      config?.acceptableThreshold ?? 12.0,
-      config?.warningThreshold ?? 18.0,
-      config?.criticalThreshold ?? 24.0,
+      acceptableThreshold,
+      warningThreshold,
+      criticalThreshold,
     );
 
     if (!thresholdsResult.ok) {
       return err(thresholdsResult.error);
     }
 
-    const baseComplexity = config?.baseComplexity ?? 1.0;
     if (baseComplexity <= 0) {
       return err(createError({
         kind: "ConfigurationError",
@@ -131,6 +219,74 @@ export class EntropyManagementService {
         baseComplexity,
       ),
     );
+  }
+
+  /**
+   * Resolve configuration from discriminated union to concrete values
+   * Following Totality principle with exhaustive pattern matching
+   */
+  private static resolveConfiguration(
+    config: EntropyManagementConfig,
+  ): Result<{
+    acceptableThreshold: number;
+    warningThreshold: number;
+    criticalThreshold: number;
+    baseComplexity: number;
+  }, DomainError & { message: string }> {
+    switch (config.kind) {
+      case "default":
+        return ok({
+          acceptableThreshold: 12.0,
+          warningThreshold: 18.0,
+          criticalThreshold: 24.0,
+          baseComplexity: 1.0,
+        });
+
+      case "custom":
+        // Validate custom configuration
+        if (
+          config.acceptableThreshold >= config.warningThreshold ||
+          config.warningThreshold >= config.criticalThreshold
+        ) {
+          return err(createError({
+            kind: "ConfigurationError",
+            message:
+              "Thresholds must be in ascending order: acceptable < warning < critical",
+          }));
+        }
+        return ok({
+          acceptableThreshold: config.acceptableThreshold,
+          warningThreshold: config.warningThreshold,
+          criticalThreshold: config.criticalThreshold,
+          baseComplexity: config.baseComplexity,
+        });
+
+      case "preset":
+        switch (config.preset) {
+          case "strict":
+            return ok({
+              acceptableThreshold: 8.0,
+              warningThreshold: 12.0,
+              criticalThreshold: 16.0,
+              baseComplexity: 0.8,
+            });
+          case "normal":
+            return ok({
+              acceptableThreshold: 12.0,
+              warningThreshold: 18.0,
+              criticalThreshold: 24.0,
+              baseComplexity: 1.0,
+            });
+          case "relaxed":
+            return ok({
+              acceptableThreshold: 16.0,
+              warningThreshold: 24.0,
+              criticalThreshold: 32.0,
+              baseComplexity: 1.2,
+            });
+        }
+        break;
+    }
   }
 
   /**

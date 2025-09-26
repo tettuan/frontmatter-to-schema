@@ -12,6 +12,7 @@ import {
 } from "../interfaces/transformation-orchestrator.ts";
 import type { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { ProcessingBoundsFactory } from "../../shared/types/processing-bounds.ts";
+import { BasePropertyPopulator } from "../../schema/services/base-property-populator.ts";
 
 /**
  * Implementation of TransformationOrchestrator that coordinates domain services.
@@ -34,6 +35,7 @@ export class PipelineTransformationOrchestrator
     private readonly schemaProcessor: SchemaProcessor,
     private readonly dataAggregator: DataAggregator,
     private readonly fileDiscovery: FileDiscoveryService,
+    private readonly basePropertyPopulator: BasePropertyPopulator,
   ) {}
 
   /**
@@ -45,6 +47,7 @@ export class PipelineTransformationOrchestrator
     schemaProcessor: SchemaProcessor,
     dataAggregator: DataAggregator,
     fileDiscovery: FileDiscoveryService,
+    basePropertyPopulator: BasePropertyPopulator,
   ): Result<
     PipelineTransformationOrchestrator,
     TransformationError & { message: string }
@@ -85,12 +88,22 @@ export class PipelineTransformationOrchestrator
       });
     }
 
+    if (!basePropertyPopulator) {
+      return err({
+        kind: "ProcessingConfigurationFailure",
+        cause: "BasePropertyPopulator is required",
+        message:
+          "BasePropertyPopulator dependency is required for schema defaults application",
+      });
+    }
+
     return ok(
       new PipelineTransformationOrchestrator(
         documentProcessor,
         schemaProcessor,
         dataAggregator,
         fileDiscovery,
+        basePropertyPopulator,
       ),
     );
   }
@@ -168,7 +181,22 @@ export class PipelineTransformationOrchestrator
         });
       }
 
-      // Stage 7: Prepare final output
+      // Stage 7: Apply schema defaults (Base Property Population)
+      const basePropertyResult = this.basePropertyPopulator.populate(
+        aggregationResult.data.aggregatedFrontmatter,
+        config.schema,
+      );
+      if (!basePropertyResult.ok) {
+        return err({
+          kind: "OrchestrationFailure",
+          stage: "base-property-population",
+          cause: basePropertyResult.error.message,
+          message:
+            `Schema defaults application failed: ${basePropertyResult.error.message}`,
+        });
+      }
+
+      // Stage 8: Prepare final output
       const processingTime = Date.now() - startTime;
       const metadata: TransformationMetadata = {
         fileCount: filesResult.data.fileCount,
@@ -181,7 +209,7 @@ export class PipelineTransformationOrchestrator
       };
 
       return ok({
-        transformedData: aggregationResult.data.aggregatedFrontmatter,
+        transformedData: basePropertyResult.data,
         metadata,
       });
     } catch (error) {

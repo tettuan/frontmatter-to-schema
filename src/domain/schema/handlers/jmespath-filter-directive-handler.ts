@@ -16,6 +16,7 @@ import {
   DirectiveHandlerError,
   DirectiveHandlerFactory,
   DirectiveProcessingResult,
+  ExtensionExtractionResult,
   LegacySchemaProperty,
 } from "../interfaces/directive-handler.ts";
 
@@ -303,7 +304,7 @@ export class JMESPathFilterDirectiveHandler
    */
   extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError> {
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError> {
     const configResult = this.extractConfig(schema);
     if (!configResult.ok) {
       return configResult;
@@ -311,13 +312,17 @@ export class JMESPathFilterDirectiveHandler
 
     const config = configResult.data;
     if (!config.isPresent) {
-      return ok(null);
+      return ok({
+        kind: "ExtensionNotApplicable",
+        reason: "No x-jmespath-filter directive found in schema",
+      });
     }
 
     const registry = defaultSchemaExtensionRegistry;
     const key = registry.getJmespathFilterKey().getValue();
 
     return ok({
+      kind: "ExtensionFound",
       key,
       value: config.configuration.filterExpression,
     });

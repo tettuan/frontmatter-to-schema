@@ -562,7 +562,13 @@ export class AggregationProcessingService {
     if (ruleConversion.failedRuleCount > 0) {
       // Log failed rule conversions but continue with successful ones
       for (const error of ruleConversion.errors) {
-        console.warn(`Failed to convert derivation rule: ${error.message}`);
+        this.enhancedLogger.warn(
+          `Failed to convert derivation rule: ${error.message}`,
+          createLogContext({
+            errorKind: error.kind,
+            failedRuleCount: ruleConversion.failedRuleCount,
+          }),
+        );
       }
     }
 

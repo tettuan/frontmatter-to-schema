@@ -285,6 +285,7 @@ export class DirectiveRegistry {
   /**
    * Extract all extensions from legacy schema using registered handlers
    * Replaces hardcoded if-condition chains in schema-property-migration
+   * Following Totality principles with discriminated union handling
    */
   extractAllExtensions(
     legacySchema: LegacySchemaProperty,
@@ -298,10 +299,12 @@ export class DirectiveRegistry {
         return extractionResult;
       }
 
-      if (extractionResult.data !== null) {
-        const { key, value } = extractionResult.data;
-        extensions[key] = value;
+      // Handle discriminated union result
+      const extractionData = extractionResult.data;
+      if (extractionData.kind === "ExtensionFound") {
+        extensions[extractionData.key] = extractionData.value;
       }
+      // ExtensionNotApplicable case: do nothing (handler doesn't apply to this schema)
     }
 
     // Handle standard description property

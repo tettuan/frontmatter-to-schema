@@ -33,6 +33,21 @@ export type DirectiveHandlerError =
   };
 
 /**
+ * Extension Extraction Result
+ * Following Totality principles - replaces Result<T | null, E> pattern
+ */
+export type ExtensionExtractionResult =
+  | {
+    readonly kind: "ExtensionFound";
+    readonly key: string;
+    readonly value: unknown;
+  }
+  | {
+    readonly kind: "ExtensionNotApplicable";
+    readonly reason: string;
+  };
+
+/**
  * Directive Configuration extracted from schema
  * Generic type parameter allows each directive to define its own config structure
  */
@@ -114,10 +129,11 @@ export interface DirectiveHandler<TConfig = unknown, TMetadata = unknown> {
   /**
    * Extract extension key-value pair for schema building
    * Used during schema property migration
+   * Following Totality principles with discriminated union result
    */
   extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError>;
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError>;
 
   /**
    * Get processing dependencies
@@ -183,7 +199,7 @@ export abstract class BaseDirectiveHandler<
 
   abstract extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError>;
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError>;
 }
 
 /**

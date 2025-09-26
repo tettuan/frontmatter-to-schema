@@ -7,6 +7,7 @@
 import { ok, Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 
 /**
  * Property transformation function type
@@ -49,9 +50,13 @@ export class PropertyTransformationRegistry {
     // "name" transformation - extracts name from objects
     this.register("name", (value) => {
       if (typeof value === "object" && value !== null) {
-        const obj = value as Record<string, unknown>;
-        if ("name" in obj) return ok(obj.name);
-        if ("title" in obj) return ok(obj.title);
+        // Try to get "name" property first
+        const nameResult = SafePropertyAccess.getProperty(value, "name");
+        if (nameResult.ok) return ok(nameResult.data);
+
+        // Fallback to "title" property
+        const titleResult = SafePropertyAccess.getProperty(value, "title");
+        if (titleResult.ok) return ok(titleResult.data);
       }
       if (typeof value === "string") {
         return ok(value);
@@ -68,8 +73,8 @@ export class PropertyTransformationRegistry {
     // "level" transformation - extracts level property
     this.register("level", (value) => {
       if (typeof value === "object" && value !== null) {
-        const obj = value as Record<string, unknown>;
-        if ("level" in obj) return ok(obj.level);
+        const levelResult = SafePropertyAccess.getProperty(value, "level");
+        if (levelResult.ok) return ok(levelResult.data);
       }
       return ok(value);
     });
@@ -77,8 +82,8 @@ export class PropertyTransformationRegistry {
     // "scope" transformation - extracts scope property
     this.register("scope", (value) => {
       if (typeof value === "object" && value !== null) {
-        const obj = value as Record<string, unknown>;
-        if ("scope" in obj) return ok(obj.scope);
+        const scopeResult = SafePropertyAccess.getProperty(value, "scope");
+        if (scopeResult.ok) return ok(scopeResult.data);
       }
       return ok(value);
     });

@@ -14,6 +14,7 @@ import {
   DirectiveHandlerError,
   DirectiveHandlerFactory,
   DirectiveProcessingResult,
+  ExtensionExtractionResult,
   LegacySchemaProperty,
 } from "../interfaces/directive-handler.ts";
 
@@ -186,10 +187,11 @@ export class TemplateDirectiveHandler
 
   /**
    * Extract extension key-value pair for schema building
+   * Following Totality principles with discriminated union result
    */
   extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError> {
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError> {
     const configResult = this.extractConfig(schema);
     if (!configResult.ok) {
       return configResult;
@@ -197,13 +199,17 @@ export class TemplateDirectiveHandler
 
     const config = configResult.data;
     if (!config.isPresent) {
-      return ok(null);
+      return ok({
+        kind: "ExtensionNotApplicable",
+        reason: "No x-template directive found in schema",
+      });
     }
 
     const registry = defaultSchemaExtensionRegistry;
     const key = registry.getTemplateKey().getValue();
 
     return ok({
+      kind: "ExtensionFound",
       key,
       value: config.configuration.templateString,
     });

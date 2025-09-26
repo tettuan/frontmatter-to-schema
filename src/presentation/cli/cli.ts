@@ -5,7 +5,6 @@ import {
   VerbosityConfig,
 } from "../../application/services/pipeline-orchestrator.ts";
 import { TemplateConfig } from "../../application/strategies/template-resolution-strategy.ts";
-import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { JMESPathFilterService } from "../../domain/schema/services/jmespath-filter-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
@@ -19,6 +18,7 @@ import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DomainLoggerAdapter } from "../../domain/shared/services/domain-logger.ts";
+import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import { CLIArguments } from "./value-objects/cli-arguments.ts";

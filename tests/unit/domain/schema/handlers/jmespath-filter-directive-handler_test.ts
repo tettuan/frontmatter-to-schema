@@ -435,9 +435,12 @@ describe("JMESPathFilterDirectiveHandler", () => {
 
       // Assert
       assert(extensionResult.ok);
-      if (extensionResult.ok && extensionResult.data) {
-        assertEquals(extensionResult.data.key, "x-jmespath-filter");
-        assertEquals(extensionResult.data.value, "[?status == 'active']");
+      if (extensionResult.ok) {
+        assertEquals(extensionResult.data.kind, "ExtensionFound");
+        if (extensionResult.data.kind === "ExtensionFound") {
+          assertEquals(extensionResult.data.key, "x-jmespath-filter");
+          assertEquals(extensionResult.data.value, "[?status == 'active']");
+        }
       }
     });
 
@@ -457,7 +460,7 @@ describe("JMESPathFilterDirectiveHandler", () => {
       // Assert
       assert(extensionResult.ok);
       if (extensionResult.ok) {
-        assertEquals(extensionResult.data, null);
+        assertEquals(extensionResult.data.kind, "ExtensionNotApplicable");
       }
     });
   });

@@ -359,9 +359,12 @@ describe("TemplateDirectiveHandler", () => {
 
       // Assert
       assert(extensionResult.ok);
-      if (extensionResult.ok && extensionResult.data) {
-        assertEquals(extensionResult.data.key, "x-template");
-        assertEquals(extensionResult.data.value, "Hello {name}!");
+      if (extensionResult.ok) {
+        assertEquals(extensionResult.data.kind, "ExtensionFound");
+        if (extensionResult.data.kind === "ExtensionFound") {
+          assertEquals(extensionResult.data.key, "x-template");
+          assertEquals(extensionResult.data.value, "Hello {name}!");
+        }
       }
     });
 
@@ -381,7 +384,7 @@ describe("TemplateDirectiveHandler", () => {
       // Assert
       assert(extensionResult.ok);
       if (extensionResult.ok) {
-        assertEquals(extensionResult.data, null);
+        assertEquals(extensionResult.data.kind, "ExtensionNotApplicable");
       }
     });
   });

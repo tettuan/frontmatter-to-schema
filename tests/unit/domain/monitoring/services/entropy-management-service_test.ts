@@ -2,8 +2,9 @@ import { describe, it } from "jsr:@std/testing/bdd";
 import { assert, assertEquals } from "jsr:@std/assert";
 import {
   ComplexityFactors,
+  EntropyManagementConfigFactory,
   EntropyManagementService,
-} from "./entropy-management-service.ts";
+} from "../../../../../src/domain/monitoring/services/entropy-management-service.ts";
 
 describe("EntropyManagementService", () => {
   describe("Smart Constructor", () => {
@@ -13,34 +14,42 @@ describe("EntropyManagementService", () => {
     });
 
     it("should create service with custom configuration", () => {
-      const result = EntropyManagementService.create({
-        acceptableThreshold: 10.0,
-        warningThreshold: 15.0,
-        criticalThreshold: 20.0,
-        baseComplexity: 2.0,
-      });
+      const configResult = EntropyManagementConfigFactory.custom(
+        10.0,
+        15.0,
+        20.0,
+        2.0,
+      );
+      assertEquals(configResult.ok, true);
+      if (!configResult.ok) return;
+
+      const result = EntropyManagementService.create(configResult.data);
       assertEquals(result.ok, true);
     });
 
     it("should reject invalid threshold ordering", () => {
-      const result = EntropyManagementService.create({
-        acceptableThreshold: 20.0,
-        warningThreshold: 15.0,
-        criticalThreshold: 10.0,
-      });
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assert(result.error.message.includes("order"));
+      const configResult = EntropyManagementConfigFactory.custom(
+        20.0,
+        15.0,
+        10.0,
+        1.0,
+      );
+      assertEquals(configResult.ok, false);
+      if (!configResult.ok) {
+        assert(configResult.error.message.includes("order"));
       }
     });
 
     it("should reject negative thresholds", () => {
-      const result = EntropyManagementService.create({
-        acceptableThreshold: -1.0,
-      });
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assert(result.error.message.includes("positive"));
+      const configResult = EntropyManagementConfigFactory.custom(
+        -1.0,
+        10.0,
+        15.0,
+        1.0,
+      );
+      assertEquals(configResult.ok, false);
+      if (!configResult.ok) {
+        assert(configResult.error.message.includes("positive"));
       }
     });
   });
@@ -239,9 +248,16 @@ describe("EntropyManagementService", () => {
 
   describe("Entropy Acceptance", () => {
     it("should accept low entropy", () => {
-      const serviceResult = EntropyManagementService.create({
-        acceptableThreshold: 12.0,
-      });
+      const configResult = EntropyManagementConfigFactory.custom(
+        12.0,
+        18.0,
+        24.0,
+        1.0,
+      );
+      assert(configResult.ok);
+      if (!configResult.ok) return;
+
+      const serviceResult = EntropyManagementService.create(configResult.data);
       assert(serviceResult.ok);
       if (!serviceResult.ok) return;
 
@@ -250,9 +266,16 @@ describe("EntropyManagementService", () => {
     });
 
     it("should reject high entropy", () => {
-      const serviceResult = EntropyManagementService.create({
-        acceptableThreshold: 12.0,
-      });
+      const configResult = EntropyManagementConfigFactory.custom(
+        12.0,
+        18.0,
+        24.0,
+        1.0,
+      );
+      assert(configResult.ok);
+      if (!configResult.ok) return;
+
+      const serviceResult = EntropyManagementService.create(configResult.data);
       assert(serviceResult.ok);
       if (!serviceResult.ok) return;
 
@@ -263,11 +286,16 @@ describe("EntropyManagementService", () => {
 
   describe("Threshold Reporting", () => {
     it("should return configured thresholds", () => {
-      const serviceResult = EntropyManagementService.create({
-        acceptableThreshold: 10.0,
-        warningThreshold: 15.0,
-        criticalThreshold: 20.0,
-      });
+      const configResult = EntropyManagementConfigFactory.custom(
+        10.0,
+        15.0,
+        20.0,
+        1.0,
+      );
+      assert(configResult.ok);
+      if (!configResult.ok) return;
+
+      const serviceResult = EntropyManagementService.create(configResult.data);
       assert(serviceResult.ok);
       if (!serviceResult.ok) return;
 

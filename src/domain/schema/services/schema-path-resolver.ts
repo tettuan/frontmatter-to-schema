@@ -4,8 +4,7 @@ import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { Schema } from "../entities/schema.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterDataFactory } from "../../frontmatter/factories/frontmatter-data-factory.ts";
-// Removed unused imports - DomainLogger, NullDomainLogger
-import { DebugLoggerFactory } from "../../../infrastructure/adapters/debug-logger.ts";
+import { DomainLoggerFactory } from "../../shared/services/domain-logger.ts";
 
 /**
  * Schema path resolution errors following Totality principles
@@ -66,7 +65,7 @@ export class DataStructure {
  * - No hardcoding (structure determined by schema)
  */
 export class SchemaPathResolver {
-  private static debugLogger = DebugLoggerFactory.create();
+  private static debugLogger = DomainLoggerFactory.createDisabled();
 
   /**
    * Type guard to check if value is a Record<string, unknown>

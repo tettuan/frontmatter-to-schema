@@ -84,7 +84,11 @@ describe("TemplateSchemaBindingService", () => {
       assertExists(contextResult.ok, "Should create variable context");
       if (!contextResult.ok) return;
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), "commands");
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "defined");
+      if (hierarchyRootState.kind === "defined") {
+        assertEquals(hierarchyRootState.value, "commands");
+      }
 
       // Validate {@items} resolution from hierarchy root
       const itemsResult = context.resolveVariable("@items");
@@ -144,7 +148,8 @@ describe("TemplateSchemaBindingService", () => {
       );
       if (!contextResult.ok) return;
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), null);
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "not-defined");
 
       // {@items} should fail without hierarchy root
       const itemsResult = context.resolveVariable("@items");
@@ -740,7 +745,8 @@ describe("TemplateSchemaBindingService", () => {
       // Assert
       assertExists(contextResult.ok, "Should handle gracefully");
       if (!contextResult.ok) return;
-      assertEquals(contextResult.data.getHierarchyRoot(), null);
+      const hierarchyRootState = contextResult.data.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "not-defined");
     });
   });
 });

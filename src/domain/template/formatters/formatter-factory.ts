@@ -6,6 +6,7 @@ import { JsonFormatter } from "./json-formatter.ts";
 import { YamlFormatter } from "./yaml-formatter.ts";
 import { MarkdownFormatter } from "./markdown-formatter.ts";
 import { XmlFormatter } from "./xml-formatter.ts";
+import { NunjucksFormatter } from "./nunjucks-formatter.ts";
 
 /**
  * Factory for creating output formatters based on format type
@@ -19,6 +20,7 @@ export class FormatterFactory {
     ["yaml", () => YamlFormatter.create()],
     ["markdown", () => MarkdownFormatter.create()],
     ["xml", () => XmlFormatter.create()],
+    ["njk", () => NunjucksFormatter.create()],
   ]);
 
   /**
@@ -54,6 +56,6 @@ export class FormatterFactory {
   static isFormatSupported(format: string): format is OutputFormat {
     // Safe type checking without type assertion
     return format === "json" || format === "yaml" || format === "markdown" ||
-      format === "xml";
+      format === "xml" || format === "njk";
   }
 }

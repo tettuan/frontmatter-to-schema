@@ -14,6 +14,7 @@ import {
   DirectiveHandlerError,
   DirectiveHandlerFactory,
   DirectiveProcessingResult,
+  ExtensionExtractionResult,
   LegacySchemaProperty,
 } from "../interfaces/directive-handler.ts";
 
@@ -161,10 +162,11 @@ export class FrontmatterPartDirectiveHandler
 
   /**
    * Extract extension key-value pair for schema building
+   * Following Totality principles with discriminated union result
    */
   extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError> {
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError> {
     const configResult = this.extractConfig(schema);
     if (!configResult.ok) {
       return configResult;
@@ -172,13 +174,17 @@ export class FrontmatterPartDirectiveHandler
 
     const config = configResult.data;
     if (!config.isPresent) {
-      return ok(null);
+      return ok({
+        kind: "ExtensionNotApplicable",
+        reason: "No x-frontmatter-part directive found in schema",
+      });
     }
 
     const registry = defaultSchemaExtensionRegistry;
     const key = registry.getFrontmatterPartKey().getValue();
 
     return ok({
+      kind: "ExtensionFound",
       key,
       value: config.configuration.isFrontmatterPart,
     });

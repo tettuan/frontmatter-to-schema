@@ -201,7 +201,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
         // Should complete successfully even with no matching files
         assertStringIncludes(
           stdout.toLowerCase() + stderr.toLowerCase(),
-          "processed",
+          "processing completed successfully",
         );
       }
     } finally {

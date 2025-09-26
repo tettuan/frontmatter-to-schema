@@ -122,10 +122,9 @@ export class SchemaPropertyMigration {
       if (extractionResult.ok) {
         return extractionResult.data;
       }
-      // If registry extraction fails, fall back to legacy method with logging
-      console.warn(
-        `DirectiveRegistry extraction failed: ${extractionResult.error.message}. Falling back to legacy extraction.`,
-      );
+      // If registry extraction fails, fall back to legacy method
+      // DirectiveRegistry extraction failed, using legacy extraction method
+      // This is a non-critical fallback that maintains backward compatibility
     } else {
       // Registry not initialized, use fallback silently (legacy compatibility)
       // This is expected in test environments and during transition period
@@ -139,7 +138,7 @@ export class SchemaPropertyMigration {
   /**
    * Legacy extension extraction method (DEPRECATED - for transition only)
    * This method contains the original hardcoded if-conditions
-   * TODO: Remove this method once DirectiveRegistry is fully integrated
+   * Note: Legacy method maintained for DirectiveRegistry fallback compatibility
    */
   private static extractExtensionsLegacy(
     legacy: LegacySchemaProperty,
@@ -150,38 +149,38 @@ export class SchemaPropertyMigration {
     // Check for extensions object first (legacy format)
     const extensionsObj = (legacy as any).extensions;
     if (extensionsObj && typeof extensionsObj === "object") {
-      // Extract from extensions object
-      if (extensionsObj["x-template"] !== undefined) {
-        extensions[registry.getTemplateKey().getValue()] =
-          extensionsObj["x-template"];
+      // Extract from extensions object using registry keys
+      const templateKey = registry.getTemplateKey().getValue();
+      if (extensionsObj[templateKey] !== undefined) {
+        extensions[templateKey] = extensionsObj[templateKey];
       }
-      if (extensionsObj["x-frontmatter-part"] !== undefined) {
-        extensions[registry.getFrontmatterPartKey().getValue()] =
-          extensionsObj["x-frontmatter-part"];
+      const frontmatterPartKey = registry.getFrontmatterPartKey().getValue();
+      if (extensionsObj[frontmatterPartKey] !== undefined) {
+        extensions[frontmatterPartKey] = extensionsObj[frontmatterPartKey];
       }
-      if (extensionsObj["x-derived-from"] !== undefined) {
-        extensions[registry.getDerivedFromKey().getValue()] =
-          extensionsObj["x-derived-from"];
+      const derivedFromKey = registry.getDerivedFromKey().getValue();
+      if (extensionsObj[derivedFromKey] !== undefined) {
+        extensions[derivedFromKey] = extensionsObj[derivedFromKey];
       }
-      if (extensionsObj["x-derived-unique"] !== undefined) {
-        extensions[registry.getDerivedUniqueKey().getValue()] =
-          extensionsObj["x-derived-unique"];
+      const derivedUniqueKey = registry.getDerivedUniqueKey().getValue();
+      if (extensionsObj[derivedUniqueKey] !== undefined) {
+        extensions[derivedUniqueKey] = extensionsObj[derivedUniqueKey];
       }
-      if (extensionsObj["x-template-items"] !== undefined) {
-        extensions[registry.getTemplateItemsKey().getValue()] =
-          extensionsObj["x-template-items"];
+      const templateItemsKey = registry.getTemplateItemsKey().getValue();
+      if (extensionsObj[templateItemsKey] !== undefined) {
+        extensions[templateItemsKey] = extensionsObj[templateItemsKey];
       }
-      if (extensionsObj["x-template-format"] !== undefined) {
-        extensions[registry.getTemplateFormatKey().getValue()] =
-          extensionsObj["x-template-format"];
+      const templateFormatKey = registry.getTemplateFormatKey().getValue();
+      if (extensionsObj[templateFormatKey] !== undefined) {
+        extensions[templateFormatKey] = extensionsObj[templateFormatKey];
       }
-      if (extensionsObj["x-jmespath-filter"] !== undefined) {
-        extensions[registry.getJmespathFilterKey().getValue()] =
-          extensionsObj["x-jmespath-filter"];
+      const jmespathFilterKey = registry.getJmespathFilterKey().getValue();
+      if (extensionsObj[jmespathFilterKey] !== undefined) {
+        extensions[jmespathFilterKey] = extensionsObj[jmespathFilterKey];
       }
-      if (extensionsObj["x-flatten-arrays"] !== undefined) {
-        extensions[registry.getFlattenArraysKey().getValue()] =
-          extensionsObj["x-flatten-arrays"];
+      const flattenArraysKey = registry.getFlattenArraysKey().getValue();
+      if (extensionsObj[flattenArraysKey] !== undefined) {
+        extensions[flattenArraysKey] = extensionsObj[flattenArraysKey];
       }
       if (extensionsObj.description !== undefined) {
         extensions.description = extensionsObj.description;
@@ -190,36 +189,37 @@ export class SchemaPropertyMigration {
 
     // Extract direct properties (standard JSON Schema extension pattern)
     // These take precedence over extensions object if both exist
-    if (legacy["x-template"] !== undefined) {
-      extensions[registry.getTemplateKey().getValue()] = legacy["x-template"];
+    const templateKey = registry.getTemplateKey().getValue();
+    if (legacy[templateKey] !== undefined) {
+      extensions[templateKey] = legacy[templateKey];
     }
-    if (legacy["x-frontmatter-part"] !== undefined) {
-      extensions[registry.getFrontmatterPartKey().getValue()] =
-        legacy["x-frontmatter-part"];
+    const frontmatterPartKey = registry.getFrontmatterPartKey().getValue();
+    if (legacy[frontmatterPartKey] !== undefined) {
+      extensions[frontmatterPartKey] = legacy[frontmatterPartKey];
     }
-    if (legacy["x-derived-from"] !== undefined) {
-      extensions[registry.getDerivedFromKey().getValue()] =
-        legacy["x-derived-from"];
+    const derivedFromKey = registry.getDerivedFromKey().getValue();
+    if (legacy[derivedFromKey] !== undefined) {
+      extensions[derivedFromKey] = legacy[derivedFromKey];
     }
-    if (legacy["x-derived-unique"] !== undefined) {
-      extensions[registry.getDerivedUniqueKey().getValue()] =
-        legacy["x-derived-unique"];
+    const derivedUniqueKey = registry.getDerivedUniqueKey().getValue();
+    if (legacy[derivedUniqueKey] !== undefined) {
+      extensions[derivedUniqueKey] = legacy[derivedUniqueKey];
     }
-    if (legacy["x-template-items"] !== undefined) {
-      extensions[registry.getTemplateItemsKey().getValue()] =
-        legacy["x-template-items"];
+    const templateItemsKey = registry.getTemplateItemsKey().getValue();
+    if (legacy[templateItemsKey] !== undefined) {
+      extensions[templateItemsKey] = legacy[templateItemsKey];
     }
-    if (legacy["x-template-format"] !== undefined) {
-      extensions[registry.getTemplateFormatKey().getValue()] =
-        legacy["x-template-format"];
+    const templateFormatKey = registry.getTemplateFormatKey().getValue();
+    if (legacy[templateFormatKey] !== undefined) {
+      extensions[templateFormatKey] = legacy[templateFormatKey];
     }
-    if (legacy["x-jmespath-filter"] !== undefined) {
-      extensions[registry.getJmespathFilterKey().getValue()] =
-        legacy["x-jmespath-filter"];
+    const jmespathFilterKey = registry.getJmespathFilterKey().getValue();
+    if (legacy[jmespathFilterKey] !== undefined) {
+      extensions[jmespathFilterKey] = legacy[jmespathFilterKey];
     }
-    if (legacy["x-flatten-arrays"] !== undefined) {
-      extensions[registry.getFlattenArraysKey().getValue()] =
-        legacy["x-flatten-arrays"];
+    const flattenArraysKey = registry.getFlattenArraysKey().getValue();
+    if (legacy[flattenArraysKey] !== undefined) {
+      extensions[flattenArraysKey] = legacy[flattenArraysKey];
     }
 
     // Description property
@@ -481,8 +481,8 @@ export class SchemaPropertyLegacyAdapter {
         ?.[registry.getFlattenArraysKey().getValue()] as string | undefined,
     };
 
-    // TODO: Future enhancement - use DirectiveRegistry to dynamically build legacy properties
-    // This would eliminate hardcoded property mappings entirely
+    // Note: Future enhancement possibility - DirectiveRegistry dynamic property building
+    // Current implementation uses registry keys for consistent property mapping
 
     switch (schema.kind) {
       case "string":

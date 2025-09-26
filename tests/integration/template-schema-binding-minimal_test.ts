@@ -44,9 +44,10 @@ describe("Template-Schema Binding Minimal", () => {
       }
 
       // Test hierarchy properties
+      const hierarchyRootState = context.getHierarchyRootState();
       assertEquals(
-        context.getHierarchyRoot(),
-        null,
+        hierarchyRootState.kind,
+        "not-defined",
         "Legacy mode should have no hierarchy",
       );
       assertExists(context.getDataKeys().length > 0, "Should have data keys");

@@ -99,7 +99,8 @@ describe("Template-Schema Binding Integration", () => {
       const context = contextResult.data;
 
       // Act & Assert: Context should have expected properties
-      assertEquals(context.getHierarchyRoot(), null); // Legacy mode has no hierarchy
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "not-defined"); // Legacy mode has no hierarchy
       assertExists(context.getDataKeys().includes("title"));
       assertExists(context.getDataKeys().includes("items"));
       assertExists(!context.hasArrayData()); // No legacy array data

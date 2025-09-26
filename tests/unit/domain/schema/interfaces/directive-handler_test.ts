@@ -12,6 +12,7 @@ import {
   DirectiveHandlerError,
   DirectiveHandlerFactory,
   DirectiveProcessingResult,
+  ExtensionExtractionResult,
   LegacySchemaProperty,
 } from "../../../../../src/domain/schema/interfaces/directive-handler.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -78,17 +79,21 @@ class MockDirectiveHandler extends BaseDirectiveHandler<
 
   extractExtension(
     schema: LegacySchemaProperty,
-  ): Result<{ key: string; value: unknown } | null, DirectiveHandlerError> {
+  ): Result<ExtensionExtractionResult, DirectiveHandlerError> {
     const configResult = this.extractConfig(schema);
     if (!configResult.ok) {
       return configResult;
     }
 
     if (!configResult.data.isPresent) {
-      return ok(null);
+      return ok({
+        kind: "ExtensionNotApplicable",
+        reason: "Mock directive not applicable to schema",
+      });
     }
 
     return ok({
+      kind: "ExtensionFound",
       key: "x-test-directive",
       value: configResult.data.configuration.testValue,
     });
@@ -283,9 +288,12 @@ describe("DirectiveHandler Interface", () => {
 
       // Assert
       assert(extensionResult.ok);
-      if (extensionResult.ok && extensionResult.data) {
-        assertEquals(extensionResult.data.key, "x-test-directive");
-        assertEquals(extensionResult.data.value, "test-value");
+      if (extensionResult.ok) {
+        assertEquals(extensionResult.data.kind, "ExtensionFound");
+        if (extensionResult.data.kind === "ExtensionFound") {
+          assertEquals(extensionResult.data.key, "x-test-directive");
+          assertEquals(extensionResult.data.value, "test-value");
+        }
       }
     });
 
@@ -303,7 +311,7 @@ describe("DirectiveHandler Interface", () => {
       // Assert
       assert(extensionResult.ok);
       if (extensionResult.ok) {
-        assertEquals(extensionResult.data, null);
+        assertEquals(extensionResult.data.kind, "ExtensionNotApplicable");
       }
     });
   });

@@ -129,11 +129,7 @@ class OutputRenderingService {
 class TemplateRenderer {
   render(
     template: Template,
-    data: FrontmatterData,
-  ): Result<string, DomainError>;
-  renderWithArray(
-    template: Template,
-    dataArray: FrontmatterData[],
+    data: FrontmatterData | FrontmatterData[],
   ): Result<string, DomainError>;
 }
 ```
