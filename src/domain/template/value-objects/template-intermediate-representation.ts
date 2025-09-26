@@ -9,12 +9,32 @@ import { TemplateConfiguration } from "./template-configuration.ts";
 import { VariableMapping } from "./variable-mapping.ts";
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { DomainError as _DomainError } from "../../shared/types/errors.ts";
+import type { DomainLogger } from "../../shared/interfaces/domain-logger.ts";
+import {
+  LogContext,
+  LogMessages,
+} from "../../shared/interfaces/domain-logger.ts";
 
 /**
- * Debug Logger for TemplateIRBuilder
- * Environment-controlled debug logging with detailed state tracking
+ * DDD-Compliant Debug Logger for TemplateIRBuilder
+ * Environment-controlled debug logging using domain logger abstraction
  */
 class IRDebugLogger {
+  private static logger?: DomainLogger;
+  private static logContext?: LogContext;
+
+  static initialize(logger: DomainLogger): void {
+    this.logger = logger;
+    const contextResult = LogContext.create(
+      "template",
+      "ir-building",
+      "template-intermediate-representation",
+    );
+    if (contextResult.ok) {
+      this.logContext = contextResult.data;
+    }
+  }
+
   private static isEnabled(
     level: "error" | "warn" | "info" | "debug" | "verbose" = "debug",
   ): boolean {
@@ -39,24 +59,31 @@ class IRDebugLogger {
     message: string,
     data?: unknown,
   ): void {
-    if (!this.isEnabled(level)) return;
+    if (!this.isEnabled(level) || !this.logger || !this.logContext) return;
 
     const outputFormat = Deno.env.get("DEBUG_OUTPUT_FORMAT") || "plain";
 
     if (outputFormat === "json") {
-      console.log(JSON.stringify({
+      const structuredData = {
         timestamp: new Date().toISOString(),
         level,
         component: "ir",
         message,
         data,
-      }));
+      };
+      this.logger.logStructured(this.logContext, structuredData);
     } else {
       const prefix = `[${level.toUpperCase()}] [IR] ${message}`;
       if (data) {
-        console.log(prefix, JSON.stringify(data, null, 2));
+        this.logger.logTrace(
+          this.logContext,
+          LogMessages.trace(prefix, data),
+        );
       } else {
-        console.log(prefix);
+        this.logger.logDebug(
+          this.logContext,
+          LogMessages.debug(prefix),
+        );
       }
     }
   }
@@ -165,7 +192,10 @@ export class TemplateIRBuilder {
   private buildCount = 0; // Debug counter for state tracking
   private readonly instanceId = Math.random().toString(36).substr(2, 9); // Unique instance tracking
 
-  constructor() {
+  constructor(logger?: DomainLogger) {
+    if (logger) {
+      IRDebugLogger.initialize(logger);
+    }
     IRDebugLogger.debug("TemplateIRBuilder instance created", {
       instanceId: this.instanceId,
     });

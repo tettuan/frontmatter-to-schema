@@ -7,12 +7,32 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import type { DomainLogger } from "../../shared/interfaces/domain-logger.ts";
+import {
+  LogContext,
+  LogMessages,
+} from "../../shared/interfaces/domain-logger.ts";
 
 /**
- * Debug Logger for DirectiveProcessor
- * Environment-controlled debug logging with configurable levels
+ * DDD-Compliant Debug Logger for DirectiveProcessor
+ * Environment-controlled debug logging using domain logger abstraction
  */
 class DirectiveDebugLogger {
+  private static logger?: DomainLogger;
+  private static logContext?: LogContext;
+
+  static initialize(logger: DomainLogger): void {
+    this.logger = logger;
+    const contextResult = LogContext.create(
+      "schema",
+      "directive-processing",
+      "directive-processor",
+    );
+    if (contextResult.ok) {
+      this.logContext = contextResult.data;
+    }
+  }
+
   private static isEnabled(
     level: "error" | "warn" | "info" | "debug" | "verbose" = "debug",
   ): boolean {
@@ -37,24 +57,31 @@ class DirectiveDebugLogger {
     message: string,
     data?: unknown,
   ): void {
-    if (!this.isEnabled(level)) return;
+    if (!this.isEnabled(level) || !this.logger || !this.logContext) return;
 
     const outputFormat = Deno.env.get("DEBUG_OUTPUT_FORMAT") || "plain";
 
     if (outputFormat === "json") {
-      console.log(JSON.stringify({
+      const structuredData = {
         timestamp: new Date().toISOString(),
         level,
         component: "directive",
         message,
         data,
-      }));
+      };
+      this.logger.logStructured(this.logContext, structuredData);
     } else {
       const prefix = `[${level.toUpperCase()}] [DIRECTIVE] ${message}`;
       if (data) {
-        console.log(prefix, JSON.stringify(data, null, 2));
+        this.logger.logTrace(
+          this.logContext,
+          LogMessages.trace(prefix, data),
+        );
       } else {
-        console.log(prefix);
+        this.logger.logDebug(
+          this.logContext,
+          LogMessages.debug(prefix),
+        );
       }
     }
   }
@@ -176,19 +203,22 @@ export interface DirectiveProcessingOrder {
  * - Totality: All methods return Result<T,E>
  */
 export class DirectiveProcessor {
-  private constructor() {
+  private constructor(logger?: DomainLogger) {
     // Private constructor for Smart Constructor pattern
+    if (logger) {
+      DirectiveDebugLogger.initialize(logger);
+    }
   }
 
   /**
    * Smart Constructor for DirectiveProcessor
    * Following Totality principles by returning Result<T,E>
    */
-  static create(): Result<
+  static create(logger?: DomainLogger): Result<
     DirectiveProcessor,
     DomainError & { message: string }
   > {
-    return ok(new DirectiveProcessor());
+    return ok(new DirectiveProcessor(logger));
   }
 
   /**

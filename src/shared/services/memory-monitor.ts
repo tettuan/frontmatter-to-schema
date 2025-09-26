@@ -4,11 +4,32 @@
  * Following DDD, TDD, and Totality principles
  */
 
+import type { DomainLogger } from "../../domain/shared/interfaces/domain-logger.ts";
+import {
+  LogContext,
+  LogMessages,
+} from "../../domain/shared/interfaces/domain-logger.ts";
+
 /**
- * Memory Monitor Debug Logger
- * Environment-controlled memory monitoring with configurable levels
+ * DDD-Compliant Memory Monitor Debug Logger
+ * Environment-controlled memory monitoring using domain logger abstraction
  */
 class MemoryDebugLogger {
+  private static logger?: DomainLogger;
+  private static logContext?: LogContext;
+
+  static initialize(logger: DomainLogger): void {
+    this.logger = logger;
+    const contextResult = LogContext.create(
+      "shared",
+      "memory-monitoring",
+      "memory-monitor",
+    );
+    if (contextResult.ok) {
+      this.logContext = contextResult.data;
+    }
+  }
+
   private static isEnabled(
     level: "error" | "warn" | "info" | "debug" | "verbose" = "debug",
   ): boolean {
@@ -33,24 +54,31 @@ class MemoryDebugLogger {
     message: string,
     data?: unknown,
   ): void {
-    if (!this.isEnabled(level)) return;
+    if (!this.isEnabled(level) || !this.logger || !this.logContext) return;
 
     const outputFormat = Deno.env.get("DEBUG_OUTPUT_FORMAT") || "plain";
 
     if (outputFormat === "json") {
-      console.log(JSON.stringify({
+      const structuredData = {
         timestamp: new Date().toISOString(),
         level,
         component: "memory",
         message,
         data,
-      }));
+      };
+      this.logger.logStructured(this.logContext, structuredData);
     } else {
       const prefix = `[${level.toUpperCase()}] [MEMORY] ${message}`;
       if (data) {
-        console.log(prefix, JSON.stringify(data, null, 2));
+        this.logger.logTrace(
+          this.logContext,
+          LogMessages.trace(prefix, data),
+        );
       } else {
-        console.log(prefix);
+        this.logger.logDebug(
+          this.logContext,
+          LogMessages.debug(prefix),
+        );
       }
     }
   }
@@ -118,13 +146,20 @@ export class MemoryMonitor {
   private readonly snapshots: MemoryUsage[] = [];
   private monitoringTimer?: number;
 
-  constructor(config: Partial<MemoryMonitorConfig> = {}) {
+  constructor(
+    config: Partial<MemoryMonitorConfig> = {},
+    logger?: DomainLogger,
+  ) {
     this.config = {
       warningThreshold: 50,
       criticalThreshold: 100,
       enableSnapshots: true,
       ...config,
     };
+
+    if (logger) {
+      MemoryDebugLogger.initialize(logger);
+    }
 
     this.initialMemory = this.getCurrentMemoryUsage();
 
