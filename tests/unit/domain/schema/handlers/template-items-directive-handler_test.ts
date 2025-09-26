@@ -473,12 +473,15 @@ describe("TemplateItemsDirectiveHandler", () => {
 
       // Assert
       assert(extensionResult.ok);
-      if (extensionResult.ok && extensionResult.data) {
-        assertEquals(extensionResult.data.key, "x-template-items");
-        assertEquals(
-          extensionResult.data.value,
-          "traceability_item_template.json",
-        );
+      if (extensionResult.ok) {
+        assertEquals(extensionResult.data.kind, "ExtensionFound");
+        if (extensionResult.data.kind === "ExtensionFound") {
+          assertEquals(extensionResult.data.key, "x-template-items");
+          assertEquals(
+            extensionResult.data.value,
+            "traceability_item_template.json",
+          );
+        }
       }
     });
 
@@ -498,7 +501,7 @@ describe("TemplateItemsDirectiveHandler", () => {
       // Assert
       assert(extensionResult.ok);
       if (extensionResult.ok) {
-        assertEquals(extensionResult.data, null);
+        assertEquals(extensionResult.data.kind, "ExtensionNotApplicable");
       }
     });
   });

@@ -492,9 +492,12 @@ describe("FlattenArraysDirectiveHandler", () => {
 
       // Assert
       assert(extensionResult.ok);
-      if (extensionResult.ok && extensionResult.data) {
-        assertEquals(extensionResult.data.key, "x-flatten-arrays");
-        assertEquals(extensionResult.data.value, "items");
+      if (extensionResult.ok) {
+        assertEquals(extensionResult.data.kind, "ExtensionFound");
+        if (extensionResult.data.kind === "ExtensionFound") {
+          assertEquals(extensionResult.data.key, "x-flatten-arrays");
+          assertEquals(extensionResult.data.value, "items");
+        }
       }
     });
 
@@ -514,7 +517,7 @@ describe("FlattenArraysDirectiveHandler", () => {
       // Assert
       assert(extensionResult.ok);
       if (extensionResult.ok) {
-        assertEquals(extensionResult.data, null);
+        assertEquals(extensionResult.data.kind, "ExtensionNotApplicable");
       }
     });
   });
