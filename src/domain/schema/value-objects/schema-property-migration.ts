@@ -122,10 +122,9 @@ export class SchemaPropertyMigration {
       if (extractionResult.ok) {
         return extractionResult.data;
       }
-      // If registry extraction fails, fall back to legacy method with logging
-      console.warn(
-        `DirectiveRegistry extraction failed: ${extractionResult.error.message}. Falling back to legacy extraction.`,
-      );
+      // If registry extraction fails, fall back to legacy method
+      // DirectiveRegistry extraction failed, using legacy extraction method
+      // This is a non-critical fallback that maintains backward compatibility
     } else {
       // Registry not initialized, use fallback silently (legacy compatibility)
       // This is expected in test environments and during transition period

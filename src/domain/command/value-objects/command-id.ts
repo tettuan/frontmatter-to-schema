@@ -8,7 +8,7 @@ import { createError, ValidationError } from "../../shared/types/errors.ts";
  * ```typescript
  * const commandId = CommandId.create("git", "commit", "refinement-issue");
  * if (commandId.ok) {
- *   console.log(commandId.data.toFullId()); // "git:commit:refinement-issue"
+ *   const fullId = commandId.data.toFullId(); // "git:commit:refinement-issue"
  * }
  * ```
  */
