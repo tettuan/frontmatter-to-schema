@@ -826,10 +826,45 @@ export class FrontmatterTransformationService {
     });
 
     // Execute the selected strategy
+    // Convert string paths to FilePath objects, handling errors properly
+    const filePathResults = filesResult.data.map((path) => FilePath.create(path));
+    const invalidPaths = filePathResults.filter((result) => !result.ok);
+    if (invalidPaths.length > 0) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `Invalid file paths: ${invalidPaths.map((p) => p.error.message).join(", ")}`,
+        }),
+      };
+    }
+
+    const filePaths = filePathResults.filter((result) => result.ok).map(
+      (result) => (result as { ok: true; data: FilePath }).data
+    );
+
     const strategyExecutionResult = await strategy.execute(
-      filesResult.data,
+      filePaths,
       effectiveValidationRules,
-      this.processDocument.bind(this),
+      (filePath, rules) => {
+        // Convert FilePath back to string for processDocument method
+        const docResult = this.processDocument(filePath.toString(), rules);
+        if (docResult.ok) {
+          return {
+            ok: true,
+            data: {
+              kind: "success" as const,
+              data: docResult.data.frontmatterData,
+              document: docResult.data.document,
+            }
+          };
+        } else {
+          return {
+            ok: false,
+            error: docResult.error
+          };
+        }
+      },
       boundsMonitor,
       activeLogger,
     );
@@ -870,128 +905,7 @@ export class FrontmatterTransformationService {
       }
     }
 
-      // This block will be removed - old processing code
-        {
-          operation: "parallel-processing",
-          workerCount: maxWorkers,
-          fileCount: filesResult.data.length,
-          timestamp: new Date().toISOString(),
-        },
-      );
-
-      // Parallel processing implementation (Issue #545)
-      const results = await this.processFilesInParallel(
-        filesResult.data,
-        effectiveValidationRules,
-        maxWorkers,
-        boundsMonitor,
-        activeLogger,
-      );
-
-      if (!results.ok) {
-        return results;
-      }
-
-      // Collect results from parallel processing
-      for (const result of results.data) {
-        processedData.push(result.frontmatterData);
-        documents.push(result.document);
-      }
-    } else {
-      // Sequential processing (original implementation)
-      for (const filePath of filesResult.data) {
-        // Memory bounds monitoring - check state before processing each file
-        const state = boundsMonitor.checkState(processedData.length);
-        if (state.kind === "exceeded_limit") {
-          return ErrorHandler.system({
-            operation: "transformDocumentsInternal",
-            method: "checkMemoryBounds",
-          }).memoryBoundsViolation(
-            `Processing exceeded bounds: ${state.limit}`,
-          );
-        }
-
-        if (state.kind === "approaching_limit") {
-          activeLogger?.warn(
-            `Approaching memory limit: ${
-              Math.round(state.usage.heapUsed / 1024 / 1024)
-            }MB used, threshold: ${
-              Math.round(state.warningThreshold / 1024 / 1024)
-            }MB`,
-            {
-              operation: "memory-monitoring",
-              heapUsed: state.usage.heapUsed,
-              warningThreshold: state.warningThreshold,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-
-        activeLogger?.debug(
-          `Processing file: ${filePath}`,
-          {
-            operation: "file-processing",
-            filePath,
-            timestamp: new Date().toISOString(),
-          },
-        );
-        const documentResult = this.processDocument(
-          filePath,
-          effectiveValidationRules,
-        );
-        if (documentResult.ok) {
-          processedData.push(documentResult.data.frontmatterData);
-          documents.push(documentResult.data.document);
-
-          activeLogger?.debug(
-            `Successfully processed: ${filePath}`,
-            {
-              operation: "file-processing",
-              filePath,
-              timestamp: new Date().toISOString(),
-            },
-          );
-
-          // Periodic O(log n) memory growth validation
-          if (ProcessingConstants.shouldReportProgress(processedData.length)) {
-            const growthResult = boundsMonitor.validateMemoryGrowth(
-              processedData.length,
-            );
-            if (!growthResult.ok) {
-              activeLogger?.warn(
-                `Memory growth validation warning: ${growthResult.error.message}`,
-                {
-                  operation: "memory-monitoring",
-                  processedCount: processedData.length,
-                  timestamp: new Date().toISOString(),
-                },
-              );
-            }
-          }
-
-          activeLogger?.debug(
-            "File processed successfully",
-            {
-              operation: "file-processing",
-              status: "success",
-              timestamp: new Date().toISOString(),
-            },
-          );
-        } else {
-          activeLogger?.error(
-            `Failed to process file: ${filePath}`,
-            {
-              operation: "file-processing",
-              filePath,
-              stage: "individual-file-processing",
-              error: documentResult.error,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-        // Note: Individual file failures don't stop processing
-      }
-    }
+    // Document processing completed by strategy execution above
 
     if (ValidationHelpers.isEmptyArray(processedData)) {
       const noDataError = ErrorHandler.aggregation({
