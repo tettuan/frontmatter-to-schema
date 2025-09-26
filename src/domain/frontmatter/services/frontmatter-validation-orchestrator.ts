@@ -4,7 +4,7 @@
  * Following DDD and Totality principles - replaces scattered validation logic
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
@@ -12,7 +12,12 @@ import { ValidationRules } from "../../schema/value-objects/validation-rules.ts"
 import { Schema } from "../../schema/entities/schema.ts";
 import { SchemaValidationService } from "../../schema/services/schema-validation-service.ts";
 import { FrontmatterValidationService } from "./frontmatter-validation-service.ts";
-import { ValidationState, StateTransitions } from "../types/transformation-states.ts";
+import {
+  completeValidation,
+  failValidation,
+  startValidation,
+  ValidationState,
+} from "../types/transformation-states.ts";
 import { DebugLogger } from "../../shared/services/debug-logger.ts";
 
 /**
@@ -41,7 +46,7 @@ export interface ValidationResult {
 export class FrontmatterValidationOrchestrator {
   private constructor(
     private readonly schemaValidationService: SchemaValidationService,
-    private readonly frontmatterValidationService: FrontmatterValidationService
+    private readonly frontmatterValidationService: FrontmatterValidationService,
   ) {}
 
   /**
@@ -49,26 +54,31 @@ export class FrontmatterValidationOrchestrator {
    */
   static create(
     schemaValidationService: SchemaValidationService,
-    frontmatterValidationService: FrontmatterValidationService
-  ): Result<FrontmatterValidationOrchestrator, DomainError & { message: string }> {
+    frontmatterValidationService: FrontmatterValidationService,
+  ): Result<
+    FrontmatterValidationOrchestrator,
+    DomainError & { message: string }
+  > {
     if (!schemaValidationService) {
       return ErrorHandler.validation({
         operation: "FrontmatterValidationOrchestrator",
-        method: "create"
+        method: "create",
       }).missingRequired("schemaValidationService");
     }
 
     if (!frontmatterValidationService) {
       return ErrorHandler.validation({
         operation: "FrontmatterValidationOrchestrator",
-        method: "create"
+        method: "create",
       }).missingRequired("frontmatterValidationService");
     }
 
-    return ok(new FrontmatterValidationOrchestrator(
-      schemaValidationService,
-      frontmatterValidationService
-    ));
+    return ok(
+      new FrontmatterValidationOrchestrator(
+        schemaValidationService,
+        frontmatterValidationService,
+      ),
+    );
   }
 
   /**
@@ -76,7 +86,7 @@ export class FrontmatterValidationOrchestrator {
    * Handles x-frontmatter-part adjustments
    */
   prepareValidationRules(
-    context: ValidationContext
+    context: ValidationContext,
   ): Result<ValidationRules, DomainError & { message: string }> {
     const { schema, validationRules, logger } = context;
 
@@ -87,7 +97,8 @@ export class FrontmatterValidationOrchestrator {
       // Use original rules if check fails
       logger?.warn("Failed to check frontmatter part, using original rules", {
         operation: "validation-preparation",
-        error: frontmatterPartResult.error.message
+        error: frontmatterPartResult.error.message,
+        timestamp: new Date().toISOString(),
       });
       return ok(validationRules);
     }
@@ -104,7 +115,8 @@ export class FrontmatterValidationOrchestrator {
     if (!adjustedRulesResult.ok) {
       logger?.warn("Failed to get adjusted validation rules", {
         operation: "validation-preparation",
-        error: adjustedRulesResult.error.message
+        error: adjustedRulesResult.error.message,
+        timestamp: new Date().toISOString(),
       });
       return ok(validationRules); // Fallback to original rules
     }
@@ -112,7 +124,8 @@ export class FrontmatterValidationOrchestrator {
     logger?.info("Using adjusted validation rules for frontmatter part", {
       operation: "validation-preparation",
       originalRules: validationRules.getRules().length,
-      adjustedRules: adjustedRulesResult.data.getRules().length
+      adjustedRules: adjustedRulesResult.data.getRules().length,
+      timestamp: new Date().toISOString(),
     });
 
     return ok(adjustedRulesResult.data);
@@ -125,36 +138,56 @@ export class FrontmatterValidationOrchestrator {
   validateData(
     data: unknown,
     rules: ValidationRules,
-    logger?: DebugLogger
+    logger?: DebugLogger,
   ): ValidationResult {
     // Start validation
-    let state: ValidationState = StateTransitions.startValidation(data, rules);
+    let state: ValidationState = startValidation(data, rules);
+
+    // First convert unknown data to FrontmatterData
+    const frontmatterDataResult = FrontmatterData.create(data);
+    if (!frontmatterDataResult.ok) {
+      state = failValidation(data, [frontmatterDataResult.error]);
+      logger?.warn("Failed to create FrontmatterData", {
+        operation: "data-validation",
+        status: "failed",
+        error: frontmatterDataResult.error.message,
+        timestamp: new Date().toISOString(),
+      });
+      return {
+        state,
+        effectiveRules: rules,
+        adjustedForFrontmatterPart: false,
+      };
+    }
 
     // Perform validation
-    const validationResult = this.frontmatterValidationService.validate(
-      data,
-      rules
-    );
+    const validationResult = this.frontmatterValidationService
+      .validateAgainstRules(
+        frontmatterDataResult.data,
+        rules,
+      );
 
     if (validationResult.ok) {
-      state = StateTransitions.completeValidation(validationResult.data);
+      state = completeValidation(frontmatterDataResult.data);
       logger?.debug("Validation completed successfully", {
         operation: "data-validation",
-        status: "success"
+        status: "success",
+        timestamp: new Date().toISOString(),
       });
     } else {
-      state = StateTransitions.failValidation(data, [validationResult.error]);
+      state = failValidation(data, [validationResult.error]);
       logger?.warn("Validation failed", {
         operation: "data-validation",
         status: "failed",
-        error: validationResult.error.message
+        error: validationResult.error.message,
+        timestamp: new Date().toISOString(),
       });
     }
 
     return {
       state,
       effectiveRules: rules,
-      adjustedForFrontmatterPart: false
+      adjustedForFrontmatterPart: false,
     };
   }
 
@@ -165,7 +198,7 @@ export class FrontmatterValidationOrchestrator {
   batchValidate(
     dataItems: unknown[],
     rules: ValidationRules,
-    logger?: DebugLogger
+    logger?: DebugLogger,
   ): Result<ValidationState[], DomainError & { message: string }> {
     const results: ValidationState[] = [];
     const errors: Array<DomainError & { message: string }> = [];
@@ -185,7 +218,8 @@ export class FrontmatterValidationOrchestrator {
       logger?.warn(`Batch validation completed with ${errors.length} errors`, {
         operation: "batch-validation",
         totalItems: dataItems.length,
-        failedItems: errors.length
+        failedItems: errors.length,
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -197,7 +231,7 @@ export class FrontmatterValidationOrchestrator {
    * Total function that handles all cases
    */
   private checkFrontmatterPart(
-    schema: Schema
+    schema: Schema,
   ): Result<boolean, DomainError & { message: string }> {
     try {
       const frontmatterPartResult = schema.findFrontmatterPartSchema();
@@ -211,10 +245,9 @@ export class FrontmatterValidationOrchestrator {
     } catch (error) {
       return ErrorHandler.schema({
         operation: "FrontmatterValidationOrchestrator",
-        method: "checkFrontmatterPart"
-      }).unexpectedSchemaStructure(
-        "frontmatter-part-check",
-        `Failed to check frontmatter part: ${error}`
+        method: "checkFrontmatterPart",
+      }).invalid(
+        `Failed to check frontmatter part: ${error}`,
       );
     }
   }
@@ -224,7 +257,7 @@ export class FrontmatterValidationOrchestrator {
    * Provides summary of validation results
    */
   createValidationSummary(
-    states: ValidationState[]
+    states: ValidationState[],
   ): {
     total: number;
     validated: number;
@@ -235,7 +268,7 @@ export class FrontmatterValidationOrchestrator {
       total: states.length,
       validated: 0,
       failed: 0,
-      errors: [] as Array<DomainError & { message: string }>
+      errors: [] as Array<DomainError & { message: string }>,
     };
 
     for (const state of states) {
@@ -247,7 +280,7 @@ export class FrontmatterValidationOrchestrator {
           summary.failed++;
           summary.errors.push(...state.errors);
           break;
-        // Other states don't contribute to summary
+          // Other states don't contribute to summary
       }
     }
 
@@ -260,7 +293,7 @@ export class FrontmatterValidationOrchestrator {
    */
   applySchemaAlocationIfNeeded(
     schema: Schema,
-    logger?: DebugLogger
+    logger?: DebugLogger,
   ): Result<Schema, DomainError & { message: string }> {
     // Check if schema needs migration
     const needsMigration = this.checkIfNeedsMigration(schema);
@@ -271,7 +304,8 @@ export class FrontmatterValidationOrchestrator {
 
     logger?.info("Applying schema migration", {
       operation: "schema-migration",
-      schemaPath: schema.getPath()
+      schemaPath: schema.getPath(),
+      timestamp: new Date().toISOString(),
     });
 
     // This would be implemented based on actual migration needs
@@ -287,11 +321,18 @@ export class FrontmatterValidationOrchestrator {
     // Check for legacy patterns
     const definition = schema.getDefinition();
 
-    // Check for old property formats that need migration
-    if (definition.has("$schema")) {
-      const schemaVersion = definition.get("$schema");
-      if (typeof schemaVersion === "string" && schemaVersion.includes("draft-04")) {
-        return true; // Old draft version needs migration
+    // Check if this is an object schema that might have $schema property
+    const propertiesResult = definition.getProperties();
+    if (propertiesResult.ok) {
+      const properties = propertiesResult.data;
+      if (properties["$schema"]) {
+        const schemaProperty = properties["$schema"];
+        if (schemaProperty.kind === "enum") {
+          // Check if any enum value contains draft-04
+          return schemaProperty.values.some((value: unknown) =>
+            typeof value === "string" && value.includes("draft-04")
+          );
+        }
       }
     }
 

@@ -4,13 +4,19 @@
  * Following DDD bounded contexts and Totality principles
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { PerformanceSettings } from "../../configuration/value-objects/performance-settings.ts";
-import { ProcessingBounds, ProcessingBoundsFactory } from "../../shared/types/processing-bounds.ts";
-import { ProcessingStrategyState, StateTransitions } from "../types/transformation-states.ts";
-import { FrontmatterTransformationConfig } from "../configuration/frontmatter-transformation-config.ts";
+import {
+  ProcessingBounds,
+  ProcessingBoundsFactory,
+} from "../../shared/types/processing-bounds.ts";
+import {
+  determineProcessingStrategy,
+  ProcessingStrategyState,
+} from "../types/transformation-states.ts";
+// FrontmatterTransformationConfig import removed as unused
 
 /**
  * Configuration state for frontmatter processing
@@ -31,15 +37,18 @@ export interface FrontmatterProcessingConfiguration {
 export class FrontmatterConfigurationService {
   private constructor(
     private readonly defaultPerformanceSettings: PerformanceSettings,
-    private readonly defaultProcessingBounds: ProcessingBounds
+    private readonly defaultProcessingBounds: ProcessingBounds,
   ) {}
 
   /**
    * Smart constructor following Totality principles
    */
   static create(
-    performanceSettings?: PerformanceSettings
-  ): Result<FrontmatterConfigurationService, DomainError & { message: string }> {
+    performanceSettings?: PerformanceSettings,
+  ): Result<
+    FrontmatterConfigurationService,
+    DomainError & { message: string }
+  > {
     // Get default performance settings if not provided
     let settings = performanceSettings;
     if (!settings) {
@@ -56,10 +65,12 @@ export class FrontmatterConfigurationService {
       return err(boundsResult.error);
     }
 
-    return ok(new FrontmatterConfigurationService(
-      settings,
-      boundsResult.data
-    ));
+    return ok(
+      new FrontmatterConfigurationService(
+        settings,
+        boundsResult.data,
+      ),
+    );
   }
 
   /**
@@ -69,12 +80,15 @@ export class FrontmatterConfigurationService {
   buildConfiguration(
     fileCount: number,
     requestedStrategy?: ProcessingStrategyState,
-    customBounds?: ProcessingBounds
-  ): Result<FrontmatterProcessingConfiguration, DomainError & { message: string }> {
+    customBounds?: ProcessingBounds,
+  ): Result<
+    FrontmatterProcessingConfiguration,
+    DomainError & { message: string }
+  > {
     // Determine processing strategy
-    const processingStrategy = StateTransitions.determineProcessingStrategy(
+    const processingStrategy = determineProcessingStrategy(
       fileCount,
-      requestedStrategy
+      requestedStrategy,
     );
 
     // Use custom bounds or default
@@ -83,12 +97,12 @@ export class FrontmatterConfigurationService {
     // Determine debug logging based on file count and strategy
     const enableDebugLogging = this.shouldEnableDebugLogging(
       fileCount,
-      processingStrategy
+      processingStrategy,
     );
 
     // Determine memory monitoring based on strategy
     const enableMemoryMonitoring = this.shouldEnableMemoryMonitoring(
-      processingStrategy
+      processingStrategy,
     );
 
     const config: FrontmatterProcessingConfiguration = {
@@ -96,7 +110,7 @@ export class FrontmatterConfigurationService {
       processingStrategy,
       processingBounds,
       enableDebugLogging,
-      enableMemoryMonitoring
+      enableMemoryMonitoring,
     };
 
     return ok(config);
@@ -108,7 +122,7 @@ export class FrontmatterConfigurationService {
    */
   private shouldEnableDebugLogging(
     fileCount: number,
-    strategy: ProcessingStrategyState
+    strategy: ProcessingStrategyState,
   ): boolean {
     // Enable debug for complex processing scenarios
     switch (strategy.kind) {
@@ -126,7 +140,7 @@ export class FrontmatterConfigurationService {
    * Total function based on strategy
    */
   private shouldEnableMemoryMonitoring(
-    strategy: ProcessingStrategyState
+    strategy: ProcessingStrategyState,
   ): boolean {
     switch (strategy.kind) {
       case "sequential":
@@ -143,7 +157,7 @@ export class FrontmatterConfigurationService {
    * Ensures configuration is internally consistent
    */
   validateConfiguration(
-    config: FrontmatterProcessingConfiguration
+    config: FrontmatterProcessingConfiguration,
   ): Result<void, DomainError & { message: string }> {
     // Validate processing bounds based on kind
     switch (config.processingBounds.kind) {
@@ -151,13 +165,13 @@ export class FrontmatterConfigurationService {
         if (config.processingBounds.fileLimit <= 0) {
           return ErrorHandler.validation({
             operation: "FrontmatterConfigurationService",
-            method: "validateConfiguration"
+            method: "validateConfiguration",
           }).outOfRange(config.processingBounds.fileLimit, 1);
         }
         if (config.processingBounds.memoryLimit <= 0) {
           return ErrorHandler.validation({
             operation: "FrontmatterConfigurationService",
-            method: "validateConfiguration"
+            method: "validateConfiguration",
           }).outOfRange(config.processingBounds.memoryLimit, 1);
         }
         break;
@@ -172,7 +186,7 @@ export class FrontmatterConfigurationService {
         if (config.processingStrategy.workers <= 0) {
           return ErrorHandler.validation({
             operation: "FrontmatterConfigurationService",
-            method: "validateConfiguration"
+            method: "validateConfiguration",
           }).outOfRange(config.processingStrategy.workers, 1);
         }
         break;
@@ -181,13 +195,13 @@ export class FrontmatterConfigurationService {
         if (config.processingStrategy.baseWorkers <= 0) {
           return ErrorHandler.validation({
             operation: "FrontmatterConfigurationService",
-            method: "validateConfiguration"
+            method: "validateConfiguration",
           }).outOfRange(config.processingStrategy.baseWorkers, 1);
         }
         if (config.processingStrategy.threshold <= 0) {
           return ErrorHandler.validation({
             operation: "FrontmatterConfigurationService",
-            method: "validateConfiguration"
+            method: "validateConfiguration",
           }).outOfRange(config.processingStrategy.threshold, 1);
         }
         break;
@@ -228,11 +242,13 @@ export class FrontmatterConfigurationService {
     const bounds = ProcessingBoundsFactory.createBounded(512, 100, 30);
 
     return {
-      performanceSettings: defaultSettings.ok ? defaultSettings.data : {} as PerformanceSettings,
+      performanceSettings: defaultSettings.ok
+        ? defaultSettings.data
+        : {} as PerformanceSettings,
       processingStrategy: { kind: "sequential" },
       processingBounds: bounds.ok ? bounds.data : { kind: "unbounded" },
       enableDebugLogging: false,
-      enableMemoryMonitoring: false
+      enableMemoryMonitoring: false,
     };
   }
 }

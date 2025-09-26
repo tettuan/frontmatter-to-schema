@@ -379,7 +379,7 @@ describe("FrontmatterTransformationService", () => {
       assertEquals(result.ok, false);
       if (!result.ok) {
         assertEquals(result.error.kind, "MemoryBoundsViolation");
-        assertStringIncludes(result.error.message, "exceeded bounds");
+        assertStringIncludes(result.error.message, "Memory limit exceeded");
       }
     });
 

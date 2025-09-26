@@ -4,18 +4,18 @@
  * Following DDD and Totality principles
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
-import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
+// FrontmatterData import removed as unused
 import { FilePath } from "../value-objects/file-path.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { ProcessingBoundsMonitor } from "../../shared/types/processing-bounds.ts";
 import { DebugLogger } from "../../shared/services/debug-logger.ts";
 import {
-  ProcessingStrategyState,
   DocumentProcessingResult,
-  MemoryMonitoringState
+  MemoryMonitoringState,
+  ProcessingStrategyState,
 } from "../types/transformation-states.ts";
 
 /**
@@ -34,10 +34,15 @@ export interface TransformationStrategy {
   execute(
     files: FilePath[],
     validationRules: ValidationRules,
-    processDocument: (file: FilePath, rules: ValidationRules) => Result<DocumentProcessingResult, DomainError & { message: string }>,
+    processDocument: (
+      file: FilePath,
+      rules: ValidationRules,
+    ) => Result<DocumentProcessingResult, DomainError & { message: string }>,
     boundsMonitor: ProcessingBoundsMonitor,
-    logger?: DebugLogger
-  ): Promise<Result<DocumentProcessingResult[], DomainError & { message: string }>>;
+    logger?: DebugLogger,
+  ): Promise<
+    Result<DocumentProcessingResult[], DomainError & { message: string }>
+  >;
 
   /**
    * Get strategy description for logging
@@ -54,13 +59,18 @@ export class SequentialStrategy implements TransformationStrategy {
     return state.kind === "sequential";
   }
 
-  async execute(
+  execute(
     files: FilePath[],
     validationRules: ValidationRules,
-    processDocument: (file: FilePath, rules: ValidationRules) => Result<DocumentProcessingResult, DomainError & { message: string }>,
+    processDocument: (
+      file: FilePath,
+      rules: ValidationRules,
+    ) => Result<DocumentProcessingResult, DomainError & { message: string }>,
     boundsMonitor: ProcessingBoundsMonitor,
-    logger?: DebugLogger
-  ): Promise<Result<DocumentProcessingResult[], DomainError & { message: string }>> {
+    logger?: DebugLogger,
+  ): Promise<
+    Result<DocumentProcessingResult[], DomainError & { message: string }>
+  > {
     const results: DocumentProcessingResult[] = [];
 
     for (const file of files) {
@@ -69,22 +79,26 @@ export class SequentialStrategy implements TransformationStrategy {
 
       switch (memoryState.kind) {
         case "exceeded_limit":
-          return ErrorHandler.system({
-            operation: "SequentialStrategy",
-            method: "execute"
-          }).memoryBoundsViolation(
-            `Memory limit exceeded: ${memoryState.heapUsed}/${memoryState.limit}`
+          return Promise.resolve(
+            ErrorHandler.system({
+              operation: "SequentialStrategy",
+              method: "execute",
+            }).memoryBoundsViolation(
+              `Memory limit exceeded: ${memoryState.heapUsed}/${memoryState.limit}`,
+            ),
           );
 
         case "approaching_limit":
           logger?.warn(
-            `Approaching memory limit: ${Math.round(memoryState.heapUsed / 1024 / 1024)}MB used`,
+            `Approaching memory limit: ${
+              Math.round(memoryState.heapUsed / 1024 / 1024)
+            }MB used`,
             {
               operation: "sequential-processing",
               warningThreshold: memoryState.warningThreshold,
               limit: memoryState.limit,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           );
           break;
 
@@ -95,7 +109,8 @@ export class SequentialStrategy implements TransformationStrategy {
 
       logger?.debug(`Processing file sequentially: ${file}`, {
         operation: "sequential-processing",
-        filePath: file.toString()
+        filePath: file.toString(),
+        timestamp: new Date().toISOString(),
       });
 
       const result = processDocument(file, validationRules);
@@ -104,23 +119,25 @@ export class SequentialStrategy implements TransformationStrategy {
         results.push(result.data);
         logger?.debug(`Successfully processed: ${file}`, {
           operation: "sequential-processing",
-          status: "success"
+          status: "success",
+          timestamp: new Date().toISOString(),
         });
       } else {
         // Log error but continue processing other files
         logger?.error(`Failed to process file: ${file}`, {
           operation: "sequential-processing",
-          error: result.error
+          error: result.error,
+          timestamp: new Date().toISOString(),
         });
         results.push({
           kind: "failed",
           error: result.error,
-          filePath: file.toString()
+          filePath: file.toString(),
         });
       }
     }
 
-    return ok(results);
+    return Promise.resolve(ok(results));
   }
 
   getDescription(): string {
@@ -129,7 +146,7 @@ export class SequentialStrategy implements TransformationStrategy {
 
   private checkMemoryBounds(
     monitor: ProcessingBoundsMonitor,
-    processedCount: number
+    processedCount: number,
   ): MemoryMonitoringState {
     const state = monitor.checkState(processedCount);
 
@@ -138,7 +155,7 @@ export class SequentialStrategy implements TransformationStrategy {
         return {
           kind: "exceeded_limit",
           heapUsed: state.usage.heapUsed,
-          limit: state.limit
+          limit: state.limit,
         };
 
       case "approaching_limit":
@@ -146,14 +163,14 @@ export class SequentialStrategy implements TransformationStrategy {
           kind: "approaching_limit",
           heapUsed: state.usage.heapUsed,
           warningThreshold: state.warningThreshold,
-          limit: state.limit
+          limit: state.warningThreshold * 1.25, // Estimate limit from threshold
         };
 
       case "within_bounds":
         return {
           kind: "within_bounds",
           heapUsed: state.usage.heapUsed,
-          limit: state.limit
+          limit: Number.MAX_SAFE_INTEGER, // No limit in within_bounds state
         };
     }
   }
@@ -171,17 +188,26 @@ export class ParallelStrategy implements TransformationStrategy {
   async execute(
     files: FilePath[],
     validationRules: ValidationRules,
-    processDocument: (file: FilePath, rules: ValidationRules) => Result<DocumentProcessingResult, DomainError & { message: string }>,
-    boundsMonitor: ProcessingBoundsMonitor,
-    logger?: DebugLogger
-  ): Promise<Result<DocumentProcessingResult[], DomainError & { message: string }>> {
+    processDocument: (
+      file: FilePath,
+      rules: ValidationRules,
+    ) => Result<DocumentProcessingResult, DomainError & { message: string }>,
+    _boundsMonitor: ProcessingBoundsMonitor,
+    logger?: DebugLogger,
+  ): Promise<
+    Result<DocumentProcessingResult[], DomainError & { message: string }>
+  > {
     const state = { kind: "parallel" as const, workers: 4 }; // Default workers
 
-    logger?.info(`Using parallel processing with ${state.workers} workers for ${files.length} files`, {
-      operation: "parallel-processing",
-      workerCount: state.workers,
-      fileCount: files.length
-    });
+    logger?.info(
+      `Using parallel processing with ${state.workers} workers for ${files.length} files`,
+      {
+        operation: "parallel-processing",
+        workerCount: state.workers,
+        fileCount: files.length,
+        timestamp: new Date().toISOString(),
+      },
+    );
 
     // Create batches for parallel processing
     const batchSize = Math.ceil(files.length / state.workers);
@@ -192,14 +218,15 @@ export class ParallelStrategy implements TransformationStrategy {
     }
 
     // Process batches in parallel
-    const batchPromises = batches.map(async (batch, batchIndex) => {
+    const batchPromises = batches.map((batch, batchIndex) => {
       const batchResults: DocumentProcessingResult[] = [];
 
       for (const file of batch) {
         logger?.debug(`Processing file in batch ${batchIndex}: ${file}`, {
           operation: "parallel-batch-processing",
           batchIndex,
-          filePath: file.toString()
+          filePath: file.toString(),
+          timestamp: new Date().toISOString(),
         });
 
         const result = processDocument(file, validationRules);
@@ -210,7 +237,7 @@ export class ParallelStrategy implements TransformationStrategy {
           batchResults.push({
             kind: "failed",
             error: result.error,
-            filePath: file.toString()
+            filePath: file.toString(),
           });
         }
       }
@@ -222,17 +249,21 @@ export class ParallelStrategy implements TransformationStrategy {
       const batchResults = await Promise.all(batchPromises);
       const results = batchResults.flat();
 
-      logger?.info(`Parallel processing completed: ${results.length} files processed`, {
-        operation: "parallel-processing",
-        processedCount: results.length
-      });
+      logger?.info(
+        `Parallel processing completed: ${results.length} files processed`,
+        {
+          operation: "parallel-processing",
+          processedCount: results.length,
+          timestamp: new Date().toISOString(),
+        },
+      );
 
       return ok(results);
     } catch (error) {
       return ErrorHandler.system({
         operation: "ParallelStrategy",
-        method: "execute"
-      }).systemError(`Parallel processing failed: ${error}`);
+        method: "execute",
+      }).memoryBoundsViolation(`Parallel processing failed: ${error}`);
     }
   }
 
@@ -253,10 +284,15 @@ export class AdaptiveStrategy implements TransformationStrategy {
   async execute(
     files: FilePath[],
     validationRules: ValidationRules,
-    processDocument: (file: FilePath, rules: ValidationRules) => Result<DocumentProcessingResult, DomainError & { message: string }>,
+    processDocument: (
+      file: FilePath,
+      rules: ValidationRules,
+    ) => Result<DocumentProcessingResult, DomainError & { message: string }>,
     boundsMonitor: ProcessingBoundsMonitor,
-    logger?: DebugLogger
-  ): Promise<Result<DocumentProcessingResult[], DomainError & { message: string }>> {
+    logger?: DebugLogger,
+  ): Promise<
+    Result<DocumentProcessingResult[], DomainError & { message: string }>
+  > {
     const fileCount = files.length;
 
     // Determine optimal strategy based on file count and system state
@@ -265,10 +301,17 @@ export class AdaptiveStrategy implements TransformationStrategy {
     logger?.info(`Adaptive strategy selected: ${strategy.getDescription()}`, {
       operation: "adaptive-processing",
       fileCount,
-      selectedStrategy: strategy.getDescription()
+      selectedStrategy: strategy.getDescription(),
+      timestamp: new Date().toISOString(),
     });
 
-    return strategy.execute(files, validationRules, processDocument, boundsMonitor, logger);
+    return await strategy.execute(
+      files,
+      validationRules,
+      processDocument,
+      boundsMonitor,
+      logger,
+    );
   }
 
   getDescription(): string {
@@ -277,7 +320,7 @@ export class AdaptiveStrategy implements TransformationStrategy {
 
   private selectOptimalStrategy(
     fileCount: number,
-    boundsMonitor: ProcessingBoundsMonitor
+    boundsMonitor: ProcessingBoundsMonitor,
   ): TransformationStrategy {
     // Check current memory state
     const memoryState = boundsMonitor.checkState(0);
@@ -308,7 +351,7 @@ export class TransformationStrategySelector {
     this.strategies = [
       new SequentialStrategy(),
       new ParallelStrategy(),
-      new AdaptiveStrategy()
+      new AdaptiveStrategy(),
     ];
   }
 
@@ -317,15 +360,15 @@ export class TransformationStrategySelector {
    * Returns Result to handle no matching strategy case (Totality)
    */
   selectStrategy(
-    state: ProcessingStrategyState
+    state: ProcessingStrategyState,
   ): Result<TransformationStrategy, DomainError & { message: string }> {
-    const strategy = this.strategies.find(s => s.canHandle(state));
+    const strategy = this.strategies.find((s) => s.canHandle(state));
 
     if (!strategy) {
       return ErrorHandler.system({
         operation: "TransformationStrategySelector",
-        method: "selectStrategy"
-      }).systemError(`No strategy found for state: ${state.kind}`);
+        method: "selectStrategy",
+      }).configurationError(`No strategy found for state: ${state.kind}`);
     }
 
     return ok(strategy);

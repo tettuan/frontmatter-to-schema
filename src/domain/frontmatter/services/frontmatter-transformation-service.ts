@@ -57,12 +57,7 @@ import {
   TransformationStrategySelector,
   // TransformationStrategy - will be used in next integration step
 } from "../strategies/transformation-strategy.ts";
-// import {
-//   ProcessingStrategyState,
-//   ValidationState,
-//   StateTransitions,
-//   DocumentProcessingResult
-// } from "../types/transformation-states.ts"; // Will be used in next integration steps
+import { ProcessingStrategyState } from "../types/transformation-states.ts";
 
 export interface ProcessedDocuments {
   readonly documents: MarkdownDocument[];
@@ -769,246 +764,131 @@ export class FrontmatterTransformationService {
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
 
-    // Stage 2: Process files (parallel or sequential based on processing options state)
-    // Use configuration instead of hardcoded values (Issue #959 fix)
-    const minFilesForParallel = this.performanceSettings
-      .getMinFilesForParallel();
-    const defaultMaxWorkers = this.performanceSettings.getDefaultMaxWorkers();
+    // Stage 2: Process files using strategy pattern (DDD refactoring)
+    // Replace complex configuration logic with TransformationStrategySelector
+    const strategySelector = new TransformationStrategySelector();
 
-    let useParallel = legacyOptions?.parallel === true &&
-      filesResult.data.length >= minFilesForParallel;
-    let maxWorkers = legacyOptions?.maxWorkers || defaultMaxWorkers;
-
-    // Debug: Processing strategy decision variance tracking (Issue #905 Phase 2)
-    activeLogger?.debug(
-      "Processing strategy decision point - coordination with ProcessingCoordinator",
-      {
-        operation: "transformation-strategy-variance",
-        inputPattern,
-        fileCount: filesResult.data.length,
-        processingOptionsState: processingOptionsState?.kind || "legacy",
-        initialDecision: {
-          useParallel,
-          maxWorkers,
-          decisionFactors: ["parallel-flag", "file-count-threshold"],
-        },
-        coordinationPoint: "ProcessingCoordinator-handoff",
-        timestamp: new Date().toISOString(),
-      },
-    );
-
-    // Handle adaptive strategy if provided
+    // Determine processing strategy state from configuration
+    let processingStrategyState: ProcessingStrategyState;
     if (processingOptionsState?.kind === "adaptive") {
-      const fileCount = filesResult.data.length;
-      const previousParallel = useParallel;
-      useParallel = fileCount > processingOptionsState.maxFileThreshold;
-      maxWorkers = processingOptionsState.baseWorkers;
-
-      // Debug: Adaptive strategy variance (Issue #905 Phase 2)
-      activeLogger?.debug(
-        "Adaptive processing strategy variance detected",
-        {
-          operation: "adaptive-strategy-variance",
-          strategyChange: previousParallel !== useParallel,
-          threshold: processingOptionsState.maxFileThreshold,
-          fileCount,
-          decisionChange: {
-            from: previousParallel ? "parallel" : "sequential",
-            to: useParallel ? "parallel" : "sequential",
-          },
-          varianceLevel: previousParallel !== useParallel ? "high" : "low",
-          timestamp: new Date().toISOString(),
-        },
-      );
+      processingStrategyState = {
+        kind: "adaptive",
+        baseWorkers: processingOptionsState.baseWorkers,
+        threshold: processingOptionsState.maxFileThreshold,
+      };
+    } else if (legacyOptions?.parallel === true) {
+      processingStrategyState = {
+        kind: "parallel",
+        workers: legacyOptions.maxWorkers ||
+          this.performanceSettings.getDefaultMaxWorkers(),
+      };
+    } else {
+      processingStrategyState = { kind: "sequential" };
     }
 
-    // 処理戦略切り替え振れ幅デバッグ情報 (高変動箇所特定フロー Iteration 13)
-    const processingStrategyVarianceDebug = {
-      varianceTarget: "processing-strategy-switch-variance-reduction",
-      strategySelectionVariance: {
-        parallelThreshold: 1, // useParallel条件: filesResult.data.length > 1
-        workerCountVariance: `1-${maxWorkers}`, // 1～maxWorkers の変動範囲
-        fileCountImpact: filesResult.data.length, // ファイル数による戦略影響
-        binaryDecisionVariance: useParallel
-          ? "parallel-selected"
-          : "sequential-selected",
-      },
-      processingVarianceFactors: {
-        memoryAllocationPattern: useParallel
-          ? "batch-concurrent"
-          : "sequential-accumulative",
-        workerPoolOverhead: useParallel
-          ? `${maxWorkers}-workers`
-          : "no-workers",
-        coordinationComplexity: useParallel
-          ? "high-sync-overhead"
-          : "linear-processing",
-        errorHandlingStrategy: useParallel
-          ? "batch-aggregation"
-          : "immediate-propagation",
-      },
-      predictedVarianceImpact: {
-        memoryVarianceRisk: useParallel ? "high-burst" : "gradual-growth",
-        processingTimeVariability: useParallel
-          ? `${maxWorkers}x-speedup-variance`
-          : "linear-time",
-        resourceUtilizationVariance: useParallel
-          ? "cpu-intensive-burst"
-          : "memory-steady",
-        errorRecoveryVariance: useParallel
-          ? "batch-failure-impact"
-          : "single-file-failure",
-      },
-      varianceReductionStrategy: {
-        targetVarianceReduction: "binary-to-adaptive", // 二元選択 → 適応的調整
-        recommendedApproach: "dynamic-worker-scaling", // 動的ワーカー調整
-        memoryVarianceControl: "adaptive-batch-sizing", // 適応的バッチサイズ
-        performanceVarianceStabilization: "predictive-strategy-selection", // 予測的戦略選択
-      },
-      debugLogLevel: "processing-strategy-variance", // 処理戦略変動詳細ログ
-      varianceTrackingEnabled: true, // 変動追跡有効
-    };
+    const strategyResult = strategySelector.selectStrategy(
+      processingStrategyState,
+    );
+    if (!strategyResult.ok) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message:
+            `Failed to select processing strategy: ${strategyResult.error.message}`,
+        }),
+      };
+    }
 
-    activeLogger?.debug("処理戦略切り替え振れ幅デバッグ情報", {
-      ...processingStrategyVarianceDebug,
-      strategySelection: {
-        useParallel,
-        maxWorkers,
-        fileCount: filesResult.data.length,
-        estimatedMemoryImpact: useParallel
-          ? `${maxWorkers * 50}MB-burst`
-          : `${filesResult.data.length * 2}MB-gradual`,
-        estimatedTimeRange: useParallel
-          ? `${
-            Math.ceil(filesResult.data.length / maxWorkers) * 50
-          }ms-optimistic`
-          : `${filesResult.data.length * 50}ms-linear`,
-      },
+    const strategy = strategyResult.data;
+
+    // Log strategy selection for debugging
+    activeLogger?.debug("Selected processing strategy", {
+      operation: "strategy-selection",
+      strategyType: strategy.getDescription(),
+      fileCount: filesResult.data.length,
+      processingState: processingStrategyState,
       timestamp: new Date().toISOString(),
     });
 
-    if (useParallel) {
-      activeLogger?.info(
-        `Using parallel processing with ${maxWorkers} workers for ${filesResult.data.length} files`,
-        {
-          operation: "parallel-processing",
-          workerCount: maxWorkers,
-          fileCount: filesResult.data.length,
-          timestamp: new Date().toISOString(),
-        },
-      );
+    // Execute the selected strategy
+    // Convert string paths to FilePath objects, handling errors properly
+    const filePathResults = filesResult.data.map((path) =>
+      FilePath.create(path)
+    );
+    const invalidPaths = filePathResults.filter((result) => !result.ok);
+    if (invalidPaths.length > 0) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `Invalid file paths: ${
+            invalidPaths.map((p) => p.error.message).join(", ")
+          }`,
+        }),
+      };
+    }
 
-      // Parallel processing implementation (Issue #545)
-      const results = await this.processFilesInParallel(
-        filesResult.data,
-        effectiveValidationRules,
-        maxWorkers,
-        boundsMonitor,
-        activeLogger,
-      );
+    const filePaths = filePathResults.filter((result) => result.ok).map(
+      (result) => (result as { ok: true; data: any }).data,
+    );
 
-      if (!results.ok) {
-        return results;
-      }
+    const strategyExecutionResult = await strategy.execute(
+      filePaths,
+      effectiveValidationRules,
+      (filePath, rules) => {
+        const docResult = this.processDocument(filePath.toString(), rules);
+        if (docResult.ok) {
+          // Convert to DocumentProcessingResult format
+          return ok({
+            kind: "success" as const,
+            data: docResult.data.frontmatterData,
+            document: docResult.data.document,
+          });
+        } else {
+          // Convert error result
+          return ok({
+            kind: "failed" as const,
+            error: docResult.error,
+            filePath: filePath.toString(),
+          });
+        }
+      },
+      boundsMonitor,
+      activeLogger,
+    );
 
-      // Collect results from parallel processing
-      for (const result of results.data) {
-        processedData.push(result.frontmatterData);
+    if (!strategyExecutionResult.ok) {
+      // Preserve the original error type from strategy execution
+      return {
+        ok: false,
+        error: strategyExecutionResult.error,
+      };
+    }
+
+    // Collect results from strategy execution
+    for (const result of strategyExecutionResult.data) {
+      if (result.kind === "success") {
+        processedData.push(result.data);
         documents.push(result.document);
-      }
-    } else {
-      // Sequential processing (original implementation)
-      for (const filePath of filesResult.data) {
-        // Memory bounds monitoring - check state before processing each file
-        const state = boundsMonitor.checkState(processedData.length);
-        if (state.kind === "exceeded_limit") {
-          return ErrorHandler.system({
-            operation: "transformDocumentsInternal",
-            method: "checkMemoryBounds",
-          }).memoryBoundsViolation(
-            `Processing exceeded bounds: ${state.limit}`,
-          );
-        }
-
-        if (state.kind === "approaching_limit") {
-          activeLogger?.warn(
-            `Approaching memory limit: ${
-              Math.round(state.usage.heapUsed / 1024 / 1024)
-            }MB used, threshold: ${
-              Math.round(state.warningThreshold / 1024 / 1024)
-            }MB`,
-            {
-              operation: "memory-monitoring",
-              heapUsed: state.usage.heapUsed,
-              warningThreshold: state.warningThreshold,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-
-        activeLogger?.debug(
-          `Processing file: ${filePath}`,
+      } else if (result.kind === "failed") {
+        activeLogger?.warn(
+          `Failed to process file: ${result.filePath}`,
           {
-            operation: "file-processing",
-            filePath,
+            operation: "strategy-execution-failed",
+            error: result.error,
             timestamp: new Date().toISOString(),
           },
         );
-        const documentResult = this.processDocument(
-          filePath,
-          effectiveValidationRules,
+      } else if (result.kind === "skipped") {
+        activeLogger?.debug(
+          `Skipped file: ${result.filePath}`,
+          {
+            operation: "strategy-execution-skipped",
+            reason: result.reason,
+            timestamp: new Date().toISOString(),
+          },
         );
-        if (documentResult.ok) {
-          processedData.push(documentResult.data.frontmatterData);
-          documents.push(documentResult.data.document);
-
-          activeLogger?.debug(
-            `Successfully processed: ${filePath}`,
-            {
-              operation: "file-processing",
-              filePath,
-              timestamp: new Date().toISOString(),
-            },
-          );
-
-          // Periodic O(log n) memory growth validation
-          if (ProcessingConstants.shouldReportProgress(processedData.length)) {
-            const growthResult = boundsMonitor.validateMemoryGrowth(
-              processedData.length,
-            );
-            if (!growthResult.ok) {
-              activeLogger?.warn(
-                `Memory growth validation warning: ${growthResult.error.message}`,
-                {
-                  operation: "memory-monitoring",
-                  processedCount: processedData.length,
-                  timestamp: new Date().toISOString(),
-                },
-              );
-            }
-          }
-
-          activeLogger?.debug(
-            "File processed successfully",
-            {
-              operation: "file-processing",
-              status: "success",
-              timestamp: new Date().toISOString(),
-            },
-          );
-        } else {
-          activeLogger?.error(
-            `Failed to process file: ${filePath}`,
-            {
-              operation: "file-processing",
-              filePath,
-              stage: "individual-file-processing",
-              error: documentResult.error,
-              timestamp: new Date().toISOString(),
-            },
-          );
-        }
-        // Note: Individual file failures don't stop processing
       }
     }
 
