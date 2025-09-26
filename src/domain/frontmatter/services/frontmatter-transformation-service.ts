@@ -57,7 +57,12 @@ import {
   TransformationStrategySelector,
   // TransformationStrategy - will be used in next integration step
 } from "../strategies/transformation-strategy.ts";
-import { ProcessingStrategyState } from "../types/transformation-states.ts";
+import {
+  ProcessingStrategyState,
+  ValidationState,
+  StateTransitions,
+  DocumentProcessingResult,
+} from "../types/transformation-states.ts";
 
 export interface ProcessedDocuments {
   readonly documents: MarkdownDocument[];
@@ -123,7 +128,7 @@ export class FrontmatterTransformationService {
     const logger = config.settings.logger ??
       DomainLoggerAdapter.createDisabled();
 
-    // Create default performance settings if not provided
+    // Use configuration service to handle performance settings
     let settings = config.settings.performance;
     if (!settings) {
       const defaultSettingsResult = PerformanceSettings.createDefault();
@@ -137,6 +142,19 @@ export class FrontmatterTransformationService {
         };
       }
       settings = defaultSettingsResult.data;
+    }
+
+    const configServiceResult = FrontmatterConfigurationService.create(
+      settings,
+    );
+    if (!configServiceResult.ok) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "ConfigurationError",
+          message: "Failed to initialize configuration service",
+        }),
+      };
     }
 
     // Initialize extraction service
@@ -779,23 +797,19 @@ export class FrontmatterTransformationService {
     } else if (legacyOptions?.parallel === true) {
       processingStrategyState = {
         kind: "parallel",
-        workers: legacyOptions.maxWorkers ||
-          this.performanceSettings.getDefaultMaxWorkers(),
+        workers: legacyOptions.maxWorkers || this.performanceSettings.getDefaultMaxWorkers(),
       };
     } else {
       processingStrategyState = { kind: "sequential" };
     }
 
-    const strategyResult = strategySelector.selectStrategy(
-      processingStrategyState,
-    );
+    const strategyResult = strategySelector.selectStrategy(processingStrategyState);
     if (!strategyResult.ok) {
       return {
         ok: false,
         error: createError({
           kind: "ConfigurationError",
-          message:
-            `Failed to select processing strategy: ${strategyResult.error.message}`,
+          message: `Failed to select processing strategy: ${strategyResult.error.message}`,
         }),
       };
     }
@@ -812,57 +826,21 @@ export class FrontmatterTransformationService {
     });
 
     // Execute the selected strategy
-    // Convert string paths to FilePath objects, handling errors properly
-    const filePathResults = filesResult.data.map((path) =>
-      FilePath.create(path)
-    );
-    const invalidPaths = filePathResults.filter((result) => !result.ok);
-    if (invalidPaths.length > 0) {
-      return {
-        ok: false,
-        error: createError({
-          kind: "ConfigurationError",
-          message: `Invalid file paths: ${
-            invalidPaths.map((p) => p.error.message).join(", ")
-          }`,
-        }),
-      };
-    }
-
-    const filePaths = filePathResults.filter((result) => result.ok).map(
-      (result) => (result as { ok: true; data: any }).data,
-    );
-
     const strategyExecutionResult = await strategy.execute(
-      filePaths,
+      filesResult.data,
       effectiveValidationRules,
-      (filePath, rules) => {
-        const docResult = this.processDocument(filePath.toString(), rules);
-        if (docResult.ok) {
-          // Convert to DocumentProcessingResult format
-          return ok({
-            kind: "success" as const,
-            data: docResult.data.frontmatterData,
-            document: docResult.data.document,
-          });
-        } else {
-          // Convert error result
-          return ok({
-            kind: "failed" as const,
-            error: docResult.error,
-            filePath: filePath.toString(),
-          });
-        }
-      },
+      this.processDocument.bind(this),
       boundsMonitor,
       activeLogger,
     );
 
     if (!strategyExecutionResult.ok) {
-      // Preserve the original error type from strategy execution
       return {
         ok: false,
-        error: strategyExecutionResult.error,
+        error: createError({
+          kind: "ConfigurationError",
+          message: `Strategy execution failed: ${strategyExecutionResult.error.message}`,
+        }),
       };
     }
 
@@ -889,6 +867,129 @@ export class FrontmatterTransformationService {
             timestamp: new Date().toISOString(),
           },
         );
+      }
+    }
+
+      // This block will be removed - old processing code
+        {
+          operation: "parallel-processing",
+          workerCount: maxWorkers,
+          fileCount: filesResult.data.length,
+          timestamp: new Date().toISOString(),
+        },
+      );
+
+      // Parallel processing implementation (Issue #545)
+      const results = await this.processFilesInParallel(
+        filesResult.data,
+        effectiveValidationRules,
+        maxWorkers,
+        boundsMonitor,
+        activeLogger,
+      );
+
+      if (!results.ok) {
+        return results;
+      }
+
+      // Collect results from parallel processing
+      for (const result of results.data) {
+        processedData.push(result.frontmatterData);
+        documents.push(result.document);
+      }
+    } else {
+      // Sequential processing (original implementation)
+      for (const filePath of filesResult.data) {
+        // Memory bounds monitoring - check state before processing each file
+        const state = boundsMonitor.checkState(processedData.length);
+        if (state.kind === "exceeded_limit") {
+          return ErrorHandler.system({
+            operation: "transformDocumentsInternal",
+            method: "checkMemoryBounds",
+          }).memoryBoundsViolation(
+            `Processing exceeded bounds: ${state.limit}`,
+          );
+        }
+
+        if (state.kind === "approaching_limit") {
+          activeLogger?.warn(
+            `Approaching memory limit: ${
+              Math.round(state.usage.heapUsed / 1024 / 1024)
+            }MB used, threshold: ${
+              Math.round(state.warningThreshold / 1024 / 1024)
+            }MB`,
+            {
+              operation: "memory-monitoring",
+              heapUsed: state.usage.heapUsed,
+              warningThreshold: state.warningThreshold,
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+
+        activeLogger?.debug(
+          `Processing file: ${filePath}`,
+          {
+            operation: "file-processing",
+            filePath,
+            timestamp: new Date().toISOString(),
+          },
+        );
+        const documentResult = this.processDocument(
+          filePath,
+          effectiveValidationRules,
+        );
+        if (documentResult.ok) {
+          processedData.push(documentResult.data.frontmatterData);
+          documents.push(documentResult.data.document);
+
+          activeLogger?.debug(
+            `Successfully processed: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              timestamp: new Date().toISOString(),
+            },
+          );
+
+          // Periodic O(log n) memory growth validation
+          if (ProcessingConstants.shouldReportProgress(processedData.length)) {
+            const growthResult = boundsMonitor.validateMemoryGrowth(
+              processedData.length,
+            );
+            if (!growthResult.ok) {
+              activeLogger?.warn(
+                `Memory growth validation warning: ${growthResult.error.message}`,
+                {
+                  operation: "memory-monitoring",
+                  processedCount: processedData.length,
+                  timestamp: new Date().toISOString(),
+                },
+              );
+            }
+          }
+
+          activeLogger?.debug(
+            "File processed successfully",
+            {
+              operation: "file-processing",
+              status: "success",
+              timestamp: new Date().toISOString(),
+            },
+          );
+        } else {
+          activeLogger?.error(
+            `Failed to process file: ${filePath}`,
+            {
+              operation: "file-processing",
+              filePath,
+              stage: "individual-file-processing",
+              error: documentResult.error,
+              timestamp: new Date().toISOString(),
+            },
+          );
+        }
+        // Note: Individual file failures don't stop processing
       }
     }
 

@@ -15,7 +15,8 @@ frontmatter-to-schema project.
   **NEW** - Scope-aware template context system for accurate variable resolution
   during array expansion and nested contexts
 - **[template-variable-resolution-roadmap.md](./template-variable-resolution-roadmap.md)**:
-  **NEW** - Phased implementation roadmap for enhanced variable resolution system
+  **NEW** - Phased implementation roadmap for enhanced variable resolution
+  system
 
 ### Domain Separation
 
@@ -39,8 +40,8 @@ frontmatter-to-schema project.
 - **[schema-directives-specification.md](./schema-directives-specification.md)**:
   Schema directives (x-*) processing specification - 7-stage processing order
   and dependencies
-- **[mapping-hierarchy-rules.md](./mapping-hierarchy-rules.md)**:
-  Mapping hierarchy rules for {@items} processing with **enhanced scope-based
+- **[mapping-hierarchy-rules.md](./mapping-hierarchy-rules.md)**: Mapping
+  hierarchy rules for {@items} processing with **enhanced scope-based
   resolution**
 
 ## Recent Enhancements

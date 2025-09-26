@@ -19,7 +19,8 @@ outputs:
 
 ## 目的
 
-x-flatten-arrays ディレクティブ処理後のデータが、テンプレート変数解決段階で失われる問題を特定し、修正する。
+x-flatten-arrays
+ディレクティブ処理後のデータが、テンプレート変数解決段階で失われる問題を特定し、修正する。
 
 ## 前提条件
 
@@ -140,8 +141,8 @@ x-flatten-arrays ディレクティブ処理後のデータが、テンプレー
    const testData = {
      items: [
        { id: { full: "REQ-001", level: "REQ" } },
-       { id: { full: "REQ-002", level: "REQ" } }
-     ]
+       { id: { full: "REQ-002", level: "REQ" } },
+     ],
    };
    const template = "{items[0].id.full}";
    // 期待: "REQ-001"、実際: undefined?

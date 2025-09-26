@@ -80,7 +80,8 @@ graph TD
    - Converts processed FrontmatterData to normalized IR structure
    - Creates IRNode tree (IRScalar, IRObject, IRArray)
    - Preserves path information for deep resolution
-   - See [IR Architecture](../domain/architecture/domain-architecture-intermediate-representation.md)
+   - See
+     [IR Architecture](../domain/architecture/domain-architecture-intermediate-representation.md)
 
 2. **Template Context Factory**:
    - Creates scope-aware contexts from IR

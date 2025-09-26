@@ -4,7 +4,6 @@
  * Following Totality principles to eliminate partial functions
  */
 
-// Result import removed as it's not used in this file
 import { DomainError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
@@ -105,10 +104,6 @@ export type SchemaResolutionState =
     schema: import("../../schema/entities/schema.ts").Schema;
   }
   | { kind: "resolution_failed"; error: DomainError & { message: string } };
-
-/**
- * Helper functions for state transitions (Total functions)
- */
 
 /**
  * Transition from unvalidated to validating state
@@ -225,3 +220,14 @@ export function updateProgress(
       return current;
   }
 }
+
+/**
+ * Helper object for state transitions (grouping for backward compatibility)
+ */
+export const StateTransitions = {
+  startValidation,
+  completeValidation,
+  failValidation,
+  determineProcessingStrategy,
+  updateProgress,
+};

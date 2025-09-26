@@ -7,7 +7,6 @@
 import { ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
-// FrontmatterData import removed as unused
 import { FilePath } from "../value-objects/file-path.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { ProcessingBoundsMonitor } from "../../shared/types/processing-bounds.ts";
@@ -59,7 +58,7 @@ export class SequentialStrategy implements TransformationStrategy {
     return state.kind === "sequential";
   }
 
-  execute(
+  async execute(
     files: FilePath[],
     validationRules: ValidationRules,
     processDocument: (
@@ -79,13 +78,11 @@ export class SequentialStrategy implements TransformationStrategy {
 
       switch (memoryState.kind) {
         case "exceeded_limit":
-          return Promise.resolve(
-            ErrorHandler.system({
-              operation: "SequentialStrategy",
-              method: "execute",
-            }).memoryBoundsViolation(
-              `Memory limit exceeded: ${memoryState.heapUsed}/${memoryState.limit}`,
-            ),
+          return ErrorHandler.system({
+            operation: "SequentialStrategy",
+            method: "execute",
+          }).memoryBoundsViolation(
+            `Memory limit exceeded: ${memoryState.heapUsed}/${memoryState.limit}`,
           );
 
         case "approaching_limit":
@@ -113,6 +110,9 @@ export class SequentialStrategy implements TransformationStrategy {
         timestamp: new Date().toISOString(),
       });
 
+      // Small delay to yield control back to event loop
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       const result = processDocument(file, validationRules);
 
       if (result.ok) {
@@ -137,7 +137,7 @@ export class SequentialStrategy implements TransformationStrategy {
       }
     }
 
-    return Promise.resolve(ok(results));
+    return ok(results);
   }
 
   getDescription(): string {
@@ -149,6 +149,7 @@ export class SequentialStrategy implements TransformationStrategy {
     processedCount: number,
   ): MemoryMonitoringState {
     const state = monitor.checkState(processedCount);
+    const bounds = monitor.getBounds();
 
     switch (state.kind) {
       case "exceeded_limit":
@@ -158,20 +159,30 @@ export class SequentialStrategy implements TransformationStrategy {
           limit: state.limit,
         };
 
-      case "approaching_limit":
+      case "approaching_limit": {
+        // For approaching_limit, derive limit from bounds or warningThreshold
+        const approachingLimit = bounds.kind === "bounded"
+          ? bounds.memoryLimit
+          : state.warningThreshold * 1.25; // Estimate limit as 125% of warning threshold
         return {
           kind: "approaching_limit",
           heapUsed: state.usage.heapUsed,
           warningThreshold: state.warningThreshold,
-          limit: state.warningThreshold * 1.25, // Estimate limit from threshold
+          limit: approachingLimit,
         };
+      }
 
-      case "within_bounds":
+      case "within_bounds": {
+        // For within_bounds, use actual bounds if available
+        const withinLimit = bounds.kind === "bounded"
+          ? bounds.memoryLimit
+          : Number.MAX_SAFE_INTEGER; // Unbounded case
         return {
           kind: "within_bounds",
           heapUsed: state.usage.heapUsed,
-          limit: Number.MAX_SAFE_INTEGER, // No limit in within_bounds state
+          limit: withinLimit,
         };
+      }
     }
   }
 }
@@ -242,7 +253,7 @@ export class ParallelStrategy implements TransformationStrategy {
         }
       }
 
-      return batchResults;
+      return Promise.resolve(batchResults);
     });
 
     try {
@@ -263,7 +274,7 @@ export class ParallelStrategy implements TransformationStrategy {
       return ErrorHandler.system({
         operation: "ParallelStrategy",
         method: "execute",
-      }).memoryBoundsViolation(`Parallel processing failed: ${error}`);
+      }).configurationError(`Parallel processing failed: ${error}`);
     }
   }
 

@@ -2,7 +2,10 @@
 
 ## Overview
 
-The Intermediate Representation (IR) layer provides a normalized, scope-aware data structure that bridges the gap between directive-processed frontmatter data and template variable resolution. This design addresses the critical issue of losing variable scope during array expansion and deep path resolution.
+The Intermediate Representation (IR) layer provides a normalized, scope-aware
+data structure that bridges the gap between directive-processed frontmatter data
+and template variable resolution. This design addresses the critical issue of
+losing variable scope during array expansion and deep path resolution.
 
 ## Core Concepts
 
@@ -117,7 +120,9 @@ export interface TemplateIntermediateRepresentation {
    * Creates a scoped context for variable resolution.
    * Essential for {@items} expansion and nested contexts.
    */
-  createScope(path: TemplatePath): Result<TemplateScope, VariableResolutionError>;
+  createScope(
+    path: TemplatePath,
+  ): Result<TemplateScope, VariableResolutionError>;
 
   /**
    * Serializes IR back to a simple object structure.
@@ -157,7 +162,9 @@ export interface TemplateScope {
    * Creates a child scope for nested contexts.
    * Used in {@items} expansion and object iteration.
    */
-  createChildScope(segment: TemplatePathSegment): Result<TemplateScope, ScopeError>;
+  createChildScope(
+    segment: TemplatePathSegment,
+  ): Result<TemplateScope, ScopeError>;
 
   /**
    * Gets the absolute path from root to current position.
@@ -276,21 +283,25 @@ private resolveWithIR(
 ## Design Principles
 
 ### 1. Immutability
+
 - All IR nodes are immutable
 - Operations return new instances
 - Thread-safe by design
 
 ### 2. Totality
+
 - All functions are total (no partial functions)
 - Result types for explicit error handling
 - Exhaustive pattern matching
 
 ### 3. Scope Awareness
+
 - Maintains variable resolution context
 - Supports nested scopes for array expansion
 - Fallback chain from local to global
 
 ### 4. Type Safety
+
 - Algebraic data types prevent invalid states
 - Smart constructors validate invariants
 - Compile-time guarantees
@@ -298,16 +309,19 @@ private resolveWithIR(
 ## Performance Considerations
 
 ### 1. Memory Efficiency
+
 - Structural sharing for unchanged nodes
 - Lazy evaluation where possible
 - Efficient path lookups using Maps
 
 ### 2. Caching Strategy
+
 - Cache resolved paths within scope
 - Memoize common transformations
 - Clear cache boundaries at scope transitions
 
 ### 3. Large Dataset Handling
+
 - Streaming support for large arrays
 - Incremental building for memory efficiency
 - Configurable depth limits
@@ -315,16 +329,19 @@ private resolveWithIR(
 ## Testing Strategy
 
 ### 1. Unit Tests
+
 - Path parsing with edge cases
 - Node construction and validation
 - Scope resolution with various depths
 
 ### 2. Property-Based Tests
+
 - Random JSON to IR conversion
 - Resolution always returns valid Result
 - Scope operations maintain invariants
 
 ### 3. Integration Tests
+
 - Full pipeline from frontmatter to template
 - Array expansion with nested variables
 - Deep path resolution scenarios
@@ -332,16 +349,19 @@ private resolveWithIR(
 ## Future Extensions
 
 ### 1. Plugin Support
+
 - Custom node types for extensions
 - Transformation hooks
 - Validation plugins
 
 ### 2. Performance Optimizations
+
 - Parallel IR building
 - Incremental updates
 - Path indexing for faster lookups
 
 ### 3. Advanced Features
+
 - JSONPath support
 - XPath-like queries
 - GraphQL-style field selection
@@ -349,21 +369,25 @@ private resolveWithIR(
 ## Migration Path
 
 ### Phase 1: Foundation
+
 - Implement core IR types
 - Basic builder functionality
 - Simple path resolution
 
 ### Phase 2: Integration
+
 - Wire into existing pipeline
 - Maintain backward compatibility
 - Feature flag for gradual rollout
 
 ### Phase 3: Optimization
+
 - Performance tuning
 - Advanced caching
 - Memory optimization
 
 ### Phase 4: Deprecation
+
 - Remove old resolution logic
 - Clean up legacy code
 - Update all tests

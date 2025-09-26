@@ -2,7 +2,10 @@
 
 ## Overview
 
-This document defines the comprehensive testing strategy for the Template Intermediate Representation (IR) layer and Template Context system. The strategy ensures correctness, performance, and maintainability of the enhanced variable resolution system.
+This document defines the comprehensive testing strategy for the Template
+Intermediate Representation (IR) layer and Template Context system. The strategy
+ensures correctness, performance, and maintainability of the enhanced variable
+resolution system.
 
 ## Test Philosophy
 
@@ -92,27 +95,39 @@ describe("IRNode Construction", () => {
 describe("TemplatePath Parser", () => {
   const testCases = [
     { input: "simple", expected: [{ kind: "property", name: "simple" }] },
-    { input: "nested.path", expected: [
-      { kind: "property", name: "nested" },
-      { kind: "property", name: "path" }
-    ]},
+    {
+      input: "nested.path",
+      expected: [
+        { kind: "property", name: "nested" },
+        { kind: "property", name: "path" },
+      ],
+    },
     { input: "@items", expected: [{ kind: "array-marker", marker: "@items" }] },
-    { input: "items[]", expected: [
-      { kind: "property", name: "items" },
-      { kind: "array-marker", marker: "items[]" }
-    ]},
-    { input: "items[0]", expected: [
-      { kind: "property", name: "items" },
-      { kind: "index", value: 0 }
-    ]},
-    { input: "deeply.nested.items[2].id.full", expected: [
-      { kind: "property", name: "deeply" },
-      { kind: "property", name: "nested" },
-      { kind: "property", name: "items" },
-      { kind: "index", value: 2 },
-      { kind: "property", name: "id" },
-      { kind: "property", name: "full" }
-    ]},
+    {
+      input: "items[]",
+      expected: [
+        { kind: "property", name: "items" },
+        { kind: "array-marker", marker: "items[]" },
+      ],
+    },
+    {
+      input: "items[0]",
+      expected: [
+        { kind: "property", name: "items" },
+        { kind: "index", value: 0 },
+      ],
+    },
+    {
+      input: "deeply.nested.items[2].id.full",
+      expected: [
+        { kind: "property", name: "deeply" },
+        { kind: "property", name: "nested" },
+        { kind: "property", name: "items" },
+        { kind: "index", value: 2 },
+        { kind: "property", name: "id" },
+        { kind: "property", name: "full" },
+      ],
+    },
   ];
 
   testCases.forEach(({ input, expected }) => {
@@ -153,8 +168,8 @@ describe("TemplateContext", () => {
         metadata: { version: "1.0" },
         items: [
           { id: { full: "item-1" }, name: "First" },
-          { id: { full: "item-2" }, name: "Second" }
-        ]
+          { id: { full: "item-2" }, name: "Second" },
+        ],
       };
       ir = buildTestIR(data);
       context = TemplateContextFactory.create(ir, {
@@ -172,7 +187,7 @@ describe("TemplateContext", () => {
 
     it("should resolve with array scope", () => {
       const arrayContext = context.enterArray(
-        TemplatePath.create("items").data
+        TemplatePath.create("items").data,
       ).data;
 
       for (const elementContext of arrayContext.items) {
@@ -184,7 +199,7 @@ describe("TemplateContext", () => {
 
     it("should fall back to parent scope", () => {
       const arrayContext = context.enterArray(
-        TemplatePath.create("items").data
+        TemplatePath.create("items").data,
       ).data;
       const element = arrayContext.items[Symbol.iterator]().next().value;
 
@@ -209,7 +224,7 @@ describe("TemplateContext", () => {
       const context = createTestContext(ir);
 
       const arrayContext = context.enterArray(
-        TemplatePath.create("items").data
+        TemplatePath.create("items").data,
       ).data;
 
       const elements = Array.from(arrayContext.items);
@@ -245,15 +260,15 @@ describe("Template IR Resolution Integration", () => {
             id: {
               full: "req:auth:primary-key-5d8c2a#20250909",
               level: "req",
-              scope: "auth"
+              scope: "auth",
             },
             trace_to: {
               design: "design:auth:token-management",
-              test: "test:auth:jwt-validation"
-            }
-          }
-        ]
-      }
+              test: "test:auth:jwt-validation",
+            },
+          },
+        ],
+      },
     };
 
     // Process with directives
@@ -261,7 +276,7 @@ describe("Template IR Resolution Integration", () => {
 
     // Build IR
     const ir = TemplateIntermediateBuilder.fromFrontmatterData(
-      [processed]
+      [processed],
     ).data.build().data;
 
     // Create context
@@ -270,7 +285,8 @@ describe("Template IR Resolution Integration", () => {
     }).data;
 
     // Template with deep path
-    const template = "{@traceability.requirements}{id.full} → {trace_to.design}{/@traceability.requirements}";
+    const template =
+      "{@traceability.requirements}{id.full} → {trace_to.design}{/@traceability.requirements}";
 
     // Process template
     const result = await templateProcessor.process(template, context);
@@ -278,7 +294,7 @@ describe("Template IR Resolution Integration", () => {
     // Verify
     assertEquals(
       result.data,
-      "req:auth:primary-key-5d8c2a#20250909 → design:auth:token-management"
+      "req:auth:primary-key-5d8c2a#20250909 → design:auth:token-management",
     );
   });
 
@@ -289,16 +305,16 @@ describe("Template IR Resolution Integration", () => {
           name: "Alice",
           posts: [
             { title: "Post 1", tags: ["tech", "web"] },
-            { title: "Post 2", tags: ["design"] }
-          ]
+            { title: "Post 2", tags: ["design"] },
+          ],
         },
         {
           name: "Bob",
           posts: [
-            { title: "Post 3", tags: ["data"] }
-          ]
-        }
-      ]
+            { title: "Post 3", tags: ["data"] },
+          ],
+        },
+      ],
     };
 
     const ir = buildIR(data);
@@ -339,9 +355,9 @@ describe("Template IR Performance", () => {
       value: Math.random(),
       nested: {
         deep: {
-          path: `value-${i}`
-        }
-      }
+          path: `value-${i}`,
+        },
+      },
     }));
 
     const data = { items };
@@ -385,8 +401,10 @@ describe("Template IR Performance", () => {
     const memoryIncrease = afterMemory - beforeMemory;
 
     // Should not leak more than 10MB
-    assert(memoryIncrease < 10 * 1024 * 1024,
-      `Memory increased by ${memoryIncrease / 1024 / 1024}MB`);
+    assert(
+      memoryIncrease < 10 * 1024 * 1024,
+      `Memory increased by ${memoryIncrease / 1024 / 1024}MB`,
+    );
   });
 });
 ```
@@ -404,7 +422,7 @@ describe("Template IR Properties", () => {
       fc.property(fc.json(), (jsonString) => {
         const data = JSON.parse(jsonString);
         const result = TemplateIntermediateBuilder.fromFrontmatterData([
-          FrontmatterData.create(data).data
+          FrontmatterData.create(data).data,
         ]);
 
         // Building should always return a Result
@@ -415,7 +433,7 @@ describe("Template IR Properties", () => {
           // Build should always succeed for valid builder
           assert(ir.ok);
         }
-      })
+      }),
     );
   });
 
@@ -441,8 +459,8 @@ describe("Template IR Properties", () => {
             assert(result.data.strategy);
             assert(result.data.sourcePath);
           }
-        }
-      )
+        },
+      ),
     );
   });
 
@@ -464,7 +482,7 @@ describe("Template IR Properties", () => {
 
         // Original IR should be unchanged
         assert(deepEqual(ir1.toObject(), ir2.toObject()));
-      })
+      }),
     );
   });
 });
@@ -483,10 +501,10 @@ describe("Issue #1071: Deep path resolution in array expansion", () => {
         {
           id: {
             full: "req:auth:primary-key-5d8c2a#20250909",
-            level: "req"
-          }
-        }
-      ]
+            level: "req",
+          },
+        },
+      ],
     };
 
     const template = "{@traceability}{id.full}{/@traceability}";
@@ -506,21 +524,21 @@ describe("Issue #1071: Deep path resolution in array expansion", () => {
         traceability: {
           type: "array",
           items: {
-            type: "object"
-          }
-        }
-      }
+            type: "object",
+          },
+        },
+      },
     };
 
     const files = [
       { traceability: [{ id: { full: "req-1" } }] },
-      { traceability: [{ id: { full: "req-2" } }] }
+      { traceability: [{ id: { full: "req-2" } }] },
     ];
 
     const processed = await processWithSchema(files, schema);
     const result = await renderWithTemplate(
       processed,
-      "{@traceability}{id.full} {/@traceability}"
+      "{@traceability}{id.full} {/@traceability}",
     );
 
     assertEquals(result, "req-1 req-2 ");
@@ -541,9 +559,12 @@ describe("Examples E2E Validation", () => {
     // Run CLI
     const result = await runCLI([
       "process",
-      "--input", inputDir,
-      "--output", outputDir,
-      "--schema", `${inputDir}/schema.json`
+      "--input",
+      inputDir,
+      "--output",
+      outputDir,
+      "--schema",
+      `${inputDir}/schema.json`,
     ]);
 
     assert(result.success);
@@ -554,7 +575,7 @@ describe("Examples E2E Validation", () => {
 
     // Check specific values that were failing
     assert(parsed.tools.commands.length > 0);
-    parsed.tools.commands.forEach(cmd => {
+    parsed.tools.commands.forEach((cmd) => {
       assert(cmd.id, "Each command should have an id");
       assert(!cmd.id.includes("{"), "Variables should be resolved");
     });
@@ -565,14 +586,15 @@ describe("Examples E2E Validation", () => {
       "examples/1.simple",
       "examples/2.nested",
       "examples/3.docs",
-      "examples/4.complex"
+      "examples/4.complex",
     ];
 
     for (const example of examples) {
       const result = await runCLI([
         "process",
-        "--input", example,
-        "--validate"
+        "--input",
+        example,
+        "--validate",
       ]);
 
       assert(result.success, `Failed to process ${example}`);
@@ -588,7 +610,7 @@ describe("Examples E2E Validation", () => {
 
 export function buildTestIR(data: unknown): TemplateIntermediateRepresentation {
   const builder = TemplateIntermediateBuilder.fromFrontmatterData([
-    FrontmatterData.create(data).data
+    FrontmatterData.create(data).data,
   ]).data;
 
   return builder.build().data;
@@ -596,14 +618,14 @@ export function buildTestIR(data: unknown): TemplateIntermediateRepresentation {
 
 export function createTestContext(
   ir: TemplateIntermediateRepresentation,
-  config?: Partial<ContextConfiguration>
+  config?: Partial<ContextConfiguration>,
 ): TemplateContext {
   return TemplateContextFactory.create(ir, {
     fallbackPolicy: { kind: "empty" },
     verbosityMode: "normal",
     maxScopeDepth: 100,
     enableCaching: false,
-    ...config
+    ...config,
   }).data;
 }
 
@@ -614,10 +636,10 @@ export function generateLargeData(size: number): unknown {
       value: Math.random(),
       nested: {
         deep: {
-          path: `value-${i}`
-        }
-      }
-    }))
+          path: `value-${i}`,
+        },
+      },
+    })),
   };
 }
 ```
@@ -693,13 +715,13 @@ deno task test:perf
 
 ### Baseline Metrics
 
-| Operation | Target | Maximum |
-|-----------|--------|---------|
-| IR Build (1000 items) | < 10ms | 20ms |
-| Path Resolution | < 0.1ms | 0.5ms |
-| Array Expansion (100 items) | < 5ms | 10ms |
-| Context Creation | < 1ms | 2ms |
-| Memory per 1000 items | < 1MB | 2MB |
+| Operation                   | Target  | Maximum |
+| --------------------------- | ------- | ------- |
+| IR Build (1000 items)       | < 10ms  | 20ms    |
+| Path Resolution             | < 0.1ms | 0.5ms   |
+| Array Expansion (100 items) | < 5ms   | 10ms    |
+| Context Creation            | < 1ms   | 2ms     |
+| Memory per 1000 items       | < 1MB   | 2MB     |
 
 ### Performance Testing
 
@@ -737,7 +759,7 @@ export function logIRStructure(ir: TemplateIntermediateRepresentation): void {
 
 export function traceResolution(
   context: TemplateContext,
-  path: string
+  path: string,
 ): void {
   const original = context.resolve;
   context.resolve = (p: string) => {

@@ -133,7 +133,8 @@ boundary:
 
 ### Rule 1: {@items} Resolution with Scope-Based Context
 
-`{@items}` resolution now uses the Intermediate Representation (IR) and Template Context system for accurate scope management:
+`{@items}` resolution now uses the Intermediate Representation (IR) and Template
+Context system for accurate scope management:
 
 **Enhanced Data Flow with IR:**
 
@@ -164,7 +165,8 @@ boundary:
 - **Deep Path Resolution**: `{id.full}` correctly resolves within array elements
 - **Fallback Chain**: Variables can fall back to parent scopes if needed
 - **Context Preservation**: Array index and iteration metadata available
-- See [Template Context Specification](./template-context-specification.md) for details
+- See [Template Context Specification](./template-context-specification.md) for
+  details
 
 ### Rule 2: Schema Reference Independence
 

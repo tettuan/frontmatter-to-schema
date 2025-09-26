@@ -13,10 +13,9 @@ import {
   ProcessingBoundsFactory,
 } from "../../shared/types/processing-bounds.ts";
 import {
-  determineProcessingStrategy,
   ProcessingStrategyState,
+  StateTransitions,
 } from "../types/transformation-states.ts";
-// FrontmatterTransformationConfig import removed as unused
 
 /**
  * Configuration state for frontmatter processing
@@ -86,7 +85,7 @@ export class FrontmatterConfigurationService {
     DomainError & { message: string }
   > {
     // Determine processing strategy
-    const processingStrategy = determineProcessingStrategy(
+    const processingStrategy = StateTransitions.determineProcessingStrategy(
       fileCount,
       requestedStrategy,
     );

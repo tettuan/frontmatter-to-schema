@@ -8,14 +8,13 @@ import { ok, Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
+import { FrontmatterDataFactory } from "../factories/frontmatter-data-factory.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 import { SchemaValidationService } from "../../schema/services/schema-validation-service.ts";
 import { FrontmatterValidationService } from "./frontmatter-validation-service.ts";
 import {
-  completeValidation,
-  failValidation,
-  startValidation,
+  StateTransitions,
   ValidationState,
 } from "../types/transformation-states.ts";
 import { DebugLogger } from "../../shared/services/debug-logger.ts";
@@ -141,18 +140,19 @@ export class FrontmatterValidationOrchestrator {
     logger?: DebugLogger,
   ): ValidationResult {
     // Start validation
-    let state: ValidationState = startValidation(data, rules);
+    let state: ValidationState = StateTransitions.startValidation(data, rules);
 
-    // First convert unknown data to FrontmatterData
-    const frontmatterDataResult = FrontmatterData.create(data);
+    // Perform validation
+    // Convert data to FrontmatterData if needed
+    const frontmatterDataResult =
+      typeof data === "object" && data !== null && "getData" in data
+        ? ok(data as FrontmatterData)
+        : FrontmatterDataFactory.fromObject(data as Record<string, unknown>);
+
     if (!frontmatterDataResult.ok) {
-      state = failValidation(data, [frontmatterDataResult.error]);
-      logger?.warn("Failed to create FrontmatterData", {
-        operation: "data-validation",
-        status: "failed",
-        error: frontmatterDataResult.error.message,
-        timestamp: new Date().toISOString(),
-      });
+      state = StateTransitions.failValidation(data, [
+        frontmatterDataResult.error,
+      ]);
       return {
         state,
         effectiveRules: rules,
@@ -160,7 +160,6 @@ export class FrontmatterValidationOrchestrator {
       };
     }
 
-    // Perform validation
     const validationResult = this.frontmatterValidationService
       .validateAgainstRules(
         frontmatterDataResult.data,
@@ -168,14 +167,14 @@ export class FrontmatterValidationOrchestrator {
       );
 
     if (validationResult.ok) {
-      state = completeValidation(frontmatterDataResult.data);
+      state = StateTransitions.completeValidation(frontmatterDataResult.data);
       logger?.debug("Validation completed successfully", {
         operation: "data-validation",
         status: "success",
         timestamp: new Date().toISOString(),
       });
     } else {
-      state = failValidation(data, [validationResult.error]);
+      state = StateTransitions.failValidation(data, [validationResult.error]);
       logger?.warn("Validation failed", {
         operation: "data-validation",
         status: "failed",
@@ -246,9 +245,7 @@ export class FrontmatterValidationOrchestrator {
       return ErrorHandler.schema({
         operation: "FrontmatterValidationOrchestrator",
         method: "checkFrontmatterPart",
-      }).invalid(
-        `Failed to check frontmatter part: ${error}`,
-      );
+      }).notFound(`Failed to check frontmatter part: ${error}`);
     }
   }
 
@@ -317,25 +314,9 @@ export class FrontmatterValidationOrchestrator {
    * Check if schema needs migration
    * Determines if schema is in legacy format
    */
-  private checkIfNeedsMigration(schema: Schema): boolean {
-    // Check for legacy patterns
-    const definition = schema.getDefinition();
-
-    // Check if this is an object schema that might have $schema property
-    const propertiesResult = definition.getProperties();
-    if (propertiesResult.ok) {
-      const properties = propertiesResult.data;
-      if (properties["$schema"]) {
-        const schemaProperty = properties["$schema"];
-        if (schemaProperty.kind === "enum") {
-          // Check if any enum value contains draft-04
-          return schemaProperty.values.some((value: unknown) =>
-            typeof value === "string" && value.includes("draft-04")
-          );
-        }
-      }
-    }
-
+  private checkIfNeedsMigration(_schema: Schema): boolean {
+    // For now, we'll assume schemas don't need migration
+    // This would need to be implemented based on actual schema structure
     return false;
   }
 }

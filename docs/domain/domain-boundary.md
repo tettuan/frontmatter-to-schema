@@ -181,10 +181,12 @@ interface TemplateContext {
 ```
 
 **ライフサイクル**:
+
 - Template: 中期（Schema単位でキャッシュ）
 - IR/Context: 短期（レンダリング処理ごとに生成）
 
 **新規コンポーネントの責務**:
+
 - **中間表現層（IR）**: ディレクティブ処理後のデータを正規化し、パス情報を保持
 - **TemplateContext**: スコープ管理による正確な変数解決
 - **TemplateScope**: 配列展開時の要素スコープ管理

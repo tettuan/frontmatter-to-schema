@@ -2,7 +2,11 @@
 
 ## Overview
 
-The Template Context system provides a scope-aware environment for template variable resolution, managing the relationship between template placeholders and the Intermediate Representation (IR) data. This specification defines the complete context management architecture that enables accurate variable resolution in nested and array-expanded scenarios.
+The Template Context system provides a scope-aware environment for template
+variable resolution, managing the relationship between template placeholders and
+the Intermediate Representation (IR) data. This specification defines the
+complete context management architecture that enables accurate variable
+resolution in nested and array-expanded scenarios.
 
 ## Core Architecture
 
@@ -78,10 +82,10 @@ export interface TemplateContext {
  * Supports different use cases and debugging needs.
  */
 export type FallbackPolicy =
-  | { kind: "empty"; value: "" }  // Replace with empty string
-  | { kind: "preserve" }          // Keep original {variable} syntax
+  | { kind: "empty"; value: "" } // Replace with empty string
+  | { kind: "preserve" } // Keep original {variable} syntax
   | { kind: "null"; value: null } // Replace with null
-  | { kind: "error" }             // Throw error on missing variable
+  | { kind: "error" } // Throw error on missing variable
   | { kind: "custom"; handler: FallbackHandler };
 
 /**
@@ -133,13 +137,13 @@ export interface ArrayBinding {
  * Provides context-aware variables for templates.
  */
 export interface IterationMetadata {
-  readonly index: number;        // Current index (0-based)
-  readonly count: number;        // Current count (1-based)
-  readonly first: boolean;       // Is first element
-  readonly last: boolean;        // Is last element
-  readonly odd: boolean;         // Is odd index
-  readonly even: boolean;        // Is even index
-  readonly total: number;        // Total items in array
+  readonly index: number; // Current index (0-based)
+  readonly count: number; // Current count (1-based)
+  readonly first: boolean; // Is first element
+  readonly last: boolean; // Is last element
+  readonly odd: boolean; // Is odd index
+  readonly even: boolean; // Is even index
+  readonly total: number; // Total items in array
 }
 ```
 
@@ -207,10 +211,10 @@ export interface ElementContext {
  * Controls the level of detail in error messages and debugging.
  */
 export type VerbosityMode =
-  | "silent"   // Minimal output, suppress warnings
-  | "normal"   // Standard output with basic errors
-  | "verbose"  // Detailed output with context
-  | "debug";   // Full debugging information
+  | "silent" // Minimal output, suppress warnings
+  | "normal" // Standard output with basic errors
+  | "verbose" // Detailed output with context
+  | "debug"; // Full debugging information
 
 /**
  * Resolution result with metadata.
@@ -238,10 +242,10 @@ export interface ResolvedValue {
 }
 
 export type ResolutionStrategy =
-  | "direct"      // Found in current scope
-  | "inherited"   // Found in parent scope
-  | "fallback"    // Used fallback policy
-  | "computed";   // Dynamically computed value
+  | "direct" // Found in current scope
+  | "inherited" // Found in parent scope
+  | "fallback" // Used fallback policy
+  | "computed"; // Dynamically computed value
 ```
 
 ## Context Factory
@@ -595,10 +599,10 @@ describe("Template processing with context", () => {
 
 ```typescript
 const devConfig: ContextConfiguration = {
-  fallbackPolicy: { kind: "preserve" },  // Keep placeholders visible
-  verbosityMode: "debug",               // Full debugging
-  maxScopeDepth: 100,                   // Deep nesting allowed
-  enableCaching: false,                 // Fresh resolution each time
+  fallbackPolicy: { kind: "preserve" }, // Keep placeholders visible
+  verbosityMode: "debug", // Full debugging
+  maxScopeDepth: 100, // Deep nesting allowed
+  enableCaching: false, // Fresh resolution each time
 };
 ```
 
@@ -606,10 +610,10 @@ const devConfig: ContextConfiguration = {
 
 ```typescript
 const prodConfig: ContextConfiguration = {
-  fallbackPolicy: { kind: "empty", value: "" },  // Silent failures
-  verbosityMode: "silent",                       // Minimal output
-  maxScopeDepth: 20,                            // Prevent deep recursion
-  enableCaching: true,                          // Performance optimization
+  fallbackPolicy: { kind: "empty", value: "" }, // Silent failures
+  verbosityMode: "silent", // Minimal output
+  maxScopeDepth: 20, // Prevent deep recursion
+  enableCaching: true, // Performance optimization
 };
 ```
 
@@ -617,31 +621,35 @@ const prodConfig: ContextConfiguration = {
 
 ```typescript
 const strictConfig: ContextConfiguration = {
-  fallbackPolicy: { kind: "error" },    // Fail on missing variables
-  verbosityMode: "normal",              // Standard errors
-  maxScopeDepth: 50,                    // Reasonable depth
-  enableCaching: true,                  // With validation
+  fallbackPolicy: { kind: "error" }, // Fail on missing variables
+  verbosityMode: "normal", // Standard errors
+  maxScopeDepth: 50, // Reasonable depth
+  enableCaching: true, // With validation
 };
 ```
 
 ## Migration Strategy
 
 ### Phase 1: Context Implementation
+
 - Implement core context interfaces
 - Basic scope management
 - Simple fallback policies
 
 ### Phase 2: Array Support
+
 - Array context implementation
 - Iteration metadata
 - Nested array handling
 
 ### Phase 3: Integration
+
 - Wire into template resolver
 - Update variable replacement
 - Maintain backward compatibility
 
 ### Phase 4: Optimization
+
 - Implement caching
 - Add lazy evaluation
 - Performance tuning

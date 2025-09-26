@@ -1,29 +1,44 @@
 # Debug Workflows Index
 
-This index organizes all debug workflows by category and their execution relationships.
+This index organizes all debug workflows by category and their execution
+relationships.
 
 ## Workflow Categories
 
 ### 01. Quality Assurance
-- `01-quality-assurance/01-false-resolution-detection.workflow.md` - False positive detection
+
+- `01-quality-assurance/01-false-resolution-detection.workflow.md` - False
+  positive detection
 
 ### 02. Architecture
-- `02-architecture/01-totality-verification.workflow.md` - Totality principle verification
-- `02-architecture/02-frontmatter-transformation-refactoring.workflow.md` - Transformation refactoring
-- `02-architecture/03-layered-architecture-dependency-analysis.workflow.md` - Dependency analysis
+
+- `02-architecture/01-totality-verification.workflow.md` - Totality principle
+  verification
+- `02-architecture/02-frontmatter-transformation-refactoring.workflow.md` -
+  Transformation refactoring
+- `02-architecture/03-layered-architecture-dependency-analysis.workflow.md` -
+  Dependency analysis
 
 ### 03. Features
-- `03-features/01-directive-implementation.workflow.md` - Directive implementation testing
+
+- `03-features/01-directive-implementation.workflow.md` - Directive
+  implementation testing
 
 ### Component Level
-- `component/directive-processor-comprehensive.workflow.md` - DirectiveProcessor analysis
+
+- `component/directive-processor-comprehensive.workflow.md` - DirectiveProcessor
+  analysis
 - `component/template-variable-defaults.workflow.md` - Default value handling
-- `component/template-variable-resolution.workflow.md` - Variable resolution debugging
+- `component/template-variable-resolution.workflow.md` - Variable resolution
+  debugging
 
 ### Integration Level
-- `integration/x-flatten-arrays-debugging.workflow.md` - x-flatten-arrays directive debugging
+
+- `integration/x-flatten-arrays-debugging.workflow.md` - x-flatten-arrays
+  directive debugging
 
 ### Meta
+
 - `meta/workflow-template.workflow.md` - Template for creating new workflows
 
 ## Workflow Execution Relationships
@@ -44,20 +59,21 @@ graph TD
 
 ### Dependency Matrix
 
-| Workflow | Dependencies | Outputs To |
-|----------|-------------|------------|
-| directive-processor-comprehensive | totality-verification | x-flatten-arrays-debugging, template-variable-resolution |
-| x-flatten-arrays-debugging | directive-processor-comprehensive | template-variable-resolution |
-| template-variable-resolution | x-flatten-arrays-debugging, directive-processor | template-variable-defaults |
-| template-variable-defaults | template-variable-resolution | - |
-| frontmatter-transformation-refactoring | - | directive-processor-comprehensive |
-| layered-architecture-dependency-analysis | - | All component workflows |
-| totality-verification | - | All workflows |
-| false-resolution-detection | - | Quality gates for all |
+| Workflow                                 | Dependencies                                    | Outputs To                                               |
+| ---------------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| directive-processor-comprehensive        | totality-verification                           | x-flatten-arrays-debugging, template-variable-resolution |
+| x-flatten-arrays-debugging               | directive-processor-comprehensive               | template-variable-resolution                             |
+| template-variable-resolution             | x-flatten-arrays-debugging, directive-processor | template-variable-defaults                               |
+| template-variable-defaults               | template-variable-resolution                    | -                                                        |
+| frontmatter-transformation-refactoring   | -                                               | directive-processor-comprehensive                        |
+| layered-architecture-dependency-analysis | -                                               | All component workflows                                  |
+| totality-verification                    | -                                               | All workflows                                            |
+| false-resolution-detection               | -                                               | Quality gates for all                                    |
 
 ## Execution Order for Specific Issues
 
 ### Issue #1071: x-flatten-arrays data loss in template rendering
+
 ```bash
 # Execute in order:
 1. integration/x-flatten-arrays-debugging.workflow.md
@@ -66,6 +82,7 @@ graph TD
 ```
 
 ### Template Variable Resolution Issues
+
 ```bash
 # Execute in order:
 1. component/template-variable-resolution.workflow.md

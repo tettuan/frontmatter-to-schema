@@ -11,8 +11,10 @@
 テンプレート変数解決の精度向上のため、以下の拡張を導入：
 
 1. **TemplatePathSegment**: 配列ショートハンド（`@items`, `items[]`）をサポート
-2. **中間表現層との統合**: [IRアーキテクチャ](./domain-architecture-intermediate-representation.md)と連携
-3. **TemplateContext**: スコープ管理による正確な変数解決（[仕様](../../architecture/template-context-specification.md)参照）
+2. **中間表現層との統合**:
+   [IRアーキテクチャ](./domain-architecture-intermediate-representation.md)と連携
+3. **TemplateContext**:
+   スコープ管理による正確な変数解決（[仕様](../../architecture/template-context-specification.md)参照）
 
 ## Templateドメインモデル
 

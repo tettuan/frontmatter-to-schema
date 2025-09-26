@@ -2,31 +2,44 @@
 
 ## Executive Summary
 
-This roadmap outlines the phased implementation approach for enhancing the template variable resolution system through the introduction of an Intermediate Representation (IR) layer and scope-aware Template Context. This addresses the critical issue of variable scope loss during array expansion and deep path resolution (Issue #1071).
+This roadmap outlines the phased implementation approach for enhancing the
+template variable resolution system through the introduction of an Intermediate
+Representation (IR) layer and scope-aware Template Context. This addresses the
+critical issue of variable scope loss during array expansion and deep path
+resolution (Issue #1071).
 
 ## Problem Statement
 
 ### Current Issues
-1. **Scope Loss**: Variables like `{id.full}` within `{@items}` lose their array element context
-2. **Deep Path Failures**: Hierarchical paths fail to resolve after directive processing
-3. **Data Structure Mismatch**: Gap between directive output and template expectations
+
+1. **Scope Loss**: Variables like `{id.full}` within `{@items}` lose their array
+   element context
+2. **Deep Path Failures**: Hierarchical paths fail to resolve after directive
+   processing
+3. **Data Structure Mismatch**: Gap between directive output and template
+   expectations
 4. **Error Context Loss**: Failures provide insufficient debugging information
 
 ### Root Cause
-The current implementation directly queries `FrontmatterData.get()` without maintaining scope context during array expansion, causing variables to be searched from the root instead of the current array element.
+
+The current implementation directly queries `FrontmatterData.get()` without
+maintaining scope context during array expansion, causing variables to be
+searched from the root instead of the current array element.
 
 ## Implementation Phases
 
 ### Phase 1: Foundation (Week 1)
 
 #### Objectives
+
 - Establish core IR data structures
 - Implement basic path parsing for templates
 - Create foundation for scope management
 
 #### Deliverables
 
-1. **Core IR Types** (`src/domain/template/models/intermediate-representation.ts`)
+1. **Core IR Types**
+   (`src/domain/template/models/intermediate-representation.ts`)
    ```typescript
    - IRNode algebraic data type (IRScalar, IRObject, IRArray)
    - TemplatePath with array notation support
@@ -34,7 +47,8 @@ The current implementation directly queries `FrontmatterData.get()` without main
    - Smart constructors with Result types
    ```
 
-2. **Path Parser Enhancement** (`src/domain/template/services/template-path-parser.ts`)
+2. **Path Parser Enhancement**
+   (`src/domain/template/services/template-path-parser.ts`)
    ```typescript
    - Parse standard paths (property.nested.path)
    - Support array shortcuts (@items, items[])
@@ -50,6 +64,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
    ```
 
 #### Success Criteria
+
 - All IR types compile without errors
 - Path parser handles all template notations
 - Unit tests pass with 100% coverage
@@ -57,13 +72,15 @@ The current implementation directly queries `FrontmatterData.get()` without main
 ### Phase 2: Intermediate Representation Layer (Week 2)
 
 #### Objectives
+
 - Build IR from processed frontmatter data
 - Implement IR navigation and resolution
 - Create immutable data structures
 
 #### Deliverables
 
-1. **IR Builder** (`src/domain/template/services/intermediate-representation-builder.ts`)
+1. **IR Builder**
+   (`src/domain/template/services/intermediate-representation-builder.ts`)
    ```typescript
    - Convert FrontmatterData[] to IR
    - Handle nested objects and arrays
@@ -71,7 +88,8 @@ The current implementation directly queries `FrontmatterData.get()` without main
    - Merge multiple data sources
    ```
 
-2. **IR Implementation** (`src/domain/template/services/template-intermediate-representation.ts`)
+2. **IR Implementation**
+   (`src/domain/template/services/template-intermediate-representation.ts`)
    ```typescript
    - Implement TemplateIntermediateRepresentation interface
    - Path resolution from root
@@ -87,6 +105,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
    ```
 
 #### Success Criteria
+
 - IR correctly represents all frontmatter structures
 - Path resolution works for deep nested paths
 - Memory efficient for large datasets
@@ -94,6 +113,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
 ### Phase 3: Template Context Implementation (Week 3)
 
 #### Objectives
+
 - Implement scope-aware variable resolution
 - Create context management system
 - Support array iteration contexts
@@ -116,7 +136,8 @@ The current implementation directly queries `FrontmatterData.get()` without main
    - Breadcrumb maintenance
    ```
 
-3. **Context Factory** (`src/domain/template/services/template-context-factory.ts`)
+3. **Context Factory**
+   (`src/domain/template/services/template-context-factory.ts`)
    ```typescript
    - Create contexts from IR
    - Configuration management
@@ -133,6 +154,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
    ```
 
 #### Success Criteria
+
 - Contexts maintain proper scope during navigation
 - Array iterations have isolated scopes
 - Fallback chain works correctly
@@ -141,20 +163,23 @@ The current implementation directly queries `FrontmatterData.get()` without main
 ### Phase 4: Integration (Week 4)
 
 #### Objectives
+
 - Wire IR and Context into existing pipeline
 - Update template resolver to use new system
 - Maintain backward compatibility
 
 #### Deliverables
 
-1. **Pipeline Integration** (`src/application/services/pipeline-orchestrator.ts`)
+1. **Pipeline Integration**
+   (`src/application/services/pipeline-orchestrator.ts`)
    ```typescript
    - Add IR building step after directive processing
    - Create context before template rendering
    - Pass context to rendering service
    ```
 
-2. **Template Variable Resolver Update** (`src/domain/template/services/template-variable-resolver.ts`)
+2. **Template Variable Resolver Update**
+   (`src/domain/template/services/template-variable-resolver.ts`)
    ```typescript
    - Inject TemplateContext dependency
    - Use context.resolve() instead of FrontmatterData.get()
@@ -162,7 +187,8 @@ The current implementation directly queries `FrontmatterData.get()` without main
    - Add comprehensive logging
    ```
 
-3. **Output Rendering Service Update** (`src/application/services/output-rendering-service.ts`)
+3. **Output Rendering Service Update**
+   (`src/application/services/output-rendering-service.ts`)
    ```typescript
    - Accept IR and context
    - Pass context to variable resolver
@@ -177,6 +203,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
    ```
 
 #### Success Criteria
+
 - Existing tests continue to pass
 - New resolution works with all templates
 - No performance degradation
@@ -185,6 +212,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
 ### Phase 5: Testing and Validation (Week 5)
 
 #### Objectives
+
 - Comprehensive testing of new system
 - Performance validation
 - Bug fixes and refinements
@@ -229,6 +257,7 @@ The current implementation directly queries `FrontmatterData.get()` without main
    ```
 
 #### Success Criteria
+
 - 100% test coverage for new code
 - All examples/3.docs tests pass
 - Performance within 10% of baseline
@@ -267,17 +296,20 @@ The current implementation directly queries `FrontmatterData.get()` without main
 ## Success Metrics
 
 ### Functional Metrics
+
 - ✅ `{id.full}` resolves correctly in `{@items}`
 - ✅ Deep paths work after directive processing
 - ✅ All existing tests pass
 - ✅ examples/3.docs produces correct output
 
 ### Performance Metrics
+
 - ⚡ Resolution time < 10ms for typical templates
 - 💾 Memory overhead < 20% for large datasets
 - 🔄 No performance regression in existing workflows
 
 ### Quality Metrics
+
 - 📊 Test coverage > 90% for new code
 - 🐛 Zero critical bugs in production
 - 📝 Complete documentation for all components
@@ -306,11 +338,13 @@ gantt
 ## Dependencies
 
 ### External Dependencies
+
 - No new external libraries required
 - Uses existing Result type system
 - Compatible with current Deno runtime
 
 ### Internal Dependencies
+
 - Requires stable FrontmatterData interface
 - Depends on DirectiveProcessor output format
 - Needs OutputRenderingService cooperation
@@ -318,16 +352,19 @@ gantt
 ## Rollout Strategy
 
 ### Phase 1: Canary (Week 6)
+
 - Enable for internal testing
 - Monitor performance metrics
 - Gather feedback
 
 ### Phase 2: Beta (Week 7)
+
 - Enable for select templates
 - Document migration guide
 - Fix identified issues
 
 ### Phase 3: General Availability (Week 8)
+
 - Enable by default
 - Deprecate old resolution
 - Complete migration documentation
@@ -335,19 +372,24 @@ gantt
 ## Long-term Vision
 
 ### Future Enhancements
+
 1. **Plugin System**: Custom resolvers and transformers
 2. **Advanced Queries**: JSONPath, XPath support
 3. **Performance**: Parallel processing, incremental updates
 4. **Developer Tools**: IR visualizer, debugger integration
 
 ### Architecture Evolution
+
 - Move toward fully functional pipeline
 - Explore streaming for large datasets
 - Consider WebAssembly for performance-critical paths
 
 ## Conclusion
 
-This roadmap provides a structured approach to solving the template variable resolution issues while maintaining system stability and performance. The phased implementation allows for incremental validation and reduces risk while delivering value at each stage.
+This roadmap provides a structured approach to solving the template variable
+resolution issues while maintaining system stability and performance. The phased
+implementation allows for incremental validation and reduces risk while
+delivering value at each stage.
 
 ## References
 
