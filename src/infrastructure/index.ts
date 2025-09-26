@@ -13,3 +13,8 @@ export {
   DebugLoggerFactory,
   NoOpDebugLogger,
 } from "./adapters/debug-logger.ts";
+export {
+  ConsoleDomainLogger,
+  DomainLoggerFactory,
+  NoOpDomainLogger,
+} from "./logging/console-domain-logger.ts";
