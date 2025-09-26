@@ -350,26 +350,4 @@ export class TemplateRenderer {
 
     return result;
   }
-
-  /**
-   * Backward compatibility method for single data rendering
-   * @deprecated Use render() method instead for unified processing
-   */
-  renderSingle(
-    template: Template,
-    data: FrontmatterData,
-  ): Result<string, TemplateError & { message: string }> {
-    return this.render(template, data);
-  }
-
-  /**
-   * Backward compatibility method for array data rendering
-   * @deprecated Use render() method instead for unified processing
-   */
-  renderWithArray(
-    template: Template,
-    dataArray: FrontmatterData[],
-  ): Result<string, TemplateError & { message: string }> {
-    return this.render(template, dataArray);
-  }
 }

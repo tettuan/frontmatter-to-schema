@@ -35,7 +35,8 @@
     "jsr:@tettuan/breakdownlogger@*": "1.0.8",
     "jsr:@tettuan/breakdownlogger@1": "1.0.8",
     "npm:@anthropic-ai/claude-code@^1.0.89": "1.0.89",
-    "npm:jsonpath-plus@7.2.0": "7.2.0"
+    "npm:jsonpath-plus@7.2.0": "7.2.0",
+    "npm:nunjucks@^3.2.4": "3.2.4"
   },
   "jsr": {
     "@halvardm/jmespath@0.17.0": {
@@ -206,8 +207,26 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
+    "a-sync-waterfall@1.0.1": {
+      "integrity": "sha512-RYTOHHdWipFUliRFMCS4X2Yn2X8M87V/OpSqWzKKOGhzqyUxzyVmhHDH9sAvG+ZuQf/TAOFsLCpMw09I1ufUnA=="
+    },
+    "asap@2.0.6": {
+      "integrity": "sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA=="
+    },
+    "commander@5.1.0": {
+      "integrity": "sha512-P0CysNDQ7rtVw4QIQtm+MRxV66vKFSvlsQvGYXZWR3qFU0jlMKHZZZgw8e+8DSah4UDKMqnknRDQz+xuQXQ/Zg=="
+    },
     "jsonpath-plus@7.2.0": {
       "integrity": "sha512-zBfiUPM5nD0YZSBT/o/fbCUlCcepMIdP0CJZxM1+KgA4f2T206f6VAg9e7mX35+KlMaIc5qXW34f3BnwJ3w+RA=="
+    },
+    "nunjucks@3.2.4": {
+      "integrity": "sha512-26XRV6BhkgK0VOxfbU5cQI+ICFUtMLixv1noZn1tGU38kQH5A5nmmbk/O45xdyBhD1esk47nKrY0mvQpZIhRjQ==",
+      "dependencies": [
+        "a-sync-waterfall",
+        "asap",
+        "commander"
+      ],
+      "bin": true
     }
   },
   "redirects": {
@@ -745,7 +764,8 @@
       "jsr:@std/testing@^1.0.15",
       "jsr:@std/yaml@1.0.5",
       "jsr:@tettuan/breakdownlogger@1",
-      "npm:@anthropic-ai/claude-code@^1.0.89"
+      "npm:@anthropic-ai/claude-code@^1.0.89",
+      "npm:nunjucks@^3.2.4"
     ]
   }
 }

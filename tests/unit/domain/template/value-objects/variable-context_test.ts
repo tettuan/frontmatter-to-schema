@@ -89,7 +89,11 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertExists(contextResult.ok, "Should create context successfully");
       if (!contextResult.ok) return;
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), "metadata.commands");
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "defined");
+      if (hierarchyRootState.kind === "defined") {
+        assertEquals(hierarchyRootState.value, "metadata.commands");
+      }
 
       // Validate {@items} resolves from hierarchy root
       const itemsResult = context.resolveVariable("@items");
@@ -227,7 +231,8 @@ describe("VariableContext with Schema Hierarchy", () => {
       );
       if (!contextResult.ok) return;
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), null);
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "not-defined");
 
       // Regular variables should still work
       const titleResult = context.resolveVariable("title");
@@ -309,7 +314,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Act & Assert
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), "config.scripts");
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "defined");
+      if (hierarchyRootState.kind === "defined") {
+        assertEquals(hierarchyRootState.value, "config.scripts");
+      }
 
       // {@items} should resolve from scripts, not environments
       const itemsResult = context.resolveVariable("@items");
@@ -434,7 +443,11 @@ describe("VariableContext with Schema Hierarchy", () => {
 
       // Act & Assert
       const context = contextResult.data;
-      assertEquals(context.getHierarchyRoot(), "commands");
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "defined");
+      if (hierarchyRootState.kind === "defined") {
+        assertEquals(hierarchyRootState.value, "commands");
+      }
 
       const itemsResult = context.resolveVariable("@items");
       assertExists(
@@ -669,7 +682,11 @@ describe("VariableContext with Schema Hierarchy", () => {
       assertEquals(scriptResult.data, "npm run deploy");
 
       // Item context should inherit same hierarchy root
-      assertEquals(itemContext.getHierarchyRoot(), "commands");
+      const itemHierarchyRootState = itemContext.getHierarchyRootState();
+      assertEquals(itemHierarchyRootState.kind, "defined");
+      if (itemHierarchyRootState.kind === "defined") {
+        assertEquals(itemHierarchyRootState.value, "commands");
+      }
     });
   });
 
@@ -690,7 +707,8 @@ describe("VariableContext with Schema Hierarchy", () => {
       const context = contextResult.data;
 
       // Should have no hierarchy root (legacy mode)
-      assertEquals(context.getHierarchyRoot(), null);
+      const hierarchyRootState = context.getHierarchyRootState();
+      assertEquals(hierarchyRootState.kind, "not-defined");
 
       // Should still resolve regular variables
       const titleResult = context.resolveVariable("title");

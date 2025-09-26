@@ -3,6 +3,96 @@ import { createError, DomainError } from "../../shared/types/errors.ts";
 import { ComplexityFactors } from "./entropy-management-service.ts";
 
 /**
+ * Configuration state for complexity metrics using discriminated union (Totality principle)
+ * Eliminates optional properties in favor of explicit configuration variants
+ */
+export type ComplexityMetricsConfiguration =
+  | {
+    readonly kind: "default";
+  }
+  | {
+    readonly kind: "custom";
+    readonly fileCountWeight: number;
+    readonly schemaWeight: number;
+    readonly templateWeight: number;
+    readonly aggregationWeight: number;
+    readonly parallelismWeight: number;
+    readonly errorHandlingWeight: number;
+    readonly stateSpaceWeight: number;
+    readonly integrationWeight: number;
+  }
+  | {
+    readonly kind: "preset";
+    readonly preset: "minimal" | "balanced" | "comprehensive";
+  };
+
+/**
+ * Factory for creating complexity metrics configurations
+ * Following Totality principle with explicit configuration states
+ */
+export class ComplexityMetricsConfigurationFactory {
+  static default(): ComplexityMetricsConfiguration {
+    return { kind: "default" };
+  }
+
+  static custom(
+    fileCountWeight: number,
+    schemaWeight: number,
+    templateWeight: number,
+    aggregationWeight: number,
+    parallelismWeight: number,
+    errorHandlingWeight: number,
+    stateSpaceWeight: number,
+    integrationWeight: number,
+  ): Result<ComplexityMetricsConfiguration, DomainError & { message: string }> {
+    // Validate all weights are non-negative
+    const weights = [
+      fileCountWeight,
+      schemaWeight,
+      templateWeight,
+      aggregationWeight,
+      parallelismWeight,
+      errorHandlingWeight,
+      stateSpaceWeight,
+      integrationWeight,
+    ];
+
+    if (weights.some((w) => w < 0)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "All weights must be non-negative",
+      }));
+    }
+
+    // Validate at least one weight is positive
+    if (weights.every((w) => w === 0)) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: "At least one weight must be positive",
+      }));
+    }
+
+    return ok({
+      kind: "custom",
+      fileCountWeight,
+      schemaWeight,
+      templateWeight,
+      aggregationWeight,
+      parallelismWeight,
+      errorHandlingWeight,
+      stateSpaceWeight,
+      integrationWeight,
+    });
+  }
+
+  static preset(
+    preset: "minimal" | "balanced" | "comprehensive",
+  ): ComplexityMetricsConfiguration {
+    return { kind: "preset", preset };
+  }
+}
+
+/**
  * Complexity metrics configuration following Totality principle
  * Using Smart Constructor for validation
  */
@@ -18,58 +108,114 @@ export class ComplexityMetricsConfig {
     readonly integrationWeight: number,
   ) {}
 
+  /**
+   * Smart Constructor using discriminated union configuration
+   * Ensures all invariants are satisfied and follows Totality principles
+   */
   static create(
-    weights?: Partial<{
-      fileCountWeight: number;
-      schemaWeight: number;
-      templateWeight: number;
-      aggregationWeight: number;
-      parallelismWeight: number;
-      errorHandlingWeight: number;
-      stateSpaceWeight: number;
-      integrationWeight: number;
-    }>,
+    config: ComplexityMetricsConfiguration = { kind: "default" },
   ): Result<ComplexityMetricsConfig, DomainError & { message: string }> {
-    const config = {
-      fileCountWeight: weights?.fileCountWeight ?? 0.5,
-      schemaWeight: weights?.schemaWeight ?? 2.0,
-      templateWeight: weights?.templateWeight ?? 1.5,
-      aggregationWeight: weights?.aggregationWeight ?? 3.0,
-      parallelismWeight: weights?.parallelismWeight ?? 1.0,
-      errorHandlingWeight: weights?.errorHandlingWeight ?? 2.5,
-      stateSpaceWeight: weights?.stateSpaceWeight ?? 0.3,
-      integrationWeight: weights?.integrationWeight ?? 1.8,
-    };
-
-    // Validate all weights are non-negative
-    const allWeights = Object.values(config);
-    if (allWeights.some((w) => w < 0)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: "All weights must be non-negative",
-      }));
+    // Resolve configuration values based on discriminated union
+    const resolvedConfig = this.resolveConfiguration(config);
+    if (!resolvedConfig.ok) {
+      return err(resolvedConfig.error);
     }
 
-    // Validate at least one weight is positive
-    if (allWeights.every((w) => w === 0)) {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: "At least one weight must be positive",
-      }));
-    }
+    const weights = resolvedConfig.data;
 
     return ok(
       new ComplexityMetricsConfig(
-        config.fileCountWeight,
-        config.schemaWeight,
-        config.templateWeight,
-        config.aggregationWeight,
-        config.parallelismWeight,
-        config.errorHandlingWeight,
-        config.stateSpaceWeight,
-        config.integrationWeight,
+        weights.fileCountWeight,
+        weights.schemaWeight,
+        weights.templateWeight,
+        weights.aggregationWeight,
+        weights.parallelismWeight,
+        weights.errorHandlingWeight,
+        weights.stateSpaceWeight,
+        weights.integrationWeight,
       ),
     );
+  }
+
+  /**
+   * Resolve configuration from discriminated union to concrete values
+   * Following Totality principle with exhaustive pattern matching
+   */
+  private static resolveConfiguration(
+    config: ComplexityMetricsConfiguration,
+  ): Result<{
+    fileCountWeight: number;
+    schemaWeight: number;
+    templateWeight: number;
+    aggregationWeight: number;
+    parallelismWeight: number;
+    errorHandlingWeight: number;
+    stateSpaceWeight: number;
+    integrationWeight: number;
+  }, DomainError & { message: string }> {
+    switch (config.kind) {
+      case "default":
+        return ok({
+          fileCountWeight: 0.5,
+          schemaWeight: 2.0,
+          templateWeight: 1.5,
+          aggregationWeight: 3.0,
+          parallelismWeight: 1.0,
+          errorHandlingWeight: 2.5,
+          stateSpaceWeight: 0.3,
+          integrationWeight: 1.8,
+        });
+
+      case "custom":
+        return ok({
+          fileCountWeight: config.fileCountWeight,
+          schemaWeight: config.schemaWeight,
+          templateWeight: config.templateWeight,
+          aggregationWeight: config.aggregationWeight,
+          parallelismWeight: config.parallelismWeight,
+          errorHandlingWeight: config.errorHandlingWeight,
+          stateSpaceWeight: config.stateSpaceWeight,
+          integrationWeight: config.integrationWeight,
+        });
+
+      case "preset":
+        switch (config.preset) {
+          case "minimal":
+            return ok({
+              fileCountWeight: 0.2,
+              schemaWeight: 1.0,
+              templateWeight: 0.8,
+              aggregationWeight: 1.5,
+              parallelismWeight: 0.5,
+              errorHandlingWeight: 1.0,
+              stateSpaceWeight: 0.1,
+              integrationWeight: 0.9,
+            });
+          case "balanced":
+            return ok({
+              fileCountWeight: 0.5,
+              schemaWeight: 2.0,
+              templateWeight: 1.5,
+              aggregationWeight: 3.0,
+              parallelismWeight: 1.0,
+              errorHandlingWeight: 2.5,
+              stateSpaceWeight: 0.3,
+              integrationWeight: 1.8,
+            });
+          case "comprehensive":
+            return ok({
+              fileCountWeight: 1.0,
+              schemaWeight: 3.5,
+              templateWeight: 2.5,
+              aggregationWeight: 4.5,
+              parallelismWeight: 2.0,
+              errorHandlingWeight: 4.0,
+              stateSpaceWeight: 0.8,
+              integrationWeight: 3.2,
+            });
+        }
+        break;
+    }
   }
 
   getTotalWeight(): number {
@@ -117,19 +263,11 @@ export class ComplexityMetricsService {
   ) {}
 
   /**
-   * Smart Constructor for ComplexityMetricsService
+   * Smart Constructor for ComplexityMetricsService using discriminated union configuration
+   * Ensures all invariants are satisfied and follows Totality principles
    */
   static create(
-    config?: Partial<{
-      fileCountWeight: number;
-      schemaWeight: number;
-      templateWeight: number;
-      aggregationWeight: number;
-      parallelismWeight: number;
-      errorHandlingWeight: number;
-      stateSpaceWeight: number;
-      integrationWeight: number;
-    }>,
+    config: ComplexityMetricsConfiguration = { kind: "default" },
   ): Result<ComplexityMetricsService, DomainError & { message: string }> {
     const configResult = ComplexityMetricsConfig.create(config);
     if (!configResult.ok) {

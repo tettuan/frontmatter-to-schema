@@ -1,6 +1,9 @@
 import { describe, it } from "jsr:@std/testing/bdd";
 import { assert, assertEquals } from "jsr:@std/assert";
-import { ComplexityMetricsService } from "./complexity-metrics-service.ts";
+import {
+  ComplexityMetricsConfigurationFactory,
+  ComplexityMetricsService,
+} from "./complexity-metrics-service.ts";
 
 describe("ComplexityMetricsService", () => {
   describe("Smart Constructor", () => {
@@ -10,39 +13,55 @@ describe("ComplexityMetricsService", () => {
     });
 
     it("should create service with custom weights", () => {
-      const result = ComplexityMetricsService.create({
-        fileCountWeight: 1.0,
-        schemaWeight: 3.0,
-        templateWeight: 2.0,
-      });
+      const configResult = ComplexityMetricsConfigurationFactory.custom(
+        1.0,
+        3.0,
+        2.0,
+        3.0,
+        1.0,
+        2.5,
+        0.3,
+        1.8,
+      );
+      assertEquals(configResult.ok, true);
+      if (!configResult.ok) return;
+
+      const result = ComplexityMetricsService.create(configResult.data);
       assertEquals(result.ok, true);
     });
 
     it("should reject negative weights", () => {
-      const result = ComplexityMetricsService.create({
-        fileCountWeight: -1.0,
-      });
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertEquals(result.error.kind, "ConfigurationError");
+      const configResult = ComplexityMetricsConfigurationFactory.custom(
+        -1.0,
+        2.0,
+        1.5,
+        3.0,
+        1.0,
+        2.5,
+        0.3,
+        1.8,
+      );
+      assertEquals(configResult.ok, false);
+      if (!configResult.ok) {
+        assertEquals(configResult.error.kind, "ConfigurationError");
       }
     });
 
     it("should reject all-zero weights", () => {
-      const result = ComplexityMetricsService.create({
-        fileCountWeight: 0,
-        schemaWeight: 0,
-        templateWeight: 0,
-        aggregationWeight: 0,
-        parallelismWeight: 0,
-        errorHandlingWeight: 0,
-        stateSpaceWeight: 0,
-        integrationWeight: 0,
-      });
-      assertEquals(result.ok, false);
-      if (!result.ok) {
-        assertEquals(result.error.kind, "ConfigurationError");
-        assert(result.error.message.includes("At least one"));
+      const configResult = ComplexityMetricsConfigurationFactory.custom(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      );
+      assertEquals(configResult.ok, false);
+      if (!configResult.ok) {
+        assertEquals(configResult.error.kind, "ConfigurationError");
+        assert(configResult.error.message.includes("At least one"));
       }
     });
   });

@@ -5,7 +5,6 @@ import {
   SchemaBasedResolution,
   TemplateResolutionContext,
   TemplateResolutionOrchestrator,
-  toLegacyResult,
 } from "../../../../../src/domain/template/services/template-resolution-strategy.ts";
 import { Result } from "../../../../../src/domain/shared/types/result.ts";
 import { TEST_EXTENSIONS } from "../../../../helpers/test-extensions.ts";
@@ -33,10 +32,11 @@ Deno.test("TemplateResolutionStrategy", async (t) => {
       const result = strategy.resolve(context);
       assertEquals(result.ok, true);
       if (result.ok) {
-        const legacy = toLegacyResult(result.data);
-        assertEquals(legacy.mainTemplatePath, "/path/to/template.json");
-        assertEquals(legacy.hasDualTemplate, false);
-        assertEquals(legacy.resolutionStrategy, "explicit-path");
+        assertEquals(result.data.kind, "single");
+        if (result.data.kind === "single") {
+          assertEquals(result.data.templatePath, "/path/to/template.json");
+          assertEquals(result.data.resolutionStrategy, "explicit-path");
+        }
       }
     },
   );

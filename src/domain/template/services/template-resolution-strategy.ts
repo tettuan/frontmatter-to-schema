@@ -38,28 +38,6 @@ export type ResolvedTemplate =
   };
 
 /**
- * Legacy Template Resolution Context for backward compatibility
- * @deprecated Use TemplateResolutionContext discriminated union instead
- */
-export interface LegacyTemplateResolutionContext {
-  schemaPath: string;
-  explicitTemplatePath?: string;
-  schemaDefinition: Record<string, unknown>;
-  baseDirectory: string;
-}
-
-/**
- * Legacy Resolved Template for backward compatibility
- * @deprecated Use ResolvedTemplate discriminated union instead
- */
-export interface LegacyResolvedTemplate {
-  mainTemplatePath: string;
-  itemsTemplatePath?: string;
-  hasDualTemplate: boolean;
-  resolutionStrategy: string;
-}
-
-/**
  * Template Resolution Strategy Interface (New discriminated union version)
  * Defines contract for different template resolution approaches
  * Follows Strategy Pattern for extensible resolution logic
@@ -68,18 +46,6 @@ export interface TemplateResolutionStrategy {
   readonly name: string;
   canResolve(context: TemplateResolutionContext): boolean;
   resolve(context: TemplateResolutionContext): Result<ResolvedTemplate, string>;
-}
-
-/**
- * Legacy Template Resolution Strategy Interface
- * @deprecated Use TemplateResolutionStrategy with discriminated unions instead
- */
-export interface LegacyTemplateResolutionStrategy {
-  readonly name: string;
-  canResolve(context: LegacyTemplateResolutionContext): boolean;
-  resolve(
-    context: LegacyTemplateResolutionContext,
-  ): Result<LegacyResolvedTemplate, string>;
 }
 
 /**
@@ -236,102 +202,6 @@ export class AutoDetectResolution implements TemplateResolutionStrategy {
   private extractBaseName(filePath: string): string {
     const fileName = filePath.split("/").pop() || filePath;
     return fileName.replace(/\.[^.]+$/, ""); // Remove extension
-  }
-}
-
-/**
- * Helper functions for backward compatibility between legacy and new discriminated union types
- */
-
-/**
- * Convert legacy context to new discriminated union context
- */
-export function toLegacyContext(
-  context: TemplateResolutionContext,
-): LegacyTemplateResolutionContext {
-  switch (context.kind) {
-    case "schema-based":
-      return {
-        schemaPath: context.schemaPath,
-        schemaDefinition: context.schemaDefinition,
-        baseDirectory: context.baseDirectory,
-      };
-    case "explicit-path":
-      return {
-        schemaPath: context.schemaPath,
-        explicitTemplatePath: context.explicitTemplatePath,
-        schemaDefinition: context.schemaDefinition,
-        baseDirectory: context.baseDirectory,
-      };
-  }
-}
-
-/**
- * Convert new discriminated union context to legacy context
- */
-export function fromLegacyContext(
-  context: LegacyTemplateResolutionContext,
-): TemplateResolutionContext {
-  if (context.explicitTemplatePath) {
-    return {
-      kind: "explicit-path",
-      schemaPath: context.schemaPath,
-      explicitTemplatePath: context.explicitTemplatePath,
-      schemaDefinition: context.schemaDefinition,
-      baseDirectory: context.baseDirectory,
-    };
-  } else {
-    return {
-      kind: "schema-based",
-      schemaPath: context.schemaPath,
-      schemaDefinition: context.schemaDefinition,
-      baseDirectory: context.baseDirectory,
-    };
-  }
-}
-
-/**
- * Convert new discriminated union result to legacy result
- */
-export function toLegacyResult(
-  result: ResolvedTemplate,
-): LegacyResolvedTemplate {
-  switch (result.kind) {
-    case "single":
-      return {
-        mainTemplatePath: result.templatePath,
-        hasDualTemplate: false,
-        resolutionStrategy: result.resolutionStrategy,
-      };
-    case "dual":
-      return {
-        mainTemplatePath: result.mainTemplatePath,
-        itemsTemplatePath: result.itemsTemplatePath,
-        hasDualTemplate: true,
-        resolutionStrategy: result.resolutionStrategy,
-      };
-  }
-}
-
-/**
- * Convert legacy result to new discriminated union result
- */
-export function fromLegacyResult(
-  result: LegacyResolvedTemplate,
-): ResolvedTemplate {
-  if (result.hasDualTemplate && result.itemsTemplatePath) {
-    return {
-      kind: "dual",
-      mainTemplatePath: result.mainTemplatePath,
-      itemsTemplatePath: result.itemsTemplatePath,
-      resolutionStrategy: result.resolutionStrategy,
-    };
-  } else {
-    return {
-      kind: "single",
-      templatePath: result.mainTemplatePath,
-      resolutionStrategy: result.resolutionStrategy,
-    };
   }
 }
 

@@ -233,24 +233,9 @@ export class OutputRenderingService {
     _verbosityMode: VerbosityMode,
     _currentContext: ErrorContext,
   ): Result<void, DomainError & { message: string }> {
-    // Load main template
-    const mainPathResult = TemplatePath.create(
+    // Load main template using proper template loading logic
+    const mainTemplateResult = this.loadTemplate(
       context.renderingOptions.templatePaths.main,
-    );
-    if (!mainPathResult.ok) {
-      return mainPathResult;
-    }
-
-    const mainContentResult = this.fileReader.read(
-      context.renderingOptions.templatePaths.main,
-    );
-    if (!mainContentResult.ok) {
-      return mainContentResult;
-    }
-
-    const mainTemplateResult = Template.createWithDefaultConfig(
-      mainPathResult.data,
-      mainContentResult.data,
     );
     if (!mainTemplateResult.ok) {
       return mainTemplateResult;
@@ -259,23 +244,8 @@ export class OutputRenderingService {
     // Load items template if specified
     let _itemsTemplate: Template | undefined;
     if (context.renderingOptions.templatePaths.items) {
-      const itemsPathResult = TemplatePath.create(
+      const itemsTemplateResult = this.loadTemplate(
         context.renderingOptions.templatePaths.items,
-      );
-      if (!itemsPathResult.ok) {
-        return itemsPathResult;
-      }
-
-      const itemsContentResult = this.fileReader.read(
-        context.renderingOptions.templatePaths.items,
-      );
-      if (!itemsContentResult.ok) {
-        return itemsContentResult;
-      }
-
-      const itemsTemplateResult = Template.createWithDefaultConfig(
-        itemsPathResult.data,
-        itemsContentResult.data,
       );
       if (!itemsTemplateResult.ok) {
         return itemsTemplateResult;

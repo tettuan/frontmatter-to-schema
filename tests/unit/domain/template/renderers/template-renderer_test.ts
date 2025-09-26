@@ -217,7 +217,7 @@ Deno.test("TemplateRenderer - should render with array data", () => {
   ];
 
   // Act
-  const result = renderer.renderWithArray(template, dataArray);
+  const result = renderer.render(template, dataArray);
 
   // Assert
   assertEquals(isOk(result), true);
@@ -244,7 +244,7 @@ Deno.test("TemplateRenderer - should handle empty array", () => {
   const emptyArray: FrontmatterData[] = [];
 
   // Act
-  const result = renderer.renderWithArray(template, emptyArray);
+  const result = renderer.render(template, emptyArray);
 
   // Assert
   assertEquals(isOk(result), true);

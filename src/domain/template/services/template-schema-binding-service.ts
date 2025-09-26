@@ -118,7 +118,12 @@ export class TemplateSchemaBindingService {
         "template-schema-binding",
         "Variable context validated for {@items} resolution",
         {
-          hierarchyRoot: context.getHierarchyRoot(),
+          hierarchyRoot: (() => {
+            const hierarchyRootState = context.getHierarchyRootState();
+            return hierarchyRootState.kind === "defined"
+              ? hierarchyRootState.value
+              : null;
+          })(),
         },
       );
     }
@@ -180,7 +185,10 @@ export class TemplateSchemaBindingService {
         report.itemsBindingError = itemsValidationResult.error.message;
       } else {
         report.itemsBindingValid = true;
-        report.hierarchyRoot = context.getHierarchyRoot();
+        const hierarchyRootState = context.getHierarchyRootState();
+        report.hierarchyRoot = hierarchyRootState.kind === "defined"
+          ? hierarchyRootState.value
+          : null;
       }
     }
 

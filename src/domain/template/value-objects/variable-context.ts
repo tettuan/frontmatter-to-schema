@@ -206,16 +206,6 @@ export class VariableContext {
   }
 
   /**
-   * Get hierarchy root (for legacy compatibility)
-   * @deprecated Use getHierarchyRootState instead
-   */
-  getHierarchyRoot(): string | null {
-    return this.hierarchyRootState.kind === "defined"
-      ? this.hierarchyRootState.value
-      : null;
-  }
-
-  /**
    * Get array data state using Totality principles
    */
   getArrayDataState(): ArrayDataState {

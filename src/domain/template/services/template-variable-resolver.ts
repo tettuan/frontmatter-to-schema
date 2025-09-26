@@ -18,6 +18,7 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { TemplateError, ValidationError } from "../../shared/types/errors.ts";
 import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import { SafePropertyAccess } from "../../shared/utils/safe-property-access.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { TemplateVariable } from "../value-objects/template-variable.ts";
 import { matchTemplateVariableType } from "../value-objects/template-variable-type.ts";
@@ -313,12 +314,33 @@ export class TemplateVariableResolver {
         );
       }
 
-      const obj = currentValue as Record<string, unknown>;
-      if (!(part in obj)) {
+      const hasPropertyResult = SafePropertyAccess.hasProperty(
+        currentValue,
+        part,
+      );
+      if (!hasPropertyResult.ok) {
+        // If we can't check the property, it means currentValue is not an object
+        // This should not happen given the check above, but handle gracefully
+        return ErrorHandler.template({
+          operation: "resolveObjectHierarchy",
+          method: "navigateHierarchy",
+        }).variableResolutionFailed(
+          variableName,
+          `Cannot access property '${part}' on invalid object at path segment ${index}`,
+        );
+      }
+
+      if (!hasPropertyResult.data) {
+        // Get available keys for debugging
+        const recordResult = SafePropertyAccess.asRecord(currentValue);
+        const availableKeys = recordResult.ok
+          ? Object.keys(recordResult.data)
+          : [];
+
         this.domainLogger.logDebug(
           "object-hierarchy-navigation",
           `Property '${part}' not found at step ${index}`,
-          { availableKeys: Object.keys(obj) },
+          { availableKeys },
         );
         return ErrorHandler.template({
           operation: "resolveObjectHierarchy",
@@ -329,7 +351,18 @@ export class TemplateVariableResolver {
         );
       }
 
-      currentValue = obj[part];
+      const propertyResult = SafePropertyAccess.getProperty(currentValue, part);
+      if (!propertyResult.ok) {
+        return ErrorHandler.template({
+          operation: "resolveObjectHierarchy",
+          method: "navigateHierarchy",
+        }).variableResolutionFailed(
+          variableName,
+          `Cannot get property '${part}' at path segment ${index}`,
+        );
+      }
+
+      currentValue = propertyResult.data;
       this.domainLogger.logDebug(
         "object-hierarchy-navigation",
         `Navigated to '${part}' at step ${index}`,
@@ -444,14 +477,23 @@ export class TemplateVariableResolver {
 
     // Pattern 2: For other properties, check if base value contains the property
     if (typeof baseValue === "object" && baseValue !== null) {
-      const obj = baseValue as Record<string, unknown>;
-      if (property in obj) {
-        this.domainLogger.logDebug(
-          "transformation-logic",
-          `Property '${property}' found in object`,
-          { value: obj[property] },
+      const hasPropertyResult = SafePropertyAccess.hasProperty(
+        baseValue,
+        property,
+      );
+      if (hasPropertyResult.ok && hasPropertyResult.data) {
+        const propertyResult = SafePropertyAccess.getProperty(
+          baseValue,
+          property,
         );
-        return ok(obj[property]);
+        if (propertyResult.ok) {
+          this.domainLogger.logDebug(
+            "transformation-logic",
+            `Property '${property}' found in object`,
+            { value: propertyResult.data },
+          );
+          return ok(propertyResult.data);
+        }
       }
     }
 
