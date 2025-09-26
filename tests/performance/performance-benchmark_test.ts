@@ -13,7 +13,7 @@
  */
 
 import { assert, assertEquals } from "jsr:@std/assert";
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
+import { afterEach, beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { err, ok, Result } from "../../src/domain/shared/types/result.ts";
 import { DomainError } from "../../src/domain/shared/types/errors.ts";
 import { MemoryMonitor } from "./memory-monitor.ts";
@@ -252,8 +252,25 @@ class PerformanceBenchmark {
 describe("Performance Benchmark Tests", () => {
   let benchmark: PerformanceBenchmark;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Force garbage collection to ensure clean memory state
+    // This is critical when running as part of full test suite (after 433 tests)
+    if ((globalThis as any).gc) {
+      (globalThis as any).gc();
+    }
+
+    // Add small delay to allow system to stabilize after previous tests
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     benchmark = new PerformanceBenchmark();
+  });
+
+  afterEach(async () => {
+    // Ensure cleanup of any leftover test resources
+    if (benchmark) {
+      // Force another cleanup cycle
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
   });
 
   describe("Small Dataset Performance (Pattern 21 Enhanced)", () => {
@@ -326,11 +343,20 @@ describe("Performance Benchmark Tests", () => {
       // doesn't significantly impact performance
       const result = await benchmark.execute(200, "single");
 
+      // Enhanced error handling for test suite interference diagnosis
+      if (!result.ok) {
+        console.error("Benchmark execution failed:", result.error);
+        console.error("This likely indicates test interference from previous tests");
+      }
       assertEquals(result.ok, true);
       if (!result.ok) return;
 
       // With ErrorContext debug output, should still meet SLA
       const slaValidation = benchmark.validateSLA(result.data);
+      if (!slaValidation.ok) {
+        console.error("SLA validation failed:", slaValidation.error);
+        console.error("Performance metrics:", result.data);
+      }
       assertEquals(slaValidation.ok, true);
     });
   });
