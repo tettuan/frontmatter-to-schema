@@ -133,36 +133,38 @@ export class TemplateManagementDomainService {
       return templatePath;
     };
 
-    // Read main template file
-    const mainTemplatePath = resolveTemplatePath(
-      this.templateConfig.mainTemplate!,
-    );
-    const mainTemplateResult = this.fileReader.read(mainTemplatePath);
-    if (!mainTemplateResult.ok) {
-      return Promise.resolve(err(createError({
-        kind: "ConfigurationError",
-        message: `Failed to read main template file: ${mainTemplatePath}`,
-      })));
-    }
+    // Handle main template (either file path or inline content)
+    const mainTemplate = this.templateConfig.mainTemplate!;
+    let mainTemplateContent: string;
 
-    // Read items template file if specified
-    let itemsTemplateContent: string | undefined;
-    if (this.templateConfig.itemsTemplate) {
-      const itemsTemplatePath = resolveTemplatePath(
-        this.templateConfig.itemsTemplate,
-      );
-      const itemsTemplateResult = this.fileReader.read(itemsTemplatePath);
-      if (!itemsTemplateResult.ok) {
+    // Detect if this is inline content (contains template syntax) or a file path
+    if (this.isInlineTemplate(mainTemplate)) {
+      // Use inline template content directly
+      mainTemplateContent = mainTemplate;
+    } else {
+      // Treat as file path and read from disk
+      const mainTemplatePath = resolveTemplatePath(mainTemplate);
+      const mainTemplateResult = this.fileReader.read(mainTemplatePath);
+      if (!mainTemplateResult.ok) {
         return Promise.resolve(err(createError({
           kind: "ConfigurationError",
-          message: `Failed to read items template file: ${itemsTemplatePath}`,
+          message: `Failed to read main template file: ${mainTemplatePath}`,
         })));
       }
-      itemsTemplateContent = itemsTemplateResult.data;
+      mainTemplateContent = mainTemplateResult.data;
+    }
+
+    // Handle items template (x-template-items is just a data collection name, not a file)
+    let itemsTemplateContent: string | undefined;
+    // x-template-items specifies the data collection name, not a template file
+    // The actual template content comes from the main template
+    if (this.templateConfig.itemsTemplate) {
+      // Store the items collection name for later use, but no file reading needed
+      itemsTemplateContent = undefined; // Items use the main template
     }
 
     const resolvedConfig: ResolvedTemplateConfiguration = {
-      mainTemplateContent: mainTemplateResult.data,
+      mainTemplateContent,
       itemsTemplateContent,
       outputFormat: this.templateConfig.outputFormat!,
     };
@@ -264,12 +266,31 @@ export class TemplateManagementDomainService {
         directiveName,
       );
 
-      if (directiveValue && typeof directiveValue === "string") {
-        return ok(directiveValue);
+      if (directiveValue) {
+        // If directiveValue is a string, use it directly
+        if (typeof directiveValue === "string") {
+          return ok(directiveValue);
+        }
+
+        // If directiveValue is a schema property definition with a default value, extract it
+        if (typeof directiveValue === "object" && directiveValue !== null) {
+          const propertyDef = directiveValue as Record<string, unknown>;
+          if (
+            "default" in propertyDef && typeof propertyDef.default === "string"
+          ) {
+            return ok(propertyDef.default);
+          }
+        }
+
+        return err(createError({
+          kind: "ConfigurationError",
+          message:
+            `Directive ${directiveName} found but has no valid string value or default`,
+        }));
       } else {
         return err(createError({
           kind: "ConfigurationError",
-          message: `Directive ${directiveName} not found or invalid in schema`,
+          message: `Directive ${directiveName} not found in schema`,
         }));
       }
     } catch (error) {
@@ -327,5 +348,20 @@ export class TemplateManagementDomainService {
       default:
         return "json"; // Default fallback
     }
+  }
+
+  /**
+   * PRIVATE: テンプレート文字列がインラインコンテンツかファイルパスかを判定する
+   */
+  private isInlineTemplate(template: string): boolean {
+    // Template syntax patterns that indicate inline content
+    const templatePatterns = [
+      /\{\{.*\}\}/, // Handlebars/Mustache: {{variable}}
+      /\{%.*%\}/, // Jinja/Nunjucks: {% for %}
+      /\n/, // Multi-line content (file paths typically don't have newlines)
+      /^#/, // Markdown headers
+    ];
+
+    return templatePatterns.some((pattern) => pattern.test(template));
   }
 }

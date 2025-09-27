@@ -1,397 +1,158 @@
 import { err, ok, Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
-import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
-import {
-  isRefSchema,
-  RefSchema,
-  SchemaExtensions,
-  SchemaProperties,
-  SchemaProperty,
-  SchemaPropertyGuards,
-  SchemaPropertyUtils,
-} from "./schema-property-types.ts";
-import {
-  LegacySchemaProperty,
-  SchemaPropertyMigration,
-} from "./schema-property-migration.ts";
+
+export interface LegacySchemaProperty {
+  type: string;
+  properties?: Record<string, unknown>;
+  items?: unknown;
+  [key: string]: unknown;
+}
 
 export class SchemaDefinition {
   private constructor(
-    private readonly schema: SchemaProperty,
+    private readonly schema: LegacySchemaProperty,
   ) {}
 
   static create(
     rawSchema: unknown,
   ): Result<SchemaDefinition, SchemaError & { message: string }> {
-    // Migrate from legacy optional properties format to discriminated union
-    const migrationResult = SchemaPropertyMigration.migrate(rawSchema);
-    if (!migrationResult.ok) {
-      return err(migrationResult.error);
+    if (typeof rawSchema !== "object" || rawSchema === null) {
+      return err({
+        kind: "InvalidSchema",
+        message: "Schema must be an object",
+      });
     }
 
-    return ok(new SchemaDefinition(migrationResult.data));
+    const schema = rawSchema as LegacySchemaProperty;
+    if (!schema.type || typeof schema.type !== "string") {
+      return err({
+        kind: "InvalidSchema",
+        message: "Schema must have a type property",
+      });
+    }
+
+    return ok(new SchemaDefinition(schema));
   }
 
-  /**
-   * Create from already-migrated SchemaProperty
-   */
-  static fromSchemaProperty(schema: SchemaProperty): SchemaDefinition {
-    return new SchemaDefinition(schema);
-  }
-
-  /**
-   * Legacy constructor for backward compatibility during migration
-   * @deprecated Use create() instead
-   */
   static createLegacy(
     rawSchema: LegacySchemaProperty,
   ): Result<SchemaDefinition, SchemaError & { message: string }> {
     return this.create(rawSchema);
   }
 
-  /**
-   * Get the kind of this schema property
-   */
+  static fromSchemaProperty(schema: LegacySchemaProperty): SchemaDefinition {
+    return new SchemaDefinition(schema);
+  }
+
   getKind(): string {
-    return this.schema.kind;
+    return this.schema.type;
   }
 
-  /**
-   * Get type as string representation (for backward compatibility)
-   */
   getType(): Result<string, SchemaError & { message: string }> {
-    // Exhaustive switch - no default needed due to totality
-    switch (this.schema.kind) {
-      case "string":
-      case "number":
-      case "integer":
-      case "boolean":
-      case "array":
-      case "object":
-      case "null":
-        return ok(this.schema.kind);
-      case "ref":
-        return ErrorHandler.schema({ operation: "getType", method: "ref" })
-          .typeNotDefined();
-      case "enum":
-        return ok(this.schema.baseType || "string");
-      case "any":
-        return ErrorHandler.schema({ operation: "getType", method: "any" })
-          .typeNotDefined();
-    }
+    return ok(this.schema.type);
   }
 
-  /**
-   * Get properties for object schemas
-   */
-  getProperties(): Result<SchemaProperties, SchemaError & { message: string }> {
-    if (SchemaPropertyGuards.isObject(this.schema)) {
+  getProperties(): Result<
+    Record<string, unknown>,
+    SchemaError & { message: string }
+  > {
+    if (this.schema.type === "object" && this.schema.properties) {
       return ok(this.schema.properties);
     }
-    return ErrorHandler.schema({
-      operation: "getProperties",
-      method: "validate",
-    }).propertiesNotDefined();
+    return err({
+      kind: "PropertiesNotDefined",
+      message: "Schema is not an object type or has no properties",
+    });
   }
 
-  /**
-   * Get required properties for object schemas
-   */
-  getRequired(): readonly string[] {
-    if (SchemaPropertyGuards.isObject(this.schema)) {
-      return this.schema.required;
+  getProperty(key: string): Result<unknown, SchemaError & { message: string }> {
+    if (this.schema.properties && key in this.schema.properties) {
+      return ok(this.schema.properties[key]);
     }
-    return [];
+    return err({
+      kind: "PropertyNotFound",
+      path: key,
+      message: `Property ${key} not found`,
+    });
   }
 
-  /**
-   * Get template path from x-template extension
-   */
+  hasProperty(key: string): boolean {
+    return !!(this.schema.properties && key in this.schema.properties);
+  }
+
+  getExtension(
+    key: string,
+  ): Result<unknown, SchemaError & { message: string }> {
+    if (key in this.schema) {
+      return ok(this.schema[key]);
+    }
+    return err({
+      kind: "InvalidSchema",
+      message: `Extension ${key} not found`,
+    });
+  }
+
+  hasExtension(key: string): boolean {
+    return key in this.schema;
+  }
+
+  toRaw(): LegacySchemaProperty {
+    return this.schema;
+  }
+
+  getRawSchemaObject(): LegacySchemaProperty {
+    return this.schema;
+  }
+
+  getRawSchema(): LegacySchemaProperty {
+    return this.schema;
+  }
+
   getTemplatePath(): Result<string, SchemaError & { message: string }> {
-    return SchemaPropertyUtils.getTemplate(this.schema);
+    const templateExtension = this.schema["x-template"];
+    if (typeof templateExtension === "string") {
+      return ok(templateExtension);
+    }
+    return err({
+      kind: "TemplateNotDefined",
+      message: "x-template extension not found",
+    });
   }
 
-  /**
-   * Check if schema has template directive
-   */
-  hasTemplate(): boolean {
-    return SchemaPropertyUtils.hasTemplate(this.schema);
-  }
-
-  /**
-   * Get template items path from x-template-items extension (user-requested feature)
-   */
-  getTemplateItems(): Result<string, SchemaError & { message: string }> {
-    return SchemaPropertyUtils.getTemplateItems(this.schema);
-  }
-
-  /**
-   * Check if schema has template items directive
-   */
-  hasTemplateItems(): boolean {
-    return SchemaPropertyUtils.hasTemplateItems(this.schema);
-  }
-
-  /**
-   * Get template output format from x-template-format extension (user-requested feature)
-   */
   getTemplateFormat(): Result<
     "json" | "yaml" | "markdown",
     SchemaError & { message: string }
   > {
-    return SchemaPropertyUtils.getTemplateFormat(this.schema);
-  }
-
-  /**
-   * Check if schema has template format directive
-   */
-  hasTemplateFormat(): boolean {
-    return SchemaPropertyUtils.hasTemplateFormat(this.schema);
-  }
-
-  /**
-   * Get JMESPath filter expression from x-jmespath-filter extension
-   */
-  getJMESPathFilter(): Result<string, SchemaError & { message: string }> {
-    return SchemaPropertyUtils.getJMESPathFilter(this.schema);
-  }
-
-  /**
-   * Check if schema has JMESPath filter directive
-   */
-  hasJMESPathFilter(): boolean {
-    return SchemaPropertyUtils.hasJMESPathFilter(this.schema);
-  }
-
-  /**
-   * Get raw schema object for compatibility with legacy code
-   * @deprecated Use typed methods instead for proper type safety
-   */
-  getRawSchemaObject(): unknown {
-    return this.schema;
-  }
-
-  /**
-   * Check if schema is a reference
-   */
-  hasRef(): boolean {
-    return SchemaPropertyGuards.isRef(this.schema);
-  }
-
-  /**
-   * Get reference path for ref schemas
-   */
-  getRef(): Result<string, SchemaError & { message: string }> {
-    if (SchemaPropertyGuards.isRef(this.schema)) {
-      return ok(this.schema.ref);
-    }
-    return ErrorHandler.schema({ operation: "getRef", method: "validate" })
-      .refNotDefined();
-  }
-
-  /**
-   * Check if schema has frontmatter part directive
-   */
-  hasFrontmatterPart(): boolean {
-    return SchemaPropertyUtils.hasFrontmatterPart(this.schema);
-  }
-
-  /**
-   * Get derived from path
-   */
-  getDerivedFrom(): Result<string, SchemaError & { message: string }> {
-    return SchemaPropertyUtils.getDerivedFrom(this.schema);
-  }
-
-  /**
-   * Check if schema has derived from directive
-   */
-  hasDerivedFrom(): boolean {
-    return SchemaPropertyUtils.hasDerivedFrom(this.schema);
-  }
-
-  /**
-   * Check if schema is marked as derived unique
-   */
-  isDerivedUnique(): boolean {
-    return SchemaPropertyUtils.isDerivedUnique(this.schema);
-  }
-
-  /**
-   * Get items schema for array schemas
-   */
-  getItems(): Result<
-    SchemaProperty | RefSchema,
-    SchemaError & { message: string }
-  > {
-    if (SchemaPropertyGuards.isArray(this.schema)) {
-      return ok(this.schema.items);
-    }
-    return ErrorHandler.schema({ operation: "getItems", method: "validate" })
-      .itemsNotDefined();
-  }
-
-  /**
-   * Get enum values for enum schemas
-   */
-  getEnumValues(): Result<
-    readonly unknown[],
-    SchemaError & { message: string }
-  > {
-    if (SchemaPropertyGuards.isEnum(this.schema)) {
-      return ok(this.schema.values);
-    }
-    return ErrorHandler.schema({
-      operation: "getEnumValues",
-      method: "validate",
-    }).enumNotDefined();
-  }
-
-  /**
-   * Get the raw schema property (for backward compatibility)
-   */
-  getRawSchema(): SchemaProperty {
-    return this.schema;
-  }
-
-  /**
-   * Extract items schema from an array schema property using totality principles.
-   * Uses exhaustive pattern matching instead of unsafe type assertions.
-   */
-  private extractItemsSchema(
-    schemaProperty: SchemaProperty,
-  ): Result<SchemaProperty, SchemaError & { message: string }> {
-    if (!SchemaPropertyGuards.isArray(schemaProperty)) {
-      return ErrorHandler.schema({
-        operation: "extractItemsSchema",
-        method: "validate",
-      }).invalid(
-        `Schema of kind '${schemaProperty.kind}' does not define items for array type`,
-      );
-    }
-
-    // Handle $ref items (should not be processed directly)
-    if (isRefSchema(schemaProperty.items)) {
-      return ErrorHandler.schema({
-        operation: "extractItemsSchema",
-        method: "ref",
-      }).refResolutionFailed(
-        "items",
-        "Array items reference unresolved $ref - use resolved schema",
-      );
-    }
-
-    return ok(schemaProperty.items);
-  }
-
-  /**
-   * Find property at given path using exhaustive pattern matching
-   * Replaces unsafe property access with totality-compliant navigation
-   */
-  findProperty(
-    path: string,
-  ): Result<SchemaProperty, SchemaError & { message: string }> {
-    const parts = path.split(".");
-    let current: SchemaProperty = this.schema;
-
-    for (const part of parts) {
-      if (part === "[]") {
-        // Use safe extraction with exhaustive pattern matching
-        const itemsResult = this.extractItemsSchema(current);
-        if (!itemsResult.ok) {
-          return ErrorHandler.schema({
-            operation: "navigateToPath",
-            method: "extractItems",
-          }).propertyNotFound(
-            path,
-          );
-        }
-        current = itemsResult.data;
-      } else {
-        // Navigate to property using exhaustive switch
-        const navigationResult = this.navigateToProperty(current, part);
-        if (!navigationResult.ok) {
-          return ErrorHandler.schema({
-            operation: "navigateToPath",
-            method: "navigate",
-          }).propertyNotFound(
-            path,
-          );
-        }
-        current = navigationResult.data;
+    const formatExtension = this.schema["x-template-format"];
+    if (typeof formatExtension === "string") {
+      if (
+        formatExtension === "json" || formatExtension === "yaml" ||
+        formatExtension === "markdown"
+      ) {
+        return ok(formatExtension);
       }
     }
-
-    return ok(current);
+    return ok("json"); // default format
   }
 
-  /**
-   * Navigate to a property within a schema using exhaustive pattern matching
-   */
-  private navigateToProperty(
-    schema: SchemaProperty,
-    propertyName: string,
-  ): Result<SchemaProperty, SchemaError & { message: string }> {
-    // Exhaustive switch on schema kind - no default needed
-    switch (schema.kind) {
-      case "object":
-        if (schema.properties[propertyName]) {
-          return ok(schema.properties[propertyName]);
-        }
-        return ErrorHandler.schema({
-          operation: "navigateToProperty",
-          method: "object",
-        }).propertyNotFound(
-          propertyName,
-        );
+  hasFrontmatterPart(): boolean {
+    const hasPart = this.schema["x-frontmatter-part"];
+    return hasPart === true;
+  }
 
-      case "string":
-      case "number":
-      case "integer":
-      case "boolean":
-      case "array":
-      case "ref":
-      case "enum":
-      case "null":
-      case "any":
-        return ErrorHandler.schema({
-          operation: "navigateToProperty",
-          method: "validate",
-        }).propertyNotFound(
-          propertyName,
-        );
+  getDerivedFrom(): Result<string, SchemaError & { message: string }> {
+    const derivedFrom = this.schema["x-derived-from"];
+    if (typeof derivedFrom === "string") {
+      return ok(derivedFrom);
     }
+    return err({
+      kind: "DerivedFromNotDefined",
+      message: "x-derived-from extension not found",
+    });
   }
 
-  /**
-   * Check if this schema matches a specific kind
-   */
-  isKind<K extends SchemaProperty["kind"]>(
-    kind: K,
-  ): this is SchemaDefinition & {
-    schema: Extract<SchemaProperty, { kind: K }>;
-  } {
-    return this.schema.kind === kind;
-  }
-
-  /**
-   * Get description from extensions
-   */
-  getDescription(): string | undefined {
-    return this.schema.extensions?.description;
-  }
-
-  /**
-   * Check if schema has any extensions
-   */
-  hasExtensions(): boolean {
-    return this.schema.extensions !== undefined;
-  }
-
-  /**
-   * Get all extensions
-   */
-  getExtensions(): SchemaExtensions | undefined {
-    return this.schema.extensions;
+  isDerivedUnique(): boolean {
+    const unique = this.schema["x-derived-unique"];
+    return unique === true;
   }
 }

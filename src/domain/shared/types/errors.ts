@@ -217,7 +217,7 @@ export interface ErrorWithMessage {
 
 export interface ErrorWithContext {
   readonly message: string;
-  readonly context: import("./error-context.ts").ErrorContext;
+  readonly context?: unknown;
 }
 
 export const createError = <T extends DomainError>(
@@ -230,7 +230,7 @@ export const createError = <T extends DomainError>(
 
 export const createContextualError = <T extends DomainError>(
   error: T,
-  context: import("./error-context.ts").ErrorContext,
+  context: Record<string, unknown>,
   customMessage?: string,
 ): T & ErrorWithContext => ({
   ...error,
@@ -241,11 +241,11 @@ export const createContextualError = <T extends DomainError>(
 // Enhanced error creation with automatic context inclusion
 export const createEnhancedError = <T extends DomainError>(
   error: T,
-  context: import("./error-context.ts").ErrorContext,
+  context: Record<string, unknown>,
   customMessage?: string,
 ): T & ErrorWithContext => {
   const baseMessage = customMessage || getDefaultMessage(error);
-  const contextInfo = context.toString();
+  const contextInfo = JSON.stringify(context);
   const enhancedMessage = `${baseMessage} | Context: ${contextInfo}`;
 
   return {

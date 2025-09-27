@@ -258,7 +258,7 @@ export class ThreeDomainOrchestrator {
           let itemTemplate = itemsTemplateResult.data!;
           // 各アイテムでテンプレート変数を解決
           itemTemplate = itemTemplate.replace(
-            /\{(\w+(?:\.\w+)*)\}/g,
+            /\{\{(\w+(?:\.\w+)*)\}\}/g,
             (match, variablePath) => {
               const variableResult = this.dataProcessingDomain
                 .resolveVariablePath(variablePath, true);
@@ -278,20 +278,105 @@ export class ThreeDomainOrchestrator {
       }
     }
 
-    // 通常の変数解決
-    processedTemplate = processedTemplate.replace(
-      /\{(\w+(?:\.\w+)*)\}/g,
-      (match, variablePath) => {
-        const variableResult = this.dataProcessingDomain.resolveVariablePath(
-          variablePath,
-          false,
+    // Handle Nunjucks-style templates with {% for %} loops
+    if (processedTemplate.includes("{% for article in articles %}")) {
+      // Replace the Nunjucks loop with item processing
+      const forLoopMatch = processedTemplate.match(
+        /\{% for article in articles %\}([\s\S]*?)\{% endfor %\}/,
+      );
+      if (forLoopMatch) {
+        const itemTemplate = forLoopMatch[1];
+        const processedItems = frontmatterData.map((item) => {
+          let processedItem = itemTemplate;
+          // Replace {{article.property}} with actual values
+          processedItem = processedItem.replace(
+            /\{\{article\.(\w+)\}\}/g,
+            (match, prop) => {
+              if (item && typeof item === "object" && prop in item) {
+                return String((item as any)[prop] ?? "");
+              }
+              return match;
+            },
+          );
+          // Handle {{articles.length}}
+          processedItem = processedItem.replace(
+            /\{\{articles\.length\}\}/g,
+            String(frontmatterData.length),
+          );
+          return processedItem;
+        });
+
+        // Replace the entire loop with processed items
+        processedTemplate = processedTemplate.replace(
+          /\{% for article in articles %\}[\s\S]*?\{% endfor %\}/,
+          processedItems.join(""),
         );
-        if (variableResult.ok) {
-          return String(variableResult.data ?? "");
-        }
-        return match;
-      },
-    );
+      }
+
+      // Handle remaining template variables outside the loop (like {{category}})
+      processedTemplate = processedTemplate.replace(
+        /\{\{(\w+(?:\.\w+)*)\}\}/g,
+        (match, variablePath) => {
+          if (frontmatterData.length > 0) {
+            const firstItem = frontmatterData[0];
+            if (
+              firstItem && typeof firstItem === "object" &&
+              variablePath in firstItem
+            ) {
+              return String((firstItem as any)[variablePath] ?? "");
+            }
+          }
+
+          // Handle special variables
+          if (variablePath === "articles.length") {
+            return String(frontmatterData.length);
+          }
+
+          return match;
+        },
+      );
+    } // If we have multiple items and simple template variables, process template for each item
+    else if (
+      frontmatterData.length > 1 &&
+      /\{\{(\w+(?:\.\w+)*)\}\}/.test(processedTemplate)
+    ) {
+      // Process template for each item and concatenate results
+      const processedItems = frontmatterData.map((item, _index) => {
+        let itemTemplate = processedTemplate;
+        itemTemplate = itemTemplate.replace(
+          /\{\{(\w+(?:\.\w+)*)\}\}/g,
+          (match, variablePath) => {
+            if (item && typeof item === "object" && variablePath in item) {
+              const value = (item as any)[variablePath];
+              return String(value ?? "");
+            }
+            return match;
+          },
+        );
+        return itemTemplate;
+      });
+      processedTemplate = processedItems.join("\n\n");
+    } else {
+      // 通常の変数解決 (single item)
+      processedTemplate = processedTemplate.replace(
+        /\{\{(\w+(?:\.\w+)*)\}\}/g,
+        (match, variablePath) => {
+          const variableResult = this.dataProcessingDomain.resolveVariablePath(
+            variablePath,
+            false,
+          );
+          if (variableResult.ok) {
+            const resolvedValue = variableResult.data;
+            // Handle array data specially - if it's an array and we're looking for content, format it properly
+            if (Array.isArray(resolvedValue)) {
+              return JSON.stringify(resolvedValue, null, 2);
+            }
+            return String(resolvedValue ?? "");
+          }
+          return match;
+        },
+      );
+    }
 
     try {
       // JSON形式として解析を試行

@@ -12,7 +12,13 @@ async function main() {
   const cli = cliResult.data;
   const args = Deno.args;
 
-  const result = await cli.run(args);
+  const cliArgs = {
+    schema: args[0] || "",
+    input: args[1] || "",
+    output: args[2],
+  };
+
+  const result = await cli.processCommand(cliArgs);
 
   if (!result.ok) {
     const errorMessage =

@@ -1,10 +1,2 @@
-export { TemplatePath } from "./value-objects/template-path.ts";
-export { VariableMapping } from "./value-objects/variable-mapping.ts";
-export { Template } from "./entities/template.ts";
-export { TemplateRenderer } from "./renderers/template-renderer.ts";
-export { TemplateIRBuilder } from "./value-objects/template-intermediate-representation.ts";
-export { TemplateContextBuilder } from "./value-objects/template-context.ts";
-export type { Variable } from "./value-objects/variable-mapping.ts";
-export type { OutputFormat } from "./entities/template.ts";
-export type { TemplateIntermediateRepresentation } from "./value-objects/template-intermediate-representation.ts";
-export type { TemplateContext } from "./value-objects/template-context.ts";
+// Template domain exports
+export { TemplateManagementDomainService } from "./services/template-management-domain-service.ts";
