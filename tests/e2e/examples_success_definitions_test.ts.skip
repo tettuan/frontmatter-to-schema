@@ -1,0 +1,401 @@
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
+import { join } from "jsr:@std/path";
+import { exists } from "jsr:@std/fs";
+import { executeCliCommand } from "./helpers/e2e_test_helper.ts";
+
+/**
+ * E2E Tests for Examples Success Definitions
+ *
+ * These tests validate the success criteria documented in each example's README.md:
+ * - examples/0.basic/README.md
+ * - examples/1.articles/README.md
+ * - examples/2.climpt/README.md
+ * - examples/3.docs/README.md
+ *
+ * NOTE: Some features like x-derived-from and x-jmespath-filter are not working as expected.
+ * These tests document the expected behavior based on the success definitions.
+ */
+
+Deno.test("Examples Success Definitions", async (t) => {
+  const projectRoot = Deno.cwd();
+
+  await t.step("0.basic - Basic functionality demonstration", async () => {
+    const exampleDir = join(projectRoot, "examples", "0.basic");
+    const outputPath = join(exampleDir, "output.json");
+
+    // Execute the example
+    const result = await executeCliCommand([
+      join(exampleDir, "registry_schema.json"),
+      join(exampleDir, "command*.md"),
+      outputPath,
+      "--verbose"
+    ], { cwd: projectRoot });
+
+    // Verify execution success
+    assert(result.ok, "0.basic should execute successfully");
+
+    // Verify output file exists
+    assert(await exists(outputPath), "Output file should be created");
+
+    // Read and parse output
+    const outputContent = await Deno.readTextFile(outputPath);
+    const output = JSON.parse(outputContent);
+
+    // Success Definition 1: Frontmatter extraction success
+    assertExists(output.tools, "tools object should exist");
+    assertExists(output.tools.commands, "commands array should exist");
+    assertEquals(output.tools.commands.length, 2, "Should have 2 commands from 2 markdown files");
+
+    // Success Definition 2: Schema validation success
+    assertEquals(output.version, "1.0.0", "Version should be 1.0.0");
+    assertEquals(output.description, "Basic command registry example", "Description should match");
+
+    // Success Definition 3: x-frontmatter-part processing success
+    const command1 = output.tools.commands.find((c: any) => c.c1 === "git");
+    const command2 = output.tools.commands.find((c: any) => c.c1 === "spec");
+    assertExists(command1, "Git command should exist");
+    assertExists(command2, "Spec command should exist");
+
+    // Success Definition 4: x-derived-from processing success
+    assertExists(output.tools.availableConfigs, "availableConfigs should exist");
+    assertEquals(
+      output.tools.availableConfigs.sort(),
+      ["git", "spec"].sort(),
+      "availableConfigs should contain unique c1 values"
+    );
+
+    // Success Definition 5: Template expansion success
+    assertEquals(command1.title, "Create Git Branch", "Git command title should match");
+    assertEquals(command2.title, "Analyze Quality Metrics", "Spec command title should match");
+  });
+
+  await t.step("1.articles - Article management system", async () => {
+    const exampleDir = join(projectRoot, "examples", "1.articles");
+    const outputPath = join(exampleDir, "articles-index-output.yml");
+
+    // Execute the example
+    const result = await executeCliCommand([
+      join(exampleDir, "articles_schema.json"),
+      join(exampleDir, "docs/**/*.md"),
+      outputPath,
+      "--verbose"
+    ], { cwd: projectRoot });
+
+    // Verify execution success
+    assert(result.ok, "1.articles should execute successfully");
+
+    // Verify output file exists
+    assert(await exists(outputPath), "Output file should be created");
+
+    // Read output
+    const outputContent = await Deno.readTextFile(outputPath);
+
+    // Success Definition 1: Frontmatter extraction from 20 articles
+    assert(outputContent.includes("articles:"), "Should have articles section");
+
+    // Count the number of articles processed
+    const articleMatches = outputContent.match(/- title:/g);
+    assert(articleMatches !== null, "Should have article entries");
+    assertEquals(articleMatches.length, 20, "Should process 20 articles");
+
+    // Success Definition 2: Required fields extraction
+    assert(outputContent.includes("title:"), "Articles should have title");
+    assert(outputContent.includes("author:"), "Articles should have author");
+    assert(outputContent.includes("date:"), "Articles should have date");
+    assert(outputContent.includes("categories:"), "Articles should have categories");
+    assert(outputContent.includes("tags:"), "Articles should have tags");
+
+    // Success Definition 3: x-frontmatter-part processing
+    assert(outputContent.includes("version: \"1.0.0\""), "Version should be 1.0.0");
+    assert(outputContent.includes("description: \"Article Collection\""), "Description should match");
+  });
+
+  await t.step("2.climpt - Command registry system", async () => {
+    const exampleDir = join(projectRoot, "examples", "2.climpt");
+    const outputPath = join(exampleDir, "climpt-registry-output.json");
+
+    // Execute the example
+    const result = await executeCliCommand([
+      join(exampleDir, "registry_schema.json"),
+      join(exampleDir, "prompts/**/*.md"),
+      outputPath,
+      "--verbose"
+    ], { cwd: projectRoot });
+
+    // Verify execution success
+    assert(result.ok, "2.climpt should execute successfully");
+
+    // Verify output file exists
+    assert(await exists(outputPath), "Output file should be created");
+
+    // Read and parse output
+    const outputContent = await Deno.readTextFile(outputPath);
+    const output = JSON.parse(outputContent);
+
+    // Success Definition 1: Process 31 commands
+    assertExists(output.tools, "tools object should exist");
+    assertExists(output.tools.commands, "commands array should exist");
+    assertEquals(output.tools.commands.length, 31, "Should have 31 commands");
+
+    // Success Definition 2: Schema validation - all required fields
+    for (const command of output.tools.commands) {
+      assertExists(command.c1, "Each command should have c1");
+      assertExists(command.c2, "Each command should have c2");
+      assertExists(command.c3, "Each command should have c3");
+      assertExists(command.description, "Each command should have description");
+      assertExists(command.usage, "Each command should have usage");
+      assertExists(command.options, "Each command should have options");
+    }
+
+    // Success Definition 3: Valid c1 categories
+    const validCategories = ["git", "spec", "test", "code", "docs", "meta", "build", "debug", "design"];
+    for (const command of output.tools.commands) {
+      assert(
+        validCategories.includes(command.c1),
+        `c1 '${command.c1}' should be a valid category`
+      );
+    }
+
+    // Success Definition 4: x-derived-from - availableConfigs
+    assertExists(output.tools.availableConfigs, "availableConfigs should exist");
+    assertEquals(
+      output.tools.availableConfigs.length,
+      8,
+      "Should have 8 unique c1 categories"
+    );
+
+    const expectedConfigs = ["build", "debug", "design", "docs", "git", "meta", "spec", "test"];
+    assertEquals(
+      output.tools.availableConfigs.sort(),
+      expectedConfigs,
+      "availableConfigs should match expected categories"
+    );
+
+    // Success Definition 5: Template expansion
+    assertEquals(output.version, "1.0.0", "Version should be 1.0.0");
+    assertEquals(output.description, "Command Registry", "Description should match");
+  });
+
+  await t.step("3.docs - Traceability management system", async () => {
+    const exampleDir = join(projectRoot, "examples", "3.docs");
+    const indexDir = join(exampleDir, "index");
+
+    // Create index directory if it doesn't exist
+    if (!await exists(indexDir)) {
+      await Deno.mkdir(indexDir, { recursive: true });
+    }
+
+    const levels = ["req", "spec", "design", "impl", "test"];
+    const processedLevels: Record<string, any> = {};
+
+    // Process each level
+    for (const level of levels) {
+      const schemaPath = join(exampleDir, `index_${level}_schema.json`);
+      const outputPath = join(indexDir, `${level}_index.json`);
+
+      // Execute the example for this level
+      const result = await executeCliCommand([
+        schemaPath,
+        join(exampleDir, "docs/**/*.md"),
+        outputPath,
+        "--verbose"
+      ], { cwd: projectRoot });
+
+      // Verify execution success
+      assert(result.ok, `3.docs ${level} level should execute successfully`);
+
+      // Verify output file exists
+      assert(await exists(outputPath), `${level}_index.json should be created`);
+
+      // Read and parse output
+      const outputContent = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(outputContent);
+      processedLevels[level] = output;
+
+      // Success Definition 1: Schema validation
+      assertEquals(output.version, "1.0.0", `${level}: Version should be 1.0.0`);
+      assertExists(output.level, `${level}: Should have level field`);
+      assertEquals(output.level, level, `${level}: Level should match`);
+      assertExists(output.traceability, `${level}: Should have traceability array`);
+    }
+
+    // Success Definition 2: Level filtering with x-jmespath-filter
+    // Each level should only contain items matching its level
+    for (const level of levels) {
+      const output = processedLevels[level];
+      for (const item of output.traceability) {
+        assertEquals(
+          item.id.level,
+          level,
+          `All items in ${level}_index.json should have level='${level}'`
+        );
+      }
+    }
+
+    // Success Definition 3: Traceability structure validation
+    // At least one item should exist for req level
+    assert(
+      processedLevels.req.traceability.length > 0,
+      "Should have at least one requirement level item"
+    );
+
+    // Validate traceability item structure
+    const sampleItem = processedLevels.req.traceability[0];
+    assertExists(sampleItem.id, "Traceability item should have id");
+    assertExists(sampleItem.id.full, "ID should have full field");
+    assertExists(sampleItem.id.level, "ID should have level field");
+    assertExists(sampleItem.id.scope, "ID should have scope field");
+    assertExists(sampleItem.id.semantic, "ID should have semantic field");
+
+    // Success Definition 4: x-flatten-arrays processing
+    // Items should be properly flattened from nested arrays
+    let totalItems = 0;
+    for (const level of levels) {
+      totalItems += processedLevels[level].traceability.length;
+    }
+    assert(totalItems > 0, "Should have processed traceability items");
+
+    // Success Definition 5: Template expansion
+    for (const level of levels) {
+      const output = processedLevels[level];
+      const expectedDescription: Record<string, string> = {
+        req: "Requirement level traceability IDs",
+        spec: "Specification level traceability IDs",
+        design: "Design level traceability IDs",
+        impl: "Implementation level traceability IDs",
+        test: "Test level traceability IDs"
+      };
+      assertEquals(
+        output.description,
+        expectedDescription[level],
+        `${level}: Description should match expected`
+      );
+    }
+  });
+});
+
+/**
+ * Individual success criteria tests for detailed validation
+ */
+Deno.test("Example Success Criteria - Detailed Validation", async (t) => {
+  const projectRoot = Deno.cwd();
+
+  await t.step("Validate x-derived-from directive processing", async () => {
+    const exampleDir = join(projectRoot, "examples", "0.basic");
+    const outputPath = join(exampleDir, "output.json");
+
+    // Ensure the example has been run
+    if (!await exists(outputPath)) {
+      await executeCliCommand([
+        join(exampleDir, "registry_schema.json"),
+        join(exampleDir, "command*.md"),
+        outputPath
+      ], { cwd: projectRoot });
+    }
+
+    const outputContent = await Deno.readTextFile(outputPath);
+    const output = JSON.parse(outputContent);
+
+    // Validate x-derived-from collected all c1 values
+    const c1Values = output.tools.commands.map((c: any) => c.c1);
+    const uniqueC1Values = [...new Set(c1Values)].sort();
+
+    assertEquals(
+      output.tools.availableConfigs.sort(),
+      uniqueC1Values,
+      "x-derived-from should aggregate unique c1 values"
+    );
+  });
+
+  await t.step("Validate x-frontmatter-part array processing", async () => {
+    const exampleDir = join(projectRoot, "examples", "2.climpt");
+    const outputPath = join(exampleDir, "climpt-registry-output.json");
+
+    // Ensure the example has been run
+    if (!await exists(outputPath)) {
+      await executeCliCommand([
+        join(exampleDir, "registry_schema.json"),
+        join(exampleDir, "prompts/**/*.md"),
+        outputPath
+      ], { cwd: projectRoot });
+    }
+
+    const outputContent = await Deno.readTextFile(outputPath);
+    const output = JSON.parse(outputContent);
+
+    // Each markdown file should contribute one command
+    assertEquals(
+      output.tools.commands.length,
+      31,
+      "x-frontmatter-part should collect all markdown files into array"
+    );
+
+    // Validate each command has complete structure
+    for (let i = 0; i < output.tools.commands.length; i++) {
+      const command = output.tools.commands[i];
+      assertExists(command.c1, `Command ${i}: should have c1`);
+      assertExists(command.c2, `Command ${i}: should have c2`);
+      assertExists(command.c3, `Command ${i}: should have c3`);
+      assertExists(command.options, `Command ${i}: should have options`);
+    }
+  });
+
+  await t.step("Validate x-jmespath-filter level filtering", async () => {
+    const exampleDir = join(projectRoot, "examples", "3.docs");
+    const indexDir = join(exampleDir, "index");
+
+    // Test req level filtering
+    const reqOutputPath = join(indexDir, "req_index.json");
+    if (await exists(reqOutputPath)) {
+      const reqContent = await Deno.readTextFile(reqOutputPath);
+      const reqOutput = JSON.parse(reqContent);
+
+      // All items should be req level only
+      for (const item of reqOutput.traceability) {
+        assertEquals(
+          item.id.level,
+          "req",
+          "JMESPath filter should only include req level items"
+        );
+      }
+    }
+
+    // Test spec level filtering
+    const specOutputPath = join(indexDir, "spec_index.json");
+    if (await exists(specOutputPath)) {
+      const specContent = await Deno.readTextFile(specOutputPath);
+      const specOutput = JSON.parse(specContent);
+
+      // All items should be spec level only
+      for (const item of specOutput.traceability) {
+        assertEquals(
+          item.id.level,
+          "spec",
+          "JMESPath filter should only include spec level items"
+        );
+      }
+    }
+  });
+
+  await t.step("Validate template {@items} expansion", async () => {
+    const exampleDir = join(projectRoot, "examples", "0.basic");
+    const outputPath = join(exampleDir, "output.json");
+
+    if (await exists(outputPath)) {
+      const outputContent = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(outputContent);
+
+      // {@items} should expand to actual command objects
+      assertExists(output.tools.commands, "Commands should be expanded from {@items}");
+      assert(Array.isArray(output.tools.commands), "Commands should be an array");
+      assert(output.tools.commands.length > 0, "Commands array should not be empty");
+
+      // Each item should have the expected structure
+      for (const command of output.tools.commands) {
+        assert(typeof command === "object", "Each command should be an object");
+        assertExists(command.c1, "Command should have c1 field");
+        assertExists(command.description, "Command should have description field");
+      }
+    }
+  });
+});

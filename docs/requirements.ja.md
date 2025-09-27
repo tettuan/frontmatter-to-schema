@@ -1,651 +1,413 @@
 # 要求事項
 
-1. マークダウンのフロントマターを抽出し、解析する
-2. フロントマターの柔軟性を保つため、Schemaに基づきTypeScriptによる構造化処理を使う（変数名の名寄せ）
-3. 解析した結果をテンプレートフォーマットへ当て込み、書き出す
+## システムの基本要求
 
-## 目的
+本システムは、多様なMarkdownファイルのフロントマターから統一的な索引を生成するシステムである。以下の要求を満たすこと：
 
-Markdownファイルの索引(Index)を作るためである。
-様々な形式の、様々な用途のMarkdownファイルがあり、多様なフロントマター定義が存在する。
-厳格なSchema定義を用いて運用されていない中で、索引作りは難しい。
-そこで、事後的に（FrontMatter入力時Validationや事前定義ではなく、作成されたMarkdownに対し）索引化する。
+1. **フロントマターの抽出と解析**:
+   Markdownファイルからフロントマターを抽出し、Schema定義に基づいて解析する
+2. **柔軟な構造対応**:
+   事後的に作成された多様なフロントマター構造に対応し、統一的な処理を行う
+3. **テンプレート駆動の出力**:
+   解析結果をテンプレートに基づいて任意の形式で出力する
 
-## 背景
+## 目的と背景
 
-その時々で、柔軟に運用できるメリットが、Markdownやフロントマターには存在する。
-一方、厳格な型定義を通すことなく作成されるため、入力方法や名称も運用者依存になりがちである。
-さらに、蓄積された過去のMarkdownを含めると、全てを事前定義して運用することは難しい。
-こうした課題に対応する。
+### システムの目的
 
-## 柔軟性を確保する理由
+- 多様な形式のMarkdownファイルから統一的な索引を生成する
+- 事前の厳格なSchema定義なしに作成された既存のMarkdownファイルに対応する
+- 運用者依存の入力方法や名称の多様性を吸収する
 
-特定のパターンのみでハードコーディングする設計では、Schema変更に対応できない。
-そのため、アプリケーションはSchemaとテンプレートを外部から読み込み、差し代え前提でSchema定義を用い、テンプレートへ出力する。
+### 解決すべき課題
 
-これにより、索引の仕様が変わっても
-アプリケーションの変更を伴うこと無く、索引定義だけ変えられる。
+- フロントマターの自由な記述形式と索引生成の規則性の両立
+- 過去に蓄積されたMarkdownファイルへの対応
+- Schema変更時のアプリケーション改修コストの削減
 
-また、プロンプト集の索引を作るケース、記事の索引を作るケースなども、Schemaとテンプレートのセットを差し替え、Markdownのファイルが置かれたPathや索引出力先を切り替えるだけで、同じアプリケーションで多様な索引作りが可能となる。
+## アーキテクチャ要求
 
-これが柔軟性確保の理由であり、「Schema指定にすることが、重要な要求事項である」ことの理由である。
+### ドメイン境界の定義
 
-## Schemaとテンプレートの役割
+システムは以下の3つの独立したドメインに分離されること：
 
-Schemaはフロントマターの解析構造を決め、テンプレートはフロントマターから得られた値の出力形式を決める。Schema解析結果が、テンプレートの変数へ埋め込まれる。
+#### 1. フロントマター解析ドメイン
 
-Schemaは、利用すべきテンプレートファイル名を有する。
-テンプレートは、フロントマターやSchema定義に依存せず、形式を決められる。
+**責務**: Markdownファイルからフロントマターデータを抽出する
 
-**重要な分離原則**:
+**要求**:
 
-- `$ref`はJSON Schemaの標準機能であり、スキーマ構造の再利用にのみ使用される
-- テンプレート指定は`x-template`（コンテナ）と`x-template-items`（アイテム）でのみ行う
-- 両者は完全に独立しており、`$ref`はテンプレート処理に影響しない
+- Markdownファイルの一覧を受け取り、各ファイルを処理する
+- `x-frontmatter-part`で指定された階層をフロントマター処理の起点とする
+- 抽出したデータを構造化して保持する
+- 外部からの直接アクセスは許可しない
 
-### テンプレート処理の基本原則
+#### 2. テンプレート管理ドメイン
 
-**重要**:
-テンプレートは出力フォーマットを完全に定義する。テンプレートに記載されたもののみが出力される。
+**責務**: 出力テンプレートの管理と提供
 
-- テンプレートファイルに書かれた内容がそのまま出力フォーマットとなる
-- {variable.path}形式の変数のみが実際の値に置換される
-- {@items}形式は配列展開記法で、x-template-itemsで指定されたテンプレートを各アイテムに適用する
-- Schemaによる構造の補完や追加は一切行われない
-- x-frontmatter-part配列も同じルールに従う（特殊処理なし）
+**要求**:
 
-### `{@items}`展開の確定タイミング
+- `x-template`: メインコンテナのテンプレートファイルを管理する
+- `x-template-items`: 配列要素展開用のテンプレートファイルを管理する
+- `x-template-format`: 出力形式の指定を管理する
+- 要求に応じてテンプレートファイルを提供する
 
-`{@items}`は全フロントマターファイルの処理完了後に確定される：
+#### 3. データ処理指示ドメイン
 
-#### 処理フロー
+**責務**: フロントマターデータの加工と提供
 
-1. **個別ファイル処理**: 各Markdownファイルのフロントマター処理
-   - フロントマター構造をそのまま保持（デフォルト）
-   - `x-flatten-arrays`指定時のみ配列フラット化
-   - 他のディレクティブ適用
-2. **ファイル間統合**: 全ファイル処理完了後
-   - `x-frontmatter-part: true`指定配列の統合
-   - `{@items}`配列の確定
-3. **テンプレート展開**: 統合完了後
-   - `x-template-items`指定テンプレートで各要素を展開
+**要求**:
 
-#### 重要な特性
+- フロントマター解析結果を受け取り、x-ディレクティブに基づいて処理する
+- すべてのデータアクセスを仲介し、処理済みデータのみを提供する
+- フロントマター解析ドメインへの直接アクセスを隠蔽する
+- Schema階層の要求に応じて適切なデータを返す
 
-- **遅延確定**: `{@items}`は最後に確定される
-- **全体統合**: 個別ファイルの結果を自動統合
-- **配列起点**: `x-frontmatter-part: true`配列が`{@items}`の元データ
-- **構造選択**: フラット化は`x-flatten-arrays`指定時のみ適用
+### データアクセス原則
 
-### 対応出力フォーマット
+システムは以下のデータアクセス原則を遵守すること：
 
-システムは以下の構造化されたフォーマットをサポートしており、テンプレートに応じて出力形式を決定する：
+1. **隠蔽原則**:
+   フロントマター解析結果への直接アクセスは禁止し、データ処理指示ドメインを経由する
+2. **処理済みデータの提供**:
+   x-ディレクティブ処理が完了したデータのみを外部に提供する
+3. **階層解釈の一貫性**: `type: "array"`の`items`プロパティは階層パスで省略する
 
-- **JSON** (`.json`): JavaScriptオブジェクト記法による構造化データ
-- **YAML** (`.yaml`, `.yml`): 人間が読みやすい構造化データ形式
-- **Markdown** (`.md`): マークアップ文書フォーマット
-- **XML** (`.xml`): 拡張マークアップ言語による構造化データ
+## Schema定義の要求
 
-# 成果物
+### Schema構造の要求
 
-1. 要求の整理と要件化
-2. 機能要件、非機能要件の分離
-3. ドメイン境界線の設計資料の作成
-4. 実装された解析のスクリプトと堅牢なテスト
-5. TypeScript処理ロジック（Schemaの$refにも対応し、再帰的に解析する）
-6. examples/ に実例を使った実行例が存在する
+システムは以下のSchema構造要求を満たすこと：
 
-# 解析の手順
+1. **構造定義の分離**:
+   Schemaはフロントマター構造の定義とテンプレート指定を明確に分離する
+2. **標準準拠**: JSON Schema
+   Draft-07に準拠し、`$ref`による構造の再利用を可能にする
+3. **テンプレート指定の一元化**: テンプレートファイルの指定はSchema内で完結する
 
-一覧： まず、マークダウンファイルの一覧を作る。(成果A)
-また、最終成果物を空の状態でつくる（最終成果物Z）
+### Schema機能の分離原則
 
-各マークダウンファイル： 成果Aのなかの繰り返し処理に相当する。
-各ループ内では、マークダウンファイル1つずつを処理する。ループ処理は、マークダウンファイル全件に対して実施する。
+システムは以下の分離原則を遵守すること：
 
-最初にフロントマター部分を抽出する。これはTypeScriptで実施する。(成果B)
-成果Bから、TypeScriptで解析する。（成果C）
-成果Cを元にTypeScriptでSchema構造データで保持する（成果D）
-成果Dから中間表現（IR: Intermediate
-Representation）を構築する。IRは変数のスコープ管理と正規化を担う。（成果D')
-成果D'を元にTemplateContextを生成し、テンプレート変数への値の配置を行う。（成果E）
-成果Eを統合し、最終成果物Zを得る。成果物Zは、Schemaで指定されたx-templateとx-template-items
-を用いて得られた成果Eを統合したものである。なお、$ref
-はスキーマ構造の再利用にのみ使用され、テンプレート処理とは独立している。
-最後に、成最終成果物Zを保存する。
+- **`$ref`の役割**: スキーマ構造の再利用専用とし、テンプレート処理から独立させる
+- **テンプレート指定の役割**:
+  `x-template`と`x-template-items`でのみ行い、`$ref`と混在させない
+- **処理の独立性**: Schema構造の解釈とテンプレート処理を独立したプロセスとする
 
-一覧のなかで、どの配列構造が各マークダウンファイルの処理に用いれるかは、`"x-frontmatter-part": true`
-で判定する。
+## テンプレート処理の要求
 
-## フロントマター処理機能
+### 基本要求
 
-フロントマターの多様な構造に対応し、テンプレート処理用のデータを準備する機能を提供する。
+システムのテンプレート処理は以下の要求を満たすこと：
 
-### 基本ディレクティブ
+1. **完全性**: テンプレートファイルの内容のみが出力を決定する
+2. **変数置換**: `{variable.path}`形式の変数を実際の値に置換する
+3. **配列展開**: `{@items}`記法により配列要素を展開する
+4. **非侵襲性**: Schemaによる出力構造の補完や追加を行わない
 
-#### `x-frontmatter-part: true`
+### テンプレート変数の解決要求
 
-このディレクティブが設定された配列が、各Markdownファイルのフロントマター処理の起点となる。
+システムは以下の変数解決規則を実装すること：
 
-#### `x-flatten-arrays` (オプション)
+1. **起点の区別**:
+   - `x-template`内の変数: Schemaのrootを起点とする
+   - `x-template-items`内の変数: `x-frontmatter-part`指定階層を起点とする
 
-フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成する。
+2. **階層パスの解釈**:
+   - ドット記法により階層を表現する（例：`id.full`）
+   - 配列の`items`プロパティは階層パスで省略する
+
+### 処理タイミングの要求
+
+システムは以下の処理順序を保証すること：
+
+1. **個別ファイル処理フェーズ**:
+   - 各Markdownファイルのフロントマターを個別に処理する
+   - デフォルトで構造を保持し、ディレクティブ指定時のみ変換する
+
+2. **統合フェーズ**:
+   - 全ファイル処理完了後に`x-frontmatter-part`配列を統合する
+   - `{@items}`配列を確定する
+
+3. **展開フェーズ**:
+   - 統合されたデータに対してテンプレートを適用する
+   - `x-template-items`により各要素を展開する
+
+## 出力形式の要求
+
+システムは以下の出力形式をサポートすること：
+
+- **JSON** (`.json`): 構造化データとしてのJSON形式
+- **YAML** (`.yaml`, `.yml`): 人間可読な構造化データ形式
+- **Markdown** (`.md`): ドキュメント形式
+- **XML** (`.xml`): 構造化マークアップ形式
+
+出力形式の決定はテンプレートとSchemaの指定に基づくこと。
+
+## システム成果物の要求
+
+システムは以下の成果物を提供すること：
+
+1. **設計文書**: ドメイン境界と責務分離を明確にした設計資料
+2. **実装コード**: TypeScriptによる堅牢な処理システム
+3. **テストスイート**: 各ドメインの単体テストと統合テスト
+4. **実行例**: 実用的なユースケースを示す動作可能なサンプル
+5. **Schema対応**: JSON Schemaの`$ref`による再帰的な構造解析
+
+## 処理フローの要求
+
+### 初期化フェーズの要求
+
+システムは処理開始時に以下を実行すること：
+
+1. **Schema構造の読み取り**: 引数で指定されたSchemaファイルを解析する
+2. **ドメイン分離**: 3つの独立したドメインに処理を分解する
+   - フロントマター解析構造の把握
+   - テンプレート指定の把握
+   - 解析結果データ処理指示の把握
+3. **ファイル一覧の作成**: 処理対象のMarkdownファイル一覧を生成する
+
+### 個別ファイル処理の要求
+
+各Markdownファイルに対して以下の処理を実行すること：
+
+1. **フロントマター抽出**: Markdownファイルからフロントマター部分を抽出する
+2. **構造解析**: Schema定義に基づいてフロントマターを解析する
+3. **データ保持**: 解析結果を構造化データとして保持する
+4. **中間表現の構築**: 変数スコープと正規化を管理する中間表現を生成する
+5. **コンテキスト生成**: テンプレート変数への値配置を行う
+
+### 統合フェーズの要求
+
+全ファイル処理後に以下を実行すること：
+
+1. **データ統合**: `x-frontmatter-part`指定配列を統合する
+2. **ディレクティブ処理**: x-ディレクティブによるデータ変換を適用する
+3. **テンプレート適用**: `x-template`と`x-template-items`を用いて出力を生成する
+4. **最終出力**: 指定された形式で結果を保存する
+
+### 処理の独立性要求
+
+- `$ref`によるスキーマ構造の再利用はテンプレート処理と独立して動作すること
+- 各ドメインは他のドメインの実装詳細に依存しないこと
+
+## フロントマター処理の要求
+
+### 処理起点の定義
+
+システムは`x-frontmatter-part: true`が設定された配列をフロントマター処理の起点とすること。
+
+### 構造変換の要求
+
+システムは以下の構造変換機能を提供すること：
+
+1. **配列フラット化**: `x-flatten-arrays`指定時にネストした配列を平坦化する
+2. **構造保持**: ディレクティブ未指定時は元の構造を維持する
+3. **単一要素の配列化**: スカラー値を配列として扱う
+
+### 柔軟性の要求
+
+システムは以下の柔軟性を提供すること：
+
+1. **選択的適用**: フラット化の有無を用途に応じて選択可能にする
+2. **Schema再利用**: 同一Schemaで多様なフロントマター構造に対応する
+3. **段階的移行**: 既存構造を維持しつつ新機能を段階導入可能にする
+4. **一貫性の保証**: `{@items}`により統一的な配列展開を行う
+
+### 設計原則
+
+システムは「書き手の自由度と読み手の処理効率の両立」を実現すること：
+
+- フロントマター作成者は自然な構造を選択できる
+- Schema定義者は処理方針を宣言的に指定できる
+- データ消費者は一貫したインターフェースでアクセスできる
+
+## ディレクティブ仕様の要求
+
+### テンプレート制御ディレクティブ
+
+システムは以下のテンプレート制御ディレクティブをサポートすること：
+
+- **`x-template`**: メインコンテナのテンプレートファイルを指定
+- **`x-template-items`**: 配列要素展開時のテンプレートファイルを指定
+
+### データ抽出ディレクティブ
+
+システムは以下のデータ抽出機能を提供すること：
+
+- **`x-frontmatter-part`**: フロントマター処理の起点を示す
+- **`x-flatten-arrays`**: 配列構造のフラット化を指定
+
+### データ変換ディレクティブ
+
+システムは以下のデータ変換機能を提供すること：
+
+- **`x-derived-from`**: 他のプロパティから値を集約
+- **`x-derived-unique`**: 配列の重複要素を除去
+- **`x-jmespath-filter`**: JMESPath式によるデータフィルタリング
+
+### 処理タイミングの保証
+
+システムは以下の処理順序を保証すること：
+
+1. **個別処理**: 各ファイルの独立した処理
+2. **統合処理**: 全ファイル完了後の集約処理
+3. **展開処理**: テンプレートへの最終的な適用
+
+### 制約事項
+
+システムは以下の制約を遵守すること：
+
+- デフォルト値の生成や補完を行わない
+- 存在しないデータへの値の追加を行わない
+- 実際のフロントマターデータのみを処理対象とする
+
+## 抽象化の要求
+
+### システムの独立性
+
+システムは以下の独立性を保証すること：
+
+1. **実装の独立性**: 特定の実例やユースケースに依存しない汎用的な実装
+2. **Schema変更への耐性**: Schema構造の変更がアプリケーションコードに影響しない
+3. **設定による制御**: 処理の詳細は設定や引数で制御可能
+4. **宣言的な処理**: すべてのディレクティブは宣言的で処理順序を自動決定
+
+### 処理の一貫性
+
+システムは以下の一貫性を提供すること：
+
+1. **構造の多様性への対応**: 様々なフロントマター構造を統一的に処理
+2. **統一的な配列展開**: `{@items}`による一貫した配列処理
+3. **段階的な変換**: ディレクティブの組み合わせによる複雑な変換の実現
+
+## 検証の要求
+
+### 実行例の提供
+
+システムは`examples/`ディレクトリに実行可能な使用例を提供すること：
+
+- 実際のユースケースを示す動作可能なサンプル
+- 多様なSchema定義とテンプレートの組み合わせ例
+- 汎用性を実証する複数のシナリオ
+
+### テストの要求
+
+システムは`tests/`ディレクトリに包括的なテストスイートを提供すること：
+
+- 各ドメインの独立性を検証する単体テスト
+- ドメイン間の連携を検証する統合テスト
+- 実際のユースケースを検証するE2Eテスト
+
+## 要求理解のための具体例
+
+以下の具体例は、システムが満たすべき要求を正確に理解するための参考例である。システムはこれらの例に限定されず、同様の多様なユースケースに対応できること。
+
+### 例1: コマンドレジストリの索引生成
+
+**目的**: プロンプトファイルからコマンド定義の統一的な索引を生成する
+
+**入力構造の例**:
+
+- 対象: `.agent/climpt/prompts`配下のMarkdownファイル群
+- 各ファイルのフロントマターにコマンド定義（c1, c2, c3, description等）が記載
+
+**Schema定義の特徴**:
 
 ```json
 {
-  "items": {
-    "type": "array",
-    "x-frontmatter-part": true,
-    "x-flatten-arrays": "traceability",
-    "x-template-items": "item_template.json"
-  }
-}
-```
-
-### フラット化の動作原理
-
-`x-flatten-arrays`は**指定時のみ**適用される配列フラット化機能：
-
-| フロントマター構造                | 指定                                 | 処理結果                       |
-| --------------------------------- | ------------------------------------ | ------------------------------ |
-| `traceability: ["A", ["B", "C"]]` | `"x-flatten-arrays": "traceability"` | `["A", "B", "C"]`              |
-| `traceability: "D"`               | 同上                                 | `["D"]`                        |
-| `traceability: ["A", ["B", "C"]]` | **指定なし**                         | `["A", ["B", "C"]]` (構造維持) |
-| 複数ファイル                      | 指定時                               | 全要素が`{@items}`で展開       |
-| 複数ファイル                      | **指定なし**                         | 元構造のまま`{@items}`で展開   |
-
-### 実現できること
-
-1. **柔軟な構造対応**: フラット化の有無を用途に応じて選択可能
-2. **Schema再利用**: 同一Schemaで多様なフロントマター構造に対応
-3. **段階的移行**: 既存構造を維持しつつ新機能を段階導入
-4. **処理の一貫性**: `{@items}`による統一的な配列展開
-
-### 設計思想と`{@items}`の関係
-
-「**書き手の自由度と読み手の処理効率を両立**」
-
-- **フロントマター作成時**: 自然な構造を選択（配列、単一要素、ネスト等）
-- **Schema定義時**: `x-flatten-arrays`で処理方針を選択
-- **`{@items}`確定時**: 全ファイル処理後に統合された配列で展開
-- **テンプレート側**: 一貫した`{@items}`配列でアクセス
-
-### 完全な例：トレーサビリティID収集
-
-#### 多様なフロントマター入力
-
-```yaml
-# ファイル1: ネスト配列
-traceability: [["REQ-001", "REQ-002"], "REQ-003"]
-
-# ファイル2: 単一要素
-traceability: "REQ-004"
-```
-
-#### Schema定義（フラット化あり）
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "x-template": "trace_template.json",
-  "properties": {
-    "trace_ids": {
-      "type": "array",
-      "description": "フラット化されたトレーサビリティIDの一覧",
-      "x-frontmatter-part": true,
-      "x-flatten-arrays": "traceability",
-      "x-derived-unique": true,
-      "x-template-items": "trace_item_template.json"
-    }
-  }
-}
-```
-
-#### Schema定義（構造維持）
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "x-template": "trace_template.json",
-  "properties": {
-    "trace_data": {
-      "type": "array",
-      "description": "元構造を維持したトレーサビリティデータ",
-      "x-frontmatter-part": true,
-      "x-template-items": "trace_nested_template.json"
-    }
-  }
-}
-```
-
-#### 処理結果の比較
-
-**フラット化あり**:
-`["REQ-001", "REQ-002", "REQ-003", "REQ-004"]`として`{@items}`展開
-
-**構造維持**:
-`[[["REQ-001", "REQ-002"], "REQ-003"], "REQ-004"]`として`{@items}`展開
-
-この柔軟性により、用途に応じた最適な処理方法を選択できる。
-
-```text
-- 一覧
-  - コマンド繰り返し項目()
-```
-
-結果、以下のような構造になる。 出力:
-
-```text
-- 一覧
-  - コマンド
-  - コマンド
-  - コマンド
-```
-
-## 一覧の整形
-
-以下の整形処理がなされる。
-
-### Schemaとテンプレート
-
-利用するSchemaとテンプレート:　 registry_schema.json registry_template.json
-なお、一覧1個に対し、個別マークダウンファイルn個の関係である。registry_template.json　は
-registry_schema.json 内部で指定される。
-（つまりregistry_schema.jsonファイルは、役割的にはidnex_schema.jsonと同じ意味である。）
-
-### テンプレート指定機能
-
-Schemaは、出力時に用いるテンプレートを内部的に指定できる。以下の2つの指定方法がある：
-
-#### 1. コンテナテンプレート指定 (x-template)
-
-`"x-template": "registry_template.json"`
-
-メインのコンテナ構造を定義するテンプレートを指定する。
-
-#### 2. アイテムテンプレート指定 (x-template-items)
-
-`"x-template-items": "registry_command_template.json"`
-
-`{@items}`
-展開時に使用するテンプレートを指定する。この指定により、メインスキーマでアイテムテンプレートを集中管理でき、設定が簡素化される。
-
-#### テンプレート変数の参照方法
-
-テンプレートには、Schema階層を指定した変数名を記載しており、テンプレート処理は
-`{id.full}` 形式で参照した変数をSchema値で置換する。 例)
-`{id.full}`は、`req:api:deepresearch-3f8d2a#20250909` へ置換される。
-
-Schemaのroot階層は、"x-template" と並列の"properties"を起点とする。 {id.full}
-と記述する場合は
-
-```json
-"x-template": "registry_template.json",
-"x-template-items": "registry_command_template.json",
-"properties":
-  "id":
-    "full":
-```
-
-である。
-
-## データ抽出・変換ディレクティブ
-
-Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス。
-
-### テンプレート制御
-
-| ディレクティブ     | 型     | 説明                                   | 適用対象       |
-| ------------------ | ------ | -------------------------------------- | -------------- |
-| `x-template`       | string | コンテナテンプレートファイル指定       | ルートスキーマ |
-| `x-template-items` | string | `{@items}`展開時のアイテムテンプレート | ルートスキーマ |
-
-### データ抽出
-
-| ディレクティブ       | 型      | 説明                                           | 適用対象       |
-| -------------------- | ------- | ---------------------------------------------- | -------------- |
-| `x-frontmatter-part` | boolean | 各Markdownファイル処理の起点を指定             | 配列プロパティ |
-| `x-flatten-arrays`   | string  | 指定プロパティの配列をフラット化（オプション） | 配列プロパティ |
-
-**重要な制約事項**:
-
-- デフォルト値に関する機能は一切実装しません
-- JSON Schemaの`default`プロパティも使用しません
-- 値の生成、補完、初期値設定などの機能は実装対象外です
-- 本システムは実際のフロントマターデータの抽出と変換のみを行います
-- 存在しないデータに対する値の補完や生成は行いません
-
-### データ変換
-
-| ディレクティブ      | 型      | 説明                           | 適用対象         |
-| ------------------- | ------- | ------------------------------ | ---------------- |
-| `x-derived-from`    | string  | 他のプロパティから値を集約     | 任意のプロパティ |
-| `x-derived-unique`  | boolean | 配列の重複を削除               | 配列プロパティ   |
-| `x-jmespath-filter` | string  | JMESPath式によるフィルタリング | 配列プロパティ   |
-
-### 処理順序と確定タイミング
-
-ディレクティブは以下の順序で処理される：
-
-#### フェーズ1: 個別ファイル処理
-
-各Markdownファイルに対して順次実行：
-
-1. **フロントマター抽出**
-2. **配列フラット化**: `x-flatten-arrays`による個別配列処理（指定時のみ）
-3. **フィルタリング**: `x-jmespath-filter`適用
-4. **個別結果保存**: ファイル単位の処理結果を保持
-
-#### フェーズ2: 全体統合（全ファイル処理完了後）
-
-1. **配列統合**: `x-frontmatter-part: true`配列の統合
-2. **集約処理**: `x-derived-from`による値の集約
-3. **重複削除**: `x-derived-unique`適用
-4. **`{@items}`確定**: テンプレート展開用配列の確定
-
-#### フェーズ3: テンプレート展開
-
-1. **メインテンプレート**: `x-template`適用
-2. **アイテム展開**: `{@items}`を`x-template-items`で展開
-3. **変数置換**: `{variable.path}`形式の変数を実際の値に置換
-4. **最終出力**: 完成したフォーマットの出力
-
-### パス記法の詳細
-
-`x-derived-from`で使用可能なパス記法：
-
-| 記法         | 例                       | 説明                                   |
-| ------------ | ------------------------ | -------------------------------------- |
-| ドット記法   | `id.full`                | ネストされたプロパティアクセス         |
-| 配列展開     | `items[]`                | 配列の各要素を展開（単一要素も配列化） |
-| 組み合わせ   | `traceability[].id.full` | 配列展開後にプロパティアクセス         |
-| インデックス | `items[0]`               | 特定インデックスの要素（非推奨）       |
-
-### 集約機能
-
-一覧は、集約機能を持つ。 `"x-derived-from": "commands[].c1"`
-のように、特定の階層から値を集約する処理を持つ。
-各マークダウンファイルの処理が完了したあとに実行される。 さらに
-`x-derived-unique: true`がある場合は、ユニーク化される。
-
-**JMESPath フィルタリング**: `"x-jmespath-filter": "commands[?c1 == 'git']"`
-のように、JMESPath式でデータの動的フィルタリングが可能である。
-Schema解析時にJMESPath式が評価され、条件に合うデータのみが抽出される。
-
-例えば、以下は、availableConfigs を利用可能なコマンドの c1 の集合体で構築する。
-
-```
-"availableConfigs": {
-  "type": "array",
-  "description": "Tool names array - each becomes available as climpt-{name}. Derived automatically from commands[].c1",
-  "x-derived-from": "commands[].c1",
-  "x-derived-unique": true,
-  "items": {
-    "type": "string"
-  }
-}
-```
-
-## 個別フロントマターの整形
-
-一覧1個に対し、個別フロントマターn個の関係である。
-
-以下の2種類を使い分ける。
-
-a. マークダウンファイルのフロントマターと「解析用Schema」を使って情報を抽出する
-b.抽出した情報を、テンプレート変数化し、テンプレートへ当て込む
-
-抽出のための処理は、TypeScriptで行う。
-
-詳しくは `docs/architecture/schema_process_architecture.ja.md`
-へ記載したため、必ず読むこと。
-
-**利用するSchemaとテンプレート**:　 registry_command_schema.json
-registry_command_template.json
-
-完成したバージョンの参考例： .agent/test-climpt/registry.json
-（正解の出力フォーマットではない。Schemaとテンプレートを使った出力例の参考例として、理解の補助に使うだけである。）
-
-## 抽象化レベル
-
-ルール:
-
-1. 実装に具体的な実例1-実例2のパターンを混入しない
-2. 実例1-実例2のSchema例とテンプレート例が変更されても、アプリケーションコードに影響がない
-3. 実例1-実例2の階層情報が変わっても、アプリケーションコードに影響がない
-4. 上記2と3が、設定あるいは引数で解決できている
-5. 最終成果物Zは、TypeScript処理による成果物を結合した結果とイコールである。
-6. フロントマターの構造多様性を許容し、`x-flatten-arrays`で処理方針を選択
-7. 書き手の自由度と読み手の一貫性を両立する設計
-8. `{@items}`による統一的な配列展開機能
-9. すべての`x-*`ディレクティブは宣言的であり、処理順序は自動決定される
-10. ディレクティブの組み合わせにより、複雑な変換を段階的に記述可能
-
-# 参照すべき情報
-
-以下は、実際のユースケースに該当する事例である。 成果物は、ここに挙げた
-実例1-実例2
-以外のケースにも対応できるように、汎用的に抽象化されたアプリケーションである。
-そのアプリケーションが、以下の実例を使って、実際にSchemaからテンプレートへと当て込むことが出来るか検証する目的で例示する。
-
-なお、実際の使用例としては、 examples/
-配下に作成し、実行可能な形で再現すること。 tests/
-がアプリケーションコードを強固にする役割であり、 examples/
-が実例を実行して示す役割である。
-
-## 実例1
-
-### フロントマター解析対象のフォルダ：
-
-`.agent/climpt/prompts`
-
-### 解析結果の保存先：
-
-`.agent/climpt/registry.json`
-
-### 解析結果のSchema：
-
-```json:registry_schema.json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "Registry Schema",
   "x-template": "registry_template.json",
   "x-template-items": "registry_command_template.json",
-  "description": "Schema for registry configuration with tools and commands",
   "properties": {
-    "version": {
-      "type": "string",
-      "description": "Registry version (e.g., \"1.0.0\")",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$"
-    },
-    "description": {
-      "type": "string",
-      "description": "Overall registry description"
-    },
     "tools": {
-      "type": "object",
-      "description": "Tool configuration and command registry",
       "properties": {
         "availableConfigs": {
-          "type": "array",
-          "description": "Tool names array - each becomes available as climpt-{name}. Should contain unique values from commands[].c1",
-          "items": {
-            "type": "string"
-          }
+          "x-derived-from": "commands[].c1",
+          "x-derived-unique": true
         },
         "commands": {
-          "type": "array",
-          "description": "Command registry - defines all available C3L commands",
+          "x-frontmatter-part": true,
           "items": { "$ref": "registry_command_schema.json" }
         }
-      },
-      "required": ["availableConfigs", "commands"],
-      "additionalProperties": false
+      }
     }
-  },
-  "required": ["version", "description", "tools"],
-  "additionalProperties": false
-}
-```
-
-```json:registry_command_schema.json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "title": "Command Schema",
-  "description": "Schema for a single command definition",
-  "properties": {
-    "c1": {
-      "type": "string",
-      "description": "Domain/category (git, spec, test, code, docs, meta)"
-    },
-    "c2": {
-      "type": "string",
-      "description": "Action/directive (create, analyze, execute, etc.)"
-    },
-    "c3": {
-      "type": "string",
-      "description": "Target/layer (refinement-issue, quality-metrics, etc.)"
-    },
-    "title": {
-      "type": "string",
-      "description": "Command title"
-    },
-    "description": {
-      "type": "string",
-      "description": "Command description"
-    },
-    "usage": {
-      "type": "string",
-      "description": "Usage instructions and examples"
-    },
-    "options": {
-      "type": "object",
-      "description": "Available options for this command",
-      "properties": {
-        "input": {
-          "type": "array",
-          "description": "Supported input formats",
-          "items": { "type": "string" }
-        },
-        "adaptation": {
-          "type": "array",
-          "description": "Processing modes",
-          "items": { "type": "string" }
-        },
-        "input_file": {
-          "type": "array",
-          "description": "File input support",
-          "items": { "type": "boolean" }
-        },
-        "stdin": {
-          "type": "array",
-          "description": "Standard input support",
-          "items": { "type": "boolean" }
-        },
-        "destination": {
-          "type": "array",
-          "description": "Output destination support",
-          "items": { "type": "boolean" }
-        }
-      },
-      "additionalProperties": false
-    }
-  },
-  "required": ["c1", "c2", "c3", "description", "usage", "options"],
-  "additionalProperties": false
-}
-```
-
-### 解析結果のテンプレート：
-
-```json:registry_template.json
-{
-  "version": "{version}",
-  "description": "{description}",
-  "tools": {
-    "availableConfigs": "{tools.availableConfigs}",
-    "commands": [
-      "{@items}"
-    ]
   }
 }
 ```
 
-```json:registry_command_template.json
+**要求の実証**:
+
+- `x-frontmatter-part`によるフロントマター処理起点の指定
+- `x-derived-from`による他プロパティからの値集約
+- `$ref`による構造の再利用とテンプレート処理の独立性
+- JSON形式での構造化出力
+
+### 例2: 記事管理システムの索引生成
+
+**目的**: 記事のメタデータから出版用の索引を生成する
+
+**入力構造の例**:
+
+- 対象: `.agent/drafts/articles`配下のMarkdownファイル群
+- 各ファイルのフロントマターに記事情報（title, type, topics等）が記載
+
+**Schema定義の特徴**:
+
+```json
 {
-  "c1": "{c1}",
-  "c2": "{c2}",
-  "c3": "{c3}",
-  "title": "{title}",
-  "description": "{description}",
-  "usage": "{usage}",
-  "options": {
-    "input": "{options.input}",
-    "adaptation": "{options.adaptation}",
-    "input_file": "{options.input_file}",
-    "stdin": "{options.stdin}",
-    "destination": "{options.destination}"
-  }
-}
-```
-
-## 実例2
-
-### フロントマター解析対象のフォルダ：
-
-`.agent/drafts/articles`
-
-### 解析結果の保存先：
-
-`.agent/drafts/books.yml`
-
-### 解析結果のSchema：
-
-```
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
+  "x-template": "books_template.yml",
   "properties": {
     "books": {
       "type": "array",
+      "x-frontmatter-part": true,
       "items": {
-        "type": "object",
         "properties": {
           "title": { "type": "string" },
-          "emoji": { "type": "string" },
-          "type": { "type": "string" },
           "topics": {
             "type": "array",
-            "items": { "type": "string" }
-          },
-          "published": { "type": "boolean" },
-          "published_at": { "type": "string", "format": "date-time" }
-        },
-        "required": ["title", "type", "published"],
-        "additionalProperties": true
+            "x-flatten-arrays": "topics"
+          }
+        }
       }
     }
-  },
-  "required": ["books"],
-  "additionalProperties": false
+  }
 }
 ```
 
-### 解析結果のテンプレート：
+**要求の実証**:
 
+- YAML形式での出力サポート
+- `x-flatten-arrays`による選択的な配列フラット化
+- 複数ファイルからの統合的な索引生成
+
+### 例3: トレーサビリティ管理
+
+**目的**: 要求IDの追跡可能性を確保する索引生成
+
+**構造変換の例**:
+
+```yaml
+# 入力: ネストした配列構造
+traceability: [["REQ-001", "REQ-002"], "REQ-003"]
+
+# x-flatten-arrays指定時の出力
+["REQ-001", "REQ-002", "REQ-003"]
+
+# 指定なしの場合は構造維持
+[["REQ-001", "REQ-002"], "REQ-003"]
 ```
-books:
-  - title: "記事タイトル"
-    emoji: "📚"
-    type: "tech"
-    topics:
-      - "claudecode"
-      - "codingagents"
-    published: true
-    published_at: "2025-08-01 10:00"
-  # ...他の記事も同様に追加
-```
+
+**要求の実証**:
+
+- フロントマター作成者の自由な記述形式への対応
+- 用途に応じた構造変換の選択可能性
+- `x-derived-unique`による重複除去
+
+これらの例は、システムが以下の要求を満たすことを示している：
+
+1. **多様な入力形式への対応**: 各例で異なるフロントマター構造を統一的に処理
+2. **宣言的な処理指定**: x-ディレクティブによる処理の宣言的な定義
+3. **出力形式の柔軟性**: JSON、YAML等の多様な出力形式のサポート
+4. **ドメイン分離の実現**:
+   Schema定義の変更がアプリケーションコードに影響しない設計

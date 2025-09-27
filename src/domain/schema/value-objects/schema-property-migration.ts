@@ -146,6 +146,16 @@ export class SchemaPropertyMigration {
     const registry = defaultSchemaExtensionRegistry;
     const extensions = {} as Record<string, unknown>;
 
+    // Debug: Check all properties of legacy object
+    const allKeys = Object.keys(legacy as any);
+    const xKeys = allKeys.filter((k) => k.startsWith("x-"));
+    if (xKeys.length > 0) {
+      console.log(`[DEBUG] Found x-* properties in legacy schema:`, xKeys);
+      xKeys.forEach((key) => {
+        console.log(`  ${key}: ${(legacy as any)[key]}`);
+      });
+    }
+
     // Check for extensions object first (legacy format)
     const extensionsObj = (legacy as any).extensions;
     if (extensionsObj && typeof extensionsObj === "object") {
@@ -200,6 +210,12 @@ export class SchemaPropertyMigration {
     const derivedFromKey = registry.getDerivedFromKey().getValue();
     if (legacy[derivedFromKey] !== undefined) {
       extensions[derivedFromKey] = legacy[derivedFromKey];
+      // Debug log for x-derived-from extraction
+      console.log(
+        `[DEBUG] Extracted x-derived-from: "${
+          legacy[derivedFromKey]
+        }" from legacy schema`,
+      );
     }
     const derivedUniqueKey = registry.getDerivedUniqueKey().getValue();
     if (legacy[derivedUniqueKey] !== undefined) {

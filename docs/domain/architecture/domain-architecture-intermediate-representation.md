@@ -1,399 +1,466 @@
-# Domain Architecture - Intermediate Representation Layer
+# Data Processing Instruction Domain - Intermediate Representation
 
 ## Overview
 
-The Intermediate Representation (IR) layer provides a normalized, scope-aware
-data structure that bridges the gap between directive-processed frontmatter data
-and template variable resolution. This design addresses the critical issue of
-losing variable scope during array expansion and deep path resolution.
+The Intermediate Representation (IR) is an internal data structure within the
+Data Processing Instruction Domain. It serves as the implementation mechanism
+for hiding direct access to frontmatter data and providing processed data to
+consumers.
 
-## Core Concepts
+## Role in the 3-Domain Architecture
 
-### 1. IR Node Types (Algebraic Data Type)
+The IR operates within the Data Processing Instruction Domain to:
 
-```typescript
-import { Result } from "../../shared/types";
+1. **Hide Frontmatter Data**: Acts as the abstraction layer preventing direct
+   access to frontmatter extraction results
+2. **Apply Processing Directives**: Implements x-directive transformations
+   (x-flatten-arrays, x-derived-from, etc.)
+3. **Provide Processed Data**: Returns transformed data when requested via
+   `callMethod(schemaPath)`
 
-/**
- * Algebraic data type representing all possible IR nodes.
- * Follows functional programming principles with exhaustive pattern matching.
- */
-export type IRNode = IRScalar | IRObject | IRArray;
+## Domain Context
 
-/**
- * Represents a scalar value in the IR tree.
- * Immutable by design with readonly properties.
- */
-export interface IRScalar {
-  readonly kind: "scalar";
-  readonly path: TemplatePath;
-  readonly value: string | number | boolean | null;
-}
+```mermaid
+graph TB
+    subgraph "Data Processing Instruction Domain"
+        FM[Frontmatter Data Input]
+        IR[Intermediate Representation]
+        PD[Processing Directives]
+        CM[callMethod API]
 
-/**
- * Represents an object node with child entries.
- * Uses ReadonlyMap for immutable operations.
- */
-export interface IRObject {
-  readonly kind: "object";
-  readonly path: TemplatePath;
-  readonly entries: ReadonlyMap<string, IRNode>;
-}
+        FM --> IR
+        PD --> IR
+        IR --> CM
+    end
 
-/**
- * Represents an array node with ordered items.
- * Maintains index information for scope resolution.
- */
-export interface IRArray {
-  readonly kind: "array";
-  readonly path: TemplatePath;
-  readonly items: readonly IRNode[];
-}
+    EXT[External Consumers] -->|schemaPath| CM
+    CM -->|ProcessedData| EXT
+
+    style IR fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-### 2. Template Path Management
+## Core Implementation
+
+### 1. IR as Hiding Layer
 
 ```typescript
 /**
- * Extended TemplatePath supporting template-specific notations.
- * Handles both standard paths and array shortcuts.
+ * Internal data structure for the Data Processing Instruction Domain
+ * This is NOT exposed outside the domain
  */
-export class TemplatePath {
+class IntermediateRepresentation {
   private constructor(
-    private readonly segments: readonly TemplatePathSegment[],
-    private readonly rawPath: string,
+    private readonly frontmatterData: ExtractedData[],
+    private readonly processedNodes: Map<string, ProcessedNode>,
   ) {}
 
   /**
-   * Smart constructor with comprehensive validation.
-   * Supports: standard.path, array[0], @items, items[]
+   * Initialize from frontmatter extraction results
+   * This is the ONLY way frontmatter data enters the system
    */
-  static create(path: string): Result<TemplatePath, PathError> {
-    // Validation and parsing logic
-    // Handles special template notations
+  static fromExtractedData(
+    data: ExtractedData[],
+  ): IntermediateRepresentation {
+    const nodes = new Map<string, ProcessedNode>();
+
+    // Build internal representation
+    for (const extracted of data) {
+      this.buildNodes(extracted, nodes);
+    }
+
+    return new IntermediateRepresentation(data, nodes);
   }
 
   /**
-   * Resolves relative path from current position.
-   * Essential for scope-based variable resolution.
+   * Apply x-directive processing
    */
-  resolveRelative(relativePath: string): Result<TemplatePath, PathError> {
-    // Path resolution logic
+  applyDirectives(directives: ProcessingDirective[]): void {
+    for (const directive of directives) {
+      switch (directive.kind) {
+        case "x-flatten-arrays":
+          this.applyFlattenArrays(directive);
+          break;
+        case "x-derived-from":
+          this.applyDerivedFrom(directive);
+          break;
+        case "x-derived-unique":
+          this.applyDerivedUnique(directive);
+          break;
+        case "x-jmespath-filter":
+          this.applyJmespathFilter(directive);
+          break;
+      }
+    }
   }
 
-  toString(): string {
-    return this.rawPath;
+  /**
+   * Get processed data for a schema path
+   * This is the ONLY way to access data from outside
+   */
+  getProcessedData(schemaPath: string): ProcessedData {
+    const node = this.processedNodes.get(schemaPath);
+    if (!node) {
+      return { value: null, source: "not-found" };
+    }
+
+    return {
+      value: node.value,
+      source: node.source,
+      transformations: node.appliedDirectives,
+    };
   }
 
-  getSegments(): readonly TemplatePathSegment[] {
-    return this.segments;
+  private static buildNodes(
+    data: ExtractedData,
+    nodes: Map<string, ProcessedNode>,
+  ): void {
+    // Build internal node structure
+    // Implementation details hidden from external consumers
+  }
+
+  private applyFlattenArrays(directive: FlattenArraysDirective): void {
+    // Implementation of x-flatten-arrays
+  }
+
+  private applyDerivedFrom(directive: DerivedFromDirective): void {
+    // Implementation of x-derived-from
+  }
+
+  private applyDerivedUnique(directive: DerivedUniqueDirective): void {
+    // Implementation of x-derived-unique
+  }
+
+  private applyJmespathFilter(directive: JmespathFilterDirective): void {
+    // Implementation of x-jmespath-filter
   }
 }
-
-/**
- * Represents a single segment in a template path.
- * Supports property access and array indexing.
- */
-export type TemplatePathSegment =
-  | { kind: "property"; name: string }
-  | { kind: "index"; value: number }
-  | { kind: "array-marker"; marker: string }; // @items, items[]
 ```
 
-### 3. Intermediate Representation Interface
+### 2. Processing Node Structure
 
 ```typescript
 /**
- * Main interface for template intermediate representation.
- * Provides scope-aware data access and resolution.
+ * Internal node structure for processed data
+ * NOT exposed outside the domain
  */
-export interface TemplateIntermediateRepresentation {
-  readonly root: IRObject;
+interface ProcessedNode {
+  path: string;
+  value: unknown;
+  source: "frontmatter" | "derived" | "transformed";
+  appliedDirectives: string[];
+  metadata: {
+    originalPath?: string;
+    transformationChain?: TransformationStep[];
+  };
+}
 
-  /**
-   * Resolves a path from the root context.
-   * Returns Result type for explicit error handling.
-   */
-  resolve(path: TemplatePath): Result<IRNode, VariableResolutionError>;
-
-  /**
-   * Creates a scoped context for variable resolution.
-   * Essential for {@items} expansion and nested contexts.
-   */
-  createScope(
-    path: TemplatePath,
-  ): Result<TemplateScope, VariableResolutionError>;
-
-  /**
-   * Serializes IR back to a simple object structure.
-   * Useful for debugging and testing.
-   */
-  toObject(): Record<string, unknown>;
+/**
+ * Transformation tracking
+ */
+interface TransformationStep {
+  directive: string;
+  timestamp: Date;
+  before: unknown;
+  after: unknown;
 }
 ```
 
-### 4. Template Scope
+### 3. Data Processing Service Implementation
 
 ```typescript
 /**
- * Represents a scoped context for template variable resolution.
- * Maintains cursor position and resolution breadcrumbs.
+ * Main service of the Data Processing Instruction Domain
  */
-export interface TemplateScope {
-  /**
-   * Current position in the IR tree.
-   * Updated when entering array elements or object properties.
-   */
-  readonly cursor: IRNode;
+export class DataProcessingService {
+  private ir: IntermediateRepresentation | null = null;
+  private directives: ProcessingDirective[] = [];
 
   /**
-   * Path segments from root to current position.
-   * Used for fallback resolution and debugging.
+   * Initialize with frontmatter data
+   * This hides the frontmatter structure from external access
    */
-  readonly breadcrumbs: readonly TemplatePathSegment[];
+  initialize(extractedData: ExtractedData[]): void {
+    this.ir = IntermediateRepresentation.fromExtractedData(extractedData);
+
+    // Apply any pending directives
+    if (this.directives.length > 0) {
+      this.ir.applyDirectives(this.directives);
+    }
+  }
 
   /**
-   * Resolves a path relative to the current scope.
-   * Falls back to parent scopes if not found locally.
+   * Set processing directives from schema
    */
-  resolveRelative(path: TemplatePath): Result<IRNode, VariableResolutionError>;
+  setDirectives(directives: ProcessingDirective[]): void {
+    this.directives = directives;
+
+    // Apply immediately if IR is ready
+    if (this.ir) {
+      this.ir.applyDirectives(directives);
+    }
+  }
 
   /**
-   * Creates a child scope for nested contexts.
-   * Used in {@items} expansion and object iteration.
+   * Public API for data access
+   * This is the ONLY way external consumers can get data
    */
-  createChildScope(
-    segment: TemplatePathSegment,
-  ): Result<TemplateScope, ScopeError>;
+  callMethod(schemaPath: string): ProcessedData {
+    if (!this.ir) {
+      throw new Error("Not initialized. Call initialize() first.");
+    }
 
-  /**
-   * Gets the absolute path from root to current position.
-   */
-  getAbsolutePath(): TemplatePath;
+    return this.ir.getProcessedData(schemaPath);
+  }
 }
 ```
 
-## Builder Pattern
+## Processing Directives Implementation
+
+### 1. x-flatten-arrays
+
+```typescript
+class FlattenArraysProcessor {
+  process(
+    targetPath: string,
+    data: Map<string, ProcessedNode>,
+  ): void {
+    const node = data.get(targetPath);
+    if (!node || !Array.isArray(node.value)) {
+      return;
+    }
+
+    // Recursively flatten nested arrays
+    const flattened = this.flattenRecursive(node.value);
+
+    data.set(targetPath, {
+      ...node,
+      value: flattened,
+      source: "transformed",
+      appliedDirectives: [...node.appliedDirectives, "x-flatten-arrays"],
+    });
+  }
+
+  private flattenRecursive(arr: unknown[]): unknown[] {
+    return arr.reduce((flat, item) => {
+      return flat.concat(
+        Array.isArray(item) ? this.flattenRecursive(item) : item,
+      );
+    }, []);
+  }
+}
+```
+
+### 2. x-derived-from
+
+```typescript
+class DerivedFromProcessor {
+  process(
+    targetPath: string,
+    sourcePath: string,
+    data: Map<string, ProcessedNode>,
+  ): void {
+    // Collect values from source path
+    const values = this.collectValues(sourcePath, data);
+
+    // Create derived node
+    data.set(targetPath, {
+      path: targetPath,
+      value: values,
+      source: "derived",
+      appliedDirectives: ["x-derived-from"],
+      metadata: {
+        originalPath: sourcePath,
+      },
+    });
+  }
+
+  private collectValues(
+    path: string,
+    data: Map<string, ProcessedNode>,
+  ): unknown[] {
+    // Implementation of path-based value collection
+    // Supports patterns like "commands[].c1"
+    return [];
+  }
+}
+```
+
+### 3. x-derived-unique
+
+```typescript
+class DerivedUniqueProcessor {
+  process(
+    targetPath: string,
+    data: Map<string, ProcessedNode>,
+  ): void {
+    const node = data.get(targetPath);
+    if (!node || !Array.isArray(node.value)) {
+      return;
+    }
+
+    // Remove duplicates
+    const unique = Array.from(new Set(node.value));
+
+    data.set(targetPath, {
+      ...node,
+      value: unique,
+      appliedDirectives: [...node.appliedDirectives, "x-derived-unique"],
+    });
+  }
+}
+```
+
+### 4. x-jmespath-filter
+
+```typescript
+class JmespathFilterProcessor {
+  process(
+    targetPath: string,
+    expression: string,
+    data: Map<string, ProcessedNode>,
+  ): void {
+    const node = data.get(targetPath);
+    if (!node) {
+      return;
+    }
+
+    // Apply JMESPath expression
+    const filtered = this.applyJmespath(node.value, expression);
+
+    data.set(targetPath, {
+      ...node,
+      value: filtered,
+      source: "transformed",
+      appliedDirectives: [...node.appliedDirectives, "x-jmespath-filter"],
+    });
+  }
+
+  private applyJmespath(data: unknown, expression: string): unknown {
+    // JMESPath implementation
+    // Delegated to infrastructure layer
+    throw new Error("JMESPath engine must be provided by infrastructure");
+  }
+}
+```
+
+## Interface to Other Domains
+
+### Public Interface (Domain Facade)
 
 ```typescript
 /**
- * Builds IR from processed frontmatter data.
- * Follows Builder pattern for complex object construction.
+ * Public interface of the Data Processing Instruction Domain
+ * This is the ONLY interface exposed to other domains
  */
-export class TemplateIntermediateBuilder {
-  private root: IRObject | null = null;
+export interface DataProcessingInstructionDomainFacade {
+  /**
+   * Initialize with frontmatter extraction results
+   * Called once after frontmatter extraction is complete
+   */
+  initialize(extractedData: ExtractedData[]): void;
 
   /**
-   * Creates builder from frontmatter data array.
-   * Merges multiple data sources into unified IR.
+   * Set processing directives from schema
+   * Can be called before or after initialization
    */
-  static fromFrontmatterData(
-    data: readonly FrontmatterData[],
-  ): Result<TemplateIntermediateBuilder, BuildError> {
-    // Implementation
-  }
+  setDirectives(directives: ProcessingDirective[]): void;
 
   /**
-   * Adds or updates a value at the specified path.
-   * Creates intermediate nodes as needed.
+   * Get processed data for a schema path
+   * This is the ONLY way to access data
    */
-  addValue(path: TemplatePath, value: unknown): Result<void, BuildError> {
-    // Implementation
-  }
-
-  /**
-   * Builds the final immutable IR.
-   * Validates completeness and consistency.
-   */
-  build(): Result<TemplateIntermediateRepresentation, BuildError> {
-    // Implementation
-  }
+  callMethod(schemaPath: string): ProcessedData;
 }
-```
 
-## Error Types
-
-```typescript
 /**
- * Comprehensive error types for IR operations.
- * Each error includes context for debugging.
+ * Processed data returned to consumers
  */
-export type VariableResolutionError =
-  | { kind: "PathNotFound"; path: string; availablePaths: string[] }
-  | { kind: "InvalidPathSyntax"; path: string; reason: string }
-  | { kind: "ScopeError"; message: string; scope: string }
-  | { kind: "TypeMismatch"; expected: string; actual: string; path: string };
-
-export type BuildError =
-  | { kind: "InvalidData"; message: string }
-  | { kind: "PathConflict"; path: string; existing: string; new: string }
-  | { kind: "MissingRoot"; message: string };
-```
-
-## Integration Points
-
-### 1. From Directive Processing
-
-```typescript
-// After directive processing
-const processedData = await directiveProcessor.process(frontmatter, schema);
-
-// Build IR
-const builderResult = TemplateIntermediateBuilder.fromFrontmatterData(
-  processedData,
-);
-if (!builderResult.ok) {
-  return { ok: false, error: builderResult.error };
+export interface ProcessedData {
+  value: unknown;
+  source: "frontmatter" | "derived" | "transformed" | "not-found";
+  transformations?: string[];
 }
 
-const irResult = builderResult.data.build();
-```
+/**
+ * Processing directive types
+ */
+export type ProcessingDirective =
+  | FlattenArraysDirective
+  | DerivedFromDirective
+  | DerivedUniqueDirective
+  | JmespathFilterDirective;
 
-### 2. To Template Resolution
+export interface FlattenArraysDirective {
+  kind: "x-flatten-arrays";
+  targetPath: string;
+}
 
-```typescript
-// In TemplateVariableResolver
-private resolveWithIR(
-  variable: string,
-  ir: TemplateIntermediateRepresentation,
-  scope: TemplateScope,
-): Result<string, TemplateError> {
-  const pathResult = TemplatePath.create(variable);
-  if (!pathResult.ok) {
-    return { ok: false, error: pathResult.error };
-  }
+export interface DerivedFromDirective {
+  kind: "x-derived-from";
+  targetPath: string;
+  sourcePath: string;
+}
 
-  // Try relative resolution first
-  const relativeResult = scope.resolveRelative(pathResult.data);
-  if (relativeResult.ok) {
-    return this.nodeToString(relativeResult.data);
-  }
+export interface DerivedUniqueDirective {
+  kind: "x-derived-unique";
+  targetPath: string;
+}
 
-  // Fall back to root resolution
-  const rootResult = ir.resolve(pathResult.data);
-  if (rootResult.ok) {
-    return this.nodeToString(rootResult.data);
-  }
-
-  // Apply fallback policy
-  return this.applyFallbackPolicy(variable);
+export interface JmespathFilterDirective {
+  kind: "x-jmespath-filter";
+  targetPath: string;
+  expression: string;
 }
 ```
 
-## Design Principles
+## Important Design Principles
 
-### 1. Immutability
+### 1. Data Hiding
 
-- All IR nodes are immutable
-- Operations return new instances
-- Thread-safe by design
+- The IR is completely internal to the Data Processing Instruction Domain
+- External consumers cannot access frontmatter data directly
+- All access goes through the `callMethod` API
 
-### 2. Totality
+### 2. Processing Order
 
-- All functions are total (no partial functions)
-- Result types for explicit error handling
-- Exhaustive pattern matching
+- Directives are applied in a specific order:
+  1. x-flatten-arrays (individual file processing)
+  2. x-jmespath-filter (individual file processing)
+  3. x-derived-from (after all files processed)
+  4. x-derived-unique (after x-derived-from)
 
-### 3. Scope Awareness
+### 3. Immutability
 
-- Maintains variable resolution context
-- Supports nested scopes for array expansion
-- Fallback chain from local to global
+- Internal nodes are immutable once created
+- Transformations create new nodes rather than modifying existing ones
+- This ensures data consistency and traceability
 
-### 4. Type Safety
+### 4. Traceability
 
-- Algebraic data types prevent invalid states
-- Smart constructors validate invariants
-- Compile-time guarantees
+- Each node tracks its source (frontmatter, derived, transformed)
+- Applied directives are recorded for debugging
+- Transformation chain is preserved in metadata
 
-## Performance Considerations
+## Error Handling
 
-### 1. Memory Efficiency
+```typescript
+export type DataProcessingError =
+  | { kind: "NotInitialized"; message: string }
+  | { kind: "InvalidPath"; path: string; reason: string }
+  | { kind: "DirectiveError"; directive: string; error: string }
+  | { kind: "TransformationError"; details: string };
+```
 
-- Structural sharing for unchanged nodes
-- Lazy evaluation where possible
-- Efficient path lookups using Maps
+## Summary
 
-### 2. Caching Strategy
+The Intermediate Representation is the core implementation detail of the Data
+Processing Instruction Domain. It:
 
-- Cache resolved paths within scope
-- Memoize common transformations
-- Clear cache boundaries at scope transitions
+1. **Hides Frontmatter Data**: Prevents direct access to extraction results
+2. **Applies Transformations**: Implements x-directive processing
+3. **Provides Controlled Access**: Only through `callMethod` API
+4. **Maintains Independence**: Internal structure not exposed to other domains
 
-### 3. Large Dataset Handling
-
-- Streaming support for large arrays
-- Incremental building for memory efficiency
-- Configurable depth limits
-
-## Testing Strategy
-
-### 1. Unit Tests
-
-- Path parsing with edge cases
-- Node construction and validation
-- Scope resolution with various depths
-
-### 2. Property-Based Tests
-
-- Random JSON to IR conversion
-- Resolution always returns valid Result
-- Scope operations maintain invariants
-
-### 3. Integration Tests
-
-- Full pipeline from frontmatter to template
-- Array expansion with nested variables
-- Deep path resolution scenarios
-
-## Future Extensions
-
-### 1. Plugin Support
-
-- Custom node types for extensions
-- Transformation hooks
-- Validation plugins
-
-### 2. Performance Optimizations
-
-- Parallel IR building
-- Incremental updates
-- Path indexing for faster lookups
-
-### 3. Advanced Features
-
-- JSONPath support
-- XPath-like queries
-- GraphQL-style field selection
-
-## Migration Path
-
-### Phase 1: Foundation
-
-- Implement core IR types
-- Basic builder functionality
-- Simple path resolution
-
-### Phase 2: Integration
-
-- Wire into existing pipeline
-- Maintain backward compatibility
-- Feature flag for gradual rollout
-
-### Phase 3: Optimization
-
-- Performance tuning
-- Advanced caching
-- Memory optimization
-
-### Phase 4: Deprecation
-
-- Remove old resolution logic
-- Clean up legacy code
-- Update all tests
-
-## References
-
-- [Template Processing Specification](../../architecture/template-processing-specification.md)
-- [Domain Architecture - Template](./domain-architecture-template.md)
-- [Variable Resolution Roadmap](../../architecture/template-variable-resolution-roadmap.md)
+This design ensures that the Data Processing Instruction Domain fulfills its
+role as the hiding layer between frontmatter extraction and data consumption, as
+specified in the 3-domain architecture.

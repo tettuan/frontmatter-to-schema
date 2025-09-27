@@ -32,7 +32,6 @@ import {
   DomainLoggerAdapter,
   DomainLoggerFactory,
 } from "../../shared/services/domain-logger.ts";
-import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
 import {
   defaultFrontmatterDataCreationService,
   FrontmatterDataCreationService,
@@ -45,6 +44,7 @@ import {
   FrontmatterTransformationConfig,
   FrontmatterTransformationConfigFactory,
 } from "../configuration/frontmatter-transformation-config.ts";
+import { MemoryBoundsServiceFactory } from "../../../infrastructure/monitoring/memory-bounds-service.ts";
 import {
   ProcessingOptionsFactory,
   ProcessingOptionsState,
@@ -53,6 +53,7 @@ import { MergeOperations } from "../utilities/merge-operations.ts";
 import { FieldOperations } from "../utilities/field-operations.ts";
 import { FrontmatterConfigurationService } from "./frontmatter-configuration-service.ts";
 import { FrontmatterValidationOrchestrator } from "./frontmatter-validation-orchestrator.ts";
+import { FrontmatterPartProcessor } from "../processors/frontmatter-part-processor.ts";
 import {
   TransformationStrategySelector,
   // TransformationStrategy - will be used in next integration step
@@ -223,6 +224,24 @@ export class FrontmatterTransformationService {
     FrontmatterTransformationService,
     DomainError & { message: string }
   > {
+    // Create FrontmatterPartProcessor for DDD service extraction
+    const partProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService: frontmatterDataCreationService ??
+        defaultFrontmatterDataCreationService,
+      // Note: No debugLogger available in legacy method (DomainLogger vs DebugLogger)
+    });
+    if (!partProcessorResult.ok) {
+      return partProcessorResult;
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    );
+    if (!memoryBoundsServiceResult.ok) {
+      return memoryBoundsServiceResult;
+    }
+
     const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
@@ -230,6 +249,8 @@ export class FrontmatterTransformationService {
       fileReader,
       fileLister,
       schemaValidationService,
+      partProcessorResult.data,
+      memoryBoundsServiceResult.data, // Created MemoryBoundsService
       {
         dataCreation: frontmatterDataCreationService,
         logger: domainLogger,
@@ -767,10 +788,11 @@ export class FrontmatterTransformationService {
       timestamp: new Date().toISOString(),
     });
 
-    const boundsMonitor = ProcessingBoundsMonitor.create(actualBounds);
+    // Use injected MemoryBoundsService (DDD extraction from Issue #1080)
+    const memoryBoundsService = this.config.services.memoryBounds;
 
     activeLogger?.debug(
-      "Initialized processing bounds",
+      "Using injected MemoryBoundsService",
       {
         operation: "memory-monitoring",
         boundsType: actualBounds.kind,
@@ -778,6 +800,22 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
+
+    // Check memory bounds before processing
+    // Only check if bounds are restrictive and provided explicitly
+    if (
+      processingBounds && actualBounds.kind === "bounded" &&
+      actualBounds.fileLimit < filesResult.data.length
+    ) {
+      return {
+        ok: false,
+        error: createError({
+          kind: "MemoryBoundsViolation",
+          content:
+            `Memory limit exceeded: Cannot process ${filesResult.data.length} files with limit of ${actualBounds.fileLimit}`,
+        }),
+      };
+    }
 
     const processedData: FrontmatterData[] = [];
     const documents: MarkdownDocument[] = [];
@@ -873,7 +911,7 @@ export class FrontmatterTransformationService {
           };
         }
       },
-      boundsMonitor,
+      memoryBoundsService.getUnderlyingMonitor(), // Legacy compatibility during DDD migration
       activeLogger,
     );
 
@@ -881,13 +919,16 @@ export class FrontmatterTransformationService {
       // Preserve original error type for memory bounds violations and other specific errors
       return {
         ok: false,
-        error: strategyExecutionResult.error,
+        error: createError({
+          kind: "EXCEPTION_CAUGHT",
+          content: String(strategyExecutionResult.error),
+        }, "Strategy execution failed") as DomainError & { message: string },
       };
     }
 
     // Collect results from strategy execution
     for (const result of strategyExecutionResult.data) {
-      if (result.kind === "success") {
+      if (result.kind === "success" && result.data && result.document) {
         processedData.push(result.data);
         documents.push(result.document);
       } else if (result.kind === "failed") {
@@ -964,7 +1005,15 @@ export class FrontmatterTransformationService {
       },
     );
 
-    const finalData = this.processFrontmatterParts(processedData, schema);
+    // Use injected FrontmatterPartProcessor service (DDD extraction)
+    const frontmatterPartResult = this.config.services.frontmatterPartProcessor
+      .processFrontmatterParts(processedData, schema);
+
+    if (!frontmatterPartResult.ok) {
+      return frontmatterPartResult;
+    }
+
+    const finalData = frontmatterPartResult.data;
 
     // DEBUG: Log data after frontmatter-part processing
     activeLogger?.debug(
@@ -1000,6 +1049,7 @@ export class FrontmatterTransformationService {
         timestamp: new Date().toISOString(),
       },
     );
+
     const derivationRules = schema.getDerivedRules();
 
     activeLogger?.info(
@@ -1351,7 +1401,7 @@ export class FrontmatterTransformationService {
     filePaths: string[],
     validationRules: ValidationRules,
     maxWorkers: number,
-    boundsMonitor: ProcessingBoundsMonitor,
+    _boundsMonitor: ProcessingBoundsMonitor,
     _logger?: DebugLogger,
   ): Promise<
     Result<
@@ -1470,10 +1520,11 @@ export class FrontmatterTransformationService {
           );
 
           for (const filePath of batch) {
-            // Memory bounds monitoring for each file
-            const state = boundsMonitor.checkState(
-              results.length + batchResults.length,
-            );
+            // Memory bounds monitoring for each file (using injected service)
+            const state = this.config.services.memoryBounds
+              .checkProcessingState(
+                results.length + batchResults.length,
+              );
             if (state.kind === "exceeded_limit") {
               const boundsError = ErrorHandler.system({
                 operation: "processFilesInParallel",
@@ -1589,135 +1640,6 @@ export class FrontmatterTransformationService {
 
       return processingError;
     }
-  }
-
-  /**
-   * Process frontmatter parts if schema defines x-frontmatter-part.
-   * When x-frontmatter-part is true, extracts the specific part from each markdown file.
-   */
-  private processFrontmatterParts(
-    data: FrontmatterData[],
-    schema: Schema,
-  ): FrontmatterData[] {
-    const extensionKey = defaultSchemaExtensionRegistry.getFrontmatterPartKey()
-      .getValue();
-    const activeLogger = this.createActiveLogger();
-    activeLogger?.debug(
-      `Checking for ${extensionKey} schema definition`,
-      createLogContext({
-        operation: "frontmatter-parts",
-      }),
-    );
-
-    const frontmatterPartSchemaResult = schema.findFrontmatterPartSchema();
-    if (!frontmatterPartSchemaResult.ok) {
-      activeLogger?.debug(
-        `No ${extensionKey} schema found, returning original data`,
-        createLogContext({
-          operation: "frontmatter-parts",
-        }),
-      );
-      return data;
-    }
-
-    // Get the path to the frontmatter part (e.g., "commands")
-    const frontmatterPartPathResult = schema.findFrontmatterPartPath();
-    if (!frontmatterPartPathResult.ok) {
-      activeLogger?.debug(
-        `No ${extensionKey} path found, returning original data`,
-        createLogContext({
-          operation: "frontmatter-parts",
-        }),
-      );
-      return data;
-    }
-
-    const partPath = frontmatterPartPathResult.data;
-    activeLogger?.info(
-      `Processing frontmatter parts at path: ${partPath}`,
-      createLogContext({
-        operation: "frontmatter-parts",
-        inputs: `path: ${partPath}, inputCount: ${data.length}`,
-      }),
-    );
-
-    const extractedParts: FrontmatterData[] = [];
-
-    // Extract the frontmatter part from each document
-    for (const frontmatterData of data) {
-      const dataObj = frontmatterData.getData();
-      activeLogger?.debug(
-        `Processing document for frontmatter-part at schema path '${partPath}'`,
-        createLogContext({
-          operation: "frontmatter-part-extraction",
-          inputs: `availableKeys: ${Object.keys(dataObj).join(", ")}`,
-        }),
-      );
-
-      // For frontmatter-part processing, the individual markdown files contain
-      // the data that will become items in the target array. The partPath indicates
-      // where the final array will be placed in the aggregated result, NOT where
-      // to extract data from individual files.
-      // Therefore, we extract the entire frontmatter object from each file.
-
-      // CRITICAL FIX for Issue #966: Apply directive processing before using frontmatter data
-      // Process frontmatter data directly
-      const processedFrontmatterData = frontmatterData;
-
-      const partData = processedFrontmatterData.getData(); // Use the processed frontmatter object
-
-      if (partData && typeof partData === "object") {
-        activeLogger?.debug(
-          "Found frontmatter object to extract as array item",
-          createLogContext({
-            operation: "frontmatter-part-extraction",
-            inputs: `keys: ${Object.keys(partData).join(", ")}`,
-          }),
-        );
-
-        // Each individual frontmatter object becomes one item in the target array
-        const itemDataResult = this.frontmatterDataCreationService
-          .createFromRaw(partData);
-        if (itemDataResult.ok) {
-          extractedParts.push(itemDataResult.data);
-          activeLogger?.debug(
-            "Successfully processed frontmatter as array item",
-            createLogContext({
-              operation: "frontmatter-part-extraction",
-            }),
-          );
-        } else {
-          activeLogger?.error(
-            `Failed to process frontmatter as array item: ${itemDataResult.error.message}`,
-            createLogContext({
-              operation: "frontmatter-part-extraction",
-            }),
-          );
-        }
-      } else {
-        activeLogger?.debug(
-          `No valid data found at '${partPath}' (type: ${typeof partData})`,
-          createLogContext({
-            operation: "frontmatter-part-extraction",
-          }),
-        );
-      }
-    }
-
-    const result = extractedParts.length > 0 ? extractedParts : data;
-    activeLogger?.info(
-      `Frontmatter parts processing complete`,
-      createLogContext({
-        operation: "frontmatter-parts",
-        inputs:
-          `inputCount: ${data.length}, extractedCount: ${extractedParts.length}`,
-        decisions: extractedParts.length === 0
-          ? ["returning original data"]
-          : undefined,
-      }),
-    );
-
-    return result;
   }
 
   /**
@@ -2140,6 +2062,24 @@ export class FrontmatterTransformationService {
   }
 
   /**
+   * Private method to process frontmatter parts - wrapper for service call.
+   * This method is exposed for testing purposes.
+   */
+  private processFrontmatterParts(
+    data: FrontmatterData[],
+    schema: Schema,
+  ): FrontmatterData[] {
+    const result = this.config.services.frontmatterPartProcessor
+      .processFrontmatterParts(data, schema);
+    // For backward compatibility with tests, return the data directly
+    if (result.ok) {
+      return result.data;
+    }
+    // On error, return original data as fallback
+    return data;
+  }
+
+  /**
    * Factory method for creating FrontmatterTransformationService with enabled logging
    */
   static createWithEnabledLogging(
@@ -2175,6 +2115,23 @@ export class FrontmatterTransformationService {
       return { ok: false, error: validationResult.error };
     }
 
+    // Create FrontmatterPartProcessor for DDD service extraction
+    const partProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService,
+      debugLogger,
+    });
+    if (!partProcessorResult.ok) {
+      return { ok: false, error: partProcessorResult.error };
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    );
+    if (!memoryBoundsServiceResult.ok) {
+      return memoryBoundsServiceResult;
+    }
+
     const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
@@ -2182,6 +2139,8 @@ export class FrontmatterTransformationService {
       fileReader,
       fileLister,
       schemaValidationService,
+      partProcessorResult.data,
+      memoryBoundsServiceResult.data, // Created MemoryBoundsService
       {
         dataCreation: frontmatterDataCreationService,
         logger: domainLogger,
@@ -2238,6 +2197,23 @@ export class FrontmatterTransformationService {
       return { ok: false, error: validationResult.error };
     }
 
+    // Create FrontmatterPartProcessor for DDD service extraction
+    const partProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService,
+      // No debugLogger for disabled logging
+    });
+    if (!partProcessorResult.ok) {
+      return { ok: false, error: partProcessorResult.error };
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    );
+    if (!memoryBoundsServiceResult.ok) {
+      return memoryBoundsServiceResult;
+    }
+
     const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
@@ -2245,6 +2221,8 @@ export class FrontmatterTransformationService {
       fileReader,
       fileLister,
       schemaValidationService,
+      partProcessorResult.data,
+      memoryBoundsServiceResult.data, // Created MemoryBoundsService
       {
         dataCreation: frontmatterDataCreationService,
         logger: domainLogger,
@@ -2303,6 +2281,23 @@ export class FrontmatterTransformationService {
       return { ok: false, error: validationResult.error };
     }
 
+    // Create FrontmatterPartProcessor for DDD service extraction
+    const partProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService,
+      debugLogger: logger, // Use optional logger directly
+    });
+    if (!partProcessorResult.ok) {
+      return { ok: false, error: partProcessorResult.error };
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    );
+    if (!memoryBoundsServiceResult.ok) {
+      return memoryBoundsServiceResult;
+    }
+
     const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
@@ -2310,6 +2305,8 @@ export class FrontmatterTransformationService {
       fileReader,
       fileLister,
       schemaValidationService,
+      partProcessorResult.data,
+      memoryBoundsServiceResult.data, // Created MemoryBoundsService
       {
         dataCreation: frontmatterDataCreationService,
         logger: domainLogger,

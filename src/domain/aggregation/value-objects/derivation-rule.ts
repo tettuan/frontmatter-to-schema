@@ -1,41 +1,49 @@
-import { ok, Result } from "../../shared/types/result.ts";
-import { ValidationError } from "../../shared/types/errors.ts";
-import { ErrorHandler } from "../../shared/services/unified-error-handler.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
+import { createError, DomainError } from "../../shared/types/errors.ts";
 
+/**
+ * Derivation Rule (Legacy Compatibility)
+ *
+ * Represents a rule for deriving data from source properties.
+ * This maintains compatibility during transition to 3-domain architecture.
+ */
 export class DerivationRule {
-  private constructor(
-    private readonly sourceExpression: string,
+  constructor(
+    private readonly sourcePath: string,
     private readonly targetField: string,
-    private readonly unique: boolean,
+    private readonly unique: boolean = false,
   ) {}
 
   static create(
-    sourceExpression: string,
+    sourcePath: string,
     targetField: string,
     unique: boolean = false,
-  ): Result<DerivationRule, ValidationError & { message: string }> {
-    if (!sourceExpression || sourceExpression.trim().length === 0) {
-      return ErrorHandler.validation({
-        operation: "create",
-        method: "validateSourceExpression",
-      }).emptyInput();
+  ): Result<DerivationRule, DomainError & { message: string }> {
+    if (!sourcePath || !targetField) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          "Source path and target field are required for derivation rule",
+      }));
     }
 
-    if (!targetField || targetField.trim().length === 0) {
-      return ErrorHandler.validation({
-        operation: "create",
-        method: "validateTargetField",
-      }).emptyInput();
-    }
-
-    const trimmedExpression = sourceExpression.trim();
-    const trimmedField = targetField.trim();
-
-    return ok(new DerivationRule(trimmedExpression, trimmedField, unique));
+    return ok(new DerivationRule(sourcePath, targetField, unique));
   }
 
-  getSourceExpression(): string {
-    return this.sourceExpression;
+  getBasePath(): string {
+    // Extract base path for derivation (e.g., "commands" from "commands[].c1")
+    if (this.sourcePath.includes("[]")) {
+      return this.sourcePath.split("[]")[0];
+    }
+    return this.sourcePath;
+  }
+
+  getPropertyPath(): string {
+    // Extract property path (e.g., "c1" from "commands[].c1")
+    if (this.sourcePath.includes("[].")) {
+      return this.sourcePath.split("[].")[1];
+    }
+    return this.sourcePath;
   }
 
   getTargetField(): string {
@@ -46,26 +54,7 @@ export class DerivationRule {
     return this.unique;
   }
 
-  isArrayExpression(): boolean {
-    return this.sourceExpression.includes("[]");
-  }
-
-  getBasePath(): string {
-    const parts = this.sourceExpression.split("[]");
-    return parts[0];
-  }
-
-  getPropertyPath(): string {
-    const parts = this.sourceExpression.split("[]");
-    if (parts.length > 1 && parts[1].startsWith(".")) {
-      return parts[1].substring(1);
-    }
-    return "";
-  }
-
-  toString(): string {
-    return `${this.sourceExpression} -> ${this.targetField}${
-      this.unique ? " (unique)" : ""
-    }`;
+  getSourcePath(): string {
+    return this.sourcePath;
   }
 }

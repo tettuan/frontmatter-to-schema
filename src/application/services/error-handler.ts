@@ -17,7 +17,7 @@ import {
   RecoveryStrategy as UnifiedRecoveryStrategy,
   RecoveryStrategyFactory,
 } from "../strategies/recovery-strategy.ts";
-import { DomainError } from "../../domain/shared/types/errors.ts";
+import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 
 /**
  * Error handling configuration
@@ -921,8 +921,9 @@ export class ErrorHandler {
     }
 
     // Find appropriate unified recovery strategy
+    const errorWithMessage = "message" in error ? error : createError(error);
     const strategyResult = RecoveryStrategyFactory.findStrategy(
-      error,
+      errorWithMessage,
       this.unifiedRecoveryStrategies,
     );
 
@@ -943,6 +944,6 @@ export class ErrorHandler {
     };
 
     // Apply unified recovery strategy
-    return strategyResult.data.recover(error, context);
+    return strategyResult.data.recover(errorWithMessage, context);
   }
 }

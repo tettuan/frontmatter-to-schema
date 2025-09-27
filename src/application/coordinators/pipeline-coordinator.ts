@@ -1,4 +1,4 @@
-import { ok, Result } from "../../domain/shared/types/result.ts";
+import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { DomainError } from "../../domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { VerbosityMode } from "../../domain/template/value-objects/processing-context.ts";
@@ -15,6 +15,9 @@ import {
   TemplateFileSystem,
 } from "./template-coordinator.ts";
 import { TemplateConfig } from "../strategies/template-resolution-strategy.ts";
+import { TemplateManagementDomainService } from "../../domain/template/services/template-management-domain-service.ts";
+import { DomainFileReaderAdapter } from "../../infrastructure/adapters/domain-file-reader-adapter.ts";
+import { DenoFileReader } from "../../infrastructure/file-system/file-reader.ts";
 
 /**
  * Verbosity configuration using discriminated unions (Totality principle)
@@ -84,8 +87,20 @@ export class PipelineCoordinator {
       return processingCoordinatorResult;
     }
 
+    // Create Template Management Domain Service for DDD compliance
+    const fileReader = new DenoFileReader();
+    const domainFileReader = DomainFileReaderAdapter.create(fileReader);
+    const templateManagementDomainResult = TemplateManagementDomainService
+      .create(
+        domainFileReader,
+      );
+    if (!templateManagementDomainResult.ok) {
+      return templateManagementDomainResult;
+    }
+
     // Create template coordinator
     const templateCoordinatorResult = TemplateCoordinator.create(
+      templateManagementDomainResult.data,
       templatePathResolver,
       outputRenderingService,
       templateFileSystem,
@@ -121,18 +136,19 @@ export class PipelineCoordinator {
     const { schema, validationRules } = schemaResult.data;
 
     // Step 2: Resolve template paths
-    const templatePathsResult = this.templateCoordinator.resolveTemplatePaths(
-      schema,
-      config.templateConfig,
-      config.schemaPath,
-    );
+    const templatePathsResult = await this.templateCoordinator
+      .resolveTemplatePaths(
+        schema,
+        config.templateConfig,
+        config.schemaPath,
+      );
     if (!templatePathsResult.ok) {
-      return templatePathsResult;
+      return err(templatePathsResult.error);
     }
 
     // Step 3: Process documents with optional items extraction
     const processingOptions = config.processingOptions ||
-      { kind: "sequential" };
+      { parallel: false, maxWorkers: 1, batchSize: 10 };
     const processResult = await this.processingCoordinator
       .processDocuments(
         config.inputPattern,

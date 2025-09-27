@@ -96,6 +96,7 @@ export class ProcessingStateMachine {
 
     const pipelineConfig: PipelineConfiguration = {
       mode: this.determineMode(config),
+      inputPattern: config.inputPattern,
       schemaPath: config.schemaPath,
       templatePath,
       outputPath: config.outputPath,
@@ -120,8 +121,11 @@ export class ProcessingStateMachine {
 
     // Transition to initializing state
     const event: StateTransitionEvent = {
-      kind: "Initialize",
-      config: pipelineConfig,
+      kind: "state-transition",
+      fromPhase: "initialization",
+      toPhase: "initialization",
+      timestamp: new Date(),
+      metadata: { config: pipelineConfig },
     };
 
     const result = this.stateService.transition(event);
@@ -193,12 +197,15 @@ export class ProcessingStateMachine {
       };
     }
 
+    // Get the new state after transition
+    const newState = this.getCurrentState();
+
     this.loggingService.debug("State transition successful", {
       from: currentState.kind,
-      to: result.data.kind,
+      to: newState.kind,
     });
 
-    return ok(result.data);
+    return ok(newState);
   }
 
   /**
@@ -234,12 +241,14 @@ export class ProcessingStateMachine {
     cause?: DomainError,
   ): Result<void, DomainError & { message: string }> {
     const errorEvent: StateTransitionEvent = {
-      kind: "Fail",
-      error: {
+      kind: "state-transition",
+      fromPhase: this.getCurrentState().phase,
+      toPhase: "error",
+      timestamp: new Date(),
+      metadata: {
         phase,
         message,
         cause,
-        timestamp: new Date(),
       },
     };
 
@@ -261,7 +270,12 @@ export class ProcessingStateMachine {
    * Complete processing
    */
   complete(): Result<void, DomainError & { message: string }> {
-    const event: StateTransitionEvent = { kind: "Complete" };
+    const event: StateTransitionEvent = {
+      kind: "state-transition",
+      fromPhase: this.getCurrentState().phase,
+      toPhase: "completed",
+      timestamp: new Date(),
+    };
 
     const result = this.stateService.transition(event);
     if (!result.ok) {
@@ -292,7 +306,12 @@ export class ProcessingStateMachine {
   /**
    * Get state history for debugging
    */
-  getStateHistory(): readonly PipelineExecutionState[] {
+  getStateHistory(): Array<{
+    from: string;
+    to: string;
+    event: string;
+    timestamp: Date;
+  }> {
     return this.stateService.getStateHistory();
   }
 
@@ -305,7 +324,8 @@ export class ProcessingStateMachine {
     event: string;
     timestamp: Date;
   }> {
-    return [...this.stateService.getTransitionLog()];
+    // Get transition log directly from the state service
+    return this.stateService.getStateHistory();
   }
 
   /**
@@ -344,16 +364,16 @@ export class ProcessingStateMachine {
    */
   private determineMode(
     config: PipelineConfig,
-  ): "standard" | "validation-only" | "template-only" {
+  ): "sequential" | "parallel" | "adaptive" {
     const hasTemplate = this.hasTemplateConfiguration(config.templateConfig);
 
     if (!config.schemaPath) {
-      return "template-only";
+      return "sequential"; // template-only -> sequential
     }
     if (!hasTemplate) {
-      return "validation-only";
+      return "sequential"; // validation-only -> sequential
     }
-    return "standard";
+    return "sequential"; // standard -> sequential (default)
   }
 
   /**

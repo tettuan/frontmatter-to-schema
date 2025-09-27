@@ -6,7 +6,7 @@ import {
   type OperationContext,
 } from "../../shared/services/error-handling-service.ts";
 import { BaseFormatter, OutputFormat } from "./output-formatter.ts";
-import * as nunjucks from "nunjucks";
+import * as nunjucks from "npm:nunjucks@3.2.4";
 
 // Nunjucks error factory for ErrorHandlingService
 const nunjucksErrorFactory = (

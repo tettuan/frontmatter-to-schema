@@ -1,5 +1,5 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
-import { DomainError } from "../../domain/shared/types/errors.ts";
+import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
@@ -19,7 +19,6 @@ import {
   LoggingServiceFactory,
   ProcessingLoggerState,
 } from "../../infrastructure/logging/logging-service.ts";
-import { NullDomainLogger } from "../../domain/shared/services/domain-logger.ts";
 import { ProcessingStateMachine } from "./processing-state-machine.ts";
 import { ComplexityMetricsService } from "../../domain/monitoring/services/complexity-metrics-service.ts";
 import { EntropyManagementService } from "../../domain/monitoring/services/entropy-management-service.ts";
@@ -31,6 +30,7 @@ import {
   RecoveryStrategyFactory,
 } from "../strategies/recovery-strategy.ts";
 import { TemplateConfig } from "../strategies/template-resolution-strategy.ts";
+import { TemplateManagementDomainService } from "../../domain/template/services/template-management-domain-service.ts";
 
 /**
  * Factory for creating ProcessingLoggerState instances - for backward compatibility
@@ -112,6 +112,7 @@ export class PipelineOrchestrator {
     fileSystem: FileSystem,
     schemaCache: SchemaCache,
     processingLoggerState: ProcessingLoggerState,
+    templateManagementDomain: TemplateManagementDomainService,
     defaultStrategyConfig?: PipelineStrategyConfig,
   ): Result<PipelineOrchestrator, DomainError & { message: string }> {
     // Create default strategy config if not provided
@@ -155,6 +156,7 @@ export class PipelineOrchestrator {
     }
 
     const templateCoordinatorResult = TemplateCoordinator.create(
+      templateManagementDomain, // Pass the domain service as first parameter
       templatePathResolver,
       outputRenderingService,
       fileSystem,
@@ -189,10 +191,7 @@ export class PipelineOrchestrator {
       stateMachineResult.data,
     );
     if (!stateManagerResult.ok) return err(stateManagerResult.error);
-    const documentServiceResult = DocumentProcessingService.create(
-      processingCoordinatorResult.data,
-      new NullDomainLogger(),
-    );
+    const documentServiceResult = DocumentProcessingService.create();
     if (!documentServiceResult.ok) return err(documentServiceResult.error);
 
     // Create recovery strategies
@@ -239,8 +238,9 @@ export class PipelineOrchestrator {
     };
 
     // Find appropriate recovery strategy
+    const errorWithMessage = "message" in error ? error : createError(error);
     const strategyResult = RecoveryStrategyFactory.findStrategy(
-      error,
+      errorWithMessage,
       this.recoveryStrategies,
     );
 
@@ -254,7 +254,10 @@ export class PipelineOrchestrator {
     }
 
     // Attempt recovery using the strategy
-    const recoveryResult = strategyResult.data.recover(error, context);
+    const recoveryResult = strategyResult.data.recover(
+      errorWithMessage,
+      context,
+    );
     if (!recoveryResult.ok) {
       this.loggingService.error("Recovery attempt failed", {
         originalError: error,
@@ -420,11 +423,12 @@ export class PipelineOrchestrator {
       return err(templateResolvingResult.error);
     }
 
-    const templatePathsResult = this.templateCoordinator.resolveTemplatePaths(
-      schemaResult.data,
-      config.templateConfig,
-      config.schemaPath,
-    );
+    const templatePathsResult = await this.templateCoordinator
+      .resolveTemplatePaths(
+        schemaResult.data,
+        config.templateConfig,
+        config.schemaPath,
+      );
     if (!templatePathsResult.ok) {
       this.handleError(templatePathsResult.error);
       return err(templatePathsResult.error);
@@ -467,12 +471,8 @@ export class PipelineOrchestrator {
 
     const docProcessingStart = performance.now();
     const documentsResult = await this.documentService.processDocuments(
-      {
-        inputPattern: config.inputPattern,
-        strategyConfig: config.strategyConfig || this.strategyConfig,
-      },
+      config.inputPattern,
       validationRulesResult.data,
-      schemaResult.data,
     );
     const docProcessingEnd = performance.now();
     const docProcessingDuration = docProcessingEnd - docProcessingStart;
@@ -527,8 +527,8 @@ export class PipelineOrchestrator {
         : "json";
 
     // Use itemsData from document processing if available, otherwise fallback to original logic
-    let itemsData: FrontmatterData[] | undefined =
-      documentsResult.data.itemsData;
+    let itemsData: FrontmatterData[] | undefined = documentsResult.data
+      .itemsData as FrontmatterData[] | undefined;
 
     // If no itemsData from processing, check for fallback behavior
     if (!itemsData) {
@@ -541,22 +541,24 @@ export class PipelineOrchestrator {
       if (frontmatterPartResult.ok && mainDataArray.length > 0) {
         // Extract items from the frontmatter part path
         const mainDoc = mainDataArray[0];
-        const itemsResult = mainDoc.get(frontmatterPartResult.data);
+        if (mainDoc) {
+          const itemsResult = mainDoc.get(frontmatterPartResult.data);
 
-        if (itemsResult.ok && Array.isArray(itemsResult.data)) {
-          // Convert raw items to FrontmatterData array
-          const convertedItems: FrontmatterData[] = [];
-          for (const item of itemsResult.data) {
-            const itemDataResult = FrontmatterData.create(item);
-            if (itemDataResult.ok) {
-              convertedItems.push(itemDataResult.data);
+          if (itemsResult.ok && Array.isArray(itemsResult.data)) {
+            // Convert raw items to FrontmatterData array
+            const convertedItems: FrontmatterData[] = [];
+            for (const item of itemsResult.data) {
+              const itemDataResult = FrontmatterData.create(item);
+              if (itemDataResult.ok) {
+                convertedItems.push(itemDataResult.data);
+              }
             }
+            itemsData = convertedItems.length > 0 ? convertedItems : undefined;
           }
-          itemsData = convertedItems.length > 0 ? convertedItems : undefined;
         }
       } else if (mainDataArray.length > 1) {
         // Fallback: if multiple documents, use them as itemsData
-        itemsData = mainDataArray;
+        itemsData = mainDataArray as FrontmatterData[];
       }
     }
 
@@ -564,8 +566,9 @@ export class PipelineOrchestrator {
       templatePathsResult.data.templatePath,
       templatePathsResult.data.itemsTemplatePath,
       (Array.isArray(documentsResult.data.mainData)
-        ? documentsResult.data.mainData[0]
-        : documentsResult.data.mainData) || (() => {
+        ? documentsResult.data.mainData[0] as unknown as FrontmatterData
+        : documentsResult.data.mainData as unknown as FrontmatterData) ||
+        (() => {
           const result = FrontmatterData.create({});
           return result.ok
             ? result.data

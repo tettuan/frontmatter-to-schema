@@ -1,0 +1,209 @@
+import { assertEquals, assertExists } from "jsr:@std/assert";
+import { join } from "jsr:@std/path";
+import { exists } from "jsr:@std/fs";
+
+/**
+ * TDD Red Phase Tests - These SHOULD FAIL
+ *
+ * These tests represent the expected behavior that is NOT yet implemented.
+ * In TDD, we write failing tests first (Red), then implement (Green), then refactor.
+ *
+ * Current status: These features are documented but not working:
+ * - x-derived-from directive
+ * - x-jmespath-filter directive
+ * - x-flatten-arrays directive
+ */
+
+Deno.test("TDD Red Phase - Features that SHOULD work but DON'T", async (t) => {
+  const projectRoot = Deno.cwd();
+
+  await t.step("x-derived-from should aggregate values from array fields", async () => {
+    const outputPath = join(projectRoot, "examples", "0.basic", "output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // This test SHOULD pass but currently FAILS
+      // x-derived-from is supposed to aggregate c1 values from commands array
+      assertExists(output.tools.availableConfigs, "availableConfigs should exist");
+
+      // EXPECTED: ["git", "spec"]
+      // ACTUAL: "" (empty string)
+      assertEquals(
+        output.tools.availableConfigs,
+        ["git", "spec"],
+        "x-derived-from should aggregate unique c1 values from commands"
+      );
+    }
+  });
+
+  await t.step("x-derived-from should work with complex paths", async () => {
+    const outputPath = join(projectRoot, "examples", "2.climpt", "climpt-registry-output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // EXPECTED: Array of unique c1 values
+      // ACTUAL: "" (empty string)
+      const expectedConfigs = ["build", "debug", "design", "docs", "git", "meta", "spec", "test", "refactor", "requirement"];
+
+      assertEquals(
+        Array.isArray(output.tools.availableConfigs),
+        true,
+        "availableConfigs should be an array, not a string"
+      );
+
+      // Check if all unique c1 values are collected
+      const actualC1Values = output.tools.commands.map((c: any) => c.c1);
+      const uniqueC1Values = [...new Set(actualC1Values)].sort();
+
+      assertEquals(
+        output.tools.availableConfigs.sort(),
+        uniqueC1Values,
+        "x-derived-from should collect all unique c1 values"
+      );
+    }
+  });
+
+  await t.step("x-jmespath-filter should filter arrays by level", async () => {
+    const reqOutputPath = join(projectRoot, "examples", "3.docs", "index", "req_index.json");
+
+    if (await exists(reqOutputPath)) {
+      const content = await Deno.readTextFile(reqOutputPath);
+      const output = JSON.parse(content);
+
+      // The traceability array should contain actual data, not empty objects
+      assertExists(output.req, "req array should exist (but it's named wrong - should be 'traceability')");
+
+      // EXPECTED: Array of traceability items with id.level === 'req'
+      // ACTUAL: Array of empty objects with empty strings
+
+      // Check that we have actual traceability data
+      const firstItem = output.req[0];
+      assertExists(firstItem, "Should have at least one item");
+
+      // These assertions WILL FAIL because the data is empty
+      assertExists(firstItem.id.full, "ID should have full field with actual value");
+      assertEquals(
+        firstItem.id.level,
+        "req",
+        "Filtered items should have level='req'"
+      );
+      assertEquals(
+        typeof firstItem.id.full,
+        "string",
+        "ID full should be a string"
+      );
+      assertEquals(
+        firstItem.id.full.startsWith("req:"),
+        true,
+        "Requirement IDs should start with 'req:'"
+      );
+    }
+  });
+
+  await t.step("x-flatten-arrays should flatten nested traceability arrays", async () => {
+    // Based on 3.docs example where traceability can be nested arrays
+    const specOutputPath = join(projectRoot, "examples", "3.docs", "index", "spec_index.json");
+
+    if (await exists(specOutputPath)) {
+      const content = await Deno.readTextFile(specOutputPath);
+      const output = JSON.parse(content);
+
+      // EXPECTED: Flat array of traceability items
+      // ACTUAL: Potentially nested or empty structures
+
+      assertExists(output.spec, "spec array should exist (naming issue)");
+
+      // Check that arrays are properly flattened
+      for (const item of output.spec) {
+        // Each item should be an object, not an array
+        assertEquals(
+          Array.isArray(item),
+          false,
+          "Items should be flattened objects, not nested arrays"
+        );
+
+        // Each item should have proper structure
+        assertExists(item.id, "Each item should have id");
+        assertEquals(
+          typeof item.id,
+          "object",
+          "ID should be an object with structure"
+        );
+
+        // ID should have actual values, not empty strings
+        assertEquals(
+          item.id.level,
+          "spec",
+          "All items in spec_index should have level='spec'"
+        );
+      }
+    }
+  });
+
+  await t.step("x-derived-unique should remove duplicates", async () => {
+    const outputPath = join(projectRoot, "examples", "0.basic", "output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // If we had duplicate c1 values, x-derived-unique should remove them
+      // EXPECTED: Unique values only
+      // ACTUAL: Empty string (x-derived-from not working at all)
+
+      // This would test uniqueness if x-derived-from worked
+      if (Array.isArray(output.tools.availableConfigs)) {
+        const hasDuplicates = output.tools.availableConfigs.length !==
+          new Set(output.tools.availableConfigs).size;
+
+        assertEquals(
+          hasDuplicates,
+          false,
+          "x-derived-unique should remove duplicate values"
+        );
+      }
+    }
+  });
+});
+
+/**
+ * Test to verify that these are actual failures, not test setup issues
+ */
+Deno.test("Verify test environment is set up correctly", async (t) => {
+  await t.step("Example output files exist", async () => {
+    const files = [
+      "examples/0.basic/output.json",
+      "examples/2.climpt/climpt-registry-output.json",
+      "examples/3.docs/index/req_index.json",
+    ];
+
+    for (const file of files) {
+      const filePath = join(Deno.cwd(), file);
+      const fileExists = await exists(filePath);
+      assertEquals(
+        fileExists,
+        true,
+        `Test file ${file} should exist - run examples first if missing`
+      );
+    }
+  });
+
+  await t.step("Output files have expected base structure", async () => {
+    const outputPath = join(Deno.cwd(), "examples", "0.basic", "output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // These basic structures DO work
+      assertExists(output.version, "Should have version");
+      assertExists(output.tools, "Should have tools");
+      assertExists(output.tools.commands, "Should have commands array");
+      assertEquals(Array.isArray(output.tools.commands), true, "Commands is array");
+    }
+  });
+});

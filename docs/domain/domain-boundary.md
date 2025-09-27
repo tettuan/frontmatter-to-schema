@@ -2,421 +2,297 @@
 
 ## 概要
 
-本書は、Markdown
-FrontMatterからSchemaベースでの構造化データ変換システムにおけるドメイン境界を定義する。
-要求事項とアーキテクチャに基づき、DDD原則に従った境界づけられたコンテキストを明確化する。
+本書は、多様なMarkdownファイルのフロントマターから統一的な索引を生成するシステムのドメイン境界を定義する。
+requirements.ja.mdおよびflow.ja.mdに基づき、3つの独立したドメインとその責務を明確化する。
 
-## ドメイン分析結果
+## 基本原則
 
-### 出現分布分析
+### ドメイン分離の原則
 
-システムの24パターンの試行から、以下の要素が高頻度で出現：
-
-1. **Schema処理** (24/24回) - 全パターンで必須
-2. **フロントマター抽出** (24/24回) - 全パターンで必須
-3. **テンプレート適用** (24/24回) - 全パターンで必須
-4. **ファイル探索** (24/24回) - 全パターンで必須
-5. **集約処理** (18/24回) - 大規模処理で頻出
-6. **$ref解決** (16/24回) - 複雑なSchemaで頻出
-7. **並列処理** (12/24回) - パフォーマンス要求時
-
-### 中心骨格の特定
-
-```mermaid
-graph TB
-    subgraph Core["中心骨格"]
-        Schema[Schema定義]
-        Frontmatter[フロントマター]
-        Template[テンプレート]
-    end
-    
-    subgraph Processing["処理軸"]
-        Extract[抽出]
-        Validate[検証]
-        Transform[変換]
-        Render[レンダリング]
-    end
-    
-    Schema --> Validate
-    Frontmatter --> Extract
-    Extract --> Validate
-    Validate --> Transform
-    Transform --> Render
-    Template --> Render
-```
+1. **独立性**: 各ドメインは他のドメインの実装詳細に依存しない
+2. **隠蔽性**: フロントマター解析結果への直接アクセスは禁止
+3. **宣言性**: すべての処理は宣言的なディレクティブで制御
 
 ## 境界づけられたコンテキスト
 
-### 1. Schema管理コンテキスト
+### 1. フロントマター解析ドメイン
 
-**責務**: Schema定義の管理、$ref解決、検証ルール提供、拡張ディレクティブの管理
+**責務**: Markdownファイルからフロントマターデータを抽出する
+
+**境界定義**:
 
 ```typescript
-// 境界定義
-interface SchemaContext {
+interface FrontmatterDomain {
   // 集約ルート
-  class SchemaRepository {
-    load(path: SchemaPath): Result<Schema, SchemaError>
-    resolve(schema: Schema): Result<ResolvedSchema, ResolutionError>
-    extractRules(schema: ResolvedSchema): ValidationRules
+  class FrontmatterExtractor {
+    // ファイル一覧を受け取り処理
+    extractFromFiles(files: MarkdownFile[]): Result<ExtractedData[], ExtractError>
+    // 個別ファイルの処理
+    extractFromFile(file: MarkdownFile): Result<ExtractedData, ExtractError>
   }
 
   // エンティティ
-  class Schema {
-    getExtractFromDirectives(): Result<ExtractFromDirective[], SchemaError>
-    hasExtractFromDirectives(): boolean
-    getDerivedFromRules(): DerivedFromRule[]
+  class ExtractedData {
+    readonly filePath: string
+    readonly rawData: Record<string, unknown>
+    readonly metadata: ExtractionMetadata
+
+    // x-frontmatter-part指定階層の取得
+    getFrontmatterPart(path: string): unknown
     hasFrontmatterPart(path: string): boolean
   }
 
   // 値オブジェクト
-  class SchemaPath { private constructor(value: string) }
-  class ValidationRules { private constructor(rules: Rule[]) }
-  class FlattenArraysDirective {
+  class MarkdownFile {
     private constructor(
-      targetPropertyName: string,
-      sourcePropertyName: string,
-      isOptional: boolean,
+      readonly path: string,
+      readonly content: string
     )
-    static create(targetProperty: string, sourceProperty: string): Result<FlattenArraysDirective, DomainError>
-    isApplicable(): boolean
-    getSourcePropertyName(): string
   }
 
-  // ドメインサービス
-  class RefResolver {
-    resolveRecursive(schema: Schema): Result<ResolvedSchema, Error>
-  }
-  class DirectiveProcessor {
-    processFlattenArrays(data: any, directives: FlattenArraysDirective[]): Result<any, ProcessingError>
+  class ExtractionMetadata {
+    readonly extractedAt: Date
+    readonly hasErrors: boolean
+    readonly warnings: string[]
   }
 }
 ```
 
-**ライフサイクル**: 長期（アプリケーション起動時に読込、キャッシュ保持）
+**重要な特性**:
 
-**拡張ディレクティブの責務**:
+- Markdownファイル処理は、このドメインのみの責務
+- `x-frontmatter-part`指定階層の処理起点を管理
+- 外部からの直接アクセスは許可しない
+- データ処理指示ドメインへのみデータを提供
 
-- `x-flatten-arrays`: フロントマター内部のネスト配列のフラット化（Stage
-  2で処理）
-- `x-derived-from`: 集約処理での派生フィールド生成（Stage 4で処理）
-- `x-frontmatter-part`: フロントマター配列処理の指定（Stage 1で処理）
-- `x-template`: テンプレートファイルの指定
+### 2. テンプレート管理ドメイン
 
-### 2. フロントマター処理コンテキスト
+**責務**: 出力テンプレートの管理と提供
 
-**責務**: Markdownファイルからのフロントマター抽出と解析
-
-```typescript
-// 境界定義
-interface FrontmatterContext {
-  // 集約ルート
-  class FrontmatterProcessor {
-    extract(markdown: string): Result<RawFrontmatter, ExtractError>
-    parse(raw: RawFrontmatter): Result<ParsedData, ParseError>
-  }
-  
-  // エンティティ
-  class MarkdownDocument {
-    readonly path: FilePath
-    readonly content: string
-    readonly frontmatter?: FrontmatterData
-  }
-  
-  // 値オブジェクト
-  class FrontmatterData {
-    private constructor(readonly data: Record<string, unknown>)
-  }
-}
-```
-
-**ライフサイクル**: 短期（ファイル処理ごとに生成・破棄）
-
-### 3. テンプレート管理コンテキスト
-
-**責務**: テンプレート定義の管理と変数置換処理（中間表現層を含む）
+**境界定義**:
 
 ```typescript
-// 境界定義
-interface TemplateContext {
+interface TemplateDomain {
   // 集約ルート
-  class TemplateRepository {
-    load(path: TemplatePath): Result<Template, TemplateError>
-    resolveVariables(template: Template): VariableMap
+  class TemplateManager {
+    // テンプレートファイルの管理
+    loadTemplate(directive: TemplateDirective): Result<Template, TemplateError>
+    // テンプレート情報の提供
+    getTemplateInfo(): TemplateInfo
   }
 
   // エンティティ
   class Template {
     readonly content: string
-    readonly variables: Variable[]
     readonly format: OutputFormat
+    readonly variables: TemplateVariable[]
+
+    // テンプレート変数の解析
+    extractVariables(): TemplateVariable[]
+    hasItemsPlaceholder(): boolean
   }
 
-  // 中間表現層（新規追加）
-  class TemplateIntermediateRepresentation {
-    readonly root: IRObject
-    resolve(path: TemplatePath): Result<IRNode, VariableResolutionError>
-    createScope(path: TemplatePath): Result<TemplateScope, VariableResolutionError>
+  // 値オブジェクト
+  class TemplateDirective {
+    readonly mainTemplate?: string      // x-template
+    readonly itemsTemplate?: string     // x-template-items
+    readonly format?: string            // x-template-format
   }
 
-  // テンプレートコンテキスト（新規追加）
-  class TemplateContext {
-    readonly scopeStack: TemplateScope[]
-    readonly fallbackPolicy: FallbackPolicy
-    resolve(variable: string): Result<ResolvedValue, ResolutionError>
-    enterArray(arrayPath: TemplatePath): Result<ArrayContext, ContextError>
+  class TemplateVariable {
+    readonly path: string               // e.g., "id.full"
+    readonly isArray: boolean          // {@items} の場合
   }
 
   // ドメインサービス
-  class TemplateRenderer {
-    render(template: Template, context: TemplateContext): Result<Output, RenderError>
-  }
-
-  // IRビルダー（新規追加）
-  class TemplateIntermediateBuilder {
-    static fromFrontmatterData(data: FrontmatterData[]): Result<TemplateIntermediateBuilder, BuildError>
-    build(): Result<TemplateIntermediateRepresentation, BuildError>
+  class TemplateResolver {
+    // 変数パスの解決（起点の判定）
+    resolveVariableOrigin(
+      variable: TemplateVariable,
+      isItemsContext: boolean
+    ): VariableOrigin
   }
 }
 ```
 
-**ライフサイクル**:
+**重要な特性**:
 
-- Template: 中期（Schema単位でキャッシュ）
-- IR/Context: 短期（レンダリング処理ごとに生成）
+- テンプレートファイルの管理のみを責務とする
+- 変数の置換処理は行わない（テンプレートエンジンの責務）
+- `x-template`、`x-template-items`、`x-template-format`を管理
 
-**新規コンポーネントの責務**:
+### 3. データ処理指示ドメイン
 
-- **中間表現層（IR）**: ディレクティブ処理後のデータを正規化し、パス情報を保持
-- **TemplateContext**: スコープ管理による正確な変数解決
-- **TemplateScope**: 配列展開時の要素スコープ管理
-- 詳細は[IR Architecture](./architecture/domain-architecture-intermediate-representation.md)および[Template Context Specification](../architecture/template-context-specification.md)参照
+**責務**: フロントマターデータの加工と提供
 
-### 4. ファイル管理コンテキスト
-
-**責務**: ファイルシステムへのアクセスと入出力管理
+**境界定義**:
 
 ```typescript
-// 境界定義
-interface FileContext {
+interface DataProcessingDomain {
   // 集約ルート
-  class FileRepository {
-    scan(pattern: InputPattern): Result<FilePath[], ScanError>
-    read(path: FilePath): Result<FileContent, ReadError>
-    write(path: OutputPath, content: string): Result<void, WriteError>
+  class DataProcessor {
+    // フロントマター解析結果を受け取る
+    initialize(extractedData: ExtractedData[]): void
+
+    // x-ディレクティブに基づく処理済みデータの提供
+    processWithDirectives(
+      path: string,
+      directives: ProcessingDirective[]
+    ): Result<ProcessedData, ProcessingError>
+
+    // Schema階層の要求に応じたデータ返却
+    getDataForPath(schemaPath: string): Result<unknown, DataError>
   }
-  
+
+  // エンティティ
+  class ProcessedData {
+    readonly originalPath: string
+    readonly processedValue: unknown
+    readonly appliedDirectives: string[]
+  }
+
   // 値オブジェクト
-  class FilePath { private constructor(value: string) }
-  class InputPattern { toGlob(): string }
-  class OutputPath { getFormat(): OutputFormat }
-}
-```
-
-**ライフサイクル**: 短期（I/O操作ごと）
-
-### 5. 集約処理コンテキスト
-
-**責務**: 複数の処理結果の集約と派生フィールド生成
-
-```typescript
-// 境界定義
-interface AggregationContext {
-  // 集約ルート
-  class Aggregator {
-    aggregate(items: ValidatedData[]): AggregatedResult
-    deriveFields(data: AggregatedResult, rules: DerivationRule[]): EnrichedResult
+  class ProcessingDirective {
+    readonly type: DirectiveType
+    readonly parameters: DirectiveParameters
   }
-  
-  // 値オブジェクト
-  class DerivationRule {
-    readonly sourceExpression: string  // "commands[].c1"
-    readonly targetField: string
-    readonly unique: boolean
+
+  enum DirectiveType {
+    FLATTEN_ARRAYS = 'x-flatten-arrays',
+    DERIVED_FROM = 'x-derived-from',
+    DERIVED_UNIQUE = 'x-derived-unique',
+    JMESPATH_FILTER = 'x-jmespath-filter'
   }
-  
+
   // ドメインサービス
-  class ExpressionEvaluator {
-    evaluate(data: any, expression: string): any[]
+  class DirectiveProcessor {
+    // 配列フラット化
+    processFlattenArrays(
+      data: unknown,
+      targetProperty: string
+    ): Result<unknown[], ProcessingError>
+
+    // 値の集約
+    processDerivedFrom(
+      data: unknown[],
+      sourcePath: string
+    ): Result<unknown[], ProcessingError>
+
+    // 重複除去
+    processDerivedUnique(
+      data: unknown[]
+    ): Result<unknown[], ProcessingError>
+
+    // JMESPathフィルタリング
+    processJmespathFilter(
+      data: unknown,
+      expression: string
+    ): Result<unknown, ProcessingError>
   }
 }
 ```
 
-**ライフサイクル**: 中期（バッチ処理単位）
+**重要な特性**:
+
+- フロントマター解析ドメインへの直接アクセスを隠蔽
+- すべてのデータアクセスを仲介
+- x-ディレクティブ処理済みデータのみを提供
+- call_method(schema_entity)パターンでデータを返却
 
 ## コンテキストマップ
 
 ```mermaid
-graph LR
-    subgraph UI["UIレイヤー"]
-        CLI[CLI Interface]
+graph TB
+    subgraph Schema["Schemaドメイン（統括）"]
+        SD[Schema定義読取]
+        SD --> FD[フロントマター解析]
+        SD --> TD[テンプレート管理]
+        SD --> DD[データ処理指示]
     end
-    
-    subgraph Application["アプリケーションレイヤー"]
-        UC[Use Cases]
-        Coord[Process Coordinator]
+
+    subgraph Processing["処理フロー"]
+        FD -->|抽出データ| DD
+        DD -->|処理済データ| TE[テンプレートエンジン]
+        TD -->|テンプレート| TE
+        TE --> OUT[最終出力]
     end
-    
-    subgraph Domain["ドメインレイヤー"]
-        SC[Schema Context]
-        FC[Frontmatter Context]
-        TC[Template Context]
-        AC[Aggregation Context]
-    end
-    
-    subgraph Infra["インフラレイヤー"]
-        FS[File System Context]
-    end
-    
-    CLI --> UC
-    UC --> Coord
-    
-    Coord --> SC
-    Coord --> FC
-    Coord --> TC
-    Coord --> AC
-    
-    SC --> FS
-    FC --> FS
-    TC --> FS
-    
-    SC -.->|ValidationRules| FC
-    FC -.->|ValidatedData| TC
-    FC -.->|ValidatedData[]| AC
-    AC -.->|EnrichedResult| TC
+
+    style FD fill:#f9f,stroke:#333,stroke-width:2px
+    style TD fill:#bbf,stroke:#333,stroke-width:2px
+    style DD fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-## 境界間の相互作用
+## ドメイン間の相互作用
 
-### 1. Schema → Frontmatter
+### データフローの原則
 
-**インターフェース**: ValidationRules **イベント**: SchemaLoadedEvent →
-ValidationRulesAvailable
+1. **単方向フロー**: フロントマター解析 → データ処理指示 → テンプレートエンジン
+2. **隠蔽アクセス**: データ処理指示ドメインがすべてのデータアクセスを仲介
+3. **遅延評価**: `{@items}`は全ファイル処理完了後に確定
+
+### インターフェース定義
 
 ```typescript
-interface SchemaToFrontmatter {
-  // Schema Context が公開
-  getValidationRules(schemaId: SchemaId): ValidationRules;
+// フロントマター解析 → データ処理指示
+interface FrontmatterToDataProcessing {
+  // フロントマター解析ドメインが提供
+  getExtractedData(): ExtractedData[];
 
-  // Frontmatter Context が使用
-  validate(
-    data: ParsedData,
-    rules: ValidationRules,
-  ): Result<ValidatedData, ValidationError>;
+  // データ処理指示ドメインが利用
+  receiveExtractedData(data: ExtractedData[]): void;
+}
+
+// データ処理指示 → テンプレートエンジン
+interface DataProcessingToTemplate {
+  // データ処理指示ドメインが提供
+  getProcessedData(path: string): Result<unknown, DataError>;
+
+  // テンプレートエンジンが利用
+  resolveVariable(variablePath: string): Result<unknown, ResolutionError>;
+}
+
+// テンプレート管理 → テンプレートエンジン
+interface TemplateToEngine {
+  // テンプレート管理ドメインが提供
+  getTemplate(type: "main" | "items"): Result<Template, TemplateError>;
+
+  // テンプレートエンジンが利用
+  renderTemplate(
+    template: Template,
+    data: unknown,
+  ): Result<string, RenderError>;
 }
 ```
 
-### 2. Frontmatter → Template
+## 処理タイミングと責務
 
-**インターフェース**: ValidatedData **イベント**: DataValidatedEvent →
-ReadyForRendering
+### フェーズ1: 個別ファイル処理
 
-```typescript
-interface FrontmatterToTemplate {
-  // Frontmatter Context が公開
-  getValidatedData(documentId: DocumentId): ValidatedData;
+**責務ドメイン**: フロントマター解析ドメイン
 
-  // Template Context が使用
-  applyTemplate(data: ValidatedData, template: Template): RenderedContent;
-}
-```
+1. 各Markdownファイルからフロントマター抽出
+2. デフォルトで構造を保持
+3. `x-frontmatter-part`指定階層の識別
 
-### 3. Frontmatter → Aggregation
+### フェーズ2: 統合処理
 
-**インターフェース**: ValidatedData[] **イベント**: AllDataProcessedEvent →
-ReadyForAggregation
+**責務ドメイン**: データ処理指示ドメイン
 
-```typescript
-interface FrontmatterToAggregation {
-  // Frontmatter Context が公開
-  getAllValidatedData(): ValidatedData[];
+1. 全ファイル処理完了後の統合
+2. `x-flatten-arrays`による配列フラット化（指定時のみ）
+3. `x-derived-from`による値の集約
+4. `x-derived-unique`による重複除去
+5. `x-jmespath-filter`によるフィルタリング
 
-  // Aggregation Context が使用
-  aggregateData(
-    items: ValidatedData[],
-    rules: AggregationRule[],
-  ): AggregatedResult;
-}
-```
+### フェーズ3: テンプレート展開
 
-### 4. Aggregation → Template
+**責務ドメイン**: テンプレートエンジン（アプリケーション層）
 
-**インターフェース**: EnrichedResult **イベント**: AggregationCompleteEvent →
-FinalRenderingReady
-
-```typescript
-interface AggregationToTemplate {
-  // Aggregation Context が公開
-  getEnrichedResult(): EnrichedResult;
-
-  // Template Context が使用
-  renderFinal(result: EnrichedResult, template: Template): FinalOutput;
-}
-```
-
-## 複雑性の管理
-
-### 距離判定マトリックス
-
-| コンテキスト    | Schema | Frontmatter | Template | File | Aggregation |
-| --------------- | ------ | ----------- | -------- | ---- | ----------- |
-| **Schema**      | 0      | 1           | 2        | 1    | 3           |
-| **Frontmatter** | 1      | 0           | 1        | 1    | 2           |
-| **Template**    | 2      | 1           | 0        | 2    | 1           |
-| **File**        | 1      | 1           | 2        | 0    | 3           |
-| **Aggregation** | 3      | 2           | 1        | 3    | 0           |
-
-**距離の意味**:
-
-- 0: 同一コンテキスト
-- 1: 直接依存関係
-- 2: 間接依存関係
-- 3: 独立関係
-
-### ライフサイクル整合性
-
-```mermaid
-graph TD
-    subgraph Long["長期ライフサイクル"]
-        Schema[Schema定義]
-    end
-    
-    subgraph Medium["中期ライフサイクル"]
-        Template[テンプレート]
-        Aggregation[集約処理]
-    end
-    
-    subgraph Short["短期ライフサイクル"]
-        Frontmatter[フロントマター]
-        FileIO[ファイルI/O]
-    end
-    
-    Long -.->|疎結合| Medium
-    Medium -.->|疎結合| Short
-    Long ==>|要注意| Short
-```
-
-## 境界設計の原則
-
-### 1. 単一責任原則
-
-各コンテキストは明確な単一の責務を持つ
-
-### 2. 疎結合原則
-
-ライフサイクルの異なるコンテキスト間は疎結合を保つ
-
-### 3. イベント駆動原則
-
-コンテキスト間の協調はイベントベースで行う
-
-### 4. 不変性原則
-
-境界を跨ぐデータは不変オブジェクトとして扱う
-
-### 5. 全域性原則
-
-各コンテキストのインターフェースはResult型で全域関数化
+1. テンプレート管理ドメインからテンプレート取得
+2. データ処理指示ドメインから処理済みデータ取得
+3. `{@items}`の展開
+4. 変数の置換
+5. 最終出力の生成
 
 ## 実装への影響
 
@@ -425,68 +301,40 @@ graph TD
 ```
 src/
 ├── domain/
-│   ├── schema/
+│   ├── frontmatter/           # フロントマター解析ドメイン
+│   │   ├── extractors/
 │   │   ├── entities/
-│   │   ├── repositories/
-│   │   ├── services/
 │   │   └── value-objects/
-│   ├── frontmatter/
+│   ├── template/              # テンプレート管理ドメイン
+│   │   ├── managers/
 │   │   ├── entities/
+│   │   └── value-objects/
+│   ├── data-processing/       # データ処理指示ドメイン
 │   │   ├── processors/
-│   │   └── value-objects/
-│   ├── template/
-│   │   ├── entities/
-│   │   ├── renderers/
-│   │   └── value-objects/
-│   ├── aggregation/
-│   │   ├── aggregators/
-│   │   ├── rules/
+│   │   ├── directives/
 │   │   └── services/
 │   └── shared/
-│       ├── events/
-│       └── types/
+│       ├── types/
+│       └── errors/
 ├── application/
-│   ├── use-cases/
-│   └── coordinators/
-├── infrastructure/
-│   ├── file-system/
-│   └── adapters/
-└── presentation/
-    └── cli/
+│   ├── template-engine/      # テンプレートエンジン
+│   ├── coordinators/
+│   └── use-cases/
+└── infrastructure/
+    ├── file-system/
+    └── adapters/
 ```
 
-### インターフェース定義
+## 設計の利点
 
-```typescript
-// 境界を跨ぐ共通インターフェース
-interface BoundaryInterface<T, E> {
-  execute(input: T): Result<E, DomainError>;
-}
-
-// イベント定義
-interface DomainEvent {
-  readonly aggregateId: string;
-  readonly occurredAt: Date;
-  readonly eventType: string;
-  readonly payload: unknown;
-}
-
-// コンテキスト間通信
-interface ContextPort<T> {
-  publish(event: DomainEvent): void;
-  subscribe(handler: (event: DomainEvent) => void): void;
-  query(id: string): Result<T, QueryError>;
-}
-```
+1. **明確な責務分離**: 各ドメインが独立して進化可能
+2. **データアクセスの制御**: 隠蔽原則により一貫性を保証
+3. **宣言的な処理**: x-ディレクティブによる処理の自動化
+4. **テスタビリティ**: 各ドメインを独立してテスト可能
+5. **拡張性**: 新しいディレクティブの追加が容易
 
 ## まとめ
 
-本設計により、以下を実現：
-
-1. **明確な責務分離**: 各コンテキストが独立して進化可能
-2. **複雑性の局所化**: 複雑な処理を適切なコンテキストに封じ込め
-3. **テスタビリティ**: 各コンテキストを独立してテスト可能
-4. **拡張性**: 新機能追加時の影響範囲を限定
-5. **保守性**: 変更の波及を最小化
-
-これらの境界設計により、要求事項を満たしつつ、将来の変更にも柔軟に対応できるシステムアーキテクチャを実現する。
+本設計により、requirements.ja.mdとflow.ja.mdで定義された要求を満たす、明確に分離された3つのドメインを実現する。
+各ドメインは独立性を保ちながら、データ処理指示ドメインを中心とした制御されたデータフローを構築する。
+これにより、多様なフロントマター構造に対応しつつ、統一的な索引生成を可能にする。

@@ -23,6 +23,7 @@ import { ResultValidator } from "../../domain/shared/utilities/result-validator.
 import {
   DocumentProcessingCoordinator,
   ProcessingOptions,
+  ProcessingStatus,
 } from "../../domain/pipeline/interfaces/document-processing-coordinator.ts";
 
 /**
@@ -558,12 +559,22 @@ export class ProcessingCoordinator implements DocumentProcessingCoordinator {
   private convertProcessingOptions(
     options: ProcessingOptions,
   ): { parallel: boolean; maxWorkers: number } {
-    switch (options.kind) {
-      case "sequential":
-        return { parallel: false, maxWorkers: 1 };
-      case "parallel":
-        return { parallel: true, maxWorkers: options.maxWorkers };
+    // Handle both new 'kind' property and legacy 'parallel' property
+    if (options.kind) {
+      switch (options.kind) {
+        case "sequential":
+          return { parallel: false, maxWorkers: 1 };
+        case "parallel":
+          return { parallel: true, maxWorkers: options.maxWorkers || 4 };
+        default:
+          return { parallel: false, maxWorkers: 1 };
+      }
     }
+    // Legacy support for direct parallel property
+    return {
+      parallel: options.parallel || false,
+      maxWorkers: options.maxWorkers || 1,
+    };
   }
 
   /**
@@ -866,5 +877,16 @@ General recovery suggestions:
 3. Try running with --verbose flag for more details
 4. Consider processing files individually to isolate issues`;
     }
+  }
+
+  /**
+   * Get processing status (implementation of DocumentProcessingCoordinator interface)
+   */
+  getProcessingStatus(): ProcessingStatus {
+    return {
+      isProcessing: false,
+      processedCount: 0,
+      totalCount: 0,
+    };
   }
 }

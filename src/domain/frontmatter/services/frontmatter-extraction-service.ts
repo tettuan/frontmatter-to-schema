@@ -75,7 +75,14 @@ export class FrontmatterExtractionService {
         });
       }
 
-      return ok(extractResult.data.frontmatter);
+      // Convert raw frontmatter to FrontmatterData
+      const frontmatterDataResult = FrontmatterData.create(
+        extractResult.data.frontmatter,
+      );
+      if (!frontmatterDataResult.ok) {
+        return frontmatterDataResult;
+      }
+      return ok(frontmatterDataResult.data);
     } catch (error) {
       return err({
         kind: "ExtractionFailed",
@@ -101,7 +108,14 @@ export class FrontmatterExtractionService {
         });
       }
 
-      return ok(extractResult.data.frontmatter);
+      // Convert raw frontmatter to FrontmatterData
+      const frontmatterDataResult = FrontmatterData.create(
+        extractResult.data.frontmatter,
+      );
+      if (!frontmatterDataResult.ok) {
+        return frontmatterDataResult;
+      }
+      return ok(frontmatterDataResult.data);
     } catch (error) {
       return err({
         kind: "ExtractionFailed",

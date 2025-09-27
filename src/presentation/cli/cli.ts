@@ -8,6 +8,8 @@ import { TemplateConfig } from "../../application/strategies/template-resolution
 import { SchemaProcessingService } from "../../domain/schema/services/schema-processing-service.ts";
 import { JMESPathFilterService } from "../../domain/schema/services/jmespath-filter-service.ts";
 import { FrontmatterProcessor } from "../../domain/frontmatter/processors/frontmatter-processor.ts";
+import { FrontmatterPartProcessor } from "../../domain/frontmatter/processors/frontmatter-part-processor.ts";
+import { defaultFrontmatterDataCreationService } from "../../domain/frontmatter/services/frontmatter-data-creation-service.ts";
 import { TemplateRenderer } from "../../domain/template/renderers/template-renderer.ts";
 import { OutputRenderingService } from "../../domain/template/services/output-rendering-service.ts";
 import { TemplatePathResolver } from "../../domain/template/services/template-path-resolver.ts";
@@ -19,6 +21,7 @@ import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { EnhancedDebugLogger } from "../../domain/shared/services/debug-logger.ts";
 import { DomainLoggerAdapter } from "../../domain/shared/services/domain-logger.ts";
 import { FrontmatterTransformationService } from "../../domain/frontmatter/services/frontmatter-transformation-service.ts";
+import { MemoryBoundsServiceFactory } from "../../infrastructure/monitoring/memory-bounds-service.ts";
 import { DebugLoggerFactory } from "../../infrastructure/logging/debug-logger-factory.ts";
 import { SchemaCacheFactory } from "../../infrastructure/caching/schema-cache.ts";
 import { CLIArguments } from "./value-objects/cli-arguments.ts";
@@ -37,6 +40,9 @@ import {
   JsonFrontmatterParser,
   YamlFrontmatterExtractor,
 } from "../../infrastructure/index.ts";
+import { DomainFileListerAdapter } from "../../infrastructure/adapters/domain-file-lister-adapter.ts";
+import { DomainFileReaderAdapter } from "../../infrastructure/adapters/domain-file-reader-adapter.ts";
+import { TemplateManagementDomainService } from "../../domain/template/services/template-management-domain-service.ts";
 
 export class CLI {
   private orchestrator: PipelineOrchestrator;
@@ -145,15 +151,30 @@ export class CLI {
   ): Result<PipelineOrchestrator, DomainError> {
     const fileReader = new DenoFileReader();
     const fileWriter = new DenoFileWriter();
-    const fileLister = new DenoFileLister();
+    const denoFileLister = new DenoFileLister();
+    const fileLister = DomainFileListerAdapter.create(denoFileLister);
     const schemaRepository = new FileSystemSchemaRepository(fileReader);
 
-    const frontmatterExtractor = new YamlFrontmatterExtractor();
-    const frontmatterParser = new JsonFrontmatterParser();
-    const frontmatterProcessorResult = FrontmatterProcessor.create(
-      frontmatterExtractor,
-      frontmatterParser,
-    );
+    // Create domain file reader adapter for Template Management Domain Service
+    const domainFileReader = DomainFileReaderAdapter.create(fileReader);
+
+    // Create Template Management Domain Service
+    const templateManagementDomainResult = TemplateManagementDomainService
+      .create(
+        domainFileReader,
+      );
+    if (!templateManagementDomainResult.ok) {
+      return err(createError({
+        kind: "InitializationError",
+        message:
+          `Failed to create TemplateManagementDomainService: ${templateManagementDomainResult.error.message}`,
+      }));
+    }
+    const templateManagementDomain = templateManagementDomainResult.data;
+
+    const _frontmatterExtractor = new YamlFrontmatterExtractor();
+    const _frontmatterParser = new JsonFrontmatterParser();
+    const frontmatterProcessorResult = FrontmatterProcessor.create();
     if (!frontmatterProcessorResult.ok) {
       return err(createError({
         kind: "InitializationError",
@@ -193,6 +214,30 @@ export class CLI {
       }));
     }
 
+    // Create FrontmatterPartProcessor for DDD service extraction (Issue #1080)
+    const frontmatterPartProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService: defaultFrontmatterDataCreationService,
+    });
+    if (!frontmatterPartProcessorResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create FrontmatterPartProcessor: ${frontmatterPartProcessorResult.error.message}`,
+      }));
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    );
+    if (!memoryBoundsServiceResult.ok) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message:
+          `Failed to create MemoryBoundsService: ${memoryBoundsServiceResult.error.message}`,
+      }));
+    }
+
     const config = {
       processor: frontmatterProcessor,
       fileSystem: {
@@ -203,6 +248,8 @@ export class CLI {
         aggregator,
         basePropertyPopulator,
         schemaValidation: schemaValidationServiceResult.data,
+        frontmatterPartProcessor: frontmatterPartProcessorResult.data,
+        memoryBounds: memoryBoundsServiceResult.data,
       },
       settings: {
         performance: performanceSettings.data,
@@ -294,6 +341,7 @@ export class CLI {
       fileSystem,
       schemaCache,
       processingLoggerState,
+      templateManagementDomain, // Pass the template management domain service
     );
   }
 
@@ -533,7 +581,7 @@ TROUBLESHOOTING:
 
     // Create discriminated union configurations following Totality principles
     const templateConfig: TemplateConfig = templatePath
-      ? { kind: "explicit", templatePath: templatePath }
+      ? { kind: "explicit", mainTemplate: templatePath }
       : { kind: "schema-derived" };
     const verbosityConfig: VerbosityConfig = verbose
       ? { kind: "verbose", enabled: true }

@@ -13,6 +13,10 @@ import { SchemaValidationService } from "../../schema/services/schema-validation
 import { PerformanceSettings } from "../../configuration/value-objects/performance-settings.ts";
 import { DomainLogger } from "../../shared/services/domain-logger.ts";
 import { FrontmatterDataCreationService } from "../services/frontmatter-data-creation-service.ts";
+import { FrontmatterPartProcessor } from "../processors/frontmatter-part-processor.ts";
+import { MemoryBoundsService } from "../../../infrastructure/monitoring/memory-bounds-service.ts";
+import { MergeOperations } from "../utilities/merge-operations.ts";
+import { FieldOperations } from "../utilities/field-operations.ts";
 import type {
   DomainFileLister,
   DomainFileReader,
@@ -32,7 +36,11 @@ export interface FrontmatterTransformationConfig {
     readonly aggregator: Aggregator;
     readonly basePropertyPopulator: BasePropertyPopulator;
     readonly schemaValidation: SchemaValidationService;
+    readonly frontmatterPartProcessor: FrontmatterPartProcessor;
+    readonly memoryBounds: MemoryBoundsService;
     readonly dataCreation?: FrontmatterDataCreationService;
+    readonly mergeOperations?: MergeOperations;
+    readonly fieldOperations?: FieldOperations;
   };
   readonly settings: {
     readonly performance?: PerformanceSettings;
@@ -55,6 +63,8 @@ export class FrontmatterTransformationConfigFactory {
     fileReader: DomainFileReader,
     fileLister: DomainFileLister,
     schemaValidation: SchemaValidationService,
+    frontmatterPartProcessor: FrontmatterPartProcessor,
+    memoryBoundsService: MemoryBoundsService,
     options?: {
       readonly dataCreation?: FrontmatterDataCreationService;
       readonly performance?: PerformanceSettings;
@@ -107,6 +117,20 @@ export class FrontmatterTransformationConfigFactory {
       }));
     }
 
+    if (!frontmatterPartProcessor) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "FrontmatterPartProcessor is required",
+      }));
+    }
+
+    if (!memoryBoundsService) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "MemoryBoundsService is required",
+      }));
+    }
+
     return ok({
       processor,
       fileSystem: {
@@ -117,6 +141,8 @@ export class FrontmatterTransformationConfigFactory {
         aggregator,
         basePropertyPopulator,
         schemaValidation,
+        frontmatterPartProcessor,
+        memoryBounds: memoryBoundsService,
         dataCreation: options?.dataCreation,
       },
       settings: {

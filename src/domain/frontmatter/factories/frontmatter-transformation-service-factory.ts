@@ -25,6 +25,8 @@ import { FrontmatterTransformationService } from "../services/frontmatter-transf
 import { FrontmatterTransformationConfigFactory } from "../configuration/frontmatter-transformation-config.ts";
 import { FrontmatterExtractionService } from "../services/frontmatter-extraction-service.ts";
 import { FrontmatterValidationService } from "../services/frontmatter-validation-service.ts";
+import { FrontmatterPartProcessor } from "../processors/frontmatter-part-processor.ts";
+import { MemoryBoundsServiceFactory } from "../../../infrastructure/monitoring/memory-bounds-service.ts";
 
 /**
  * Factory for creating FrontmatterTransformationService instances with different logging configurations
@@ -164,6 +166,24 @@ export class FrontmatterTransformationServiceFactory {
       return { ok: false, error: validationResult.error };
     }
 
+    // Create FrontmatterPartProcessor for DDD service extraction
+    const partProcessorResult = FrontmatterPartProcessor.create({
+      frontmatterDataCreationService,
+      // Note: Logger type mismatch - using undefined for factory pattern
+    });
+    if (!partProcessorResult.ok) {
+      return { ok: false, error: partProcessorResult.error };
+    }
+
+    // Create MemoryBoundsService for DDD service extraction (Issue #1080)
+    // Use default bounds since file count is unknown at factory time
+    const memoryBoundsServiceResult = MemoryBoundsServiceFactory.createDefault(
+      100,
+    ); // Default to medium dataset bounds
+    if (!memoryBoundsServiceResult.ok) {
+      return { ok: false, error: memoryBoundsServiceResult.error };
+    }
+
     const configResult = FrontmatterTransformationConfigFactory.create(
       frontmatterProcessor,
       aggregator,
@@ -171,6 +191,8 @@ export class FrontmatterTransformationServiceFactory {
       fileReader,
       fileLister,
       schemaValidationService,
+      partProcessorResult.data,
+      memoryBoundsServiceResult.data,
       {
         dataCreation: frontmatterDataCreationService,
         logger: domainLogger,

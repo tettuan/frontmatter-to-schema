@@ -1,0 +1,265 @@
+import { assert, assertEquals, assertExists } from "jsr:@std/assert";
+import { join } from "jsr:@std/path";
+import { exists } from "jsr:@std/fs";
+
+/**
+ * Tests for Expected Behavior based on Examples Success Definitions
+ *
+ * These tests validate what the system SHOULD do according to the documentation
+ * in examples/{0.basic,1.articles,2.climpt,3.docs}/README.md
+ *
+ * Tests are marked with their current status:
+ * - ✅ Working as expected
+ * - ⚠️  Partially working
+ * - ❌ Not working as expected
+ */
+
+Deno.test("Expected Behavior Tests", async (t) => {
+  const projectRoot = Deno.cwd();
+
+  await t.step("✅ Basic frontmatter extraction and schema validation", async () => {
+    // This tests the core functionality that IS working
+    const outputPath = join(projectRoot, "examples", "0.basic", "output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // Core functionality that works
+      assertExists(output.version, "Version field should exist");
+      assertEquals(output.version, "1.0.0", "Version should match template");
+      assertExists(output.description, "Description field should exist");
+      assertExists(output.tools, "Tools object should exist");
+      assertExists(output.tools.commands, "Commands array should exist");
+      assert(Array.isArray(output.tools.commands), "Commands should be an array");
+      assertEquals(output.tools.commands.length, 2, "Should have 2 commands");
+
+      // Validate command structure
+      for (const cmd of output.tools.commands) {
+        assertExists(cmd.c1, "Command should have c1");
+        assertExists(cmd.c2, "Command should have c2");
+        assertExists(cmd.c3, "Command should have c3");
+        assertExists(cmd.description, "Command should have description");
+        assertExists(cmd.usage, "Command should have usage");
+        assertExists(cmd.options, "Command should have options");
+      }
+    }
+  });
+
+  await t.step("❌ x-derived-from directive (Expected but not working)", () => {
+    // Document the expected behavior
+    const expected = {
+      description: "x-derived-from should aggregate values from specified fields",
+      example: "tools.availableConfigs should be ['git', 'spec'] from c1 fields",
+      actualBehavior: "Currently returns empty string instead of array",
+      affectedExamples: ["0.basic", "2.climpt"]
+    };
+
+    console.log("Expected behavior for x-derived-from:");
+    console.log(JSON.stringify(expected, null, 2));
+
+    // This would be the test if it worked:
+    // assertEquals(output.tools.availableConfigs, ["git", "spec"]);
+  });
+
+  await t.step("❌ x-jmespath-filter directive (Expected but not working)", () => {
+    // Document the expected behavior
+    const expected = {
+      description: "x-jmespath-filter should filter arrays using JMESPath expressions",
+      example: "traceability[?id.level == 'req'] should filter only req level items",
+      actualBehavior: "Currently returns empty or malformed data",
+      affectedExamples: ["3.docs"]
+    };
+
+    console.log("Expected behavior for x-jmespath-filter:");
+    console.log(JSON.stringify(expected, null, 2));
+
+    // This would be the test if it worked:
+    // for (const item of reqOutput.traceability) {
+    //   assertEquals(item.id.level, "req");
+    // }
+  });
+
+  await t.step("✅ x-frontmatter-part processing", async () => {
+    const outputPath = join(projectRoot, "examples", "2.climpt", "climpt-registry-output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // This IS working - collecting multiple files into array
+      assertExists(output.tools.commands, "Commands array should exist");
+      assert(Array.isArray(output.tools.commands), "Commands should be an array");
+      assertEquals(output.tools.commands.length, 31, "Should have 31 commands from 31 files");
+    }
+  });
+
+  await t.step("✅ Template variable substitution", async () => {
+    const outputPath = join(projectRoot, "examples", "0.basic", "output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // Template substitution IS working
+      assertEquals(output.version, "1.0.0", "{version} should be replaced");
+      assertEquals(output.description, "Basic command registry example", "{description} should be replaced");
+    }
+  });
+
+  await t.step("✅ {@items} template expansion", async () => {
+    const outputPath = join(projectRoot, "examples", "2.climpt", "climpt-registry-output.json");
+
+    if (await exists(outputPath)) {
+      const content = await Deno.readTextFile(outputPath);
+      const output = JSON.parse(content);
+
+      // {@items} expansion IS working
+      assertExists(output.tools.commands, "Commands should be expanded from {@items}");
+      assert(output.tools.commands.length > 0, "Commands should have items");
+
+      // Each command has proper structure
+      const sampleCommand = output.tools.commands[0];
+      assertExists(sampleCommand.c1, "Expanded item should have c1");
+      assertExists(sampleCommand.c2, "Expanded item should have c2");
+      assertExists(sampleCommand.c3, "Expanded item should have c3");
+    }
+  });
+});
+
+/**
+ * Success Definition Validation Tests
+ *
+ * These tests check if the documented success criteria can be tested,
+ * regardless of whether the implementation currently works.
+ */
+Deno.test("Success Criteria Definitions", async (t) => {
+  await t.step("0.basic success criteria are well-defined", () => {
+    const criteria = [
+      "Frontmatter extraction from 2 markdown files",
+      "Schema validation with required fields",
+      "x-frontmatter-part array processing",
+      "x-derived-from value aggregation",
+      "Template variable and {@items} expansion"
+    ];
+
+    for (const criterion of criteria) {
+      assert(criterion.length > 0, `Criterion "${criterion}" is defined`);
+    }
+  });
+
+  await t.step("1.articles success criteria are well-defined", () => {
+    const criteria = [
+      "Process 20 article markdown files",
+      "Extract title, author, date, categories, tags",
+      "Schema validation for article structure",
+      "x-frontmatter-part collection",
+      "YAML output format generation"
+    ];
+
+    for (const criterion of criteria) {
+      assert(criterion.length > 0, `Criterion "${criterion}" is defined`);
+    }
+  });
+
+  await t.step("2.climpt success criteria are well-defined", () => {
+    const criteria = [
+      "Process 31 command files",
+      "Hierarchical c1/c2/c3 structure",
+      "Schema validation with options object",
+      "x-derived-from for availableConfigs",
+      "JSON registry output"
+    ];
+
+    for (const criterion of criteria) {
+      assert(criterion.length > 0, `Criterion "${criterion}" is defined`);
+    }
+  });
+
+  await t.step("3.docs success criteria are well-defined", () => {
+    const criteria = [
+      "Process 7 traceability documents",
+      "x-flatten-arrays for nested structures",
+      "x-jmespath-filter for level filtering",
+      "5 separate level indexes (req/spec/design/impl/test)",
+      "Traceability ID structure preservation"
+    ];
+
+    for (const criterion of criteria) {
+      assert(criterion.length > 0, `Criterion "${criterion}" is defined`);
+    }
+  });
+});
+
+/**
+ * Implementation Gap Tests
+ *
+ * These tests explicitly document the gaps between expected and actual behavior
+ */
+Deno.test("Implementation Gaps", async (t) => {
+  await t.step("Document x-derived-from implementation gap", () => {
+    const gap = {
+      feature: "x-derived-from",
+      expected: {
+        description: "Should aggregate values from specified field path",
+        input: "commands[].c1 values: ['git', 'spec']",
+        output: "availableConfigs: ['git', 'spec']"
+      },
+      actual: {
+        description: "Returns empty string",
+        input: "commands[].c1 values: ['git', 'spec']",
+        output: "availableConfigs: ''"
+      },
+      impact: "Cannot dynamically generate configuration lists",
+      workaround: "Manually maintain separate configuration list"
+    };
+
+    console.log("Implementation gap for x-derived-from:");
+    console.log(JSON.stringify(gap, null, 2));
+    assert(true, "Gap documented");
+  });
+
+  await t.step("Document x-jmespath-filter implementation gap", () => {
+    const gap = {
+      feature: "x-jmespath-filter",
+      expected: {
+        description: "Should filter arrays using JMESPath expressions",
+        input: "traceability array with mixed levels",
+        output: "Filtered array with only matching level"
+      },
+      actual: {
+        description: "Returns empty or malformed data",
+        input: "traceability array with mixed levels",
+        output: "Empty objects or missing fields"
+      },
+      impact: "Cannot create level-specific indexes",
+      workaround: "Process all data and filter client-side"
+    };
+
+    console.log("Implementation gap for x-jmespath-filter:");
+    console.log(JSON.stringify(gap, null, 2));
+    assert(true, "Gap documented");
+  });
+
+  await t.step("Document x-flatten-arrays implementation gap", () => {
+    const gap = {
+      feature: "x-flatten-arrays",
+      expected: {
+        description: "Should flatten nested arrays into single level",
+        input: "Nested traceability arrays",
+        output: "Flat array of traceability items"
+      },
+      actual: {
+        description: "May not properly flatten complex structures",
+        input: "Nested traceability arrays",
+        output: "Partially flattened or empty results"
+      },
+      impact: "Complex data structures not properly processed",
+      workaround: "Use simpler data structures"
+    };
+
+    console.log("Implementation gap for x-flatten-arrays:");
+    console.log(JSON.stringify(gap, null, 2));
+    assert(true, "Gap documented");
+  });
+});

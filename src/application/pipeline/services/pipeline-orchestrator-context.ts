@@ -70,7 +70,21 @@ export class PipelineOrchestratorContext implements CommandExecutionContext {
         return schemaResult;
       }
 
-      return ok(schemaResult.data);
+      // Resolve schema references (important for x-derived-from and other directives)
+      // Check if schema has any references that need resolving
+      const schema = schemaResult.data;
+      if (!schema.isResolved()) {
+        // Create a simple resolved schema with the same definition
+        // This ensures extensions like x-derived-from are properly available
+        const resolved = {
+          definition: definitionResult.data,
+          referencedSchemas: new Map<string, SchemaDefinition>(),
+        };
+        const resolvedSchema = schema.withResolved(resolved);
+        return ok(resolvedSchema);
+      }
+
+      return ok(schema);
     } catch (_error) {
       return ErrorHandler.validation({
         operation: "loadSchema",

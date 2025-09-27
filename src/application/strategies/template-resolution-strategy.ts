@@ -1,135 +1,151 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
 import { Schema } from "../../domain/schema/entities/schema.ts";
-import {
-  ResolvedTemplatePaths,
-  TemplatePathResolver,
-} from "../../domain/template/services/template-path-resolver.ts";
+import { ResolvedTemplatePaths } from "../../domain/template/services/template-path-resolver.ts";
 
 /**
- * Template configuration using discriminated unions (Totality principle)
+ * Template Resolution Strategy (Legacy Compatibility)
+ *
+ * Basic template resolution for maintaining compatibility.
+ * In the new 3-domain architecture, this is handled by TemplateManagementDomainService.
  */
-export type TemplateConfig =
-  | { readonly kind: "explicit"; readonly templatePath: string }
-  | { readonly kind: "schema-derived" };
-
-/**
- * Template path configuration for template path resolver
- */
-export interface TemplatePathConfig {
-  readonly schemaPath: string;
-  readonly explicitTemplatePath?: string;
+export interface TemplateResolutionConfig {
+  readonly kind?: "explicit" | "schema-derived";
+  readonly mainTemplate?: string;
+  readonly itemsTemplate?: string;
+  readonly outputFormat?: string;
 }
 
-/**
- * Template Resolution Strategy Interface
- * Following DDD principles - domain service for template path resolution
- * Following Totality principles - total function returning Result<T,E>
- */
-export interface TemplateResolutionStrategy {
-  resolve(
-    schema: Schema,
-    schemaPath: string,
-    templatePathResolver: TemplatePathResolver,
-  ): Result<ResolvedTemplatePaths, DomainError & { message: string }>;
-}
+// Legacy compatibility aliases
+export type TemplateConfig = TemplateResolutionConfig;
 
-/**
- * Explicit Template Resolution Strategy
- * Handles explicit template path configuration
- */
-export class ExplicitTemplateStrategy implements TemplateResolutionStrategy {
-  constructor(private readonly templatePath: string) {}
-
-  /**
-   * Smart Constructor for ExplicitTemplateStrategy
-   * Following Totality principles
-   */
+export class ExplicitTemplateStrategy {
   static create(
-    templatePath: string,
+    config: TemplateConfig,
   ): Result<ExplicitTemplateStrategy, DomainError & { message: string }> {
-    if (!templatePath || templatePath.trim() === "") {
-      return err(createError({
-        kind: "ConfigurationError",
-        message: "Template path cannot be empty for explicit template strategy",
-      }));
-    }
-
-    return ok(new ExplicitTemplateStrategy(templatePath));
+    return ok(new ExplicitTemplateStrategy(config));
   }
 
-  resolve(
-    schema: Schema,
-    schemaPath: string,
-    templatePathResolver: TemplatePathResolver,
-  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
-    const templatePathConfig: TemplatePathConfig = {
-      schemaPath,
-      explicitTemplatePath: this.templatePath,
-    };
+  constructor(private readonly config: TemplateConfig) {}
 
-    return templatePathResolver.resolveTemplatePaths(
-      schema,
-      templatePathConfig,
-    );
+  getConfig(): TemplateConfig {
+    return this.config;
   }
 }
 
-/**
- * Schema-Derived Template Resolution Strategy
- * Handles schema-derived template path configuration
- */
-export class SchemaDerivedTemplateStrategy
-  implements TemplateResolutionStrategy {
-  /**
-   * Smart Constructor for SchemaDerivedTemplateStrategy
-   * Following Totality principles
-   */
+export class TemplateResolutionStrategyFactory {
   static create(): Result<
-    SchemaDerivedTemplateStrategy,
+    TemplateResolutionStrategyFactory,
     DomainError & { message: string }
   > {
-    return ok(new SchemaDerivedTemplateStrategy());
+    return ok(new TemplateResolutionStrategyFactory());
   }
 
-  resolve(
-    schema: Schema,
-    schemaPath: string,
-    templatePathResolver: TemplatePathResolver,
-  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
-    const templatePathConfig: TemplatePathConfig = {
-      schemaPath,
-      // No explicit template path - derive from schema
-      explicitTemplatePath: undefined,
-    };
+  static createStrategy(
+    _config?: TemplateConfig,
+  ): Result<TemplateResolutionStrategy, DomainError & { message: string }> {
+    return TemplateResolutionStrategy.create();
+  }
 
-    return templatePathResolver.resolveTemplatePaths(
-      schema,
-      templatePathConfig,
-    );
+  createStrategy(): Result<
+    TemplateResolutionStrategy,
+    DomainError & { message: string }
+  > {
+    return TemplateResolutionStrategy.create();
   }
 }
 
-/**
- * Template Resolution Strategy Factory
- * Following DDD Factory pattern and Totality principles
- * Eliminates hardcoded if/else branches through strategy pattern
- */
-export class TemplateResolutionStrategyFactory {
-  /**
-   * Create strategy based on template configuration
-   * Following Totality principles - exhaustive pattern matching
-   */
-  static createStrategy(
-    config: TemplateConfig,
-  ): Result<TemplateResolutionStrategy, DomainError & { message: string }> {
-    // Exhaustive switch on discriminated union - no default case needed
-    switch (config.kind) {
-      case "explicit":
-        return ExplicitTemplateStrategy.create(config.templatePath);
+export class TemplateResolutionStrategy {
+  static create(): Result<
+    TemplateResolutionStrategy,
+    DomainError & { message: string }
+  > {
+    return ok(new TemplateResolutionStrategy());
+  }
 
-      case "schema-derived":
-        return SchemaDerivedTemplateStrategy.create();
+  /**
+   * Resolve template configuration from schema
+   */
+  resolve(
+    schema: Schema,
+    _schemaPath?: string,
+    _templatePathResolver?: unknown,
+  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
+    try {
+      const rawSchema = schema.getRawSchema();
+
+      // Extract x-template directives
+      const mainTemplate = this.findDirectiveInSchema(rawSchema, "x-template");
+      const itemsTemplate = this.findDirectiveInSchema(
+        rawSchema,
+        "x-template-items",
+      );
+      const outputFormat = this.findDirectiveInSchema(
+        rawSchema,
+        "x-template-format",
+      );
+
+      // Build config object immutably
+      const config: TemplateResolutionConfig = {
+        kind: "explicit",
+        mainTemplate: typeof mainTemplate === "string"
+          ? mainTemplate
+          : undefined,
+        itemsTemplate: typeof itemsTemplate === "string"
+          ? itemsTemplate
+          : undefined,
+        outputFormat: typeof outputFormat === "string" ? outputFormat : "json",
+      };
+
+      // Convert to ResolvedTemplatePaths format
+      const resolvedPaths: ResolvedTemplatePaths = {
+        templatePath: config.mainTemplate || "",
+        itemsTemplate: config.itemsTemplate
+          ? { kind: "defined", path: config.itemsTemplate }
+          : { kind: "not-defined" },
+        outputFormat:
+          config.outputFormat === "json" || config.outputFormat === "yaml" ||
+            config.outputFormat === "markdown"
+            ? { kind: "specified", format: config.outputFormat }
+            : { kind: "default" },
+        // Backward compatibility
+        itemsTemplatePath: config.itemsTemplate,
+      };
+
+      return ok(resolvedPaths);
+    } catch (error) {
+      return err(createError({
+        kind: "ConfigurationError",
+        message: `Template resolution failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }));
     }
+  }
+
+  /**
+   * Find directive in schema recursively
+   */
+  private findDirectiveInSchema(obj: unknown, directiveName: string): unknown {
+    if (typeof obj !== "object" || obj === null) {
+      return undefined;
+    }
+
+    const record = obj as Record<string, unknown>;
+
+    // Check direct property
+    if (directiveName in record) {
+      return record[directiveName];
+    }
+
+    // Search recursively
+    for (const value of Object.values(record)) {
+      const found = this.findDirectiveInSchema(value, directiveName);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+
+    return undefined;
   }
 }

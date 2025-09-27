@@ -14,14 +14,13 @@ import {
   ValidationRulesAdjustmentService,
 } from "../../domain/frontmatter/services/validation-rules-adjustment-service.ts";
 import {
-  ProcessingStrategyOptions,
   ProcessingStrategyService,
-} from "../../domain/frontmatter/services/processing-strategy-service-final.ts";
+} from "../../domain/frontmatter/services/processing-strategy-service.ts";
 import {
   AggregationProcessingService,
-  AggregatorPort,
-  MergeOperationsPort,
-} from "../../domain/frontmatter/services/aggregation-processing-service-final.ts";
+  AggregationService,
+} from "../../domain/frontmatter/services/aggregation-processing-service.ts";
+import { MergeOperations } from "../../domain/frontmatter/utilities/merge-operations.ts";
 import { DocumentProcessorPort } from "../../domain/frontmatter/utilities/batch-processor.ts";
 import { PerformanceSettings } from "../../domain/configuration/value-objects/performance-settings.ts";
 
@@ -31,8 +30,9 @@ import { PerformanceSettings } from "../../domain/configuration/value-objects/pe
  */
 export interface DocumentTransformationCoordinatorConfig {
   readonly schemaValidationService: SchemaValidationServicePort;
-  readonly aggregator: AggregatorPort;
-  readonly mergeOperations: MergeOperationsPort;
+  readonly aggregator: AggregationService;
+  readonly basePropertyPopulator: any; // BasePropertyPopulator type to be imported
+  readonly mergeOperations: MergeOperations;
   readonly documentProcessor: DocumentProcessorPort;
   readonly performanceSettings: PerformanceSettings;
   readonly logger?: DebugLogger;
@@ -146,10 +146,10 @@ export class DocumentTransformationCoordinator {
       }));
     }
 
-    const processingServiceResult = ProcessingStrategyService.create(
-      config.documentProcessor,
-      config.performanceSettings,
-    );
+    const processingServiceResult = ProcessingStrategyService.create({
+      performanceSettings: config.performanceSettings,
+      documentProcessor: config.documentProcessor,
+    });
     if (!processingServiceResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
@@ -158,10 +158,11 @@ export class DocumentTransformationCoordinator {
       }));
     }
 
-    const aggregationServiceResult = AggregationProcessingService.create(
-      config.aggregator,
-      config.mergeOperations,
-    );
+    const aggregationServiceResult = AggregationProcessingService.create({
+      aggregator: config.aggregator,
+      basePropertyPopulator: config.basePropertyPopulator,
+      mergeOperations: config.mergeOperations,
+    });
     if (!aggregationServiceResult.ok) {
       return err(createError({
         kind: "ConfigurationError",
@@ -183,22 +184,24 @@ export class DocumentTransformationCoordinator {
   /**
    * Main orchestration method that coordinates the 5-stage processing pipeline.
    */
-  transform(
+  async transform(
     files: string[],
     originalRules: ValidationRules,
     schema: Schema,
     boundsMonitor: ProcessingBoundsMonitor,
     options?: {
-      processingStrategy?: ProcessingStrategyOptions;
+      processingStrategy?: any; // ProcessingStrategyOptions type to be imported
       enableAggregation?: boolean;
     },
-  ): Result<
-    {
-      processedData: FrontmatterData[];
-      documents: MarkdownDocument[];
-      aggregatedData?: FrontmatterData;
-    },
-    DomainError & { message: string }
+  ): Promise<
+    Result<
+      {
+        processedData: FrontmatterData[];
+        documents: MarkdownDocument[];
+        aggregatedData?: FrontmatterData;
+      },
+      DomainError & { message: string }
+    >
   > {
     this.logger.info(
       `Starting document transformation for ${files.length} files`,
@@ -222,17 +225,18 @@ export class DocumentTransformationCoordinator {
     this.logger.debug("Validation rules adjusted successfully");
 
     // Stage 2: Process documents using appropriate strategy
-    const documentsResult = this.processingStrategyService.processDocuments(
-      files,
-      validationRules,
-      boundsMonitor,
-      options?.processingStrategy,
-    );
+    const documentsResult = await this.processingStrategyService
+      .processDocuments({
+        files: files,
+        validationRules: validationRules,
+        boundsMonitor: boundsMonitor,
+        processingOptionsState: options?.processingStrategy,
+      });
     if (!documentsResult.ok) {
       return documentsResult;
     }
 
-    const { processedData, documents } = documentsResult.data;
+    const { processedData, documents = [] } = documentsResult.data;
     this.logger.info(
       `Document processing completed: ${processedData.length} files processed`,
     );
@@ -240,17 +244,18 @@ export class DocumentTransformationCoordinator {
     // Stage 3: Aggregate data if aggregation is enabled
     let aggregatedData: FrontmatterData | undefined = undefined;
     if (options?.enableAggregation && processedData.length > 0) {
-      const aggregationResult = this.aggregationProcessingService.aggregateData(
-        processedData,
-        schema,
-      );
+      const aggregationResult = this.aggregationProcessingService
+        .aggregateAndPopulateBaseProperties({
+          data: processedData,
+          schema: schema,
+        });
       if (!aggregationResult.ok) {
         this.logger.warn(
           `Aggregation failed: ${aggregationResult.error.message}`,
         );
         // Continue without aggregation rather than failing the entire process
       } else {
-        aggregatedData = aggregationResult.data;
+        aggregatedData = aggregationResult.data.aggregatedData;
         this.logger.debug("Data aggregation completed successfully");
       }
     }

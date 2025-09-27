@@ -53,6 +53,9 @@ export interface DocumentProcessingResult {
   readonly successCount: number;
   readonly errorCount: number;
   readonly processingStrategy: "sequential" | "parallel";
+  // Legacy compatibility properties
+  readonly mainData?: FrontmatterData[];
+  readonly itemsData?: FrontmatterData[];
 }
 
 /**
@@ -506,11 +509,23 @@ export class FrontmatterProcessingService {
         }));
       }
 
+      // Convert raw frontmatter to FrontmatterData first
+      const frontmatterDataResult = FrontmatterData.create(
+        extractResult.data.frontmatter,
+      );
+      if (!frontmatterDataResult.ok) {
+        return err(createError({
+          kind: "InvalidFormat",
+          format: "frontmatter data",
+          value: filePath,
+        }));
+      }
+
       // Create MarkdownDocument
       const documentResult = MarkdownDocument.create(
         filePathResult.data,
         contentResult.data,
-        extractResult.data.frontmatter,
+        frontmatterDataResult.data,
         extractResult.data.body,
       );
       if (!documentResult.ok) {
@@ -528,7 +543,7 @@ export class FrontmatterProcessingService {
       });
 
       return ok({
-        frontmatterData: extractResult.data.frontmatter,
+        frontmatterData: frontmatterDataResult.data,
         document: documentResult.data,
       });
     } catch (error) {

@@ -1,29 +1,18 @@
 import { Result } from "../../shared/types/result.ts";
 import { DomainError } from "../../shared/types/errors.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
-import { Schema } from "../../schema/entities/schema.ts";
 import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
+import { Schema } from "../../schema/entities/schema.ts";
 
 /**
- * Processing options using discriminated unions (Totality principle)
- */
-export type ProcessingOptions =
-  | {
-    readonly kind: "sequential";
-  }
-  | {
-    readonly kind: "parallel";
-    readonly maxWorkers: number;
-  };
-
-/**
- * Domain interface for document processing coordination
- * Following DDD principles - Domain defines its own contracts
- * Following Totality principles - all operations return Result<T,E>
+ * Document Processing Coordinator Interface (Legacy Compatibility)
+ *
+ * Interface for coordinating document processing.
+ * Maintained for compatibility during transition to 3-domain architecture.
  */
 export interface DocumentProcessingCoordinator {
   /**
-   * Coordinate processing of documents from input pattern
+   * Process documents according to configuration
    */
   processDocuments(
     inputPattern: string,
@@ -33,17 +22,32 @@ export interface DocumentProcessingCoordinator {
   ): Promise<Result<FrontmatterData, DomainError & { message: string }>>;
 
   /**
-   * Process documents with items extraction
+   * Get processing status
    */
-  processDocumentsWithItemsExtraction(
-    inputPattern: string,
-    validationRules: ValidationRules,
-    schema: Schema,
-    options?: ProcessingOptions,
-  ): Promise<
-    Result<{
-      mainData: FrontmatterData;
-      itemsData?: FrontmatterData[];
-    }, DomainError & { message: string }>
-  >;
+  getProcessingStatus(): ProcessingStatus;
+}
+
+export interface ProcessingOptions {
+  readonly kind?: "sequential" | "parallel";
+  readonly parallel?: boolean;
+  readonly maxWorkers?: number;
+  readonly batchSize?: number;
+}
+
+export interface DocumentProcessingResult {
+  readonly processedData: FrontmatterData[];
+  readonly processedCount: number;
+  readonly failedCount: number;
+  readonly duration: number;
+  // Legacy compatibility properties
+  readonly mainData?: FrontmatterData[];
+  readonly itemsData?: FrontmatterData[];
+}
+
+export interface ProcessingStatus {
+  readonly isProcessing: boolean;
+  readonly currentFile?: string;
+  readonly processedCount: number;
+  readonly totalCount: number;
+  readonly startTime?: Date;
 }

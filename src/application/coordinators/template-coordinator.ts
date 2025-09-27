@@ -1,5 +1,8 @@
 import { err, ok, Result } from "../../domain/shared/types/result.ts";
 import { createError, DomainError } from "../../domain/shared/types/errors.ts";
+import {
+  TemplateManagementDomainService,
+} from "../../domain/template/services/template-management-domain-service.ts";
 import { Template } from "../../domain/template/entities/template.ts";
 import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
@@ -52,6 +55,7 @@ export interface TemplateFileSystem {
  */
 export class TemplateCoordinator {
   constructor(
+    private readonly templateManagementDomain: TemplateManagementDomainService,
     private readonly templatePathResolver: TemplatePathResolver,
     private readonly outputRenderingService: OutputRenderingService,
     private readonly fileSystem: TemplateFileSystem,
@@ -62,10 +66,17 @@ export class TemplateCoordinator {
    * Following Totality principles by returning Result<T,E>
    */
   static create(
+    templateManagementDomain: TemplateManagementDomainService,
     templatePathResolver: TemplatePathResolver,
     outputRenderingService: OutputRenderingService,
     fileSystem: TemplateFileSystem,
   ): Result<TemplateCoordinator, DomainError & { message: string }> {
+    if (!templateManagementDomain) {
+      return err(createError({
+        kind: "InitializationError",
+        message: "TemplateManagementDomainService is required",
+      }));
+    }
     if (!templatePathResolver) {
       return err(createError({
         kind: "InitializationError",
@@ -87,6 +98,7 @@ export class TemplateCoordinator {
 
     return ok(
       new TemplateCoordinator(
+        templateManagementDomain,
         templatePathResolver,
         outputRenderingService,
         fileSystem,
@@ -96,28 +108,106 @@ export class TemplateCoordinator {
 
   /**
    * Resolve template paths based on schema and configuration
-   * Following Strategy Pattern to eliminate hardcoded if/else branches
+   * Using TemplateManagementDomainService following DDD 3-domain architecture
    * Following Totality principles - total function returning Result<T,E>
    */
-  resolveTemplatePaths(
+  async resolveTemplatePaths(
     schema: Schema,
-    templateConfig: TemplateConfig,
+    _templateConfig: TemplateConfig,
     schemaPath: string,
-  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
-    // Create strategy based on template configuration
-    const strategyResult = TemplateResolutionStrategyFactory.createStrategy(
-      templateConfig,
-    );
-    if (!strategyResult.ok) {
-      return strategyResult;
+  ): Promise<Result<ResolvedTemplatePaths, DomainError & { message: string }>> {
+    // Extract template configuration from schema using domain service
+    const configResult = this.templateManagementDomain
+      .extractTemplateConfiguration(schema);
+    if (!configResult.ok) {
+      return configResult;
     }
 
-    // Use strategy to resolve template paths - eliminates hardcoded branches
-    return strategyResult.data.resolve(
-      schema,
-      schemaPath,
-      this.templatePathResolver,
+    // Resolve template files using domain service with schema path
+    const resolveResult = await this.templateManagementDomain
+      .resolveTemplateFiles(schemaPath);
+    if (!resolveResult.ok) {
+      return resolveResult;
+    }
+
+    // Get template configuration summary to build paths
+    const summaryResult = this.templateManagementDomain
+      .getConfigurationSummary();
+    if (!summaryResult.ok) {
+      return summaryResult;
+    }
+
+    const summary = summaryResult.data;
+
+    // Build resolved paths using domain service data and relative path resolution
+    const rawSchema = schema.getRawSchema();
+    const mainTemplatePath = this.findDirectiveInSchema(
+      rawSchema,
+      "x-template",
     );
+    const itemsTemplatePath = this.findDirectiveInSchema(
+      rawSchema,
+      "x-template-items",
+    );
+
+    // Resolve paths relative to schema file directory
+    const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));
+    const resolveTemplatePath = (templatePath: string): string => {
+      if (schemaDir && !templatePath.startsWith("/")) {
+        return `${schemaDir}/${templatePath}`;
+      }
+      return templatePath;
+    };
+
+    const resolvedMainTemplatePath = typeof mainTemplatePath === "string"
+      ? resolveTemplatePath(mainTemplatePath)
+      : "";
+
+    const resolvedItemsTemplatePath = typeof itemsTemplatePath === "string"
+      ? resolveTemplatePath(itemsTemplatePath)
+      : undefined;
+
+    // Build ResolvedTemplatePaths using properly resolved paths
+    const resolvedPaths: ResolvedTemplatePaths = {
+      templatePath: resolvedMainTemplatePath,
+      itemsTemplate: summary.hasItemsTemplate && resolvedItemsTemplatePath
+        ? { kind: "defined", path: resolvedItemsTemplatePath }
+        : { kind: "not-defined" },
+      outputFormat: {
+        kind: "specified",
+        format: summary.outputFormat as "json" | "yaml" | "markdown",
+      },
+      // Backward compatibility
+      itemsTemplatePath: resolvedItemsTemplatePath,
+    };
+
+    return ok(resolvedPaths);
+  }
+
+  /**
+   * Helper method to find directive in schema - extracted from TemplateResolutionStrategy
+   */
+  private findDirectiveInSchema(obj: unknown, directiveName: string): unknown {
+    if (typeof obj !== "object" || obj === null) {
+      return undefined;
+    }
+
+    const record = obj as Record<string, unknown>;
+
+    // Check direct property
+    if (directiveName in record) {
+      return record[directiveName];
+    }
+
+    // Search recursively
+    for (const value of Object.values(record)) {
+      const found = this.findDirectiveInSchema(value, directiveName);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -206,12 +296,12 @@ export class TemplateCoordinator {
    * Enhances template selection based on detected structure type
    * Following DDD - coordination with structure intelligence
    */
-  resolveTemplatePathsWithStructureType(
+  async resolveTemplatePathsWithStructureType(
     schema: Schema,
     structureType: StructureType,
     templateConfig: TemplateConfig,
     schemaPath: string,
-  ): Result<ResolvedTemplatePaths, DomainError & { message: string }> {
+  ): Promise<Result<ResolvedTemplatePaths, DomainError & { message: string }>> {
     // Get processing hints for structure-specific handling
     const hints = SchemaStructureDetector.getProcessingHints(structureType);
 
@@ -222,7 +312,7 @@ export class TemplateCoordinator {
       hints,
     );
 
-    return this.resolveTemplatePaths(schema, adjustedConfig, schemaPath);
+    return await this.resolveTemplatePaths(schema, adjustedConfig, schemaPath);
   }
 
   /**
@@ -267,7 +357,7 @@ export class TemplateCoordinator {
    * Enhanced workflow combining structure detection with template processing
    * Following DDD - coordination of domain operations with structure intelligence
    */
-  processTemplateWithStructureAwareness(
+  async processTemplateWithStructureAwareness(
     schema: Schema,
     structureType: StructureType,
     templateConfig: TemplateConfig,
@@ -276,9 +366,9 @@ export class TemplateCoordinator {
     itemsData: FrontmatterData[] | undefined,
     outputPath: string,
     verbosityMode: VerbosityMode,
-  ): Result<void, DomainError & { message: string }> {
+  ): Promise<Result<void, DomainError & { message: string }>> {
     // Resolve template paths with structure awareness
-    const pathsResult = this.resolveTemplatePathsWithStructureType(
+    const pathsResult = await this.resolveTemplatePathsWithStructureType(
       schema,
       structureType,
       templateConfig,
@@ -328,7 +418,7 @@ export class TemplateCoordinator {
    * Complete template processing workflow
    * Common coordination pattern combining resolution, loading, and rendering
    */
-  processTemplate(
+  async processTemplate(
     schema: Schema,
     templateConfig: TemplateConfig,
     schemaPath: string,
@@ -336,9 +426,9 @@ export class TemplateCoordinator {
     itemsData: FrontmatterData[] | undefined,
     outputPath: string,
     verbosityMode: VerbosityMode,
-  ): Result<void, DomainError & { message: string }> {
+  ): Promise<Result<void, DomainError & { message: string }>> {
     // Resolve template paths
-    const pathsResult = this.resolveTemplatePaths(
+    const pathsResult = await this.resolveTemplatePaths(
       schema,
       templateConfig,
       schemaPath,

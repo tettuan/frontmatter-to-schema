@@ -164,6 +164,14 @@ export class SchemaDefinition {
   }
 
   /**
+   * Get raw schema object for compatibility with legacy code
+   * @deprecated Use typed methods instead for proper type safety
+   */
+  getRawSchemaObject(): unknown {
+    return this.schema;
+  }
+
+  /**
    * Check if schema is a reference
    */
   hasRef(): boolean {

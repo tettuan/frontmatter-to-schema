@@ -1,7 +1,31 @@
 {
+  "cleanupPeriodDays": 5,
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": ["climpt", "serena"],
+  "disabledMcpjsonServers": ["codex"],
   "permissions": {
     "allow": ["Climpt__*", "Serena_"]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/tettuan/github/frontmatter-to-schema/scripts/hook_stops.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/tettuan/github/frontmatter-to-schema/scripts/hook_stops.sh"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -1,29 +1,59 @@
-# ドメインアーキテクチャ設計 - コアドメイン
+# Schemaドメイン（統括） - アーキテクチャ設計
 
 ## 概要
 
-本書は、Markdown
-FrontMatterからSchemaベースでの構造化データ変換システムにおけるコアドメインのアーキテクチャを定義する。
-全域性原則に基づき、型安全で拡張可能な設計を実現する。
+本ドキュメントは、3ドメインアーキテクチャにおけるSchemaドメイン（統括）の設計を定義する。このドメインはSchema構造を3つのサブドメインに分解し、それらを統括する責務を持つ。
 
-## コアドメインモデル
+## ドメインの責務と境界
 
-### 1. Schema領域
+### 中核責務
+
+**Schemaドメイン**は以下の責務を持つ：
+
+1. JSON Schemaファイルの読み込みと解析
+2. 3つのサブドメインへの構造分解
+3. $ref参照の解決（スキーマ構造のみ）
+4. サブドメイン間の調整
+
+### 3つのサブドメインへの分解
+
+flow.ja.mdに基づく分解：
 
 ```typescript
-// ========================================
-// 値オブジェクト（全域性原則適用）
-// ========================================
+interface SchemaDecomposition {
+  // 1. フロントマター解析構造
+  frontmatterStructure: {
+    rootPath: string; // x-frontmatter-part指定階層
+    schemaDefinition: object; // JSON Schema構造
+    hasExtractFromPart: boolean;
+  };
 
-/**
- * Schemaファイルへのパス
- * Smart Constructor適用による制約保証
- */
+  // 2. テンプレート指定
+  templateSpecification: {
+    mainTemplate?: string; // x-template
+    itemsTemplate?: string; // x-template-items
+    outputFormat?: string; // x-template-format
+  };
+
+  // 3. データ処理指示
+  processingInstructions: {
+    directives: ProcessingDirective[];
+    // フロントマターデータへのアクセスを隠蔽
+    initialize(frontmatterData: unknown): void;
+    callMethod(schemaPath: string): ProcessedData;
+  };
+}
+```
+
+## 値オブジェクト
+
+### SchemaPath
+
+```typescript
 export class SchemaPath {
   private constructor(private readonly value: string) {}
 
   static create(path: string): Result<SchemaPath, SchemaPathError> {
-    // 空文字チェック
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
@@ -31,21 +61,18 @@ export class SchemaPath {
       };
     }
 
-    // 拡張子チェック
     if (!path.endsWith(".json")) {
       return {
         ok: false,
         error: {
           kind: "InvalidExtension",
           path,
-          message: `Schema file must be .json, got: ${path}`,
+          message: `Schema file must be .json`,
         },
       };
     }
 
-    // パス正規化
     const normalized = path.replace(/\\/g, "/").replace(/\/+/g, "/");
-
     return { ok: true, data: new SchemaPath(normalized) };
   }
 
@@ -57,167 +84,170 @@ export class SchemaPath {
     const lastSlash = this.value.lastIndexOf("/");
     return lastSlash === -1 ? "." : this.value.substring(0, lastSlash);
   }
-
-  getFileName(): string {
-    const lastSlash = this.value.lastIndexOf("/");
-    return lastSlash === -1 ? this.value : this.value.substring(lastSlash + 1);
-  }
 }
+```
 
-/**
- * Schema ID（識別子）
- */
-export class SchemaId {
-  private constructor(private readonly value: string) {}
+### SchemaDirective
 
-  static create(id: string): Result<SchemaId, ValidationError> {
-    if (!id || id.trim().length === 0) {
-      return {
-        ok: false,
-        error: { kind: "EmptyInput", message: "Schema ID cannot be empty" },
-      };
-    }
+```typescript
+export type DirectiveType =
+  | "x-frontmatter-part"
+  | "x-template"
+  | "x-template-items"
+  | "x-template-format"
+  | "x-flatten-arrays"
+  | "x-jmespath-filter"
+  | "x-derived-from"
+  | "x-derived-unique";
 
-    // 有効な識別子パターン
-    const pattern = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-    if (!pattern.test(id)) {
+export class SchemaDirective {
+  private constructor(
+    private readonly type: DirectiveType,
+    private readonly value: unknown,
+    private readonly path: string,
+  ) {}
+
+  static create(
+    type: string,
+    value: unknown,
+    path: string,
+  ): Result<SchemaDirective, ValidationError> {
+    if (!this.isValidDirectiveType(type)) {
       return {
         ok: false,
         error: {
-          kind: "PatternMismatch",
-          value: id,
-          pattern: pattern.source,
-          message:
-            "Schema ID must start with letter and contain only alphanumeric, underscore, or hyphen",
+          kind: "InvalidDirective",
+          directive: type,
+          message: `Unknown directive: ${type}`,
         },
       };
     }
 
-    return { ok: true, data: new SchemaId(id) };
+    return {
+      ok: true,
+      data: new SchemaDirective(type as DirectiveType, value, path),
+    };
   }
 
-  equals(other: SchemaId): boolean {
-    return this.value === other.value;
+  private static isValidDirectiveType(type: string): boolean {
+    return type.startsWith("x-") && [
+      "x-frontmatter-part",
+      "x-template",
+      "x-template-items",
+      "x-template-format",
+      "x-flatten-arrays",
+      "x-jmespath-filter",
+      "x-derived-from",
+      "x-derived-unique",
+    ].includes(type);
   }
 
-  toString(): string {
+  getType(): DirectiveType {
+    return this.type;
+  }
+
+  getValue(): unknown {
     return this.value;
   }
+
+  getPath(): string {
+    return this.path;
+  }
+
+  // ドメイン分類
+  getDomain(): "frontmatter" | "template" | "processing" {
+    switch (this.type) {
+      case "x-frontmatter-part":
+        return "frontmatter";
+      case "x-template":
+      case "x-template-items":
+      case "x-template-format":
+        return "template";
+      case "x-flatten-arrays":
+      case "x-jmespath-filter":
+      case "x-derived-from":
+      case "x-derived-unique":
+        return "processing";
+    }
+  }
 }
+```
 
-// ========================================
-// エンティティ
-// ========================================
+## エンティティ
 
-/**
- * Schema定義の状態（Discriminated Union）
- */
+### Schema（統括）
+
+```typescript
 export type SchemaState =
   | { kind: "Unloaded"; path: SchemaPath }
   | { kind: "Loading"; path: SchemaPath }
-  | { kind: "Raw"; path: SchemaPath; content: RawSchema }
-  | {
-    kind: "Resolving";
-    path: SchemaPath;
-    schema: RawSchema;
-    refs: SchemaReference[];
-  }
-  | {
-    kind: "Resolved";
-    path: SchemaPath;
-    schema: ResolvedSchema;
-    metadata: SchemaMetadata;
-  }
+  | { kind: "Loaded"; path: SchemaPath; raw: RawSchema }
+  | { kind: "Decomposed"; path: SchemaPath; decomposition: SchemaDecomposition }
   | { kind: "Failed"; path: SchemaPath; error: SchemaError };
 
-/**
- * Schemaエンティティ
- */
 export class Schema {
   private state: SchemaState;
 
   private constructor(
     private readonly id: SchemaId,
-    initialState: SchemaState,
+    initialPath: SchemaPath,
   ) {
-    this.state = initialState;
+    this.state = { kind: "Unloaded", path: initialPath };
   }
 
   static create(id: SchemaId, path: SchemaPath): Schema {
-    return new Schema(id, { kind: "Unloaded", path });
+    return new Schema(id, path);
   }
 
-  // 状態遷移メソッド（全域性保証）
-  load(content: RawSchema): Result<void, SchemaError> {
-    switch (this.state.kind) {
-      case "Unloaded":
-      case "Failed":
-        this.state = { kind: "Raw", path: this.state.path, content };
-        return { ok: true, data: undefined };
-      default:
-        return {
-          ok: false,
-          error: {
-            kind: "InvalidStateTransition",
-            from: this.state.kind,
-            to: "Raw",
-            message: `Cannot load schema in state: ${this.state.kind}`,
-          },
-        };
-    }
-  }
-
-  startResolving(refs: SchemaReference[]): Result<void, SchemaError> {
-    if (this.state.kind !== "Raw") {
+  // 状態遷移メソッド
+  load(raw: RawSchema): Result<void, SchemaError> {
+    if (this.state.kind !== "Unloaded" && this.state.kind !== "Failed") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
-          to: "Resolving",
-          message: `Cannot start resolving from state: ${this.state.kind}`,
+          to: "Loaded",
         },
       };
     }
 
     this.state = {
-      kind: "Resolving",
+      kind: "Loaded",
       path: this.state.path,
-      schema: this.state.content,
-      refs,
+      raw,
     };
 
     return { ok: true, data: undefined };
   }
 
-  complete(
-    resolved: ResolvedSchema,
-    metadata: SchemaMetadata,
-  ): Result<void, SchemaError> {
-    if (this.state.kind !== "Resolving") {
+  decompose(decomposition: SchemaDecomposition): Result<void, SchemaError> {
+    if (this.state.kind !== "Loaded") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
-          to: "Resolved",
-          message: `Cannot complete from state: ${this.state.kind}`,
+          to: "Decomposed",
         },
       };
     }
 
     this.state = {
-      kind: "Resolved",
+      kind: "Decomposed",
       path: this.state.path,
-      schema: resolved,
-      metadata,
+      decomposition,
     };
 
     return { ok: true, data: undefined };
   }
 
   fail(error: SchemaError): void {
-    this.state = { kind: "Failed", path: this.getPath(), error };
+    this.state = {
+      kind: "Failed",
+      path: this.getPath(),
+      error,
+    };
   }
 
   // クエリメソッド
@@ -233,33 +263,174 @@ export class Schema {
     return this.state;
   }
 
-  isResolved(): boolean {
-    return this.state.kind === "Resolved";
+  isDecomposed(): boolean {
+    return this.state.kind === "Decomposed";
   }
 
-  getResolvedSchema(): Result<ResolvedSchema, SchemaError> {
-    if (this.state.kind !== "Resolved") {
+  getDecomposition(): Result<SchemaDecomposition, SchemaError> {
+    if (this.state.kind !== "Decomposed") {
       return {
         ok: false,
         error: {
-          kind: "SchemaNotResolved",
+          kind: "NotDecomposed",
           state: this.state.kind,
-          message: `Schema is not resolved, current state: ${this.state.kind}`,
         },
       };
     }
 
-    return { ok: true, data: this.state.schema };
+    return { ok: true, data: this.state.decomposition };
   }
 }
+```
 
-// ========================================
-// ドメインサービス
-// ========================================
+## ドメインサービス
 
-/**
- * Schema参照解決サービス
- */
+### SchemaDecomposer
+
+```typescript
+export class SchemaDecomposer {
+  constructor(
+    private readonly referenceResolver: SchemaReferenceResolver,
+  ) {}
+
+  async decompose(
+    raw: RawSchema,
+    path: SchemaPath,
+  ): Promise<Result<SchemaDecomposition, SchemaError>> {
+    // 1. $ref解決（スキーマ構造のみ）
+    const resolved = await this.referenceResolver.resolve(
+      raw,
+      path.getDirectory(),
+    );
+    if (!resolved.ok) {
+      return resolved;
+    }
+
+    // 2. ディレクティブ抽出
+    const directives = this.extractDirectives(resolved.data);
+
+    // 3. 3つのサブドメインに分解
+    const frontmatter = this.extractFrontmatterStructure(
+      resolved.data,
+      directives,
+    );
+    const template = this.extractTemplateSpecification(directives);
+    const processing = this.extractProcessingInstructions(directives);
+
+    return {
+      ok: true,
+      data: {
+        frontmatterStructure: frontmatter,
+        templateSpecification: template,
+        processingInstructions: processing,
+      },
+    };
+  }
+
+  private extractDirectives(schema: any, path: string = ""): SchemaDirective[] {
+    const directives: SchemaDirective[] = [];
+
+    const traverse = (obj: any, currentPath: string) => {
+      if (!obj || typeof obj !== "object") return;
+
+      for (const [key, value] of Object.entries(obj)) {
+        if (key.startsWith("x-")) {
+          const directive = SchemaDirective.create(key, value, currentPath);
+          if (directive.ok) {
+            directives.push(directive.data);
+          }
+        }
+
+        if (key === "properties" && typeof value === "object") {
+          for (const [propKey, propValue] of Object.entries(value)) {
+            traverse(propValue, `${currentPath}.${propKey}`);
+          }
+        } else if (key === "items") {
+          traverse(value, `${currentPath}[]`);
+        }
+      }
+    };
+
+    traverse(schema, path);
+    return directives;
+  }
+
+  private extractFrontmatterStructure(
+    schema: any,
+    directives: SchemaDirective[],
+  ): FrontmatterStructure {
+    const frontmatterPart = directives.find(
+      (d) => d.getType() === "x-frontmatter-part",
+    );
+
+    // x-ディレクティブを除いた純粋なスキーマ構造
+    const cleanSchema = this.removeDirectives(schema);
+
+    return {
+      rootPath: frontmatterPart?.getPath() || "",
+      schemaDefinition: cleanSchema,
+      hasExtractFromPart: !!frontmatterPart,
+    };
+  }
+
+  private extractTemplateSpecification(
+    directives: SchemaDirective[],
+  ): TemplateSpecification {
+    const mainTemplate = directives.find((d) => d.getType() === "x-template");
+    const itemsTemplate = directives.find((d) =>
+      d.getType() === "x-template-items"
+    );
+    const format = directives.find((d) => d.getType() === "x-template-format");
+
+    return {
+      mainTemplate: mainTemplate?.getValue() as string | undefined,
+      itemsTemplate: itemsTemplate?.getValue() as string | undefined,
+      outputFormat: format?.getValue() as string | undefined,
+    };
+  }
+
+  private extractProcessingInstructions(
+    directives: SchemaDirective[],
+  ): ProcessingInstructions {
+    const processingDirectives = directives.filter(
+      (d) => d.getDomain() === "processing",
+    );
+
+    return {
+      directives: processingDirectives.map((d) => ({
+        type: d.getType(),
+        value: d.getValue(),
+        path: d.getPath(),
+      })),
+      initialize(frontmatterData: unknown): void {
+        // データ処理指示ドメインで実装
+      },
+      callMethod(schemaPath: string): ProcessedData {
+        // データ処理指示ドメインで実装
+        throw new Error("Must be implemented by DataProcessingDomain");
+      },
+    };
+  }
+
+  private removeDirectives(obj: any): any {
+    if (!obj || typeof obj !== "object") return obj;
+
+    const cleaned: any = Array.isArray(obj) ? [] : {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (!key.startsWith("x-")) {
+        cleaned[key] = this.removeDirectives(value);
+      }
+    }
+
+    return cleaned;
+  }
+}
+```
+
+### SchemaReferenceResolver
+
+```typescript
 export class SchemaReferenceResolver {
   private cache = new Map<string, ResolvedSchema>();
 
@@ -267,7 +438,6 @@ export class SchemaReferenceResolver {
     schema: RawSchema,
     basePath: string,
   ): Promise<Result<ResolvedSchema, SchemaError>> {
-    // 循環参照検出
     const visited = new Set<string>();
 
     const resolveRecursive = async (
@@ -287,13 +457,8 @@ export class SchemaReferenceResolver {
         };
       }
 
-      // プリミティブ値はそのまま返す
-      if (typeof obj !== "object" || obj === null) {
-        return { ok: true, data: obj };
-      }
-
-      // $ref処理
-      if ("$ref" in obj) {
+      // $ref処理（スキーマ構造のみ、テンプレート処理とは独立）
+      if (obj && typeof obj === "object" && "$ref" in obj) {
         const refPath = obj["$ref"] as string;
 
         // 循環参照チェック
@@ -312,12 +477,17 @@ export class SchemaReferenceResolver {
 
         // キャッシュチェック
         if (this.cache.has(refPath)) {
-          return { ok: true, data: this.cache.get(refPath) };
+          const cached = this.cache.get(refPath);
+          visited.delete(refPath);
+          return { ok: true, data: cached };
         }
 
         // 参照先を読み込み
         const loadResult = await this.loadReference(refPath, currentPath);
-        if (!loadResult.ok) return loadResult;
+        if (!loadResult.ok) {
+          visited.delete(refPath);
+          return loadResult;
+        }
 
         // 再帰的に解決
         const resolvedResult = await resolveRecursive(
@@ -347,14 +517,18 @@ export class SchemaReferenceResolver {
       }
 
       // オブジェクトの処理
-      const resolved: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        const result = await resolveRecursive(value, currentPath, depth);
-        if (!result.ok) return result;
-        resolved[key] = result.data;
+      if (obj && typeof obj === "object") {
+        const resolved: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          const result = await resolveRecursive(value, currentPath, depth);
+          if (!result.ok) return result;
+          resolved[key] = result.data;
+        }
+        return { ok: true, data: resolved };
       }
 
-      return { ok: true, data: resolved };
+      // プリミティブ値はそのまま返す
+      return { ok: true, data: obj };
     };
 
     return resolveRecursive(schema, basePath, 0);
@@ -364,7 +538,7 @@ export class SchemaReferenceResolver {
     refPath: string,
     basePath: string,
   ): Promise<Result<any, SchemaError>> {
-    // 実装は Infrastructure層で提供
+    // インフラ層で実装
     throw new Error("Must be implemented by infrastructure layer");
   }
 
@@ -379,27 +553,27 @@ export class SchemaReferenceResolver {
     this.cache.clear();
   }
 }
+```
 
-// ========================================
-// リポジトリインターフェース
-// ========================================
+## リポジトリインターフェース
 
+```typescript
 export interface SchemaRepository {
   load(path: SchemaPath): Promise<Result<Schema, SchemaError>>;
   save(schema: Schema): Promise<Result<void, SchemaError>>;
   findById(id: SchemaId): Promise<Result<Schema | null, SchemaError>>;
   exists(path: SchemaPath): Promise<Result<boolean, SchemaError>>;
 }
+```
 
-// ========================================
-// エラー型定義
-// ========================================
+## エラー型定義
 
+```typescript
 export type SchemaError =
   | SchemaPathError
   | SchemaLoadError
   | SchemaResolutionError
-  | SchemaValidationError;
+  | SchemaDecompositionError;
 
 export type SchemaPathError =
   | { kind: "EmptyPath"; message: string }
@@ -407,111 +581,64 @@ export type SchemaPathError =
   | { kind: "FileNotFound"; path: string; message: string };
 
 export type SchemaLoadError =
-  | { kind: "InvalidJSON"; path: string; error: string; message: string }
-  | { kind: "ReadError"; path: string; error: string; message: string };
+  | { kind: "InvalidJSON"; path: string; error: string }
+  | { kind: "ReadError"; path: string; error: string };
 
 export type SchemaResolutionError =
   | { kind: "CircularReference"; refs: string[]; message: string }
   | { kind: "MaxDepthExceeded"; depth: number; message: string }
-  | {
-    kind: "RefResolutionFailed";
-    ref: string;
-    error: string;
-    message: string;
-  };
+  | { kind: "RefResolutionFailed"; ref: string; error: string };
 
-export type SchemaValidationError =
-  | {
-    kind: "InvalidStateTransition";
-    from: string;
-    to: string;
-    message: string;
-  }
-  | { kind: "SchemaNotResolved"; state: string; message: string }
-  | { kind: "ValidationFailed"; errors: any[]; message: string };
+export type SchemaDecompositionError =
+  | { kind: "InvalidStateTransition"; from: string; to: string }
+  | { kind: "NotDecomposed"; state: string }
+  | { kind: "InvalidDirective"; directive: string; message: string };
 ```
 
-### 2. SchemaメタデータとTemplate関連
+## 処理フロー
 
-```typescript
-/**
- * Schemaメタデータ
- */
-export interface SchemaMetadata {
-  readonly templatePath?: string;
-  readonly frontmatterPart?: boolean;
-  readonly derivationRules?: DerivationRule[];
-  readonly validationOptions?: ValidationOptions;
-}
+```mermaid
+graph TB
+    subgraph "Schemaドメイン（統括）"
+        A[SchemaPath] --> B[Schema読取]
+        B --> C[SchemaDecomposer]
+        C --> D[$ref解決]
+        D --> E[ディレクティブ抽出]
+        E --> F[3ドメインへ分解]
+    end
 
-/**
- * 派生ルール定義
- */
-export class DerivationRule {
-  private constructor(
-    private readonly targetField: string,
-    private readonly sourceExpression: string,
-    private readonly unique: boolean = false,
-  ) {}
+    F --> G[フロントマター解析構造]
+    F --> H[テンプレート指定]
+    F --> I[データ処理指示]
 
-  static create(
-    target: string,
-    source: string,
-    unique?: boolean,
-  ): Result<DerivationRule, ValidationError> {
-    if (!target || target.trim().length === 0) {
-      return {
-        ok: false,
-        error: { kind: "EmptyInput", message: "Target field cannot be empty" },
-      };
-    }
-
-    if (!source || source.trim().length === 0) {
-      return {
-        ok: false,
-        error: {
-          kind: "EmptyInput",
-          message: "Source expression cannot be empty",
-        },
-      };
-    }
-
-    // JSONPath式の基本検証
-    if (!source.includes("[") && !source.includes(".")) {
-      return {
-        ok: false,
-        error: {
-          kind: "InvalidExpression",
-          expression: source,
-          message: "Source expression must be a valid JSONPath",
-        },
-      };
-    }
-
-    return {
-      ok: true,
-      data: new DerivationRule(target, source, unique ?? false),
-    };
-  }
-
-  getTargetField(): string {
-    return this.targetField;
-  }
-  getSourceExpression(): string {
-    return this.sourceExpression;
-  }
-  isUnique(): boolean {
-    return this.unique;
-  }
-}
-
-/**
- * 検証オプション
- */
-export interface ValidationOptions {
-  readonly strict: boolean;
-  readonly allowAdditionalProperties: boolean;
-  readonly coerceTypes?: boolean;
-  readonly removeAdditional?: boolean;
-}
+    style C fill:#bbf
+    style F fill:#bbf
 ```
+
+## 重要な設計原則
+
+### 1. $refの独立性
+
+- `$ref`はJSON Schemaの標準機能として、スキーマ構造の再利用にのみ使用
+- テンプレート処理から完全に独立
+- 循環参照の検出と防止
+
+### 2. 3ドメインへの分解
+
+- フロントマター解析構造
+- テンプレート指定の把握
+- 解析結果データの処理指示
+
+これらは独立しており、後で統合される。
+
+### 3. items階層の省略
+
+flow.ja.mdの原則：
+
+- 正しい: `commands[].c1`
+- 誤り: `commands.items[].c1`
+
+## まとめ
+
+Schemaドメインは、JSON
+Schemaファイルを読み込み、3つの独立したサブドメインに分解する統括責務を持つ。$ref解決はスキーマ構造のみに適用され、テンプレート処理とは完全に独立している。

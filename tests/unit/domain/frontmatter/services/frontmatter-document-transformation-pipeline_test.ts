@@ -13,7 +13,6 @@ import { ValidationRules } from "../../../../../src/domain/schema/value-objects/
 import { Schema } from "../../../../../src/domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { DerivationRule } from "../../../../../src/domain/aggregation/value-objects/derivation-rule.ts";
-import { AggregatedResult } from "../../../../../src/domain/aggregation/aggregators/aggregator.ts";
 
 describe("FrontmatterDocumentTransformationPipeline", () => {
   // Helper function to create valid dependencies
@@ -64,10 +63,10 @@ describe("FrontmatterDocumentTransformationPipeline", () => {
         _rules: DerivationRule[],
         baseData?: FrontmatterData,
       ) =>
-        ok({
-          baseData: baseData || FrontmatterData.create({ key: "value" }),
-          derivedFields: { key: "value" },
-        } as AggregatedResult),
+        baseData || (() => {
+          const result = FrontmatterData.create({ key: "value" });
+          return result.ok ? ok(result.data) : result;
+        })(),
       aggregateMultiple: () => ok([]),
     } as unknown as Aggregator;
 

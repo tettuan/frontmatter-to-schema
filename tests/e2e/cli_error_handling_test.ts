@@ -155,7 +155,7 @@ Deno.test("CLI Error Handling Comprehensive", async (t) => {
 
         assertEquals(result.code, 1);
         assertStringIncludes(stderr.toLowerCase(), "template");
-        assertStringIncludes(stderr.toLowerCase(), "not found");
+        assertStringIncludes(stderr.toLowerCase(), "failed to read");
       } finally {
         await Deno.remove(tempDir, { recursive: true });
       }

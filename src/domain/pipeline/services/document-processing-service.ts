@@ -1,470 +1,172 @@
-import { ok, Result } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
-import { Schema } from "../../schema/entities/schema.ts";
-import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
-import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
-import { PipelineStrategyConfig } from "../value-objects/pipeline-strategy-config.ts";
-import { DocumentProcessingCoordinator } from "../interfaces/document-processing-coordinator.ts";
-import {
-  DomainLogger,
-  NullDomainLogger,
-} from "../../shared/services/domain-logger.ts";
+import { ValidationRules } from "../../schema/value-objects/validation-rules.ts";
 
 /**
- * Document processing configuration
- */
-export interface DocumentProcessingConfig {
-  readonly inputPattern: string;
-  readonly strategyConfig: PipelineStrategyConfig;
-  readonly maxWorkers?: number;
-}
-
-/**
- * Document processing metrics
- */
-export interface DocumentProcessingMetrics {
-  readonly documentsProcessed: number;
-  readonly processingTimeMs: number;
-  readonly memoryUsageMB: {
-    readonly initial: number;
-    readonly peak: number;
-    readonly growth: number;
-  };
-  readonly strategy: "sequential" | "parallel";
-  readonly batchSize?: number;
-  readonly concurrencyLevel?: number;
-}
-
-/**
- * Processing strategy decision
- */
-export interface ProcessingStrategyDecision {
-  readonly shouldUseParallel: boolean;
-  readonly optimalBatchSize: number;
-  readonly concurrencyLevel: number;
-  readonly memoryStrategy: string;
-  readonly estimatedTimeMs: number;
-  readonly estimatedMemoryMB: number;
-}
-
-/**
- * Document Processing Service
+ * Document Processing Service (Legacy Compatibility)
  *
- * Handles document processing logic extracted from PipelineOrchestrator.
- * Manages parallel/sequential processing strategies and worker pools.
- *
- * Following DDD: Domain service for document processing
- * Following Totality: All methods return Result<T,E>
+ * Basic document processing for maintaining compatibility.
+ * In the new 3-domain architecture, this is handled by FrontmatterAnalysisDomainService.
  */
+export interface DocumentProcessingResult {
+  readonly processedData: FrontmatterData[];
+  readonly processedCount: number;
+  // Legacy compatibility properties
+  readonly mainData?: FrontmatterData[];
+  readonly itemsData?: FrontmatterData[];
+}
+
 export class DocumentProcessingService {
-  private constructor(
-    private readonly processingCoordinator: DocumentProcessingCoordinator,
-    private readonly domainLogger: DomainLogger,
-  ) {}
-
-  /**
-   * Smart constructor following Totality principle
-   */
-  static create(
-    processingCoordinator: DocumentProcessingCoordinator,
-    domainLogger?: DomainLogger,
-  ): Result<DocumentProcessingService, DomainError & { message: string }> {
-    if (!processingCoordinator) {
-      return {
-        ok: false,
-        error: createError({
-          kind: "ConfigurationError",
-          message: "DocumentProcessingCoordinator is required",
-        }),
-      };
-    }
-
-    if (!domainLogger) {
-      return {
-        ok: false,
-        error: createError({
-          kind: "ConfigurationError",
-          message: "DomainLogger is required",
-        }),
-      };
-    }
-
-    return ok(
-      new DocumentProcessingService(
-        processingCoordinator,
-        domainLogger ?? new NullDomainLogger(),
-      ),
-    );
+  static create(): Result<
+    DocumentProcessingService,
+    DomainError & { message: string }
+  > {
+    return ok(new DocumentProcessingService());
   }
 
   /**
-   * Process documents with optimal strategy
+   * Process documents based on a pattern
    */
   async processDocuments(
-    config: DocumentProcessingConfig,
+    inputPattern: string,
     validationRules: ValidationRules,
-    schema: Schema,
   ): Promise<
-    Result<
-      { mainData: FrontmatterData[]; itemsData?: FrontmatterData[] },
-      DomainError & { message: string }
-    >
+    Result<DocumentProcessingResult, DomainError & { message: string }>
   > {
-    const startTime = performance.now();
-    const initialMemory = Deno.memoryUsage();
-
-    // Determine processing strategy
-    const strategyDecisionResult = this.determineProcessingStrategy(
-      config.strategyConfig,
-      validationRules,
-    );
-    if (!strategyDecisionResult.ok) {
-      return strategyDecisionResult;
-    }
-    const strategy = strategyDecisionResult.data;
-
-    // Enhanced debug logging: Strategy decision with variance analysis
-    this.domainLogger.logDebug(
-      "document-processing",
-      "Document processing strategy selected",
-      {
-        operation: "document-batch-processing",
-        strategy: {
-          parallel: strategy.shouldUseParallel,
-          batchSize: strategy.optimalBatchSize,
-          concurrency: strategy.concurrencyLevel,
-          estimatedTime: strategy.estimatedTimeMs,
-          estimatedMemory: strategy.estimatedMemoryMB,
-        },
-        varianceAnalysis: {
-          strategyVolatility: strategy.shouldUseParallel ? "high" : "low",
-          memoryPredictability: strategy.estimatedMemoryMB < 50
-            ? "stable"
-            : "variable",
-          errorRecoveryComplexity: strategy.shouldUseParallel
-            ? "complex"
-            : "simple",
-        },
-      },
-    );
-
-    // Process documents using coordinator
-    const processingOptions = strategy.shouldUseParallel
-      ? { kind: "parallel" as const, maxWorkers: strategy.concurrencyLevel }
-      : { kind: "sequential" as const };
-
-    // Enhanced debug logging: Processing variance monitoring
-    const processingStartTime = performance.now();
-    const preProcessingMemory = Deno.memoryUsage();
-
-    this.domainLogger.logDebug(
-      "document-processing",
-      "Starting document processing with variance monitoring",
-      {
-        operation: "document-processing-start",
-        preProcessingState: {
-          memoryMB: Math.floor(preProcessingMemory.heapUsed / 1024 / 1024),
-          varianceRisk: strategy.shouldUseParallel
-            ? "high-variance"
-            : "low-variance",
-          recoverabilityLevel: strategy.shouldUseParallel ? "limited" : "full",
-        },
-      },
-    );
-
-    // Determine which processing method to use based on schema directives
-    let processedDataResult;
-
-    // Check for x-frontmatter-part directive
-    // Debug: Check schema resolution status for Issue #966
-    this.domainLogger.logDebug(
-      "schema-directive-check",
-      "Schema directive analysis for Issue #966",
-      {
-        operation: "schema-directive-check",
-        schemaState: schema.isResolved() ? "resolved" : "unresolved",
-        schemaPath: schema.getPath().toString(),
-      },
-    );
-
-    const hasFrontmatterPart = schema.hasFrontmatterPart();
-
-    this.domainLogger.logDebug(
-      "directive-detection",
-      "Schema directive detection results",
-      {
-        operation: "directive-detection",
-        hasFrontmatterPart,
-        schemaState: schema.isResolved() ? "resolved" : "unresolved",
-      },
-    );
-
-    if (hasFrontmatterPart) {
-      // Process documents with frontmatter-part extraction
-      const extractResult = await this.processingCoordinator
-        .processDocumentsWithItemsExtraction(
-          config.inputPattern,
-          validationRules,
-          schema,
-          processingOptions,
-        );
-
-      if (extractResult.ok) {
-        processedDataResult = ok({ mainData: [extractResult.data.mainData] });
-      } else {
-        processedDataResult = extractResult;
-      }
-    } else {
-      // Use basic processing when no special directives are present
-      const basicResult = await this.processingCoordinator
-        .processDocuments(
-          config.inputPattern,
-          validationRules,
-          schema,
-          processingOptions,
-        );
-
-      if (basicResult.ok) {
-        processedDataResult = ok({ mainData: [basicResult.data] });
-      } else {
-        processedDataResult = basicResult;
-      }
-    }
-
-    if (!processedDataResult.ok) {
-      // Enhanced debug logging: Error handling variance analysis
-      const errorProcessingTime = performance.now() - processingStartTime;
-      const errorMemory = Deno.memoryUsage();
-
-      this.domainLogger.logError(
-        "document-processing-error",
-        "Document processing failed with variance impact",
-        {
-          operation: "document-processing-error",
-          error: processedDataResult.error,
-          varianceImpact: {
-            processingTimeBeforeError: errorProcessingTime,
-            memoryGrowthMB: Math.floor(
-              (errorMemory.heapUsed - preProcessingMemory.heapUsed) / 1024 /
-                1024,
-            ),
-            strategyInfluence: strategy.shouldUseParallel
-              ? "high-impact"
-              : "low-impact",
-            recoverabilityScore: strategy.shouldUseParallel ? 0.3 : 0.8,
-          },
-        },
-      );
-      return processedDataResult;
-    }
-
-    // Calculate and log metrics
-    const endTime = performance.now();
-    const finalMemory = Deno.memoryUsage();
-
-    const metrics: DocumentProcessingMetrics = {
-      documentsProcessed: Array.isArray(processedDataResult.data.mainData)
-        ? processedDataResult.data.mainData.length
-        : 1,
-      processingTimeMs: Math.floor(endTime - startTime),
-      memoryUsageMB: {
-        initial: Math.floor(initialMemory.heapUsed / 1024 / 1024),
-        peak: Math.floor(finalMemory.heapUsed / 1024 / 1024),
-        growth: Math.floor(
-          (finalMemory.heapUsed - initialMemory.heapUsed) / 1024 / 1024,
-        ),
-      },
-      strategy: strategy.shouldUseParallel ? "parallel" : "sequential",
-      batchSize: strategy.optimalBatchSize,
-      concurrencyLevel: strategy.concurrencyLevel,
-    };
-
-    // Enhanced debug logging: Variance analysis of completed processing
-    const actualProcessingTime = endTime - processingStartTime;
-    const memoryVariance = metrics.memoryUsageMB.growth /
-      Math.max(strategy.estimatedMemoryMB, 1);
-    const timeVariance = actualProcessingTime /
-      Math.max(strategy.estimatedTimeMs, 1);
-
-    this.domainLogger.logInfo(
-      "document-processing-complete",
-      "Document processing completed with variance analysis",
-      {
-        operation: "document-processing-complete",
-        metrics,
-        varianceAnalysis: {
-          timeVarianceRatio: timeVariance,
-          memoryVarianceRatio: memoryVariance,
-          timePredicton: timeVariance < 1.5 ? "accurate" : "poor",
-          memoryPrediction: memoryVariance < 2.0 ? "stable" : "volatile",
-          overallVarianceLevel: (timeVariance + memoryVariance) / 2 > 1.5
-            ? "high"
-            : "low",
-          strategyEffectiveness:
-            strategy.shouldUseParallel && timeVariance < 1.2
-              ? "optimal"
-              : "suboptimal",
-        },
-      },
-    );
-
-    return ok(processedDataResult.data);
+    // Convert pattern to file list (basic implementation)
+    const filePaths = await this.resolvePattern(inputPattern);
+    return this.processFiles(filePaths, validationRules);
   }
 
   /**
-   * Determine optimal processing strategy based on configuration and workload
+   * Process multiple files
    */
-  determineProcessingStrategy(
-    strategyConfig: PipelineStrategyConfig,
+  async processFiles(
+    filePaths: string[],
     validationRules: ValidationRules,
-  ): Result<ProcessingStrategyDecision, DomainError & { message: string }> {
-    const memoryUsage = Deno.memoryUsage();
-    const availableMemoryMB = Math.floor(
-      memoryUsage.heapTotal / 1024 / 1024 * 0.6,
-    );
+  ): Promise<
+    Result<DocumentProcessingResult, DomainError & { message: string }>
+  > {
+    try {
+      const processedData: FrontmatterData[] = [];
 
-    // Estimate document count (this is a simplified estimation)
-    const estimatedDocumentCount = 100;
+      // Basic processing for compatibility
+      for (const filePath of filePaths) {
+        const processResult = await this.processSingleFile(
+          filePath,
+          validationRules,
+        );
+        if (processResult.ok) {
+          processedData.push(processResult.data);
+        }
+      }
 
-    const optimalBatchSize = strategyConfig.calculateOptimalBatchSize(
-      estimatedDocumentCount,
-      availableMemoryMB,
-    );
-
-    const shouldUseParallel = strategyConfig.shouldUseParallelProcessing(
-      estimatedDocumentCount,
-      validationRules.getCount(),
-    );
-
-    const concurrencyLevel = shouldUseParallel
-      ? strategyConfig.getConcurrencyLevel()
-      : 1;
-
-    const decision: ProcessingStrategyDecision = {
-      shouldUseParallel,
-      optimalBatchSize,
-      concurrencyLevel,
-      memoryStrategy: strategyConfig.getMemoryStrategy(),
-      estimatedTimeMs: this.estimateProcessingTime(
-        estimatedDocumentCount,
-        shouldUseParallel,
-        concurrencyLevel,
-      ),
-      estimatedMemoryMB: this.estimateMemoryUsage(
-        estimatedDocumentCount,
-        shouldUseParallel,
-        optimalBatchSize,
-        concurrencyLevel,
-      ),
-    };
-
-    return ok(decision);
-  }
-
-  /**
-   * Estimate processing time based on strategy
-   */
-  private estimateProcessingTime(
-    documentCount: number,
-    parallel: boolean,
-    concurrency: number,
-  ): number {
-    const baseTimePerDoc = 50; // 50ms per document estimate
-
-    if (parallel) {
-      return Math.ceil(documentCount / concurrency) * baseTimePerDoc;
-    }
-
-    return documentCount * baseTimePerDoc;
-  }
-
-  /**
-   * Estimate memory usage based on strategy
-   */
-  private estimateMemoryUsage(
-    documentCount: number,
-    parallel: boolean,
-    batchSize: number,
-    concurrency: number,
-  ): number {
-    const memoryPerDoc = 0.5; // 0.5MB per document estimate
-
-    if (parallel) {
-      return Math.floor(batchSize * concurrency * memoryPerDoc);
-    }
-
-    return Math.floor(documentCount * memoryPerDoc);
-  }
-
-  /**
-   * Process documents in batches for memory efficiency
-   */
-  processInBatches(
-    documents: MarkdownDocument[],
-    batchSize: number,
-    _validationRules: ValidationRules,
-    _schema: Schema,
-  ): Result<FrontmatterData[], DomainError & { message: string }> {
-    const results: FrontmatterData[] = [];
-
-    for (let i = 0; i < documents.length; i += batchSize) {
-      const batch = documents.slice(i, i + batchSize);
-
-      this.domainLogger.logDebug(
-        "batch-processing",
-        `Processing batch ${i / batchSize + 1}`,
+      return ok({
+        processedData,
+        processedCount: processedData.length,
+      });
+    } catch (error) {
+      return err(createError(
         {
-          batchSize: batch.length,
-          progress: `${i + batch.length}/${documents.length}`,
+          kind: "EXCEPTION_CAUGHT",
+          originalError: error,
         },
-      );
+        `Document processing failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ));
+    }
+  }
 
-      // Process batch (simplified - actual implementation would use DocumentProcessingCoordinator)
-      for (const doc of batch) {
-        const dataResult = { ok: true as const, data: doc.getFrontmatter() };
-        if (dataResult.ok) {
-          results.push(dataResult.data);
+  /**
+   * Process a single file
+   */
+  private async processSingleFile(
+    filePath: string,
+    _validationRules: ValidationRules,
+  ): Promise<Result<FrontmatterData, DomainError & { message: string }>> {
+    try {
+      // Basic file reading and frontmatter extraction
+      const content = await Deno.readTextFile(filePath);
+
+      // Extract frontmatter using basic regex
+      const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
+      const match = content.match(frontmatterRegex);
+
+      if (!match) {
+        return err(createError({
+          kind: "ParseError",
+          input: content.substring(0, 100),
+        }, `No frontmatter found in ${filePath}`));
+      }
+
+      // Parse YAML content (basic implementation)
+      const yamlContent = match[1];
+      const frontmatter = this.parseSimpleYaml(yamlContent);
+
+      return FrontmatterData.create(frontmatter);
+    } catch (error) {
+      return err(createError(
+        {
+          kind: "EXCEPTION_CAUGHT",
+          originalError: error,
+        },
+        `Failed to process ${filePath}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      ));
+    }
+  }
+
+  /**
+   * Resolve file pattern to list of files
+   */
+  private async resolvePattern(_pattern: string): Promise<string[]> {
+    try {
+      // Basic pattern resolution - in production, use glob library
+      const files: string[] = [];
+      for await (const entry of Deno.readDir(Deno.cwd())) {
+        if (entry.isFile && entry.name.endsWith(".md")) {
+          files.push(entry.name);
+        }
+      }
+      return files;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Simple YAML parser
+   */
+  private parseSimpleYaml(yamlContent: string): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    const lines = yamlContent.split("\n");
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith("#")) {
+        const colonIndex = trimmed.indexOf(":");
+        if (colonIndex > 0) {
+          const key = trimmed.substring(0, colonIndex).trim();
+          const value = trimmed.substring(colonIndex + 1).trim();
+
+          if (value.startsWith('"') && value.endsWith('"')) {
+            result[key] = value.slice(1, -1);
+          } else if (value === "true") {
+            result[key] = true;
+          } else if (value === "false") {
+            result[key] = false;
+          } else if (!isNaN(Number(value))) {
+            result[key] = Number(value);
+          } else {
+            result[key] = value;
+          }
         }
       }
     }
 
-    return ok(results);
-  }
-
-  /**
-   * Calculate variance metrics for monitoring
-   */
-  calculateVarianceMetrics(
-    actual: DocumentProcessingMetrics,
-    predicted: ProcessingStrategyDecision,
-  ): Result<{
-    readonly memoryVariancePct: number;
-    readonly timeVariancePct: number;
-    readonly riskLevel: "high" | "medium" | "low" | "acceptable";
-  }, DomainError & { message: string }> {
-    const memoryVariance = predicted.estimatedMemoryMB > 0
-      ? Math.floor(
-        (actual.memoryUsageMB.growth / predicted.estimatedMemoryMB) * 100,
-      )
-      : 0;
-
-    const timeVariance = predicted.estimatedTimeMs > 0
-      ? Math.floor((actual.processingTimeMs / predicted.estimatedTimeMs) * 100)
-      : 0;
-
-    const riskLevel = memoryVariance > 150 || timeVariance > 200
-      ? "high"
-      : memoryVariance > 120 || timeVariance > 150
-      ? "medium"
-      : memoryVariance > 100 || timeVariance > 100
-      ? "low"
-      : "acceptable";
-
-    return ok({
-      memoryVariancePct: memoryVariance,
-      timeVariancePct: timeVariance,
-      riskLevel,
-    });
+    return result;
   }
 }

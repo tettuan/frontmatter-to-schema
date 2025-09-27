@@ -76,6 +76,15 @@ export class Schema {
     return this.state.definition;
   }
 
+  /**
+   * Get raw schema data for compatibility with legacy code
+   * @deprecated Use getDefinition() instead for proper type safety
+   */
+  getRawSchema(): unknown {
+    // This is a compatibility method - delegate to SchemaDefinition
+    return this.state.definition.getRawSchemaObject();
+  }
+
   // Totality: Replace partial function with total function using Result pattern
   getValidationRules(): Result<
     ValidationRules,
@@ -339,13 +348,15 @@ export class Schema {
       } else {
         this.state.logger?.logDebug(
           "extension-detection",
-          `Extension not found: ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`,
+          `Extension not found at path ${path}: ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`,
           {
             kind: "with-context",
             context: {
+              path: path,
               extensionName: defaultSchemaExtensionRegistry.getDerivedFromKey()
                 .getValue(),
               detected: false,
+              errorMessage: derivedFromResult.error?.message || "Unknown error",
             },
           },
         );
@@ -359,6 +370,7 @@ export class Schema {
             "derivation-rule-traversal",
             `Checking property: ${propPath}`,
           );
+
           // Use fromSchemaProperty since prop is already migrated
           const propDef = SchemaDefinition.fromSchemaProperty(prop as any);
           extractRules(propDef, propPath);
@@ -366,7 +378,21 @@ export class Schema {
       }
     };
 
-    extractRules(this.state.definition);
+    // Use the definition from the state (all states have a definition property)
+    const definitionToUse = this.state.definition;
+
+    if (!definitionToUse) {
+      this.state.logger?.logError(
+        "derivation-rules",
+        "Schema definition is undefined",
+        {
+          stateKind: this.state.kind,
+        },
+      );
+      return rules;
+    }
+
+    extractRules(definitionToUse);
 
     this.state.logger?.logInfo(
       "derivation-rules",
