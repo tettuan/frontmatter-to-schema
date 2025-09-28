@@ -1,6 +1,7 @@
 import { SchemaPath } from "../value-objects/schema-path.ts";
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Schema identifier value object.
@@ -207,6 +208,6 @@ export class Schema {
       return false;
     }
 
-    return property["x-frontmatter-part"] === true;
+    return property[DIRECTIVE_NAMES.FRONTMATTER_PART] === true;
   }
 }

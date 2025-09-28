@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-derived-from directive.
@@ -21,10 +22,10 @@ export class DerivedFromDirective {
       if (trimmed.length === 0) {
         return Result.error(
           new SchemaError(
-            "x-derived-from directive expression cannot be empty",
+            `${DIRECTIVE_NAMES.DERIVED_FROM} directive expression cannot be empty`,
             "INVALID_DIRECTIVE_VALUE",
             {
-              directive: "x-derived-from",
+              directive: DIRECTIVE_NAMES.DERIVED_FROM,
               value,
               expected: "non-empty string",
             },
@@ -38,10 +39,10 @@ export class DerivedFromDirective {
       if (value.length === 0) {
         return Result.error(
           new SchemaError(
-            "x-derived-from directive array cannot be empty",
+            `${DIRECTIVE_NAMES.DERIVED_FROM} directive array cannot be empty`,
             "INVALID_DIRECTIVE_VALUE",
             {
-              directive: "x-derived-from",
+              directive: DIRECTIVE_NAMES.DERIVED_FROM,
               value,
               expected: "non-empty array of strings",
             },
@@ -65,10 +66,10 @@ export class DerivedFromDirective {
         if (trimmed.length === 0) {
           return Result.error(
             new SchemaError(
-              "x-derived-from directive expressions cannot be empty",
+              `${DIRECTIVE_NAMES.DERIVED_FROM} directive expressions cannot be empty`,
               "INVALID_DIRECTIVE_VALUE",
               {
-                directive: "x-derived-from",
+                directive: DIRECTIVE_NAMES.DERIVED_FROM,
                 value: item,
                 expected: "non-empty string",
               },
@@ -84,10 +85,10 @@ export class DerivedFromDirective {
 
     return Result.error(
       new SchemaError(
-        "x-derived-from directive must be a string or array of strings",
+        `${DIRECTIVE_NAMES.DERIVED_FROM} directive must be a string or array of strings`,
         "INVALID_DIRECTIVE_VALUE",
         {
-          directive: "x-derived-from",
+          directive: DIRECTIVE_NAMES.DERIVED_FROM,
           value,
           expected: "string or array of strings",
         },
@@ -131,9 +132,9 @@ export class DerivedFromDirective {
    */
   toString(): string {
     if (this.expressions.length === 1) {
-      return `x-derived-from: "${this.expressions[0]}"`;
+      return `${DIRECTIVE_NAMES.DERIVED_FROM}: "${this.expressions[0]}"`;
     }
-    return `x-derived-from: [${
+    return `${DIRECTIVE_NAMES.DERIVED_FROM}: [${
       this.expressions.map((e) => `"${e}"`).join(", ")
     }]`;
   }
