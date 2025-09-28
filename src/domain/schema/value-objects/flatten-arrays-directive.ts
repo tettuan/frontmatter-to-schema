@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-flatten-arrays directive.
@@ -20,10 +21,10 @@ export class FlattenArraysDirective {
     if (typeof value !== "string") {
       return Result.error(
         new SchemaError(
-          "x-flatten-arrays directive value must be a string",
+          `${DIRECTIVE_NAMES.FLATTEN_ARRAYS} directive value must be a string`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-flatten-arrays",
+            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
             value,
             expected: "string (property name to flatten)",
           },
@@ -36,10 +37,10 @@ export class FlattenArraysDirective {
     if (trimmedName.length === 0) {
       return Result.error(
         new SchemaError(
-          "x-flatten-arrays directive property name cannot be empty",
+          `${DIRECTIVE_NAMES.FLATTEN_ARRAYS} directive property name cannot be empty`,
           "EMPTY_PROPERTY_NAME",
           {
-            directive: "x-flatten-arrays",
+            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
             value,
             expected: "non-empty string (property name to flatten)",
           },
@@ -118,6 +119,6 @@ export class FlattenArraysDirective {
    * Returns a string representation of this directive.
    */
   toString(): string {
-    return `x-flatten-arrays: "${this.propertyName}"`;
+    return `${DIRECTIVE_NAMES.FLATTEN_ARRAYS}: "${this.propertyName}"`;
   }
 }
