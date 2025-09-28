@@ -1,152 +1,37 @@
-# データ処理指示ドメイン - アーキテクチャ設計
+# ドメインアーキテクチャ設計 - Aggregationドメイン
 
 ## 概要
 
-本ドキュメントは、3ドメインアーキテクチャにおけるデータ処理指示ドメインの設計を定義する。このドメインはフロントマターデータの加工と提供を担い、フロントマター解析ドメインへの直接アクセスを隠蔽する。
+本書は、複数の処理結果の集約と派生フィールド生成を担うAggregationドメインのアーキテクチャを定義する。
 
-## ドメインの責務と境界
+## Aggregationドメインモデル
 
-### 中核責務
-
-**データ処理指示ドメイン**は以下の責務を持つ：
-
-1. フロントマター解析結果の受け取りと保持
-2. x-ディレクティブによるデータ加工処理
-3. Schema階層要求に応じた処理済みデータの提供
-4. フロントマター解析構造への直接アクセスの隠蔽（隠蔽層）
-
-### ドメイン境界
+### 1. 値オブジェクト
 
 ```typescript
-// データ処理指示ドメインの境界
-interface DataProcessingDomain {
-  // 入力境界
-  input: {
-    extractedData: ExtractedData[]; // フロントマター解析結果
-    directives: ProcessingDirective[]; // x-ディレクティブ群
-  };
+import { Result, ValidationError } from "../shared/types";
 
-  // 出力境界
-  output: {
-    processedData: ProcessedData; // 処理済みデータ
-  };
-
-  // 中核機能（隠蔽層）
-  functions: {
-    initialize(data: ExtractedData[]): void;
-    callMethod(schemaPath: string): ProcessedData;
-    applyDirectives(directives: ProcessingDirective[]): void;
-  };
-
-  // 重要な制約
-  constraint: "フロントマター解析構造への直接参照を隠蔽";
-}
-```
-
-### データアクセスの隠蔽原則
-
-flow.ja.mdの重要原則：
-
-> 「1.フロントマター解析の構造」が直接参照されることはなく、「3.解析結果データの処理指示」によって隠蔽されている
-
-## 値オブジェクト
-
-### ProcessingDirective
-
-```typescript
-export type DirectiveType =
-  | "x-flatten-arrays"
-  | "x-jmespath-filter"
-  | "x-derived-from"
-  | "x-derived-unique";
-
-export class ProcessingDirective {
-  private constructor(
-    private readonly type: DirectiveType,
-    private readonly value: unknown,
-    private readonly path: string,
-    private readonly timing: "individual" | "aggregate",
-  ) {}
-
-  static create(
-    type: string,
-    value: unknown,
-    path: string,
-  ): Result<ProcessingDirective, ValidationError> {
-    if (!this.isValidDirectiveType(type)) {
-      return {
-        ok: false,
-        error: {
-          kind: "InvalidDirective",
-          directive: type,
-          message: `Unknown processing directive: ${type}`,
-        },
-      };
-    }
-
-    const timing = this.getDirectiveTiming(type as DirectiveType);
-
-    return {
-      ok: true,
-      data: new ProcessingDirective(type as DirectiveType, value, path, timing),
-    };
-  }
-
-  private static isValidDirectiveType(type: string): boolean {
-    return [
-      "x-flatten-arrays",
-      "x-jmespath-filter",
-      "x-derived-from",
-      "x-derived-unique",
-    ].includes(type);
-  }
-
-  private static getDirectiveTiming(
-    type: DirectiveType,
-  ): "individual" | "aggregate" {
-    switch (type) {
-      case "x-flatten-arrays":
-      case "x-jmespath-filter":
-        return "individual"; // 個別ファイル処理時
-      case "x-derived-from":
-      case "x-derived-unique":
-        return "aggregate"; // 全ファイル処理完了後
-    }
-  }
-
-  getType(): DirectiveType {
-    return this.type;
-  }
-
-  getValue(): unknown {
-    return this.value;
-  }
-
-  getPath(): string {
-    return this.path;
-  }
-
-  getTiming(): "individual" | "aggregate" {
-    return this.timing;
-  }
-}
-```
-
-### AggregationRule
-
-```typescript
+/**
+ * 集約ルール
+ * x-derived-from と x-derived-unique に対応
+ */
 export class AggregationRule {
   private constructor(
     private readonly targetField: string,
     private readonly sourceExpression: string,
     private readonly unique: boolean,
+    private readonly flatten: boolean = true,
   ) {}
 
   static create(
     targetField: string,
     sourceExpression: string,
-    unique: boolean = false,
+    options?: {
+      unique?: boolean;
+      flatten?: boolean;
+    },
   ): Result<AggregationRule, ValidationError> {
+    // ターゲットフィールド検証
     if (!targetField || targetField.trim().length === 0) {
       return {
         ok: false,
@@ -154,6 +39,7 @@ export class AggregationRule {
       };
     }
 
+    // ソース式検証
     if (!sourceExpression || sourceExpression.trim().length === 0) {
       return {
         ok: false,
@@ -178,434 +64,707 @@ export class AggregationRule {
 
     return {
       ok: true,
-      data: new AggregationRule(targetField, sourceExpression, unique),
+      data: new AggregationRule(
+        targetField,
+        sourceExpression,
+        options?.unique ?? false,
+        options?.flatten ?? true,
+      ),
     };
   }
 
   private static isValidJSONPath(expression: string): boolean {
-    // 配列展開記法 [] を含むか、ドット記法を含むか
-    return expression.includes("[]") || expression.includes(".");
+    // 基本的なJSONPathパターンの検証
+    // 例: "commands[].c1", "tools.configs[*].name", "data..value"
+    const patterns = [
+      /^[a-zA-Z_][a-zA-Z0-9_]*$/, // 単純なプロパティ
+      /^\$\./, // ルートパス
+      /\[\]/, // 配列展開
+      /\[\*\]/, // 配列ワイルドカード
+      /\.\./, // 再帰下降
+      /\[[0-9]+\]/, // インデックス
+    ];
+
+    return patterns.some((pattern) => pattern.test(expression));
   }
 
   getTargetField(): string {
     return this.targetField;
   }
-
   getSourceExpression(): string {
     return this.sourceExpression;
   }
-
   isUnique(): boolean {
     return this.unique;
   }
+  shouldFlatten(): boolean {
+    return this.flatten;
+  }
 }
-```
 
-## エンティティ
+/**
+ * 集約コンテキスト
+ * 集約処理の範囲とオプションを定義
+ */
+export class AggregationContext {
+  private constructor(
+    private readonly scope: AggregationScope,
+    private readonly rules: AggregationRule[],
+    private readonly options: AggregationOptions,
+  ) {}
 
-### ProcessedData
-
-```typescript
-export type ProcessedDataState =
-  | { kind: "Uninitialized" }
-  | { kind: "Initialized"; data: ExtractedData[] }
-  | {
-    kind: "Processing";
-    data: ExtractedData[];
-    directives: ProcessingDirective[];
-  }
-  | { kind: "Processed"; data: unknown; metadata: ProcessingMetadata }
-  | { kind: "Failed"; error: ProcessingError };
-
-export class ProcessedData {
-  private state: ProcessedDataState;
-  private cache: Map<string, unknown> = new Map();
-
-  private constructor() {
-    this.state = { kind: "Uninitialized" };
-  }
-
-  static create(): ProcessedData {
-    return new ProcessedData();
-  }
-
-  // 初期化（フロントマター解析結果を受け取る）
-  initialize(extractedData: ExtractedData[]): Result<void, ProcessingError> {
-    if (this.state.kind !== "Uninitialized") {
+  static create(
+    scope: AggregationScope,
+    rules: AggregationRule[],
+    options?: Partial<AggregationOptions>,
+  ): Result<AggregationContext, ValidationError> {
+    if (rules.length === 0) {
       return {
         ok: false,
         error: {
-          kind: "InvalidStateTransition",
-          from: this.state.kind,
-          to: "Initialized",
+          kind: "EmptyInput",
+          message: "At least one aggregation rule is required",
         },
       };
     }
 
-    this.state = {
-      kind: "Initialized",
-      data: extractedData,
+    // ターゲットフィールドの重複チェック
+    const targetFields = new Set<string>();
+    for (const rule of rules) {
+      const target = rule.getTargetField();
+      if (targetFields.has(target)) {
+        return {
+          ok: false,
+          error: {
+            kind: "DuplicateTarget",
+            field: target,
+            message: `Duplicate target field: ${target}`,
+          },
+        };
+      }
+      targetFields.add(target);
+    }
+
+    const fullOptions: AggregationOptions = {
+      skipNull: options?.skipNull ?? true,
+      skipUndefined: options?.skipUndefined ?? true,
+      preserveOrder: options?.preserveOrder ?? false,
+      maxDepth: options?.maxDepth ?? 100,
     };
 
-    return { ok: true, data: undefined };
+    return {
+      ok: true,
+      data: new AggregationContext(scope, rules, fullOptions),
+    };
   }
 
-  // ディレクティブ適用開始
-  startProcessing(
-    directives: ProcessingDirective[],
-  ): Result<void, ProcessingError> {
+  getScope(): AggregationScope {
+    return this.scope;
+  }
+  getRules(): AggregationRule[] {
+    return [...this.rules];
+  }
+  getOptions(): AggregationOptions {
+    return { ...this.options };
+  }
+}
+
+/**
+ * 集約スコープ
+ */
+export type AggregationScope =
+  | { kind: "Global" } // 全データ対象
+  | { kind: "Group"; groupBy: string } // グループ単位
+  | { kind: "Window"; size: number }; // ウィンドウ単位
+
+/**
+ * 集約オプション
+ */
+export interface AggregationOptions {
+  readonly skipNull: boolean;
+  readonly skipUndefined: boolean;
+  readonly preserveOrder: boolean;
+  readonly maxDepth: number;
+}
+
+/**
+ * 集約結果
+ */
+export class AggregatedResult {
+  private constructor(
+    private readonly data: Record<string, unknown>,
+    private readonly metadata: AggregationMetadata,
+  ) {}
+
+  static create(
+    data: Record<string, unknown>,
+    metadata: AggregationMetadata,
+  ): Result<AggregatedResult, ValidationError> {
+    if (!data || Object.keys(data).length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+          message: "Aggregated data cannot be empty",
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      data: new AggregatedResult(data, metadata),
+    };
+  }
+
+  getData(): Record<string, unknown> {
+    return { ...this.data };
+  }
+  getMetadata(): AggregationMetadata {
+    return { ...this.metadata };
+  }
+
+  get(field: string): unknown {
+    return this.data[field];
+  }
+
+  has(field: string): boolean {
+    return field in this.data;
+  }
+
+  getFields(): string[] {
+    return Object.keys(this.data);
+  }
+}
+
+/**
+ * 集約メタデータ
+ */
+export interface AggregationMetadata {
+  readonly processedCount: number;
+  readonly aggregatedAt: Date;
+  readonly appliedRules: string[];
+  readonly warnings?: string[];
+  readonly statistics?: AggregationStatistics;
+}
+
+/**
+ * 集約統計
+ */
+export interface AggregationStatistics {
+  readonly totalItems: number;
+  readonly uniqueValues: Record<string, number>;
+  readonly nullCount: Record<string, number>;
+  readonly arrayLengths: Record<string, number[]>;
+}
+```
+
+### 2. エンティティ
+
+```typescript
+/**
+ * 集約プロセスの状態
+ */
+export type AggregationProcessState =
+  | { kind: "Initialized"; context: AggregationContext }
+  | { kind: "Collecting"; context: AggregationContext; items: ValidatedData[] }
+  | { kind: "Processing"; context: AggregationContext; items: ValidatedData[] }
+  | { kind: "Completed"; result: AggregatedResult }
+  | { kind: "Failed"; error: AggregationError };
+
+/**
+ * 集約プロセスエンティティ
+ */
+export class AggregationProcess {
+  private state: AggregationProcessState;
+
+  private constructor(
+    private readonly id: ProcessId,
+    initialContext: AggregationContext,
+  ) {
+    this.state = { kind: "Initialized", context: initialContext };
+  }
+
+  static create(
+    id: ProcessId,
+    context: AggregationContext,
+  ): AggregationProcess {
+    return new AggregationProcess(id, context);
+  }
+
+  // 状態遷移メソッド
+  startCollecting(): Result<void, AggregationError> {
     if (this.state.kind !== "Initialized") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
+          to: "Collecting",
+          message: `Cannot start collecting from state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    this.state = {
+      kind: "Collecting",
+      context: this.state.context,
+      items: [],
+    };
+
+    return { ok: true, data: undefined };
+  }
+
+  addItem(item: ValidatedData): Result<void, AggregationError> {
+    if (this.state.kind !== "Collecting") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
+          to: "Collecting",
+          message: `Cannot add item in state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    this.state.items.push(item);
+    return { ok: true, data: undefined };
+  }
+
+  startProcessing(): Result<void, AggregationError> {
+    if (this.state.kind !== "Collecting") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
           to: "Processing",
+          message: `Cannot start processing from state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    if (this.state.items.length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "NoDataToAggregate",
+          message: "No items to aggregate",
         },
       };
     }
 
     this.state = {
       kind: "Processing",
-      data: this.state.data,
-      directives,
+      context: this.state.context,
+      items: this.state.items,
     };
 
     return { ok: true, data: undefined };
   }
 
-  // 処理完了
-  complete(
-    processedData: unknown,
-    metadata: ProcessingMetadata,
-  ): Result<void, ProcessingError> {
+  complete(result: AggregatedResult): Result<void, AggregationError> {
     if (this.state.kind !== "Processing") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
-          to: "Processed",
+          to: "Completed",
+          message: `Cannot complete from state: ${this.state.kind}`,
         },
       };
     }
 
     this.state = {
-      kind: "Processed",
-      data: processedData,
-      metadata,
+      kind: "Completed",
+      result,
     };
 
     return { ok: true, data: undefined };
   }
 
-  // Schema階層要求に応じたデータ取得（隠蔽層の中核機能）
-  callMethod(schemaPath: string): Result<unknown, ProcessingError> {
-    if (this.state.kind !== "Processed") {
+  fail(error: AggregationError): void {
+    this.state = { kind: "Failed", error };
+  }
+
+  // クエリメソッド
+  getId(): ProcessId {
+    return this.id;
+  }
+  getState(): AggregationProcessState {
+    return this.state;
+  }
+
+  isCompleted(): boolean {
+    return this.state.kind === "Completed";
+  }
+
+  getResult(): Result<AggregatedResult, AggregationError> {
+    if (this.state.kind !== "Completed") {
       return {
         ok: false,
         error: {
-          kind: "NotProcessed",
+          kind: "NotCompleted",
           state: this.state.kind,
+          message:
+            `Process is not completed, current state: ${this.state.kind}`,
         },
       };
     }
 
-    // キャッシュチェック
-    if (this.cache.has(schemaPath)) {
-      return { ok: true, data: this.cache.get(schemaPath) };
-    }
-
-    // パスに基づくデータ解決
-    const resolved = this.resolvePath(this.state.data, schemaPath);
-    if (resolved.ok) {
-      this.cache.set(schemaPath, resolved.data);
-    }
-
-    return resolved;
+    return { ok: true, data: this.state.result };
   }
 
-  private resolvePath(
-    data: unknown,
-    path: string,
-  ): Result<unknown, ProcessingError> {
-    // items階層の省略を考慮したパス解決
-    // "commands[].c1" -> commands配列の各要素のc1プロパティ
-    const normalizedPath = path.replace(/\[\]/g, "");
-    const parts = normalizedPath.split(".");
+  getItemCount(): number {
+    switch (this.state.kind) {
+      case "Collecting":
+      case "Processing":
+        return this.state.items.length;
+      default:
+        return 0;
+    }
+  }
+}
 
-    let current: any = data;
-    for (const part of parts) {
-      if (current == null) {
-        return {
-          ok: false,
-          error: {
-            kind: "PathNotFound",
-            path,
-            message: `Path not found: ${path}`,
-          },
-        };
+/**
+ * プロセスID
+ */
+export class ProcessId {
+  private constructor(private readonly value: string) {}
+
+  static create(value?: string): ProcessId {
+    const id = value ||
+      `agg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    return new ProcessId(id);
+  }
+
+  equals(other: ProcessId): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
+  }
+}
+```
+
+### 3. ドメインサービス
+
+```typescript
+/**
+ * 式評価サービス
+ */
+export class ExpressionEvaluator {
+  evaluate(
+    data: Record<string, unknown>,
+    expression: string,
+  ): Result<unknown[], EvaluationError> {
+    try {
+      const results = this.evaluateJSONPath(data, expression);
+      return { ok: true, data: results };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          kind: "EvaluationFailed",
+          expression,
+          error: error instanceof Error ? error.message : String(error),
+          message: `Failed to evaluate expression: ${expression}`,
+        },
+      };
+    }
+  }
+
+  private evaluateJSONPath(
+    data: Record<string, unknown>,
+    expression: string,
+  ): unknown[] {
+    // JSONPath評価の簡易実装
+    // 実際はjsonpathライブラリを使用
+
+    const results: unknown[] = [];
+
+    // "commands[].c1" パターン
+    if (expression.includes("[]")) {
+      const parts = expression.split("[]");
+      const arrayPath = parts[0];
+      const propertyPath = parts[1]?.substring(1); // Remove leading dot
+
+      const array = this.getNestedValue(data, arrayPath);
+      if (Array.isArray(array)) {
+        for (const item of array) {
+          if (propertyPath && typeof item === "object" && item !== null) {
+            const value = this.getNestedValue(item, propertyPath);
+            if (value !== undefined) {
+              results.push(value);
+            }
+          } else if (!propertyPath) {
+            results.push(item);
+          }
+        }
       }
+    } // 単純なプロパティパス
+    else {
+      const value = this.getNestedValue(data, expression);
+      if (value !== undefined) {
+        results.push(value);
+      }
+    }
 
-      if (Array.isArray(current)) {
-        // 配列の場合は各要素から値を抽出
-        current = current.map((item) => item[part]).filter((v) =>
-          v !== undefined
+    return results;
+  }
+
+  private getNestedValue(obj: any, path: string): unknown {
+    const segments = path.split(".");
+    let current = obj;
+
+    for (const segment of segments) {
+      if (current == null || typeof current !== "object") {
+        return undefined;
+      }
+      current = current[segment];
+    }
+
+    return current;
+  }
+}
+
+/**
+ * 集約実行サービス
+ */
+export class AggregationExecutor {
+  constructor(
+    private readonly evaluator: ExpressionEvaluator,
+  ) {}
+
+  execute(
+    process: AggregationProcess,
+  ): Result<AggregatedResult, AggregationError> {
+    const state = process.getState();
+
+    if (state.kind !== "Processing") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidState",
+          state: state.kind,
+          message: `Process must be in Processing state, got: ${state.kind}`,
+        },
+      };
+    }
+
+    const { context, items } = state;
+    const aggregated: Record<string, unknown> = {};
+    const warnings: string[] = [];
+    const statistics: AggregationStatistics = {
+      totalItems: items.length,
+      uniqueValues: {},
+      nullCount: {},
+      arrayLengths: {},
+    };
+
+    // 各ルールを適用
+    for (const rule of context.getRules()) {
+      const targetField = rule.getTargetField();
+      const sourceExpression = rule.getSourceExpression();
+
+      // 全アイテムから値を収集
+      const allValues: unknown[] = [];
+
+      for (const item of items) {
+        const evalResult = this.evaluator.evaluate(
+          item.getData(),
+          sourceExpression,
         );
-      } else {
-        current = current[part];
+
+        if (evalResult.ok) {
+          if (rule.shouldFlatten() && Array.isArray(evalResult.data)) {
+            allValues.push(...evalResult.data.flat());
+          } else {
+            allValues.push(...evalResult.data);
+          }
+        } else {
+          warnings.push(
+            `Failed to evaluate ${sourceExpression}: ${evalResult.error.message}`,
+          );
+        }
+      }
+
+      // フィルタリング（null/undefined除去）
+      const filtered = this.filterValues(allValues, context.getOptions());
+
+      // ユニーク化
+      let finalValues: unknown[] = filtered;
+      if (rule.isUnique()) {
+        finalValues = this.uniqueValues(filtered);
+        statistics.uniqueValues[targetField] = finalValues.length;
+      }
+
+      // 統計情報の収集
+      statistics.nullCount[targetField] = allValues.filter((v) =>
+        v == null
+      ).length;
+      if (Array.isArray(finalValues[0])) {
+        statistics.arrayLengths[targetField] = finalValues.map((v) =>
+          Array.isArray(v) ? v.length : 0
+        );
+      }
+
+      aggregated[targetField] = finalValues;
+    }
+
+    // 結果の作成
+    const metadata: AggregationMetadata = {
+      processedCount: items.length,
+      aggregatedAt: new Date(),
+      appliedRules: context.getRules().map((r) => r.getTargetField()),
+      warnings: warnings.length > 0 ? warnings : undefined,
+      statistics,
+    };
+
+    return AggregatedResult.create(aggregated, metadata);
+  }
+
+  private filterValues(
+    values: unknown[],
+    options: AggregationOptions,
+  ): unknown[] {
+    return values.filter((value) => {
+      if (options.skipNull && value === null) return false;
+      if (options.skipUndefined && value === undefined) return false;
+      return true;
+    });
+  }
+
+  private uniqueValues(values: unknown[]): unknown[] {
+    const seen = new Set<string>();
+    const unique: unknown[] = [];
+
+    for (const value of values) {
+      const key = this.getUniqueKey(value);
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(value);
       }
     }
 
-    return { ok: true, data: current };
+    return unique;
   }
 
-  fail(error: ProcessingError): void {
-    this.state = { kind: "Failed", error };
+  private getUniqueKey(value: unknown): string {
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+}
+
+/**
+ * 派生フィールド生成サービス
+ */
+export class DerivationService {
+  derive(
+    result: AggregatedResult,
+    rules: DerivationRule[],
+  ): Result<EnrichedResult, DerivationError> {
+    const data = result.getData();
+    const enriched: Record<string, unknown> = { ...data };
+
+    for (const rule of rules) {
+      const derivedValue = this.deriveField(data, rule);
+      if (!derivedValue.ok) return derivedValue;
+
+      enriched[rule.getTargetField()] = derivedValue.data;
+    }
+
+    return EnrichedResult.create(enriched, result.getMetadata());
   }
 
-  getState(): ProcessedDataState {
-    return this.state;
+  private deriveField(
+    data: Record<string, unknown>,
+    rule: DerivationRule,
+  ): Result<unknown, DerivationError> {
+    // 派生ロジックの実装
+    // 例: 配列の長さ、合計、平均などの計算
+    return { ok: true, data: null };
   }
+}
 
-  isProcessed(): boolean {
-    return this.state.kind === "Processed";
+/**
+ * 派生結果
+ */
+export class EnrichedResult extends AggregatedResult {
+  static create(
+    data: Record<string, unknown>,
+    metadata: AggregationMetadata,
+  ): Result<EnrichedResult, ValidationError> {
+    const baseResult = AggregatedResult.create(data, metadata);
+    if (!baseResult.ok) return baseResult;
+
+    return {
+      ok: true,
+      data: Object.setPrototypeOf(baseResult.data, EnrichedResult.prototype),
+    };
   }
 }
 ```
 
-## ドメインサービス
-
-### DataProcessor（隠蔽層の実装）
+### 4. リポジトリインターフェース
 
 ```typescript
-export class DataProcessor {
-  private processedData: ProcessedData;
-
-  constructor() {
-    this.processedData = ProcessedData.create();
-  }
-
-  // フロントマター解析結果を受け取る
-  initialize(extractedData: ExtractedData[]): Result<void, ProcessingError> {
-    return this.processedData.initialize(extractedData);
-  }
-
-  // x-ディレクティブを適用
-  async applyDirectives(
-    directives: ProcessingDirective[],
-  ): Promise<Result<void, ProcessingError>> {
-    // 個別処理と集約処理を分離
-    const individualDirectives = directives.filter((d) =>
-      d.getTiming() === "individual"
-    );
-    const aggregateDirectives = directives.filter((d) =>
-      d.getTiming() === "aggregate"
-    );
-
-    // 1. 個別ファイル処理時のディレクティブ
-    const individualResult = await this.applyIndividualDirectives(
-      individualDirectives,
-    );
-    if (!individualResult.ok) {
-      return individualResult;
-    }
-
-    // 2. 全ファイル処理完了後のディレクティブ
-    const aggregateResult = await this.applyAggregateDirectives(
-      aggregateDirectives,
-    );
-    if (!aggregateResult.ok) {
-      return aggregateResult;
-    }
-
-    return { ok: true, data: undefined };
-  }
-
-  private async applyIndividualDirectives(
-    directives: ProcessingDirective[],
-  ): Promise<Result<void, ProcessingError>> {
-    for (const directive of directives) {
-      const result = await this.applyIndividualDirective(directive);
-      if (!result.ok) {
-        return result;
-      }
-    }
-    return { ok: true, data: undefined };
-  }
-
-  private async applyIndividualDirective(
-    directive: ProcessingDirective,
-  ): Promise<Result<void, ProcessingError>> {
-    switch (directive.getType()) {
-      case "x-flatten-arrays":
-        return this.applyFlattenArrays(directive);
-      case "x-jmespath-filter":
-        return this.applyJMESPathFilter(directive);
-      default:
-        return {
-          ok: false,
-          error: {
-            kind: "InvalidDirective",
-            directive: directive.getType(),
-            message: `Unexpected individual directive: ${directive.getType()}`,
-          },
-        };
-    }
-  }
-
-  private async applyAggregateDirectives(
-    directives: ProcessingDirective[],
-  ): Promise<Result<void, ProcessingError>> {
-    for (const directive of directives) {
-      const result = await this.applyAggregateDirective(directive);
-      if (!result.ok) {
-        return result;
-      }
-    }
-    return { ok: true, data: undefined };
-  }
-
-  private async applyAggregateDirective(
-    directive: ProcessingDirective,
-  ): Promise<Result<void, ProcessingError>> {
-    switch (directive.getType()) {
-      case "x-derived-from":
-        return this.applyDerivedFrom(directive);
-      case "x-derived-unique":
-        return this.applyDerivedUnique(directive);
-      default:
-        return {
-          ok: false,
-          error: {
-            kind: "InvalidDirective",
-            directive: directive.getType(),
-            message: `Unexpected aggregate directive: ${directive.getType()}`,
-          },
-        };
-    }
-  }
-
-  // Schema階層要求に応じたデータ取得（隠蔽層の中核機能）
-  callMethod(schemaPath: string): Result<unknown, ProcessingError> {
-    return this.processedData.callMethod(schemaPath);
-  }
-
-  // x-flatten-arrays処理
-  private applyFlattenArrays(
-    directive: ProcessingDirective,
-  ): Result<void, ProcessingError> {
-    // 実装はインフラ層で提供
-    throw new Error("Must be implemented by infrastructure");
-  }
-
-  // x-jmespath-filter処理
-  private applyJMESPathFilter(
-    directive: ProcessingDirective,
-  ): Result<void, ProcessingError> {
-    // 実装はインフラ層で提供
-    throw new Error("Must be implemented by infrastructure");
-  }
-
-  // x-derived-from処理
-  private applyDerivedFrom(
-    directive: ProcessingDirective,
-  ): Result<void, ProcessingError> {
-    // 実装はインフラ層で提供
-    throw new Error("Must be implemented by infrastructure");
-  }
-
-  // x-derived-unique処理
-  private applyDerivedUnique(
-    directive: ProcessingDirective,
-  ): Result<void, ProcessingError> {
-    // 実装はインフラ層で提供
-    throw new Error("Must be implemented by infrastructure");
-  }
+/**
+ * 集約プロセスリポジトリ
+ */
+export interface AggregationProcessRepository {
+  save(process: AggregationProcess): Promise<Result<void, AggregationError>>;
+  findById(
+    id: ProcessId,
+  ): Promise<Result<AggregationProcess | null, AggregationError>>;
+  findActive(): Promise<Result<AggregationProcess[], AggregationError>>;
+  deleteCompleted(before: Date): Promise<Result<number, AggregationError>>;
 }
 ```
 
-## リポジトリインターフェース
+### 5. エラー型定義
 
 ```typescript
-export interface ProcessedDataRepository {
-  save(data: ProcessedData): Promise<Result<void, ProcessingError>>;
-  load(id: string): Promise<Result<ProcessedData | null, ProcessingError>>;
-}
-```
-
-## エラー型定義
-
-```typescript
-export type ProcessingError =
-  | DirectiveError
-  | DataError
-  | StateError;
-
-export type DirectiveError =
-  | { kind: "InvalidDirective"; directive: string; message: string }
-  | { kind: "DirectiveFailed"; directive: string; error: string };
-
-export type DataError =
-  | { kind: "PathNotFound"; path: string; message: string }
-  | { kind: "InvalidData"; data: unknown; message: string }
-  | { kind: "ProcessingFailed"; reason: string; message: string };
+export type AggregationError =
+  | ValidationError
+  | StateError
+  | EvaluationError
+  | DerivationError;
 
 export type StateError =
-  | { kind: "InvalidStateTransition"; from: string; to: string }
-  | { kind: "NotProcessed"; state: string }
-  | { kind: "NotInitialized"; message: string };
+  | {
+    kind: "InvalidStateTransition";
+    from: string;
+    to: string;
+    message: string;
+  }
+  | { kind: "InvalidState"; state: string; message: string }
+  | { kind: "NotCompleted"; state: string; message: string }
+  | { kind: "NoDataToAggregate"; message: string };
 
-export interface ProcessingMetadata {
-  appliedDirectives: string[];
-  processingTime: number;
-  derivedFields?: string[];
-  filteredCount?: number;
-}
+export type EvaluationError =
+  | {
+    kind: "EvaluationFailed";
+    expression: string;
+    error: string;
+    message: string;
+  }
+  | { kind: "InvalidExpression"; expression: string; message: string };
+
+export type DerivationError =
+  | { kind: "DerivationFailed"; field: string; reason: string; message: string }
+  | { kind: "CircularDependency"; fields: string[]; message: string };
+
+// 共通のValidationError（他ドメインと共有）
+export type ValidationError =
+  | { kind: "EmptyInput"; message: string }
+  | { kind: "PatternMismatch"; value: string; pattern: string; message: string }
+  | { kind: "InvalidExpression"; expression: string; message: string }
+  | { kind: "DuplicateTarget"; field: string; message: string };
 ```
-
-## 処理フロー
-
-```mermaid
-graph TB
-    subgraph "データ処理指示ドメイン（隠蔽層）"
-        A[ExtractedData受取] --> B[initialize]
-        B --> C[個別ディレクティブ処理]
-        C --> D[x-flatten-arrays]
-        C --> E[x-jmespath-filter]
-        D --> F[集約ディレクティブ処理]
-        E --> F
-        F --> G[x-derived-from]
-        F --> H[x-derived-unique]
-        G --> I[callMethod提供]
-        H --> I
-    end
-
-    J[フロントマター解析] -->|隠蔽| A
-    I -->|処理済データ| K[テンプレートエンジン]
-
-    style B fill:#bfb
-    style I fill:#bfb
-```
-
-## 重要な設計原則
-
-### 1. 隠蔽層としての役割
-
-- フロントマター解析構造への直接アクセスを防ぐ
-- `initialize`と`callMethod`によるインターフェース提供
-- 外部からはフロントマター構造が見えない
-
-### 2. ディレクティブ処理のタイミング
-
-- **個別ファイル処理時**: x-flatten-arrays, x-jmespath-filter
-- **全ファイル処理完了後**: x-derived-from, x-derived-unique
-
-### 3. items階層の省略
-
-- `commands[].c1`のような記法をサポート
-- `commands.items[].c1`は誤り
-
-## まとめ
-
-データ処理指示ドメインは、フロントマター解析結果を受け取り、x-ディレクティブによる加工を行い、Schema階層要求に応じて処理済みデータを提供する。最も重要な役割は、フロントマター解析構造への直接アクセスを隠蔽することである。

@@ -1,70 +1,32 @@
-# フロントマター解析ドメイン - アーキテクチャ設計
+# ドメインアーキテクチャ設計 - Frontmatterドメイン
 
 ## 概要
 
-本ドキュメントは、3ドメインアーキテクチャにおけるフロントマター解析ドメインの設計を定義する。このドメインはMarkdownファイルからフロントマターデータを抽出する責務を持つ。
+本書は、Markdownファイルからのフロントマター抽出・解析・検証を担うFrontmatterドメインのアーキテクチャを定義する。
 
-## ドメインの責務と境界
+## Frontmatterドメインモデル
 
-### 中核責務
-
-**フロントマター解析ドメイン**は以下の責務を持つ：
-
-1. Markdownファイルの読み込み
-2. フロントマター部分の抽出
-3. YAMLパース処理
-4. x-frontmatter-part指定階層の識別
-5. 構造化データとしての保持
-
-### ドメイン境界
+### 1. 値オブジェクト
 
 ```typescript
-// ドメイン境界の定義
-interface FrontmatterDomain {
-  // 入力境界
-  input: {
-    markdownFiles: string[]; // Markdownファイルパス群
-    schemaStructure: { // Schemaから抽出された構造
-      frontmatterPart?: string; // x-frontmatter-part指定
-      properties: object; // スキーマ構造定義
-    };
-  };
+import { Result, ValidationError } from "../shared/types";
 
-  // 出力境界
-  output: {
-    extractedData: ExtractedData[]; // 抽出された構造化データ
-  };
-
-  // 重要な制約
-  constraint: "外部からの直接アクセスは禁止";
-}
-```
-
-### データアクセスの隠蔽原則
-
-flow.ja.mdの重要原則：
-
-> 「1.フロントマター解析の構造」が直接参照されることはなく、「3.解析結果データの処理指示」によって隠蔽されている
-
-## 値オブジェクト
-
-### MarkdownFilePath
-
-```typescript
+/**
+ * Markdownファイルパス
+ */
 export class MarkdownFilePath {
   private constructor(private readonly value: string) {}
 
   static create(path: string): Result<MarkdownFilePath, MarkdownPathError> {
-    // パス検証ロジック
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyPath", message: "Path cannot be empty" },
+        error: { kind: "EmptyPath", message: "Markdown path cannot be empty" },
       };
     }
 
     // Markdown拡張子チェック
-    const validExtensions = [".md", ".markdown"];
+    const validExtensions = [".md", ".markdown", ".mdown", ".mkd"];
     const hasValidExt = validExtensions.some((ext) =>
       path.toLowerCase().endsWith(ext)
     );
@@ -75,7 +37,8 @@ export class MarkdownFilePath {
         error: {
           kind: "InvalidExtension",
           path,
-          message: `Must be markdown file`,
+          validExtensions,
+          message: `File must be markdown, got: ${path}`,
         },
       };
     }
@@ -86,29 +49,129 @@ export class MarkdownFilePath {
   toString(): string {
     return this.value;
   }
+
+  getFileName(): string {
+    const parts = this.value.split("/");
+    return parts[parts.length - 1];
+  }
+
+  getRelativePath(basePath: string): string {
+    if (this.value.startsWith(basePath)) {
+      return this.value.substring(basePath.length).replace(/^\//, "");
+    }
+    return this.value;
+  }
 }
-```
 
-### ExtractedFrontmatter
+/**
+ * フロントマター形式
+ */
+export type FrontmatterFormat = "yaml" | "toml" | "json";
 
-```typescript
-export class ExtractedFrontmatter {
+/**
+ * フロントマター区切り文字パターン
+ */
+export class FrontmatterDelimiter {
+  private constructor(
+    private readonly format: FrontmatterFormat,
+    private readonly startDelimiter: string,
+    private readonly endDelimiter: string,
+  ) {}
+
+  static readonly YAML = new FrontmatterDelimiter("yaml", "---", "---");
+  static readonly TOML = new FrontmatterDelimiter("toml", "+++", "+++");
+  static readonly JSON = new FrontmatterDelimiter("json", "{", "}");
+
+  static detect(content: string): Result<FrontmatterDelimiter, DetectionError> {
+    const trimmed = content.trimStart();
+
+    if (trimmed.startsWith("---")) {
+      return { ok: true, data: FrontmatterDelimiter.YAML };
+    }
+    if (trimmed.startsWith("+++")) {
+      return { ok: true, data: FrontmatterDelimiter.TOML };
+    }
+    if (trimmed.startsWith("{")) {
+      return { ok: true, data: FrontmatterDelimiter.JSON };
+    }
+
+    return {
+      ok: false,
+      error: {
+        kind: "NoFrontmatterDetected",
+        content: trimmed.substring(0, 50),
+        message: "No frontmatter delimiter detected",
+      },
+    };
+  }
+
+  getFormat(): FrontmatterFormat {
+    return this.format;
+  }
+  getStartDelimiter(): string {
+    return this.startDelimiter;
+  }
+  getEndDelimiter(): string {
+    return this.endDelimiter;
+  }
+}
+
+/**
+ * 生のフロントマターコンテンツ
+ */
+export class RawFrontmatter {
+  private constructor(
+    private readonly content: string,
+    private readonly format: FrontmatterFormat,
+  ) {}
+
+  static create(
+    content: string,
+    format: FrontmatterFormat,
+  ): Result<RawFrontmatter, ValidationError> {
+    if (!content || content.trim().length === 0) {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+          message: "Frontmatter content cannot be empty",
+        },
+      };
+    }
+
+    return { ok: true, data: new RawFrontmatter(content, format) };
+  }
+
+  getContent(): string {
+    return this.content;
+  }
+  getFormat(): FrontmatterFormat {
+    return this.format;
+  }
+}
+
+/**
+ * パース済みフロントマターデータ
+ */
+export class ParsedFrontmatter {
   private constructor(
     private readonly data: Record<string, unknown>,
+    private readonly format: FrontmatterFormat,
     private readonly sourcePath: MarkdownFilePath,
-    private readonly frontmatterPart?: string,
   ) {}
 
   static create(
     data: unknown,
+    format: FrontmatterFormat,
     sourcePath: MarkdownFilePath,
-    frontmatterPart?: string,
-  ): Result<ExtractedFrontmatter, ParseError> {
-    if (!data || typeof data !== "object") {
+  ): Result<ParsedFrontmatter, ParseError> {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
       return {
         ok: false,
         error: {
           kind: "InvalidDataType",
+          expected: "object",
+          actual: Array.isArray(data) ? "array" : typeof data,
           message: "Frontmatter must be an object",
         },
       };
@@ -116,10 +179,10 @@ export class ExtractedFrontmatter {
 
     return {
       ok: true,
-      data: new ExtractedFrontmatter(
+      data: new ParsedFrontmatter(
         data as Record<string, unknown>,
+        format,
         sourcePath,
-        frontmatterPart,
       ),
     };
   }
@@ -127,54 +190,108 @@ export class ExtractedFrontmatter {
   getData(): Record<string, unknown> {
     return { ...this.data };
   }
-
+  getFormat(): FrontmatterFormat {
+    return this.format;
+  }
   getSourcePath(): MarkdownFilePath {
     return this.sourcePath;
   }
 
-  getFrontmatterPart(): string | undefined {
-    return this.frontmatterPart;
+  get(key: string): unknown {
+    return this.data[key];
   }
 
-  // x-frontmatter-part指定階層のデータ取得
-  getPartData(): unknown {
-    if (!this.frontmatterPart) {
-      return this.data;
+  has(key: string): boolean {
+    return key in this.data;
+  }
+
+  getKeys(): string[] {
+    return Object.keys(this.data);
+  }
+}
+
+/**
+ * 検証済みフロントマターデータ
+ */
+export class ValidatedFrontmatter {
+  private constructor(
+    private readonly data: Record<string, unknown>,
+    private readonly schemaId: SchemaId,
+    private readonly validatedAt: Date,
+    private readonly sourcePath: MarkdownFilePath,
+  ) {}
+
+  static create(
+    parsed: ParsedFrontmatter,
+    schemaId: SchemaId,
+    validationResult: ValidationResult,
+  ): Result<ValidatedFrontmatter, ValidationError> {
+    if (!validationResult.isValid) {
+      return {
+        ok: false,
+        error: {
+          kind: "ValidationFailed",
+          errors: validationResult.errors,
+          message: "Frontmatter validation failed",
+        },
+      };
     }
 
-    const parts = this.frontmatterPart.split(".");
-    let current: any = this.data;
+    return {
+      ok: true,
+      data: new ValidatedFrontmatter(
+        parsed.getData(),
+        schemaId,
+        new Date(),
+        parsed.getSourcePath(),
+      ),
+    };
+  }
 
-    for (const part of parts) {
-      if (!current || typeof current !== "object") {
-        return undefined;
-      }
-      current = current[part];
-    }
-
-    return current;
+  getData(): Record<string, unknown> {
+    return { ...this.data };
+  }
+  getSchemaId(): SchemaId {
+    return this.schemaId;
+  }
+  getValidatedAt(): Date {
+    return this.validatedAt;
+  }
+  getSourcePath(): MarkdownFilePath {
+    return this.sourcePath;
   }
 }
 ```
 
-## エンティティ
-
-### FrontmatterDocument
+### 2. エンティティ
 
 ```typescript
-export type FrontmatterDocumentState =
+/**
+ * Markdownドキュメントの状態
+ */
+export type MarkdownDocumentState =
   | { kind: "Unprocessed"; path: MarkdownFilePath }
   | { kind: "Loading"; path: MarkdownFilePath }
   | { kind: "Loaded"; path: MarkdownFilePath; content: string }
   | {
     kind: "Extracted";
     path: MarkdownFilePath;
-    frontmatter: ExtractedFrontmatter;
+    content: string;
+    raw: RawFrontmatter;
+  }
+  | { kind: "Parsed"; path: MarkdownFilePath; parsed: ParsedFrontmatter }
+  | {
+    kind: "Validated";
+    path: MarkdownFilePath;
+    validated: ValidatedFrontmatter;
   }
   | { kind: "Failed"; path: MarkdownFilePath; error: FrontmatterError };
 
-export class FrontmatterDocument {
-  private state: FrontmatterDocumentState;
+/**
+ * Markdownドキュメントエンティティ
+ */
+export class MarkdownDocument {
+  private state: MarkdownDocumentState;
 
   private constructor(
     private readonly id: DocumentId,
@@ -183,35 +300,35 @@ export class FrontmatterDocument {
     this.state = { kind: "Unprocessed", path: initialPath };
   }
 
-  static create(id: DocumentId, path: MarkdownFilePath): FrontmatterDocument {
-    return new FrontmatterDocument(id, path);
+  static create(id: DocumentId, path: MarkdownFilePath): MarkdownDocument {
+    return new MarkdownDocument(id, path);
   }
 
   // 状態遷移メソッド
   load(content: string): Result<void, FrontmatterError> {
-    if (this.state.kind !== "Unprocessed" && this.state.kind !== "Failed") {
-      return {
-        ok: false,
-        error: {
-          kind: "InvalidStateTransition",
-          from: this.state.kind,
-          to: "Loaded",
-        },
-      };
+    switch (this.state.kind) {
+      case "Unprocessed":
+      case "Failed":
+        this.state = {
+          kind: "Loaded",
+          path: this.state.path,
+          content,
+        };
+        return { ok: true, data: undefined };
+      default:
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidStateTransition",
+            from: this.state.kind,
+            to: "Loaded",
+            message: `Cannot load document in state: ${this.state.kind}`,
+          },
+        };
     }
-
-    this.state = {
-      kind: "Loaded",
-      path: this.state.path,
-      content,
-    };
-
-    return { ok: true, data: undefined };
   }
 
-  setExtracted(
-    frontmatter: ExtractedFrontmatter,
-  ): Result<void, FrontmatterError> {
+  setExtracted(raw: RawFrontmatter): Result<void, FrontmatterError> {
     if (this.state.kind !== "Loaded") {
       return {
         ok: false,
@@ -219,6 +336,7 @@ export class FrontmatterDocument {
           kind: "InvalidStateTransition",
           from: this.state.kind,
           to: "Extracted",
+          message: `Cannot extract from state: ${this.state.kind}`,
         },
       };
     }
@@ -226,7 +344,54 @@ export class FrontmatterDocument {
     this.state = {
       kind: "Extracted",
       path: this.state.path,
-      frontmatter,
+      content: this.state.content,
+      raw,
+    };
+
+    return { ok: true, data: undefined };
+  }
+
+  setParsed(parsed: ParsedFrontmatter): Result<void, FrontmatterError> {
+    if (this.state.kind !== "Extracted") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
+          to: "Parsed",
+          message: `Cannot parse from state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    this.state = {
+      kind: "Parsed",
+      path: this.state.path,
+      parsed,
+    };
+
+    return { ok: true, data: undefined };
+  }
+
+  setValidated(
+    validated: ValidatedFrontmatter,
+  ): Result<void, FrontmatterError> {
+    if (this.state.kind !== "Parsed") {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidStateTransition",
+          from: this.state.kind,
+          to: "Validated",
+          message: `Cannot validate from state: ${this.state.kind}`,
+        },
+      };
+    }
+
+    this.state = {
+      kind: "Validated",
+      path: this.state.path,
+      validated,
     };
 
     return { ok: true, data: undefined };
@@ -249,244 +414,318 @@ export class FrontmatterDocument {
     return this.state.path;
   }
 
-  getState(): FrontmatterDocumentState {
+  getState(): MarkdownDocumentState {
     return this.state;
   }
 
-  isExtracted(): boolean {
-    return this.state.kind === "Extracted";
+  isValidated(): boolean {
+    return this.state.kind === "Validated";
   }
 
-  getExtractedData(): Result<ExtractedFrontmatter, FrontmatterError> {
-    if (this.state.kind !== "Extracted") {
+  getValidatedData(): Result<ValidatedFrontmatter, FrontmatterError> {
+    if (this.state.kind !== "Validated") {
       return {
         ok: false,
         error: {
-          kind: "NotExtracted",
+          kind: "NotValidated",
           state: this.state.kind,
+          message:
+            `Document is not validated, current state: ${this.state.kind}`,
         },
       };
     }
 
-    return { ok: true, data: this.state.frontmatter };
+    return { ok: true, data: this.state.validated };
+  }
+}
+
+/**
+ * ドキュメントID
+ */
+export class DocumentId {
+  private constructor(private readonly value: string) {}
+
+  static create(value: string): Result<DocumentId, ValidationError> {
+    if (!value || value.trim().length === 0) {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", message: "Document ID cannot be empty" },
+      };
+    }
+
+    return { ok: true, data: new DocumentId(value) };
+  }
+
+  static fromPath(path: MarkdownFilePath): DocumentId {
+    const id = path.toString()
+      .replace(/[\/\\]/g, "_")
+      .replace(/\.[^.]+$/, "");
+    return new DocumentId(id);
+  }
+
+  equals(other: DocumentId): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
   }
 }
 ```
 
-## ドメインサービス
-
-### FrontmatterExtractor
+### 3. ドメインサービス
 
 ```typescript
+/**
+ * フロントマター抽出サービス
+ */
 export class FrontmatterExtractor {
-  constructor(
-    private readonly parser: FrontmatterParser,
-    private readonly schemaStructure: SchemaStructure,
-  ) {}
-
-  // 集約ルートメソッド
-  async extract(
-    files: MarkdownFilePath[],
-  ): Promise<Result<ExtractedData[], ExtractError>> {
-    const results: ExtractedData[] = [];
-    const errors: ExtractError[] = [];
-
-    for (const file of files) {
-      const result = await this.extractSingle(file);
-
-      if (result.ok) {
-        results.push(result.data);
-      } else {
-        errors.push(result.error);
-      }
-    }
-
-    if (errors.length > 0) {
+  extract(content: string): Result<RawFrontmatter, ExtractError> {
+    // 区切り文字検出
+    const delimiterResult = FrontmatterDelimiter.detect(content);
+    if (!delimiterResult.ok) {
       return {
         ok: false,
         error: {
           kind: "ExtractionFailed",
-          files: errors.length,
-          errors,
+          reason: "No frontmatter found",
+          message: delimiterResult.error.message,
         },
       };
     }
 
-    return { ok: true, data: results };
-  }
+    const delimiter = delimiterResult.data;
+    const startDelim = delimiter.getStartDelimiter();
+    const endDelim = delimiter.getEndDelimiter();
 
-  private async extractSingle(
-    file: MarkdownFilePath,
-  ): Promise<Result<ExtractedData, ExtractError>> {
-    // 1. ファイル読み込み
-    const content = await this.readFile(file);
+    // フロントマター部分の抽出
+    let extractedContent: string;
 
-    // 2. フロントマター抽出
-    const frontmatterResult = this.extractFrontmatter(content);
-    if (!frontmatterResult.ok) {
-      return frontmatterResult;
-    }
-
-    // 3. YAMLパース
-    const parsed = await this.parser.parse(frontmatterResult.data);
-    if (!parsed.ok) {
-      return parsed;
-    }
-
-    // 4. x-frontmatter-part指定階層の識別
-    const frontmatterPart = this.schemaStructure.getFrontmatterPart();
-
-    // 5. ExtractedFrontmatter作成
-    return ExtractedFrontmatter.create(
-      parsed.data,
-      file,
-      frontmatterPart,
-    );
-  }
-
-  private extractFrontmatter(content: string): Result<string, ExtractError> {
-    const lines = content.split("\n");
-
-    if (lines[0] !== "---") {
-      return {
-        ok: false,
-        error: {
-          kind: "NoFrontmatter",
-          message: "No frontmatter found",
-        },
-      };
-    }
-
-    let endIndex = -1;
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i] === "---") {
-        endIndex = i;
-        break;
+    if (delimiter.getFormat() === "json") {
+      // JSON形式の場合
+      const jsonMatch = content.match(/^\s*(\{[\s\S]*?\})\s*\n/);
+      if (!jsonMatch) {
+        return {
+          ok: false,
+          error: {
+            kind: "ExtractionFailed",
+            reason: "Invalid JSON frontmatter",
+            message: "Could not extract JSON frontmatter",
+          },
+        };
       }
+      extractedContent = jsonMatch[1];
+    } else {
+      // YAML/TOML形式の場合
+      const lines = content.split("\n");
+      let inFrontmatter = false;
+      let frontmatterLines: string[] = [];
+      let delimiterCount = 0;
+
+      for (const line of lines) {
+        if (line.trim() === startDelim) {
+          if (delimiterCount === 0) {
+            inFrontmatter = true;
+            delimiterCount++;
+            continue;
+          } else if (delimiterCount === 1) {
+            break;
+          }
+        }
+
+        if (inFrontmatter) {
+          frontmatterLines.push(line);
+        }
+      }
+
+      if (frontmatterLines.length === 0) {
+        return {
+          ok: false,
+          error: {
+            kind: "ExtractionFailed",
+            reason: "Empty frontmatter",
+            message: "Frontmatter section is empty",
+          },
+        };
+      }
+
+      extractedContent = frontmatterLines.join("\n");
     }
 
-    if (endIndex === -1) {
-      return {
-        ok: false,
-        error: {
-          kind: "InvalidFrontmatter",
-          message: "Frontmatter not properly closed",
-        },
-      };
-    }
-
-    const frontmatter = lines.slice(1, endIndex).join("\n");
-    return { ok: true, data: frontmatter };
-  }
-
-  private async readFile(path: MarkdownFilePath): Promise<string> {
-    // インフラ層で実装
-    throw new Error("File reading must be implemented in infrastructure");
+    return RawFrontmatter.create(extractedContent, delimiter.getFormat());
   }
 }
-```
 
-### FrontmatterParser
-
-```typescript
+/**
+ * フロントマターパーサー
+ */
 export class FrontmatterParser {
-  async parse(content: string): Promise<Result<unknown, ParseError>> {
+  parse(raw: RawFrontmatter): Result<ParsedFrontmatter, ParseError> {
+    const content = raw.getContent();
+    const format = raw.getFormat();
+
     try {
-      // YAML parsing (インフラ層で実装)
-      const parsed = await this.parseYAML(content);
-      return { ok: true, data: parsed };
+      let parsed: unknown;
+
+      switch (format) {
+        case "yaml":
+          // YAML parse implementation
+          parsed = this.parseYAML(content);
+          break;
+        case "toml":
+          // TOML parse implementation
+          parsed = this.parseTOML(content);
+          break;
+        case "json":
+          parsed = JSON.parse(content);
+          break;
+        default:
+          return {
+            ok: false,
+            error: {
+              kind: "UnsupportedFormat",
+              format,
+              message: `Unsupported format: ${format}`,
+            },
+          };
+      }
+
+      // ParsedFrontmatterの作成（sourcePathは後で設定）
+      return {
+        ok: true,
+        data: parsed as any, // 実際はMarkdownFilePathと共に作成
+      };
     } catch (error) {
       return {
         ok: false,
         error: {
           kind: "ParseFailed",
+          format,
           error: error instanceof Error ? error.message : String(error),
+          message: `Failed to parse ${format} frontmatter`,
         },
       };
     }
   }
 
-  private async parseYAML(content: string): Promise<unknown> {
-    // インフラ層で実装
+  private parseYAML(content: string): unknown {
+    // YAML parsing implementation
     throw new Error("YAML parser must be provided by infrastructure");
   }
+
+  private parseTOML(content: string): unknown {
+    // TOML parsing implementation
+    throw new Error("TOML parser must be provided by infrastructure");
+  }
+}
+
+/**
+ * フロントマター検証サービス
+ */
+export class FrontmatterValidator {
+  validate(
+    parsed: ParsedFrontmatter,
+    schema: ResolvedSchema,
+  ): Result<ValidationResult, ValidationError> {
+    // JSON Schema validation implementation
+    // This would use Ajv or similar in infrastructure layer
+    throw new Error("Validator must be provided by infrastructure");
+  }
+}
+
+/**
+ * 検証結果
+ */
+export interface ValidationResult {
+  readonly isValid: boolean;
+  readonly errors: ValidationErrorDetail[];
+  readonly warnings?: ValidationWarning[];
+}
+
+export interface ValidationErrorDetail {
+  readonly path: string;
+  readonly message: string;
+  readonly keyword?: string;
+  readonly params?: Record<string, unknown>;
+}
+
+export interface ValidationWarning {
+  readonly path: string;
+  readonly message: string;
 }
 ```
 
-## リポジトリインターフェース
+### 4. リポジトリインターフェース
 
 ```typescript
-export interface FrontmatterDocumentRepository {
+/**
+ * Markdownドキュメントリポジトリ
+ */
+export interface MarkdownDocumentRepository {
   load(
     path: MarkdownFilePath,
-  ): Promise<Result<FrontmatterDocument, FrontmatterError>>;
-  save(document: FrontmatterDocument): Promise<Result<void, FrontmatterError>>;
+  ): Promise<Result<MarkdownDocument, FrontmatterError>>;
+  save(document: MarkdownDocument): Promise<Result<void, FrontmatterError>>;
   findById(
     id: DocumentId,
-  ): Promise<Result<FrontmatterDocument | null, FrontmatterError>>;
+  ): Promise<Result<MarkdownDocument | null, FrontmatterError>>;
   findByPattern(
     pattern: string,
-  ): Promise<Result<FrontmatterDocument[], FrontmatterError>>;
+  ): Promise<Result<MarkdownDocument[], FrontmatterError>>;
 }
 ```
 
-## エラー型定義
+### 5. エラー型定義
 
 ```typescript
 export type FrontmatterError =
+  | MarkdownPathError
   | ExtractError
   | ParseError
+  | ValidationError
   | StateError;
 
+export type MarkdownPathError =
+  | { kind: "EmptyPath"; message: string }
+  | {
+    kind: "InvalidExtension";
+    path: string;
+    validExtensions: string[];
+    message: string;
+  }
+  | { kind: "FileNotFound"; path: string; message: string };
+
 export type ExtractError =
-  | { kind: "NoFrontmatter"; message: string }
-  | { kind: "InvalidFrontmatter"; message: string }
-  | { kind: "ExtractionFailed"; files: number; errors: ExtractError[] };
+  | { kind: "ExtractionFailed"; reason: string; message: string }
+  | DetectionError;
+
+export type DetectionError = {
+  kind: "NoFrontmatterDetected";
+  content: string;
+  message: string;
+};
 
 export type ParseError =
-  | { kind: "ParseFailed"; error: string }
-  | { kind: "InvalidDataType"; message: string };
+  | {
+    kind: "ParseFailed";
+    format: FrontmatterFormat;
+    error: string;
+    message: string;
+  }
+  | { kind: "UnsupportedFormat"; format: string; message: string }
+  | {
+    kind: "InvalidDataType";
+    expected: string;
+    actual: string;
+    message: string;
+  };
 
 export type StateError =
-  | { kind: "InvalidStateTransition"; from: string; to: string }
-  | { kind: "NotExtracted"; state: string };
+  | {
+    kind: "InvalidStateTransition";
+    from: string;
+    to: string;
+    message: string;
+  }
+  | { kind: "NotValidated"; state: string; message: string };
 ```
-
-## 処理フロー
-
-```mermaid
-graph TB
-    subgraph "フロントマター解析ドメイン"
-        A[MarkdownFilePath] --> B[FrontmatterExtractor]
-        B --> C[ファイル読込]
-        C --> D[フロントマター抽出]
-        D --> E[YAMLパース]
-        E --> F[x-frontmatter-part識別]
-        F --> G[ExtractedFrontmatter]
-    end
-
-    G -->|隠蔽層経由| H[データ処理指示ドメイン]
-
-    style B fill:#f9f
-    style G fill:#f9f
-```
-
-## 重要な設計原則
-
-### 1. 外部アクセスの禁止
-
-このドメインの出力（ExtractedFrontmatter）は直接外部から参照されない。すべてのアクセスはデータ処理指示ドメインを経由する。
-
-### 2. x-frontmatter-partの役割
-
-- フロントマター処理の起点を指定
-- 配列プロパティにのみ適用可能
-- 各Markdownファイルの処理単位を定義
-
-### 3. 構造の保持
-
-抽出されたデータは元の構造を保持し、加工や変換は行わない。データの加工はデータ処理指示ドメインの責務である。
-
-## まとめ
-
-フロントマター解析ドメインは、Markdownファイルからフロントマターデータを抽出する単一の責務を持つ。外部からの直接アクセスは禁止され、データ処理指示ドメインによって隠蔽される。これにより、フロントマター構造の変更が他のドメインに影響を与えることを防ぐ。

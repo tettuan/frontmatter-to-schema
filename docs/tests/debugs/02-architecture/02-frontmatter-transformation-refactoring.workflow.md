@@ -31,8 +31,7 @@ FrontmatterTransformationService（2392行、284分岐）の責任過多問題�
 
 ## 入力
 
-- **対象**:
-  `src/domain/frontmatter/services/frontmatter-transformation-service.ts`
+- **対象**: `src/domain/frontmatter/services/frontmatter-transformation-service.ts`
 - **症状**: 単一責任原則違反、284分岐による複雑度過多
 - **コンテキスト**: DDD設計原則との乖離、24実行例パターンの過剰集約
 
@@ -127,7 +126,6 @@ FrontmatterTransformationService（2392行、284分岐）の責任過多問題�
    - テストスイート更新・検証
 
 実装検証コマンド:
-
 ```bash
 # 分離後の構造検証
 export LOG_KEY=refactoring-verification LOG_LEVEL=info

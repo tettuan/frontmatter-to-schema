@@ -1,120 +1,64 @@
-# Template Management Domain Architecture
+# ドメインアーキテクチャ設計 - Templateドメイン
 
-## Overview
+## 概要
 
-The Template Management Domain is responsible for managing and providing output
-templates. This domain operates independently and does not perform variable
-substitution - that responsibility belongs to the Template Engine in the
-application layer.
+本書は、テンプレート管理とレンダリングを担うTemplateドメインのアーキテクチャを定義する。
 
-## Domain Boundaries
+## Templateドメインモデル
 
-### Responsibility
-
-- Load template files (JSON/YAML/TOML/XML/Markdown)
-- Identify `x-template` and `x-template-items` directives
-- Provide templates to the Template Engine
-- Manage template format specifications
-
-### Independence
-
-- Does not perform variable substitution
-- Does not know about frontmatter data
-- Does not know about data processing directives
-- Only provides template content and metadata
-
-## Core Models
-
-### 1. Value Objects
+### 1. 値オブジェクト
 
 ```typescript
-/**
- * Template directive specification
- */
-export class TemplateDirective {
-  private constructor(
-    private readonly mainTemplate?: string, // x-template
-    private readonly itemsTemplate?: string, // x-template-items
-    private readonly format?: string, // x-template-format
-  ) {}
-
-  static create(
-    directives: Record<string, unknown>,
-  ): Result<TemplateDirective, TemplateError> {
-    const mainTemplate = directives["x-template"] as string | undefined;
-    const itemsTemplate = directives["x-template-items"] as string | undefined;
-    const format = directives["x-template-format"] as string | undefined;
-
-    if (!mainTemplate && !itemsTemplate) {
-      return {
-        ok: false,
-        error: { kind: "NoTemplateSpecified" },
-      };
-    }
-
-    if (format && !isValidFormat(format)) {
-      return {
-        ok: false,
-        error: { kind: "InvalidFormat", format },
-      };
-    }
-
-    return {
-      ok: true,
-      data: new TemplateDirective(mainTemplate, itemsTemplate, format),
-    };
-  }
-
-  getMainTemplate(): string | undefined {
-    return this.mainTemplate;
-  }
-
-  getItemsTemplate(): string | undefined {
-    return this.itemsTemplate;
-  }
-
-  getFormat(): string | undefined {
-    return this.format;
-  }
-}
+import { Result, ValidationError } from "../shared/types";
 
 /**
- * Template file reference
+ * テンプレートパス
  */
-export class TemplateFile {
-  private constructor(
-    private readonly path: string,
-    private readonly type: "main" | "items",
-    private readonly format: TemplateFormat,
-  ) {}
+export class TemplatePath {
+  private constructor(private readonly value: string) {}
 
-  static create(
-    path: string,
-    type: "main" | "items",
-  ): Result<TemplateFile, TemplateError> {
+  static create(path: string): Result<TemplatePath, TemplatePathError> {
     if (!path || path.trim().length === 0) {
       return {
         ok: false,
-        error: { kind: "EmptyPath" },
+        error: { kind: "EmptyPath", message: "Template path cannot be empty" },
       };
     }
 
-    const format = this.detectFormat(path);
-    if (!format) {
+    // サポートされる拡張子
+    const validExtensions = [
+      ".json",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".hbs",
+      ".mustache",
+    ];
+    const hasValidExt = validExtensions.some((ext) =>
+      path.toLowerCase().endsWith(ext)
+    );
+
+    if (!hasValidExt) {
       return {
         ok: false,
-        error: { kind: "UnsupportedFormat", path },
+        error: {
+          kind: "InvalidExtension",
+          path,
+          validExtensions,
+          message: `Template must have valid extension, got: ${path}`,
+        },
       };
     }
 
-    return {
-      ok: true,
-      data: new TemplateFile(path, type, format),
-    };
+    return { ok: true, data: new TemplatePath(path) };
   }
 
-  private static detectFormat(path: string): TemplateFormat | null {
-    const ext = path.split(".").pop()?.toLowerCase();
+  toString(): string {
+    return this.value;
+  }
+
+  getFormat(): TemplateFormat {
+    const ext = this.value.split(".").pop()?.toLowerCase();
     switch (ext) {
       case "json":
         return "json";
@@ -123,157 +67,336 @@ export class TemplateFile {
         return "yaml";
       case "toml":
         return "toml";
-      case "xml":
-        return "xml";
-      case "md":
-      case "markdown":
-        return "markdown";
+      case "hbs":
+      case "mustache":
+        return "handlebars";
       default:
-        return null;
+        return "json";
     }
   }
+}
 
+/**
+ * テンプレート形式
+ */
+export type TemplateFormat = "json" | "yaml" | "toml" | "handlebars";
+
+/**
+ * 出力形式
+ */
+export type OutputFormat = "json" | "yaml" | "toml";
+
+/**
+ * テンプレート変数
+ */
+export class TemplateVariable {
+  private constructor(
+    private readonly name: string,
+    private readonly path: string,
+    private readonly required: boolean = false,
+    private readonly defaultValue?: unknown,
+  ) {}
+
+  static create(
+    name: string,
+    options?: {
+      path?: string;
+      required?: boolean;
+      defaultValue?: unknown;
+    },
+  ): Result<TemplateVariable, ValidationError> {
+    if (!name || name.trim().length === 0) {
+      return {
+        ok: false,
+        error: { kind: "EmptyInput", message: "Variable name cannot be empty" },
+      };
+    }
+
+    // 変数名パターン検証
+    const pattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+    if (!pattern.test(name)) {
+      return {
+        ok: false,
+        error: {
+          kind: "PatternMismatch",
+          value: name,
+          pattern: pattern.source,
+          message: "Variable name must be valid identifier",
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      data: new TemplateVariable(
+        name,
+        options?.path || name,
+        options?.required || false,
+        options?.defaultValue,
+      ),
+    };
+  }
+
+  getName(): string {
+    return this.name;
+  }
   getPath(): string {
     return this.path;
   }
-
-  getType(): "main" | "items" {
-    return this.type;
+  isRequired(): boolean {
+    return this.required;
   }
-
-  getFormat(): TemplateFormat {
-    return this.format;
+  getDefaultValue(): unknown {
+    return this.defaultValue;
   }
 }
 
 /**
- * Template format types
+ * テンプレート変数パス
+ * {variable.nested.path} 形式のパスを表現
  */
-export type TemplateFormat = "json" | "yaml" | "toml" | "xml" | "markdown";
-
-/**
- * Template metadata
- */
-export class TemplateMetadata {
+export class VariablePath {
   private constructor(
-    private readonly format: TemplateFormat,
-    private readonly variables: string[],
-    private readonly hasItemsMarker: boolean,
+    private readonly segments: string[],
+    private readonly raw: string,
   ) {}
 
-  static analyze(content: string, format: TemplateFormat): TemplateMetadata {
-    const variables = this.extractVariableNames(content);
-    const hasItemsMarker = content.includes("{@items}");
+  static parse(expression: string): Result<VariablePath, ParseError> {
+    // {variable} または {variable.nested.path} 形式
+    const match = expression.match(/^\{([^}]+)\}$/);
+    if (!match) {
+      return {
+        ok: false,
+        error: {
+          kind: "InvalidVariableExpression",
+          expression,
+          message: "Variable must be in {variable} format",
+        },
+      };
+    }
 
-    return new TemplateMetadata(format, variables, hasItemsMarker);
-  }
+    const path = match[1];
+    const segments = path.split(".");
 
-  private static extractVariableNames(content: string): string[] {
-    const pattern = /\{([^}]+)\}/g;
-    const variables = new Set<string>();
-    let match;
-
-    while ((match = pattern.exec(content)) !== null) {
-      const variable = match[1];
-      if (variable !== "@items") {
-        variables.add(variable);
+    // 各セグメントの検証
+    for (const segment of segments) {
+      if (!segment || segment.trim().length === 0) {
+        return {
+          ok: false,
+          error: {
+            kind: "EmptySegment",
+            path,
+            message: "Variable path contains empty segment",
+          },
+        };
       }
     }
 
-    return Array.from(variables);
+    return {
+      ok: true,
+      data: new VariablePath(segments, expression),
+    };
   }
 
-  getFormat(): TemplateFormat {
+  getSegments(): string[] {
+    return [...this.segments];
+  }
+  getRaw(): string {
+    return this.raw;
+  }
+
+  resolve(data: Record<string, unknown>): Result<unknown, ResolutionError> {
+    let current: any = data;
+
+    for (const segment of this.segments) {
+      if (current == null || typeof current !== "object") {
+        return {
+          ok: false,
+          error: {
+            kind: "PathNotFound",
+            path: this.segments.join("."),
+            segment,
+            message: `Cannot resolve path at segment: ${segment}`,
+          },
+        };
+      }
+
+      if (!(segment in current)) {
+        return {
+          ok: false,
+          error: {
+            kind: "PropertyNotFound",
+            path: this.segments.join("."),
+            property: segment,
+            message: `Property not found: ${segment}`,
+          },
+        };
+      }
+
+      current = current[segment];
+    }
+
+    return { ok: true, data: current };
+  }
+}
+
+/**
+ * レンダリング結果
+ */
+export class RenderedContent {
+  private constructor(
+    private readonly content: string,
+    private readonly format: OutputFormat,
+    private readonly metadata: RenderMetadata,
+  ) {}
+
+  static create(
+    content: string,
+    format: OutputFormat,
+    metadata?: Partial<RenderMetadata>,
+  ): Result<RenderedContent, ValidationError> {
+    if (!content) {
+      return {
+        ok: false,
+        error: {
+          kind: "EmptyInput",
+          message: "Rendered content cannot be empty",
+        },
+      };
+    }
+
+    const fullMetadata: RenderMetadata = {
+      renderedAt: new Date(),
+      variableCount: metadata?.variableCount || 0,
+      templatePath: metadata?.templatePath,
+      ...metadata,
+    };
+
+    return {
+      ok: true,
+      data: new RenderedContent(content, format, fullMetadata),
+    };
+  }
+
+  getContent(): string {
+    return this.content;
+  }
+  getFormat(): OutputFormat {
     return this.format;
   }
-
-  getVariables(): string[] {
-    return [...this.variables];
+  getMetadata(): RenderMetadata {
+    return { ...this.metadata };
   }
+}
 
-  hasItemsMarker(): boolean {
-    return this.hasItemsMarker;
-  }
+interface RenderMetadata {
+  readonly renderedAt: Date;
+  readonly variableCount: number;
+  readonly templatePath?: string;
+  readonly warnings?: string[];
 }
 ```
 
-### 2. Entities
+### 2. エンティティ
 
 ```typescript
 /**
- * Template loading state
+ * テンプレートの状態
  */
 export type TemplateState =
-  | { kind: "Unloaded"; file: TemplateFile }
-  | { kind: "Loading"; file: TemplateFile }
+  | { kind: "Unloaded"; path: TemplatePath }
+  | { kind: "Loading"; path: TemplatePath }
   | {
     kind: "Loaded";
-    file: TemplateFile;
+    path: TemplatePath;
     content: string;
-    metadata: TemplateMetadata;
+    format: TemplateFormat;
   }
-  | { kind: "Failed"; file: TemplateFile; error: TemplateError };
+  | { kind: "Parsed"; path: TemplatePath; template: ParsedTemplate }
+  | { kind: "Compiled"; path: TemplatePath; compiled: CompiledTemplate }
+  | { kind: "Failed"; path: TemplatePath; error: TemplateError };
 
 /**
- * Template entity
+ * テンプレートエンティティ
  */
 export class Template {
   private state: TemplateState;
 
   private constructor(
     private readonly id: TemplateId,
-    initialFile: TemplateFile,
+    initialPath: TemplatePath,
   ) {
-    this.state = { kind: "Unloaded", file: initialFile };
+    this.state = { kind: "Unloaded", path: initialPath };
   }
 
-  static create(id: TemplateId, file: TemplateFile): Template {
-    return new Template(id, file);
+  static create(id: TemplateId, path: TemplatePath): Template {
+    return new Template(id, path);
   }
 
-  // State transitions
-  startLoading(): Result<void, TemplateError> {
-    if (this.state.kind !== "Unloaded" && this.state.kind !== "Failed") {
+  // 状態遷移メソッド
+  load(content: string, format: TemplateFormat): Result<void, TemplateError> {
+    switch (this.state.kind) {
+      case "Unloaded":
+      case "Failed":
+        this.state = {
+          kind: "Loaded",
+          path: this.state.path,
+          content,
+          format,
+        };
+        return { ok: true, data: undefined };
+      default:
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidStateTransition",
+            from: this.state.kind,
+            to: "Loaded",
+            message: `Cannot load template in state: ${this.state.kind}`,
+          },
+        };
+    }
+  }
+
+  setParsed(parsed: ParsedTemplate): Result<void, TemplateError> {
+    if (this.state.kind !== "Loaded") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
-          to: "Loading",
+          to: "Parsed",
+          message: `Cannot parse from state: ${this.state.kind}`,
         },
       };
     }
 
     this.state = {
-      kind: "Loading",
-      file: this.state.file,
+      kind: "Parsed",
+      path: this.state.path,
+      template: parsed,
     };
 
     return { ok: true, data: undefined };
   }
 
-  setLoaded(content: string): Result<void, TemplateError> {
-    if (this.state.kind !== "Loading") {
+  setCompiled(compiled: CompiledTemplate): Result<void, TemplateError> {
+    if (this.state.kind !== "Parsed") {
       return {
         ok: false,
         error: {
           kind: "InvalidStateTransition",
           from: this.state.kind,
-          to: "Loaded",
+          to: "Compiled",
+          message: `Cannot compile from state: ${this.state.kind}`,
         },
       };
     }
 
-    const metadata = TemplateMetadata.analyze(
-      content,
-      this.state.file.getFormat(),
-    );
-
     this.state = {
-      kind: "Loaded",
-      file: this.state.file,
-      content,
-      metadata,
+      kind: "Compiled",
+      path: this.state.path,
+      compiled,
     };
 
     return { ok: true, data: undefined };
@@ -282,59 +405,47 @@ export class Template {
   fail(error: TemplateError): void {
     this.state = {
       kind: "Failed",
-      file: this.getFile(),
+      path: this.getPath(),
       error,
     };
   }
 
-  // Query methods
+  // クエリメソッド
   getId(): TemplateId {
     return this.id;
   }
 
-  getFile(): TemplateFile {
-    return this.state.file;
+  getPath(): TemplatePath {
+    return this.state.path;
   }
 
   getState(): TemplateState {
     return this.state;
   }
 
-  isLoaded(): boolean {
-    return this.state.kind === "Loaded";
+  isCompiled(): boolean {
+    return this.state.kind === "Compiled";
   }
 
-  getContent(): Result<string, TemplateError> {
-    if (this.state.kind !== "Loaded") {
+  getCompiledTemplate(): Result<CompiledTemplate, TemplateError> {
+    if (this.state.kind !== "Compiled") {
       return {
         ok: false,
         error: {
-          kind: "NotLoaded",
+          kind: "NotCompiled",
           state: this.state.kind,
+          message:
+            `Template is not compiled, current state: ${this.state.kind}`,
         },
       };
     }
 
-    return { ok: true, data: this.state.content };
-  }
-
-  getMetadata(): Result<TemplateMetadata, TemplateError> {
-    if (this.state.kind !== "Loaded") {
-      return {
-        ok: false,
-        error: {
-          kind: "NotLoaded",
-          state: this.state.kind,
-        },
-      };
-    }
-
-    return { ok: true, data: this.state.metadata };
+    return { ok: true, data: this.state.compiled };
   }
 }
 
 /**
- * Template ID
+ * テンプレートID
  */
 export class TemplateId {
   private constructor(private readonly value: string) {}
@@ -350,8 +461,10 @@ export class TemplateId {
     return { ok: true, data: new TemplateId(value) };
   }
 
-  static fromFile(file: TemplateFile): TemplateId {
-    const id = `${file.getType()}_${file.getPath().replace(/[\/\\]/g, "_")}`;
+  static fromPath(path: TemplatePath): TemplateId {
+    const id = path.toString()
+      .replace(/[\/\\]/g, "_")
+      .replace(/\.[^.]+$/, "");
     return new TemplateId(id);
   }
 
@@ -363,376 +476,331 @@ export class TemplateId {
     return this.value;
   }
 }
+
+/**
+ * パース済みテンプレート
+ */
+export interface ParsedTemplate {
+  readonly content: string;
+  readonly variables: TemplateVariable[];
+  readonly format: TemplateFormat;
+  readonly outputFormat: OutputFormat;
+}
+
+/**
+ * コンパイル済みテンプレート
+ */
+export interface CompiledTemplate {
+  readonly id: TemplateId;
+  readonly render: (
+    data: Record<string, unknown>,
+  ) => Result<string, RenderError>;
+  readonly variables: TemplateVariable[];
+  readonly outputFormat: OutputFormat;
+}
 ```
 
-### 3. Domain Services
+### 3. ドメインサービス
 
 ```typescript
 /**
- * Template loader service
+ * テンプレート解析サービス
  */
-export class TemplateLoaderService {
-  constructor(
-    private readonly fileReader: TemplateFileReader,
-  ) {}
+export class TemplateParser {
+  parse(
+    content: string,
+    format: TemplateFormat,
+  ): Result<ParsedTemplate, ParseError> {
+    // 変数抽出
+    const variablesResult = this.extractVariables(content);
+    if (!variablesResult.ok) return variablesResult;
 
-  /**
-   * Load template from file
-   */
-  async load(file: TemplateFile): Promise<Result<Template, TemplateError>> {
-    const id = TemplateId.fromFile(file);
-    const template = Template.create(id, file);
+    // 出力形式の決定
+    const outputFormat = this.detectOutputFormat(content, format);
 
-    // Start loading
-    const startResult = template.startLoading();
-    if (!startResult.ok) {
-      return { ok: false, error: startResult.error };
-    }
-
-    // Read file content
-    const content = await this.fileReader.read(file.getPath());
-    if (!content.ok) {
-      template.fail(content.error);
-      return { ok: false, error: content.error };
-    }
-
-    // Set loaded state
-    const loadedResult = template.setLoaded(content.data);
-    if (!loadedResult.ok) {
-      template.fail(loadedResult.error);
-      return { ok: false, error: loadedResult.error };
-    }
-
-    return { ok: true, data: template };
-  }
-}
-
-/**
- * Template file reader interface
- */
-export interface TemplateFileReader {
-  read(path: string): Promise<Result<string, TemplateError>>;
-}
-
-/**
- * Template manager service
- */
-export class TemplateManagerService {
-  private templates: Map<string, Template> = new Map();
-
-  constructor(
-    private readonly loader: TemplateLoaderService,
-  ) {}
-
-  /**
-   * Load templates from directives
-   */
-  async loadFromDirectives(
-    directive: TemplateDirective,
-  ): Promise<Result<LoadedTemplates, TemplateError>> {
-    const result: LoadedTemplates = {
-      mainTemplate: null,
-      itemsTemplate: null,
+    return {
+      ok: true,
+      data: {
+        content,
+        variables: variablesResult.data,
+        format,
+        outputFormat,
+      },
     };
-
-    // Load main template
-    const mainPath = directive.getMainTemplate();
-    if (mainPath) {
-      const mainFile = TemplateFile.create(mainPath, "main");
-      if (!mainFile.ok) {
-        return { ok: false, error: mainFile.error };
-      }
-
-      const mainTemplate = await this.loader.load(mainFile.data);
-      if (!mainTemplate.ok) {
-        return { ok: false, error: mainTemplate.error };
-      }
-
-      result.mainTemplate = mainTemplate.data;
-      this.templates.set(mainPath, mainTemplate.data);
-    }
-
-    // Load items template
-    const itemsPath = directive.getItemsTemplate();
-    if (itemsPath) {
-      const itemsFile = TemplateFile.create(itemsPath, "items");
-      if (!itemsFile.ok) {
-        return { ok: false, error: itemsFile.error };
-      }
-
-      const itemsTemplate = await this.loader.load(itemsFile.data);
-      if (!itemsTemplate.ok) {
-        return { ok: false, error: itemsTemplate.error };
-      }
-
-      result.itemsTemplate = itemsTemplate.data;
-      this.templates.set(itemsPath, itemsTemplate.data);
-    }
-
-    return { ok: true, data: result };
   }
 
-  /**
-   * Get template by path
-   */
-  getTemplate(path: string): Template | null {
-    return this.templates.get(path) || null;
+  private extractVariables(
+    content: string,
+  ): Result<TemplateVariable[], ParseError> {
+    const variables: TemplateVariable[] = [];
+    const seen = new Set<string>();
+
+    // {variable} パターンの抽出
+    const pattern = /\{([^}]+)\}/g;
+    let match;
+
+    while ((match = pattern.exec(content)) !== null) {
+      const varPath = match[1];
+
+      if (seen.has(varPath)) {
+        continue;
+      }
+      seen.add(varPath);
+
+      const varName = varPath.split(".")[0];
+      const varResult = TemplateVariable.create(varName, {
+        path: varPath,
+        required: true,
+      });
+
+      if (!varResult.ok) {
+        return {
+          ok: false,
+          error: {
+            kind: "InvalidVariable",
+            variable: varPath,
+            message: `Invalid variable: ${varPath}`,
+          },
+        };
+      }
+
+      variables.push(varResult.data);
+    }
+
+    return { ok: true, data: variables };
   }
 
-  /**
-   * Get all loaded templates
-   */
-  getAllTemplates(): Template[] {
-    return Array.from(this.templates.values());
+  private detectOutputFormat(
+    content: string,
+    format: TemplateFormat,
+  ): OutputFormat {
+    // Template形式から出力形式を推定
+    switch (format) {
+      case "yaml":
+        return "yaml";
+      case "toml":
+        return "toml";
+      case "json":
+      case "handlebars":
+      default:
+        return "json";
+    }
   }
 }
 
 /**
- * Loaded templates result
+ * テンプレートコンパイラー
  */
-export interface LoadedTemplates {
-  mainTemplate: Template | null;
-  itemsTemplate: Template | null;
+export class TemplateCompiler {
+  compile(parsed: ParsedTemplate): Result<CompiledTemplate, CompileError> {
+    const compiledFunc = this.createRenderFunction(parsed);
+
+    return {
+      ok: true,
+      data: {
+        id: TemplateId.create(`compiled_${Date.now()}`).data as TemplateId,
+        render: compiledFunc,
+        variables: parsed.variables,
+        outputFormat: parsed.outputFormat,
+      },
+    };
+  }
+
+  private createRenderFunction(
+    parsed: ParsedTemplate,
+  ): (data: Record<string, unknown>) => Result<string, RenderError> {
+    return (data: Record<string, unknown>) => {
+      let result = parsed.content;
+      const warnings: string[] = [];
+
+      for (const variable of parsed.variables) {
+        const varPath = VariablePath.parse(`{${variable.getPath()}}`);
+        if (!varPath.ok) {
+          return {
+            ok: false,
+            error: {
+              kind: "RenderFailed",
+              reason: "Invalid variable path",
+              variable: variable.getPath(),
+              message: varPath.error.message,
+            },
+          };
+        }
+
+        const valueResult = varPath.data.resolve(data);
+        let value: unknown;
+
+        if (!valueResult.ok) {
+          if (variable.isRequired()) {
+            return {
+              ok: false,
+              error: {
+                kind: "RequiredVariableMissing",
+                variable: variable.getName(),
+                path: variable.getPath(),
+                message: `Required variable not found: ${variable.getPath()}`,
+              },
+            };
+          }
+
+          value = variable.getDefaultValue();
+          warnings.push(`Using default value for ${variable.getPath()}`);
+        } else {
+          value = valueResult.data;
+        }
+
+        // 値のフォーマット
+        const formatted = this.formatValue(value, parsed.outputFormat);
+
+        // 変数置換
+        const placeholder = `{${variable.getPath()}}`;
+        result = result.replace(
+          new RegExp(
+            placeholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+            "g",
+          ),
+          formatted,
+        );
+      }
+
+      return { ok: true, data: result };
+    };
+  }
+
+  private formatValue(value: unknown, format: OutputFormat): string {
+    if (value === null) return "null";
+    if (value === undefined) return "";
+
+    switch (format) {
+      case "json":
+        return typeof value === "string" ? value : JSON.stringify(value);
+      case "yaml":
+        return this.formatYAMLValue(value);
+      case "toml":
+        return this.formatTOMLValue(value);
+      default:
+        return String(value);
+    }
+  }
+
+  private formatYAMLValue(value: unknown): string {
+    // YAML値フォーマット実装
+    if (Array.isArray(value)) {
+      return JSON.stringify(value);
+    }
+    if (typeof value === "object" && value !== null) {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+
+  private formatTOMLValue(value: unknown): string {
+    // TOML値フォーマット実装
+    if (Array.isArray(value)) {
+      return JSON.stringify(value);
+    }
+    if (typeof value === "object" && value !== null) {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+}
+
+/**
+ * テンプレートレンダラー
+ */
+export class TemplateRenderer {
+  render(
+    template: CompiledTemplate,
+    data: Record<string, unknown>,
+  ): Result<RenderedContent, RenderError> {
+    const renderResult = template.render(data);
+    if (!renderResult.ok) return renderResult;
+
+    return RenderedContent.create(
+      renderResult.data,
+      template.outputFormat,
+      {
+        variableCount: template.variables.length,
+        templatePath: template.id.toString(),
+      },
+    );
+  }
 }
 ```
 
-### 4. Aggregates
+### 4. リポジトリインターフェース
 
 ```typescript
 /**
- * Template collection aggregate root
- */
-export class TemplateCollectionAggregate {
-  private mainTemplate: Template | null = null;
-  private itemsTemplate: Template | null = null;
-  private format: string | null = null;
-
-  /**
-   * Initialize from schema directives
-   */
-  async initializeFromSchema(
-    schema: SchemaWithDirectives,
-    manager: TemplateManagerService,
-  ): Promise<Result<void, TemplateError>> {
-    // Extract template directives
-    const directiveResult = TemplateDirective.create(schema);
-    if (!directiveResult.ok) {
-      return { ok: false, error: directiveResult.error };
-    }
-
-    // Load templates
-    const loadResult = await manager.loadFromDirectives(directiveResult.data);
-    if (!loadResult.ok) {
-      return { ok: false, error: loadResult.error };
-    }
-
-    this.mainTemplate = loadResult.data.mainTemplate;
-    this.itemsTemplate = loadResult.data.itemsTemplate;
-    this.format = directiveResult.data.getFormat() || null;
-
-    return { ok: true, data: undefined };
-  }
-
-  /**
-   * Get template for rendering
-   */
-  getTemplateFor(type: "main" | "items"): Result<Template, TemplateError> {
-    const template = type === "main" ? this.mainTemplate : this.itemsTemplate;
-
-    if (!template) {
-      return {
-        ok: false,
-        error: {
-          kind: "TemplateNotFound",
-          type,
-          message: `No ${type} template loaded`,
-        },
-      };
-    }
-
-    return { ok: true, data: template };
-  }
-
-  /**
-   * Get output format
-   */
-  getOutputFormat(): string | null {
-    if (this.format) {
-      return this.format;
-    }
-
-    // Infer from main template format
-    if (this.mainTemplate) {
-      const file = this.mainTemplate.getFile();
-      return file.getFormat();
-    }
-
-    return null;
-  }
-
-  /**
-   * Validate templates are ready
-   */
-  validateReady(): Result<void, TemplateError> {
-    if (!this.mainTemplate && !this.itemsTemplate) {
-      return {
-        ok: false,
-        error: {
-          kind: "NoTemplatesLoaded",
-          message: "No templates have been loaded",
-        },
-      };
-    }
-
-    // Check if templates are in loaded state
-    if (this.mainTemplate && !this.mainTemplate.isLoaded()) {
-      return {
-        ok: false,
-        error: {
-          kind: "TemplateNotReady",
-          type: "main",
-          state: this.mainTemplate.getState().kind,
-        },
-      };
-    }
-
-    if (this.itemsTemplate && !this.itemsTemplate.isLoaded()) {
-      return {
-        ok: false,
-        error: {
-          kind: "TemplateNotReady",
-          type: "items",
-          state: this.itemsTemplate.getState().kind,
-        },
-      };
-    }
-
-    return { ok: true, data: undefined };
-  }
-}
-```
-
-### 5. Repository Interface
-
-```typescript
-/**
- * Template repository
+ * テンプレートリポジトリ
  */
 export interface TemplateRepository {
+  load(path: TemplatePath): Promise<Result<Template, TemplateError>>;
   save(template: Template): Promise<Result<void, TemplateError>>;
-
-  findById(
-    id: TemplateId,
-  ): Promise<Result<Template | null, TemplateError>>;
-
-  findByPath(
-    path: string,
-  ): Promise<Result<Template | null, TemplateError>>;
-
-  findByType(
-    type: "main" | "items",
+  findById(id: TemplateId): Promise<Result<Template | null, TemplateError>>;
+  findByFormat(
+    format: TemplateFormat,
   ): Promise<Result<Template[], TemplateError>>;
-
-  findAll(): Promise<Result<Template[], TemplateError>>;
 }
 ```
 
-### 6. Error Types
+### 5. エラー型定義
 
 ```typescript
 export type TemplateError =
-  | { kind: "NoTemplateSpecified" }
-  | { kind: "InvalidFormat"; format: string }
-  | { kind: "EmptyPath" }
-  | { kind: "UnsupportedFormat"; path: string }
-  | { kind: "InvalidStateTransition"; from: string; to: string }
-  | { kind: "NotLoaded"; state: string }
-  | { kind: "TemplateNotFound"; type: string; message: string }
-  | { kind: "NoTemplatesLoaded"; message: string }
-  | { kind: "TemplateNotReady"; type: string; state: string }
-  | { kind: "FileReadError"; path: string; error: string }
-  | { kind: "ParseError"; details: string };
-```
+  | TemplatePathError
+  | ParseError
+  | CompileError
+  | RenderError
+  | StateError;
 
-## Domain Interface
+export type TemplatePathError =
+  | { kind: "EmptyPath"; message: string }
+  | {
+    kind: "InvalidExtension";
+    path: string;
+    validExtensions: string[];
+    message: string;
+  }
+  | { kind: "FileNotFound"; path: string; message: string };
 
-This domain exposes only one interface to other domains:
+export type ParseError =
+  | { kind: "InvalidVariable"; variable: string; message: string }
+  | { kind: "InvalidVariableExpression"; expression: string; message: string }
+  | { kind: "EmptySegment"; path: string; message: string };
 
-```typescript
-/**
- * Template domain facade
- * This is the ONLY interface exposed to other domains
- */
-export interface TemplateDomainFacade {
-  /**
-   * Load templates specified in schema
-   * Returns loaded templates for the Template Engine
-   */
-  loadTemplates(
-    schema: SchemaWithDirectives,
-  ): Promise<Result<TemplateCollection, TemplateError>>;
+export type CompileError = {
+  kind: "CompilationFailed";
+  reason: string;
+  message: string;
+};
 
-  /**
-   * Get template content by type
-   */
-  getTemplate(
-    type: "main" | "items",
-  ): Result<TemplateContent, TemplateError>;
-}
+export type RenderError =
+  | { kind: "RenderFailed"; reason: string; variable?: string; message: string }
+  | {
+    kind: "RequiredVariableMissing";
+    variable: string;
+    path: string;
+    message: string;
+  }
+  | ResolutionError;
 
-/**
- * Template collection returned to consumers
- */
-export interface TemplateCollection {
-  mainTemplate?: TemplateContent;
-  itemsTemplate?: TemplateContent;
-  outputFormat: string;
-}
-
-/**
- * Template content with metadata
- */
-export interface TemplateContent {
-  content: string;
-  format: TemplateFormat;
-  metadata: {
-    variables: string[];
-    hasItemsMarker: boolean;
+export type ResolutionError =
+  | { kind: "PathNotFound"; path: string; segment: string; message: string }
+  | {
+    kind: "PropertyNotFound";
+    path: string;
+    property: string;
+    message: string;
   };
-}
+
+export type StateError =
+  | {
+    kind: "InvalidStateTransition";
+    from: string;
+    to: string;
+    message: string;
+  }
+  | { kind: "NotCompiled"; state: string; message: string };
 ```
-
-## Important Constraints
-
-1. **No Variable Substitution**: This domain only manages templates, not
-   variable replacement
-2. **Template Provision Only**: Provides template content and metadata to the
-   Template Engine
-3. **Independence**: Does not know about frontmatter data or processing
-   directives
-4. **Single Responsibility**: Only responsible for loading and providing
-   templates
-
-## Relationship with Other Domains
-
-```mermaid
-graph TB
-    FM[Frontmatter Analysis Domain]
-    TM[Template Management Domain]
-    DP[Data Processing Instruction Domain]
-    TE[Template Engine]
-
-    FM -->|ExtractedData| DP
-    DP -->|ProcessedData| TE
-    TM -->|Templates| TE
-    TE --> Output[Final Output]
-
-    style FM fill:#f9f,stroke:#333,stroke-width:2px
-    style TM fill:#bbf,stroke:#333,stroke-width:2px
-    style DP fill:#bfb,stroke:#333,stroke-width:2px
-    style TE fill:#ffc,stroke:#333,stroke-width:2px
-```
-
-The Template Management Domain provides templates to the Template Engine, which
-combines them with processed data from the Data Processing Instruction Domain to
-generate the final output.

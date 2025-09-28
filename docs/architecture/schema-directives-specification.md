@@ -1,213 +1,257 @@
 # Schema定義のディレクティブと役割
 
-本ドキュメントは、requirements.ja.mdとflow.ja.mdに基づき、Schema定義のディレクティブ（x-*）の役割と処理ドメインを定義する。
+本ドキュメントは、frontmatter-to-schemaプロジェクトにおけるSchema定義のディレクティブ（x-*）の役割を整理し、各定義が何の目的でどのように利用されるかを明確化したものです。
 
-## ドメイン別ディレクティブ分類
+## 1. ディレクティブの分類
 
-### 1. フロントマター解析ドメイン
+### 1.1 処理ステージによる分類（実装準拠の7段階）
 
-**責務**: Markdownファイルからのデータ抽出
+Schema定義のディレクティブは、実装（`src/domain/schema/directive-order.ts`）に基づく7つのステージで処理されます：
 
-| ディレクティブ       | 役割                         | 処理タイミング     |
-| -------------------- | ---------------------------- | ------------------ |
-| `x-frontmatter-part` | フロントマター処理の起点指定 | 個別ファイル処理時 |
+1. **Stage 1: 対象配列の特定**
+   - `x-frontmatter-part` - 処理対象の配列を識別
 
-### 2. テンプレート管理ドメイン
+2. **Stage 2: 配列フラット化**
+   - `x-flatten-arrays` - 指定プロパティの配列フラット化（オプション）
 
-**責務**: 出力テンプレートの管理と提供
+3. **Stage 3: フィルタリング適用**
+   - `x-jmespath-filter` - フラット化されたデータへのJMESPathフィルタリング
 
-| ディレクティブ      | 役割                             | 処理タイミング     |
-| ------------------- | -------------------------------- | ------------------ |
-| `x-template`        | メインコンテナテンプレート指定   | テンプレート展開時 |
-| `x-template-items`  | 配列要素テンプレート指定         | テンプレート展開時 |
-| `x-template-format` | 出力形式指定（json/yaml/md/xml） | テンプレート展開時 |
+4. **Stage 4: 値の集約**
+   - `x-derived-from` - 複数ソースからの値集約
 
-### 3. データ処理指示ドメイン
+5. **Stage 5: 重複削除**
+   - `x-derived-unique` - 集約データからの重複削除
 
-**責務**: フロントマターデータの加工と提供
+6. **Stage 6: データ収集完了**
+   - （内部処理ステージ）全ファイルからのデータ収集と統合
 
-| ディレクティブ      | 役割                           | 処理タイミング       |
-| ------------------- | ------------------------------ | -------------------- |
-| `x-flatten-arrays`  | 配列のフラット化（オプション） | 個別ファイル処理時   |
-| `x-jmespath-filter` | JMESPath式によるフィルタリング | 個別ファイル処理時   |
-| `x-derived-from`    | 他プロパティからの値集約       | 全ファイル処理完了後 |
-| `x-derived-unique`  | 配列の重複除去                 | 全ファイル処理完了後 |
+7. **Stage 7: テンプレート適用**
+   - `x-template` - メインテンプレートの適用
+   - `x-template-items` - 個別要素へのテンプレート適用
+   - `x-template-format` - 出力形式の指定
 
-## 処理フローとタイミング
+### 1.2 役割による分類
 
-### フェーズ1: 個別ファイル処理
+ディレクティブは以下の4つの役割に分けられます：
 
-```mermaid
-graph LR
-    A[Markdownファイル] --> B[フロントマター抽出]
-    B --> C{x-frontmatter-part}
-    C --> D[起点配列の識別]
-    D --> E{x-flatten-arrays?}
-    E -->|指定あり| F[配列フラット化]
-    E -->|指定なし| G[構造保持]
-    F --> H{x-jmespath-filter?}
-    G --> H
-    H -->|指定あり| I[フィルタ適用]
-    H -->|指定なし| J[全データ保持]
-```
+- **処理制御** - データ処理の流れを制御する
+  - `x-frontmatter-part`
 
-### フェーズ2: 全体統合（全ファイル処理完了後）
+- **データ抽出・フィルタリング** - フロントマターから値を抽出・選別する
+  - `x-flatten-arrays`
+  - `x-jmespath-filter`
 
-```mermaid
-graph LR
-    A[個別処理結果群] --> B[配列統合]
-    B --> C{x-derived-from?}
-    C -->|指定あり| D[値の集約]
-    C -->|指定なし| E[元データ保持]
-    D --> F{x-derived-unique?}
-    F -->|指定あり| G[重複除去]
-    F -->|指定なし| H[重複許容]
-    G --> I[{@items}配列確定]
-    H --> I
-    E --> I
-```
+- **データ変換・集約** - 抽出したデータを変換・統合する
+  - `x-derived-from`
+  - `x-derived-unique`
 
-### フェーズ3: テンプレート展開
+- **テンプレート指定** - 出力フォーマットを決定する
+  - `x-template`
+  - `x-template-items`
+  - `x-template-format`
 
-```mermaid
-graph LR
-    A[処理済みデータ] --> B{x-template}
-    B --> C[メインテンプレート適用]
-    C --> D{x-template-items?}
-    D -->|指定あり| E[配列要素展開]
-    D -->|指定なし| F[配列として出力]
-    E --> G{x-template-format}
-    F --> G
-    G --> H[最終出力]
-```
+### 1.3 標準JSON Schema記述との関係
 
-## 各ディレクティブの詳細仕様
+標準のJSON Schema記述要素とカスタムディレクティブの関係：
 
-### x-frontmatter-part
+- **構造定義** - データの型と構造を定義
+  - `type`
+  - `properties`
+  - `items`
+  - `$ref`
+  - `required`
+  - `additionalProperties`
 
-**目的**: 各Markdownファイルのフロントマター処理の起点を指定
+- **検証ルール** - データの妥当性を検証
+  - `pattern`
+  - `format`
+  - `minLength`/`maxLength`
+  - `minimum`/`maximum`
+  - `enum`
 
-**仕様**:
+- **ドキュメント** - スキーマの説明
+  - `$schema`
+  - `title`
+  - `description`
 
-- 値: `true`（boolean）
-- 適用対象: 配列プロパティのみ
-- 複数指定時: 最上位かつ最初の宣言のみ有効
+- **カスタム処理** - アプリケーション固有の処理（x-*ディレクティブ）
+  - 上記の全x-*ディレクティブ
+
+**重要**: 本システムはデフォルト値の生成や補完を行いません。JSON
+Schemaの`default`プロパティも使用しません。ただし、値が存在しない場合は
+明示的に`null`に置換されます。
+
+## 2. 各ディレクティブの詳細
+
+### 2.1 処理制御ディレクティブ
+
+#### `x-frontmatter-part`
+
+- **役割**: フロントマター処理の起点指定
+- **適用対象**: 配列プロパティ
+- **処理ステージ**: Stage 1
+- **目的**: 各Markdownファイルの処理で使用する配列を指定
+- **動作**: trueが設定された配列の各要素が個別のMarkdownファイル処理単位となる。
+  スキーマ内に複数指定がある場合は、ツリーの最上位かつ最初に現れる宣言のみが有効となり、
+  それ以降の宣言は同一処理内では無視される。
+- **依存関係**: なし（最初に処理される）
+- **使用例**:
 
 ```json
 {
   "commands": {
     "type": "array",
     "x-frontmatter-part": true,
-    "items": { "$ref": "command_schema.json" }
+    "items": {...}
   }
 }
 ```
 
-### x-flatten-arrays
+### 2.2 データ抽出・フィルタリングディレクティブ
 
-**目的**: ネストした配列構造をフラット化
+#### `x-flatten-arrays`
 
-**仕様**:
+- **役割**: 配列のフラット化処理
+- **適用対象**: 配列プロパティ（`x-frontmatter-part: true`と併用）
+- **処理ステージ**: Stage 2
+- **目的**:
+  フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成
+- **特徴**: 指定時のみ適用されるオプション機能。デフォルトでは元構造を維持
+- **依存関係**: `x-frontmatter-part`の後に処理
+- **使用例**:
 
-- 値: プロパティ名（string）
-- 適用: 指定時のみ（オプション）
-- デフォルト: 構造を保持
-
-**動作例**:
-
-```yaml
-# 入力
-traceability: [["REQ-001", "REQ-002"], "REQ-003"]
-
-# x-flatten-arrays: "traceability" 指定時
-["REQ-001", "REQ-002", "REQ-003"]
-
-# 指定なしの場合
-[["REQ-001", "REQ-002"], "REQ-003"]
+```json
+{
+  "trace_ids": {
+    "type": "array",
+    "description": "フラット化されたトレーサビリティIDの一覧",
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-derived-unique": true,
+    "x-template-items": "trace_item_template.json"
+  }
+}
 ```
 
-### x-derived-from
+**フラット化の動作原理**:
 
-**目的**: 複数のプロパティから値を集約
+| フロントマター構造                | 指定                                 | 処理結果                       |
+| --------------------------------- | ------------------------------------ | ------------------------------ |
+| `traceability: ["A", ["B", "C"]]` | `"x-flatten-arrays": "traceability"` | `["A", "B", "C"]`              |
+| `traceability: "D"`               | 同上                                 | `["D"]`                        |
+| `traceability: ["A", ["B", "C"]]` | **指定なし**                         | `["A", ["B", "C"]]` (構造維持) |
+| 複数ファイル                      | 指定時                               | 全要素が`{@items}`で展開       |
+| 複数ファイル                      | **指定なし**                         | 元構造のまま`{@items}`で展開   |
 
-**仕様**:
+#### `x-flatten-arrays`
 
-- 値: パス式（string）
-- 記法: ドット記法と配列展開をサポート
-- タイミング: 全ファイル処理完了後
+- **役割**: 配列のフラット化
+- **適用対象**: 配列プロパティ
+- **処理ステージ**: Stage 2
+- **目的**:
+  フロントマター内部のネストした配列構造をフラット化し、テンプレート処理用の均一な配列を生成
+- **特徴**: 指定時のみ適用される配列フラット化機能
+- **依存関係**: `x-frontmatter-part`の後に処理
+- **使用例**:
 
-**パス記法**:
+```json
+{
+  "items": {
+    "type": "array",
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-template-items": "item_template.json"
+  }
+}
+```
 
-| 記法       | 例              | 説明                           |
-| ---------- | --------------- | ------------------------------ |
-| ドット記法 | `id.full`       | ネストされたプロパティ         |
-| 配列展開   | `items[]`       | 配列の各要素を展開             |
-| 組み合わせ | `commands[].c1` | 配列展開後にプロパティアクセス |
+#### `x-jmespath-filter`
+
+- **役割**: JMESPath式によるデータ抽出とフィルタリング
+- **適用対象**: 配列プロパティ
+- **処理ステージ**: Stage 3
+- **目的**: 抽出されたデータに対してJMESPath式で選択的抽出やフィルタリング
+- **依存関係**:
+  `x-flatten-arrays`の後に処理（フラット化されたデータに対して適用）
+- **使用例**:
+
+```json
+{
+  "activeItems": {
+    "type": "array",
+    "x-jmespath-filter": "items[?status=='active']",
+    "items": {...}
+  }
+}
+```
+
+### 2.3 データ変換・集約ディレクティブ
+
+#### `x-derived-from`
+
+- **役割**: 派生フィールドの生成
+- **適用対象**: 任意のプロパティ
+- **処理ステージ**: Stage 5
+- **目的**: 他のプロパティから値を集約して新しいフィールドを生成
+- **依存関係**: `x-flatten-arrays`の後に処理
+- **使用例**:
 
 ```json
 {
   "availableConfigs": {
     "type": "array",
     "x-derived-from": "commands[].c1",
-    "x-derived-unique": true
+    "items": { "type": "string" }
   }
 }
 ```
 
-### x-derived-unique
+#### `x-derived-unique`
 
-**目的**: 配列の重複要素を除去
-
-**仕様**:
-
-- 値: `true`（boolean）
-- 前提: `x-derived-from`と併用
-- タイミング: `x-derived-from`の後
-
-### x-jmespath-filter
-
-**目的**: JMESPath式によるデータフィルタリング
-
-**仕様**:
-
-- 値: JMESPath式（string）
-- タイミング: 個別ファイル処理時
+- **役割**: 派生値の重複削除
+- **適用対象**: 配列プロパティ（x-derived-fromと併用）
+- **処理ステージ**: Stage 6
+- **目的**: 派生した配列から重複を削除
+- **依存関係**: `x-derived-from`の後に処理
+- **使用例**:
 
 ```json
 {
-  "filteredCommands": {
-    "x-jmespath-filter": "commands[?c1 == 'git']"
+  "uniqueConfigs": {
+    "type": "array",
+    "x-derived-from": "commands[].c1",
+    "x-derived-unique": true,
+    "items": { "type": "string" }
   }
 }
 ```
 
-### x-template
+### 2.4 テンプレート制御ディレクティブ
 
-**目的**: メインコンテナのテンプレートファイル指定
+#### `x-template`
 
-**仕様**:
-
-- 値: テンプレートファイルパス（string）
-- 起点: Schemaのroot
-- 変数解決: Schemaのrootが起点
+- **役割**: コンテナテンプレートの指定
+- **適用対象**: ルートスキーマ
+- **処理ステージ**: Stage 7
+- **目的**: 最終出力の全体構造を定義するテンプレートファイルを指定
+- **依存関係**: `x-derived-unique`と`x-derived-from`の後（最終段階）
+- **使用例**:
 
 ```json
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "x-template": "registry_template.json",
-  "properties": {}
+  "x-template": "registry_template.json"
 }
 ```
 
-### x-template-items
+#### `x-template-items`
 
-**目的**: 配列要素展開時のテンプレートファイル指定
-
-**仕様**:
-
-- 値: テンプレートファイルパス（string）
-- 起点: `x-frontmatter-part`指定階層
-- 変数解決: 配列要素が起点
+- **役割**: アイテムテンプレートの指定
+- **適用対象**: ルートスキーマ
+- **処理ステージ**: Stage 7
+- **目的**: `{@items}`展開時に使用する個別アイテム用テンプレートを指定
+- **依存関係**: `x-derived-unique`と`x-derived-from`の後（最終段階）
+- **使用例**:
 
 ```json
 {
@@ -215,72 +259,191 @@ traceability: [["REQ-001", "REQ-002"], "REQ-003"]
 }
 ```
 
-### x-template-format
+#### `x-template-format`
 
-**目的**: 出力形式の指定
+- **役割**: 出力フォーマットの明示的指定
+- **適用対象**: ルートスキーマ
+- **処理ステージ**: Stage 7（テンプレート適用時）
+- **目的**:
+  出力形式（JSON/TOML/YAML/Markdown）を明示的に指定し、拡張子の自動判定を上書き
+- **備考**: テンプレートファイル自体は常にJSON形式で保存・解釈される
+- **使用例**:
 
-**仕様**:
-
-- 値: `json` | `yaml` | `md` | `xml`（string）
-- デフォルト: テンプレート拡張子から推論
-
-## 重要な制約事項
-
-### デフォルト値に関する制約
-
-本システムは以下の制約を遵守する：
-
-1. **デフォルト値の非生成**: デフォルト値の生成や補完を行わない
-2. **JSON Schema defaultの非使用**: `default`プロパティは無視される
-3. **実データのみ処理**: 実際のフロントマターデータのみを処理対象とする
-4. **null置換**: 値が存在しない場合は明示的に`null`に置換
-
-### $refの扱い
-
-`$ref`はJSON Schemaの標準機能として、以下の原則で扱う：
-
-1. **構造の再利用専用**: スキーマ構造の再利用にのみ使用
-2. **テンプレート処理から独立**: テンプレート処理に影響しない
-3. **再帰的解決**: 再帰的な参照をサポート
-4. **循環参照の防止**: 循環参照を検出して防止
-
-## 処理順序の保証
-
-システムは以下の処理順序を保証する：
-
-### 依存関係のあるディレクティブ
-
-1. `x-frontmatter-part` → すべての処理の起点
-2. `x-flatten-arrays` → `x-jmespath-filter`の前
-3. `x-derived-from` → `x-derived-unique`の前
-4. データ処理完了 → テンプレート処理
-
-### 並行処理可能なディレクティブ
-
-- 異なるプロパティの`x-flatten-arrays`
-- 異なるプロパティの`x-jmespath-filter`
-- 複数の`x-derived-from`（依存関係がない場合）
-
-## ドメイン間のデータフロー
-
-```mermaid
-graph TB
-    subgraph "Schemaドメイン"
-        Schema[Schema読取] --> Decompose[3ドメインへ分解]
-    end
-
-    subgraph "処理の流れ"
-        Decompose --> FD[フロントマター解析]
-        FD -->|抽出データ| DD[データ処理指示]
-        DD -->|処理済データ| TE[テンプレートエンジン]
-        Decompose --> TD[テンプレート管理]
-        TD -->|テンプレート| TE
-        TE --> Output[最終出力]
-    end
+```json
+{
+  "x-template-format": "yaml"
+}
 ```
+
+## 3. 処理フローとディレクティブの依存関係
+
+### 3.1 ステージごとの処理順序
+
+```
+Stage 1: 対象配列の特定
+   └─ x-frontmatter-part: 処理対象配列を識別
+        ↓
+Stage 2: 配列フラット化
+   └─ x-flatten-arrays: 指定プロパティの配列フラット化（オプション）
+        ↓
+Stage 3: フィルタリング適用
+   └─ x-jmespath-filter: フラット化データへのフィルタリング
+        ↓
+Stage 4: 値の集約
+   └─ x-derived-from: 複数ソースからの集約
+        ↓
+Stage 5: 重複削除
+   └─ x-derived-unique: 重複値の除去
+        ↓
+Stage 6: データ収集完了
+   └─ （内部処理）全ファイルのデータ統合
+        ↓
+Stage 7: テンプレート適用
+   ├─ x-template: メインテンプレート
+   ├─ x-template-items: アイテムテンプレート
+   └─ x-template-format: 出力形式指定
+```
+
+### 3.2 ディレクティブの依存グラフ
+
+- `x-frontmatter-part` → なし（起点）
+- `x-flatten-arrays` → `x-frontmatter-part`
+- `x-jmespath-filter` → `x-flatten-arrays`
+- `x-derived-from` → `x-jmespath-filter`, `x-flatten-arrays`
+- `x-derived-unique` → `x-derived-from`
+- `x-template` → `x-derived-unique`, `x-derived-from`
+- `x-template-items` → `x-derived-unique`, `x-derived-from`
+
+### 3.3 ディレクティブの相互作用
+
+- `x-frontmatter-part` と `x-template-items`
+  は連携して、配列要素の個別処理とテンプレート適用を制御
+- `x-flatten-arrays`
+  は指定時のみ適用され、ネストした配列をフラット化してテンプレート処理を簡素化
+- `x-jmespath-filter` は `x-flatten-arrays`
+  の後に適用され、フラット化されたデータをさらに絞り込む
+- `x-derived-from` と `x-derived-unique`
+  を組み合わせて、集約データの重複を自動削除
+
+## 4. 設計原則
+
+### 4.1 宣言的な定義
+
+すべてのディレクティブは宣言的であり、「どのように」ではなく「何を」するかを記述します。処理順序は依存関係に基づいて自動的に決定されます。
+
+### 4.2 柔軟性の確保
+
+- フロントマターの構造（配列/単一）に依存しない処理を実現
+- 書き手の自由度と読み手の一貫性を両立
+- Schema変更に対してアプリケーション変更が不要
+
+### 4.3 関心の分離
+
+- **Schema**: データの構造と抽出ルールを定義
+- **テンプレート**: 出力フォーマットを定義
+- 両者は独立しており、`$ref`はスキーマ構造の再利用にのみ使用
+
+### 4.4 制約事項
+
+- **デフォルト値の非対応**: 本システムはデフォルト値の生成や補完を行いません
+- **実データのみ処理**: フロントマターに実際に存在するデータのみを扱います
+- **値が存在しない場合**: 存在しないデータは明示的に`null`として扱われます
+- **値の自動生成禁止**: 初期値設定や推測による値補完は行いません
+
+## 5. 実装上の注意点
+
+### 5.1 処理順序の保証
+
+ディレクティブは7つのステージで順次処理され、各ステージ内での処理は並列化可能ですが、ステージ間の順序は厳密に保証されます。
+
+### 5.2 エラーハンドリング
+
+- 不正なパス指定：該当するプロパティが見つからない場合は`null`を返す
+- 型の不一致：期待する型と異なる場合は適切な変換を試みる
+- テンプレートファイル不在：明確なエラーメッセージを表示
+- 循環依存：DirectiveOrderManagerが検出してエラーを返す
+
+### 5.3 パフォーマンス最適化
+
+- パス解決の処理はキャッシュされ、同じパスへの重複アクセスを避ける
+- `x-jmespath-filter` で早期にフィルタリングすることで後続処理を軽量化
+- `x-derived-from` の集約は遅延評価され、必要時のみ実行される
+- 各ステージ内での並列処理により処理時間を短縮
+
+## 6. ユースケース別ガイド
+
+### 6.1 トレーサビリティID収集（フラット化あり）
+
+```json
+{
+  "trace_ids": {
+    "type": "array",
+    "description": "フラット化されたトレーサビリティIDの一覧",
+    "x-frontmatter-part": true,
+    "x-flatten-arrays": "traceability",
+    "x-derived-unique": true,
+    "x-template-items": "trace_item_template.json"
+  }
+}
+```
+
+処理順序：
+
+1. `x-frontmatter-part`で対象配列を特定
+2. `x-flatten-arrays`でtraceabilityプロパティをフラット化
+3. 全ファイルのフラット化結果を統合
+4. `x-derived-unique`で重複を削除
+
+### 6.2 コマンドレジストリ構築
+
+```json
+{
+  "tools": {
+    "availableConfigs": {
+      "type": "array",
+      "x-derived-from": "commands[].c1",
+      "x-derived-unique": true
+    },
+    "commands": {
+      "type": "array",
+      "x-frontmatter-part": true,
+      "items": { "$ref": "command_schema.json" }
+    }
+  }
+}
+```
+
+処理順序：
+
+1. `x-frontmatter-part`でcommandsを処理対象に
+2. 各コマンドデータを収集（フラット化なし）
+3. `x-derived-from`でc1値を集約
+4. `x-derived-unique`で重複を削除
+
+### 6.3 条件付きアイテム集約（構造維持）
+
+```json
+{
+  "activeItems": {
+    "type": "array",
+    "description": "アクティブなアイテムの集約（元構造維持）",
+    "x-frontmatter-part": true,
+    "x-jmespath-filter": "items[?status=='active']"
+  }
+}
+```
+
+処理順序：
+
+1. `x-frontmatter-part`で処理開始
+2. フロントマターの元構造を維持（フラット化なし）
+3. `x-jmespath-filter`でアクティブなものだけ選別
+4. 全ファイルの結果を自動統合
 
 ## まとめ
 
-本仕様により、各ディレクティブの責務とドメインが明確に分離される。
-これにより、複雑な変換処理を宣言的に記述しつつ、各ドメインの独立性を保つことができる。
-システムは、ディレクティブの処理順序を自動的に決定し、データの一方向フローを保証する。
+Schema定義のディレクティブは、フロントマターからテンプレート出力までの全処理フローを7つのステージで制御する重要な機能です。各ディレクティブは明確な役割と依存関係を持ち、処理順序に従って適切に組み合わせることで、柔軟かつ強力なデータ変換パイプラインを構築できます。
+
+本システムは実データの抽出と変換に特化しており、デフォルト値の生成や補完は行いません。値が存在しない場合は明示的に`null`として扱われます。これにより、予測可能で透明性の高い処理を実現しています。
+
+開発者は、このドキュメントを参照することで、どのディレクティブをどの目的で使用すべきか瞬時に理解し、適切なSchema定義を作成できます。

@@ -1,165 +1,71 @@
-# 3.docs - トレーサビリティ管理システム
+# Spec-Trace Documentation Example
 
-要件、仕様、設計、実装、テストの各レベルでトレーサビリティを管理する実用的な例です。
+This example demonstrates multi-level documentation processing with spec-trace
+functionality.
 
-## 概要
+## Files Structure
 
-プロジェクトドキュメントから階層的なトレーサビリティIDを抽出し、レベル別のインデックスを生成します。
+### Schema Files
 
-## 成功の定義
+- `index_req_schema.json` - Requirements level schema
+- `index_spec_schema.json` - Specification level schema
+- `index_design_schema.json` - Design level schema
+- `index_impl_schema.json` - Implementation level schema
+- `index_test_schema.json` - Test level schema
 
-### 1. フロントマター抽出の成功
+### Template Files
 
-#### トレーサビリティ構造
+- `index_level_template.json` - Main index template for all levels
+- `index_req_template.json` - Requirements level specific template
+- `index_spec_template.json` - Specification level specific template
+- `index_design_template.json` - Design level specific template
+- `index_impl_template.json` - Implementation level specific template
+- `index_test_template.json` - Test level specific template
 
-- `traceability`: 配列またはネストした配列として抽出される
-- `id.full`: 完全なトレーサビリティID（例:
-  "req:api:deepresearch-3f8d2a#20250909"）
-- `id.level`: レベル識別子（req, spec, design, impl, test のいずれか）
-- `id.scope`: スコープ識別子（api, user, stock等）
-- `id.semantic`: 意味的な識別子
-- `id.hash`: ハッシュ値
-- `id.version`: バージョン番号
+### Documentation
 
-#### 関連フィールド
+- `docs/` - Contains markdown files with frontmatter for each spec-trace level
 
-- `summary`: 要約テキスト
-- `description`: 詳細説明
-- `status`: ステータス（draft, approved, implemented等）
-- `tags`: タグの配列
-- `derived_from`: 派生元のIDリスト
-- `trace_to`: トレース先のIDリスト
+## Processing Script
 
-### 2. スキーマ検証の成功
+### process-spec-trace-levels.sh
 
-- 全ドキュメントが`traceability_item_schema.json`に準拠する
-- `id.level`が定義されたレベル（req, spec, design, impl, test）のいずれかである
-- 必須フィールド（id.full, id.level, id.scope, id.semantic）が存在する
+Processes all spec-trace levels (req, spec, design, impl, test) in sequence.
 
-### 3. x-frontmatter-part処理の成功
-
-- 各レベルの`traceability`配列にドキュメントが収集される
-- 7個のドキュメントから適切なトレーサビリティ項目が抽出される
-
-### 4. x-flatten-arrays処理の成功
-
-- `"x-flatten-arrays": "traceability"`によりネストした配列がフラット化される
-- 単一要素も配列として処理される
-- 複数のトレーサビリティIDが1つのファイルに含まれる場合も正しく展開される
-
-### 5. x-jmespath-filter処理の成功
-
-#### レベル別フィルタリング
-
-- **req_index.json**: `"[?id.level == 'req']"`により要件レベルのみ
-- **spec_index.json**: `"[?id.level == 'spec']"`により仕様レベルのみ
-- **design_index.json**: `"[?id.level == 'design']"`により設計レベルのみ
-- **impl_index.json**: `"[?id.level == 'impl']"`により実装レベルのみ
-- **test_index.json**: `"[?id.level == 'test']"`によりテストレベルのみ
-
-### 6. テンプレート展開の成功
-
-- `{version}`: "1.0.0"に置換される
-- `{description}`: 各レベルの説明文に置換される
-- `{level}`: 対応するレベル名（req, spec等）に置換される
-- `{@items}`: 各レベルのtraceability項目が展開される
-
-## 期待される出力
-
-### req_index.json（要件レベル）
-
-```json
-{
-  "version": "1.0.0",
-  "description": "Requirement level traceability IDs",
-  "level": "req",
-  "traceability": [
-    {
-      "id": {
-        "full": "req:api:deepresearch-3f8d2a#20250909",
-        "level": "req",
-        "scope": "api",
-        "semantic": "deepresearch",
-        "hash": "3f8d2a",
-        "version": "20250909"
-      },
-      "summary": "DeepResearch API連携機能の要求定義",
-      "description": "DeepResearchサービスをAPI経由で活用し、高度な情報収集・調査を実行する機能",
-      "status": "draft",
-      "tags": ["deep-research", "api-integration"],
-      "derived_from": ["req:user:ai-settings-2c5e9b#20250906"],
-      "trace_to": []
-    }
-    // ... 他の要件レベル項目
-  ]
-}
-```
-
-### spec_index.json（仕様レベル）
-
-```json
-{
-  "version": "1.0.0",
-  "description": "Specification level traceability IDs",
-  "level": "spec",
-  "traceability": [
-    {
-      "id": {
-        "full": "spec:api:deepresearch-interface-5d7a2c#20250910",
-        "level": "spec",
-        "scope": "api",
-        "semantic": "deepresearch-interface",
-        "hash": "5d7a2c",
-        "version": "20250910"
-      },
-      "summary": "DeepResearch APIインターフェース仕様",
-      "description": "API連携のためのインターフェース定義",
-      "status": "approved",
-      "derived_from": ["req:api:deepresearch-3f8d2a#20250909"],
-      "trace_to": ["design:api:deepresearch-client-8e3b4f#20250911"]
-    }
-    // ... 他の仕様レベル項目
-  ]
-}
-```
-
-## 成功指標
-
-### 数値基準
-
-- **ドキュメント数**: 7個のMarkdownファイルが処理される
-- **レベル数**: 5種類（req, spec, design, impl, test）
-- **トレーサビリティ項目数**: 各レベルで適切な数の項目が抽出される
-
-### フィルタリングの正確性
-
-- 各インデックスファイルに該当レベルの項目のみが含まれる
-- JMESPathフィルタが正しく適用される
-- レベル間の参照（derived_from, trace_to）が保持される
-
-### トレーサビリティの完全性
-
-- 全てのトレーサビリティIDが適切なレベルのインデックスに含まれる
-- IDの構造（full, level, scope, semantic, hash, version）が保持される
-- 関連情報（tags, status, derived_from等）が正しく抽出される
-
-## 実行コマンド
+**Usage:**
 
 ```bash
-# プロジェクトルートから（全レベル処理）
-bash examples/3.docs/run.sh
-
-# 個別レベルの処理
-./cli.ts \
-  examples/3.docs/index_req_schema.json \
-  "examples/3.docs/docs/**/*.md" \
-  examples/3.docs/index/req_index.json
+cd /path/to/frontmatter-to-schema
+./examples/3.docs/process-spec-trace-levels.sh
 ```
 
-## この例が実証すること
+**What it does:**
 
-- 複雑なトレーサビリティ構造の管理
-- x-flatten-arraysによるネスト配列の処理
-- x-jmespath-filterによる動的フィルタリング
-- レベル別のインデックス生成
-- ソフトウェア開発ライフサイクル全体の文書管理
+1. Changes to `.agent/spec-trace/` directory
+2. Processes each level (req, spec, design, impl, test) using:
+   - Schema: `index_{level}_schema.json`
+   - Output: `index/{level}_index.json`
+   - Input: `docs/**/*.md`
+3. Returns to the original directory
+
+**Expected Output:**
+
+- `index/req_index.json`
+- `index/spec_index.json`
+- `index/design_index.json`
+- `index/impl_index.json`
+- `index/test_index.json`
+
+## Features Demonstrated
+
+- **Multi-level processing**: Different schemas for different documentation
+  levels
+- **Hierarchical filtering**: Each level filters relevant frontmatter data
+- **Template inheritance**: Shared templates with level-specific customization
+- **Batch processing**: Single script processes all levels automatically
+
+## Notes
+
+- This example works with the `.agent/spec-trace/` directory structure
+- Make sure the spec-trace documentation exists before running the script
+- The script uses `--verbose` flag for detailed output

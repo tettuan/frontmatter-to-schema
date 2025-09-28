@@ -1,296 +1,464 @@
 # Template Processing System Specification
 
-## 1. 概要
+## 1. Overview
 
-本仕様は、requirements.ja.mdとflow.ja.mdに基づき、3つの独立したドメインによるテンプレート処理システムを定義する。
+This specification defines the complete template processing system architecture
+for transforming frontmatter data into formatted output using schema-driven
+templates.
 
-## 2. アーキテクチャ原則
+## 2. Main Processing Flow (Call Hierarchy)
 
-### 2.1 3ドメイン分離
+### 2.1 Complete Call Chain
 
-システムは以下の3つの独立したドメインに分離される：
+```
+1. cli.ts (Main entry point)
+    ↓
+2. new CLI() - Creates CLI instance with all dependencies
+    ↓
+3. CLI.run(args) - Parses command line arguments
+    ↓
+4. CLI.executeCommand() - Internal method for command execution
+    ↓
+5. this.orchestrator.execute(config) - Delegates to PipelineOrchestrator
+    ↓
+6. PipelineOrchestrator.execute() - Main pipeline coordination
+    ↓
+7. OutputRenderingService.renderOutput() - Template rendering and output
+```
 
-1. **フロントマター解析ドメイン**: Markdownファイルからのデータ抽出
-2. **テンプレート管理ドメイン**: 出力テンプレートの管理と提供
-3. **データ処理指示ドメイン**: フロントマターデータの加工と提供（隠蔽層）
+### 2.2 Component Responsibilities in Call Chain
 
-### 2.2 データアクセスの隠蔽
+1. **cli.ts**: Entry point, handles Deno runtime initialization
+2. **CLI class**: Command-line interface management, argument parsing,
+   dependency injection
+3. **PipelineOrchestrator**: Coordinates the entire processing pipeline:
+   - Schema loading and validation
+   - Document processing via FrontmatterTransformationService
+   - Template path resolution
+   - Data extraction for x-frontmatter-part
+   - Delegation to OutputRenderingService
+4. **OutputRenderingService**: Template rendering orchestration:
+   - Template loading and parsing
+   - Dual-template processing (main + items)
+   - Variable resolution and {@items} expansion
+   - Final output generation and file writing
 
-flow.ja.mdの原則：
+## 3. Processing Flow Architecture
 
-> 「1.フロントマター解析の構造」が直接参照されることはなく、「3.解析結果データの処理指示」によって隠蔽されている
-
-## 3. 処理フロー
-
-### 3.1 全体の処理フロー
+### 3.1 Data Processing Pipeline
 
 ```mermaid
-graph TB
-    subgraph "初期化フェーズ"
-        CLI[CLI起点] --> Schema[Schema読取]
-        Schema --> Decompose[3ドメインへ分解]
-    end
+graph TD
+    A[Markdown Files] --> B[FrontmatterExtractor]
+    B --> C[Individual FrontmatterData]
 
-    subgraph "個別ファイル処理フェーズ"
-        Decompose --> FM[フロントマター解析]
-        FM --> Extract[データ抽出]
-        Extract --> FMP[x-frontmatter-part識別]
-    end
+    C --> D[SchemaPathResolver]
+    D --> E[Data Structuring via x-frontmatter-part]
 
-    subgraph "統合処理フェーズ"
-        FMP --> DP[データ処理指示]
-        DP --> Flatten[x-flatten-arrays]
-        Flatten --> Filter[x-jmespath-filter]
-        Filter --> Derive[x-derived-from]
-        Derive --> Unique[x-derived-unique]
-    end
+    E --> F[FrontmatterTransformationService]
+    F --> G[Aggregation via x-derived-from]
 
-    subgraph "テンプレート展開フェーズ"
-        Unique --> TM[テンプレート管理]
-        TM --> Load[テンプレート読込]
-        Load --> Engine[テンプレートエンジン]
-        Engine --> Render[変数置換・{@items}展開]
-        Render --> Output[最終出力]
-    end
+    G --> H[Final Data Structure]
+    H --> I[TemplateRenderer]
 
-    style FM fill:#f9f
-    style TM fill:#bbf
-    style DP fill:#bfb
+    I --> J[Variable Resolution]
+    J --> K[{@items} Expansion]
+    K --> L[Final Output]
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#9f9,stroke:#333,stroke-width:2px
+    style L fill:#99f,stroke:#333,stroke-width:2px
 ```
 
-### 3.2 コンポーネント階層
+### 3.2 Data Structure Transformation
 
-```
-1. CLI (エントリポイント)
-    ↓
-2. SchemaOrchestrator (Schema統括)
-    ↓
-3. DomainDecomposer (3ドメインへ分解)
-    ↓
-4. 並行処理:
-   - FrontmatterExtractor (フロントマター解析ドメイン)
-   - TemplateManager (テンプレート管理ドメイン)
-   - DataProcessor (データ処理指示ドメイン)
-    ↓
-5. TemplateEngine (アプリケーション層)
-    ↓
-6. OutputWriter (インフラ層)
-```
+#### Stage 1: Individual Frontmatter
 
-## 4. ドメイン間のインターフェース
-
-### 4.1 フロントマター解析 → データ処理指示
-
-```typescript
-interface FrontmatterToDataProcessing {
-  // フロントマター解析ドメインが提供
-  getExtractedData(): ExtractedData[];
-
-  // データ処理指示ドメインが使用
-  initialize(data: ExtractedData[]): void;
-  callMethod(schemaPath: string): ProcessedData;
+```json
+{
+  "c1": "meta",
+  "c2": "resolve",
+  "c3": "registered-commands",
+  "title": "Resolve Registered Commands",
+  "description": "Command description"
 }
 ```
 
-### 4.2 テンプレート管理 → テンプレートエンジン
+#### Stage 2: After x-frontmatter-part Aggregation
 
-```typescript
-interface TemplateToEngine {
-  // テンプレート管理ドメインが提供
-  getTemplate(type: "main" | "items"): Template;
-
-  // テンプレートエンジンが使用
-  loadTemplate(path: string): Template;
+```json
+{
+  "tools": {
+    "commands": [
+      {
+        "c1": "meta",
+        "c2": "resolve",
+        "c3": "registered-commands",
+        "title": "Resolve Registered Commands",
+        "description": "Command description"
+      }
+    ]
+  }
 }
 ```
 
-### 4.3 データ処理指示 → テンプレートエンジン
+#### Stage 3: After x-derived-from Processing (Stage 6: Data Collection Complete)
 
-```typescript
-interface DataProcessingToEngine {
-  // データ処理指示ドメインが提供（隠蔽層）
-  getProcessedData(path: string): unknown;
-
-  // テンプレートエンジンが使用
-  resolveVariable(variablePath: string): unknown;
+```json
+{
+  "version": "1.0.0",
+  "description": "Climpt comprehensive configuration",
+  "tools": {
+    "availableConfigs": ["meta", "spec"],
+    "allC1Categories": ["meta", "spec"],
+    "allC2Actions": ["resolve", "analyze"],
+    "allC3Targets": ["registered-commands", "quality-metrics"],
+    "commands": [...]
+  }
 }
 ```
 
-## 5. テンプレート変数解決
+**Note**: This represents Stage 6 (Data Collection Complete) where all data from
+multiple files has been collected and aggregated. The {@items} expansion happens
+after this, during Stage 7 (Template Application).
 
-### 5.1 変数解決の起点
+## 3. Data Partitioning Specification
 
-flow.ja.mdの61-74行目に基づく：
+### 3.1 Data Partitioning Concept
 
-#### x-template内の変数
+**Data Partitioning** is the mechanism that splits frontmatter data into
+separate partitions for template processing. This concept is fully specified in
+`mapping-hierarchy-rules.md` and is fundamental to understanding template
+processing.
 
-- **起点**: Schemaのroot
-- **例**: `{version}` → `root.version`
-- **例**: `{tools.availableConfigs}` → `root.tools.availableConfigs`
+#### Key Principles
 
-#### x-template-items内の変数
+1. **Partition Creation**: `x-frontmatter-part: true` creates a data partition
+   boundary
+2. **Dual Template System**:
+   - `x-template`: Receives full schema root data (Partition 1)
+   - `x-template-items`: Receives array data from partition boundary
+     (Partition 2)
+3. **Template Independence**: Each template operates on its assigned partition
+   independently
+4. **No Scope Sharing**: Templates don't share data between partitions
 
-- **起点**: x-frontmatter-part指定階層
-- **例**: commandsがx-frontmatter-partの場合
-  - `{c1}` → `commands[].c1`と同義
-  - `{description}` → `commands[].description`と同義
+#### Example
 
-### 5.2 {@items}展開のタイミング
+```json
+// Schema with data partitioning
+{
+  "x-template": "container.json",           // Uses Partition 1 (full data)
+  "metadata": { "version": "1.0" },
+  "commands": {
+    "type": "array",
+    "x-frontmatter-part": true,            // Creates partition boundary
+    "x-template-items": "item.json",       // Uses Partition 2 (array only)
+    "items": { "$ref": "cmd_schema.json" } // Schema validation only
+  }
+}
 
-flow.ja.mdの59行目：
+// Partition 1 Data (for x-template):
+{
+  "metadata": { "version": "1.0" },
+  "commands": [...]  // Full array available
+}
 
-> `{@items}`は全フロントマターファイルの処理完了後に確定される
+// Partition 2 Data (for x-template-items):
+[
+  { "id": "cmd1", "name": "..." },
+  { "id": "cmd2", "name": "..." }
+]
+```
 
-処理順序：
+For complete details, see `mapping-hierarchy-rules.md`.
 
-1. 個別ファイル処理（フロントマター抽出）
-2. 全ファイル統合（x-frontmatter-part配列の統合）
-3. データ処理（x-ディレクティブ適用）
-4. {@items}配列の確定
-5. x-template-itemsによる各要素の展開
+## 4. Variable Resolution Specification
 
-## 6. 中間表現層（IR）
+### 4.1 Variable Notation
 
-### 6.1 IRの役割
+| Notation             | Description               | Resolution Method                      |
+| -------------------- | ------------------------- | -------------------------------------- |
+| `{variable}`         | Simple variable           | Top-level property access              |
+| `{path.to.variable}` | Hierarchical variable     | Dot-notation traversal                 |
+| `{array[].property}` | Array property extraction | Map operation on array elements        |
+| `{@items}`           | Array item expansion      | Apply x-template-items to each element |
 
-データ処理指示ドメイン内で、ディレクティブ処理後のデータを正規化：
+### 4.2 Variable Resolution Algorithm
 
 ```typescript
-class TemplateIntermediateRepresentation {
-  // フロントマターデータから構築
-  static fromFrontmatterData(data: ExtractedData[]): IR;
-
-  // パスによるデータアクセス（隠蔽層の実装）
-  resolve(path: string): unknown;
-
-  // スコープ管理
-  createScope(path: string): Scope;
+interface VariableResolver {
+  /**
+   * Resolves a variable path to its value in the data structure
+   * @param path - Dot-notation path to the variable
+   * @param data - Data object to resolve from
+   * @returns Resolved value or undefined
+   */
+  resolve(path: string, data: any): any;
 }
 ```
 
-### 6.2 スコープ管理
+The resolver shall:
 
-配列展開時のコンテキスト保持：
+1. Split the path by dots to get segments
+2. Traverse the data structure following segments
+3. Handle array notation for collection processing
+4. Return the resolved value or undefined if not found
+
+## 5. {@items} Expansion Specification
+
+### 5.1 Expansion Process Flow
+
+```mermaid
+graph LR
+    A[Detect {@items}] --> B{x-template-items exists?}
+    B -->|Yes| C[Load Item Template]
+    B -->|No| H[Leave {@items} literal]
+    C --> E[Apply to Each Item]
+    E --> F[Combine Results]
+    F --> G[Replace {@items}]
+```
+
+### 5.2 Implementation Requirements
+
+1. **Template Resolution**
+   - Retrieve `x-template-items` from schema
+   - Load specified template file
+   - Cache template for performance
+   - If not present, mark `{@items}` for literal passthrough
+
+2. **Data Array Identification**
+   - Identify arrays marked with `x-frontmatter-part: true`
+   - Extract corresponding data collection
+
+3. **Item Processing**
+   - Convert each array element to FrontmatterData
+   - Apply item template to each element
+   - Collect processed results
+
+4. **Result Combination**
+   - Combine processed items within the JSON template structure
+   - Replace `{@items}` marker in the container template when an items template
+     exists
+   - This occurs during Stage 7 (Template Application) after all data collection
+     is complete (Stage 6)
+
+5. **Fallback Handling**
+   - Without `x-template-items`, leave `{@items}` unchanged in the rendered
+     output
+   - When no value exists for a variable, explicitly replace with `null`
+
+## 6. Domain Interaction Model
+
+### 6.1 Schema Domain Responsibilities
+
+- Store and provide template references (`x-template`, `x-template-items`)
+- Resolve template paths to absolute locations
+- Validate template reference integrity
+- Provide schema extension metadata
+
+### 6.2 Template Domain Responsibilities
+
+#### Core Responsibilities
+
+- Parse and render templates
+- Detect and process variable placeholders
+- Handle `{@items}` expansion
+- Generate final output in specified format
+
+#### OutputRenderingService
+
+The `OutputRenderingService` is called by `PipelineOrchestrator` and serves as
+the central orchestrator for template processing with the following specific
+responsibilities:
+
+**Dual-Template Processing**:
+
+- Accepts two templates: main template (`x-template`) and items template
+  (`x-template-items`)
+- Accepts two data inputs: main data (FrontmatterData) and items data array
+  (FrontmatterData[])
+- Orchestrates the rendering process in two stages:
+  1. Renders each item in the items array using the items template
+  2. Combines rendered items and applies the main template to create final
+     output
+
+**Processing Flow**:
+
+1. Load and validate both templates from file paths
+2. If items template and data exist:
+   - Render each item with items template
+   - Combine rendered items inside the JSON template context
+   - Merge combined items with main data
+   - Apply main template to produce final output
+3. If only main template exists:
+   - Render the container template with available data
+   - Leave any `{@items}` tokens untouched because no items template is defined
+4. Write final rendered output to specified file path
+
+**Key Features**:
+
+- Variable replacement in templates with actual data values
+- Template composition: combining items template results into main template
+- Templates must be JSON format; output format controlled by x-template-format
+  schema attribute
+- Full error handling with Result types following Totality principles
+
+### 6.3 Cross-Domain Coordination
 
 ```typescript
-class TemplateContext {
-  private scopeStack: Scope[];
-
-  // 配列要素への入場
-  enterArray(arrayPath: string): void;
-
-  // 変数解決（スコープチェーン）
-  resolve(variable: string): unknown;
-
-  // 配列要素からの退出
-  exitArray(): void;
+interface TemplateSchemaCoordinator {
+  /**
+   * Coordinates schema-driven template processing
+   * @param schema - Schema with template references
+   * @param data - Aggregated frontmatter data
+   * @returns Processed output in specified format
+   */
+  process(schema: Schema, data: FrontmatterData[]): Result<ProcessedOutput>;
 }
 ```
 
-## 7. 処理タイミングの詳細
+## 7. Data Access Patterns
 
-### 7.1 フェーズ1: 個別ファイル処理
+### 7.1 Hierarchical Data Access
 
-**責務ドメイン**: フロントマター解析ドメイン
-
-1. Markdownファイルの読み込み
-2. フロントマター部分の抽出
-3. YAMLパース
-4. x-frontmatter-part指定階層の識別
-5. 構造化データとして保持
-
-### 7.2 フェーズ2: 統合処理
-
-**責務ドメイン**: データ処理指示ドメイン
-
-1. 全ファイルのデータ統合
-2. x-flatten-arrays（指定時のみ）
-3. x-jmespath-filter
-4. x-derived-from
-5. x-derived-unique
-
-### 7.3 フェーズ3: テンプレート展開
-
-**責務ドメイン**: テンプレートエンジン（アプリケーション層）
-
-1. x-templateファイルの読み込み
-2. x-template-itemsファイルの読み込み
-3. 変数の識別と抽出
-4. {@items}の展開
-5. 変数の置換
-6. 最終出力の生成
-
-## 8. エラーハンドリング
-
-### 8.1 ドメインエラー
-
-各ドメインは独自のエラー型を定義：
+The system shall support deep property access using dot notation:
 
 ```typescript
-// フロントマター解析エラー
-type FrontmatterError =
-  | { kind: "FileNotFound" }
-  | { kind: "InvalidYaml" }
-  | { kind: "MissingFrontmatter" };
-
-// テンプレート管理エラー
-type TemplateError =
-  | { kind: "TemplateNotFound" }
-  | { kind: "InvalidFormat" }
-  | { kind: "MissingVariable" };
-
-// データ処理エラー
-type ProcessingError =
-  | { kind: "InvalidDirective" }
-  | { kind: "PathNotFound" }
-  | { kind: "ProcessingFailed" };
+interface DataAccessor {
+  /**
+   * Access data using dot-notation path
+   * Examples:
+   *   - "version" → data.version
+   *   - "tools.commands" → data.tools.commands
+   *   - "tools.commands[0].c1" → data.tools.commands[0].c1
+   */
+  get(path: string): Result<unknown>;
+}
 ```
 
-### 8.2 Result型による全体性
+### 7.2 Array Processing Patterns
+
+Support for array operations:
+
+- Direct array access: `{commands}`
+- Property extraction: `{commands[].c1}`
+- Unique value collection: via `x-derived-unique: true`
+
+## 8. Template Processing Rules
+
+### 8.1 Core Principles
+
+1. **Template Completeness**: Templates fully define output structure
+2. **Explicit Output**: Only template content appears in output
+3. **Variable Substitution**: Variables are replaced with actual values
+4. **Array Expansion**: `{@items}` expands using item templates when available
+5. **Format Separation**: Templates are authored in JSON; rendered output format
+   is controlled separately by x-template-format (json|yaml|toml|markdown)
+
+### 8.2 Template Format Specification
+
+**Template Input Format**:
+
+- All templates must be valid JSON format
+- No YAML or other formats accepted for template files
+- Templates define data structure and variable placeholders that are rendered as
+  JSON
+
+**Output Format Control**:
+
+- `x-template-format` schema attribute controls final output format
+- Supported formats: `"json"` | `"yaml"` | `"toml"` | `"markdown"`
+- Default format: `"json"` if x-template-format not specified
+- Rendered JSON is converted to the requested format after template evaluation
+
+**Processing Flow**:
+
+1. Parse JSON template (strict JSON validation)
+2. Apply variable substitution and {@items} expansion when an items template
+   exists
+3. Convert the rendered JSON structure into the x-template-format output
+   (json|yaml|toml|markdown)
+4. Write formatted output to target file
+
+### 8.3 Processing Order
+
+1. Load and validate schema
+2. Extract and aggregate frontmatter data
+3. Apply x-derived-from rules
+4. Load container template
+5. Process variable substitutions
+6. Handle `{@items}` expansions
+7. Format output according to x-template-format schema attribute
+
+## 9. Error Handling Strategy
+
+### 9.1 Error Categories
+
+| Category          | Description                          | Recovery Strategy            |
+| ----------------- | ------------------------------------ | ---------------------------- |
+| Schema Errors     | Invalid schema or missing references | Fail fast with clear message |
+| Template Errors   | Missing templates or syntax errors   | Provide fallback or fail     |
+| Data Errors       | Missing required data                | Use defaults or skip item    |
+| Resolution Errors | Unresolvable variables               | Replace with `null`          |
+
+### 9.2 Error Propagation
+
+All errors shall be wrapped in Result types following Totality principles:
 
 ```typescript
-type Result<T, E> =
-  | { ok: true; data: T }
-  | { ok: false; error: E };
-
-// すべての処理はResult型を返す
-function processTemplate(
-  data: ProcessedData,
-  template: Template,
-): Result<Output, TemplateError>;
+type ProcessingResult<T> = Result<T, ProcessingError>;
 ```
 
-## 9. 重要な制約
+## 10. Performance Considerations
 
-### 9.1 items階層の省略
+### 10.1 Optimization Strategies
 
-flow.ja.mdの42-51行目：
+1. **Template Caching**: Cache parsed templates
+2. **Lazy Evaluation**: Process only required data paths
+3. **Batch Processing**: Process multiple files in parallel
+4. **Memory Management**: Stream large datasets
 
-> Schemaにおいてtype:"array"の場合にitems:があるのは`[]`の各要素である
+### 10.2 Scalability Requirements
 
-- ✅ 正しい: `commands[].c1`
-- ❌ 誤り: `commands.items[].c1`
+- Support processing of 1000+ markdown files
+- Handle templates up to 1MB in size
+- Process nested data structures up to 10 levels deep
 
-### 9.2 $refの独立性
+## 11. Validation Requirements
 
-requirements.ja.mdの分離原則：
+### 11.1 Input Validation
 
-- `$ref`はJSON Schemaの標準機能
-- スキーマ構造の再利用にのみ使用
-- テンプレート処理から完全に独立
+- Schema must be valid JSON Schema Draft-07
+- Templates must be valid JSON format only
+- Output format specified by x-template-format schema attribute
+  (json|yaml|toml|markdown)
+- Frontmatter must be valid YAML
 
-### 9.3 デフォルト値の非生成
+### 11.2 Output Validation
 
-- デフォルト値の生成や補完を行わない
-- JSON Schemaの`default`プロパティは無視
-- 実際のフロントマターデータのみを処理
+- Output must conform to template format
+- All required variables must be resolved
+- Array expansions must maintain data integrity
 
-## 10. まとめ
+## 12. Success Criteria
 
-本仕様により、以下が実現される：
+### 12.1 Functional Requirements
 
-1. **明確な責務分離**: 3つの独立ドメインによる処理
-2. **データ隠蔽**: データ処理指示ドメインによるアクセス制御
-3. **宣言的処理**: x-ディレクティブによる自動処理
-4. **正確な変数解決**: 起点を明確にした変数スコープ管理
-5. **堅牢性**: Result型による完全なエラーハンドリング
+1. **Variable Resolution**: All variable notations resolve correctly
+2. **Array Expansion**: `{@items}` expands with proper templates
+3. **Data Aggregation**: x-derived-from rules apply correctly
+4. **Format Support**: JSON, TOML, YAML, and Markdown output formats work
+
+### 12.2 Quality Requirements
+
+- Test coverage ≥ 80%
+- Zero hardcoding in implementation
+- Complete error handling
+- Full DDD/Totality compliance
+
+## 13. Authority
+
+This specification establishes the definitive architecture for the template
+processing system. All implementations must conform to these requirements to
+ensure consistent, reliable, and maintainable template processing functionality.

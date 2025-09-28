@@ -14,13 +14,13 @@ export type Result<T, E> = Ok<T> | Err<E>;
 export type ContextualOk<T> = {
   readonly ok: true;
   readonly data: T;
-  readonly context?: Record<string, unknown>;
+  readonly context?: import("./error-context.ts").ErrorContext;
 };
 
 export type ContextualErr<E> = {
   readonly ok: false;
   readonly error: E;
-  readonly context: Record<string, unknown>;
+  readonly context: import("./error-context.ts").ErrorContext;
 };
 
 export type ContextualResult<T, E> = ContextualOk<T> | ContextualErr<E>;
@@ -95,7 +95,7 @@ export const combine = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
 // Context-aware result helpers
 export const contextualOk = <T>(
   data: T,
-  context?: Record<string, unknown>,
+  context?: import("./error-context.ts").ErrorContext,
 ): ContextualOk<T> => ({
   ok: true,
   data,
@@ -104,7 +104,7 @@ export const contextualOk = <T>(
 
 export const contextualErr = <E>(
   error: E,
-  context: Record<string, unknown>,
+  context: import("./error-context.ts").ErrorContext,
 ): ContextualErr<E> => ({
   ok: false,
   error,
@@ -149,7 +149,7 @@ export const chainContextual = <T, U, E>(
     if (isContextualErr(newResult) && result.context) {
       return contextualErr(
         newResult.error,
-        { ...result.context, ...newResult.context },
+        newResult.context.withParent(result.context),
       );
     }
     return newResult;
@@ -160,7 +160,7 @@ export const chainContextual = <T, U, E>(
 // Convert regular Result to ContextualResult
 export const addContext = <T, E>(
   result: Result<T, E>,
-  context: Record<string, unknown>,
+  context: import("./error-context.ts").ErrorContext,
 ): ContextualResult<T, E> => {
   if (isOk(result)) {
     return contextualOk(result.data, context);

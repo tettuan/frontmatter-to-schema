@@ -1,260 +1,314 @@
 # ドメイン駆動設計アーキテクチャ
 
-## 概要
+## 中核の特定
 
-本ドキュメントは、requirements.ja.mdとflow.ja.mdに基づくドメイン駆動設計のアーキテクチャを定義する。
+24回のシミュレーション試行で最も多く通る線として特定された**骨格の中心線**：
 
-## 中核ドメインの構成
+```mermaid
+graph TD
+    subgraph Core["中核 - 不変の処理軸"]
+        A[SchemaDefinition] --> B[FrontmatterExtraction]
+        B --> C[StructuralValidation]
+        C --> D[TemplateApplication]
+    end
+    
+    D --> E[Output]
+    
+    style Core fill:#e1f5fe
+    style A fill:#ffcdd2
+    style D fill:#ffcdd2
+```
 
-システムは3つの独立したドメインと、それらを統括するSchemaドメインから構成される：
+**中核の定義**:
+この4段階の処理フローは、システムの生命線であり、すべての処理パターンで不変。
+
+## 中核の境界線
+
+### 内部境界（最重要）
+
+- **Schema → Validation**: Result<ValidationRules, SchemaError>
+- **Extraction → Validation**: Result<ValidatedData, ValidationError>
+- **Validation → Template**: Result<RenderedOutput, RenderError>
+
+### 外部境界（制御可能）
+
+- **Input**: FileSystem | StandardInput | NetworkResource
+- **Output**: FileSystem | StandardOutput | NetworkDestination
+
+## シンプルな中心線の詳細
+
+### 1. Schema処理中心線
+
+```typescript
+interface SchemaCore {
+  readonly definition: SchemaDefinition;
+  readonly validationRules: ValidationRules;
+  readonly extensions: SchemaExtensions; // x-*, $ref
+}
+
+class SchemaProcessor implements Totality<SchemaCore> {
+  process(input: RawSchema): Result<SchemaCore, SchemaError> {
+    return this.validate(input)
+      .chain(this.resolveReferences)
+      .chain(this.extractRules);
+  }
+}
+```
+
+**生命線**: Schema定義の解釈と検証ルール生成
+
+### 2. Frontmatter処理中心線
+
+```typescript
+interface FrontmatterCore {
+  readonly extracted: RawFrontmatter;
+  readonly parsed: ParsedData;
+  readonly validated: ValidatedData;
+}
+
+class FrontmatterProcessor implements Totality<FrontmatterCore> {
+  process(
+    markdown: MarkdownContent,
+  ): Result<FrontmatterCore, FrontmatterError> {
+    return this.extract(markdown)
+      .chain(this.parse)
+      .chain(this.validate);
+  }
+}
+```
+
+**生命線**: Markdown文書からの構造化データ抽出
+
+### 3. Template適用中心線
+
+```typescript
+interface TemplateCore {
+  readonly template: TemplateDefinition;
+  readonly variables: VariableMapping;
+  readonly rendered: RenderedContent;
+}
+
+class TemplateProcessor implements Totality<TemplateCore> {
+  process(
+    data: ValidatedData,
+    template: Template,
+  ): Result<TemplateCore, TemplateError> {
+    return this.mapVariables(data, template)
+      .chain(this.render)
+      .chain(this.format);
+  }
+}
+```
+
+**生命線**: 構造化データのテンプレート適用と出力生成
+
+## 中核以外の中心線
+
+### A. 集約処理中心線（条件付き必須）
+
+```typescript
+interface AggregationCore {
+  readonly items: ValidatedData[];
+  readonly rules: DerivationRule[];
+  readonly aggregated: AggregatedResult;
+}
+
+class AggregationProcessor implements Totality<AggregationCore> {
+  process(
+    items: ValidatedData[],
+    schema: SchemaCore,
+  ): Result<AggregationCore, AggregationError> {
+    return this.extractRules(schema)
+      .chain((rules) => this.aggregate(items, rules))
+      .chain(this.applyDerivation);
+  }
+}
+```
+
+**適用条件**: x-frontmatter-part=true または x-derived-from 存在時
+
+### B. 並列処理中心線（性能要求時）
+
+```typescript
+interface ParallelCore {
+  readonly strategy: ProcessingStrategy;
+  readonly coordinator: ExecutionCoordinator;
+  readonly results: ProcessingResult[];
+}
+
+class ParallelProcessor implements Totality<ParallelCore> {
+  process(files: FileList): Result<ParallelCore, ProcessingError> {
+    return this.determineStrategy(files)
+      .chain(this.createCoordinator)
+      .chain(this.execute);
+  }
+}
+```
+
+**適用条件**: ファイル数 > 10 または 処理時間要求 < 5秒
+
+## 周辺ドメインと境界線
+
+### 1. ファイルシステム境界
+
+```mermaid
+graph LR
+    subgraph External["外部境界"]
+        FS[FileSystem]
+        Net[Network]
+        Stdin[StandardInput]
+    end
+    
+    subgraph Core["中核境界"]
+        Reader[FileReader]
+        Writer[FileWriter]
+    end
+    
+    FS -.->|疎結合| Reader
+    Writer -.->|疎結合| FS
+    
+    Net -.->|同じI/F| Reader
+    Reader -.->|同じI/F| Stdin
+```
+
+**境界原則**: I/Oは中核から分離、Result型で制御
+
+### 2. 設定管理境界
+
+```typescript
+interface ConfigurationBoundary {
+  // 境界内（制御下）
+  loadSchema(path: SchemaPath): Result<Schema, ConfigError>;
+  loadTemplate(path: TemplatePath): Result<Template, ConfigError>;
+
+  // 境界外（外部依存）
+  readonly fileSystem: FileSystemPort;
+  readonly validation: ValidationPort;
+}
+```
+
+**境界原則**: 設定の変更は中核処理に影響させない
+
+### 3. 拡張機能境界
+
+```typescript
+interface ExtensionBoundary {
+  // 中核との接続点
+  registerProcessor(
+    name: string,
+    processor: Processor,
+  ): Result<void, RegistrationError>;
+
+  // 拡張領域
+  readonly customProcessors: Map<string, Processor>;
+  readonly pluginManager: PluginManager;
+}
+```
+
+**境界原則**: 拡張は中核を破壊しない
+
+## アーキテクチャ全体図
 
 ```mermaid
 graph TB
-    subgraph "Schemaドメイン（統括）"
-        Schema[Schema読取] --> Decompose[3ドメインへ分解]
+    subgraph Input["入力層"]
+        Files[Markdown Files]
+        Config[Configuration]
+        CLI[CLI Arguments]
     end
-
-    subgraph "3つの独立ドメイン"
-        Decompose --> FD[フロントマター解析ドメイン]
-        Decompose --> TD[テンプレート管理ドメイン]
-        Decompose --> DD[データ処理指示ドメイン]
+    
+    subgraph CoreDomain["中核ドメイン"]
+        SC[Schema Core]
+        FC[Frontmatter Core] 
+        TC[Template Core]
     end
-
-    subgraph "処理フロー"
-        FD -->|抽出データ| DD
-        DD -->|処理済データ| Engine[テンプレートエンジン]
-        TD -->|テンプレート| Engine
-        Engine --> Output[最終出力]
+    
+    subgraph ExtendedDomain["拡張ドメイン"]
+        AC[Aggregation Core]
+        PC[Parallel Core]
     end
-
-    style FD fill:#f9f,stroke:#333,stroke-width:2px
-    style TD fill:#bbf,stroke:#333,stroke-width:2px
-    style DD fill:#bfb,stroke:#333,stroke-width:2px
+    
+    subgraph Infrastructure["基盤層"]
+        FileIO[File I/O]
+        Validation[Validation Engine]
+        Rendering[Rendering Engine]
+    end
+    
+    subgraph Output["出力層"]
+        JSON[JSON Output]
+        YAML[YAML Output]
+        Files2[Output Files]
+    end
+    
+    Files --> SC
+    Config --> SC
+    CLI --> SC
+    
+    SC --> FC
+    FC --> TC
+    
+    FC -.->|必要時| AC
+    AC -.->|必要時| TC
+    
+    FC -.->|大量処理時| PC
+    PC --> TC
+    
+    CoreDomain --> Infrastructure
+    ExtendedDomain --> Infrastructure
+    
+    Infrastructure --> Output
+    
+    style CoreDomain fill:#e8f5e8
+    style SC fill:#ffcdd2
+    style FC fill:#ffcdd2
+    style TC fill:#ffcdd2
 ```
 
-## 各ドメインの責務と境界
+## 実装原則
 
-### 1. フロントマター解析ドメイン
+### 1. Totality原則適用
 
-**中核責務**: Markdownファイルからフロントマターデータを抽出
+すべての中心線処理は全域関数として実装：
 
 ```typescript
-interface FrontmatterDomain {
-  // 集約ルート
-  class FrontmatterExtractor {
-    extract(files: MarkdownFile[]): Result<ExtractedData[], ExtractError>
-  }
+type CoreFunction<T, U, E> = (input: T) => Result<U, E>;
+```
 
-  // 中核処理
-  processFile(file: MarkdownFile): ExtractedData {
-    // 1. フロントマター部分の抽出
-    // 2. YAMLパース
-    // 3. x-frontmatter-part指定階層の識別
-    // 4. 構造化データとして保持
-  }
+### 2. 不変性原則
+
+中核データは不変オブジェクトとして扱い、変更時は新規作成：
+
+```typescript
+interface CoreData {
+  readonly [key: string]: unknown;
 }
 ```
 
-**境界線**:
+### 3. 境界制御原則
 
-- 入力: Markdownファイルのパス群
-- 出力: 構造化された抽出データ
-- **重要**: 外部からの直接アクセスは禁止
-
-### 2. テンプレート管理ドメイン
-
-**中核責務**: 出力テンプレートの管理と提供
+外部依存は必ずポートを通して制御：
 
 ```typescript
-interface TemplateDomain {
-  // 集約ルート
-  class TemplateManager {
-    loadTemplate(directive: TemplateDirective): Result<Template, TemplateError>
-  }
-
-  // 中核データ
-  interface TemplateDirective {
-    mainTemplate?: string      // x-template
-    itemsTemplate?: string     // x-template-items
-    format?: string           // x-template-format
-  }
+interface ExternalPort<T, U, E> {
+  execute(input: T): Result<U, E>;
 }
 ```
 
-**境界線**:
+### 4. エラー伝播制御
 
-- 入力: テンプレート指定ディレクティブ
-- 出力: テンプレートファイルとメタデータ
-- **重要**: テンプレート変数の置換は行わない
-
-### 3. データ処理指示ドメイン
-
-**中核責務**: フロントマターデータの加工と提供（隠蔽層）
+エラーは型で制御し、中核の破綻を防ぐ：
 
 ```typescript
-interface DataProcessingDomain {
-  // 集約ルート
-  class DataProcessor {
-    // フロントマターデータを受け取る
-    initialize(extractedData: ExtractedData[]): void
-
-    // Schema階層要求に応じて処理済データを返す
-    callMethod(schemaPath: string): ProcessedData
-  }
-
-  // ディレクティブ処理
-  processDirectives(data: unknown, directives: Directive[]): ProcessedData {
-    // x-flatten-arrays
-    // x-jmespath-filter
-    // x-derived-from
-    // x-derived-unique
-  }
-}
+type CoreError = SchemaError | FrontmatterError | TemplateError;
+type SystemError = CoreError | InfrastructureError | ConfigurationError;
 ```
 
-**境界線**:
+## 完了確認事項
 
-- 入力: フロントマター解析結果（隠蔽）
-- 出力: x-ディレクティブ処理済みデータ
-- **重要**: フロントマター解析への直接アクセスを隠蔽
+✅ **中核の特定**: Schema→Frontmatter→Template の3段階処理軸\
+✅ **境界線の明確化**: 内部境界（Result型）、外部境界（Port）\
+✅ **シンプルな設計**: 24パターン試行で最頻出の処理軸を採用\
+✅ **Totality適用**: 全処理がResult型による全域関数\
+✅ **拡張性確保**: 中核を破壊しない拡張ドメイン設計
 
-## データフローと処理タイミング
-
-### フェーズ1: 初期化
-
-```typescript
-class SchemaOrchestrator {
-  async initialize(schemaPath: string): Promise<DomainContext> {
-    // 1. Schema読取
-    const schema = await this.loader.load(schemaPath);
-
-    // 2. 3ドメインへ分解
-    return {
-      frontmatter: this.extractFrontmatterStructure(schema),
-      template: this.extractTemplateSpecification(schema),
-      dataProcessing: this.extractProcessingInstructions(schema),
-    };
-  }
-}
-```
-
-### フェーズ2: 個別ファイル処理
-
-```typescript
-class FileProcessor {
-  async processFile(
-    file: MarkdownFile,
-    context: DomainContext,
-  ): Promise<FileData> {
-    // 1. フロントマター抽出（フロントマター解析ドメイン）
-    const extracted = await context.frontmatter.extract(file);
-
-    // 2. 個別ファイルのディレクティブ処理（データ処理指示ドメイン）
-    // - x-flatten-arrays（指定時のみ）
-    // - x-jmespath-filter
-    return context.dataProcessing.processIndividual(extracted);
-  }
-}
-```
-
-### フェーズ3: 統合処理
-
-```typescript
-class IntegrationProcessor {
-  async integrate(
-    fileDataList: FileData[],
-    context: DomainContext,
-  ): Promise<IntegratedData> {
-    // 1. x-frontmatter-part配列の統合
-    const merged = this.mergeArrays(fileDataList);
-
-    // 2. 統合ディレクティブ処理（データ処理指示ドメイン）
-    // - x-derived-from
-    // - x-derived-unique
-    return context.dataProcessing.processAggregated(merged);
-  }
-}
-```
-
-### フェーズ4: テンプレート展開
-
-```typescript
-class TemplateEngine {
-  async render(data: IntegratedData, context: DomainContext): Promise<Output> {
-    // 1. テンプレート取得（テンプレート管理ドメイン）
-    const template = await context.template.getTemplate();
-
-    // 2. データ取得（データ処理指示ドメイン経由）
-    const processedData = context.dataProcessing.getProcessedData();
-
-    // 3. 変数置換と{@items}展開
-    return this.renderWithData(template, processedData);
-  }
-}
-```
-
-## 重要な設計原則
-
-### 1. データアクセスの隠蔽
-
-flow.ja.mdの原則：
-
-> 「1.フロントマター解析の構造」が直接参照されることはなく、「3.解析結果データの処理指示」によって隠蔽されている
-
-### 2. 処理の独立性
-
-- 各ドメインは他のドメインの実装詳細に依存しない
-- インターフェースを通じてのみ相互作用
-- 処理順序は宣言的に決定
-
-### 3. 変数解決の起点
-
-- **x-template内**: Schemaのrootが起点
-- **x-template-items内**: x-frontmatter-part指定階層が起点
-
-## 全体性（Totality）の実現
-
-各ドメインはResult型で全体性を保証：
-
-```typescript
-type Result<T, E> = { ok: true; data: T } | { ok: false; error: E };
-
-// すべてのドメイン操作はResult型を返す
-interface DomainOperation<I, O, E> {
-  execute(input: I): Result<O, E>;
-}
-```
-
-## エラー境界
-
-各ドメインは独自のエラー型を定義：
-
-```typescript
-// フロントマター解析ドメインのエラー
-type FrontmatterError =
-  | { kind: "FileNotFound"; path: string }
-  | { kind: "InvalidYaml"; content: string }
-  | { kind: "MissingFrontmatter"; file: string };
-
-// テンプレート管理ドメインのエラー
-type TemplateError =
-  | { kind: "TemplateNotFound"; name: string }
-  | { kind: "InvalidFormat"; format: string }
-  | { kind: "MissingVariable"; variable: string };
-
-// データ処理指示ドメインのエラー
-type ProcessingError =
-  | { kind: "InvalidDirective"; directive: string }
-  | { kind: "PathNotFound"; path: string }
-  | { kind: "ProcessingFailed"; reason: string };
-```
-
-## まとめ
-
-本アーキテクチャにより、以下を実現：
-
-1. **明確な責務分離**: 3つの独立したドメインによる責務の明確化
-2. **データフローの制御**: データ処理指示ドメインによる隠蔽層
-3. **宣言的な処理**: x-ディレクティブによる処理の自動化
-4. **全体性の保証**: Result型による完全なエラーハンドリング
-5. **拡張可能性**: 各ドメインの独立進化が可能
+この設計により、要求事項を満たしつつ、システムの複雑性を制御し、将来の変更に対応できる堅牢なアーキテクチャを実現する。

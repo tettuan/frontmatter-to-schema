@@ -20,12 +20,12 @@ cd "${PROJECT_ROOT}"
 
 # Execute the CLI with correct paths relative to project root
 echo "Executing command:"
-echo "./cli.ts examples/0.basic/registry_schema.json \"examples/0.basic/command*.md\" examples/0.basic/output.json --verbose"
+echo "./cli.ts examples/0.basic/registry_schema.json \"examples/0.basic/*.md\" examples/0.basic/output.json --verbose"
 echo ""
 
 ./cli.ts \
   examples/0.basic/registry_schema.json \
-  "examples/0.basic/command*.md" \
+  "examples/0.basic/*.md" \
   examples/0.basic/output.json \
   --verbose
 

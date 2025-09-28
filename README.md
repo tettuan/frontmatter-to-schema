@@ -56,11 +56,8 @@ deno install --allow-read --allow-write --allow-env --allow-run \
 ### Basic CLI Usage
 
 ```bash
-# After installation (via deno install):
+# Basic usage: schema input output
 frontmatter-to-schema schema.json docs/ output.json
-
-# For direct execution without installation:
-./cli.ts schema.json docs/ output.json
 
 # With custom template
 frontmatter-to-schema schema.json docs/ output.json --template template.json

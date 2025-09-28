@@ -112,16 +112,17 @@ class OutputRenderingService {
   // 4. Output Generation & Writing - Formats output per x-template-format and writes to file
   // 5. Error Handling - Result types following Totality principles
   renderOutput(
-    intermediateRepresentation: TemplateIntermediateRepresentation, // IR containing normalized variable scope and template paths
+    templatePath: string, // Path to main template (x-template)
+    itemsTemplatePath: string | undefined, // Path to items template (x-template-items, optional)
+    mainData: FrontmatterData, // Main data for container template (Partition 1)
+    itemsData: FrontmatterData[] | undefined, // Array data for items template (Partition 2)
     outputPath: string, // Output file path
   ): Result<void, DomainError> {
     // Implementation follows template-processing-specification.md Section 6.2:
-    // - Data Access: Extract main and items contexts from IR
-    // - Template Paths: Retrieved from IR (x-template and x-template-items)
-    // - Variable Resolution: Uses IR-managed scope for consistent variable access
-    // - If x-template-items exists: render items from IR context, combine, apply main template
+    // - Data Partitioning: x-template uses full data, x-template-items uses array only
+    // - If x-template-items exists: render items, combine, apply main template
     // - If no x-template-items: {@items} remains unexpanded
-    // - Format output according to x-template-format from IR metadata
+    // - Format output according to x-template-format schema attribute
   }
 }
 
@@ -129,7 +130,11 @@ class OutputRenderingService {
 class TemplateRenderer {
   render(
     template: Template,
-    data: FrontmatterData | FrontmatterData[],
+    data: FrontmatterData,
+  ): Result<string, DomainError>;
+  renderWithArray(
+    template: Template,
+    dataArray: FrontmatterData[],
   ): Result<string, DomainError>;
 }
 ```
