@@ -27,6 +27,7 @@ import { DataProcessingInstructionDomainService } from "../../domain/data-proces
 export interface ProcessingConfiguration {
   readonly inputPattern: string;
   readonly schema: Schema;
+  readonly schemaFilePath?: string;
 }
 
 export interface ThreeDomainProcessingResult {
@@ -125,7 +126,7 @@ export class ThreeDomainOrchestrator {
       }
 
       const templateResolveResult = await this.templateDomain
-        .resolveTemplateFiles();
+        .resolveTemplateFiles(config.schemaFilePath);
       if (!templateResolveResult.ok) {
         return templateResolveResult;
       }

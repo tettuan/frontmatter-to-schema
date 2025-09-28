@@ -102,6 +102,7 @@ export class CLI {
       const processResult = await orchestrator.processThreeDomainPipeline({
         inputPattern: args.input,
         schema: schemaResult.data,
+        schemaFilePath: args.schema,
       });
 
       if (!processResult.ok) {

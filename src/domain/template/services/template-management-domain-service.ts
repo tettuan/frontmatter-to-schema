@@ -123,7 +123,9 @@ export class TemplateManagementDomainService {
 
     // Resolve template paths relative to schema file directory
     const schemaDir = schemaFilePath
-      ? schemaFilePath.substring(0, schemaFilePath.lastIndexOf("/"))
+      ? (schemaFilePath.lastIndexOf("/") !== -1
+        ? schemaFilePath.substring(0, schemaFilePath.lastIndexOf("/"))
+        : ".")
       : "";
 
     const resolveTemplatePath = (templatePath: string): string => {
