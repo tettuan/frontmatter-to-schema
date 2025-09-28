@@ -5,6 +5,7 @@ import type {
   DomainFileLister,
   DomainFileReader,
 } from "../../shared/interfaces/file-operations.ts";
+import { parse as parseYaml } from "jsr:@std/yaml";
 
 /**
  * フロントマター解析ドメイン (Frontmatter Analysis Domain)
@@ -76,45 +77,30 @@ export class FrontmatterAnalysisDomainService {
   }
 
   private parseFrontmatter(content: string): FrontmatterData | null {
-    // Simple frontmatter parsing
+    // Extract frontmatter section
     const match = content.match(/^---\n([\s\S]*?)\n---/);
     if (!match) {
       return null;
     }
 
     try {
-      // Simple YAML-like parsing (very basic)
-      const lines = match[1].split("\n");
-      const data: Record<string, unknown> = {};
+      // Use proper YAML parser to handle complex structures
+      const parsed = parseYaml(match[1]);
 
-      for (const line of lines) {
-        const colonIndex = line.indexOf(":");
-        if (colonIndex > 0) {
-          const key = line.slice(0, colonIndex).trim();
-          let value = line.slice(colonIndex + 1).trim();
-
-          // Handle arrays like [item1, item2] or ["item1", "item2"]
-          if (value.startsWith("[") && value.endsWith("]")) {
-            try {
-              // Try to parse as JSON array
-              const parsed = JSON.parse(value);
-              if (Array.isArray(parsed)) {
-                data[key] = parsed;
-                continue;
-              }
-            } catch {
-              // If JSON parsing fails, fall back to string
-            }
-          }
-
-          // Handle quoted strings
-          value = value.replace(/^["']|["']$/g, "");
-          data[key] = value;
-        }
+      // Ensure the result is an object (not a primitive or array at root)
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as FrontmatterData;
       }
 
-      return data;
-    } catch {
+      // If the parsed result is not a proper object, wrap it
+      if (parsed !== null && parsed !== undefined) {
+        return { value: parsed } as FrontmatterData;
+      }
+
+      return null;
+    } catch (error) {
+      // Log parsing error for debugging but return null to maintain totality
+      console.warn("Failed to parse YAML frontmatter:", error);
       return null;
     }
   }
