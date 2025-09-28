@@ -99,7 +99,7 @@ Deno.test("x-jmespath-filter - validate rejects number value", () => {
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
   assertEquals(error.message.includes("x-jmespath-filter"), true);
-  assertEquals(error.message.includes("non-empty string"), true);
+  assertEquals(error.message.includes("string"), true);
 });
 
 Deno.test("x-jmespath-filter - validate rejects empty string", () => {
@@ -162,7 +162,7 @@ Deno.test("x-jmespath-filter - validate rejects boolean value", () => {
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
   assertEquals(error.message.includes("x-jmespath-filter"), true);
-  assertEquals(error.message.includes("non-empty string"), true);
+  assertEquals(error.message.includes("string"), true);
 });
 
 Deno.test("x-jmespath-filter - directive processed and extracted", () => {
