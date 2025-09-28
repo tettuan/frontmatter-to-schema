@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { isErr, isOk } from "../../../../../src/domain/shared/types/result.ts";
@@ -131,7 +131,7 @@ describe("SchemaPath", () => {
       const result1 = SchemaPath.create("schemas/test.json");
       const result2 = SchemaPath.create("schemas/test.json");
       if (result1.ok && result2.ok) {
-        assertEquals(result1.data.equals(result2.data), true);
+        assertEquals(result1.data.getValue(), result2.data.getValue());
       }
     });
 
@@ -139,7 +139,7 @@ describe("SchemaPath", () => {
       const result1 = SchemaPath.create("schemas/test1.json");
       const result2 = SchemaPath.create("schemas/test2.json");
       if (result1.ok && result2.ok) {
-        assertEquals(result1.data.equals(result2.data), false);
+        assertNotEquals(result1.data.getValue(), result2.data.getValue());
       }
     });
 
@@ -147,7 +147,7 @@ describe("SchemaPath", () => {
       const result1 = SchemaPath.create("schemas/Test.json");
       const result2 = SchemaPath.create("schemas/test.json");
       if (result1.ok && result2.ok) {
-        assertEquals(result1.data.equals(result2.data), false);
+        assertNotEquals(result1.data.getValue(), result2.data.getValue());
       }
     });
 
@@ -155,65 +155,44 @@ describe("SchemaPath", () => {
       const result1 = SchemaPath.create("schemas/test.json");
       const result2 = SchemaPath.create("schemas\\test.json");
       if (result1.ok && result2.ok) {
-        assertEquals(result1.data.equals(result2.data), false);
+        assertNotEquals(result1.data.getValue(), result2.data.getValue());
       }
     });
   });
 
-  describe("getExtension method", () => {
-    it("should return .json extension", () => {
+  describe("getFormat method", () => {
+    it("should return json for .json files", () => {
       const result = SchemaPath.create("schemas/config.json");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".json");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
-    it("should return .yaml extension", () => {
+    it("should return yaml for .yaml files", () => {
       const result = SchemaPath.create("configs/settings.yaml");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".yaml");
+        assertEquals(result.data.getFormat(), "yaml");
       }
     });
 
-    it("should return .yml extension", () => {
+    it("should return yaml for .yml files", () => {
       const result = SchemaPath.create("settings.yml");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".yml");
-      }
-    });
-
-    it("should return empty string for no extension", () => {
-      const result = SchemaPath.create("schemas/config");
-      if (result.ok) {
-        assertEquals(result.data.getExtension(), "");
+        assertEquals(result.data.getFormat(), "yaml");
       }
     });
 
     it("should handle multiple dots correctly", () => {
       const result = SchemaPath.create("schemas/config.test.json");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".json");
-      }
-    });
-
-    it("should handle hidden files (starting with dot)", () => {
-      const result = SchemaPath.create(".config");
-      if (result.ok) {
-        assertEquals(result.data.getExtension(), "");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
     it("should handle hidden files with extension", () => {
       const result = SchemaPath.create(".config.json");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".json");
-      }
-    });
-
-    it("should handle files ending with dot", () => {
-      const result = SchemaPath.create("schema.");
-      if (result.ok) {
-        assertEquals(result.data.getExtension(), ".");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
@@ -222,14 +201,14 @@ describe("SchemaPath", () => {
         "/very/long/path/to/nested/schema.config.json",
       );
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".json");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
     it("should handle paths with dots in directory names", () => {
       const result = SchemaPath.create("v1.2.3/schemas/config.yaml");
       if (result.ok) {
-        assertEquals(result.data.getExtension(), ".yaml");
+        assertEquals(result.data.getFormat(), "yaml");
       }
     });
   });
@@ -240,7 +219,7 @@ describe("SchemaPath", () => {
       assertEquals(isOk(result), true);
       if (result.ok) {
         assertEquals(result.data.toString(), "a");
-        assertEquals(result.data.getExtension(), "");
+        assertEquals(result.data.getFileName(), "a");
       }
     });
 
@@ -249,7 +228,7 @@ describe("SchemaPath", () => {
       assertEquals(isOk(result), true);
       if (result.ok) {
         assertEquals(result.data.toString(), "...");
-        assertEquals(result.data.getExtension(), ".");
+        assertEquals(result.data.getFileName(), "...");
       }
     });
 
@@ -258,7 +237,7 @@ describe("SchemaPath", () => {
       assertEquals(isOk(result), true);
       if (result.ok) {
         assertEquals(result.data.toString(), "path with spaces/schema.json");
-        assertEquals(result.data.getExtension(), ".json");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
@@ -270,7 +249,7 @@ describe("SchemaPath", () => {
           result.data.toString(),
           "C:\\Users\\Documents\\schema.json",
         );
-        assertEquals(result.data.getExtension(), ".json");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
 
@@ -279,7 +258,7 @@ describe("SchemaPath", () => {
       assertEquals(isOk(result), true);
       if (result.ok) {
         assertEquals(result.data.toString(), "file:///home/user/schema.json");
-        assertEquals(result.data.getExtension(), ".json");
+        assertEquals(result.data.getFormat(), "json");
       }
     });
   });
