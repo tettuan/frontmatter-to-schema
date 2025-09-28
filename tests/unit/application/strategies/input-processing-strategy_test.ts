@@ -1,16 +1,20 @@
 import { assertEquals } from "jsr:@std/assert";
 import {
-  SingleFileStrategy,
-  DirectoryStrategy,
   ConfigurableDocumentFilter,
-  InputProcessingStrategyFactory,
+  DirectoryStrategy,
   DocumentLoader,
+  InputProcessingStrategyFactory,
+  SingleFileStrategy,
 } from "../../../../src/application/strategies/input-processing-strategy.ts";
 import { Result } from "../../../../src/domain/shared/types/result.ts";
 import { ProcessingError } from "../../../../src/domain/shared/types/errors.ts";
 import { MarkdownDocument } from "../../../../src/domain/frontmatter/entities/markdown-document.ts";
 import { FileSystemPort } from "../../../../src/infrastructure/ports/file-system-port.ts";
-import { FileInfo, FileError, DirectoryEntry } from "../../../../src/domain/shared/types/file-errors.ts";
+import {
+  DirectoryEntry,
+  FileError,
+  FileInfo,
+} from "../../../../src/domain/shared/types/file-errors.ts";
 
 /**
  * Unit tests for input processing strategy patterns
@@ -29,38 +33,41 @@ class MockFileSystemPort implements FileSystemPort {
     this.mockDirectories.set(path, entries);
   }
 
-  async stat(path: string): Promise<Result<FileInfo, FileError>> {
+  stat(path: string): Promise<Result<FileInfo, FileError>> {
     const info = this.mockStats.get(path);
     if (info) {
-      return Result.ok(info);
+      return Promise.resolve(Result.ok(info));
     }
-    return Result.error({
+    return Promise.resolve(Result.error({
       kind: "FileNotFound",
       path,
-    });
+    }));
   }
 
-  async readDir(path: string): Promise<Result<DirectoryEntry[], FileError>> {
+  readDir(path: string): Promise<Result<DirectoryEntry[], FileError>> {
     const entries = this.mockDirectories.get(path);
     if (entries) {
-      return Result.ok(entries);
+      return Promise.resolve(Result.ok(entries));
     }
-    return Result.error({
+    return Promise.resolve(Result.error({
       kind: "DirectoryNotFound",
       path,
-    });
+    }));
   }
 
-  async readTextFile(path: string): Promise<Result<string, FileError>> {
-    return Result.ok("mock content");
+  readTextFile(_path: string): Promise<Result<string, FileError>> {
+    return Promise.resolve(Result.ok("mock content"));
   }
 
-  async writeTextFile(path: string, content: string): Promise<Result<void, FileError>> {
-    return Result.ok(undefined);
+  writeTextFile(
+    _path: string,
+    _content: string,
+  ): Promise<Result<void, FileError>> {
+    return Promise.resolve(Result.ok(undefined));
   }
 
-  async exists(path: string): Promise<Result<boolean, FileError>> {
-    return Result.ok(this.mockStats.has(path));
+  exists(path: string): Promise<Result<boolean, FileError>> {
+    return Promise.resolve(Result.ok(this.mockStats.has(path)));
   }
 }
 
@@ -72,12 +79,18 @@ class MockDocumentLoader implements DocumentLoader {
     this.mockDocuments.set(path, document);
   }
 
-  async loadMarkdownDocument(filePath: string): Promise<Result<MarkdownDocument, ProcessingError>> {
+  loadMarkdownDocument(
+    filePath: string,
+  ): Promise<Result<MarkdownDocument, ProcessingError>> {
     const document = this.mockDocuments.get(filePath);
     if (document) {
-      return Result.ok(document);
+      return Promise.resolve(Result.ok(document));
     }
-    return Result.error(new ProcessingError("Document not found", "DOCUMENT_NOT_FOUND", { filePath }));
+    return Promise.resolve(Result.error(
+      new ProcessingError("Document not found", "DOCUMENT_NOT_FOUND", {
+        filePath,
+      }),
+    ));
   }
 }
 
@@ -131,16 +144,29 @@ Deno.test("SingleFileStrategy - processInput success", async () => {
   const mockLoader = new MockDocumentLoader();
 
   // Create mock document
-  const { MarkdownDocument, DocumentId } = await import("../../../../src/domain/frontmatter/entities/markdown-document.ts");
-  const { FilePath } = await import("../../../../src/domain/shared/value-objects/file-path.ts");
+  const { MarkdownDocument, DocumentId } = await import(
+    "../../../../src/domain/frontmatter/entities/markdown-document.ts"
+  );
+  const { FilePath } = await import(
+    "../../../../src/domain/shared/value-objects/file-path.ts"
+  );
 
   const documentId = DocumentId.create("test-doc");
   const filePath = FilePath.create("/test/file.md").unwrap();
-  const mockDocument = MarkdownDocument.create(documentId, filePath, "# Test", undefined);
+  const mockDocument = MarkdownDocument.create(
+    documentId,
+    filePath,
+    "# Test",
+    undefined,
+  );
 
   mockLoader.setMockDocument("/test/file.md", mockDocument);
 
-  const result = await strategy.processInput("/test/file.md", mockFs, mockLoader);
+  const result = await strategy.processInput(
+    "/test/file.md",
+    mockFs,
+    mockLoader,
+  );
   assertEquals(result.isOk(), true);
   assertEquals(result.unwrap().length, 1);
 });
@@ -150,7 +176,11 @@ Deno.test("SingleFileStrategy - processInput document load fails", async () => {
   const mockFs = new MockFileSystemPort();
   const mockLoader = new MockDocumentLoader();
 
-  const result = await strategy.processInput("/test/missing.md", mockFs, mockLoader);
+  const result = await strategy.processInput(
+    "/test/missing.md",
+    mockFs,
+    mockLoader,
+  );
   assertEquals(result.isError(), true);
   assertEquals(result.unwrapError().code, "DOCUMENT_NOT_FOUND");
 });
@@ -209,8 +239,12 @@ Deno.test("DirectoryStrategy - processInput success", async () => {
   ]);
 
   // Create mock documents
-  const { MarkdownDocument, DocumentId } = await import("../../../../src/domain/frontmatter/entities/markdown-document.ts");
-  const { FilePath } = await import("../../../../src/domain/shared/value-objects/file-path.ts");
+  const { MarkdownDocument, DocumentId } = await import(
+    "../../../../src/domain/frontmatter/entities/markdown-document.ts"
+  );
+  const { FilePath } = await import(
+    "../../../../src/domain/shared/value-objects/file-path.ts"
+  );
 
   const doc1Id = DocumentId.create("doc1");
   const doc1Path = FilePath.create("/test/dir/file1.md").unwrap();
@@ -234,7 +268,11 @@ Deno.test("DirectoryStrategy - processInput directory read fails", async () => {
   const mockFs = new MockFileSystemPort();
   const mockLoader = new MockDocumentLoader();
 
-  const result = await strategy.processInput("/nonexistent", mockFs, mockLoader);
+  const result = await strategy.processInput(
+    "/nonexistent",
+    mockFs,
+    mockLoader,
+  );
   assertEquals(result.isError(), true);
   assertEquals(result.unwrapError().code, "DIRECTORY_READ_ERROR");
 });
@@ -301,7 +339,10 @@ Deno.test("ConfigurableDocumentFilter - shouldProcess directory", async () => {
 });
 
 Deno.test("ConfigurableDocumentFilter - shouldProcess directory with fileTypesOnly false", async () => {
-  const filter = new ConfigurableDocumentFilter(new Set([".md", ".markdown"]), false);
+  const filter = new ConfigurableDocumentFilter(
+    new Set([".md", ".markdown"]),
+    false,
+  );
 
   const result = await filter.shouldProcess({
     name: "directory",
@@ -317,7 +358,9 @@ Deno.test("ConfigurableDocumentFilter - createMarkdownFilter", () => {
 
 Deno.test("InputProcessingStrategyFactory - createDefaultStrategies", () => {
   const mockFilter = new ConfigurableDocumentFilter(new Set([".md"]));
-  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(mockFilter);
+  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(
+    mockFilter,
+  );
 
   assertEquals(strategies.length, 2);
   assertEquals(strategies[0].strategyType, "single-file");
@@ -326,7 +369,9 @@ Deno.test("InputProcessingStrategyFactory - createDefaultStrategies", () => {
 
 Deno.test("InputProcessingStrategyFactory - selectStrategy file", async () => {
   const mockFilter = new ConfigurableDocumentFilter(new Set([".md"]));
-  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(mockFilter);
+  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(
+    mockFilter,
+  );
   const mockFs = new MockFileSystemPort();
 
   mockFs.setMockStat("/test/file.md", {
@@ -339,7 +384,7 @@ Deno.test("InputProcessingStrategyFactory - selectStrategy file", async () => {
   const result = await InputProcessingStrategyFactory.selectStrategy(
     strategies,
     "/test/file.md",
-    mockFs
+    mockFs,
   );
 
   assertEquals(result.isOk(), true);
@@ -348,7 +393,9 @@ Deno.test("InputProcessingStrategyFactory - selectStrategy file", async () => {
 
 Deno.test("InputProcessingStrategyFactory - selectStrategy directory", async () => {
   const mockFilter = new ConfigurableDocumentFilter(new Set([".md"]));
-  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(mockFilter);
+  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(
+    mockFilter,
+  );
   const mockFs = new MockFileSystemPort();
 
   mockFs.setMockStat("/test/dir", {
@@ -361,7 +408,7 @@ Deno.test("InputProcessingStrategyFactory - selectStrategy directory", async () 
   const result = await InputProcessingStrategyFactory.selectStrategy(
     strategies,
     "/test/dir",
-    mockFs
+    mockFs,
   );
 
   assertEquals(result.isOk(), true);
@@ -370,13 +417,15 @@ Deno.test("InputProcessingStrategyFactory - selectStrategy directory", async () 
 
 Deno.test("InputProcessingStrategyFactory - selectStrategy input not found", async () => {
   const mockFilter = new ConfigurableDocumentFilter(new Set([".md"]));
-  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(mockFilter);
+  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(
+    mockFilter,
+  );
   const mockFs = new MockFileSystemPort();
 
   const result = await InputProcessingStrategyFactory.selectStrategy(
     strategies,
     "/nonexistent",
-    mockFs
+    mockFs,
   );
 
   assertEquals(result.isError(), true);
@@ -398,7 +447,7 @@ Deno.test("InputProcessingStrategyFactory - selectStrategy no compatible strateg
   const result = await InputProcessingStrategyFactory.selectStrategy(
     strategies,
     "/test/file.md",
-    mockFs
+    mockFs,
   );
 
   assertEquals(result.isError(), true);

@@ -1,11 +1,10 @@
 import { assertEquals } from "jsr:@std/assert";
 import {
   ConfigurationManager,
-  StandardConfigurationStrategy,
-  CustomConfigurationStrategy,
   CustomConfigurationBuilder,
+  CustomConfigurationStrategy,
+  StandardConfigurationStrategy,
 } from "../../../../src/application/strategies/configuration-strategy.ts";
-import { ProcessingError } from "../../../../src/domain/shared/types/errors.ts";
 
 /**
  * Unit tests for configuration strategy patterns
@@ -42,7 +41,10 @@ Deno.test("StandardConfigurationStrategy - getDefaultValue number success", () =
 
 Deno.test("StandardConfigurationStrategy - getDefaultValue boolean success", () => {
   const strategy = new StandardConfigurationStrategy();
-  const result = strategy.getDefaultValue<boolean>("includeMetadata", "boolean");
+  const result = strategy.getDefaultValue<boolean>(
+    "includeMetadata",
+    "boolean",
+  );
 
   assertEquals(result.isOk(), true);
   assertEquals(result.unwrap(), true);
@@ -50,7 +52,10 @@ Deno.test("StandardConfigurationStrategy - getDefaultValue boolean success", () 
 
 Deno.test("StandardConfigurationStrategy - getDefaultValue object success", () => {
   const strategy = new StandardConfigurationStrategy();
-  const result = strategy.getDefaultValue<Record<string, string>>("errorMessages", "object");
+  const result = strategy.getDefaultValue<Record<string, string>>(
+    "errorMessages",
+    "object",
+  );
 
   assertEquals(result.isOk(), true);
   const errorMessages = result.unwrap();
@@ -281,10 +286,16 @@ Deno.test("ConfigurationManager - multiple fallback strategies", () => {
   assertEquals(manager.getStringDefault("primaryKey").unwrap(), "primaryValue");
 
   // Fallback 1 key
-  assertEquals(manager.getStringDefault("fallback1Key").unwrap(), "fallback1Value");
+  assertEquals(
+    manager.getStringDefault("fallback1Key").unwrap(),
+    "fallback1Value",
+  );
 
   // Fallback 2 key
-  assertEquals(manager.getStringDefault("fallback2Key").unwrap(), "fallback2Value");
+  assertEquals(
+    manager.getStringDefault("fallback2Key").unwrap(),
+    "fallback2Value",
+  );
 
   // Unknown key
   assertEquals(manager.getStringDefault("unknownKey").isError(), true);

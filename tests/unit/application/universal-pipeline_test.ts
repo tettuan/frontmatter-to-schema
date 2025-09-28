@@ -1,19 +1,26 @@
 import { assertEquals } from "jsr:@std/assert";
 import {
-  UniversalPipeline,
-  UniversalPipelineConfig,
-  SchemaLoadingStage,
-  TemplateLoadingStage,
   InputProcessingStage,
   PipelineContext,
+  SchemaLoadingStage,
+  TemplateLoadingStage,
+  UniversalPipeline,
+  UniversalPipelineConfig,
 } from "../../../src/application/universal-pipeline.ts";
 import { ConfigurationManager } from "../../../src/application/strategies/configuration-strategy.ts";
-import { ConfigurableDocumentFilter, DocumentLoader } from "../../../src/application/strategies/input-processing-strategy.ts";
+import {
+  ConfigurableDocumentFilter,
+  DocumentLoader,
+} from "../../../src/application/strategies/input-processing-strategy.ts";
 import { Result } from "../../../src/domain/shared/types/result.ts";
 import { ProcessingError } from "../../../src/domain/shared/types/errors.ts";
 import { MarkdownDocument } from "../../../src/domain/frontmatter/entities/markdown-document.ts";
 import { FileSystemPort } from "../../../src/infrastructure/ports/file-system-port.ts";
-import { FileInfo, FileError, DirectoryEntry } from "../../../src/domain/shared/types/file-errors.ts";
+import {
+  DirectoryEntry,
+  FileError,
+  FileInfo,
+} from "../../../src/domain/shared/types/file-errors.ts";
 
 /**
  * Unit tests for Universal Pipeline architecture
@@ -43,55 +50,75 @@ class MockFileSystemPort implements FileSystemPort {
     });
   }
 
-  async readTextFile(path: string): Promise<Result<string, FileError>> {
+  readTextFile(path: string): Promise<Result<string, FileError>> {
     const content = this.mockFiles.get(path);
     if (content !== undefined) {
-      return Result.ok(content);
+      return Promise.resolve(Result.ok(content));
     }
-    return Result.error({
+    return Promise.resolve(Result.error({
       kind: "FileNotFound",
       path,
-    });
+    }));
   }
 
-  async writeTextFile(path: string, content: string): Promise<Result<void, FileError>> {
+  writeTextFile(
+    path: string,
+    content: string,
+  ): Promise<Result<void, FileError>> {
     this.mockFiles.set(path, content);
-    return Result.ok(undefined);
+    return Promise.resolve(Result.ok(undefined));
   }
 
-  async stat(path: string): Promise<Result<FileInfo, FileError>> {
+  stat(path: string): Promise<Result<FileInfo, FileError>> {
     const info = this.mockStats.get(path);
     if (info) {
-      return Result.ok(info);
+      return Promise.resolve(Result.ok(info));
     }
-    return Result.error({
+    return Promise.resolve(Result.error({
       kind: "FileNotFound",
       path,
-    });
+    }));
   }
 
-  async exists(path: string): Promise<Result<boolean, FileError>> {
-    return Result.ok(this.mockFiles.has(path) || this.mockStats.has(path));
+  exists(path: string): Promise<Result<boolean, FileError>> {
+    return Promise.resolve(
+      Result.ok(this.mockFiles.has(path) || this.mockStats.has(path)),
+    );
   }
 
-  async readDir(path: string): Promise<Result<DirectoryEntry[], FileError>> {
-    return Result.ok([]);
+  readDir(_path: string): Promise<Result<DirectoryEntry[], FileError>> {
+    return Promise.resolve(Result.ok([]));
   }
 }
 
 // Mock DocumentLoader
 class MockDocumentLoader implements DocumentLoader {
-  async loadMarkdownDocument(filePath: string): Promise<Result<MarkdownDocument, ProcessingError>> {
-    const { MarkdownDocument, DocumentId } = await import("../../../src/domain/frontmatter/entities/markdown-document.ts");
-    const { FilePath } = await import("../../../src/domain/shared/value-objects/file-path.ts");
+  async loadMarkdownDocument(
+    filePath: string,
+  ): Promise<Result<MarkdownDocument, ProcessingError>> {
+    const { MarkdownDocument, DocumentId } = await import(
+      "../../../src/domain/frontmatter/entities/markdown-document.ts"
+    );
+    const { FilePath } = await import(
+      "../../../src/domain/shared/value-objects/file-path.ts"
+    );
 
     const documentId = DocumentId.create("test-doc");
     const pathResult = FilePath.create(filePath);
     if (pathResult.isError()) {
-      return Result.error(new ProcessingError("Invalid file path", "INVALID_FILE_PATH", { filePath }));
+      return Result.error(
+        new ProcessingError("Invalid file path", "INVALID_FILE_PATH", {
+          filePath,
+        }),
+      );
     }
 
-    const document = MarkdownDocument.create(documentId, pathResult.unwrap(), "# Test", undefined);
+    const document = MarkdownDocument.create(
+      documentId,
+      pathResult.unwrap(),
+      "# Test",
+      undefined,
+    );
     return Result.ok(document);
   }
 }
@@ -129,7 +156,7 @@ Deno.test("UniversalPipeline - create with custom configuration", () => {
 });
 
 Deno.test("UniversalPipeline - create with custom input strategies", () => {
-  const documentFilter = new ConfigurableDocumentFilter(new Set([".md"]));
+  const _documentFilter = new ConfigurableDocumentFilter(new Set([".md"]));
   const customStrategies: any[] = []; // Empty strategies for testing
 
   const config: UniversalPipelineConfig = {
@@ -183,8 +210,8 @@ Deno.test("SchemaLoadingStage - execute with valid schema", async () => {
   const validSchema = JSON.stringify({
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   });
   mockFs.setMockFile("/test/schema.json", validSchema);
 
@@ -267,8 +294,8 @@ Deno.test("TemplateLoadingStage - execute with valid template", async () => {
   // Setup valid template file
   const validTemplate = JSON.stringify({
     output: {
-      title: "${title}"
-    }
+      title: "${title}",
+    },
   });
   mockFs.setMockFile("/test/template.json", validTemplate);
 
@@ -326,9 +353,13 @@ Deno.test("InputProcessingStage - execute with valid input", async () => {
   mockFs.setMockFile("/test/input.md", "# Test");
 
   // Create strategies
-  const documentFilter = new ConfigurableDocumentFilter(new Set([".md"]));
-  const { InputProcessingStrategyFactory } = await import("../../../src/application/strategies/input-processing-strategy.ts");
-  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(documentFilter);
+  const _documentFilter = new ConfigurableDocumentFilter(new Set([".md"]));
+  const { InputProcessingStrategyFactory } = await import(
+    "../../../src/application/strategies/input-processing-strategy.ts"
+  );
+  const strategies = InputProcessingStrategyFactory.createDefaultStrategies(
+    _documentFilter,
+  );
 
   const context: PipelineContext = {
     config: {
@@ -385,15 +416,15 @@ Deno.test("UniversalPipeline - execute full pipeline success", async () => {
   const validSchema = JSON.stringify({
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   });
   mockFs.setMockFile("/test/schema.json", validSchema);
 
   const validTemplate = JSON.stringify({
     output: {
-      title: "${title}"
-    }
+      title: "${title}",
+    },
   });
   mockFs.setMockFile("/test/template.json", validTemplate);
   mockFs.setMockFile("/test/input.md", "# Test");
@@ -427,15 +458,15 @@ Deno.test("UniversalPipeline - execute with custom output format", async () => {
   const validSchema = JSON.stringify({
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   });
   mockFs.setMockFile("/test/schema.json", validSchema);
 
   const validTemplate = JSON.stringify({
     output: {
-      title: "${title}"
-    }
+      title: "${title}",
+    },
   });
   mockFs.setMockFile("/test/template.json", validTemplate);
   mockFs.setMockFile("/test/input.md", "# Test");
@@ -482,8 +513,8 @@ Deno.test("UniversalPipeline - execute with template error", async () => {
   const validSchema = JSON.stringify({
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   });
   mockFs.setMockFile("/test/schema.json", validSchema);
 
@@ -510,15 +541,15 @@ Deno.test("UniversalPipeline - execute with input error", async () => {
   const validSchema = JSON.stringify({
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   });
   mockFs.setMockFile("/test/schema.json", validSchema);
 
   const validTemplate = JSON.stringify({
     output: {
-      title: "${title}"
-    }
+      title: "${title}",
+    },
   });
   mockFs.setMockFile("/test/template.json", validTemplate);
 
