@@ -46,10 +46,10 @@ describe("Basic Service Integration Tests", () => {
         const schema = schemaResult.data;
 
         // Verify schema has required methods
-        assertExists(schema.getRawSchema);
+        assertExists(schema.getDefinition);
 
         // Verify schema data structure
-        const rawSchema = schema.getRawSchema();
+        const rawSchema = schema.getDefinition();
         assertExists(rawSchema);
       }
     });

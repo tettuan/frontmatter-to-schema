@@ -261,8 +261,9 @@ export class TemplateManagementDomainService {
     directiveName: string,
   ): Result<string, DomainError & { message: string }> {
     try {
-      // Schema の getRawSchema を使用してディレクティブを検索
-      const rawSchema = schema.getRawSchema();
+      // Schema の getDefinition を使用してディレクティブを検索
+      const definition = schema.getDefinition();
+      const rawSchema = definition.getRawSchema();
       const directiveValue = this.findDirectiveInSchema(
         rawSchema,
         directiveName,
