@@ -88,7 +88,9 @@ export class FrontmatterAnalysisDomainService {
       const parsed = parseYaml(match[1]);
 
       // Ensure the result is an object (not a primitive or array at root)
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      if (
+        typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ) {
         return parsed as FrontmatterData;
       }
 

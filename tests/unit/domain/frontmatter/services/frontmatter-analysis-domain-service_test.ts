@@ -221,7 +221,7 @@ describe("FrontmatterAnalysisDomainService", () => {
           // YAML parser correctly parses dates as Date objects
           const date = dataResult.data[0].date;
           if (date instanceof Date) {
-            assertEquals(date.toISOString().split('T')[0], "2023-01-01");
+            assertEquals(date.toISOString().split("T")[0], "2023-01-01");
           } else {
             assertEquals(date, "2023-01-01");
           }
