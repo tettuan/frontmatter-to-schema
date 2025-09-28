@@ -206,13 +206,14 @@ export class Template {
   }
 
   /**
-   * Resolves variables in a string using ${variable.path} syntax.
+   * Resolves variables in a string using both {variable.path} and ${variable.path} syntax.
+   * Supports template examples which use {variable} format.
    */
   private resolveStringVariables(
     str: string,
     variables: Record<string, unknown>,
   ): string {
-    return str.replace(/\$\{([^}]+)\}/g, (match, variablePath) => {
+    return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
       const value = this.getVariableValue(variablePath.trim(), variables);
       return value !== undefined ? String(value) : match;
     });
