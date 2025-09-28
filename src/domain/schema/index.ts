@@ -13,7 +13,8 @@ export { DirectiveProcessor } from "./services/directive-processor.ts";
 export type {
   DirectiveContext,
   DirectiveHandler,
-  DirectiveType,
   ExtractedDirective,
   ProcessingResult,
 } from "./services/directive-processor.ts";
+export { DirectiveOrderingStrategy } from "./value-objects/directive-ordering-strategy.ts";
+export type { DirectiveType } from "./value-objects/directive-ordering-strategy.ts";

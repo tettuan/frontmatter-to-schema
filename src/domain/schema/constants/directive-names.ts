@@ -22,7 +22,8 @@ export const ALL_DIRECTIVE_NAMES = Object.values(DIRECTIVE_NAMES);
 /**
  * Type for directive names based on the constants.
  */
-export type DirectiveName = typeof DIRECTIVE_NAMES[keyof typeof DIRECTIVE_NAMES];
+export type DirectiveName =
+  typeof DIRECTIVE_NAMES[keyof typeof DIRECTIVE_NAMES];
 
 /**
  * Validates if a string is a valid directive name.

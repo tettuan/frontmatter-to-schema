@@ -1,7 +1,10 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
 import { SchemaData } from "../entities/schema.ts";
-import { DirectiveOrderingStrategy, DirectiveType } from "../value-objects/directive-ordering-strategy.ts";
+import {
+  DirectiveOrderingStrategy,
+  DirectiveType,
+} from "../value-objects/directive-ordering-strategy.ts";
 import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
@@ -80,14 +83,17 @@ export class DirectiveProcessor {
   private readonly orderingStrategy: DirectiveOrderingStrategy;
 
   private constructor(orderingStrategy?: DirectiveOrderingStrategy) {
-    this.orderingStrategy = orderingStrategy || DirectiveOrderingStrategy.createDefault();
+    this.orderingStrategy = orderingStrategy ||
+      DirectiveOrderingStrategy.createDefault();
     this.registerDefaultHandlers();
   }
 
   /**
    * Creates a DirectiveProcessor with default handlers and ordering.
    */
-  static create(orderingStrategy?: DirectiveOrderingStrategy): DirectiveProcessor {
+  static create(
+    orderingStrategy?: DirectiveOrderingStrategy,
+  ): DirectiveProcessor {
     return new DirectiveProcessor(orderingStrategy);
   }
 
@@ -247,7 +253,8 @@ export class DirectiveProcessor {
 
       // Sort directives according to processing order strategy
       const sortedDirectives = currentDirectives.sort((a, b) =>
-        this.orderingStrategy.getPriority(a.type) - this.orderingStrategy.getPriority(b.type)
+        this.orderingStrategy.getPriority(a.type) -
+        this.orderingStrategy.getPriority(b.type)
       );
 
       // Process each directive in order
@@ -411,7 +418,8 @@ export class DirectiveProcessor {
 
       // Check for mutually exclusive directives
       if (
-        types.includes("x-frontmatter-part") && types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
+        types.includes("x-frontmatter-part") &&
+        types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
       ) {
         return Result.error({
           kind: "ConflictingDirectives",

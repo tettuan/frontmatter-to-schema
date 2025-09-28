@@ -34,7 +34,7 @@ Deno.test("x-derived-unique - validate accepts boolean true", () => {
   assertEquals(processingResult.hasDirectives, true);
 
   const uniqueDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-derived-unique"
+    (d) => d.type === "x-derived-unique",
   );
   assertEquals(uniqueDirective !== undefined, true);
   assertEquals(uniqueDirective?.value, true);
@@ -59,7 +59,7 @@ Deno.test("x-derived-unique - validate accepts boolean false", () => {
   const processingResult = result.unwrap();
 
   const uniqueDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-derived-unique"
+    (d) => d.type === "x-derived-unique",
   );
   assertEquals(uniqueDirective?.value, false);
 });
@@ -125,12 +125,13 @@ Deno.test("x-derived-unique - directive processed and extracted", () => {
 
   // Check that directive is extracted but removed from processed schema
   const uniqueDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-derived-unique"
+    (d) => d.type === "x-derived-unique",
   );
   assertEquals(uniqueDirective?.value, true);
 
   // Check that directive is removed from processed schema after processing
-  const categoriesProperty = processingResult.processedSchema.properties?.categories as any;
+  const categoriesProperty = processingResult.processedSchema.properties
+    ?.categories as any;
   assertEquals(categoriesProperty["x-derived-unique"], undefined);
 });
 
@@ -156,7 +157,9 @@ Deno.test("x-derived-unique - works with multiple directives", () => {
   const processingResult = result.unwrap();
   assertEquals(processingResult.extractedDirectives.length, 4);
 
-  const directiveTypes = processingResult.extractedDirectives.map(d => d.type);
+  const directiveTypes = processingResult.extractedDirectives.map((d) =>
+    d.type
+  );
   assertEquals(directiveTypes.includes("x-derived-unique"), true);
   assertEquals(directiveTypes.includes("x-derived-from"), true);
   assertEquals(directiveTypes.includes("x-frontmatter-part"), true);

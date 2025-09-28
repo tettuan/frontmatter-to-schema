@@ -1,6 +1,10 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
-import { DIRECTIVE_NAMES, DirectiveName, DEFAULT_DIRECTIVE_ORDER } from "../constants/directive-names.ts";
+import {
+  DEFAULT_DIRECTIVE_ORDER,
+  DIRECTIVE_NAMES,
+  DirectiveName,
+} from "../constants/directive-names.ts";
 
 export type DirectiveType = DirectiveName;
 
@@ -29,11 +33,13 @@ export class DirectiveOrderingStrategy {
    * Creates a custom directive ordering strategy.
    * Validates that all required directives are included exactly once.
    */
-  static createCustom(order: DirectiveType[]): Result<DirectiveOrderingStrategy, SchemaError> {
+  static createCustom(
+    order: DirectiveType[],
+  ): Result<DirectiveOrderingStrategy, SchemaError> {
     const defaultOrder = DirectiveOrderingStrategy.createDefault().order;
 
     // Check all directives are included
-    const missingDirectives = defaultOrder.filter(d => !order.includes(d));
+    const missingDirectives = defaultOrder.filter((d) => !order.includes(d));
     if (missingDirectives.length > 0) {
       return Result.error(
         new SchemaError(
@@ -45,7 +51,7 @@ export class DirectiveOrderingStrategy {
     }
 
     // Check no extra directives
-    const extraDirectives = order.filter(d => !defaultOrder.includes(d));
+    const extraDirectives = order.filter((d) => !defaultOrder.includes(d));
     if (extraDirectives.length > 0) {
       return Result.error(
         new SchemaError(

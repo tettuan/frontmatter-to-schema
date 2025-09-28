@@ -34,7 +34,7 @@ Deno.test("x-jmespath-filter - validate accepts valid JMESPath string", () => {
   assertEquals(processingResult.hasDirectives, true);
 
   const jmespathDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-jmespath-filter"
+    (d) => d.type === "x-jmespath-filter",
   );
   assertEquals(jmespathDirective !== undefined, true);
   assertEquals(jmespathDirective?.value, "[?status == 'active']");
@@ -59,7 +59,7 @@ Deno.test("x-jmespath-filter - validate accepts simple property filter", () => {
   const processingResult = result.unwrap();
 
   const jmespathDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-jmespath-filter"
+    (d) => d.type === "x-jmespath-filter",
   );
   assertEquals(jmespathDirective?.value, "length(@) > `0`");
 });
@@ -71,7 +71,8 @@ Deno.test("x-jmespath-filter - validate accepts complex nested filter", () => {
       complexFilter: {
         type: "array",
         items: { type: "object" },
-        "x-jmespath-filter": "[?user.permissions.admin == `true` && status != 'disabled']",
+        "x-jmespath-filter":
+          "[?user.permissions.admin == `true` && status != 'disabled']",
       },
     },
   };
@@ -83,9 +84,12 @@ Deno.test("x-jmespath-filter - validate accepts complex nested filter", () => {
   const processingResult = result.unwrap();
 
   const jmespathDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-jmespath-filter"
+    (d) => d.type === "x-jmespath-filter",
   );
-  assertEquals(jmespathDirective?.value, "[?user.permissions.admin == `true` && status != 'disabled']");
+  assertEquals(
+    jmespathDirective?.value,
+    "[?user.permissions.admin == `true` && status != 'disabled']",
+  );
 });
 
 Deno.test("x-jmespath-filter - validate rejects number value", () => {
@@ -170,12 +174,13 @@ Deno.test("x-jmespath-filter - directive processed and extracted", () => {
 
   // Check that directive is extracted but removed from processed schema
   const jmespathDirective = processingResult.extractedDirectives.find(
-    d => d.type === "x-jmespath-filter"
+    (d) => d.type === "x-jmespath-filter",
   );
   assertEquals(jmespathDirective?.value, "[?status == 'active']");
 
   // Check that directive is removed from processed schema after processing
-  const filteredItemsProperty = processingResult.processedSchema.properties?.filteredItems as any;
+  const filteredItemsProperty = processingResult.processedSchema.properties
+    ?.filteredItems as any;
   assertEquals(filteredItemsProperty["x-jmespath-filter"], undefined);
 });
 
@@ -200,7 +205,9 @@ Deno.test("x-jmespath-filter - works with other directives", () => {
   const processingResult = result.unwrap();
   assertEquals(processingResult.extractedDirectives.length, 3);
 
-  const directiveTypes = processingResult.extractedDirectives.map(d => d.type);
+  const directiveTypes = processingResult.extractedDirectives.map((d) =>
+    d.type
+  );
   assertEquals(directiveTypes.includes("x-jmespath-filter"), true);
   assertEquals(directiveTypes.includes("x-derived-from"), true);
   assertEquals(directiveTypes.includes("x-derived-unique"), true);
