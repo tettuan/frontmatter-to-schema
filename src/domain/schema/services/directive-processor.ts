@@ -421,12 +421,12 @@ export class DirectiveProcessor {
 
       // Check for mutually exclusive directives
       if (
-        types.includes("x-frontmatter-part") &&
+        types.includes(DIRECTIVE_NAMES.FRONTMATTER_PART) &&
         types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
       ) {
         return Result.error({
           kind: "ConflictingDirectives",
-          directive1: "x-frontmatter-part",
+          directive1: DIRECTIVE_NAMES.FRONTMATTER_PART,
           directive2: DIRECTIVE_NAMES.DERIVED_FROM,
           path: path.split("."),
         });
