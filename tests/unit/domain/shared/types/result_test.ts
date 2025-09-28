@@ -204,7 +204,7 @@ describe("Result Type", () => {
         const error = result.error as any;
         if (error.kind === "JMESPathCompilationFailed") {
           assertEquals(error.expression, "[?foo == 'bar']");
-          assertEquals(error.message, "Invalid expression");
+          assertEquals(error.message, "JMESPath expression compilation failed: [?foo == 'bar'] - Invalid expression");
         }
       }
     });
