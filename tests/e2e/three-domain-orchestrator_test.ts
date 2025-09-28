@@ -33,7 +33,6 @@ describe("Three Domain Orchestrator E2E Tests", () => {
 `,
         "x-template-items": "articles",
         "x-jmespath-filter": "[?contains(tags, 'tech')]",
-        "x-derived-from": "frontmatter",
       });
 
       assertServiceResult(schema);
@@ -76,6 +75,9 @@ describe("Three Domain Orchestrator E2E Tests", () => {
       const processedDataStr = JSON.stringify(
         processingResult.data.processedData,
       );
+
+      // The JMESPath filter [?contains(tags, 'tech')] should filter out Second Article
+      // which has tags: ["design", "ui"] (no 'tech' tag)
       assertEquals(processedDataStr.includes("First Article"), true);
       assertEquals(processedDataStr.includes("Third Article"), true);
       assertEquals(processedDataStr.includes("Second Article"), false); // Filtered out (no 'tech' tag)

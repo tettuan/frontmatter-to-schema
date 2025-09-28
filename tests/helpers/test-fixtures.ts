@@ -148,17 +148,23 @@ export const createSchemaWithDirectives = (
     // Add x-frontmatter-part directive as boolean marker to the title property
     title: { type: "string", "x-frontmatter-part": true },
     content: { type: "string" },
+    author: { type: "string" },
+    date: { type: "string" },
+    tags: { type: "array", items: { type: "string" } },
   };
 
-  // Add x-directives
-  Object.entries(directives).forEach(([key, value]) => {
-    properties[key] = { type: "string", default: value };
-  });
-
-  const definition = SchemaDefinition.create({
+  // Create schema definition with directives as extensions on the schema itself
+  const schemaObj: any = {
     type: "object",
     properties,
+  };
+
+  // Add x-directives to the schema object (not as properties)
+  Object.entries(directives).forEach(([key, value]) => {
+    schemaObj[key] = value;
   });
+
+  const definition = SchemaDefinition.create(schemaObj);
   const path = SchemaPath.create("test-directives-schema.json");
 
   if (!definition.ok) {

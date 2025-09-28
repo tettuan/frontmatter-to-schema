@@ -2,7 +2,7 @@ import { err, ok, Result } from "../../shared/types/result.ts";
 import { createError, DomainError } from "../../shared/types/errors.ts";
 import { Schema } from "../../schema/entities/schema.ts";
 
-// Import FrontmatterData type from the service
+// FrontmatterData type alias - matches what's passed from FrontmatterAnalysisDomainService
 type FrontmatterData = Record<string, unknown>;
 
 // Simple property access utility
@@ -134,15 +134,33 @@ export class DataProcessingInstructionDomainService {
       }, "Schema is required for frontmatter part processing"));
     }
 
-    // Find x-frontmatter-part in schema
+    // Find x-frontmatter-part in schema (optional - if not found, process all data)
     const frontmatterPartPath = this.findFrontmatterPartPath();
-    if (!frontmatterPartPath.ok) {
-      return frontmatterPartPath;
+
+    // Prepare data based on x-frontmatter-part
+    let dataToProcess: unknown[];
+    if (frontmatterPartPath.ok && frontmatterPartPath.data) {
+      // Extract the specific property from each FrontmatterData
+      const extractedData: unknown[] = [];
+      for (const frontmatterItem of this.sourceData) {
+        const extracted = this.extractValueFromPath(frontmatterItem, frontmatterPartPath.data);
+        if (extracted !== undefined) {
+          if (Array.isArray(extracted)) {
+            extractedData.push(...extracted);
+          } else {
+            extractedData.push(extracted);
+          }
+        }
+      }
+      dataToProcess = extractedData;
+    } else {
+      // No x-frontmatter-part, use all frontmatter data
+      dataToProcess = [...this.sourceData];
     }
 
-    // Apply x-directive processing to the frontmatter data based on the root schema
+    // Apply x-directive processing to the data based on the root schema
     // The directives like x-jmespath-filter are defined at the root level
-    const processedResult = this.processSchemaPath("");
+    const processedResult = this.processSchemaPath("", dataToProcess);
     if (!processedResult.ok) {
       return processedResult;
     }
@@ -188,6 +206,7 @@ export class DataProcessingInstructionDomainService {
    */
   private processSchemaPath(
     schemaPath: string,
+    providedData?: unknown,
   ): Result<unknown, DomainError & { message: string }> {
     const schemaProperty = this.getSchemaPropertyAtPath(schemaPath);
     if (!schemaProperty.ok) {
@@ -197,18 +216,50 @@ export class DataProcessingInstructionDomainService {
     const property = schemaProperty.data;
 
     // For root path, also check within properties for x-directives
+    // The x-directives are stored in the extensions property
     let directiveContainer = property;
+    if (property.extensions && typeof property.extensions === "object") {
+      // Use extensions as the directive container
+      directiveContainer = { ...property, ...(property.extensions as Record<string, unknown>) };
+    }
     if (
       schemaPath === "" && property.properties &&
       typeof property.properties === "object"
     ) {
-      // Merge root-level properties and properties within the properties object
+      // Also check properties for additional directives (if any)
       const propertiesObj = property.properties as Record<string, unknown>;
-      directiveContainer = { ...property, ...propertiesObj };
+      directiveContainer = { ...directiveContainer, ...propertiesObj };
     }
 
-    // Apply x-directive processing
-    let processedData: unknown = this.sourceData;
+    // Determine the data source
+    let processedData: unknown;
+
+    if (providedData !== undefined) {
+      // Use provided data (from getFrontmatterPartArray)
+      processedData = providedData;
+    } else {
+      // Determine data based on x-frontmatter-part
+      const frontmatterPartPath = this.findFrontmatterPartPath();
+      if (frontmatterPartPath.ok && frontmatterPartPath.data) {
+        // Extract the specific property from each FrontmatterData (which is just a Record<string, unknown>)
+        const extractedData: unknown[] = [];
+        for (const frontmatterItem of this.sourceData) {
+          const extracted = this.extractValueFromPath(frontmatterItem, frontmatterPartPath.data);
+          if (extracted !== undefined) {
+            if (Array.isArray(extracted)) {
+              extractedData.push(...extracted);
+            } else {
+              extractedData.push(extracted);
+            }
+          }
+        }
+        processedData = extractedData;
+      } else {
+        // No x-frontmatter-part, use all frontmatter data
+        // FrontmatterData is already Record<string, unknown>, so just use directly
+        processedData = [...this.sourceData];
+      }
+    }
 
     // Process x-derived-from directive
     const derivedFromResult = this.processXDerivedFrom(
