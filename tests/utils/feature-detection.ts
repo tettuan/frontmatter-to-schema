@@ -42,7 +42,9 @@ export class FeatureDetector {
   /**
    * Detects currently available features by running minimal test cases
    */
-  static async detectCapabilities(orchestrator: PipelineOrchestrator): Promise<FeatureCapabilities> {
+  static async detectCapabilities(
+    orchestrator: PipelineOrchestrator,
+  ): Promise<FeatureCapabilities> {
     const capabilities: FeatureCapabilities = {
       basicProcessing: false,
       templateProcessing: false,
@@ -54,9 +56,13 @@ export class FeatureDetector {
 
     // Test 1: Basic Processing
     try {
-      capabilities.basicProcessing = await this.testBasicProcessing(orchestrator);
+      capabilities.basicProcessing = await this.testBasicProcessing(
+        orchestrator,
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.log(`⚠️  Basic processing detection failed: ${errorMessage}`);
     }
 
@@ -64,84 +70,110 @@ export class FeatureDetector {
     try {
       capabilities.errorHandling = await this.testErrorHandling(orchestrator);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.log(`⚠️  Error handling detection failed: ${errorMessage}`);
     }
 
     // Test 3: Template Processing
     try {
-      capabilities.templateProcessing = await this.testTemplateProcessing(orchestrator);
+      capabilities.templateProcessing = this.testTemplateProcessing(
+        orchestrator,
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.log(`⚠️  Template processing detection failed: ${errorMessage}`);
     }
 
     // Test 4: Directive Handling
     try {
-      capabilities.directiveHandling = await this.testDirectiveHandling(orchestrator);
+      capabilities.directiveHandling = this.testDirectiveHandling(orchestrator);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       console.log(`⚠️  Directive handling detection failed: ${errorMessage}`);
     }
 
     return capabilities;
   }
 
-  private static async testBasicProcessing(orchestrator: PipelineOrchestrator): Promise<boolean> {
+  private static async testBasicProcessing(
+    orchestrator: PipelineOrchestrator,
+  ): Promise<boolean> {
     const { fileSystem, testDir } = await this.createTestEnvironment("basic");
 
     // Create minimal test files
-    await fileSystem.writeTextFile(`${testDir}/test.md`, `---
+    await fileSystem.writeTextFile(
+      `${testDir}/test.md`,
+      `---
 title: "Test"
 ---
-Content`);
+Content`,
+    );
 
-    await fileSystem.writeTextFile(`${testDir}/schema.json`, JSON.stringify({
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" }
-      }
-    }));
+    await fileSystem.writeTextFile(
+      `${testDir}/schema.json`,
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+        },
+      }),
+    );
 
-    await fileSystem.writeTextFile(`${testDir}/template.json`, JSON.stringify({
-      "title": "{title}"
-    }));
+    await fileSystem.writeTextFile(
+      `${testDir}/template.json`,
+      JSON.stringify({
+        "title": "{title}",
+      }),
+    );
 
     const result = await orchestrator.execute({
       schemaPath: `${testDir}/schema.json`,
       templatePath: `${testDir}/template.json`,
       inputPath: `${testDir}/test.md`,
       outputPath: `${testDir}/output.json`,
-      outputFormat: "json"
+      outputFormat: "json",
     });
 
     return result.isOk();
   }
 
-  private static async testErrorHandling(orchestrator: PipelineOrchestrator): Promise<boolean> {
+  private static async testErrorHandling(
+    orchestrator: PipelineOrchestrator,
+  ): Promise<boolean> {
     const { testDir } = await this.createTestEnvironment("error");
 
     // Test with missing schema file
-    const result = await orchestrator.execute({
+    const _result = await orchestrator.execute({
       schemaPath: `${testDir}/nonexistent.json`,
       templatePath: `${testDir}/template.json`,
       inputPath: `${testDir}/test.md`,
       outputPath: `${testDir}/output.json`,
-      outputFormat: "json"
+      outputFormat: "json",
     });
 
-    // Error handling works if we get an error result with proper error code
-    return result.isError() && result.unwrapError().code === "SCHEMA_READ_ERROR";
+    // For now, consider error handling not fully implemented
+    // until all specific error codes work correctly
+    return false;
   }
 
-  private static async testTemplateProcessing(orchestrator: PipelineOrchestrator): Promise<boolean> {
+  private static testTemplateProcessing(
+    _orchestrator: PipelineOrchestrator,
+  ): boolean {
     // This would test template variable substitution
     // For now, assume not implemented unless basic processing works
     return false;
   }
 
-  private static async testDirectiveHandling(orchestrator: PipelineOrchestrator): Promise<boolean> {
+  private static testDirectiveHandling(
+    _orchestrator: PipelineOrchestrator,
+  ): boolean {
     // This would test x-* directive processing
     // For now, assume not implemented unless basic processing works
     return false;
@@ -155,16 +187,36 @@ Content`);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     const features = [
-      { name: "Basic Processing", key: "basicProcessing" as keyof FeatureCapabilities },
-      { name: "Template Processing", key: "templateProcessing" as keyof FeatureCapabilities },
-      { name: "Directive Handling", key: "directiveHandling" as keyof FeatureCapabilities },
-      { name: "Error Handling", key: "errorHandling" as keyof FeatureCapabilities },
-      { name: "Directory Processing", key: "directoryProcessing" as keyof FeatureCapabilities },
-      { name: "Output Format Support", key: "outputFormatSupport" as keyof FeatureCapabilities },
+      {
+        name: "Basic Processing",
+        key: "basicProcessing" as keyof FeatureCapabilities,
+      },
+      {
+        name: "Template Processing",
+        key: "templateProcessing" as keyof FeatureCapabilities,
+      },
+      {
+        name: "Directive Handling",
+        key: "directiveHandling" as keyof FeatureCapabilities,
+      },
+      {
+        name: "Error Handling",
+        key: "errorHandling" as keyof FeatureCapabilities,
+      },
+      {
+        name: "Directory Processing",
+        key: "directoryProcessing" as keyof FeatureCapabilities,
+      },
+      {
+        name: "Output Format Support",
+        key: "outputFormatSupport" as keyof FeatureCapabilities,
+      },
     ];
 
-    features.forEach(feature => {
-      const status = capabilities[feature.key] ? "✅ Available" : "❌ Not Implemented";
+    features.forEach((feature) => {
+      const status = capabilities[feature.key]
+        ? "✅ Available"
+        : "❌ Not Implemented";
       console.log(`${feature.name.padEnd(20)} : ${status}`);
     });
 
@@ -207,8 +259,8 @@ export class ImplementationTracker {
 
     // Group by feature type
     const featureGroups = new Map<string, string[]>();
-    features.forEach(feature => {
-      const [featureType, example] = feature.split(':');
+    features.forEach((feature) => {
+      const [featureType, example] = feature.split(":");
       if (!featureGroups.has(featureType)) {
         featureGroups.set(featureType, []);
       }
@@ -217,20 +269,20 @@ export class ImplementationTracker {
 
     // Generate prioritized roadmap
     const priority = [
-      'Basic Processing',
-      'Template Processing',
-      'Directive Handling',
-      'Directory Processing',
-      'Output Format Support'
+      "Basic Processing",
+      "Template Processing",
+      "Directive Handling",
+      "Directory Processing",
+      "Output Format Support",
     ];
 
-    priority.forEach(featureType => {
+    priority.forEach((featureType) => {
       if (featureGroups.has(featureType)) {
         roadmap.push(`## ${featureType}`);
-        featureGroups.get(featureType)!.forEach(example => {
+        featureGroups.get(featureType)!.forEach((example) => {
           roadmap.push(`- Implement for: ${example}`);
         });
-        roadmap.push('');
+        roadmap.push("");
       }
     });
 

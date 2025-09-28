@@ -5,7 +5,10 @@
  * without requiring manual modification of every test case.
  */
 
-import { ImplementationTracker, type FeatureCapabilities } from "./feature-detection.ts";
+import {
+  type FeatureCapabilities,
+  ImplementationTracker,
+} from "./feature-detection.ts";
 
 export interface TestRequirements {
   basicProcessing?: boolean;
@@ -25,7 +28,7 @@ export class RobustTestRunner {
   async executeConditional(
     testName: string,
     requirements: TestRequirements,
-    testFunction: () => Promise<void>
+    testFunction: () => Promise<void>,
   ): Promise<void> {
     // Check if all required capabilities are available
     const missingCapabilities = this.checkMissingCapabilities(requirements);
@@ -34,7 +37,9 @@ export class RobustTestRunner {
       // Skip test and record missing features
       const featureType = this.getFeatureType(requirements);
       ImplementationTracker.recordMissingFeature(featureType, testName);
-      console.log(`⚠️  SKIP: ${testName} - Missing: ${missingCapabilities.join(', ')}`);
+      console.log(
+        `⚠️  SKIP: ${testName} - Missing: ${missingCapabilities.join(", ")}`,
+      );
       return;
     }
 
@@ -48,19 +53,27 @@ export class RobustTestRunner {
     if (requirements.basicProcessing && !this.capabilities.basicProcessing) {
       missing.push("Basic Processing");
     }
-    if (requirements.templateProcessing && !this.capabilities.templateProcessing) {
+    if (
+      requirements.templateProcessing && !this.capabilities.templateProcessing
+    ) {
       missing.push("Template Processing");
     }
-    if (requirements.directiveHandling && !this.capabilities.directiveHandling) {
+    if (
+      requirements.directiveHandling && !this.capabilities.directiveHandling
+    ) {
       missing.push("Directive Handling");
     }
     if (requirements.errorHandling && !this.capabilities.errorHandling) {
       missing.push("Error Handling");
     }
-    if (requirements.directoryProcessing && !this.capabilities.directoryProcessing) {
+    if (
+      requirements.directoryProcessing && !this.capabilities.directoryProcessing
+    ) {
       missing.push("Directory Processing");
     }
-    if (requirements.outputFormatSupport && !this.capabilities.outputFormatSupport) {
+    if (
+      requirements.outputFormatSupport && !this.capabilities.outputFormatSupport
+    ) {
       missing.push("Output Format Support");
     }
 
@@ -83,15 +96,27 @@ export class RobustTestRunner {
    */
   static requirements = {
     basicProcessing: { basicProcessing: true } as TestRequirements,
-    directoryProcessing: { basicProcessing: true, directoryProcessing: true } as TestRequirements,
-    templateProcessing: { basicProcessing: true, templateProcessing: true } as TestRequirements,
-    directiveHandling: { basicProcessing: true, directiveHandling: true } as TestRequirements,
+    directoryProcessing: {
+      basicProcessing: true,
+      directoryProcessing: true,
+    } as TestRequirements,
+    templateProcessing: {
+      basicProcessing: true,
+      templateProcessing: true,
+    } as TestRequirements,
+    directiveHandling: {
+      basicProcessing: true,
+      directiveHandling: true,
+    } as TestRequirements,
     errorHandling: { errorHandling: true } as TestRequirements,
-    yamlOutput: { basicProcessing: true, outputFormatSupport: true } as TestRequirements,
+    yamlOutput: {
+      basicProcessing: true,
+      outputFormatSupport: true,
+    } as TestRequirements,
     complexProcessing: {
       basicProcessing: true,
       templateProcessing: true,
-      directiveHandling: true
+      directiveHandling: true,
     } as TestRequirements,
   };
 }
