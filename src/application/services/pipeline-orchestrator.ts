@@ -62,19 +62,21 @@ export class PipelineOrchestrator {
   ): Result<PipelineOrchestrator, ProcessingError> {
     // Create template loader with FileSystemPort adapter
     const templateLoader = TemplateLoader.create({
-      async readTextFile(path: string): Promise<string> {
+      async readTextFile(path: string): Promise<Result<string, Error>> {
         const result = await fileSystem.readTextFile(path);
         if (result.isError()) {
-          throw new Error(createFileError(result.unwrapError()).message);
+          const fileError = createFileError(result.unwrapError());
+          return Result.error(new Error(fileError.message));
         }
-        return result.unwrap();
+        return Result.ok(result.unwrap());
       },
-      async exists(path: string): Promise<boolean> {
+      async exists(path: string): Promise<Result<boolean, Error>> {
         const result = await fileSystem.exists(path);
         if (result.isError()) {
-          return false; // Treat errors as non-existence for backward compatibility
+          const fileError = createFileError(result.unwrapError());
+          return Result.error(new Error(fileError.message));
         }
-        return result.unwrap();
+        return Result.ok(result.unwrap());
       },
     });
 

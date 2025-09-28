@@ -4,6 +4,7 @@ import {
   TemplateLoader,
 } from "../../../../../src/domain/template/services/template-loader.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
+import { Result } from "../../../../../src/domain/shared/types/result.ts";
 
 /**
  * Mock file system implementation for testing
@@ -17,16 +18,18 @@ class MockFileSystem implements FileSystemOperations {
     }
   }
 
-  readTextFile(path: string): Promise<string> {
+  readTextFile(path: string): Promise<Result<string, Error>> {
     const content = this.files.get(path);
     if (content === undefined) {
-      throw new Error(`File not found: ${path}`);
+      return Promise.resolve(
+        Result.error(new Error(`File not found: ${path}`)),
+      );
     }
-    return Promise.resolve(content);
+    return Promise.resolve(Result.ok(content));
   }
 
-  exists(path: string): Promise<boolean> {
-    return Promise.resolve(this.files.has(path));
+  exists(path: string): Promise<Result<boolean, Error>> {
+    return Promise.resolve(Result.ok(this.files.has(path)));
   }
 
   // Helper methods for testing
