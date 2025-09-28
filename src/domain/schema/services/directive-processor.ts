@@ -9,6 +9,8 @@ export type DirectiveType =
   | "x-frontmatter-part"
   | "x-flatten-arrays"
   | "x-derived-from"
+  | "x-derived-unique"
+  | "x-jmespath-filter"
   | "x-template-format"
   | "x-template-items"
   | "x-template";
@@ -485,6 +487,8 @@ export class DirectiveProcessor {
       "x-frontmatter-part",
       "x-flatten-arrays",
       "x-derived-from",
+      "x-derived-unique",
+      "x-jmespath-filter",
       "x-template-format",
       "x-template-items",
       "x-template",
@@ -617,6 +621,50 @@ export class DirectiveProcessor {
         return Result.ok(undefined);
       },
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
+    });
+
+    this.handlers.set("x-derived-unique", {
+      directiveType: "x-derived-unique",
+      validate: (value: unknown) => {
+        if (typeof value !== "boolean") {
+          return Result.error({
+            kind: "InvalidDirectiveValue",
+            directive: "x-derived-unique",
+            value,
+            expected: "boolean",
+          });
+        }
+        return Result.ok(undefined);
+      },
+      process: (value: unknown, schema: SchemaData) => {
+        // Store the directive value for later processing during aggregation
+        return Result.ok({
+          ...schema,
+          "x-derived-unique": value,
+        });
+      },
+    });
+
+    this.handlers.set("x-jmespath-filter", {
+      directiveType: "x-jmespath-filter",
+      validate: (value: unknown) => {
+        if (typeof value !== "string" || value.trim().length === 0) {
+          return Result.error({
+            kind: "InvalidDirectiveValue",
+            directive: "x-jmespath-filter",
+            value,
+            expected: "non-empty string (JMESPath expression)",
+          });
+        }
+        return Result.ok(undefined);
+      },
+      process: (value: unknown, schema: SchemaData) => {
+        // Store the JMESPath expression for later filtering during aggregation
+        return Result.ok({
+          ...schema,
+          "x-jmespath-filter": value,
+        });
+      },
     });
   }
 
