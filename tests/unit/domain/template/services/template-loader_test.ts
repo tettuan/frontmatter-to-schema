@@ -1,7 +1,9 @@
-import { assertEquals, assertInstanceOf } from "jsr:@std/assert";
-import { TemplateLoader, FileSystemOperations } from "../../../../../src/domain/template/services/template-loader.ts";
+import { assertEquals } from "jsr:@std/assert";
+import {
+  FileSystemOperations,
+  TemplateLoader,
+} from "../../../../../src/domain/template/services/template-loader.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
-import { TemplateError } from "../../../../../src/domain/shared/types/errors.ts";
 
 /**
  * Mock file system implementation for testing
@@ -15,16 +17,16 @@ class MockFileSystem implements FileSystemOperations {
     }
   }
 
-  async readTextFile(path: string): Promise<string> {
+  readTextFile(path: string): Promise<string> {
     const content = this.files.get(path);
     if (content === undefined) {
       throw new Error(`File not found: ${path}`);
     }
-    return content;
+    return Promise.resolve(content);
   }
 
-  async exists(path: string): Promise<boolean> {
-    return this.files.has(path);
+  exists(path: string): Promise<boolean> {
+    return Promise.resolve(this.files.has(path));
   }
 
   // Helper methods for testing
@@ -219,7 +221,10 @@ Deno.test("TemplateLoader - loadTemplatesSuccessfully separates results and erro
 
   // Check that successful templates are included
   assertEquals(result.templates[0].getNestedProperty("title"), "Test Template");
-  assertEquals(result.templates[1].getNestedProperty("title"), "${metadata.title}");
+  assertEquals(
+    result.templates[1].getNestedProperty("title"),
+    "${metadata.title}",
+  );
 
   // Check that errors are collected
   assertEquals(result.errors[0].code, "TEMPLATE_PARSE_ERROR");
@@ -249,8 +254,8 @@ Deno.test("TemplateLoader - validateTemplate checks template validity", async ()
 Deno.test("TemplateLoader - handles file system read errors", async () => {
   const fileSystem = new MockFileSystem();
   // Override readTextFile to throw an error
-  fileSystem.readTextFile = async (_path: string) => {
-    throw new Error("File system error");
+  fileSystem.readTextFile = (_path: string) => {
+    return Promise.reject(new Error("File system error"));
   };
   fileSystem.addFile("test.json", "dummy"); // Add file so exists() returns true
 
@@ -314,8 +319,14 @@ Deno.test("TemplateLoader - complex template with nested structures", async () =
   const template = result.unwrap();
 
   assertEquals(template.getNestedProperty("header.title"), "${document.title}");
-  assertEquals(template.getNestedProperty("header.metadata.version"), "${app.version}");
-  assertEquals(template.getNestedProperty("sections.0.name"), "${section.name}");
+  assertEquals(
+    template.getNestedProperty("header.metadata.version"),
+    "${app.version}",
+  );
+  assertEquals(
+    template.getNestedProperty("sections.0.name"),
+    "${section.name}",
+  );
   assertEquals(template.getNestedProperty("sections.1.name"), "Static Section");
   assertEquals(template.getNestedProperty("footer.links.0"), "${link1}");
 });
@@ -344,6 +355,9 @@ Deno.test("TemplateLoader - concurrent template loading", async () => {
 
   // Verify each template loaded correctly
   assertEquals(results[0].unwrap().getNestedProperty("title"), "Test Template");
-  assertEquals(results[1].unwrap().getNestedProperty("title"), "${metadata.title}");
+  assertEquals(
+    results[1].unwrap().getNestedProperty("title"),
+    "${metadata.title}",
+  );
   assertEquals(Object.keys(results[2].unwrap().getContent()).length, 0);
 });

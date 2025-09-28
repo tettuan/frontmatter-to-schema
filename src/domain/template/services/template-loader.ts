@@ -1,6 +1,10 @@
 import { Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
-import { Template, TemplateData, TemplateFormat } from "../entities/template.ts";
+import {
+  Template,
+  TemplateData,
+  TemplateFormat,
+} from "../entities/template.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
 
 /**
@@ -30,7 +34,9 @@ export class TemplateLoader {
    * Loads a template from the specified path.
    * Currently supports JSON format only.
    */
-  async loadTemplate(templatePath: TemplatePath): Promise<Result<Template, TemplateError>> {
+  async loadTemplate(
+    templatePath: TemplatePath,
+  ): Promise<Result<Template, TemplateError>> {
     try {
       // Check if file exists
       const pathString = templatePath.toString();
@@ -84,9 +90,10 @@ export class TemplateLoader {
 
       // Create Template entity
       return Template.create(templatePath, templateData);
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
       return Result.error(
         new TemplateError(
           `Failed to load template: ${errorMessage}`,
@@ -134,7 +141,9 @@ export class TemplateLoader {
    * Validates that a template can be loaded without actually creating the entity.
    * Useful for checking template validity before processing.
    */
-  async validateTemplate(templatePath: TemplatePath): Promise<Result<void, TemplateError>> {
+  async validateTemplate(
+    templatePath: TemplatePath,
+  ): Promise<Result<void, TemplateError>> {
     const loadResult = await this.loadTemplate(templatePath);
 
     if (loadResult.isError()) {
@@ -176,10 +185,14 @@ export class TemplateLoader {
         case "yaml":
           return this.parseYamlContent(content);
         default:
-          return Result.error(new Error(`Unsupported template format: ${format}`));
+          return Result.error(
+            new Error(`Unsupported template format: ${format}`),
+          );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown parsing error";
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown parsing error";
       return Result.error(new Error(`Parse error: ${errorMessage}`));
     }
   }
@@ -187,17 +200,23 @@ export class TemplateLoader {
   /**
    * Parses JSON template content.
    */
-  private parseJsonContent(content: string): Result<Record<string, unknown>, Error> {
+  private parseJsonContent(
+    content: string,
+  ): Result<Record<string, unknown>, Error> {
     try {
       const parsed = JSON.parse(content);
 
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      if (
+        typeof parsed !== "object" || parsed === null || Array.isArray(parsed)
+      ) {
         return Result.error(new Error("JSON template must be an object"));
       }
 
       return Result.ok(parsed as Record<string, unknown>);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Invalid JSON";
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Invalid JSON";
       return Result.error(new Error(`JSON parsing failed: ${errorMessage}`));
     }
   }
@@ -206,7 +225,9 @@ export class TemplateLoader {
    * Parses YAML template content.
    * Currently returns an error as YAML support is not yet implemented.
    */
-  private parseYamlContent(_content: string): Result<Record<string, unknown>, Error> {
+  private parseYamlContent(
+    _content: string,
+  ): Result<Record<string, unknown>, Error> {
     return Result.error(new Error("YAML template support not yet implemented"));
   }
 }

@@ -1,7 +1,9 @@
-import { assertEquals, assertInstanceOf } from "jsr:@std/assert";
-import { Template, TemplateData } from "../../../../../src/domain/template/entities/template.ts";
+import { assertEquals } from "jsr:@std/assert";
+import {
+  Template,
+  TemplateData,
+} from "../../../../../src/domain/template/entities/template.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
-import { TemplateError } from "../../../../../src/domain/shared/types/errors.ts";
 
 // Test data factory functions
 function createValidTemplateData(): TemplateData {
@@ -113,27 +115,33 @@ Deno.test("Template - hasItemsExpansion detects {@items} patterns", () => {
   const path = TemplatePath.create("test_template.json").unwrap();
 
   // Template without items expansion
-  const regularTemplate = Template.create(path, createValidTemplateData()).unwrap();
+  const regularTemplate = Template.create(path, createValidTemplateData())
+    .unwrap();
   assertEquals(regularTemplate.hasItemsExpansion(), false);
 
   // Template with items expansion
-  const itemsTemplate = Template.create(path, createItemsTemplateData()).unwrap();
+  const itemsTemplate = Template.create(path, createItemsTemplateData())
+    .unwrap();
   assertEquals(itemsTemplate.hasItemsExpansion(), true);
 });
 
 Deno.test("Template - isItemsTemplate uses both path and content heuristics", () => {
   // Test with items content pattern
   const regularPath = TemplatePath.create("regular_template.json").unwrap();
-  const itemsTemplate = Template.create(regularPath, createItemsTemplateData()).unwrap();
+  const itemsTemplate = Template.create(regularPath, createItemsTemplateData())
+    .unwrap();
   assertEquals(itemsTemplate.isItemsTemplate(), true);
 
   // Test with items path pattern
-  const itemsPath = TemplatePath.create("registry_command_template.json").unwrap();
-  const regularTemplate = Template.create(itemsPath, createValidTemplateData()).unwrap();
+  const itemsPath = TemplatePath.create("registry_command_template.json")
+    .unwrap();
+  const regularTemplate = Template.create(itemsPath, createValidTemplateData())
+    .unwrap();
   assertEquals(regularTemplate.isItemsTemplate(), true);
 
   // Test with neither pattern
-  const normalTemplate = Template.create(regularPath, createValidTemplateData()).unwrap();
+  const normalTemplate = Template.create(regularPath, createValidTemplateData())
+    .unwrap();
   assertEquals(normalTemplate.isItemsTemplate(), false);
 });
 
@@ -155,7 +163,10 @@ Deno.test("Template - resolveVariables substitutes variables correctly", () => {
   const resolved = result.unwrap();
 
   assertEquals(resolved.getNestedProperty("title"), "Resolved Title");
-  assertEquals(resolved.getNestedProperty("description"), "Template for TestEntity");
+  assertEquals(
+    resolved.getNestedProperty("description"),
+    "Template for TestEntity",
+  );
   assertEquals(resolved.getNestedProperty("config.version"), "2.0.1");
   assertEquals(resolved.getNestedProperty("config.debug"), "true");
 });
@@ -176,7 +187,10 @@ Deno.test("Template - resolveVariables handles missing variables gracefully", ()
   const resolved = result.unwrap();
 
   assertEquals(resolved.getNestedProperty("title"), "Resolved Title");
-  assertEquals(resolved.getNestedProperty("description"), "Template for ${entity.name}");
+  assertEquals(
+    resolved.getNestedProperty("description"),
+    "Template for ${entity.name}",
+  );
   assertEquals(resolved.getNestedProperty("config.version"), "${app.version}");
 });
 
@@ -302,7 +316,10 @@ Deno.test("Template - complex variable resolution scenario", () => {
 
   assertEquals(resolved.getNestedProperty("header.title"), "Complex Document");
   assertEquals(resolved.getNestedProperty("header.metadata.version"), "3.0.0");
-  assertEquals(resolved.getNestedProperty("header.metadata.created"), "2024-01-01T00:00:00Z");
+  assertEquals(
+    resolved.getNestedProperty("header.metadata.created"),
+    "2024-01-01T00:00:00Z",
+  );
 
   const body = resolved.getNestedProperty("body") as unknown[];
   assertEquals((body[0] as any).section, "Introduction");

@@ -126,7 +126,9 @@ export class Template {
 
       return Result.ok(new Template(this.path, resolvedData));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
       return Result.error(
         new TemplateError(
           `Variable resolution failed: ${errorMessage}`,
@@ -141,7 +143,9 @@ export class Template {
    * Returns a string representation of the template.
    */
   toString(): string {
-    const itemsStatus = this.isItemsTemplate() ? "items template" : "container template";
+    const itemsStatus = this.isItemsTemplate()
+      ? "items template"
+      : "container template";
     return `Template(${this.path.toString()}, ${this.data.format}, ${itemsStatus})`;
   }
 
@@ -190,7 +194,9 @@ export class Template {
 
     if (obj && typeof obj === "object") {
       const resolved: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      for (
+        const [key, value] of Object.entries(obj as Record<string, unknown>)
+      ) {
         resolved[key] = this.resolveObject(value, variables);
       }
       return resolved;
