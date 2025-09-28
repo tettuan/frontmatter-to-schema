@@ -3,7 +3,7 @@
 import { CLI } from "./mod.ts";
 
 async function main() {
-  const cliResult = await CLI.create();
+  const cliResult = CLI.create();
   if (!cliResult.ok) {
     console.error(`Failed to initialize CLI`);
     Deno.exit(1);
