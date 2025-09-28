@@ -1,0 +1,115 @@
+import { assertEquals } from "jsr:@std/assert";
+import { Schema, SchemaId } from "../../../../../src/domain/schema/entities/schema.ts";
+import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
+
+Deno.test("Schema - create with unloaded state", () => {
+  const id = SchemaId.create("registry_schema");
+  const path = SchemaPath.create("registry_schema.json").unwrap();
+
+  const schema = Schema.create(id, path);
+
+  assertEquals(schema.getId(), id);
+  assertEquals(schema.getState().kind, "Unloaded");
+  assertEquals(schema.getState().path, path);
+});
+
+Deno.test("Schema - isLoaded returns false for unloaded schema", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+
+  assertEquals(schema.isLoaded(), false);
+});
+
+Deno.test("Schema - markAsLoading updates state", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+
+  const updatedSchema = schema.markAsLoading();
+
+  assertEquals(updatedSchema.getState().kind, "Loading");
+  assertEquals(updatedSchema.getState().path, path);
+});
+
+Deno.test("Schema - markAsResolved updates state with schema data", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+  const schemaData = { type: "object", properties: {} };
+
+  const resolvedSchema = schema.markAsResolved(schemaData);
+  const resolvedState = resolvedSchema.getState();
+
+  assertEquals(resolvedState.kind, "Resolved");
+  if (resolvedState.kind === "Resolved") {
+    assertEquals(resolvedState.schema, schemaData);
+  }
+  assertEquals(resolvedSchema.isLoaded(), true);
+});
+
+Deno.test("Schema - markAsFailed updates state with error", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+  const error = new Error("Failed to load schema");
+
+  const failedSchema = schema.markAsFailed(error);
+  const failedState = failedSchema.getState();
+
+  assertEquals(failedState.kind, "Failed");
+  if (failedState.kind === "Failed") {
+    assertEquals(failedState.error, error);
+  }
+});
+
+Deno.test("Schema - hasExtractFromDirectives checks for x-frontmatter-part", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schemaData = {
+    type: "object",
+    properties: {
+      commands: {
+        type: "array",
+        "x-frontmatter-part": true
+      }
+    }
+  };
+
+  const schema = Schema.create(id, path).markAsResolved(schemaData);
+
+  assertEquals(schema.hasExtractFromDirectives(), true);
+});
+
+Deno.test("Schema - hasExtractFromDirectives returns false without directives", () => {
+  const id = SchemaId.create("test_schema");
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schemaData = {
+    type: "object",
+    properties: {
+      commands: {
+        type: "array"
+      }
+    }
+  };
+
+  const schema = Schema.create(id, path).markAsResolved(schemaData);
+
+  assertEquals(schema.hasExtractFromDirectives(), false);
+});
+
+Deno.test("SchemaId - create generates unique identifier", () => {
+  const id1 = SchemaId.create("test_schema");
+  const id2 = SchemaId.create("test_schema");
+
+  assertEquals(id1.getValue(), "test_schema");
+  assertEquals(id2.getValue(), "test_schema");
+  assertEquals(id1.equals(id2), true);
+});
+
+Deno.test("SchemaId - different names create different ids", () => {
+  const id1 = SchemaId.create("schema1");
+  const id2 = SchemaId.create("schema2");
+
+  assertEquals(id1.equals(id2), false);
+});
