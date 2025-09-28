@@ -66,7 +66,7 @@ export interface LegacySchemaProperty {
   readonly "x-derived-from"?: string;
   readonly "x-derived-unique"?: boolean;
   readonly "x-template-items"?: string;
-  readonly "x-template-format"?: "json" | "yaml" | "markdown";
+  readonly "x-template-format"?: "json" | "yaml" | "markdown" | "xml";
   readonly "x-jmespath-filter"?: string;
   readonly "x-flatten-arrays"?: string;
   readonly description?: string;
