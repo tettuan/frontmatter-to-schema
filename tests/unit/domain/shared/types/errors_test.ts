@@ -139,7 +139,10 @@ describe("Error Types", () => {
           reason: "Incompatible data types",
         });
         assertEquals(compositionError.kind, "DataCompositionFailed");
-        assertEquals((compositionError as any).reason, "Incompatible data types");
+        assertEquals(
+          (compositionError as any).reason,
+          "Incompatible data types",
+        );
       });
     });
 
@@ -206,7 +209,10 @@ describe("Error Types", () => {
     describe("Error type discrimination", () => {
       it("should properly discriminate between error types", () => {
         const validationError = createError({ kind: "EmptyInput" });
-        const schemaError = createError({ kind: "SchemaNotFound", path: "/test" });
+        const schemaError = createError({
+          kind: "SchemaNotFound",
+          path: "/test",
+        });
         const frontmatterError = createError({ kind: "NoFrontmatter" });
 
         // Type guards would work in TypeScript

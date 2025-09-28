@@ -4,6 +4,7 @@
 - Don't create *.md and status report at project root. use tmp/ always.
 - Last `pwd` is always project root. after moving to another dir and done, return
   to Project root.
+- All `*.sh` are executable from Project root and do as expected.
 
 # MCP and CLI
 
