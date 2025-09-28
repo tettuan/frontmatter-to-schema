@@ -517,17 +517,23 @@ export class DirectiveProcessor {
     this.handlers.set("x-flatten-arrays", {
       directiveType: "x-flatten-arrays",
       validate: (value: unknown) => {
-        if (typeof value !== "boolean") {
+        if (typeof value !== "string" || value.trim().length === 0) {
           return Result.error({
             kind: "InvalidDirectiveValue",
             directive: "x-flatten-arrays",
             value,
-            expected: "boolean",
+            expected: "non-empty string (property name to flatten)",
           });
         }
         return Result.ok(undefined);
       },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
+      process: (value: unknown, schema: SchemaData) => {
+        // Store the property name for later flattening during frontmatter processing
+        return Result.ok({
+          ...schema,
+          "x-flatten-arrays": value,
+        });
+      },
     });
 
     this.handlers.set("x-derived-from", {
