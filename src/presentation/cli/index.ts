@@ -148,7 +148,7 @@ COMMANDS:
 
         Arguments:
             schema      Path to JSON schema file
-            template    Path to JSON template file
+            template    Path to template file (JSON or YAML)
             input       Path to markdown file or directory
             output      Path for output file
             format      Output format: json or yaml (default: json)
