@@ -1,6 +1,6 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import { ensureDir, ensureFile } from "jsr:@std/fs";
-import { join } from "@std/path";
+import { join } from "jsr:@std/path";
 import { DenoFileSystemAdapter } from "../../src/infrastructure/adapters/deno-file-system-adapter.ts";
 
 /**

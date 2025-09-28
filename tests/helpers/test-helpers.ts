@@ -1,5 +1,5 @@
 import { ensureDir } from "jsr:@std/fs";
-import { join } from "@std/path";
+import { join } from "jsr:@std/path";
 
 /**
  * Test utilities and helpers for consistent test setup and teardown
