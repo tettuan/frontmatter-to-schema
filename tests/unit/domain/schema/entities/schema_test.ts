@@ -1,5 +1,8 @@
 import { assertEquals } from "jsr:@std/assert";
-import { Schema, SchemaId } from "../../../../../src/domain/schema/entities/schema.ts";
+import {
+  Schema,
+  SchemaId,
+} from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 
 Deno.test("Schema - create with unloaded state", () => {
@@ -71,9 +74,9 @@ Deno.test("Schema - hasExtractFromDirectives checks for x-frontmatter-part", () 
     properties: {
       commands: {
         type: "array",
-        "x-frontmatter-part": true
-      }
-    }
+        "x-frontmatter-part": true,
+      },
+    },
   };
 
   const schema = Schema.create(id, path).markAsResolved(schemaData);
@@ -88,9 +91,9 @@ Deno.test("Schema - hasExtractFromDirectives returns false without directives", 
     type: "object",
     properties: {
       commands: {
-        type: "array"
-      }
-    }
+        type: "array",
+      },
+    },
   };
 
   const schema = Schema.create(id, path).markAsResolved(schemaData);

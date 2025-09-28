@@ -37,7 +37,8 @@ Deno.test("TemplatePath - reject path without extension", () => {
 });
 
 Deno.test("TemplatePath - getBasename returns filename", () => {
-  const templatePath = TemplatePath.create("path/to/registry_template.json").unwrap();
+  const templatePath = TemplatePath.create("path/to/registry_template.json")
+    .unwrap();
 
   assertEquals(templatePath.getBasename(), "registry_template.json");
 });
@@ -58,9 +59,11 @@ Deno.test("TemplatePath - equals compares paths correctly", () => {
 });
 
 Deno.test("TemplatePath - isItemsTemplate detects items template patterns", () => {
-  const itemsTemplate = TemplatePath.create("registry_command_template.json").unwrap();
+  const itemsTemplate = TemplatePath.create("registry_command_template.json")
+    .unwrap();
   const itemsTemplate2 = TemplatePath.create("item_template.json").unwrap();
-  const containerTemplate = TemplatePath.create("registry_template.json").unwrap();
+  const containerTemplate = TemplatePath.create("registry_template.json")
+    .unwrap();
 
   assertEquals(itemsTemplate.isItemsTemplate(), true);
   assertEquals(itemsTemplate2.isItemsTemplate(), true);
@@ -69,7 +72,8 @@ Deno.test("TemplatePath - isItemsTemplate detects items template patterns", () =
 
 Deno.test("TemplatePath - getDirectory returns directory path", () => {
   const absolutePath = TemplatePath.create("/path/to/template.json").unwrap();
-  const relativePath = TemplatePath.create("./templates/template.json").unwrap();
+  const relativePath = TemplatePath.create("./templates/template.json")
+    .unwrap();
   const localPath = TemplatePath.create("template.json").unwrap();
 
   assertEquals(absolutePath.getDirectory(), "/path/to");

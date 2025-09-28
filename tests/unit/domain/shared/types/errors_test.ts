@@ -1,5 +1,10 @@
 import { assertEquals } from "jsr:@std/assert";
-import { DomainError, SchemaError, FrontmatterError, TemplateError } from "../../../../../src/domain/shared/types/errors.ts";
+import {
+  DomainError,
+  FrontmatterError,
+  SchemaError,
+  TemplateError,
+} from "../../../../../src/domain/shared/types/errors.ts";
 
 Deno.test("DomainError - base error with message", () => {
   const error = new DomainError("Test error", "TEST_ERROR");
@@ -14,15 +19,24 @@ Deno.test("SchemaError - schema-specific error", () => {
 
   assertEquals(error.message, "Invalid schema format");
   assertEquals(error.code, "INVALID_SCHEMA");
-  assertEquals(error.toString(), "SchemaError [INVALID_SCHEMA]: Invalid schema format");
+  assertEquals(
+    error.toString(),
+    "SchemaError [INVALID_SCHEMA]: Invalid schema format",
+  );
 });
 
 Deno.test("FrontmatterError - frontmatter-specific error", () => {
-  const error = new FrontmatterError("Failed to parse frontmatter", "PARSE_ERROR");
+  const error = new FrontmatterError(
+    "Failed to parse frontmatter",
+    "PARSE_ERROR",
+  );
 
   assertEquals(error.message, "Failed to parse frontmatter");
   assertEquals(error.code, "PARSE_ERROR");
-  assertEquals(error.toString(), "FrontmatterError [PARSE_ERROR]: Failed to parse frontmatter");
+  assertEquals(
+    error.toString(),
+    "FrontmatterError [PARSE_ERROR]: Failed to parse frontmatter",
+  );
 });
 
 Deno.test("TemplateError - template-specific error", () => {
@@ -30,7 +44,10 @@ Deno.test("TemplateError - template-specific error", () => {
 
   assertEquals(error.message, "Template not found");
   assertEquals(error.code, "TEMPLATE_NOT_FOUND");
-  assertEquals(error.toString(), "TemplateError [TEMPLATE_NOT_FOUND]: Template not found");
+  assertEquals(
+    error.toString(),
+    "TemplateError [TEMPLATE_NOT_FOUND]: Template not found",
+  );
 });
 
 Deno.test("Error inheritance", () => {

@@ -17,7 +17,7 @@ export class SchemaPath {
 
     if (trimmedPath.length === 0) {
       return Result.error(
-        new SchemaError("Schema path cannot be empty", "EMPTY_PATH", { path })
+        new SchemaError("Schema path cannot be empty", "EMPTY_PATH", { path }),
       );
     }
 
@@ -26,8 +26,8 @@ export class SchemaPath {
         new SchemaError(
           "Schema path must have .json extension",
           "INVALID_EXTENSION",
-          { path }
-        )
+          { path },
+        ),
       );
     }
 
@@ -47,7 +47,7 @@ export class SchemaPath {
   getBasename(): string {
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastSlashIndex >= 0) {
@@ -80,10 +80,10 @@ export class SchemaPath {
 
     // Common patterns for reference schemas
     return schemaName.includes("_command_") ||
-           schemaName.includes("_item_") ||
-           schemaName.includes("_ref_") ||
-           (schemaName.endsWith("_schema") &&
-            schemaName !== "schema" &&
-            !schemaName.startsWith("registry_"));
+      schemaName.includes("_item_") ||
+      schemaName.includes("_ref_") ||
+      (schemaName.endsWith("_schema") &&
+        schemaName !== "schema" &&
+        !schemaName.startsWith("registry_"));
   }
 }

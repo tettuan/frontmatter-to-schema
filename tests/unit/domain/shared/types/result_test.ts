@@ -20,17 +20,25 @@ Deno.test("Result - Error case", () => {
 Deno.test("Result - unwrap() throws on error", () => {
   const result = Result.error("error message");
 
-  assertThrows(() => {
-    result.unwrap();
-  }, Error, "Result is an error");
+  assertThrows(
+    () => {
+      result.unwrap();
+    },
+    Error,
+    "Result is an error",
+  );
 });
 
 Deno.test("Result - unwrapError() throws on success", () => {
   const result = Result.ok("success value");
 
-  assertThrows(() => {
-    result.unwrapError();
-  }, Error, "Result is not an error");
+  assertThrows(
+    () => {
+      result.unwrapError();
+    },
+    Error,
+    "Result is not an error",
+  );
 });
 
 Deno.test("Result - map transforms success value", () => {
@@ -50,14 +58,14 @@ Deno.test("Result - map does not transform error", () => {
 
 Deno.test("Result - mapError transforms error", () => {
   const result = Result.error("original error");
-  const mapped = result.mapError(err => `transformed: ${err}`);
+  const mapped = result.mapError((err) => `transformed: ${err}`);
 
   assertEquals(mapped.unwrapError(), "transformed: original error");
 });
 
 Deno.test("Result - mapError does not transform success", () => {
   const result = Result.ok("success value");
-  const mapped = result.mapError(err => `transformed: ${err}`);
+  const mapped = result.mapError((err) => `transformed: ${err}`);
 
   assertEquals(mapped.isOk(), true);
   assertEquals(mapped.unwrap(), "success value");
@@ -83,13 +91,13 @@ Deno.test("Result - match handles both cases", () => {
   const errorResult = Result.error("test error");
 
   const successMessage = successResult.match(
-    value => `Success: ${value}`,
-    error => `Error: ${error}`
+    (value) => `Success: ${value}`,
+    (error) => `Error: ${error}`,
   );
 
   const errorMessage = errorResult.match(
-    value => `Success: ${value}`,
-    error => `Error: ${error}`
+    (value) => `Success: ${value}`,
+    (error) => `Error: ${error}`,
   );
 
   assertEquals(successMessage, "Success: 42");

@@ -18,8 +18,8 @@ export class FrontmatterData {
         new FrontmatterError(
           "Frontmatter data cannot be null or undefined",
           "INVALID_DATA",
-          { data }
-        )
+          { data },
+        ),
       );
     }
 
@@ -28,8 +28,8 @@ export class FrontmatterData {
         new FrontmatterError(
           "Frontmatter data must be an object",
           "INVALID_DATA",
-          { data, type: typeof data }
-        )
+          { data, type: typeof data },
+        ),
       );
     }
 

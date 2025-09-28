@@ -33,7 +33,8 @@ Deno.test("FlattenArraysDirective - reject whitespace-only properties", () => {
 });
 
 Deno.test("FlattenArraysDirective - isApplicable returns true for valid directive", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability").unwrap();
+  const directive = FlattenArraysDirective.create("items", "traceability")
+    .unwrap();
 
   assertEquals(directive.isApplicable(), true);
 });
@@ -47,25 +48,30 @@ Deno.test("FlattenArraysDirective - createOptional creates optional directive", 
 });
 
 Deno.test("FlattenArraysDirective - default directive is not optional", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability").unwrap();
+  const directive = FlattenArraysDirective.create("items", "traceability")
+    .unwrap();
 
   assertEquals(directive.isOptional(), false);
 });
 
 Deno.test("FlattenArraysDirective - equals compares directives correctly", () => {
-  const directive1 = FlattenArraysDirective.create("items", "traceability").unwrap();
-  const directive2 = FlattenArraysDirective.create("items", "traceability").unwrap();
-  const directive3 = FlattenArraysDirective.create("items", "different").unwrap();
+  const directive1 = FlattenArraysDirective.create("items", "traceability")
+    .unwrap();
+  const directive2 = FlattenArraysDirective.create("items", "traceability")
+    .unwrap();
+  const directive3 = FlattenArraysDirective.create("items", "different")
+    .unwrap();
 
   assertEquals(directive1.equals(directive2), true);
   assertEquals(directive1.equals(directive3), false);
 });
 
 Deno.test("FlattenArraysDirective - toString provides readable representation", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability").unwrap();
+  const directive = FlattenArraysDirective.create("items", "traceability")
+    .unwrap();
 
   assertEquals(
     directive.toString(),
-    "FlattenArraysDirective(target: items, source: traceability, optional: false)"
+    "FlattenArraysDirective(target: items, source: traceability, optional: false)",
   );
 });

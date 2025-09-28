@@ -2,9 +2,9 @@
 
 import { CLI } from "./mod.ts";
 
-async function main() {
-  const cliResult = await CLI.create();
-  if (!cliResult.ok) {
+function main() {
+  const cliResult = CLI.create();
+  if (!cliResult.ok || !cliResult.data) {
     console.error(`Failed to initialize CLI`);
     Deno.exit(1);
   }
@@ -12,16 +12,16 @@ async function main() {
   const cli = cliResult.data;
   const args = Deno.args;
 
-  const result = await cli.run(args);
+  const result = cli.run(args);
 
   if (!result.ok) {
-    const errorMessage =
-      "message" in result.error && typeof result.error.message === "string"
+    const errorMessage = result.error && typeof result.error === "object" &&
+      ("message" in result.error && typeof result.error.message === "string"
         ? result.error.message
         : "kind" in result.error && typeof result.error.kind === "string"
         ? result.error.kind
-        : "Unknown error";
-    console.error(`CLI Error: ${errorMessage}`);
+        : "Unknown error");
+    console.error(`CLI Error: ${errorMessage || "Unknown error"}`);
     Deno.exit(1);
   }
 
@@ -30,7 +30,7 @@ async function main() {
 
 if (import.meta.main) {
   try {
-    await main();
+    main();
   } catch (error) {
     console.error("Unexpected error:", error);
     Deno.exit(1);

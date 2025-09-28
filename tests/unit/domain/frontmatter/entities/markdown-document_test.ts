@@ -1,5 +1,8 @@
 import { assertEquals } from "jsr:@std/assert";
-import { MarkdownDocument, DocumentId } from "../../../../../src/domain/frontmatter/entities/markdown-document.ts";
+import {
+  DocumentId,
+  MarkdownDocument,
+} from "../../../../../src/domain/frontmatter/entities/markdown-document.ts";
 import { FilePath } from "../../../../../src/domain/shared/value-objects/file-path.ts";
 import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 
@@ -88,9 +91,21 @@ Deno.test("MarkdownDocument - isMarkdownFile checks file extension", () => {
   const mdxPath = FilePath.create("/path/to/document.mdx").unwrap();
   const txtPath = FilePath.create("/path/to/document.txt").unwrap();
 
-  const mdDoc = MarkdownDocument.create(DocumentId.create("md"), mdPath, "content");
-  const mdxDoc = MarkdownDocument.create(DocumentId.create("mdx"), mdxPath, "content");
-  const txtDoc = MarkdownDocument.create(DocumentId.create("txt"), txtPath, "content");
+  const mdDoc = MarkdownDocument.create(
+    DocumentId.create("md"),
+    mdPath,
+    "content",
+  );
+  const mdxDoc = MarkdownDocument.create(
+    DocumentId.create("mdx"),
+    mdxPath,
+    "content",
+  );
+  const txtDoc = MarkdownDocument.create(
+    DocumentId.create("txt"),
+    txtPath,
+    "content",
+  );
 
   assertEquals(mdDoc.isMarkdownFile(), true);
   assertEquals(mdxDoc.isMarkdownFile(), true);

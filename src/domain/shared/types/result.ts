@@ -7,7 +7,7 @@ export class Result<T, E> {
   private constructor(
     private readonly _isOk: boolean,
     private readonly _value?: T,
-    private readonly _error?: E
+    private readonly _error?: E,
   ) {}
 
   /**

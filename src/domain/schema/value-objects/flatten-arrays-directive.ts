@@ -9,7 +9,7 @@ export class FlattenArraysDirective {
   private constructor(
     private readonly targetPropertyName: string,
     private readonly sourcePropertyName: string,
-    private readonly optional: boolean = false
+    private readonly optional: boolean = false,
   ) {}
 
   /**
@@ -18,7 +18,7 @@ export class FlattenArraysDirective {
    */
   static create(
     targetProperty: string,
-    sourceProperty: string
+    sourceProperty: string,
   ): Result<FlattenArraysDirective, SchemaError> {
     const trimmedTarget = targetProperty.trim();
     const trimmedSource = sourceProperty.trim();
@@ -28,8 +28,8 @@ export class FlattenArraysDirective {
         new SchemaError(
           "Target property name cannot be empty",
           "EMPTY_TARGET_PROPERTY",
-          { targetProperty }
-        )
+          { targetProperty },
+        ),
       );
     }
 
@@ -38,13 +38,13 @@ export class FlattenArraysDirective {
         new SchemaError(
           "Source property name cannot be empty",
           "EMPTY_SOURCE_PROPERTY",
-          { sourceProperty }
-        )
+          { sourceProperty },
+        ),
       );
     }
 
     return Result.ok(
-      new FlattenArraysDirective(trimmedTarget, trimmedSource, false)
+      new FlattenArraysDirective(trimmedTarget, trimmedSource, false),
     );
   }
 
@@ -54,14 +54,16 @@ export class FlattenArraysDirective {
    */
   static createOptional(
     targetProperty: string,
-    sourceProperty: string
+    sourceProperty: string,
   ): Result<FlattenArraysDirective, SchemaError> {
     return this.create(targetProperty, sourceProperty)
-      .map(directive => new FlattenArraysDirective(
-        directive.targetPropertyName,
-        directive.sourcePropertyName,
-        true
-      ));
+      .map((directive) =>
+        new FlattenArraysDirective(
+          directive.targetPropertyName,
+          directive.sourcePropertyName,
+          true,
+        )
+      );
   }
 
   /**
@@ -99,8 +101,8 @@ export class FlattenArraysDirective {
    */
   equals(other: FlattenArraysDirective): boolean {
     return this.targetPropertyName === other.targetPropertyName &&
-           this.sourcePropertyName === other.sourcePropertyName &&
-           this.optional === other.optional;
+      this.sourcePropertyName === other.sourcePropertyName &&
+      this.optional === other.optional;
   }
 
   /**

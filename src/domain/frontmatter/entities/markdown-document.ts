@@ -17,7 +17,9 @@ export class DocumentId {
   static fromPath(path: FilePath): DocumentId {
     const basename = path.getBasename();
     const lastDotIndex = basename.lastIndexOf(".");
-    const nameWithoutExt = lastDotIndex > 0 ? basename.substring(0, lastDotIndex) : basename;
+    const nameWithoutExt = lastDotIndex > 0
+      ? basename.substring(0, lastDotIndex)
+      : basename;
     return new DocumentId(nameWithoutExt);
   }
 
@@ -43,7 +45,7 @@ export class MarkdownDocument {
     private readonly id: DocumentId,
     private readonly path: FilePath,
     private readonly content: string,
-    private readonly frontmatter?: FrontmatterData
+    private readonly frontmatter?: FrontmatterData,
   ) {}
 
   /**
@@ -53,7 +55,7 @@ export class MarkdownDocument {
     id: DocumentId,
     path: FilePath,
     content: string,
-    frontmatter?: FrontmatterData
+    frontmatter?: FrontmatterData,
   ): MarkdownDocument {
     return new MarkdownDocument(id, path, content, frontmatter);
   }
@@ -133,7 +135,9 @@ export class MarkdownDocument {
    * Returns a string representation of the document.
    */
   toString(): string {
-    const frontmatterStatus = this.hasFrontmatter() ? "with frontmatter" : "no frontmatter";
+    const frontmatterStatus = this.hasFrontmatter()
+      ? "with frontmatter"
+      : "no frontmatter";
     return `MarkdownDocument(${this.id.toString()}, ${this.path.toString()}, ${frontmatterStatus})`;
   }
 

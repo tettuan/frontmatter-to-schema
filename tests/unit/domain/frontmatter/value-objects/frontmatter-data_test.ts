@@ -59,8 +59,8 @@ Deno.test("FrontmatterData - getNestedProperty with dot notation", () => {
   const data = {
     metadata: {
       title: "Nested Title",
-      author: { name: "John", email: "john@example.com" }
-    }
+      author: { name: "John", email: "john@example.com" },
+    },
   };
   const frontmatter = FrontmatterData.create(data).unwrap();
 
@@ -73,7 +73,7 @@ Deno.test("FrontmatterData - getArrayProperty returns array values", () => {
   const data = {
     tags: ["test", "demo"],
     categories: ["tech"],
-    description: "Not an array"
+    description: "Not an array",
   };
   const frontmatter = FrontmatterData.create(data).unwrap();
 
@@ -100,7 +100,8 @@ Deno.test("FrontmatterData - merge combines data from multiple sources", () => {
 
 Deno.test("FrontmatterData - isEmpty checks for empty data", () => {
   const emptyFrontmatter = FrontmatterData.create({}).unwrap();
-  const nonEmptyFrontmatter = FrontmatterData.create({ title: "Test" }).unwrap();
+  const nonEmptyFrontmatter = FrontmatterData.create({ title: "Test" })
+    .unwrap();
 
   assertEquals(emptyFrontmatter.isEmpty(), true);
   assertEquals(nonEmptyFrontmatter.isEmpty(), false);

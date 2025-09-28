@@ -17,7 +17,9 @@ export class TemplatePath {
 
     if (trimmedPath.length === 0) {
       return Result.error(
-        new TemplateError("Template path cannot be empty", "EMPTY_PATH", { path })
+        new TemplateError("Template path cannot be empty", "EMPTY_PATH", {
+          path,
+        }),
       );
     }
 
@@ -26,8 +28,8 @@ export class TemplatePath {
         new TemplateError(
           "Template path must have .json extension",
           "INVALID_EXTENSION",
-          { path }
-        )
+          { path },
+        ),
       );
     }
 
@@ -47,7 +49,7 @@ export class TemplatePath {
   getBasename(): string {
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastSlashIndex >= 0) {
@@ -70,7 +72,7 @@ export class TemplatePath {
   getDirectory(): string {
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastSlashIndex > 0) {
@@ -98,8 +100,8 @@ export class TemplatePath {
 
     // Common patterns for items templates
     return templateName.includes("_command_") ||
-           templateName.includes("_item") ||
-           templateName.endsWith("_item") ||
-           templateName.startsWith("item_");
+      templateName.includes("_item") ||
+      templateName.endsWith("_item") ||
+      templateName.startsWith("item_");
   }
 }

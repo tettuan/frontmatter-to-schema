@@ -17,7 +17,7 @@ export class FilePath {
 
     if (trimmedPath.length === 0) {
       return Result.error(
-        new DomainError("Path cannot be empty", "EMPTY_PATH", { path })
+        new DomainError("Path cannot be empty", "EMPTY_PATH", { path }),
       );
     }
 
@@ -39,7 +39,7 @@ export class FilePath {
     const lastDotIndex = this.value.lastIndexOf(".");
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastDotIndex > lastSlashIndex && lastDotIndex > 0) {
@@ -54,7 +54,7 @@ export class FilePath {
   getBasename(): string {
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastSlashIndex >= 0) {
@@ -69,7 +69,7 @@ export class FilePath {
   getDirectory(): string {
     const lastSlashIndex = Math.max(
       this.value.lastIndexOf("/"),
-      this.value.lastIndexOf("\\")
+      this.value.lastIndexOf("\\"),
     );
 
     if (lastSlashIndex > 0) {
@@ -86,7 +86,7 @@ export class FilePath {
    */
   isAbsolute(): boolean {
     return this.value.startsWith("/") ||
-           (this.value.length > 1 && this.value[1] === ":"); // Windows drive letter
+      (this.value.length > 1 && this.value[1] === ":"); // Windows drive letter
   }
 
   /**

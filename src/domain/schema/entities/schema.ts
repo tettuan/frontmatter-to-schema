@@ -51,7 +51,7 @@ export interface SchemaData {
 export class Schema {
   private constructor(
     private readonly id: SchemaId,
-    private readonly state: SchemaState
+    private readonly state: SchemaState,
   ) {}
 
   /**
@@ -96,7 +96,7 @@ export class Schema {
     return new Schema(this.id, {
       kind: "Resolved",
       path: this.state.path,
-      schema: schemaData
+      schema: schemaData,
     });
   }
 
@@ -107,7 +107,7 @@ export class Schema {
     return new Schema(this.id, {
       kind: "Failed",
       path: this.state.path,
-      error
+      error,
     });
   }
 
@@ -128,7 +128,7 @@ export class Schema {
    * Recursively checks for x-frontmatter-part directives in properties.
    */
   private hasXFrontmatterPartInProperties(
-    properties: Record<string, unknown> | undefined
+    properties: Record<string, unknown> | undefined,
   ): boolean {
     if (!properties) {
       return false;
@@ -142,7 +142,12 @@ export class Schema {
       // Check nested properties
       if (typeof property === "object" && property !== null) {
         const propObj = property as Record<string, unknown>;
-        if (propObj.properties && this.hasXFrontmatterPartInProperties(propObj.properties as Record<string, unknown>)) {
+        if (
+          propObj.properties &&
+          this.hasXFrontmatterPartInProperties(
+            propObj.properties as Record<string, unknown>,
+          )
+        ) {
           return true;
         }
       }
