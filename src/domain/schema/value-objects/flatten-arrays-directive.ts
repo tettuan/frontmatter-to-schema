@@ -15,16 +15,34 @@ export class FlattenArraysDirective {
    * The property name must be non-empty.
    */
   static create(
-    propertyName: string,
+    value: unknown,
   ): Result<FlattenArraysDirective, SchemaError> {
-    const trimmedName = propertyName.trim();
+    if (typeof value !== "string") {
+      return Result.error(
+        new SchemaError(
+          "x-flatten-arrays directive value must be a string",
+          "INVALID_DIRECTIVE_VALUE",
+          {
+            directive: "x-flatten-arrays",
+            value,
+            expected: "string (property name to flatten)",
+          },
+        ),
+      );
+    }
+
+    const trimmedName = value.trim();
 
     if (trimmedName.length === 0) {
       return Result.error(
         new SchemaError(
-          "Property name for x-flatten-arrays cannot be empty",
+          "x-flatten-arrays directive property name cannot be empty",
           "EMPTY_PROPERTY_NAME",
-          { propertyName },
+          {
+            directive: "x-flatten-arrays",
+            value,
+            expected: "non-empty string (property name to flatten)",
+          },
         ),
       );
     }
