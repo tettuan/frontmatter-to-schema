@@ -404,7 +404,7 @@ export class DataProcessingInstructionDomainService {
     }
 
     try {
-      const rawSchema = this.schema.getRawSchema();
+      const rawSchema = this.schema.getDefinition().getRawSchema();
       const property = this.navigateSchemaPath(rawSchema, path);
 
       if (property && typeof property === "object") {
@@ -469,7 +469,7 @@ export class DataProcessingInstructionDomainService {
       }, "Schema is required for frontmatter part detection"));
     }
 
-    const rawSchema = this.schema.getRawSchema();
+    const rawSchema = this.schema.getDefinition().getRawSchema();
     const path = this.findFrontmatterPartInSchema(rawSchema, "");
 
     if (path) {
