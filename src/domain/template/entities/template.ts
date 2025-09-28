@@ -1,6 +1,10 @@
 import { Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { TemplatePath } from "../value-objects/template-path.ts";
+import {
+  ItemsDetectionResult,
+  ItemsDetector,
+} from "../services/items-detector.ts";
 
 /**
  * Template content types supported by the system
@@ -111,6 +115,45 @@ export class Template {
   }
 
   /**
+   * Gets detailed {@items} detection results using ItemsDetector.
+   * Returns comprehensive information about {@items} patterns in this template.
+   */
+  getItemsDetectionResult(
+    detector?: ItemsDetector,
+  ): Result<ItemsDetectionResult, TemplateError> {
+    const itemsDetector = detector ?? ItemsDetector.create();
+    return itemsDetector.detectItems(this.data.content);
+  }
+
+  /**
+   * Checks if this template requires items processing.
+   * Uses enhanced detection logic to determine if {@items} processing is needed.
+   */
+  requiresItemsProcessing(detector?: ItemsDetector): boolean {
+    const detectionResult = this.getItemsDetectionResult(detector);
+    return detectionResult.isOk() && detectionResult.unwrap().isExpandable;
+  }
+
+  /**
+   * Creates an items context for template processing.
+   * Provides context information needed for {@items} expansion.
+   */
+  createItemsContext(
+    arrayData: readonly unknown[],
+    globalVariables: Record<string, unknown> = {},
+  ): {
+    containerTemplate: Template;
+    arrayData: readonly unknown[];
+    globalVariables: Record<string, unknown>;
+  } {
+    return {
+      containerTemplate: this,
+      arrayData,
+      globalVariables,
+    };
+  }
+
+  /**
    * Creates a new template with resolved variables.
    * Variables are in the format ${variable.path} or ${variable}.
    */
@@ -206,13 +249,14 @@ export class Template {
   }
 
   /**
-   * Resolves variables in a string using ${variable.path} syntax.
+   * Resolves variables in a string using both {variable.path} and ${variable.path} syntax.
+   * Supports template examples which use {variable} format.
    */
   private resolveStringVariables(
     str: string,
     variables: Record<string, unknown>,
   ): string {
-    return str.replace(/\$\{([^}]+)\}/g, (match, variablePath) => {
+    return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
       const value = this.getVariableValue(variablePath.trim(), variables);
       return value !== undefined ? String(value) : match;
     });
