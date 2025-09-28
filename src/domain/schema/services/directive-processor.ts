@@ -1,19 +1,8 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
 import { SchemaData } from "../entities/schema.ts";
-
-/**
- * Supported x-directive types in the schema.
- */
-export type DirectiveType =
-  | "x-frontmatter-part"
-  | "x-flatten-arrays"
-  | "x-derived-from"
-  | "x-derived-unique"
-  | "x-jmespath-filter"
-  | "x-template-format"
-  | "x-template-items"
-  | "x-template";
+import { DirectiveOrderingStrategy, DirectiveType } from "../value-objects/directive-ordering-strategy.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Directive processing context for maintaining state during processing.
@@ -88,16 +77,18 @@ export interface DirectiveHandler {
  */
 export class DirectiveProcessor {
   private readonly handlers: Map<DirectiveType, DirectiveHandler> = new Map();
+  private readonly orderingStrategy: DirectiveOrderingStrategy;
 
-  private constructor() {
+  private constructor(orderingStrategy?: DirectiveOrderingStrategy) {
+    this.orderingStrategy = orderingStrategy || DirectiveOrderingStrategy.createDefault();
     this.registerDefaultHandlers();
   }
 
   /**
-   * Creates a DirectiveProcessor with default handlers.
+   * Creates a DirectiveProcessor with default handlers and ordering.
    */
-  static create(): DirectiveProcessor {
-    return new DirectiveProcessor();
+  static create(orderingStrategy?: DirectiveOrderingStrategy): DirectiveProcessor {
+    return new DirectiveProcessor(orderingStrategy);
   }
 
   /**
@@ -254,8 +245,13 @@ export class DirectiveProcessor {
     if (currentDirectives.length > 0) {
       hasDirectives = true;
 
-      // Process each directive
-      for (const directive of currentDirectives) {
+      // Sort directives according to processing order strategy
+      const sortedDirectives = currentDirectives.sort((a, b) =>
+        this.orderingStrategy.getPriority(a.type) - this.orderingStrategy.getPriority(b.type)
+      );
+
+      // Process each directive in order
+      for (const directive of sortedDirectives) {
         const handler = this.handlers.get(directive.type);
         if (!handler) {
           return Result.error({
@@ -415,29 +411,29 @@ export class DirectiveProcessor {
 
       // Check for mutually exclusive directives
       if (
-        types.includes("x-frontmatter-part") && types.includes("x-derived-from")
+        types.includes("x-frontmatter-part") && types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
       ) {
         return Result.error({
           kind: "ConflictingDirectives",
           directive1: "x-frontmatter-part",
-          directive2: "x-derived-from",
+          directive2: DIRECTIVE_NAMES.DERIVED_FROM,
           path: path.split("."),
         });
       }
 
       // Check for template directives conflicts
       const templateDirectives = types.filter((t) =>
-        t.startsWith("x-template")
+        t.startsWith(DIRECTIVE_NAMES.TEMPLATE)
       );
       if (
         templateDirectives.length > 1 &&
-        templateDirectives.includes("x-template") &&
-        templateDirectives.includes("x-template-format")
+        templateDirectives.includes(DIRECTIVE_NAMES.TEMPLATE) &&
+        templateDirectives.includes(DIRECTIVE_NAMES.TEMPLATE_FORMAT)
       ) {
         return Result.error({
           kind: "ConflictingDirectives",
-          directive1: "x-template",
-          directive2: "x-template-format",
+          directive1: DIRECTIVE_NAMES.TEMPLATE,
+          directive2: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
           path: path.split("."),
         });
       }
@@ -483,16 +479,7 @@ export class DirectiveProcessor {
    * Returns list of supported directive types.
    */
   private getSupportedDirectives(): DirectiveType[] {
-    return [
-      "x-frontmatter-part",
-      "x-flatten-arrays",
-      "x-derived-from",
-      "x-derived-unique",
-      "x-jmespath-filter",
-      "x-template-format",
-      "x-template-items",
-      "x-template",
-    ];
+    return this.orderingStrategy.getSupportedDirectives();
   }
 
   /**
@@ -502,13 +489,13 @@ export class DirectiveProcessor {
     // Default handlers will be simple validation-only handlers
     // More sophisticated handlers can be registered later
 
-    this.handlers.set("x-frontmatter-part", {
-      directiveType: "x-frontmatter-part",
+    this.handlers.set(DIRECTIVE_NAMES.FRONTMATTER_PART, {
+      directiveType: DIRECTIVE_NAMES.FRONTMATTER_PART,
       validate: (value: unknown) => {
         if (typeof value !== "boolean") {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-frontmatter-part",
+            directive: DIRECTIVE_NAMES.FRONTMATTER_PART,
             value,
             expected: "boolean",
           });
@@ -518,13 +505,13 @@ export class DirectiveProcessor {
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
     });
 
-    this.handlers.set("x-flatten-arrays", {
-      directiveType: "x-flatten-arrays",
+    this.handlers.set(DIRECTIVE_NAMES.FLATTEN_ARRAYS, {
+      directiveType: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
       validate: (value: unknown) => {
         if (typeof value !== "string" || value.trim().length === 0) {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-flatten-arrays",
+            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
             value,
             expected: "non-empty string (property name to flatten)",
           });
@@ -535,18 +522,18 @@ export class DirectiveProcessor {
         // Store the property name for later flattening during frontmatter processing
         return Result.ok({
           ...schema,
-          "x-flatten-arrays": value,
+          [DIRECTIVE_NAMES.FLATTEN_ARRAYS]: value,
         });
       },
     });
 
-    this.handlers.set("x-derived-from", {
-      directiveType: "x-derived-from",
+    this.handlers.set(DIRECTIVE_NAMES.DERIVED_FROM, {
+      directiveType: DIRECTIVE_NAMES.DERIVED_FROM,
       validate: (value: unknown) => {
         if (typeof value !== "string" && !Array.isArray(value)) {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-derived-from",
+            directive: DIRECTIVE_NAMES.DERIVED_FROM,
             value,
             expected: "string or array of strings",
           });
@@ -556,7 +543,7 @@ export class DirectiveProcessor {
         ) {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-derived-from",
+            directive: DIRECTIVE_NAMES.DERIVED_FROM,
             value,
             expected: "array of strings",
           });
@@ -566,13 +553,13 @@ export class DirectiveProcessor {
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
     });
 
-    this.handlers.set("x-template-format", {
-      directiveType: "x-template-format",
+    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE_FORMAT, {
+      directiveType: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
       validate: (value: unknown) => {
         if (typeof value !== "string") {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-template-format",
+            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
             value,
             expected: "string",
           });
@@ -581,7 +568,7 @@ export class DirectiveProcessor {
         if (!validFormats.includes(value)) {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-template-format",
+            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
             value,
             expected: `one of: ${validFormats.join(", ")}`,
           });
@@ -591,13 +578,13 @@ export class DirectiveProcessor {
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
     });
 
-    this.handlers.set("x-template-items", {
-      directiveType: "x-template-items",
+    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE_ITEMS, {
+      directiveType: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
       validate: (value: unknown) => {
         if (typeof value !== "string") {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-template-items",
+            directive: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
             value,
             expected: "string",
           });
@@ -607,13 +594,13 @@ export class DirectiveProcessor {
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
     });
 
-    this.handlers.set("x-template", {
-      directiveType: "x-template",
+    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE, {
+      directiveType: DIRECTIVE_NAMES.TEMPLATE,
       validate: (value: unknown) => {
         if (typeof value !== "string") {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-template",
+            directive: DIRECTIVE_NAMES.TEMPLATE,
             value,
             expected: "string",
           });
@@ -623,13 +610,13 @@ export class DirectiveProcessor {
       process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
     });
 
-    this.handlers.set("x-derived-unique", {
-      directiveType: "x-derived-unique",
+    this.handlers.set(DIRECTIVE_NAMES.DERIVED_UNIQUE, {
+      directiveType: DIRECTIVE_NAMES.DERIVED_UNIQUE,
       validate: (value: unknown) => {
         if (typeof value !== "boolean") {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-derived-unique",
+            directive: DIRECTIVE_NAMES.DERIVED_UNIQUE,
             value,
             expected: "boolean",
           });
@@ -640,18 +627,18 @@ export class DirectiveProcessor {
         // Store the directive value for later processing during aggregation
         return Result.ok({
           ...schema,
-          "x-derived-unique": value,
+          [DIRECTIVE_NAMES.DERIVED_UNIQUE]: value,
         });
       },
     });
 
-    this.handlers.set("x-jmespath-filter", {
-      directiveType: "x-jmespath-filter",
+    this.handlers.set(DIRECTIVE_NAMES.JMESPATH_FILTER, {
+      directiveType: DIRECTIVE_NAMES.JMESPATH_FILTER,
       validate: (value: unknown) => {
         if (typeof value !== "string" || value.trim().length === 0) {
           return Result.error({
             kind: "InvalidDirectiveValue",
-            directive: "x-jmespath-filter",
+            directive: DIRECTIVE_NAMES.JMESPATH_FILTER,
             value,
             expected: "non-empty string (JMESPath expression)",
           });
@@ -662,7 +649,7 @@ export class DirectiveProcessor {
         // Store the JMESPath expression for later filtering during aggregation
         return Result.ok({
           ...schema,
-          "x-jmespath-filter": value,
+          [DIRECTIVE_NAMES.JMESPATH_FILTER]: value,
         });
       },
     });
