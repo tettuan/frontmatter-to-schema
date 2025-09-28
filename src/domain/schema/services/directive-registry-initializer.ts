@@ -14,6 +14,9 @@ import { TemplateItemsDirectiveHandler } from "../handlers/template-items-direct
 import { JMESPathFilterDirectiveHandler } from "../handlers/jmespath-filter-directive-handler.ts";
 import { FlattenArraysDirectiveHandler } from "../handlers/flatten-arrays-directive-handler.ts";
 import { FrontmatterPartDirectiveHandler } from "../handlers/frontmatter-part-directive-handler.ts";
+import { DerivedFromDirectiveHandler } from "../handlers/derived-from-directive-handler.ts";
+import { DerivedUniqueDirectiveHandler } from "../handlers/derived-unique-directive-handler.ts";
+import { TemplateFormatDirectiveHandler } from "../handlers/template-format-directive-handler.ts";
 
 /**
  * Registry initialization result
@@ -187,10 +190,29 @@ export class DirectiveRegistryInitializer {
     }
     registeredHandlers.push("flatten-arrays");
 
-    // TODO: Add more handlers as they are implemented
-    // - DerivedFromDirectiveHandler
-    // - DerivedUniqueDirectiveHandler
-    // - TemplateFormatDirectiveHandler
+    // Register Derived From Handler
+    const derivedFromHandler = new DerivedFromDirectiveHandler();
+    const derivedFromRegisterResult = registry.registerHandler(derivedFromHandler);
+    if (!derivedFromRegisterResult.ok) {
+      return derivedFromRegisterResult;
+    }
+    registeredHandlers.push("derived-from");
+
+    // Register Derived Unique Handler
+    const derivedUniqueHandler = new DerivedUniqueDirectiveHandler();
+    const derivedUniqueRegisterResult = registry.registerHandler(derivedUniqueHandler);
+    if (!derivedUniqueRegisterResult.ok) {
+      return derivedUniqueRegisterResult;
+    }
+    registeredHandlers.push("derived-unique");
+
+    // Register Template Format Handler
+    const templateFormatHandler = new TemplateFormatDirectiveHandler();
+    const templateFormatRegisterResult = registry.registerHandler(templateFormatHandler);
+    if (!templateFormatRegisterResult.ok) {
+      return templateFormatRegisterResult;
+    }
+    registeredHandlers.push("template-format");
 
     return ok(registeredHandlers);
   }
