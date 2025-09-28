@@ -3,6 +3,7 @@ import {
   PipelineConfig,
   PipelineOrchestrator,
 } from "../../application/services/pipeline-orchestrator.ts";
+import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-system-adapter.ts";
 
 export interface CLIResponse {
   ok: boolean;
@@ -18,7 +19,8 @@ export class CLI {
   private constructor(private readonly orchestrator: PipelineOrchestrator) {}
 
   static create(): { ok: boolean; data?: CLI; error?: ProcessingError } {
-    const orchestratorResult = PipelineOrchestrator.create();
+    const fileSystem = DenoFileSystemAdapter.create();
+    const orchestratorResult = PipelineOrchestrator.create(fileSystem);
     if (orchestratorResult.isError()) {
       return {
         ok: false,
