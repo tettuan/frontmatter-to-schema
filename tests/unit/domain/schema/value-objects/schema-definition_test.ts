@@ -6,7 +6,10 @@ import { isErr, isOk } from "../../../../../src/domain/shared/types/result.ts";
 describe("SchemaDefinition", () => {
   describe("create method", () => {
     it("should create a valid SchemaDefinition with basic object schema", () => {
-      const schema = { type: "object", properties: { name: { type: "string" } } };
+      const schema = {
+        type: "object",
+        properties: { name: { type: "string" } },
+      };
       const result = SchemaDefinition.create(schema);
 
       assertEquals(isOk(result), true);
@@ -147,7 +150,10 @@ describe("SchemaDefinition", () => {
         assertEquals(isErr(propsResult), true);
         if (!propsResult.ok) {
           assertEquals(propsResult.error.kind, "PropertiesNotDefined");
-          assertEquals(propsResult.error.message, "Schema is not an object type or has no properties");
+          assertEquals(
+            propsResult.error.message,
+            "Schema is not an object type or has no properties",
+          );
         }
       }
     });
@@ -273,7 +279,10 @@ describe("SchemaDefinition", () => {
         assertEquals(isErr(extResult), true);
         if (!extResult.ok) {
           assertEquals(extResult.error.kind, "InvalidSchema");
-          assertEquals(extResult.error.message, "Extension x-missing not found");
+          assertEquals(
+            extResult.error.message,
+            "Extension x-missing not found",
+          );
         }
       }
     });
@@ -348,7 +357,10 @@ describe("SchemaDefinition", () => {
         assertEquals(isErr(templateResult), true);
         if (!templateResult.ok) {
           assertEquals(templateResult.error.kind, "TemplateNotDefined");
-          assertEquals(templateResult.error.message, "x-template extension not found");
+          assertEquals(
+            templateResult.error.message,
+            "x-template extension not found",
+          );
         }
       }
     });
@@ -510,7 +522,10 @@ describe("SchemaDefinition", () => {
         assertEquals(isErr(derivedResult), true);
         if (!derivedResult.ok) {
           assertEquals(derivedResult.error.kind, "DerivedFromNotDefined");
-          assertEquals(derivedResult.error.message, "x-derived-from extension not found");
+          assertEquals(
+            derivedResult.error.message,
+            "x-derived-from extension not found",
+          );
         }
       }
     });

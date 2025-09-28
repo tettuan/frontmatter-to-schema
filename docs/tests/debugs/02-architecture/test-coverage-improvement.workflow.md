@@ -53,8 +53,7 @@ outputs:
    deno test --allow-all | grep -E "^(ok|FAILED)" | wc -l
    ```
 
-期待される結果: カバレッジ詳細と未テスト領域の明確化
-{/xml:step}
+期待される結果: カバレッジ詳細と未テスト領域の明確化 {/xml:step}
 
 ### ステップ2: デバッグ環境設定
 
@@ -74,6 +73,7 @@ outputs:
    ```bash
    mkdir -p tmp/coverage tmp/debug
    ```
+
 {/xml:step}
 
 ### ステップ3: 段階的調査 - コア型システム
@@ -97,6 +97,7 @@ outputs:
    find src -name "schema*.ts" | xargs grep -E "class|interface"
    deno test --allow-all tests/**/schema*_test.ts 2>&1 | tail -20
    ```
+
 {/xml:step}
 
 ### ステップ4: 問題特定 - ドメインサービス
@@ -119,10 +120,10 @@ outputs:
    ```
 
 根本原因仮説:
+
 - 基盤型システムのテスト未実装
 - ドメインサービスの統合テスト不足
-- 24実行パターンテストの完全欠如
-{/xml:step}
+- 24実行パターンテストの完全欠如 {/xml:step}
 
 ### ステップ5: 検証・解決 - テスト実装優先順位
 
@@ -144,8 +145,7 @@ outputs:
 4. 優先度4: 24実行パターンテストの新規実装
    - 基本パターン12個
    - エラーパターン6個
-   - エッジケース6個
-{/xml:step}
+   - エッジケース6個 {/xml:step}
 
 ### ステップ6: 実装計画
 
@@ -175,6 +175,7 @@ outputs:
    # 各段階でのカバレッジ確認
    deno task test:coverage && echo "Current coverage achieved"
    ```
+
 {/xml:step}
 
 ## 出力

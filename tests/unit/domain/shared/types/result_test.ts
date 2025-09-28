@@ -1,6 +1,11 @@
 import { assertEquals, assertExists } from "jsr:@std/assert";
 import { describe, it } from "jsr:@std/testing/bdd";
-import { err, isErr, isOk, ok } from "../../../../../src/domain/shared/types/result.ts";
+import {
+  err,
+  isErr,
+  isOk,
+  ok,
+} from "../../../../../src/domain/shared/types/result.ts";
 import { createError } from "../../../../../src/domain/shared/types/errors.ts";
 
 describe("Result Type", () => {
@@ -204,7 +209,10 @@ describe("Result Type", () => {
         const error = result.error as any;
         if (error.kind === "JMESPathCompilationFailed") {
           assertEquals(error.expression, "[?foo == 'bar']");
-          assertEquals(error.message, "JMESPath expression compilation failed: [?foo == 'bar'] - Invalid expression");
+          assertEquals(
+            error.message,
+            "JMESPath expression compilation failed: [?foo == 'bar'] - Invalid expression",
+          );
         }
       }
     });

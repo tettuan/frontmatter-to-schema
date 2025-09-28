@@ -25,7 +25,10 @@ describe("SchemaPath", () => {
       const result = SchemaPath.create("/path/to/deep/nested/schema.yaml");
       assertEquals(isOk(result), true);
       if (result.ok) {
-        assertEquals(result.data.toString(), "/path/to/deep/nested/schema.yaml");
+        assertEquals(
+          result.data.toString(),
+          "/path/to/deep/nested/schema.yaml",
+        );
       }
     });
 
@@ -42,7 +45,10 @@ describe("SchemaPath", () => {
       assertEquals(isErr(result), true);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidSchema");
-        assertEquals(result.error.message, "Schema path must be a non-empty string");
+        assertEquals(
+          result.error.message,
+          "Schema path must be a non-empty string",
+        );
       }
     });
 
@@ -51,7 +57,10 @@ describe("SchemaPath", () => {
       assertEquals(isErr(result), true);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidSchema");
-        assertEquals(result.error.message, "Schema path must be a non-empty string");
+        assertEquals(
+          result.error.message,
+          "Schema path must be a non-empty string",
+        );
       }
     });
 
@@ -60,7 +69,10 @@ describe("SchemaPath", () => {
       assertEquals(isErr(result), true);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidSchema");
-        assertEquals(result.error.message, "Schema path must be a non-empty string");
+        assertEquals(
+          result.error.message,
+          "Schema path must be a non-empty string",
+        );
       }
     });
 
@@ -69,7 +81,10 @@ describe("SchemaPath", () => {
       assertEquals(isErr(result), true);
       if (!result.ok) {
         assertEquals(result.error.kind, "InvalidSchema");
-        assertEquals(result.error.message, "Schema path must be a non-empty string");
+        assertEquals(
+          result.error.message,
+          "Schema path must be a non-empty string",
+        );
       }
     });
 
@@ -77,7 +92,10 @@ describe("SchemaPath", () => {
       const result = SchemaPath.create("schemas/@org/package-schema.json");
       assertEquals(isOk(result), true);
       if (result.ok) {
-        assertEquals(result.data.toString(), "schemas/@org/package-schema.json");
+        assertEquals(
+          result.data.toString(),
+          "schemas/@org/package-schema.json",
+        );
       }
     });
 
@@ -200,7 +218,9 @@ describe("SchemaPath", () => {
     });
 
     it("should handle complex paths with extension", () => {
-      const result = SchemaPath.create("/very/long/path/to/nested/schema.config.json");
+      const result = SchemaPath.create(
+        "/very/long/path/to/nested/schema.config.json",
+      );
       if (result.ok) {
         assertEquals(result.data.getExtension(), ".json");
       }
@@ -246,7 +266,10 @@ describe("SchemaPath", () => {
       const result = SchemaPath.create("C:\\Users\\Documents\\schema.json");
       assertEquals(isOk(result), true);
       if (result.ok) {
-        assertEquals(result.data.toString(), "C:\\Users\\Documents\\schema.json");
+        assertEquals(
+          result.data.toString(),
+          "C:\\Users\\Documents\\schema.json",
+        );
         assertEquals(result.data.getExtension(), ".json");
       }
     });
