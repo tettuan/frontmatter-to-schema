@@ -6,17 +6,12 @@ import { DenoFileWriter } from "../../infrastructure/file-system/file-writer.ts"
 import { Schema } from "../../domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../domain/schema/value-objects/schema-path.ts";
 import { SchemaDefinition } from "../../domain/schema/value-objects/schema-definition.ts";
-// For now, not using expandGlob to avoid JSR import issues
+import { CLIArguments } from "./value-objects/cli-arguments.ts";
 
 /**
  * Minimal CLI for Three Domain Architecture
  * Simplified to focus on the core 3-domain design
  */
-export interface CLIArguments {
-  readonly schema: string;
-  readonly input: string;
-  readonly output?: string;
-}
 
 export class CLI {
   private fileReader: DenoFileReader;

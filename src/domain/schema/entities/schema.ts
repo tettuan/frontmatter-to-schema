@@ -70,23 +70,4 @@ export class Schema {
     return this.state.definition.hasFrontmatterPart();
   }
 
-  findFrontmatterPartPaths(): Result<
-    string[],
-    SchemaError & { message: string }
-  > {
-    // Simplified implementation
-    return ok([]);
-  }
-
-  findDerivedProperties(): Result<
-    Array<{
-      path: string;
-      from: string;
-      unique: boolean;
-    }>,
-    SchemaError & { message: string }
-  > {
-    // Simplified implementation
-    return ok([]);
-  }
 }
