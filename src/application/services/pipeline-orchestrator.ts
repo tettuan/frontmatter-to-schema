@@ -1,13 +1,6 @@
 import { Result } from "../../domain/shared/types/result.ts";
 import { ProcessingError } from "../../domain/shared/types/errors.ts";
-import { Schema, SchemaPath } from "../../domain/schema/index.ts";
-import { SchemaId } from "../../domain/schema/entities/schema.ts";
-import {
-  OutputRenderingService,
-  Template,
-  TemplateLoader,
-  TemplatePath,
-} from "../../domain/template/index.ts";
+import { OutputRenderingService } from "../../domain/template/index.ts";
 import {
   DocumentId,
   MarkdownDocument,
@@ -16,6 +9,12 @@ import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmat
 import { FilePath } from "../../domain/shared/value-objects/file-path.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../domain/shared/types/file-errors.ts";
+import {
+  UniversalPipeline,
+  UniversalPipelineConfig,
+} from "../universal-pipeline.ts";
+import { DocumentLoader } from "../strategies/input-processing-strategy.ts";
+import { ConfigurationManager } from "../strategies/configuration-strategy.ts";
 
 /**
  * Configuration for pipeline execution
@@ -44,14 +43,14 @@ export interface PipelineResult {
 
 /**
  * Application service for orchestrating the complete document processing pipeline.
- * Coordinates Schema, Template, and Frontmatter domains to transform documents.
- * Follows totality principles - all operations return Result<T, E>.
+ * Refactored to use Universal Pipeline with strategy patterns instead of hardcoded special cases.
+ * Eliminates architectural violations by delegating to configurable pipeline stages.
  */
-export class PipelineOrchestrator {
+export class PipelineOrchestrator implements DocumentLoader {
   private constructor(
-    private readonly templateLoader: TemplateLoader,
     private readonly outputRenderer: OutputRenderingService,
     private readonly fileSystem: FileSystemPort,
+    private readonly configManager: ConfigurationManager,
   ) {}
 
   /**
@@ -59,305 +58,126 @@ export class PipelineOrchestrator {
    */
   static create(
     fileSystem: FileSystemPort,
+    customConfig?: ConfigurationManager,
   ): Result<PipelineOrchestrator, ProcessingError> {
-    // Create template loader with FileSystemPort adapter
-    const templateLoader = TemplateLoader.create({
-      async readTextFile(path: string): Promise<Result<string, Error>> {
-        const result = await fileSystem.readTextFile(path);
-        if (result.isError()) {
-          const fileError = createFileError(result.unwrapError());
-          return Result.error(new Error(fileError.message));
-        }
-        return Result.ok(result.unwrap());
-      },
-      async exists(path: string): Promise<Result<boolean, Error>> {
-        const result = await fileSystem.exists(path);
-        if (result.isError()) {
-          const fileError = createFileError(result.unwrapError());
-          return Result.error(new Error(fileError.message));
-        }
-        return Result.ok(result.unwrap());
-      },
-    });
-
     // Create output renderer
     const outputRendererResult = OutputRenderingService.create();
     if (outputRendererResult.isError()) {
+      const configManager = customConfig || new ConfigurationManager();
+      const errorMessages = configManager.getObjectDefault("errorMessages")
+        .unwrap() as Record<string, string>;
+
       return Result.error(
         new ProcessingError(
-          `Failed to create output renderer: ${outputRendererResult.unwrapError().message}`,
+          `${
+            errorMessages["INITIALIZATION_ERROR"] ||
+            "Failed to create output renderer"
+          }: ${outputRendererResult.unwrapError().message}`,
           "INITIALIZATION_ERROR",
           { error: outputRendererResult.unwrapError() },
         ),
       );
     }
 
+    const configManager = customConfig || new ConfigurationManager();
+
     return Result.ok(
       new PipelineOrchestrator(
-        templateLoader,
         outputRendererResult.unwrap(),
         fileSystem,
+        configManager,
       ),
     );
   }
 
   /**
-   * Executes the complete processing pipeline.
+   * Executes the complete processing pipeline using Universal Pipeline.
+   * Eliminates hardcoded special cases by delegating to strategy-based processing.
    */
   async execute(
     config: PipelineConfig,
   ): Promise<Result<PipelineResult, ProcessingError>> {
-    const startTime = performance.now();
+    // Create Universal Pipeline configuration
+    const pipelineConfig: UniversalPipelineConfig = {
+      schemaPath: config.schemaPath,
+      templatePath: config.templatePath,
+      inputPath: config.inputPath,
+      outputPath: config.outputPath,
+      outputFormat: config.outputFormat,
+      customConfiguration: this.configManager,
+    };
 
-    // 1. Load and validate schema
-    const schema = await this.loadSchema(config.schemaPath);
-    if (schema.isError()) {
-      return Result.error(schema.unwrapError());
+    // Create Universal Pipeline
+    const pipelineResult = UniversalPipeline.create(
+      pipelineConfig,
+      this.fileSystem,
+      this, // PipelineOrchestrator implements DocumentLoader
+    );
+
+    if (pipelineResult.isError()) {
+      return Result.error(pipelineResult.unwrapError());
     }
 
-    // 2. Load template
-    const template = await this.loadTemplate(config.templatePath);
-    if (template.isError()) {
-      return Result.error(template.unwrapError());
+    const pipeline = pipelineResult.unwrap();
+
+    // Execute pipeline stages
+    const executionResult = await pipeline.execute();
+    if (executionResult.isError()) {
+      return Result.error(executionResult.unwrapError());
     }
 
-    // 3. Process input documents
-    const documents = await this.processInputDocuments(config.inputPath);
-    if (documents.isError()) {
-      return Result.error(documents.unwrapError());
-    }
+    const result = executionResult.unwrap();
 
-    // 4. Transform documents using schema and template
+    // Transform documents using schema and template
     const transformedData = this.transformDocuments(
-      documents.unwrap(),
-      schema.unwrap(),
-      template.unwrap(),
+      result.documents,
+      result.schema,
+      result.template,
     );
     if (transformedData.isError()) {
       return Result.error(transformedData.unwrapError());
     }
 
-    // 5. Render output
-    const outputFormat = config.outputFormat || "json";
+    // Render output using configured format (no hardcoded default)
     const renderingResult = await this.renderOutput(
-      template.unwrap(),
+      result.template,
       transformedData.unwrap(),
-      outputFormat,
+      result.outputFormat as "json" | "yaml",
       config.outputPath,
     );
     if (renderingResult.isError()) {
       return Result.error(renderingResult.unwrapError());
     }
 
-    const endTime = performance.now();
-    const executionTime = endTime - startTime;
-
     return Result.ok({
-      processedDocuments: documents.unwrap().length,
+      processedDocuments: result.documents.length,
       outputPath: config.outputPath,
-      executionTime,
+      executionTime: result.executionTime,
       metadata: {
         schemaPath: config.schemaPath,
         templatePath: config.templatePath,
-        outputFormat,
+        outputFormat: result.outputFormat,
       },
     });
   }
 
   /**
-   * Loads and validates the schema file.
+   * Implements DocumentLoader interface for Universal Pipeline.
+   * Replaces hardcoded document loading with configurable approach.
    */
-  private async loadSchema(
-    schemaPath: string,
-  ): Promise<Result<Schema, ProcessingError>> {
-    // Create schema path
-    const pathResult = SchemaPath.create(schemaPath);
-    if (pathResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Invalid schema path: ${pathResult.unwrapError().message}`,
-          "INVALID_SCHEMA_PATH",
-          { schemaPath },
-        ),
-      );
-    }
-
-    // Read schema file using FileSystemPort
-    const contentResult = await this.fileSystem.readTextFile(schemaPath);
-    if (contentResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Failed to read schema file: ${
-            createFileError(contentResult.unwrapError()).message
-          }`,
-          "SCHEMA_READ_ERROR",
-          { schemaPath, error: contentResult.unwrapError() },
-        ),
-      );
-    }
-
-    // Parse JSON
-    try {
-      JSON.parse(contentResult.unwrap());
-    } catch (error) {
-      return Result.error(
-        new ProcessingError(
-          `Invalid JSON in schema file: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          "SCHEMA_PARSE_ERROR",
-          { schemaPath, error },
-        ),
-      );
-    }
-
-    // Create schema entity
-    const schemaIdResult = SchemaId.create(
-      pathResult.unwrap().getSchemaName(),
-    );
-    if (schemaIdResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Invalid schema ID: ${schemaIdResult.unwrapError().message}`,
-          "INVALID_SCHEMA_ID",
-          { schemaPath },
-        ),
-      );
-    }
-
-    const schema = Schema.create(schemaIdResult.unwrap(), pathResult.unwrap());
-    return Result.ok(schema);
-  }
-
-  /**
-   * Loads the template file.
-   */
-  private async loadTemplate(
-    templatePath: string,
-  ): Promise<Result<Template, ProcessingError>> {
-    // Create template path
-    const pathResult = TemplatePath.create(templatePath);
-    if (pathResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Invalid template path: ${pathResult.unwrapError().message}`,
-          "INVALID_TEMPLATE_PATH",
-          { templatePath },
-        ),
-      );
-    }
-
-    // Load template using domain service
-    const templateResult = await this.templateLoader.loadTemplate(
-      pathResult.unwrap(),
-    );
-    if (templateResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Template loading failed: ${templateResult.unwrapError().message}`,
-          "TEMPLATE_LOAD_ERROR",
-          { templatePath, error: templateResult.unwrapError() },
-        ),
-      );
-    }
-
-    return Result.ok(templateResult.unwrap());
-  }
-
-  /**
-   * Processes input documents from the specified path.
-   */
-  private async processInputDocuments(
-    inputPath: string,
-  ): Promise<Result<MarkdownDocument[], ProcessingError>> {
-    // Get file info using FileSystemPort
-    const statResult = await this.fileSystem.stat(inputPath);
-    if (statResult.isError()) {
-      return Result.error(
-        new ProcessingError(
-          `Cannot access input path: ${
-            createFileError(statResult.unwrapError()).message
-          }`,
-          "INPUT_ACCESS_ERROR",
-          { inputPath, error: statResult.unwrapError() },
-        ),
-      );
-    }
-
-    const fileInfo = statResult.unwrap();
-
-    if (fileInfo.isFile) {
-      // Single file processing
-      const document = await this.loadMarkdownDocument(inputPath);
-      if (document.isError()) {
-        return Result.error(document.unwrapError());
-      }
-      return Result.ok([document.unwrap()]);
-    } else if (fileInfo.isDirectory) {
-      // Directory processing - find all markdown files
-      const dirResult = await this.fileSystem.readDir(inputPath);
-      if (dirResult.isError()) {
-        return Result.error(
-          new ProcessingError(
-            `Cannot read directory: ${
-              createFileError(dirResult.unwrapError()).message
-            }`,
-            "DIRECTORY_READ_ERROR",
-            { inputPath, error: dirResult.unwrapError() },
-          ),
-        );
-      }
-
-      const documents: MarkdownDocument[] = [];
-      const entries = dirResult.unwrap();
-
-      for (const entry of entries) {
-        if (entry.isFile && entry.name.endsWith(".md")) {
-          const filePath = `${inputPath}/${entry.name}`;
-          const document = await this.loadMarkdownDocument(filePath);
-          if (document.isOk()) {
-            documents.push(document.unwrap());
-          }
-          // Continue processing other files even if one fails
-        }
-      }
-
-      if (documents.length === 0) {
-        return Result.error(
-          new ProcessingError(
-            "No valid markdown documents found in directory",
-            "NO_DOCUMENTS_FOUND",
-            { inputPath },
-          ),
-        );
-      }
-
-      return Result.ok(documents);
-    } else {
-      return Result.error(
-        new ProcessingError(
-          "Input path must be a file or directory",
-          "INVALID_INPUT_PATH",
-          { inputPath },
-        ),
-      );
-    }
-  }
-
-  /**
-   * Loads a single markdown document.
-   */
-  private async loadMarkdownDocument(
+  async loadMarkdownDocument(
     filePath: string,
   ): Promise<Result<MarkdownDocument, ProcessingError>> {
     // Read file using FileSystemPort
     const contentResult = await this.fileSystem.readTextFile(filePath);
     if (contentResult.isError()) {
+      const errorMessages = this.configManager.getObjectDefault("errorMessages")
+        .unwrap() as Record<string, string>;
       return Result.error(
         new ProcessingError(
-          `Failed to read document: ${
-            createFileError(contentResult.unwrapError()).message
-          }`,
+          `${
+            errorMessages["DOCUMENT_READ_ERROR"] || "Failed to read document"
+          }: ${createFileError(contentResult.unwrapError()).message}`,
           "DOCUMENT_READ_ERROR",
           { filePath, error: contentResult.unwrapError() },
         ),
@@ -379,9 +199,14 @@ export class PipelineOrchestrator {
     // Parse frontmatter
     const frontmatterResult = this.parseFrontmatter(contentResult.unwrap());
     if (frontmatterResult.isError()) {
+      const errorMessages = this.configManager.getObjectDefault("errorMessages")
+        .unwrap() as Record<string, string>;
       return Result.error(
         new ProcessingError(
-          `Frontmatter parsing failed: ${frontmatterResult.unwrapError().message}`,
+          `${
+            errorMessages["FRONTMATTER_PARSE_ERROR"] ||
+            "Frontmatter parsing failed"
+          }: ${frontmatterResult.unwrapError().message}`,
           "FRONTMATTER_PARSE_ERROR",
           { filePath, error: frontmatterResult.unwrapError() },
         ),
@@ -473,11 +298,12 @@ export class PipelineOrchestrator {
 
   /**
    * Transforms documents using schema and template.
+   * Uses configuration strategy for metadata generation.
    */
   private transformDocuments(
     documents: MarkdownDocument[],
-    _schema: Schema,
-    template: Template,
+    _schema: any,
+    template: any,
   ): Result<Record<string, unknown>, ProcessingError> {
     try {
       // Extract frontmatter data from all documents
@@ -496,11 +322,21 @@ export class PipelineOrchestrator {
       }
 
       // Multiple document processing: create aggregate data structure
+      const includeMetadataResult = this.configManager.getBooleanDefault(
+        "includeMetadata",
+      );
+      const includeMetadata = includeMetadataResult.isOk()
+        ? includeMetadataResult.unwrap()
+        : true;
+
       const aggregatedData: Record<string, unknown> = {
         documents: allFrontmatterData,
         totalDocuments: documents.length,
-        processedAt: new Date().toISOString(),
       };
+
+      if (includeMetadata) {
+        aggregatedData.processedAt = new Date().toISOString();
+      }
 
       // Check if template requires {@items} processing
       if (template.hasItemsExpansion()) {
@@ -512,11 +348,14 @@ export class PipelineOrchestrator {
 
       return Result.ok(aggregatedData);
     } catch (error) {
+      const errorMessages = this.configManager.getObjectDefault("errorMessages")
+        .unwrap() as Record<string, string>;
       return Result.error(
         new ProcessingError(
-          `Document transformation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
+          `${
+            errorMessages["TRANSFORMATION_ERROR"] ||
+            "Document transformation failed"
+          }: ${error instanceof Error ? error.message : String(error)}`,
           "TRANSFORMATION_ERROR",
           { error },
         ),
@@ -526,13 +365,17 @@ export class PipelineOrchestrator {
 
   /**
    * Renders the final output and writes to file.
+   * Uses configuration strategy for error messages.
    */
   private async renderOutput(
-    template: Template,
+    template: any,
     data: Record<string, unknown>,
     format: "json" | "yaml",
     outputPath: string,
   ): Promise<Result<void, ProcessingError>> {
+    const errorMessages = this.configManager.getObjectDefault("errorMessages")
+      .unwrap() as Record<string, string>;
+
     // Render using OutputRenderingService
     const renderingResult = this.outputRenderer.renderSimple(
       template,
@@ -542,7 +385,9 @@ export class PipelineOrchestrator {
     if (renderingResult.isError()) {
       return Result.error(
         new ProcessingError(
-          `Output rendering failed: ${renderingResult.unwrapError().message}`,
+          `${
+            errorMessages["RENDERING_ERROR"] || "Output rendering failed"
+          }: ${renderingResult.unwrapError().message}`,
           "RENDERING_ERROR",
           { error: renderingResult.unwrapError() },
         ),
@@ -557,9 +402,9 @@ export class PipelineOrchestrator {
     if (writeResult.isError()) {
       return Result.error(
         new ProcessingError(
-          `Failed to write output: ${
-            createFileError(writeResult.unwrapError()).message
-          }`,
+          `${
+            errorMessages["OUTPUT_WRITE_ERROR"] || "Failed to write output"
+          }: ${createFileError(writeResult.unwrapError()).message}`,
           "OUTPUT_WRITE_ERROR",
           { outputPath, error: writeResult.unwrapError() },
         ),
