@@ -24,7 +24,9 @@ export class TemplatePath {
     }
 
     const validExtensions = [".json", ".yml", ".yaml"];
-    const hasValidExtension = validExtensions.some(ext => trimmedPath.endsWith(ext));
+    const hasValidExtension = validExtensions.some((ext) =>
+      trimmedPath.endsWith(ext)
+    );
 
     if (!hasValidExtension) {
       return Result.error(

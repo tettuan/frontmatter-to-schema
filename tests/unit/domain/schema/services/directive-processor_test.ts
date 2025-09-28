@@ -36,7 +36,7 @@ const schemaWithMultipleDirectives: SchemaData = {
     tags: {
       type: "array",
       items: { type: "string" },
-      "x-flatten-arrays": true,
+      "x-flatten-arrays": "tags",
     },
   },
   "x-template-format": "json",
@@ -382,7 +382,7 @@ Deno.test("DirectiveProcessor - handle complex nested structure", () => {
                 "x-frontmatter-part": true,
               },
             },
-            "x-flatten-arrays": true,
+            "x-flatten-arrays": "level2",
           },
         },
         "x-template-format": "json",
