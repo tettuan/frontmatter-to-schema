@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-frontmatter-part directive.
@@ -19,9 +20,13 @@ export class FrontmatterPartDirective {
     if (typeof value !== "boolean") {
       return Result.error(
         new SchemaError(
-          "x-frontmatter-part directive value must be a boolean",
+          `${DIRECTIVE_NAMES.FRONTMATTER_PART} directive value must be a boolean`,
           "INVALID_DIRECTIVE_VALUE",
-          { directive: "x-frontmatter-part", value, expected: "boolean" },
+          {
+            directive: DIRECTIVE_NAMES.FRONTMATTER_PART,
+            value,
+            expected: "boolean",
+          },
         ),
       );
     }

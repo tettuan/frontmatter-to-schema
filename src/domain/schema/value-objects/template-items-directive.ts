@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-template-items directive.
@@ -19,10 +20,10 @@ export class TemplateItemsDirective {
     if (typeof value !== "string") {
       return Result.error(
         new SchemaError(
-          "x-template-items directive value must be a string",
+          `${DIRECTIVE_NAMES.TEMPLATE_ITEMS} directive value must be a string`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-template-items",
+            directive: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
             value,
             expected: "string (template variable)",
           },
@@ -34,10 +35,10 @@ export class TemplateItemsDirective {
     if (trimmed.length === 0) {
       return Result.error(
         new SchemaError(
-          "x-template-items directive template variable cannot be empty",
+          `${DIRECTIVE_NAMES.TEMPLATE_ITEMS} directive template variable cannot be empty`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-template-items",
+            directive: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
             value,
             expected: "non-empty string (template variable)",
           },
