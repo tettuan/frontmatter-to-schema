@@ -74,29 +74,66 @@ export class Template {
    * Checks if the template contains a specific property.
    */
   hasProperty(propertyPath: string): boolean {
-    return this.getNestedProperty(propertyPath) !== undefined;
+    const result = this.getNestedProperty(propertyPath);
+    return result.isOk() && result.unwrap() !== undefined;
   }
 
   /**
    * Gets a nested property using dot notation (e.g., "metadata.title").
+   * Returns Result<T,E> following the Totality principle.
    */
-  getNestedProperty(propertyPath: string): unknown {
+  getNestedProperty(propertyPath: string): Result<unknown, TemplateError> {
+    if (!propertyPath || propertyPath.trim().length === 0) {
+      return Result.error(
+        new TemplateError(
+          "Property path cannot be empty",
+          "INVALID_PROPERTY_PATH",
+          { path: this.path.toString(), propertyPath },
+        ),
+      );
+    }
+
     const segments = propertyPath.split(".");
     let current: unknown = this.data.content;
 
     for (const segment of segments) {
-      if (
-        current === null ||
-        current === undefined ||
-        typeof current !== "object"
-      ) {
-        return undefined;
+      // Handle array indices
+      if (Array.isArray(current)) {
+        const index = parseInt(segment, 10);
+        if (isNaN(index) || index < 0 || index >= current.length) {
+          return Result.error(
+            new TemplateError(
+              `Invalid array index '${segment}' for array of length ${current.length}`,
+              "INVALID_ARRAY_INDEX",
+              {
+                path: this.path.toString(),
+                propertyPath,
+                segment,
+                arrayLength: current.length,
+              },
+            ),
+          );
+        }
+        current = current[index];
+      } else if (this.isValidObject(current)) {
+        current = current[segment];
+      } else {
+        return Result.error(
+          new TemplateError(
+            `Cannot access property '${segment}' on non-object value`,
+            "INVALID_PROPERTY_ACCESS",
+            {
+              path: this.path.toString(),
+              propertyPath,
+              segment,
+              currentType: typeof current,
+            },
+          ),
+        );
       }
-
-      current = (current as Record<string, unknown>)[segment];
     }
 
-    return current;
+    return Result.ok(current);
   }
 
   /**
@@ -200,6 +237,13 @@ export class Template {
   }
 
   /**
+   * Type guard to check if a value is a valid object for property access.
+   */
+  private isValidObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  /**
    * Recursively checks if an object contains {@items} patterns.
    */
   private containsItemsPattern(obj: unknown): boolean {
@@ -211,8 +255,8 @@ export class Template {
       return obj.some((item) => this.containsItemsPattern(item));
     }
 
-    if (obj && typeof obj === "object") {
-      return Object.values(obj as Record<string, unknown>).some((value) =>
+    if (this.isValidObject(obj)) {
+      return Object.values(obj).some((value) =>
         this.containsItemsPattern(value)
       );
     }
@@ -235,10 +279,10 @@ export class Template {
       return obj.map((item) => this.resolveObject(item, variables));
     }
 
-    if (obj && typeof obj === "object") {
+    if (this.isValidObject(obj)) {
       const resolved: Record<string, unknown> = {};
       for (
-        const [key, value] of Object.entries(obj as Record<string, unknown>)
+        const [key, value] of Object.entries(obj)
       ) {
         resolved[key] = this.resolveObject(value, variables);
       }
@@ -257,33 +301,55 @@ export class Template {
     variables: Record<string, unknown>,
   ): string {
     return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
-      const value = this.getVariableValue(variablePath.trim(), variables);
-      return value !== undefined ? String(value) : match;
+      const result = this.getVariableValue(variablePath.trim(), variables);
+      if (result.isOk()) {
+        const value = result.unwrap();
+        return value !== undefined ? String(value) : match;
+      }
+      return match; // Keep original if variable resolution fails
     });
   }
 
   /**
    * Gets a variable value using dot notation.
+   * Returns Result<T,E> following the Totality principle.
    */
   private getVariableValue(
     path: string,
     variables: Record<string, unknown>,
-  ): unknown {
+  ): Result<unknown, TemplateError> {
+    if (!path || path.trim().length === 0) {
+      return Result.error(
+        new TemplateError(
+          "Variable path cannot be empty",
+          "INVALID_VARIABLE_PATH",
+          { path: this.path.toString(), variablePath: path },
+        ),
+      );
+    }
+
     const segments = path.split(".");
     let current: unknown = variables;
 
     for (const segment of segments) {
-      if (
-        current === null ||
-        current === undefined ||
-        typeof current !== "object"
-      ) {
-        return undefined;
+      if (!this.isValidObject(current)) {
+        return Result.error(
+          new TemplateError(
+            `Cannot access variable '${segment}' on non-object value`,
+            "INVALID_VARIABLE_ACCESS",
+            {
+              path: this.path.toString(),
+              variablePath: path,
+              segment,
+              currentType: typeof current,
+            },
+          ),
+        );
       }
 
-      current = (current as Record<string, unknown>)[segment];
+      current = current[segment];
     }
 
-    return current;
+    return Result.ok(current);
   }
 }

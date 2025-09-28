@@ -132,9 +132,7 @@ export class ItemsExpander {
     const itemContext: Record<string, unknown> = {
       ...globalVariables,
       // Array item data becomes the root context
-      ...(this.isObject(arrayItem)
-        ? arrayItem as Record<string, unknown>
-        : { value: arrayItem }),
+      ...(this.isObject(arrayItem) ? arrayItem : { value: arrayItem }),
       // Add array context variables
       $index: itemIndex,
       $first: itemIndex === 0,
@@ -229,6 +227,7 @@ export class ItemsExpander {
         containerContent,
         expandedItems,
       );
+      // Safe assertion: caller ensures containerContent is a Record<string, unknown>
       return Result.ok(replaced as Record<string, unknown>);
     } catch (error) {
       const errorMessage = error instanceof Error
@@ -260,7 +259,7 @@ export class ItemsExpander {
     if (this.isObject(obj)) {
       const result: Record<string, unknown> = {};
       for (
-        const [key, value] of Object.entries(obj as Record<string, unknown>)
+        const [key, value] of Object.entries(obj)
       ) {
         const replacedValue = this.replaceItemsInObject(value, expandedItems);
 
@@ -306,7 +305,7 @@ export class ItemsExpander {
   /**
    * Type guard for objects.
    */
-  private isObject(value: unknown): boolean {
+  private isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" &&
       value !== null &&
       !Array.isArray(value);

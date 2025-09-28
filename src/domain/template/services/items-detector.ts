@@ -174,9 +174,9 @@ export class ItemsDetector {
         }
         patterns.push(...itemResult.unwrap());
       }
-    } else if (obj && typeof obj === "object") {
+    } else if (this.isObject(obj)) {
       for (
-        const [key, value] of Object.entries(obj as Record<string, unknown>)
+        const [key, value] of Object.entries(obj)
       ) {
         const childResult = this.findItemsPatterns(value, [
           ...currentPath,
@@ -308,5 +308,12 @@ export class ItemsDetector {
           { patterns: error.patterns },
         );
     }
+  }
+
+  /**
+   * Type guard to check if a value is a plain object.
+   */
+  private isObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 }

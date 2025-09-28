@@ -302,7 +302,7 @@ export class DirectiveProcessor {
           };
 
           const nestedResult = this.processSchemaDirectives(
-            value as SchemaData,
+            value,
             nestedContext,
           );
 
@@ -343,9 +343,8 @@ export class DirectiveProcessor {
 
     for (const [key, value] of Object.entries(schema)) {
       if (this.isDirectiveProperty(key)) {
-        const directiveType = key as DirectiveType;
         directives.push({
-          type: directiveType,
+          type: key,
           value,
           path: context.currentPath,
           context,
@@ -380,7 +379,7 @@ export class DirectiveProcessor {
 
           directives.push(
             ...this.extractDirectivesRecursive(
-              value as SchemaData,
+              value,
               nestedContext,
             ),
           );
@@ -463,7 +462,7 @@ export class DirectiveProcessor {
   /**
    * Checks if a property key is a directive.
    */
-  private isDirectiveProperty(key: string): boolean {
+  private isDirectiveProperty(key: string): key is DirectiveType {
     return key.startsWith("x-") &&
       this.getSupportedDirectives().includes(key as DirectiveType);
   }
@@ -471,11 +470,11 @@ export class DirectiveProcessor {
   /**
    * Checks if a value is a schema object.
    */
-  private isSchemaObject(value: unknown): boolean {
+  private isSchemaObject(value: unknown): value is SchemaData {
     return typeof value === "object" &&
       value !== null &&
       !Array.isArray(value) &&
-      typeof (value as any).type === "string";
+      typeof (value as Record<string, unknown>).type === "string";
   }
 
   /**
@@ -569,7 +568,7 @@ export class DirectiveProcessor {
           });
         }
         const validFormats = ["json", "yaml"];
-        if (!validFormats.includes(value as string)) {
+        if (!validFormats.includes(value)) {
           return Result.error({
             kind: "InvalidDirectiveValue",
             directive: "x-template-format",

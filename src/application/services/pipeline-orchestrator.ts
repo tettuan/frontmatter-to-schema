@@ -198,7 +198,19 @@ export class PipelineOrchestrator {
 
       // Create schema entity - Note: This creates an unloaded schema
       // In a full implementation, we'd need a service to load and resolve the schema
-      const schemaId = SchemaId.create(pathResult.unwrap().getSchemaName());
+      const schemaIdResult = SchemaId.create(
+        pathResult.unwrap().getSchemaName(),
+      );
+      if (schemaIdResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Invalid schema ID: ${schemaIdResult.unwrapError().message}`,
+            "INVALID_SCHEMA_ID",
+            { schemaPath },
+          ),
+        );
+      }
+      const schemaId = schemaIdResult.unwrap();
       const schema = Schema.create(schemaId, pathResult.unwrap());
 
       return Result.ok(schema);

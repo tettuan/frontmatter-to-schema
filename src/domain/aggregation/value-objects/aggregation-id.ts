@@ -103,23 +103,44 @@ export class AggregationId {
 
   /**
    * Extracts timestamp from generated ID if available.
+   * Returns Result<T,E> following the Totality principle.
    */
-  getTimestamp(): number | null {
+  getTimestamp(): Result<number, AggregationError> {
     if (!this.isGenerated()) {
-      return null;
+      return Result.error(
+        new AggregationError(
+          "Cannot extract timestamp from non-generated aggregation ID",
+          "INVALID_AGGREGATION_ID",
+          { id: this.value, isGenerated: false },
+        ),
+      );
     }
 
-    try {
-      const parts = this.value.split("_");
-      if (parts.length >= 3) {
-        // Convert base36 timestamp back to number
-        return parseInt(parts[1], 36);
-      }
-    } catch {
-      // Ignore parsing errors
+    const parts = this.value.split("_");
+    if (parts.length < 3) {
+      return Result.error(
+        new AggregationError(
+          "Aggregation ID format is invalid for timestamp extraction",
+          "INVALID_AGGREGATION_ID",
+          { id: this.value, parts: parts.length, expected: ">=3" },
+        ),
+      );
     }
 
-    return null;
+    const timestampPart = parts[1];
+    const timestamp = parseInt(timestampPart, 36);
+
+    if (isNaN(timestamp)) {
+      return Result.error(
+        new AggregationError(
+          "Cannot parse timestamp from aggregation ID",
+          "INVALID_AGGREGATION_ID",
+          { id: this.value, timestampPart, parsedValue: timestamp },
+        ),
+      );
+    }
+
+    return Result.ok(timestamp);
   }
 
   /**
