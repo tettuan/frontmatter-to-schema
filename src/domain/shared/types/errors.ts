@@ -1,14 +1,6 @@
-import { defaultSchemaExtensionRegistry } from "../../schema/value-objects/schema-extension-registry.ts";
+// Registry import removed as part of simplification
 
-/**
- * Totality helper: ensures exhaustive handling in switch statements
- * Note: This function should never be called in correct code due to never type
- */
-function assertNever(value: never): never {
-  // Following Totality principles: return safe error instead of throwing
-  // This satisfies the never return type while avoiding runtime exceptions
-  return value;
-}
+// Simplified error handling - removed complex totality helpers
 
 export type ValidationError =
   | {
@@ -328,19 +320,19 @@ const getDefaultMessage = (error: DomainError): string => {
     case "RefNotDefined":
       return "Schema does not define a $ref";
     case "DerivedFromNotDefined":
-      return `Schema does not define ${defaultSchemaExtensionRegistry.getDerivedFromKey().getValue()}`;
+      return "Schema does not define x-derived-from";
     case "ItemsNotDefined":
       return "Schema does not define items";
     case "PropertyNotFound":
       return `Property not found at path: ${error.path}`;
     case "TemplateItemsNotDefined":
-      return `Schema does not define ${defaultSchemaExtensionRegistry.getTemplateItemsKey().getValue()} directive`;
+      return "Schema does not define x-template-items directive";
     case "TemplateFormatNotDefined":
       return "Schema does not define x-template-format directive";
     case "InvalidTemplateFormat":
       return "Invalid template format specified";
     case "JMESPathFilterNotDefined":
-      return `Schema does not define ${defaultSchemaExtensionRegistry.getJmespathFilterKey().getValue()} directive`;
+      return "Schema does not define x-jmespath-filter directive";
     case "JMESPathCompilationFailed":
       return `JMESPath expression compilation failed: ${error.expression} - ${error.message}`;
     case "JMESPathExecutionFailed":
