@@ -192,7 +192,9 @@ export class DirectiveRegistryInitializer {
 
     // Register Derived From Handler
     const derivedFromHandler = new DerivedFromDirectiveHandler();
-    const derivedFromRegisterResult = registry.registerHandler(derivedFromHandler);
+    const derivedFromRegisterResult = registry.registerHandler(
+      derivedFromHandler,
+    );
     if (!derivedFromRegisterResult.ok) {
       return derivedFromRegisterResult;
     }
@@ -200,7 +202,9 @@ export class DirectiveRegistryInitializer {
 
     // Register Derived Unique Handler
     const derivedUniqueHandler = new DerivedUniqueDirectiveHandler();
-    const derivedUniqueRegisterResult = registry.registerHandler(derivedUniqueHandler);
+    const derivedUniqueRegisterResult = registry.registerHandler(
+      derivedUniqueHandler,
+    );
     if (!derivedUniqueRegisterResult.ok) {
       return derivedUniqueRegisterResult;
     }
@@ -208,7 +212,9 @@ export class DirectiveRegistryInitializer {
 
     // Register Template Format Handler
     const templateFormatHandler = new TemplateFormatDirectiveHandler();
-    const templateFormatRegisterResult = registry.registerHandler(templateFormatHandler);
+    const templateFormatRegisterResult = registry.registerHandler(
+      templateFormatHandler,
+    );
     if (!templateFormatRegisterResult.ok) {
       return templateFormatRegisterResult;
     }

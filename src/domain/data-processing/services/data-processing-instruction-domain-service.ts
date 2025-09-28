@@ -143,7 +143,10 @@ export class DataProcessingInstructionDomainService {
       // Extract the specific property from each FrontmatterData
       const extractedData: unknown[] = [];
       for (const frontmatterItem of this.sourceData) {
-        const extracted = this.extractValueFromPath(frontmatterItem, frontmatterPartPath.data);
+        const extracted = this.extractValueFromPath(
+          frontmatterItem,
+          frontmatterPartPath.data,
+        );
         if (extracted !== undefined) {
           if (Array.isArray(extracted)) {
             extractedData.push(...extracted);
@@ -220,7 +223,10 @@ export class DataProcessingInstructionDomainService {
     let directiveContainer = property;
     if (property.extensions && typeof property.extensions === "object") {
       // Use extensions as the directive container
-      directiveContainer = { ...property, ...(property.extensions as Record<string, unknown>) };
+      directiveContainer = {
+        ...property,
+        ...(property.extensions as Record<string, unknown>),
+      };
     }
     if (
       schemaPath === "" && property.properties &&
@@ -244,7 +250,10 @@ export class DataProcessingInstructionDomainService {
         // Extract the specific property from each FrontmatterData (which is just a Record<string, unknown>)
         const extractedData: unknown[] = [];
         for (const frontmatterItem of this.sourceData) {
-          const extracted = this.extractValueFromPath(frontmatterItem, frontmatterPartPath.data);
+          const extracted = this.extractValueFromPath(
+            frontmatterItem,
+            frontmatterPartPath.data,
+          );
           if (extracted !== undefined) {
             if (Array.isArray(extracted)) {
               extractedData.push(...extracted);

@@ -3,7 +3,7 @@
  * @description Handles aggregation of values from other properties
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../entities/schema.ts";
 import {
@@ -75,7 +75,10 @@ export class DerivedFromDirectiveHandler extends BaseDirectiveHandler<
     data: FrontmatterData,
     config: DirectiveConfig<DerivedFromConfig>,
     _schema: Schema,
-  ): Result<DirectiveProcessingResult<DerivedFromMetadata>, DirectiveHandlerError> {
+  ): Result<
+    DirectiveProcessingResult<DerivedFromMetadata>,
+    DirectiveHandlerError
+  > {
     if (!config.isPresent) {
       return DirectiveHandlerFactory.createResult(
         this.directiveName,
@@ -98,7 +101,9 @@ export class DerivedFromDirectiveHandler extends BaseDirectiveHandler<
     }
 
     // Create new FrontmatterData with aggregated values
-    const processedDataResult = FrontmatterData.create(Object.fromEntries(processedDataMap));
+    const processedDataResult = FrontmatterData.create(
+      Object.fromEntries(processedDataMap),
+    );
 
     if (!processedDataResult.ok) {
       return err({
@@ -137,7 +142,10 @@ export class DerivedFromDirectiveHandler extends BaseDirectiveHandler<
    * Extract values from source property path
    * Supports nested property access with dot notation
    */
-  private extractSourceValues(data: FrontmatterData, sourcePath: string): unknown[] {
+  private extractSourceValues(
+    data: FrontmatterData,
+    sourcePath: string,
+  ): unknown[] {
     const values: unknown[] = [];
     const dataMap = data.getData();
 

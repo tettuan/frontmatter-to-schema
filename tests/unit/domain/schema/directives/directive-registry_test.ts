@@ -24,7 +24,7 @@ describe("DirectiveRegistry Integration", () => {
       assert(registryResult.ok);
       if (registryResult.ok) {
         assertExists(registryResult.data.registry);
-        assertEquals(registryResult.data.handlersRegistered.length, 5);
+        assertEquals(registryResult.data.handlersRegistered.length, 8);
         assertEquals(
           registryResult.data.handlersRegistered.includes("template"),
           true,
@@ -39,6 +39,18 @@ describe("DirectiveRegistry Integration", () => {
         );
         assertEquals(
           registryResult.data.handlersRegistered.includes("template-items"),
+          true,
+        );
+        assertEquals(
+          registryResult.data.handlersRegistered.includes("derived-from"),
+          true,
+        );
+        assertEquals(
+          registryResult.data.handlersRegistered.includes("derived-unique"),
+          true,
+        );
+        assertEquals(
+          registryResult.data.handlersRegistered.includes("template-format"),
           true,
         );
       }
@@ -220,13 +232,16 @@ describe("DirectiveRegistry Integration", () => {
       const handlers = registry.getAllHandlers();
 
       // Assert
-      assertEquals(handlers.length, 5);
+      assertEquals(handlers.length, 8);
       const handlerNames = handlers.map((h) => h.directiveName);
       assert(handlerNames.includes("frontmatter-part"));
       assert(handlerNames.includes("template"));
       assert(handlerNames.includes("template-items"));
       assert(handlerNames.includes("jmespath-filter"));
       assert(handlerNames.includes("flatten-arrays"));
+      assert(handlerNames.includes("x-derived-from"));
+      assert(handlerNames.includes("x-derived-unique"));
+      assert(handlerNames.includes("x-template-format"));
     });
 
     it("should list supported directive names", () => {
@@ -240,12 +255,15 @@ describe("DirectiveRegistry Integration", () => {
       const directiveNames = registry.getSupportedDirectiveNames();
 
       // Assert
-      assertEquals(directiveNames.length, 5);
+      assertEquals(directiveNames.length, 8);
       assert(directiveNames.includes("frontmatter-part"));
       assert(directiveNames.includes("template"));
       assert(directiveNames.includes("template-items"));
       assert(directiveNames.includes("jmespath-filter"));
       assert(directiveNames.includes("flatten-arrays"));
+      assert(directiveNames.includes("x-derived-from"));
+      assert(directiveNames.includes("x-derived-unique"));
+      assert(directiveNames.includes("x-template-format"));
     });
   });
 
@@ -385,9 +403,9 @@ describe("DirectiveRegistry Integration", () => {
       assert(orderResult.ok);
       if (orderResult.ok) {
         const handlers = orderResult.data;
-        assertEquals(handlers.length, 5);
+        assertEquals(handlers.length, 8);
 
-        // Should be ordered by priority: frontmatter-part (1), flatten-arrays (3), jmespath-filter (4), template (8), template-items (9)
+        // Should be ordered by priority: frontmatter-part (1), flatten-arrays (3), jmespath-filter (4), template (8), template-items (9), x-derived-from (30), x-derived-unique (31), x-template-format (50)
         assertEquals(handlers[0].directiveName, "frontmatter-part");
         assertEquals(handlers[0].getPriority(), 1);
 
@@ -402,6 +420,15 @@ describe("DirectiveRegistry Integration", () => {
 
         assertEquals(handlers[4].directiveName, "template-items");
         assertEquals(handlers[4].getPriority(), 9);
+
+        assertEquals(handlers[5].directiveName, "x-derived-from");
+        assertEquals(handlers[5].getPriority(), 30);
+
+        assertEquals(handlers[6].directiveName, "x-derived-unique");
+        assertEquals(handlers[6].getPriority(), 31);
+
+        assertEquals(handlers[7].directiveName, "x-template-format");
+        assertEquals(handlers[7].getPriority(), 50);
       }
     });
 

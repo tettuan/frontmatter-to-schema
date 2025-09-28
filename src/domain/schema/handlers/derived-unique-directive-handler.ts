@@ -3,7 +3,7 @@
  * @description Handles removal of duplicate values from arrays
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../entities/schema.ts";
 import {
@@ -76,7 +76,10 @@ export class DerivedUniqueDirectiveHandler extends BaseDirectiveHandler<
     data: FrontmatterData,
     config: DirectiveConfig<DerivedUniqueConfig>,
     _schema: Schema,
-  ): Result<DirectiveProcessingResult<DerivedUniqueMetadata>, DirectiveHandlerError> {
+  ): Result<
+    DirectiveProcessingResult<DerivedUniqueMetadata>,
+    DirectiveHandlerError
+  > {
     if (!config.isPresent || !config.configuration.enabled) {
       return DirectiveHandlerFactory.createResult(
         this.directiveName,
@@ -111,7 +114,9 @@ export class DerivedUniqueDirectiveHandler extends BaseDirectiveHandler<
     }
 
     // Create new FrontmatterData with unique values
-    const processedDataResult = FrontmatterData.create(Object.fromEntries(processedDataMap));
+    const processedDataResult = FrontmatterData.create(
+      Object.fromEntries(processedDataMap),
+    );
 
     if (!processedDataResult.ok) {
       return err({

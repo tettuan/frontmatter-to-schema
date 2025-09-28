@@ -49,11 +49,10 @@ const createIntegrationSchema = () => {
       title: { type: "string", "x-frontmatter-part": true },
       date: { type: "string" },
       author: { type: "string" },
-      tags: { type: "array" },
+      tags: { type: "array", items: { type: "string" } },
       content: { type: "string" },
-      "x-template": {
-        type: "string",
-        default: `# {{title}}
+    },
+    "x-template": `# {{title}}
 
 **Author**: {{author}}
 **Date**: {{date}}
@@ -62,16 +61,8 @@ const createIntegrationSchema = () => {
 
 **Tags**: {{tags}}
 `,
-      },
-      "x-template-items": {
-        type: "string",
-        default: "articles",
-      },
-      "x-jmespath-filter": {
-        type: "string",
-        default: "[?contains(tags, 'featured')]",
-      },
-    },
+    "x-template-items": "articles",
+    "x-jmespath-filter": "[?contains(tags, 'featured')]",
   });
   const path = SchemaPath.create("integration-test-schema.json");
 
@@ -88,11 +79,10 @@ const createIntegrationSchemaNoFilter = () => {
       title: { type: "string", "x-frontmatter-part": true },
       date: { type: "string" },
       author: { type: "string" },
-      tags: { type: "array" },
+      tags: { type: "array", items: { type: "string" } },
       content: { type: "string" },
-      "x-template": {
-        type: "string",
-        default: `# {{title}}
+    },
+    "x-template": `# {{title}}
 
 **Author**: {{author}}
 **Date**: {{date}}
@@ -101,12 +91,7 @@ const createIntegrationSchemaNoFilter = () => {
 
 **Tags**: {{tags}}
 `,
-      },
-      "x-template-items": {
-        type: "string",
-        default: "articles",
-      },
-    },
+    "x-template-items": "articles",
   });
   const path = SchemaPath.create("integration-test-schema-no-filter.json");
 

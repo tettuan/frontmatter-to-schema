@@ -3,7 +3,7 @@
  * @description Handles output format specification for templates
  */
 
-import { Result, ok, err } from "../../shared/types/result.ts";
+import { err, ok, Result } from "../../shared/types/result.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
 import { Schema } from "../entities/schema.ts";
 import {
@@ -72,7 +72,9 @@ export class TemplateFormatDirectiveHandler extends BaseDirectiveHandler<
       return err({
         kind: "ValidationError",
         directiveName: this.directiveName,
-        message: `x-template-format must be one of: ${TemplateFormatDirectiveHandler.SUPPORTED_FORMATS.join(", ")}`,
+        message: `x-template-format must be one of: ${
+          TemplateFormatDirectiveHandler.SUPPORTED_FORMATS.join(", ")
+        }`,
         invalidValue: templateFormat,
       });
     }
@@ -88,7 +90,10 @@ export class TemplateFormatDirectiveHandler extends BaseDirectiveHandler<
     data: FrontmatterData,
     config: DirectiveConfig<TemplateFormatConfig>,
     _schema: Schema,
-  ): Result<DirectiveProcessingResult<TemplateFormatMetadata>, DirectiveHandlerError> {
+  ): Result<
+    DirectiveProcessingResult<TemplateFormatMetadata>,
+    DirectiveHandlerError
+  > {
     // The format directive doesn't modify data, just adds metadata for rendering
     const metadata: TemplateFormatMetadata = {
       format: config.configuration.format,
@@ -104,7 +109,9 @@ export class TemplateFormatDirectiveHandler extends BaseDirectiveHandler<
     }
 
     // Create new FrontmatterData with format metadata
-    const processedDataResult = FrontmatterData.create(Object.fromEntries(processedDataMap));
+    const processedDataResult = FrontmatterData.create(
+      Object.fromEntries(processedDataMap),
+    );
 
     if (!processedDataResult.ok) {
       return err({
@@ -143,7 +150,9 @@ export class TemplateFormatDirectiveHandler extends BaseDirectiveHandler<
   private isValidFormat(value: unknown): value is TemplateFormat {
     return (
       typeof value === "string" &&
-      TemplateFormatDirectiveHandler.SUPPORTED_FORMATS.includes(value as TemplateFormat)
+      TemplateFormatDirectiveHandler.SUPPORTED_FORMATS.includes(
+        value as TemplateFormat,
+      )
     );
   }
 

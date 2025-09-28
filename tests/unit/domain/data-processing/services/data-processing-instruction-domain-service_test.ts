@@ -12,14 +12,12 @@ const createTestSchema = () => {
     properties: {
       // Add x-frontmatter-part directive as boolean marker to the title property
       title: { type: "string", "x-frontmatter-part": true },
-      items: { type: "array" },
-      "x-template": {
-        type: "string",
-        default: "# {{title}}\n\nItems: {{items}}",
-      },
-      "x-template-items": { type: "string" },
-      "x-derived-from": { type: "string" },
+      author: { type: "string" },
+      tags: { type: "array", items: { type: "string" } },
+      content: { type: "string" },
     },
+    "x-template": "# {{title}}\n\nAuthor: {{author}}\n\n{{content}}",
+    "x-template-items": "articles",
   });
   const path = SchemaPath.create("data-processing-test-schema.json");
 
@@ -155,11 +153,11 @@ describe("DataProcessingInstructionDomainService", () => {
         type: "object",
         properties: {
           title: { type: "string" },
-          "x-jmespath-filter": {
-            type: "string",
-            default: "[?contains(tags, 'tech')]",
-          },
+          author: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+          content: { type: "string" },
         },
+        "x-jmespath-filter": "[?contains(tags, 'tech')]",
       });
 
       assertEquals(definition.ok, true);
