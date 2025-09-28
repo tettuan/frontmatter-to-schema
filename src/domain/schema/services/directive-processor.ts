@@ -1,8 +1,12 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
 import { SchemaData } from "../entities/schema.ts";
-import { DirectiveOrderingStrategy, DirectiveType } from "../value-objects/directive-ordering-strategy.ts";
+import {
+  DirectiveOrderingStrategy,
+  DirectiveType,
+} from "../value-objects/directive-ordering-strategy.ts";
 import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
+import { DirectiveValueObjectFactory } from "./directive-value-object-factory.ts";
 
 /**
  * Directive processing context for maintaining state during processing.
@@ -78,16 +82,21 @@ export interface DirectiveHandler {
 export class DirectiveProcessor {
   private readonly handlers: Map<DirectiveType, DirectiveHandler> = new Map();
   private readonly orderingStrategy: DirectiveOrderingStrategy;
+  private readonly valueObjectFactory: DirectiveValueObjectFactory;
 
   private constructor(orderingStrategy?: DirectiveOrderingStrategy) {
-    this.orderingStrategy = orderingStrategy || DirectiveOrderingStrategy.createDefault();
+    this.orderingStrategy = orderingStrategy ||
+      DirectiveOrderingStrategy.createDefault();
+    this.valueObjectFactory = DirectiveValueObjectFactory.create();
     this.registerDefaultHandlers();
   }
 
   /**
    * Creates a DirectiveProcessor with default handlers and ordering.
    */
-  static create(orderingStrategy?: DirectiveOrderingStrategy): DirectiveProcessor {
+  static create(
+    orderingStrategy?: DirectiveOrderingStrategy,
+  ): DirectiveProcessor {
     return new DirectiveProcessor(orderingStrategy);
   }
 
@@ -247,7 +256,8 @@ export class DirectiveProcessor {
 
       // Sort directives according to processing order strategy
       const sortedDirectives = currentDirectives.sort((a, b) =>
-        this.orderingStrategy.getPriority(a.type) - this.orderingStrategy.getPriority(b.type)
+        this.orderingStrategy.getPriority(a.type) -
+        this.orderingStrategy.getPriority(b.type)
       );
 
       // Process each directive in order
@@ -411,7 +421,8 @@ export class DirectiveProcessor {
 
       // Check for mutually exclusive directives
       if (
-        types.includes("x-frontmatter-part") && types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
+        types.includes("x-frontmatter-part") &&
+        types.includes(DIRECTIVE_NAMES.DERIVED_FROM)
       ) {
         return Result.error({
           kind: "ConflictingDirectives",
@@ -483,176 +494,83 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Registers default directive handlers.
+   * Registers default directive handlers using configuration-driven approach.
+   * Eliminates duplication by using value objects for validation.
    */
   private registerDefaultHandlers(): void {
-    // Default handlers will be simple validation-only handlers
-    // More sophisticated handlers can be registered later
+    // Register handlers for all supported directives
+    for (const directive of this.orderingStrategy.getSupportedDirectives()) {
+      const handler = this.createConfiguredHandler(directive);
+      this.handlers.set(directive, handler);
+    }
+  }
 
-    this.handlers.set(DIRECTIVE_NAMES.FRONTMATTER_PART, {
-      directiveType: DIRECTIVE_NAMES.FRONTMATTER_PART,
+  /**
+   * Creates a configured handler for a specific directive type.
+   * Uses value objects for validation, eliminating hardcoded validation logic.
+   */
+  private createConfiguredHandler(directive: DirectiveType): DirectiveHandler {
+    return {
+      directiveType: directive,
       validate: (value: unknown) => {
-        if (typeof value !== "boolean") {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.FRONTMATTER_PART,
-            value,
-            expected: "boolean",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
-    });
-
-    this.handlers.set(DIRECTIVE_NAMES.FLATTEN_ARRAYS, {
-      directiveType: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
-      validate: (value: unknown) => {
-        if (typeof value !== "string" || value.trim().length === 0) {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
-            value,
-            expected: "non-empty string (property name to flatten)",
-          });
+        const validationResult = this.valueObjectFactory.validateDirective(
+          directive,
+          value,
+        );
+        if (validationResult.isError()) {
+          return Result.error(
+            this.convertSchemaErrorToDirectiveError(
+              validationResult.unwrapError(),
+            ),
+          );
         }
         return Result.ok(undefined);
       },
       process: (value: unknown, schema: SchemaData) => {
-        // Store the property name for later flattening during frontmatter processing
-        return Result.ok({
-          ...schema,
-          [DIRECTIVE_NAMES.FLATTEN_ARRAYS]: value,
-        });
+        // For directives that need to store values for later processing
+        if (this.shouldStoreDirectiveValue(directive)) {
+          return Result.ok({
+            ...schema,
+            [directive]: value,
+          });
+        }
+        // For validation-only directives
+        return Result.ok(schema);
       },
-    });
+    };
+  }
 
-    this.handlers.set(DIRECTIVE_NAMES.DERIVED_FROM, {
-      directiveType: DIRECTIVE_NAMES.DERIVED_FROM,
-      validate: (value: unknown) => {
-        if (typeof value !== "string" && !Array.isArray(value)) {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.DERIVED_FROM,
-            value,
-            expected: "string or array of strings",
-          });
-        }
-        if (
-          Array.isArray(value) && !value.every((v) => typeof v === "string")
-        ) {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.DERIVED_FROM,
-            value,
-            expected: "array of strings",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
-    });
+  /**
+   * Determines if a directive value should be stored in the schema for later processing.
+   */
+  private shouldStoreDirectiveValue(directive: DirectiveType): boolean {
+    const directivesToStore = [
+      DIRECTIVE_NAMES.FLATTEN_ARRAYS,
+      DIRECTIVE_NAMES.DERIVED_UNIQUE,
+      DIRECTIVE_NAMES.JMESPATH_FILTER,
+    ] as const;
+    return directivesToStore.includes(
+      directive as typeof directivesToStore[number],
+    );
+  }
 
-    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE_FORMAT, {
-      directiveType: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
-      validate: (value: unknown) => {
-        if (typeof value !== "string") {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
-            value,
-            expected: "string",
-          });
-        }
-        const validFormats = ["json", "yaml"];
-        if (!validFormats.includes(value)) {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
-            value,
-            expected: `one of: ${validFormats.join(", ")}`,
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
-    });
+  /**
+   * Converts SchemaError to DirectiveValidationError for handler compatibility.
+   */
+  private convertSchemaErrorToDirectiveError(
+    error: SchemaError,
+  ): DirectiveValidationError {
+    // Extract directive name from error context or message
+    const directive = (error.context as any)?.directive || "unknown";
+    const value = (error.context as any)?.value;
+    const expected = (error.context as any)?.expected || "valid value";
 
-    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE_ITEMS, {
-      directiveType: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
-      validate: (value: unknown) => {
-        if (typeof value !== "string") {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.TEMPLATE_ITEMS,
-            value,
-            expected: "string",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
-    });
-
-    this.handlers.set(DIRECTIVE_NAMES.TEMPLATE, {
-      directiveType: DIRECTIVE_NAMES.TEMPLATE,
-      validate: (value: unknown) => {
-        if (typeof value !== "string") {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.TEMPLATE,
-            value,
-            expected: "string",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (_value: unknown, schema: SchemaData) => Result.ok(schema),
-    });
-
-    this.handlers.set(DIRECTIVE_NAMES.DERIVED_UNIQUE, {
-      directiveType: DIRECTIVE_NAMES.DERIVED_UNIQUE,
-      validate: (value: unknown) => {
-        if (typeof value !== "boolean") {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.DERIVED_UNIQUE,
-            value,
-            expected: "boolean",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (value: unknown, schema: SchemaData) => {
-        // Store the directive value for later processing during aggregation
-        return Result.ok({
-          ...schema,
-          [DIRECTIVE_NAMES.DERIVED_UNIQUE]: value,
-        });
-      },
-    });
-
-    this.handlers.set(DIRECTIVE_NAMES.JMESPATH_FILTER, {
-      directiveType: DIRECTIVE_NAMES.JMESPATH_FILTER,
-      validate: (value: unknown) => {
-        if (typeof value !== "string" || value.trim().length === 0) {
-          return Result.error({
-            kind: "InvalidDirectiveValue",
-            directive: DIRECTIVE_NAMES.JMESPATH_FILTER,
-            value,
-            expected: "non-empty string (JMESPath expression)",
-          });
-        }
-        return Result.ok(undefined);
-      },
-      process: (value: unknown, schema: SchemaData) => {
-        // Store the JMESPath expression for later filtering during aggregation
-        return Result.ok({
-          ...schema,
-          [DIRECTIVE_NAMES.JMESPATH_FILTER]: value,
-        });
-      },
-    });
+    return {
+      kind: "InvalidDirectiveValue",
+      directive,
+      value,
+      expected,
+    };
   }
 
   /**

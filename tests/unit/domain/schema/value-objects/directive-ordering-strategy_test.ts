@@ -1,5 +1,8 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert";
-import { DirectiveOrderingStrategy, DirectiveType } from "../../../../../src/domain/schema/value-objects/directive-ordering-strategy.ts";
+import { assertEquals } from "jsr:@std/assert";
+import {
+  DirectiveOrderingStrategy,
+  DirectiveType,
+} from "../../../../../src/domain/schema/value-objects/directive-ordering-strategy.ts";
 
 Deno.test("DirectiveOrderingStrategy - create default strategy", () => {
   const strategy = DirectiveOrderingStrategy.createDefault();
