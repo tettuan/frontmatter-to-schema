@@ -302,74 +302,73 @@ export class UniversalPipeline {
   async execute(): Promise<Result<UniversalPipelineResult, ProcessingError>> {
     const startTime = performance.now();
 
-    try {
-      // Stage 1: Load Schema
-      const schemaStage = this.getStage<string, Schema>("schema-loading");
-      const schemaResult = await schemaStage.execute(
-        this.context.config.schemaPath,
-        this.context,
-      );
-      if (schemaResult.isError()) {
-        return Result.error(schemaResult.unwrapError());
-      }
-
-      // Stage 2: Load Template
-      const templateStage = this.getStage<string, Template>("template-loading");
-      const templateResult = await templateStage.execute(
-        this.context.config.templatePath,
-        this.context,
-      );
-      if (templateResult.isError()) {
-        return Result.error(templateResult.unwrapError());
-      }
-
-      // Stage 3: Process Input
-      const inputStage = this.getStage<string, MarkdownDocument[]>(
-        "input-processing",
-      );
-      const documentsResult = await inputStage.execute(
-        this.context.config.inputPath,
-        this.context,
-      );
-      if (documentsResult.isError()) {
-        return Result.error(documentsResult.unwrapError());
-      }
-
-      // Use configuration strategy for output format instead of hardcoded default
-      const outputFormatResult = this.context.configManager.getStringDefault(
-        "outputFormat",
-      );
-      const outputFormat = this.context.config.outputFormat ||
-        (outputFormatResult.isOk() ? outputFormatResult.unwrap() : "json");
-
-      const endTime = performance.now();
-      const executionTime = endTime - startTime;
-
-      return Result.ok({
-        schema: schemaResult.unwrap(),
-        template: templateResult.unwrap(),
-        documents: documentsResult.unwrap(),
-        outputFormat,
-        executionTime,
-        metadata: {
-          schemaPath: this.context.config.schemaPath,
-          templatePath: this.context.config.templatePath,
-          inputPath: this.context.config.inputPath,
-          outputPath: this.context.config.outputPath,
-          processedDocuments: documentsResult.unwrap().length,
-        },
-      });
-    } catch (error) {
-      return Result.error(
-        new ProcessingError(
-          `Pipeline execution failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          "PIPELINE_EXECUTION_ERROR",
-          { error },
-        ),
-      );
+    // Stage 1: Load Schema
+    const schemaStageResult = this.getStage<string, Schema>("schema-loading");
+    if (schemaStageResult.isError()) {
+      return Result.error(schemaStageResult.unwrapError());
     }
+    const schemaResult = await schemaStageResult.unwrap().execute(
+      this.context.config.schemaPath,
+      this.context,
+    );
+    if (schemaResult.isError()) {
+      return Result.error(schemaResult.unwrapError());
+    }
+
+    // Stage 2: Load Template
+    const templateStageResult = this.getStage<string, Template>(
+      "template-loading",
+    );
+    if (templateStageResult.isError()) {
+      return Result.error(templateStageResult.unwrapError());
+    }
+    const templateResult = await templateStageResult.unwrap().execute(
+      this.context.config.templatePath,
+      this.context,
+    );
+    if (templateResult.isError()) {
+      return Result.error(templateResult.unwrapError());
+    }
+
+    // Stage 3: Process Input
+    const inputStageResult = this.getStage<string, MarkdownDocument[]>(
+      "input-processing",
+    );
+    if (inputStageResult.isError()) {
+      return Result.error(inputStageResult.unwrapError());
+    }
+    const documentsResult = await inputStageResult.unwrap().execute(
+      this.context.config.inputPath,
+      this.context,
+    );
+    if (documentsResult.isError()) {
+      return Result.error(documentsResult.unwrapError());
+    }
+
+    // Use configuration strategy for output format instead of hardcoded default
+    const outputFormatResult = this.context.configManager.getStringDefault(
+      "outputFormat",
+    );
+    const outputFormat = this.context.config.outputFormat ||
+      (outputFormatResult.isOk() ? outputFormatResult.unwrap() : "json");
+
+    const endTime = performance.now();
+    const executionTime = endTime - startTime;
+
+    return Result.ok({
+      schema: schemaResult.unwrap(),
+      template: templateResult.unwrap(),
+      documents: documentsResult.unwrap(),
+      outputFormat,
+      executionTime,
+      metadata: {
+        schemaPath: this.context.config.schemaPath,
+        templatePath: this.context.config.templatePath,
+        inputPath: this.context.config.inputPath,
+        outputPath: this.context.config.outputPath,
+        processedDocuments: documentsResult.unwrap().length,
+      },
+    });
   }
 
   private initializeDefaultStages(): void {
@@ -380,12 +379,18 @@ export class UniversalPipeline {
 
   private getStage<TInput, TOutput>(
     stageName: string,
-  ): PipelineStage<TInput, TOutput> {
+  ): Result<PipelineStage<TInput, TOutput>, ProcessingError> {
     const stage = this.stages.find((s) => s.stageName === stageName);
     if (!stage) {
-      throw new Error(`Stage not found: ${stageName}`);
+      return Result.error(
+        new ProcessingError(
+          `Stage not found: ${stageName}`,
+          "STAGE_NOT_FOUND",
+          { stageName, availableStages: this.stages.map((s) => s.stageName) },
+        ),
+      );
     }
-    return stage as PipelineStage<TInput, TOutput>;
+    return Result.ok(stage as PipelineStage<TInput, TOutput>);
   }
 }
 

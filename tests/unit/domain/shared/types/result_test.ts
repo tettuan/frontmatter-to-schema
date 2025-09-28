@@ -103,3 +103,46 @@ Deno.test("Result - match handles both cases", () => {
   assertEquals(successMessage, "Success: 42");
   assertEquals(errorMessage, "Error: test error");
 });
+
+// Totality-compliant methods tests
+Deno.test("Result - unwrapOr returns value on success", () => {
+  const result = Result.ok(42);
+  assertEquals(result.unwrapOr(0), 42);
+});
+
+Deno.test("Result - unwrapOr returns default on error", () => {
+  const result = Result.error("test error");
+  assertEquals(result.unwrapOr(0), 0);
+});
+
+Deno.test("Result - unwrapOrElse computes default on error", () => {
+  const result = Result.error("test error");
+  const defaultValue = result.unwrapOrElse((error) => `Fallback: ${error}`);
+  assertEquals(defaultValue, "Fallback: test error");
+});
+
+Deno.test("Result - unwrapOrElse returns value on success", () => {
+  const result = Result.ok(42);
+  const value = result.unwrapOrElse(() => 0);
+  assertEquals(value, 42);
+});
+
+Deno.test("Result - getValue returns value on success", () => {
+  const result = Result.ok(42);
+  assertEquals(result.getValue(), 42);
+});
+
+Deno.test("Result - getValue returns undefined on error", () => {
+  const result = Result.error("test error");
+  assertEquals(result.getValue(), undefined);
+});
+
+Deno.test("Result - getError returns error on error", () => {
+  const result = Result.error("test error");
+  assertEquals(result.getError(), "test error");
+});
+
+Deno.test("Result - getError returns undefined on success", () => {
+  const result = Result.ok(42);
+  assertEquals(result.getError(), undefined);
+});
