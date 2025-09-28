@@ -206,13 +206,11 @@ export class TemplateLoader {
     try {
       const parsed = JSON.parse(content);
 
-      if (
-        typeof parsed !== "object" || parsed === null || Array.isArray(parsed)
-      ) {
+      if (!this.isValidTemplateObject(parsed)) {
         return Result.error(new Error("JSON template must be an object"));
       }
 
-      return Result.ok(parsed as Record<string, unknown>);
+      return Result.ok(parsed);
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
@@ -229,5 +227,16 @@ export class TemplateLoader {
     _content: string,
   ): Result<Record<string, unknown>, Error> {
     return Result.error(new Error("YAML template support not yet implemented"));
+  }
+
+  /**
+   * Type guard to check if a parsed value is a valid template object.
+   */
+  private isValidTemplateObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
+    return typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value);
   }
 }

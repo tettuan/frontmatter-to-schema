@@ -83,8 +83,8 @@ Deno.test("TemplateLoader - load valid JSON template", async () => {
   const template = result.unwrap();
   assertEquals(template.getPath(), templatePath);
   assertEquals(template.getFormat(), "json");
-  assertEquals(template.getNestedProperty("title"), "Test Template");
-  assertEquals(template.getNestedProperty("metadata.version"), "1.0");
+  assertEquals(template.getNestedProperty("title").unwrap(), "Test Template");
+  assertEquals(template.getNestedProperty("metadata.version").unwrap(), "1.0");
 });
 
 Deno.test("TemplateLoader - load template from non-existent file", async () => {
@@ -220,9 +220,12 @@ Deno.test("TemplateLoader - loadTemplatesSuccessfully separates results and erro
   assertEquals(result.errors.length, 2);
 
   // Check that successful templates are included
-  assertEquals(result.templates[0].getNestedProperty("title"), "Test Template");
   assertEquals(
-    result.templates[1].getNestedProperty("title"),
+    result.templates[0].getNestedProperty("title").unwrap(),
+    "Test Template",
+  );
+  assertEquals(
+    result.templates[1].getNestedProperty("title").unwrap(),
     "${metadata.title}",
   );
 
@@ -318,17 +321,26 @@ Deno.test("TemplateLoader - complex template with nested structures", async () =
   assertEquals(result.isOk(), true);
   const template = result.unwrap();
 
-  assertEquals(template.getNestedProperty("header.title"), "${document.title}");
   assertEquals(
-    template.getNestedProperty("header.metadata.version"),
+    template.getNestedProperty("header.title").unwrap(),
+    "${document.title}",
+  );
+  assertEquals(
+    template.getNestedProperty("header.metadata.version").unwrap(),
     "${app.version}",
   );
   assertEquals(
-    template.getNestedProperty("sections.0.name"),
+    template.getNestedProperty("sections.0.name").unwrap(),
     "${section.name}",
   );
-  assertEquals(template.getNestedProperty("sections.1.name"), "Static Section");
-  assertEquals(template.getNestedProperty("footer.links.0"), "${link1}");
+  assertEquals(
+    template.getNestedProperty("sections.1.name").unwrap(),
+    "Static Section",
+  );
+  assertEquals(
+    template.getNestedProperty("footer.links.0").unwrap(),
+    "${link1}",
+  );
 });
 
 Deno.test("TemplateLoader - concurrent template loading", async () => {
@@ -354,9 +366,12 @@ Deno.test("TemplateLoader - concurrent template loading", async () => {
   assertEquals(results[2].isOk(), true);
 
   // Verify each template loaded correctly
-  assertEquals(results[0].unwrap().getNestedProperty("title"), "Test Template");
   assertEquals(
-    results[1].unwrap().getNestedProperty("title"),
+    results[0].unwrap().getNestedProperty("title").unwrap(),
+    "Test Template",
+  );
+  assertEquals(
+    results[1].unwrap().getNestedProperty("title").unwrap(),
     "${metadata.title}",
   );
   assertEquals(Object.keys(results[2].unwrap().getContent()).length, 0);

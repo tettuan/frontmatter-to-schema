@@ -141,17 +141,37 @@ Deno.test("AggregationId - getTimestamp from generated ID", () => {
   const id = AggregationId.generate();
   const afterTime = Date.now();
 
-  const timestamp = id.getTimestamp();
-  assertEquals(timestamp !== null, true);
-  assertEquals(timestamp! >= beforeTime, true);
-  assertEquals(timestamp! <= afterTime, true);
+  const timestampResult = id.getTimestamp();
+  assertEquals(timestampResult.isOk(), true);
+  const timestamp = timestampResult.unwrap();
+  assertEquals(timestamp >= beforeTime, true);
+  assertEquals(timestamp <= afterTime, true);
 });
 
-Deno.test("AggregationId - getTimestamp returns null for non-generated ID", () => {
+Deno.test("AggregationId - getTimestamp returns error for non-generated ID", () => {
   const id = AggregationId.create("custom-id").unwrap();
 
-  const timestamp = id.getTimestamp();
-  assertEquals(timestamp, null);
+  const timestampResult = id.getTimestamp();
+  assertEquals(timestampResult.isError(), true);
+  const error = timestampResult.unwrapError();
+  assertEquals(error.code, "INVALID_AGGREGATION_ID");
+  assertEquals(error.message.includes("non-generated"), true);
+});
+
+Deno.test("AggregationId - getTimestamp handles malformed generated ID", () => {
+  // Create a malformed ID that looks generated but has invalid format
+  const malformedResult = AggregationId.create("agg_invalid");
+  assertEquals(malformedResult.isOk(), true);
+  const id = malformedResult.unwrap();
+
+  // This ID will pass isGenerated() but fail timestamp extraction
+  assertEquals(id.isGenerated(), true);
+
+  const timestampResult = id.getTimestamp();
+  assertEquals(timestampResult.isError(), true);
+  const error = timestampResult.unwrapError();
+  assertEquals(error.code, "INVALID_AGGREGATION_ID");
+  assertEquals(error.message.includes("format is invalid"), true);
 });
 
 Deno.test("AggregationId - createChild creates derived ID", () => {

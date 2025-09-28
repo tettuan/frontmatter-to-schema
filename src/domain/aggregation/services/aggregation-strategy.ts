@@ -203,8 +203,8 @@ export class MergeAggregationStrategy implements AggregationStrategy {
           this.isObject(value)
         ) {
           result[key] = this.mergeObjects(
-            existingValue as Record<string, unknown>,
-            value as Record<string, unknown>,
+            existingValue,
+            value,
           );
         } else if (
           this.config.preserveArrays && Array.isArray(existingValue) &&
@@ -233,7 +233,7 @@ export class MergeAggregationStrategy implements AggregationStrategy {
     return result;
   }
 
-  private isObject(value: unknown): boolean {
+  private isObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 

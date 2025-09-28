@@ -64,9 +64,17 @@ Deno.test("FrontmatterData - getNestedProperty with dot notation", () => {
   };
   const frontmatter = FrontmatterData.create(data).unwrap();
 
-  assertEquals(frontmatter.getNestedProperty("metadata.title"), "Nested Title");
-  assertEquals(frontmatter.getNestedProperty("metadata.author.name"), "John");
-  assertEquals(frontmatter.getNestedProperty("metadata.missing"), undefined);
+  const titleResult = frontmatter.getNestedProperty("metadata.title");
+  assertEquals(titleResult.isOk(), true);
+  assertEquals(titleResult.unwrap(), "Nested Title");
+
+  const nameResult = frontmatter.getNestedProperty("metadata.author.name");
+  assertEquals(nameResult.isOk(), true);
+  assertEquals(nameResult.unwrap(), "John");
+
+  const missingResult = frontmatter.getNestedProperty("metadata.missing");
+  assertEquals(missingResult.isOk(), true);
+  assertEquals(missingResult.unwrap(), undefined);
 });
 
 Deno.test("FrontmatterData - getArrayProperty returns array values", () => {
@@ -77,10 +85,21 @@ Deno.test("FrontmatterData - getArrayProperty returns array values", () => {
   };
   const frontmatter = FrontmatterData.create(data).unwrap();
 
-  assertEquals(frontmatter.getArrayProperty("tags"), ["test", "demo"]);
-  assertEquals(frontmatter.getArrayProperty("categories"), ["tech"]);
-  assertEquals(frontmatter.getArrayProperty("description"), undefined);
-  assertEquals(frontmatter.getArrayProperty("missing"), undefined);
+  const tagsResult = frontmatter.getArrayProperty("tags");
+  assertEquals(tagsResult.isOk(), true);
+  assertEquals(tagsResult.unwrap(), ["test", "demo"]);
+
+  const categoriesResult = frontmatter.getArrayProperty("categories");
+  assertEquals(categoriesResult.isOk(), true);
+  assertEquals(categoriesResult.unwrap(), ["tech"]);
+
+  const descriptionResult = frontmatter.getArrayProperty("description");
+  assertEquals(descriptionResult.isError(), true);
+  assertEquals(descriptionResult.unwrapError().code, "TYPE_MISMATCH");
+
+  const missingResult = frontmatter.getArrayProperty("missing");
+  assertEquals(missingResult.isError(), true);
+  assertEquals(missingResult.unwrapError().code, "PROPERTY_NOT_FOUND");
 });
 
 Deno.test("FrontmatterData - merge combines data from multiple sources", () => {

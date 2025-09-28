@@ -6,7 +6,7 @@ import {
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 
 Deno.test("Schema - create with unloaded state", () => {
-  const id = SchemaId.create("registry_schema");
+  const id = SchemaId.create("registry_schema").unwrap();
   const path = SchemaPath.create("registry_schema.json").unwrap();
 
   const schema = Schema.create(id, path);
@@ -17,7 +17,7 @@ Deno.test("Schema - create with unloaded state", () => {
 });
 
 Deno.test("Schema - isLoaded returns false for unloaded schema", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schema = Schema.create(id, path);
 
@@ -25,7 +25,7 @@ Deno.test("Schema - isLoaded returns false for unloaded schema", () => {
 });
 
 Deno.test("Schema - markAsLoading updates state", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schema = Schema.create(id, path);
 
@@ -36,7 +36,7 @@ Deno.test("Schema - markAsLoading updates state", () => {
 });
 
 Deno.test("Schema - markAsResolved updates state with schema data", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schema = Schema.create(id, path);
   const schemaData = { type: "object", properties: {} };
@@ -52,7 +52,7 @@ Deno.test("Schema - markAsResolved updates state with schema data", () => {
 });
 
 Deno.test("Schema - markAsFailed updates state with error", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schema = Schema.create(id, path);
   const error = new Error("Failed to load schema");
@@ -67,7 +67,7 @@ Deno.test("Schema - markAsFailed updates state with error", () => {
 });
 
 Deno.test("Schema - hasExtractFromDirectives checks for x-frontmatter-part", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schemaData = {
     type: "object",
@@ -85,7 +85,7 @@ Deno.test("Schema - hasExtractFromDirectives checks for x-frontmatter-part", () 
 });
 
 Deno.test("Schema - hasExtractFromDirectives returns false without directives", () => {
-  const id = SchemaId.create("test_schema");
+  const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schemaData = {
     type: "object",
@@ -102,8 +102,8 @@ Deno.test("Schema - hasExtractFromDirectives returns false without directives", 
 });
 
 Deno.test("SchemaId - create generates unique identifier", () => {
-  const id1 = SchemaId.create("test_schema");
-  const id2 = SchemaId.create("test_schema");
+  const id1 = SchemaId.create("test_schema").unwrap();
+  const id2 = SchemaId.create("test_schema").unwrap();
 
   assertEquals(id1.getValue(), "test_schema");
   assertEquals(id2.getValue(), "test_schema");
@@ -111,8 +111,43 @@ Deno.test("SchemaId - create generates unique identifier", () => {
 });
 
 Deno.test("SchemaId - different names create different ids", () => {
-  const id1 = SchemaId.create("schema1");
-  const id2 = SchemaId.create("schema2");
+  const id1 = SchemaId.create("schema1").unwrap();
+  const id2 = SchemaId.create("schema2").unwrap();
 
   assertEquals(id1.equals(id2), false);
+});
+
+Deno.test("SchemaId - validation rejects null input", () => {
+  const result = SchemaId.create(null as any);
+
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "INVALID_SCHEMA_ID");
+});
+
+Deno.test("SchemaId - validation rejects empty string", () => {
+  const result = SchemaId.create("");
+
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "INVALID_SCHEMA_ID");
+});
+
+Deno.test("SchemaId - validation rejects whitespace-only string", () => {
+  const result = SchemaId.create("   ");
+
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "INVALID_SCHEMA_ID");
+});
+
+Deno.test("SchemaId - validation rejects short string", () => {
+  const result = SchemaId.create("ab");
+
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "INVALID_SCHEMA_ID");
+});
+
+Deno.test("SchemaId - validation trims whitespace", () => {
+  const result = SchemaId.create("  test_schema  ");
+
+  assertEquals(result.isOk(), true);
+  assertEquals(result.unwrap().getValue(), "test_schema");
 });

@@ -318,16 +318,15 @@ export class OutputRenderingService {
         return "\n" + arrayLines.join("\n");
       }
 
-      if (typeof value === "object" && value !== null) {
-        const obj = value as Record<string, unknown>;
+      if (this.isObject(value)) {
         const keys = options.sortKeys
-          ? Object.keys(obj).sort()
-          : Object.keys(obj);
+          ? Object.keys(value).sort()
+          : Object.keys(value);
 
         if (keys.length === 0) return "{}";
 
         const objectLines = keys.map((key) => {
-          const val = obj[key];
+          const val = value[key];
           const processedValue = processValue(val, depth + 1);
 
           if (typeof val === "object" && val !== null && !Array.isArray(val)) {
@@ -360,14 +359,22 @@ export class OutputRenderingService {
       if (Array.isArray(obj)) {
         count += obj.length;
         obj.forEach(countRecursive);
-      } else if (obj && typeof obj === "object") {
-        const record = obj as Record<string, unknown>;
-        count += Object.keys(record).length;
-        Object.values(record).forEach(countRecursive);
+      } else if (this.isObject(obj)) {
+        count += Object.keys(obj).length;
+        Object.values(obj).forEach(countRecursive);
       }
     };
 
     countRecursive(data);
     return count;
+  }
+
+  /**
+   * Type guard to check if a value is a plain object.
+   */
+  private isObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value);
   }
 }
