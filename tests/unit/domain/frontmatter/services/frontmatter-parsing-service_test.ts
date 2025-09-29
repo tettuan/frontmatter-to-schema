@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { FrontmatterParsingService } from "../../../../../src/domain/frontmatter/services/frontmatter-parsing-service.ts";
 import { ProcessingError } from "../../../../../src/domain/shared/types/errors.ts";
 

@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { DerivedFromDirective } from "../../../../../src/domain/schema/value-objects/derived-from-directive.ts";
 
 Deno.test("DerivedFromDirective - create with valid string expression", () => {

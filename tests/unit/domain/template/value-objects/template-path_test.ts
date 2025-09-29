@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 
 Deno.test("TemplatePath - create with valid JSON template path", () => {

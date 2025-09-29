@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "jsr:@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { Result } from "../../../../../src/domain/shared/types/result.ts";
 
 Deno.test("Result - Success case", () => {

@@ -1,6 +1,6 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { ensureDir } from "jsr:@std/fs";
-import { join } from "jsr:@std/path";
+import { join } from "@std/path";
 import { PipelineOrchestrator } from "../../src/application/services/pipeline-orchestrator.ts";
 import { DenoFileSystemAdapter } from "../../src/infrastructure/adapters/deno-file-system-adapter.ts";
 

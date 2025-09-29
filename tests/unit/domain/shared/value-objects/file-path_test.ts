@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { FilePath } from "../../../../../src/domain/shared/value-objects/file-path.ts";
 
 Deno.test("FilePath - create with valid path", () => {

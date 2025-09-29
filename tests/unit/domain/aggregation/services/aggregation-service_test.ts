@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { AggregationService } from "../../../../../src/domain/aggregation/services/aggregation-service.ts";
 import {
   ArrayAggregationStrategy,

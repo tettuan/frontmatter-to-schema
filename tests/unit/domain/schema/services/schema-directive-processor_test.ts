@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { SchemaDirectiveProcessor } from "../../../../../src/domain/schema/services/schema-directive-processor.ts";
 import { ProcessingError } from "../../../../../src/domain/shared/types/errors.ts";
 

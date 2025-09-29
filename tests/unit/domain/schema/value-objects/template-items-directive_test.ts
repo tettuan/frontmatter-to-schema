@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { TemplateItemsDirective } from "../../../../../src/domain/schema/value-objects/template-items-directive.ts";
 
 Deno.test("TemplateItemsDirective - create with valid template variable", () => {

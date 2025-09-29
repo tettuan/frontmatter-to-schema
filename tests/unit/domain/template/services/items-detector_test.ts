@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { ItemsDetector } from "../../../../../src/domain/template/services/items-detector.ts";
 
 Deno.test("ItemsDetector - create instance", () => {

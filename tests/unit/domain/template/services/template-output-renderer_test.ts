@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { TemplateOutputRenderer } from "../../../../../src/domain/template/services/template-output-renderer.ts";
 import { OutputFormat } from "../../../../../src/domain/template/services/output-rendering-service.ts";
 import { ProcessingError } from "../../../../../src/domain/shared/types/errors.ts";

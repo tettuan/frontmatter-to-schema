@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { DirectiveProcessor } from "../../../../../src/domain/schema/services/directive-processor.ts";
 import { SchemaData } from "../../../../../src/domain/schema/entities/schema.ts";
 

@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { AggregationId } from "../../../../../src/domain/aggregation/value-objects/aggregation-id.ts";
 
 Deno.test("AggregationId - create with valid string", () => {

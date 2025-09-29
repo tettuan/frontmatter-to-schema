@@ -1,4 +1,4 @@
-import { assertEquals, assertStrictEquals } from "jsr:@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { TemplateFormatDirective } from "../../../../../src/domain/schema/value-objects/template-format-directive.ts";
 import { SchemaError } from "../../../../../src/domain/shared/types/errors.ts";
 

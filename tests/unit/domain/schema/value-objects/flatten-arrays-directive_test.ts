@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { FlattenArraysDirective } from "../../../../../src/domain/schema/value-objects/flatten-arrays-directive.ts";
 
 Deno.test("FlattenArraysDirective - create with valid property name", () => {
