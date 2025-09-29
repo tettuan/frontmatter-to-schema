@@ -461,9 +461,16 @@ export class OutputRenderingService {
         if (value.length === 0) {
           return `${currentIndent}<${key}></${key}>`;
         }
-        const arrayItems = value.map((item, _index) =>
-          processValue(item, `item`, depth + 1)
-        );
+        const arrayItems = value.map((item, index) => {
+          const escaped = typeof item === "string"
+            ? item.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")
+            : String(item);
+          return `${currentIndent}  <item index="${index}">${escaped}</item>`;
+        });
         return `${currentIndent}<${key}>\n${
           arrayItems.join("\n")
         }\n${currentIndent}</${key}>`;
@@ -512,14 +519,15 @@ export class OutputRenderingService {
       const indent = "  ".repeat(depth);
 
       if (value === null || value === undefined) {
-        return `${header} ${key}\n\n_null_\n`;
+        // Null/undefined values always use bold key format
+        return `**${key}**: _null_\n`;
       }
 
       if (
         typeof value === "string" || typeof value === "number" ||
         typeof value === "boolean"
       ) {
-        // Escape markdown special characters
+        // Escape markdown special characters (but not for simple key-value format)
         const escaped = String(value)
           .replace(/\*/g, "\\*")
           .replace(/_/g, "\\_")
@@ -527,10 +535,11 @@ export class OutputRenderingService {
           .replace(/\]/g, "\\]")
           .replace(/`/g, "\\`");
 
+        // Simple values always use bold key format regardless of depth
         if (typeof value === "string" && value.includes("\n")) {
-          return `${header} ${key}\n\n\`\`\`\n${value}\n\`\`\`\n`;
+          return `**${key}**:\n\n\`\`\`\n${value}\n\`\`\`\n`;
         }
-        return `${header} ${key}\n\n${escaped}\n`;
+        return `**${key}**: ${escaped}\n`;
       }
 
       if (Array.isArray(value)) {

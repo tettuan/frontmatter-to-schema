@@ -1,0 +1,270 @@
+import { Result } from "../../shared/types/result.ts";
+import { ProcessingError } from "../../shared/types/errors.ts";
+import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
+
+/**
+ * Configuration interface for document aggregation.
+ */
+export interface AggregationConfig {
+  readonly includeMetadata?: boolean;
+  readonly includeProcessingTime?: boolean;
+  readonly customMetadata?: Record<string, unknown>;
+}
+
+/**
+ * Configuration manager interface for dependency injection.
+ */
+export interface ConfigurationManager {
+  getBooleanDefault(key: string): Result<boolean, ProcessingError>;
+  getObjectDefault(
+    key: string,
+  ): Result<Record<string, unknown>, ProcessingError>;
+}
+
+/**
+ * Domain service for aggregating frontmatter data from multiple documents.
+ * Handles single vs. multiple document processing strategies.
+ * Follows totality principles with comprehensive Result-based error handling.
+ */
+export class DocumentAggregationService {
+  private constructor(
+    private readonly configManager?: ConfigurationManager,
+  ) {}
+
+  /**
+   * Creates a DocumentAggregationService instance.
+   */
+  static create(
+    configManager?: ConfigurationManager,
+  ): Result<DocumentAggregationService, ProcessingError> {
+    return Result.ok(new DocumentAggregationService(configManager));
+  }
+
+  /**
+   * Transforms documents into aggregated data structure.
+   * Uses configuration strategy for metadata generation.
+   */
+  transformDocuments(
+    documents: MarkdownDocument[],
+    template: unknown,
+    config?: AggregationConfig,
+  ): Result<Record<string, unknown>, ProcessingError> {
+    if (!Array.isArray(documents)) {
+      return Result.error(
+        new ProcessingError(
+          "Documents must be an array for aggregation",
+          "INVALID_DOCUMENTS_TYPE",
+          { documentsType: typeof documents },
+        ),
+      );
+    }
+
+    if (documents.length === 0) {
+      return Result.error(
+        new ProcessingError(
+          "At least one document is required for aggregation",
+          "EMPTY_DOCUMENTS_ARRAY",
+          { documentCount: 0 },
+        ),
+      );
+    }
+
+    try {
+      // Extract frontmatter data from all documents
+      const extractionResult = this.extractFrontmatterData(documents);
+      if (extractionResult.isError()) {
+        return Result.error(extractionResult.unwrapError());
+      }
+
+      const allFrontmatterData = extractionResult.unwrap();
+
+      // Single document processing: return frontmatter directly for variable resolution
+      if (documents.length === 1 && allFrontmatterData.length === 1) {
+        return Result.ok(allFrontmatterData[0]);
+      }
+
+      // Multiple document processing: create aggregate data structure
+      const aggregationResult = this.createAggregatedData(
+        allFrontmatterData,
+        documents,
+        template,
+        config,
+      );
+      if (aggregationResult.isError()) {
+        return Result.error(aggregationResult.unwrapError());
+      }
+
+      return Result.ok(aggregationResult.unwrap());
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Document transformation failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "TRANSFORMATION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Extracts frontmatter data from all documents.
+   */
+  private extractFrontmatterData(
+    documents: MarkdownDocument[],
+  ): Result<Record<string, unknown>[], ProcessingError> {
+    try {
+      const allFrontmatterData: Record<string, unknown>[] = [];
+
+      for (const document of documents) {
+        const frontmatter = document.getFrontmatter();
+        if (frontmatter) {
+          allFrontmatterData.push(frontmatter.getData());
+        }
+      }
+
+      return Result.ok(allFrontmatterData);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to extract frontmatter data: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "FRONTMATTER_EXTRACTION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Creates aggregated data structure for multiple documents.
+   */
+  private createAggregatedData(
+    frontmatterData: Record<string, unknown>[],
+    documents: MarkdownDocument[],
+    template: unknown,
+    config?: AggregationConfig,
+  ): Result<Record<string, unknown>, ProcessingError> {
+    try {
+      // Determine metadata inclusion from config or configuration manager
+      const includeMetadata = this.shouldIncludeMetadata(config);
+
+      const aggregatedData: Record<string, unknown> = {
+        documents: frontmatterData,
+        totalDocuments: documents.length,
+      };
+
+      // Add metadata if configured
+      if (includeMetadata) {
+        const metadataResult = this.generateMetadata(config);
+        if (metadataResult.isError()) {
+          return Result.error(metadataResult.unwrapError());
+        }
+        Object.assign(aggregatedData, metadataResult.unwrap());
+      }
+
+      // Check if template requires {@items} processing
+      const hasItemsExpansion = this.checkItemsExpansion(template);
+      if (hasItemsExpansion) {
+        aggregatedData.items = frontmatterData;
+      }
+
+      return Result.ok(aggregatedData);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to create aggregated data: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "AGGREGATION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Determines whether to include metadata based on configuration.
+   */
+  private shouldIncludeMetadata(config?: AggregationConfig): boolean {
+    // Check explicit config first
+    if (config?.includeMetadata !== undefined) {
+      return config.includeMetadata;
+    }
+
+    // Fallback to configuration manager
+    if (this.configManager) {
+      const includeMetadataResult = this.configManager.getBooleanDefault(
+        "includeMetadata",
+      );
+      if (includeMetadataResult.isOk()) {
+        return includeMetadataResult.unwrap();
+      }
+    }
+
+    // Default to true
+    return true;
+  }
+
+  /**
+   * Generates metadata for aggregated data.
+   */
+  private generateMetadata(
+    config?: AggregationConfig,
+  ): Result<Record<string, unknown>, ProcessingError> {
+    try {
+      const metadata: Record<string, unknown> = {
+        processedAt: new Date().toISOString(),
+      };
+
+      // Add custom metadata if provided
+      if (config?.customMetadata) {
+        Object.assign(metadata, config.customMetadata);
+      }
+
+      return Result.ok(metadata);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to generate metadata: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "METADATA_GENERATION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Checks if template requires items expansion processing.
+   * This is a simplified check - in production would use proper template analysis.
+   */
+  private checkItemsExpansion(template: unknown): boolean {
+    try {
+      if (
+        template && typeof template === "object" &&
+        "hasItemsExpansion" in template
+      ) {
+        const templateWithExpansion = template as {
+          hasItemsExpansion(): boolean;
+        };
+        return templateWithExpansion.hasItemsExpansion();
+      }
+
+      // Fallback: check if template content contains {@items} pattern
+      if (template && typeof template === "object") {
+        const templateString = JSON.stringify(template);
+        return templateString.includes("{@items}") ||
+          templateString.includes("{{items}}");
+      }
+
+      return false;
+    } catch (_error) {
+      // On error, assume no items expansion needed
+      return false;
+    }
+  }
+}
