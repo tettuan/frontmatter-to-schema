@@ -31,6 +31,11 @@ class MockFileSystemPort {
         unwrap: () => {
           throw new Error("Cannot unwrap error result");
         },
+        getValue: () => undefined,
+        getError: () => ({
+          code: this.errorType,
+          message: `Error reading ${path}`,
+        }),
       };
     }
 
@@ -46,6 +51,11 @@ class MockFileSystemPort {
         unwrap: () => {
           throw new Error("Cannot unwrap error result");
         },
+        getValue: () => undefined,
+        getError: () => ({
+          code: "FILE_NOT_FOUND",
+          message: `File not found: ${path}`,
+        }),
       };
     }
 
@@ -56,6 +66,8 @@ class MockFileSystemPort {
       },
       isOk: () => true,
       unwrap: () => content,
+      getValue: () => content,
+      getError: () => undefined,
     };
   }
 }
