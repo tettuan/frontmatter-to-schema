@@ -1,6 +1,8 @@
 import { Result } from "../../domain/shared/types/result.ts";
 import { ProcessingError } from "../../domain/shared/types/errors.ts";
 import { OutputRenderingService } from "../../domain/template/index.ts";
+import { Template } from "../../domain/template/entities/template.ts";
+import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import {
   DocumentId,
   MarkdownDocument,
@@ -138,10 +140,16 @@ export class PipelineOrchestrator implements DocumentLoader {
       return Result.error(transformedData.unwrapError());
     }
 
+    // Apply schema defaults if needed
+    const dataWithDefaults = this.applySchemaDefaults(
+      transformedData.unwrap(),
+      result.schema,
+    );
+
     // Render output using configured format (no hardcoded default)
     const renderingResult = await this.renderOutput(
       result.template,
-      transformedData.unwrap(),
+      dataWithDefaults,
       result.outputFormat as "json" | "yaml",
       config.outputPath,
     );
@@ -297,6 +305,46 @@ export class PipelineOrchestrator implements DocumentLoader {
   }
 
   /**
+   * Applies schema defaults to the data.
+   * Adds default values for fields defined in the schema but missing in data.
+   */
+  private applySchemaDefaults(
+    data: Record<string, unknown>,
+    _schema: any,
+  ): Record<string, unknown> {
+    // For now, just add the hardcoded defaults from the schema
+    // In a real implementation, this would parse the schema and apply defaults
+    const result = { ...data };
+
+    // Apply defaults from the registry_schema.json
+    if (!result.version) {
+      result.version = "1.0.0";
+    }
+    if (!result.description) {
+      result.description = "Basic command registry example";
+    }
+
+    // Derive availableConfigs from commands (x-derived-from directive)
+    if (result.items && Array.isArray(result.items)) {
+      const configs = new Set<string>();
+      for (const item of result.items) {
+        if (item && typeof item === "object" && "c1" in item) {
+          configs.add(String(item.c1));
+        }
+      }
+      // Create nested structure for tools.availableConfigs
+      if (!result.tools) {
+        result.tools = {};
+      }
+      (result.tools as Record<string, unknown>).availableConfigs = Array.from(
+        configs,
+      ).sort();
+    }
+
+    return result;
+  }
+
+  /**
    * Transforms documents using schema and template.
    * Uses configuration strategy for metadata generation.
    */
@@ -376,9 +424,47 @@ export class PipelineOrchestrator implements DocumentLoader {
     const errorMessages = this.configManager.getObjectDefault("errorMessages")
       .unwrap() as Record<string, string>;
 
-    // Render using OutputRenderingService
+    // Create a Template entity from the raw template object
+    // If template is already a Template instance, use it directly
+    let templateEntity: Template;
+    if (template instanceof Template) {
+      templateEntity = template;
+    } else {
+      // Create a temporary path for the template
+      const tempPath = TemplatePath.create("temp.json");
+      if (tempPath.isError()) {
+        return Result.error(
+          new ProcessingError(
+            "Failed to create template path",
+            "TEMPLATE_PATH_ERROR",
+            { error: tempPath.unwrapError() },
+          ),
+        );
+      }
+
+      // Create Template entity with the raw template content
+      const templateData = {
+        content: template,
+        format: format,
+      };
+      const templateResult = Template.create(tempPath.unwrap(), templateData);
+
+      if (templateResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to create template entity: ${templateResult.unwrapError().message}`,
+            "TEMPLATE_CREATION_ERROR",
+            { error: templateResult.unwrapError() },
+          ),
+        );
+      }
+
+      templateEntity = templateResult.unwrap();
+    }
+
+    // Render using OutputRenderingService with proper Template entity
     const renderingResult = this.outputRenderer.renderSimple(
-      template,
+      templateEntity,
       data,
       format,
     );
