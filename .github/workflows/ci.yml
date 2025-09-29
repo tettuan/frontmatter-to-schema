@@ -19,9 +19,6 @@ jobs:
       with:
         deno-version: v2.x
 
-    - name: Cache dependencies
-      run: deno cache deps.ts
-
     - name: Run CI
       run: deno task ci
 
