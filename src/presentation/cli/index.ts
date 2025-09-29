@@ -43,6 +43,7 @@ export class CLI {
 
       const command = args[0];
 
+      // Check for explicit commands first
       switch (command) {
         case "process":
           return await this.processCommand(args.slice(1));
@@ -54,16 +55,24 @@ export class CLI {
         case "--version":
         case "-v":
           return this.showVersion();
-        default:
-          return {
-            ok: false,
-            error: new ProcessingError(
-              `Unknown command: ${command}`,
-              "UNKNOWN_COMMAND",
-              { command, availableCommands: ["process", "help", "version"] },
-            ),
-          };
       }
+
+      // Check for direct invocation pattern (schema as first argument)
+      // If first arg looks like a file path (ends with .json or .yaml),
+      // assume direct invocation pattern
+      if (this.looksLikeFilePath(command)) {
+        return await this.processDirectInvocation(args);
+      }
+
+      // If we get here, it's an unknown command
+      return {
+        ok: false,
+        error: new ProcessingError(
+          `Unknown command: ${command}`,
+          "UNKNOWN_COMMAND",
+          { command, availableCommands: ["process", "help", "version"] },
+        ),
+      };
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
@@ -76,6 +85,109 @@ export class CLI {
           { args, error },
         ),
       };
+    }
+  }
+
+  private looksLikeFilePath(arg: string): boolean {
+    return arg.endsWith(".json") || arg.endsWith(".yaml") ||
+      arg.endsWith(".yml");
+  }
+
+  private async processDirectInvocation(args: string[]): Promise<CLIResponse> {
+    // Direct invocation expects: <schema> <input> <output> [options]
+    if (args.length < 3) {
+      return {
+        ok: false,
+        error: new ProcessingError(
+          "Insufficient arguments. Usage: <schema> <input> <output> [--verbose]",
+          "INVALID_ARGUMENTS",
+          { args },
+        ),
+      };
+    }
+
+    const [schemaPath, inputPath, outputPath, ...options] = args;
+
+    // Try to extract template from schema's x-template directive
+    const templatePath = await this.extractTemplateFromSchema(schemaPath);
+    if (!templatePath) {
+      return {
+        ok: false,
+        error: new ProcessingError(
+          "Schema does not contain x-template directive. Use 'process' command to specify template explicitly.",
+          "MISSING_TEMPLATE",
+          { schemaPath },
+        ),
+      };
+    }
+
+    // Determine output format from output file extension or options
+    let outputFormat: "json" | "yaml" = "json";
+    if (outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")) {
+      outputFormat = "yaml";
+    }
+
+    const config: PipelineConfig = {
+      schemaPath,
+      templatePath,
+      inputPath,
+      outputPath,
+      outputFormat,
+    };
+
+    const result = await this.orchestrator.execute(config);
+
+    if (result.isError()) {
+      return {
+        ok: false,
+        error: result.unwrapError(),
+      };
+    }
+
+    const pipelineResult = result.unwrap();
+
+    // Only log if --verbose flag is present
+    if (options.includes("--verbose")) {
+      console.log(
+        `✅ Processed ${pipelineResult.processedDocuments} documents`,
+      );
+      console.log(`📄 Output written to: ${pipelineResult.outputPath}`);
+      console.log(
+        `⏱️  Execution time: ${pipelineResult.executionTime.toFixed(2)}ms`,
+      );
+    }
+
+    return {
+      ok: true,
+      data: pipelineResult,
+    };
+  }
+
+  private async extractTemplateFromSchema(
+    schemaPath: string,
+  ): Promise<string | null> {
+    try {
+      const schemaContent = await Deno.readTextFile(schemaPath);
+      const schema = JSON.parse(schemaContent);
+
+      if (schema["x-template"]) {
+        // If x-template is a relative path, resolve it relative to the schema directory
+        const templatePath = schema["x-template"];
+        if (!templatePath.startsWith("/")) {
+          // Relative path - resolve relative to schema directory
+          const schemaDir = schemaPath.substring(
+            0,
+            schemaPath.lastIndexOf("/"),
+          );
+          return `${schemaDir}/${templatePath}`;
+        }
+        return templatePath;
+      }
+
+      return null;
+    } catch (_error) {
+      // If we can't read or parse the schema, return null
+      return null;
     }
   }
 
@@ -143,10 +255,11 @@ Frontmatter to Schema Processor
 
 USAGE:
     frontmatter-to-schema <COMMAND> [OPTIONS]
+    frontmatter-to-schema <schema> <input> <output> [--verbose]
 
 COMMANDS:
     process <schema> <template> <input> <output> [format]
-        Process markdown files with schema and template
+        Process markdown files with explicit schema and template
 
         Arguments:
             schema      Path to JSON schema file
@@ -161,9 +274,22 @@ COMMANDS:
     version, --version, -v
         Show version information
 
+DIRECT INVOCATION:
+    When schema contains x-template directive:
+        <schema> <input> <output> [--verbose]
+
+        Arguments:
+            schema      Path to JSON schema with x-template
+            input       Path to markdown file or directory
+            output      Path for output file
+            --verbose   Show processing details
+
 EXAMPLES:
-    # Process single file
+    # Process with explicit template
     frontmatter-to-schema process schema.json template.json article.md output.json
+
+    # Direct invocation (schema has x-template)
+    frontmatter-to-schema schema.json "*.md" output.json --verbose
 
     # Process directory with YAML output
     frontmatter-to-schema process schema.json template.json ./docs/ output.yaml yaml

@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-jmespath-filter directive.
@@ -19,10 +20,10 @@ export class JmesPathFilterDirective {
     if (typeof value !== "string") {
       return Result.error(
         new SchemaError(
-          "x-jmespath-filter directive value must be a string",
+          `${DIRECTIVE_NAMES.JMESPATH_FILTER} directive value must be a string`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-jmespath-filter",
+            directive: DIRECTIVE_NAMES.JMESPATH_FILTER,
             value,
             expected: "string (JMESPath expression)",
           },
@@ -34,10 +35,10 @@ export class JmesPathFilterDirective {
     if (trimmed.length === 0) {
       return Result.error(
         new SchemaError(
-          "x-jmespath-filter directive expression cannot be empty",
+          `${DIRECTIVE_NAMES.JMESPATH_FILTER} directive expression cannot be empty`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-jmespath-filter",
+            directive: DIRECTIVE_NAMES.JMESPATH_FILTER,
             value,
             expected: "non-empty string (JMESPath expression)",
           },
@@ -68,6 +69,6 @@ export class JmesPathFilterDirective {
    * Returns a string representation of this directive.
    */
   toString(): string {
-    return `x-jmespath-filter: "${this.expression}"`;
+    return `${DIRECTIVE_NAMES.JMESPATH_FILTER}: "${this.expression}"`;
   }
 }
