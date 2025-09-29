@@ -29,12 +29,3 @@ jobs:
             echo "Coverage files found in tmp/"
             ls -la tmp/ || true
           fi
-
-# CI Status Verification
-
-This comment verifies that all CI systems are operational and passing.
-
-Generated: Tue Sep 30 02:00:04 JST 2025
-Local CI: ✅ PASSING (683 tests, 2.13s)
-Remote CI: ✅ PASSING (GitHub Actions)
-
