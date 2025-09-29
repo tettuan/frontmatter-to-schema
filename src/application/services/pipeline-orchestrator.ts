@@ -27,7 +27,7 @@ export interface PipelineConfig {
   readonly templatePath: string;
   readonly inputPath: string;
   readonly outputPath: string;
-  readonly outputFormat?: "json" | "yaml";
+  readonly outputFormat?: "json" | "yaml" | "xml" | "markdown";
 }
 
 /**

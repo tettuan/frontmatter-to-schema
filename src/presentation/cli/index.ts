@@ -122,9 +122,13 @@ export class CLI {
     }
 
     // Determine output format from output file extension or options
-    let outputFormat: "json" | "yaml" = "json";
+    let outputFormat: "json" | "yaml" | "xml" | "markdown" = "json";
     if (outputPath.endsWith(".yaml") || outputPath.endsWith(".yml")) {
       outputFormat = "yaml";
+    } else if (outputPath.endsWith(".xml")) {
+      outputFormat = "xml";
+    } else if (outputPath.endsWith(".md") || outputPath.endsWith(".markdown")) {
+      outputFormat = "markdown";
     }
 
     const config: PipelineConfig = {
@@ -240,7 +244,8 @@ export class CLI {
       templatePath,
       inputPath,
       outputPath,
-      outputFormat: (outputFormat as "json" | "yaml") || "json",
+      outputFormat: (outputFormat as "json" | "yaml" | "xml" | "markdown") ||
+        "json",
     };
 
     return {

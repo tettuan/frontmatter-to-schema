@@ -462,14 +462,25 @@ export class OutputRenderingService {
           return `${currentIndent}<${key}></${key}>`;
         }
         const arrayItems = value.map((item, index) => {
-          const escaped = typeof item === "string"
-            ? item.replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#39;")
-            : String(item);
-          return `${currentIndent}  <item index="${index}">${escaped}</item>`;
+          if (this.isObject(item)) {
+            // Recursively process object items
+            const objectKeys = Object.keys(item);
+            const objectLines = objectKeys.map((objKey) =>
+              processValue(item[objKey], objKey, depth + 2)
+            );
+            return `${currentIndent}  <item index="${index}">\n${
+              objectLines.join("\n")
+            }\n${currentIndent}  </item>`;
+          } else {
+            const escaped = typeof item === "string"
+              ? item.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;")
+              : String(item);
+            return `${currentIndent}  <item index="${index}">${escaped}</item>`;
+          }
         });
         return `${currentIndent}<${key}>\n${
           arrayItems.join("\n")
@@ -546,9 +557,14 @@ export class OutputRenderingService {
         if (value.length === 0) {
           return `${header} ${key}\n\n_empty array_\n`;
         }
-        const listItems = value.map((item) => {
-          if (typeof item === "object" && item !== null) {
-            return `${indent}- Complex object`;
+        const listItems = value.map((item, index) => {
+          if (this.isObject(item)) {
+            // Recursively process object items
+            const objectKeys = Object.keys(item);
+            const objectSections = objectKeys.map((objKey) =>
+              `  ${indent}**${objKey}**: ${item[objKey]}`
+            );
+            return `${indent}- Item ${index}:\n${objectSections.join("\n")}`;
           }
           return `${indent}- ${String(item)}`;
         });
