@@ -117,6 +117,25 @@ export class Schema {
   }
 
   /**
+   * Returns the schema path.
+   */
+  getPath(): SchemaPath {
+    return this.state.path;
+  }
+
+  /**
+   * Returns the schema data if resolved, otherwise throws an error.
+   */
+  getData(): SchemaData {
+    if (this.state.kind !== "Resolved") {
+      throw new Error(
+        `Schema is not resolved (current state: ${this.state.kind})`,
+      );
+    }
+    return this.state.schema;
+  }
+
+  /**
    * Marks the schema as loading.
    */
   markAsLoading(): Schema {
