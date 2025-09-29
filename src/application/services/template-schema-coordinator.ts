@@ -4,14 +4,18 @@ import { Schema } from "../../domain/schema/entities/schema.ts";
 import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { SchemaTemplateResolver } from "../../domain/schema/services/schema-template-resolver.ts";
 import { TemplateRenderer } from "../../domain/template/services/template-renderer.ts";
-import { TemplatePath } from "../../domain/shared/value-objects/template-path.ts";
+import { TemplatePath as SharedTemplatePath } from "../../domain/shared/value-objects/template-path.ts";
+import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { Template } from "../../domain/template/entities/template.ts";
+import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
+import { createFileError } from "../../domain/shared/types/file-errors.ts";
 
 /**
  * Template handoff context for coordination between domains
  */
 export interface TemplateHandoffContext {
-  readonly containerTemplate: TemplatePath;
-  readonly itemsTemplate: TemplatePath | null;
+  readonly containerTemplate: SharedTemplatePath;
+  readonly itemsTemplate: SharedTemplatePath | null;
   readonly schemaContext: SchemaContext;
 }
 
@@ -42,6 +46,7 @@ export class TemplateSchemaCoordinator {
   constructor(
     private readonly templateRenderer: TemplateRenderer,
     private readonly schemaTemplateResolver: SchemaTemplateResolver,
+    private readonly fileSystem: FileSystemPort,
   ) {}
 
   /**
@@ -51,10 +56,10 @@ export class TemplateSchemaCoordinator {
    * 2. Load templates and pass to Template Domain
    * 3. Template Domain processes with schema context
    */
-  processWithSchemaTemplates(
+  async processWithSchemaTemplates(
     schema: Schema,
     data: FrontmatterData[],
-  ): Result<ProcessedOutput, ProcessingError> {
+  ): Promise<Result<ProcessedOutput, ProcessingError>> {
     try {
       // 1. Extract template references from Schema Domain
       const templateContextResult = this.schemaTemplateResolver
@@ -76,7 +81,7 @@ export class TemplateSchemaCoordinator {
       const templateContext = templateContextResult.unwrap();
 
       // 2. Load container template
-      const containerTemplate = this.loadTemplate(
+      const containerTemplate = await this.loadTemplate(
         templateContext.containerTemplate.path,
       );
 
@@ -94,9 +99,9 @@ export class TemplateSchemaCoordinator {
       }
 
       // 3. Load items template if available
-      let itemsTemplate = null;
+      let itemsTemplate: Template | null = null;
       if (templateContext.itemsTemplate) {
-        const itemsTemplateResult = this.loadTemplate(
+        const itemsTemplateResult = await this.loadTemplate(
           templateContext.itemsTemplate.path,
         );
 
@@ -161,24 +166,80 @@ export class TemplateSchemaCoordinator {
   }
 
   /**
-   * Loads a template from file path
-   * TODO: This should delegate to proper template loading service
+   * Loads a template from file path using FileSystemPort
    */
-  private loadTemplate(
+  private async loadTemplate(
     templatePath: string,
-  ): Result<unknown, ProcessingError> {
-    // For now, return a simple implementation
-    // This should be replaced with proper template loading logic
+  ): Promise<Result<Template, ProcessingError>> {
     try {
-      // Placeholder implementation - should load actual template
-      return Result.ok({
-        path: templatePath,
-        content: "{}",
-      });
+      // Read template file
+      const contentResult = await this.fileSystem.readTextFile(templatePath);
+      if (contentResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to read template file: ${
+              createFileError(contentResult.unwrapError()).message
+            }`,
+            "TEMPLATE_READ_ERROR",
+            { templatePath, error: contentResult.unwrapError() },
+          ),
+        );
+      }
+
+      // Parse template JSON
+      let templateData: Record<string, unknown>;
+      try {
+        templateData = JSON.parse(contentResult.unwrap());
+      } catch (parseError) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to parse template JSON: ${
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError)
+            }`,
+            "TEMPLATE_PARSE_ERROR",
+            { templatePath, error: parseError },
+          ),
+        );
+      }
+
+      // Create TemplatePath value object using template domain version
+      const templatePathResult = TemplatePath.create(templatePath);
+      if (templatePathResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Invalid template path: ${templatePathResult.unwrapError().message}`,
+            "INVALID_TEMPLATE_PATH",
+            { templatePath, error: templatePathResult.unwrapError() },
+          ),
+        );
+      }
+
+      // Create Template entity with proper TemplateData structure
+      const templateDataFormatted = {
+        content: templateData,
+        format: "json" as const, // Templates are loaded as JSON
+      };
+      const templateResult = Template.create(
+        templatePathResult.unwrap(),
+        templateDataFormatted,
+      );
+      if (templateResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to create template entity: ${templateResult.unwrapError().message}`,
+            "TEMPLATE_CREATION_ERROR",
+            { templatePath, error: templateResult.unwrapError() },
+          ),
+        );
+      }
+
+      return Result.ok(templateResult.unwrap());
     } catch (error) {
       return Result.error(
         new ProcessingError(
-          `Failed to load template at ${templatePath}: ${
+          `Template loading failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
           "TEMPLATE_LOAD_ERROR",

@@ -25,3 +25,8 @@ export type {
   MergeStrategyConfig,
   StrategyConfiguration,
 } from "./services/aggregation-strategy.ts";
+export { DocumentAggregationService } from "./services/document-aggregation-service.ts";
+export type {
+  AggregationConfig,
+  ConfigurationManager,
+} from "./services/document-aggregation-service.ts";

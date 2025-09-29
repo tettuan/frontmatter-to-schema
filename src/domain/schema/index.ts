@@ -27,3 +27,5 @@ export { DirectiveValueObjectFactory } from "./services/directive-value-object-f
 export type { DirectiveValueObject } from "./services/directive-value-object-factory.ts";
 export { DirectiveOrderingStrategy } from "./value-objects/directive-ordering-strategy.ts";
 export type { DirectiveType } from "./value-objects/directive-ordering-strategy.ts";
+export { SchemaTemplateResolver } from "./services/schema-template-resolver.ts";
+export { SchemaDirectiveProcessor } from "./services/schema-directive-processor.ts";
