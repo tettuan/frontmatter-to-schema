@@ -340,7 +340,7 @@ Deno.test("DirectiveProcessor - validate x-template-format values", () => {
 
   const invalidSchema: SchemaData = {
     type: "object",
-    "x-template-format": "xml", // Invalid format
+    "x-template-format": "txt", // Invalid format
   };
 
   const processor = DirectiveProcessor.create();

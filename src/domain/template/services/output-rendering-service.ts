@@ -5,7 +5,7 @@ import { Template } from "../entities/template.ts";
 /**
  * Output format types for rendering
  */
-export type OutputFormat = "json" | "yaml";
+export type OutputFormat = "json" | "yaml" | "xml" | "markdown";
 
 /**
  * Rendering configuration options
@@ -196,6 +196,10 @@ export class OutputRenderingService {
           return this.renderToJson(content, config);
         case "yaml":
           return this.renderToYaml(content, config);
+        case "xml":
+          return this.renderToXml(content, config);
+        case "markdown":
+          return this.renderToMarkdown(content, config);
         default: {
           const exhaustiveCheck: never = config.format;
           return Result.error(
@@ -367,6 +371,162 @@ export class OutputRenderingService {
 
     countRecursive(data);
     return count;
+  }
+
+  /**
+   * Renders content to XML format.
+   */
+  private renderToXml(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const indent = config.indent || 2;
+      const indentStr = " ".repeat(indent);
+
+      const processValue = (value: unknown, depth = 0): string => {
+        const currentIndent = indentStr.repeat(depth);
+
+        if (value === null || value === undefined) {
+          return "";
+        }
+
+        if (typeof value === "string") {
+          return this.escapeXml(value);
+        }
+
+        if (typeof value === "number" || typeof value === "boolean") {
+          return String(value);
+        }
+
+        if (Array.isArray(value)) {
+          return value.map((item, index) =>
+            `${currentIndent}<item index="${index}">${
+              processValue(item, depth + 1)
+            }</item>`
+          ).join("\n");
+        }
+
+        if (this.isObject(value)) {
+          const keys = config.sortKeys
+            ? Object.keys(value).sort()
+            : Object.keys(value);
+
+          return keys.map((key) => {
+            const val = value[key];
+            const processedValue = processValue(val, depth + 1);
+
+            if (this.isObject(val) || Array.isArray(val)) {
+              return `${currentIndent}<${key}>\n${processedValue}\n${currentIndent}</${key}>`;
+            } else {
+              return `${currentIndent}<${key}>${processedValue}</${key}>`;
+            }
+          }).join("\n");
+        }
+
+        return String(value);
+      };
+
+      const xmlContent = processValue(content);
+      const xmlOutput = config.prettyPrint
+        ? `<?xml version="1.0" encoding="UTF-8"?>\n<root>\n${xmlContent}\n</root>`
+        : `<?xml version="1.0" encoding="UTF-8"?><root>${xmlContent}</root>`;
+
+      return Result.ok(xmlOutput);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `XML rendering failed: ${errorMessage}`,
+          "XML_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Renders content to Markdown format.
+   */
+  private renderToMarkdown(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const processValue = (value: unknown, depth = 0): string => {
+        const headerLevel = Math.min(depth + 1, 6);
+        const headerPrefix = "#".repeat(headerLevel);
+
+        if (value === null || value === undefined) {
+          return "*null*";
+        }
+
+        if (typeof value === "string") {
+          return value;
+        }
+
+        if (typeof value === "number" || typeof value === "boolean") {
+          return String(value);
+        }
+
+        if (Array.isArray(value)) {
+          return value.map((item) => {
+            if (this.isObject(item) || Array.isArray(item)) {
+              return `- ${processValue(item, depth + 1)}`;
+            } else {
+              return `- ${processValue(item, depth)}`;
+            }
+          }).join("\n");
+        }
+
+        if (this.isObject(value)) {
+          const keys = config.sortKeys
+            ? Object.keys(value).sort()
+            : Object.keys(value);
+
+          return keys.map((key) => {
+            const val = value[key];
+            const processedValue = processValue(val, depth + 1);
+
+            if (this.isObject(val) || Array.isArray(val)) {
+              return `${headerPrefix} ${key}\n\n${processedValue}`;
+            } else {
+              return `**${key}**: ${processedValue}`;
+            }
+          }).join("\n\n");
+        }
+
+        return String(value);
+      };
+
+      const markdownContent = processValue(content);
+      return Result.ok(markdownContent);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `Markdown rendering failed: ${errorMessage}`,
+          "MARKDOWN_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Escapes XML special characters.
+   */
+  private escapeXml(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   /**
