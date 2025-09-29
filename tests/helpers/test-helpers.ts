@@ -1,4 +1,4 @@
-import { ensureDir } from "jsr:@std/fs";
+import { ensureDir } from "jsr:@std/fs@1.0.8";
 import { join } from "@std/path";
 
 /**
