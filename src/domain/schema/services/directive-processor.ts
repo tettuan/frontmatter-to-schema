@@ -454,15 +454,20 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Removes directive properties from a schema object.
+   * Removes directive properties from a schema object, except those that need to be stored.
    */
   private removeDirectiveProperties(schema: SchemaData): SchemaData {
     const cleaned: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(schema)) {
       if (!this.isDirectiveProperty(key)) {
+        // Keep non-directive properties
+        cleaned[key] = value;
+      } else if (this.shouldStoreDirectiveValue(key as DirectiveType)) {
+        // Keep directive properties that need to be stored for later processing
         cleaned[key] = value;
       }
+      // Remove directive properties that don't need to be stored
     }
 
     return cleaned as SchemaData;
@@ -545,9 +550,7 @@ export class DirectiveProcessor {
    */
   private shouldStoreDirectiveValue(directive: DirectiveType): boolean {
     const directivesToStore = [
-      DIRECTIVE_NAMES.FLATTEN_ARRAYS,
-      DIRECTIVE_NAMES.DERIVED_UNIQUE,
-      DIRECTIVE_NAMES.JMESPATH_FILTER,
+      DIRECTIVE_NAMES.DERIVED_FROM,
     ] as const;
     return directivesToStore.includes(
       directive as typeof directivesToStore[number],

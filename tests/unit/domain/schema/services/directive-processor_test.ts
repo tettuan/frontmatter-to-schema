@@ -305,6 +305,12 @@ Deno.test("DirectiveProcessor - handle x-derived-from with string value", () => 
   const directive = processingResult.extractedDirectives[0];
   assertEquals(directive.type, "x-derived-from");
   assertEquals(directive.value, "original_title");
+
+  // Verify that x-derived-from is stored in processed schema for later processing
+  const titleProperty =
+    (processingResult.processedSchema.properties as any).title;
+  assertEquals(titleProperty["x-derived-from"], "original_title");
+  assertEquals(titleProperty.type, "string");
 });
 
 Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
@@ -330,6 +336,13 @@ Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
   assertEquals(directive.type, "x-derived-from");
   assertEquals(Array.isArray(directive.value), true);
   assertEquals((directive.value as string[]).length, 3);
+
+  // Verify that x-derived-from array is stored in processed schema for later processing
+  const tagsProperty =
+    (processingResult.processedSchema.properties as any).tags;
+  assertEquals(Array.isArray(tagsProperty["x-derived-from"]), true);
+  assertEquals((tagsProperty["x-derived-from"] as string[]).length, 3);
+  assertEquals(tagsProperty.type, "array");
 });
 
 Deno.test("DirectiveProcessor - validate x-template-format values", () => {
@@ -471,6 +484,80 @@ Deno.test("DirectiveProcessor - preserve schema structure", () => {
     processingResult.processedSchema["x-template-format"],
     undefined,
   );
+});
+
+Deno.test("DirectiveProcessor - handle x-derived-unique with boolean value", () => {
+  const schemaWithDerivedUnique: SchemaData = {
+    type: "object",
+    properties: {
+      tags: {
+        type: "array",
+        items: { type: "string" },
+        "x-derived-unique": true,
+      },
+    },
+  };
+
+  const processor = DirectiveProcessor.create();
+  const result = processor.processDirectives(schemaWithDerivedUnique);
+
+  assertEquals(result.isOk(), true);
+  const processingResult = result.unwrap();
+  assertEquals(processingResult.extractedDirectives.length, 1);
+
+  const directive = processingResult.extractedDirectives[0];
+  assertEquals(directive.type, "x-derived-unique");
+  assertEquals(directive.value, true);
+
+  // Verify that x-derived-unique is removed from processed schema (validation-only directive)
+  const tagsProperty =
+    (processingResult.processedSchema.properties as any).tags;
+  assertEquals(tagsProperty["x-derived-unique"], undefined);
+  assertEquals(tagsProperty.type, "array");
+});
+
+Deno.test("DirectiveProcessor - validate x-derived-unique values", () => {
+  const validSchemaTrue: SchemaData = {
+    type: "object",
+    properties: {
+      data: {
+        type: "string",
+        "x-derived-unique": true,
+      },
+    },
+  };
+
+  const validSchemaFalse: SchemaData = {
+    type: "object",
+    properties: {
+      data: {
+        type: "string",
+        "x-derived-unique": false,
+      },
+    },
+  };
+
+  const invalidSchema: SchemaData = {
+    type: "object",
+    properties: {
+      data: {
+        type: "string",
+        "x-derived-unique": "invalid", // Should be boolean
+      },
+    },
+  };
+
+  const processor = DirectiveProcessor.create();
+
+  const validResultTrue = processor.validateDirectives(validSchemaTrue);
+  assertEquals(validResultTrue.isOk(), true);
+
+  const validResultFalse = processor.validateDirectives(validSchemaFalse);
+  assertEquals(validResultFalse.isOk(), true);
+
+  const invalidResult = processor.validateDirectives(invalidSchema);
+  assertEquals(invalidResult.isError(), true);
+  assertEquals(invalidResult.unwrapError().code, "INVALID_DIRECTIVE_VALUE");
 });
 
 Deno.test("DirectiveProcessor - handle directive context", () => {
