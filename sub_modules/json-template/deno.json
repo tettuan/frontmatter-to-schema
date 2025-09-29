@@ -1,0 +1,31 @@
+{
+  "name": "@frontmatter-to-schema/json-template",
+  "version": "1.0.0",
+  "description": "JSON template processor with variable substitution support",
+  "exports": "./src/mod.ts",
+  "tasks": {
+    "test": "deno test --allow-all",
+    "test:watch": "deno test --allow-all --watch",
+    "test:coverage": "deno test --allow-all --coverage=tmp/coverage && deno coverage tmp/coverage",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "check": "deno check src/mod.ts"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
