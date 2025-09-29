@@ -272,7 +272,9 @@ export class Template {
     variables: Record<string, unknown>,
   ): unknown {
     if (typeof obj === "string") {
-      return this.resolveStringVariables(obj, variables);
+      const resolved = this.resolveStringVariables(obj, variables);
+      // resolveStringVariables can return non-string for {@items}
+      return resolved;
     }
 
     if (Array.isArray(obj)) {
@@ -295,12 +297,54 @@ export class Template {
   /**
    * Resolves variables in a string using both {variable.path} and ${variable.path} syntax.
    * Supports template examples which use {variable} format.
+   * Special handling for {@items} which is replaced with items array.
    */
   private resolveStringVariables(
     str: string,
     variables: Record<string, unknown>,
-  ): string {
+  ): string | unknown {
+    // Special handling for {@items} - replace with actual array
+    if (str === "{@items}" && "items" in variables) {
+      return variables.items;
+    }
+
+    // Check if the entire string is a single variable placeholder
+    const singleVarMatch = str.match(/^(\$)?\{([^}]+)\}$/);
+    if (singleVarMatch) {
+      const dollarPrefix = singleVarMatch[1];
+      const variablePath = singleVarMatch[2].trim();
+
+      // Special handling for @items
+      if (variablePath === "@items" && "items" in variables) {
+        return variables.items;
+      }
+
+      const result = this.getVariableValue(variablePath, variables);
+      if (result.isOk()) {
+        const value = result.unwrap();
+        // If using ${} syntax, always convert to string (template literal behavior)
+        // If using {} syntax without $, preserve type for JSON templates
+        if (dollarPrefix === "$") {
+          return value !== undefined ? String(value) : str;
+        } else {
+          // Return the raw value to preserve its type (array, object, etc.)
+          return value !== undefined ? value : str;
+        }
+      }
+      return str; // Keep original if variable resolution fails
+    }
+
+    // For strings with embedded variables, replace them with string representations
     return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
+      // Skip @items pattern in embedded context
+      if (variablePath.trim() === "@items") {
+        if ("items" in variables) {
+          const items = variables.items;
+          return Array.isArray(items) ? JSON.stringify(items) : match;
+        }
+        return match;
+      }
+
       const result = this.getVariableValue(variablePath.trim(), variables);
       if (result.isOk()) {
         const value = result.unwrap();

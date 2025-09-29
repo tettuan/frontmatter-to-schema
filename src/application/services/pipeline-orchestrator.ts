@@ -1,6 +1,8 @@
 import { Result } from "../../domain/shared/types/result.ts";
 import { ProcessingError } from "../../domain/shared/types/errors.ts";
 import { OutputRenderingService } from "../../domain/template/index.ts";
+import { Template } from "../../domain/template/entities/template.ts";
+import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
 import {
   DocumentId,
   MarkdownDocument,
@@ -138,10 +140,25 @@ export class PipelineOrchestrator implements DocumentLoader {
       return Result.error(transformedData.unwrapError());
     }
 
+    // Load the raw schema data for directive processing
+    const schemaDataResult = await this.loadSchemaData(config.schemaPath);
+    if (schemaDataResult.isError()) {
+      return Result.error(schemaDataResult.unwrapError());
+    }
+
+    // Apply schema directives (x-derived-from, x-derived-unique, etc.)
+    const directivesResult = this.applySchemaDirectives(
+      transformedData.unwrap(),
+      schemaDataResult.unwrap(),
+    );
+    if (directivesResult.isError()) {
+      return Result.error(directivesResult.unwrapError());
+    }
+
     // Render output using configured format (no hardcoded default)
     const renderingResult = await this.renderOutput(
       result.template,
-      transformedData.unwrap(),
+      directivesResult.unwrap(),
       result.outputFormat as "json" | "yaml",
       config.outputPath,
     );
@@ -297,6 +314,210 @@ export class PipelineOrchestrator implements DocumentLoader {
   }
 
   /**
+   * Loads raw schema data from file.
+   */
+  private async loadSchemaData(
+    schemaPath: string,
+  ): Promise<Result<Record<string, unknown>, ProcessingError>> {
+    try {
+      const contentResult = await this.fileSystem.readTextFile(schemaPath);
+      if (contentResult.isError()) {
+        const { createFileError } = await import(
+          "../../domain/shared/types/file-errors.ts"
+        );
+        return Result.error(
+          new ProcessingError(
+            `Failed to read schema file: ${
+              createFileError(contentResult.unwrapError()).message
+            }`,
+            "SCHEMA_READ_ERROR",
+            { schemaPath, error: contentResult.unwrapError() },
+          ),
+        );
+      }
+
+      const schemaData = JSON.parse(contentResult.unwrap());
+      return Result.ok(schemaData);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to parse schema: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "SCHEMA_PARSE_ERROR",
+          { schemaPath, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Applies schema directives to process and transform data.
+   * Specifically handles x-derived-from and x-derived-unique directives.
+   */
+  private applySchemaDirectives(
+    data: Record<string, unknown>,
+    schema: any,
+  ): Result<Record<string, unknown>, ProcessingError> {
+    try {
+      let result = { ...data };
+
+      // Process schema properties to find directives
+      if (schema.properties) {
+        result = this.processSchemaProperties(result, schema.properties, []);
+      }
+
+      // Apply schema defaults (temporary until schema default processing is implemented)
+      if (!result.version && schema.properties?.version?.default) {
+        result.version = schema.properties.version.default;
+      }
+      if (!result.description && schema.properties?.description?.default) {
+        result.description = schema.properties.description.default;
+      }
+
+      return Result.ok(result);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to apply schema directives: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "DIRECTIVE_APPLICATION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Recursively processes schema properties to find and apply directives.
+   */
+  private processSchemaProperties(
+    data: Record<string, unknown>,
+    properties: Record<string, any>,
+    currentPath: string[],
+  ): Record<string, unknown> {
+    let result = { ...data };
+
+    for (const [key, propSchema] of Object.entries(properties)) {
+      const path = [...currentPath, key];
+
+      // Check for x-derived-from directive
+      if (propSchema["x-derived-from"]) {
+        const derivedValues = this.extractValuesFromPath(
+          result,
+          propSchema["x-derived-from"],
+        );
+
+        // Apply x-derived-unique if specified
+        const finalValues = propSchema["x-derived-unique"]
+          ? Array.from(new Set(derivedValues))
+          : derivedValues;
+
+        // Set the derived values
+        this.setNestedValue(result, path, finalValues.sort());
+      }
+
+      // Recursively process nested properties
+      if (propSchema.properties) {
+        result = this.processSchemaProperties(
+          result,
+          propSchema.properties,
+          path,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Extracts values from a path expression like "commands[].c1" or "tools.commands[].c1".
+   */
+  private extractValuesFromPath(
+    data: Record<string, unknown>,
+    path: string,
+  ): string[] {
+    const values: string[] = [];
+
+    // Handle nested array notation like "tools.commands[].c1"
+    const nestedMatch = path.match(/^(.+?)\[\]\.(.+)$/);
+    if (nestedMatch) {
+      const [, basePath, propertyPath] = nestedMatch;
+
+      // Navigate to the array
+      let array: unknown;
+      if (basePath.includes(".")) {
+        // Handle nested path like "tools.commands"
+        array = this.getNestedValue(data, basePath);
+      } else {
+        // Simple field name
+        array = data[basePath];
+      }
+
+      // If array not found at specified path, try looking in items
+      if (!array && data.items) {
+        array = data.items;
+      }
+
+      if (Array.isArray(array)) {
+        for (const item of array) {
+          if (item && typeof item === "object") {
+            const value = this.getNestedValue(
+              item as Record<string, unknown>,
+              propertyPath,
+            );
+            if (value !== undefined && value !== null) {
+              values.push(String(value));
+            }
+          }
+        }
+      }
+    }
+
+    return values;
+  }
+
+  /**
+   * Gets a nested value from an object using dot notation.
+   */
+  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+    const segments = path.split(".");
+    let current: unknown = obj;
+
+    for (const segment of segments) {
+      if (current && typeof current === "object") {
+        current = (current as Record<string, unknown>)[segment];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Sets a nested value in an object using an array of path segments.
+   */
+  private setNestedValue(
+    obj: Record<string, unknown>,
+    path: string[],
+    value: unknown,
+  ): void {
+    let current = obj;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const segment = path[i];
+      if (!(segment in current) || typeof current[segment] !== "object") {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+
+    current[path[path.length - 1]] = value;
+  }
+
+  /**
    * Transforms documents using schema and template.
    * Uses configuration strategy for metadata generation.
    */
@@ -376,9 +597,47 @@ export class PipelineOrchestrator implements DocumentLoader {
     const errorMessages = this.configManager.getObjectDefault("errorMessages")
       .unwrap() as Record<string, string>;
 
-    // Render using OutputRenderingService
+    // Create a Template entity from the raw template object
+    // If template is already a Template instance, use it directly
+    let templateEntity: Template;
+    if (template instanceof Template) {
+      templateEntity = template;
+    } else {
+      // Create a temporary path for the template
+      const tempPath = TemplatePath.create("temp.json");
+      if (tempPath.isError()) {
+        return Result.error(
+          new ProcessingError(
+            "Failed to create template path",
+            "TEMPLATE_PATH_ERROR",
+            { error: tempPath.unwrapError() },
+          ),
+        );
+      }
+
+      // Create Template entity with the raw template content
+      const templateData = {
+        content: template,
+        format: format,
+      };
+      const templateResult = Template.create(tempPath.unwrap(), templateData);
+
+      if (templateResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to create template entity: ${templateResult.unwrapError().message}`,
+            "TEMPLATE_CREATION_ERROR",
+            { error: templateResult.unwrapError() },
+          ),
+        );
+      }
+
+      templateEntity = templateResult.unwrap();
+    }
+
+    // Render using OutputRenderingService with proper Template entity
     const renderingResult = this.outputRenderer.renderSimple(
-      template,
+      templateEntity,
       data,
       format,
     );
