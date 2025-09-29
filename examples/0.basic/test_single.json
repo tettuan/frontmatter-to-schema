@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "description": "Analyze code quality metrics from specifications",
+  "tools": {
+    "availableConfigs": "{tools.availableConfigs}",
+    "commands": "{@items}"
+  }
+}
