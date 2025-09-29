@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
-import { ensureDir } from "jsr:@std/fs@1.0.8";
+import { ensureDir } from "@std/fs";
 import { CLI } from "../../src/presentation/cli/index.ts";
 
 const TEST_DIR = "./tmp/cli-integration-tests";

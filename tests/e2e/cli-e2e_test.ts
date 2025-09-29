@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
-import { ensureDir } from "jsr:@std/fs@1.0.8";
+import { ensureDir } from "@std/fs";
 import { join } from "@std/path";
 import { CLI } from "../../src/presentation/cli/index.ts";
 
