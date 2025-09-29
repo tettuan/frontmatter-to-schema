@@ -9,7 +9,7 @@ import {
 /**
  * Template content types supported by the system
  */
-export type TemplateFormat = "json" | "yaml";
+export type TemplateFormat = "json" | "yaml" | "xml" | "markdown";
 
 /**
  * Raw template data as loaded from file

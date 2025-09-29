@@ -333,20 +333,36 @@ Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
 });
 
 Deno.test("DirectiveProcessor - validate x-template-format values", () => {
-  const validSchema: SchemaData = {
+  const validSchemaYaml: SchemaData = {
     type: "object",
     "x-template-format": "yaml",
   };
 
+  const validSchemaXml: SchemaData = {
+    type: "object",
+    "x-template-format": "xml",
+  };
+
+  const validSchemaMarkdown: SchemaData = {
+    type: "object",
+    "x-template-format": "markdown",
+  };
+
   const invalidSchema: SchemaData = {
     type: "object",
-    "x-template-format": "xml", // Invalid format
+    "x-template-format": "txt", // Invalid format
   };
 
   const processor = DirectiveProcessor.create();
 
-  const validResult = processor.validateDirectives(validSchema);
-  assertEquals(validResult.isOk(), true);
+  const validResultYaml = processor.validateDirectives(validSchemaYaml);
+  assertEquals(validResultYaml.isOk(), true);
+
+  const validResultXml = processor.validateDirectives(validSchemaXml);
+  assertEquals(validResultXml.isOk(), true);
+
+  const validResultMarkdown = processor.validateDirectives(validSchemaMarkdown);
+  assertEquals(validResultMarkdown.isOk(), true);
 
   const invalidResult = processor.validateDirectives(invalidSchema);
   assertEquals(invalidResult.isError(), true);

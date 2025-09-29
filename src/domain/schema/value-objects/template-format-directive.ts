@@ -27,7 +27,7 @@ export class TemplateFormatDirective {
       );
     }
 
-    const validFormats: TemplateFormat[] = ["json", "yaml"];
+    const validFormats: TemplateFormat[] = ["json", "yaml", "xml", "markdown"];
     const trimmed = value.trim().toLowerCase();
 
     if (!validFormats.includes(trimmed as TemplateFormat)) {
@@ -70,6 +70,20 @@ export class TemplateFormatDirective {
    */
   isYaml(): boolean {
     return this.format === "yaml";
+  }
+
+  /**
+   * Returns whether the format is XML.
+   */
+  isXml(): boolean {
+    return this.format === "xml";
+  }
+
+  /**
+   * Returns whether the format is Markdown.
+   */
+  isMarkdown(): boolean {
+    return this.format === "markdown";
   }
 
   /**

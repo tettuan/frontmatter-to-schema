@@ -58,8 +58,31 @@ Deno.test("TemplateFormatDirective - create with tabs and newlines", () => {
   assertEquals(directive.isYaml(), true);
 });
 
-Deno.test("TemplateFormatDirective - create fails with invalid format", () => {
+Deno.test("TemplateFormatDirective - create with valid xml format", () => {
   const result = TemplateFormatDirective.create("xml");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "xml");
+  assertEquals(directive.isXml(), true);
+  assertEquals(directive.isJson(), false);
+  assertEquals(directive.isYaml(), false);
+});
+
+Deno.test("TemplateFormatDirective - create with valid markdown format", () => {
+  const result = TemplateFormatDirective.create("markdown");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "markdown");
+  assertEquals(directive.isMarkdown(), true);
+  assertEquals(directive.isJson(), false);
+  assertEquals(directive.isYaml(), false);
+  assertEquals(directive.isXml(), false);
+});
+
+Deno.test("TemplateFormatDirective - create fails with invalid format", () => {
+  const result = TemplateFormatDirective.create("txt");
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
@@ -67,7 +90,7 @@ Deno.test("TemplateFormatDirective - create fails with invalid format", () => {
   assertEquals(error.code, "INVALID_DIRECTIVE_VALUE");
   assertEquals(
     error.message,
-    "x-template-format directive value must be one of: json, yaml",
+    "x-template-format directive value must be one of: json, yaml, xml, markdown",
   );
 });
 
@@ -204,7 +227,7 @@ Deno.test("TemplateFormatDirective - error context validation", () => {
   // Validate error context
   assertEquals(error.context?.directive, "x-template-format");
   assertEquals(error.context?.value, "invalid");
-  assertEquals(error.context?.expected, "one of: json, yaml");
+  assertEquals(error.context?.expected, "one of: json, yaml, xml, markdown");
 });
 
 Deno.test("TemplateFormatDirective - error context for non-string", () => {
@@ -229,8 +252,16 @@ Deno.test("TemplateFormatDirective - comprehensive format validation", () => {
     "YAML",
     "Yaml",
     "yAmL",
+    "xml",
+    "XML",
+    "Xml",
+    "xMl",
+    "markdown",
+    "MARKDOWN",
+    "Markdown",
+    "MarkDown",
   ];
-  const invalidFormats = ["xml", "txt", "csv", "html", "markdown"];
+  const invalidFormats = ["txt", "csv", "html", "pdf", "docx"];
 
   // Test all valid formats
   for (const format of validFormats) {

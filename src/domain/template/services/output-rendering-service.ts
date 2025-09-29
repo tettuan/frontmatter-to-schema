@@ -5,7 +5,7 @@ import { Template } from "../entities/template.ts";
 /**
  * Output format types for rendering
  */
-export type OutputFormat = "json" | "yaml";
+export type OutputFormat = "json" | "yaml" | "xml" | "markdown";
 
 /**
  * Rendering configuration options
@@ -196,6 +196,10 @@ export class OutputRenderingService {
           return this.renderToJson(content, config);
         case "yaml":
           return this.renderToYaml(content, config);
+        case "xml":
+          return this.renderToXml(content, config);
+        case "markdown":
+          return this.renderToMarkdown(content, config);
         default: {
           const exhaustiveCheck: never = config.format;
           return Result.error(
@@ -271,6 +275,60 @@ export class OutputRenderingService {
         new TemplateError(
           `YAML rendering failed: ${errorMessage}`,
           "YAML_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Renders content to XML format.
+   */
+  private renderToXml(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const xmlResult = this.stringifyXml(content, {
+        indent: config.indent || 2,
+        sortKeys: config.sortKeys || false,
+      });
+      return Result.ok(xmlResult);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `XML rendering failed: ${errorMessage}`,
+          "XML_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Renders content to Markdown format.
+   */
+  private renderToMarkdown(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const markdownResult = this.stringifyMarkdown(content, {
+        indent: config.indent || 2,
+        sortKeys: config.sortKeys || false,
+      });
+      return Result.ok(markdownResult);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `Markdown rendering failed: ${errorMessage}`,
+          "MARKDOWN_ERROR",
           { content, error },
         ),
       );
@@ -367,6 +425,150 @@ export class OutputRenderingService {
 
     countRecursive(data);
     return count;
+  }
+
+  /**
+   * XML stringify implementation (simplified).
+   * In production, would use a proper XML library.
+   */
+  private stringifyXml(
+    obj: Record<string, unknown>,
+    options: { indent: number; sortKeys: boolean },
+  ): string {
+    const indent = " ".repeat(options.indent);
+
+    const processValue = (value: unknown, key: string, depth = 0): string => {
+      const currentIndent = indent.repeat(depth);
+
+      if (value === null || value === undefined) {
+        return `${currentIndent}<${key}></${key}>`;
+      }
+
+      if (
+        typeof value === "string" || typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        const escaped = String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+        return `${currentIndent}<${key}>${escaped}</${key}>`;
+      }
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${currentIndent}<${key}></${key}>`;
+        }
+        const arrayItems = value.map((item, _index) =>
+          processValue(item, `item`, depth + 1)
+        );
+        return `${currentIndent}<${key}>\n${
+          arrayItems.join("\n")
+        }\n${currentIndent}</${key}>`;
+      }
+
+      if (this.isObject(value)) {
+        const keys = options.sortKeys
+          ? Object.keys(value).sort()
+          : Object.keys(value);
+
+        if (keys.length === 0) {
+          return `${currentIndent}<${key}></${key}>`;
+        }
+
+        const objectLines = keys.map((childKey) =>
+          processValue(value[childKey], childKey, depth + 1)
+        );
+
+        return `${currentIndent}<${key}>\n${
+          objectLines.join("\n")
+        }\n${currentIndent}</${key}>`;
+      }
+
+      return `${currentIndent}<${key}>${String(value)}</${key}>`;
+    };
+
+    const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
+    const rootElements = keys.map((key) => processValue(obj[key], key));
+
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<root>\n${
+      rootElements.join("\n")
+    }\n</root>`;
+  }
+
+  /**
+   * Markdown stringify implementation (simplified).
+   * Converts object structure to Markdown format.
+   */
+  private stringifyMarkdown(
+    obj: Record<string, unknown>,
+    options: { indent: number; sortKeys: boolean },
+  ): string {
+    const processValue = (value: unknown, key: string, depth = 0): string => {
+      const headerLevel = Math.min(depth + 1, 6);
+      const header = "#".repeat(headerLevel);
+      const indent = "  ".repeat(depth);
+
+      if (value === null || value === undefined) {
+        return `${header} ${key}\n\n_null_\n`;
+      }
+
+      if (
+        typeof value === "string" || typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        // Escape markdown special characters
+        const escaped = String(value)
+          .replace(/\*/g, "\\*")
+          .replace(/_/g, "\\_")
+          .replace(/\[/g, "\\[")
+          .replace(/\]/g, "\\]")
+          .replace(/`/g, "\\`");
+
+        if (typeof value === "string" && value.includes("\n")) {
+          return `${header} ${key}\n\n\`\`\`\n${value}\n\`\`\`\n`;
+        }
+        return `${header} ${key}\n\n${escaped}\n`;
+      }
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${header} ${key}\n\n_empty array_\n`;
+        }
+        const listItems = value.map((item) => {
+          if (typeof item === "object" && item !== null) {
+            return `${indent}- Complex object`;
+          }
+          return `${indent}- ${String(item)}`;
+        });
+        return `${header} ${key}\n\n${listItems.join("\n")}\n`;
+      }
+
+      if (this.isObject(value)) {
+        const keys = options.sortKeys
+          ? Object.keys(value).sort()
+          : Object.keys(value);
+
+        if (keys.length === 0) {
+          return `${header} ${key}\n\n_empty object_\n`;
+        }
+
+        const childSections = keys.map((childKey) =>
+          processValue(value[childKey], childKey, depth + 1)
+        );
+
+        return `${header} ${key}\n\n${childSections.join("\n")}`;
+      }
+
+      return `${header} ${key}\n\n${String(value)}\n`;
+    };
+
+    const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
+    const sections = keys.map((key) => processValue(obj[key], key));
+
+    return sections.join("\n");
   }
 
   /**
