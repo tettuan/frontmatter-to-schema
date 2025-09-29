@@ -237,6 +237,7 @@ export class SchemaDirectiveProcessor {
 
   /**
    * Applies schema default values.
+   * Processes ALL properties with default values, eliminating hardcoding violations.
    */
   private applySchemaDefaults(
     data: Record<string, unknown>,
@@ -250,20 +251,14 @@ export class SchemaDirectiveProcessor {
         return Result.ok(result);
       }
 
-      // Apply version default
-      const versionProp = properties.version as
-        | Record<string, unknown>
-        | undefined;
-      if (!result.version && versionProp?.default) {
-        result.version = versionProp.default;
-      }
+      // Process ALL schema properties with default values generically
+      for (const [propertyName, propertySchema] of Object.entries(properties)) {
+        const propDef = propertySchema as Record<string, unknown>;
 
-      // Apply description default
-      const descriptionProp = properties.description as
-        | Record<string, unknown>
-        | undefined;
-      if (!result.description && descriptionProp?.default) {
-        result.description = descriptionProp.default;
+        // Apply default value if property doesn't exist and default is defined
+        if (!result[propertyName] && propDef?.default !== undefined) {
+          result[propertyName] = propDef.default;
+        }
       }
 
       return Result.ok(result);

@@ -210,13 +210,18 @@ export class DocumentAggregationService {
 
   /**
    * Generates metadata for aggregated data.
+   * Provides multiple aliases for timestamp to support various template naming conventions.
    */
   private generateMetadata(
     config?: AggregationConfig,
   ): Result<Record<string, unknown>, ProcessingError> {
     try {
+      const timestamp = new Date().toISOString();
       const metadata: Record<string, unknown> = {
-        processedAt: new Date().toISOString(),
+        processedAt: timestamp,
+        generated_at: timestamp, // Common template variable name
+        generatedAt: timestamp, // Camel case variant
+        timestamp: timestamp, // Simple variant
       };
 
       // Add custom metadata if provided
