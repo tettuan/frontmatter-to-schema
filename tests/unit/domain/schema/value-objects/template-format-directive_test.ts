@@ -308,3 +308,107 @@ Deno.test("TemplateFormatDirective - case normalization consistency", () => {
     }
   }
 });
+
+Deno.test("TemplateFormatDirective - create with valid xml format", () => {
+  const result = TemplateFormatDirective.create("xml");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "xml");
+  assertEquals(directive.isXml(), true);
+  assertEquals(directive.isJson(), false);
+  assertEquals(directive.isYaml(), false);
+  assertEquals(directive.isMarkdown(), false);
+});
+
+Deno.test("TemplateFormatDirective - create with uppercase XML format", () => {
+  const result = TemplateFormatDirective.create("XML");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "xml");
+  assertEquals(directive.isXml(), true);
+});
+
+Deno.test("TemplateFormatDirective - create with valid markdown format", () => {
+  const result = TemplateFormatDirective.create("markdown");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "markdown");
+  assertEquals(directive.isMarkdown(), true);
+  assertEquals(directive.isJson(), false);
+  assertEquals(directive.isYaml(), false);
+  assertEquals(directive.isXml(), false);
+});
+
+Deno.test("TemplateFormatDirective - create with uppercase MARKDOWN format", () => {
+  const result = TemplateFormatDirective.create("MARKDOWN");
+
+  assertEquals(result.isOk(), true);
+  const directive = result.unwrap();
+  assertEquals(directive.getFormat(), "markdown");
+  assertEquals(directive.isMarkdown(), true);
+});
+
+Deno.test("TemplateFormatDirective - create with mixed case formats", () => {
+  const testCases = [
+    { input: "XmL", expected: "xml" },
+    { input: "MarkDown", expected: "markdown" },
+    { input: "mArKdOwN", expected: "markdown" },
+  ];
+
+  for (const testCase of testCases) {
+    const result = TemplateFormatDirective.create(testCase.input);
+    assertEquals(
+      result.isOk(),
+      true,
+      `Format '${testCase.input}' should be valid`,
+    );
+    const directive = result.unwrap();
+    assertEquals(directive.getFormat(), testCase.expected);
+  }
+});
+
+Deno.test("TemplateFormatDirective - toString for all formats", () => {
+  const formats = ["json", "yaml", "xml", "markdown"];
+
+  for (const format of formats) {
+    const directive = TemplateFormatDirective.create(format).unwrap();
+    assertEquals(directive.toString(), `x-template-format: "${format}"`);
+  }
+});
+
+Deno.test("TemplateFormatDirective - equals behavior across all formats", () => {
+  const jsonDirective = TemplateFormatDirective.create("json").unwrap();
+  const yamlDirective = TemplateFormatDirective.create("yaml").unwrap();
+  const xmlDirective = TemplateFormatDirective.create("xml").unwrap();
+  const markdownDirective = TemplateFormatDirective.create("markdown").unwrap();
+
+  // Same format directives should be equal
+  const anotherJsonDirective = TemplateFormatDirective.create("JSON").unwrap();
+  const anotherXmlDirective = TemplateFormatDirective.create("XML").unwrap();
+
+  assertEquals(jsonDirective.equals(anotherJsonDirective), true);
+  assertEquals(xmlDirective.equals(anotherXmlDirective), true);
+
+  // Different format directives should not be equal
+  assertEquals(jsonDirective.equals(yamlDirective), false);
+  assertEquals(jsonDirective.equals(xmlDirective), false);
+  assertEquals(jsonDirective.equals(markdownDirective), false);
+  assertEquals(yamlDirective.equals(xmlDirective), false);
+  assertEquals(yamlDirective.equals(markdownDirective), false);
+  assertEquals(xmlDirective.equals(markdownDirective), false);
+});
+
+Deno.test("TemplateFormatDirective - error message includes all valid formats", () => {
+  const result = TemplateFormatDirective.create("invalid");
+
+  assertEquals(result.isError(), true);
+  const error = result.unwrapError();
+  assertEquals(error.code, "INVALID_DIRECTIVE_VALUE");
+  assertEquals(
+    error.message,
+    "x-template-format directive value must be one of: json, yaml, xml, markdown",
+  );
+});
