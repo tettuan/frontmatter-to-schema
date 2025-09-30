@@ -13,7 +13,7 @@ title: Test
 status: active # this is a comment
 ---
 Content`;
-    
+
     const result = service.parseFrontmatter(markdown);
     assertEquals(result.isOk(), true);
     const { frontmatter } = result.unwrap();
@@ -26,7 +26,7 @@ title: "Test Title"
 type: "tech" # comment after quote
 ---
 Content`;
-    
+
     const result = service.parseFrontmatter(markdown);
     assertEquals(result.isOk(), true);
     const { frontmatter } = result.unwrap();
