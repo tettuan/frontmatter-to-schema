@@ -2,17 +2,16 @@
  * Main JSON template processor implementation
  */
 
-import { VariableResolver } from './variable-resolver.ts';
+import { VariableResolver } from "./variable-resolver.ts";
 import {
+  InvalidJsonError,
   TemplateNotFoundError,
   TemplateReadError,
-  InvalidJsonError,
-  VariableNotFoundError
-} from './errors.ts';
-import type { JsonTemplateProcessor } from './types.ts';
+  VariableNotFoundError,
+} from "./errors.ts";
+import type { JsonTemplateProcessor } from "./types.ts";
 
 export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
-
   /**
    * Process a JSON template with variable substitution
    * @param jsonData - The source JSON data for variable values
@@ -27,7 +26,11 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
     const resolver = new VariableResolver(jsonData);
 
     // Process template with variable substitution
-    const processedContent = this.substituteVariables(templateContent, resolver, templateFilePath);
+    const processedContent = this.substituteVariables(
+      templateContent,
+      resolver,
+      templateFilePath,
+    );
 
     // Parse the result as JSON
     return this.parseProcessedJson(processedContent, templateFilePath);
@@ -45,7 +48,11 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
     }
   }
 
-  private substituteVariables(template: string, resolver: VariableResolver, templatePath?: string): string {
+  private substituteVariables(
+    template: string,
+    resolver: VariableResolver,
+    templatePath?: string,
+  ): string {
     // Match variable patterns allowing various formats but excluding quotes
     const variableRegex = /"\{\s*([^"}]*?)\s*\}"/g;
 
@@ -71,22 +78,22 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
 
   private formatValue(value: unknown): string {
     if (value === null) {
-      return 'null';
+      return "null";
     }
 
     if (value === undefined) {
-      return 'null';
+      return "null";
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return JSON.stringify(value);
     }
 
-    if (typeof value === 'number' || typeof value === 'boolean') {
+    if (typeof value === "number" || typeof value === "boolean") {
       return String(value);
     }
 
-    if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+    if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
       return JSON.stringify(value);
     }
 
@@ -97,7 +104,7 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
     try {
       return JSON.parse(content);
     } catch (error) {
-      throw new InvalidJsonError(templatePath || 'unknown', error as Error);
+      throw new InvalidJsonError(templatePath || "unknown", error as Error);
     }
   }
 
@@ -138,7 +145,7 @@ export class JsonTemplateProcessorImpl implements JsonTemplateProcessor {
     return {
       valid: missingVariables.length === 0,
       missingVariables,
-      availableVariables
+      availableVariables,
     };
   }
 }

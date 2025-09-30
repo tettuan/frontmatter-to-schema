@@ -2,15 +2,18 @@
  * Integration tests for the entire JSON template processing system
  */
 
-import { assertEquals, assertRejects } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { createTemplateProcessor } from '../src/mod.ts';
 import {
-  TemplateNotFoundError,
-  VariableNotFoundError
-} from '../src/mod.ts';
+  assertEquals,
+  assertRejects,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { createTemplateProcessor } from "../src/mod.ts";
+import { VariableNotFoundError } from "../src/mod.ts";
 
 // Helper to create temporary test files
-async function createTempFile(content: string, suffix = '.json'): Promise<string> {
+async function createTempFile(
+  content: string,
+  suffix = ".json",
+): Promise<string> {
   const tempFile = await Deno.makeTempFile({ suffix });
   await Deno.writeTextFile(tempFile, content);
   return tempFile;
@@ -53,7 +56,7 @@ Deno.test("Integration - Complete workflow with complex data", async () => {
     description: "Advanced CLI tool registry",
     author: {
       name: "John Smith",
-      email: "john@example.com"
+      email: "john@example.com",
     },
     tools: {
       availableConfigs: ["git", "test", "spec"],
@@ -67,18 +70,18 @@ Deno.test("Integration - Complete workflow with complex data", async () => {
           options: {
             input: ["file", "stdin"],
             input_file: [true, false],
-            output: ["console", "file"]
-          }
+            output: ["console", "file"],
+          },
         },
         {
           c1: "test",
           c2: "run",
           c3: "unit",
           title: "Run Unit Tests",
-          description: "Execute unit test suite"
-        }
-      ]
-    }
+          description: "Execute unit test suite",
+        },
+      ],
+    },
   };
 
   const tempFile = await createTempFile(template);
@@ -91,7 +94,7 @@ Deno.test("Integration - Complete workflow with complex data", async () => {
       meta: {
         version: "2.1.0",
         description: "Advanced CLI tool registry",
-        author: "John Smith"
+        author: "John Smith",
       },
       config: {
         tools: ["git", "test", "spec"],
@@ -101,13 +104,13 @@ Deno.test("Integration - Complete workflow with complex data", async () => {
           category: "git",
           action: "create",
           title: "Create Git Issue",
-          hasFileInput: true
-        }
+          hasFileInput: true,
+        },
       },
       statistics: {
         totalConfigs: 3,
-        configTypes: ["git", "test", "spec"]
-      }
+        configTypes: ["git", "test", "spec"],
+      },
     });
   } finally {
     await cleanup(tempFile);
@@ -158,11 +161,11 @@ Deno.test("Integration - Real-world registry template", async () => {
             adaptation: ["standard", "detailed"],
             input_file: [true],
             stdin: [false],
-            destination: [true]
-          }
-        }
-      ]
-    }
+            destination: [true],
+          },
+        },
+      ],
+    },
   };
 
   const tempFile = await createTempFile(registryTemplate);
@@ -189,11 +192,11 @@ Deno.test("Integration - Real-world registry template", async () => {
               adaptation: ["standard", "detailed"],
               input_file: [true],
               stdin: [false],
-              destination: [true]
-            }
-          }
-        ]
-      }
+              destination: [true],
+            },
+          },
+        ],
+      },
     });
   } finally {
     await cleanup(tempFile);
@@ -207,7 +210,7 @@ Deno.test("Integration - Error handling with detailed context", async () => {
   }`;
 
   const data = {
-    existing: { value: "test" }
+    existing: { value: "test" },
   };
 
   const tempFile = await createTempFile(template);
@@ -217,7 +220,7 @@ Deno.test("Integration - Error handling with detailed context", async () => {
 
     const error = await assertRejects(
       () => processor.process(data, tempFile),
-      VariableNotFoundError
+      VariableNotFoundError,
     );
 
     assertEquals(error.code, "VARIABLE_NOT_FOUND");
@@ -228,7 +231,7 @@ Deno.test("Integration - Error handling with detailed context", async () => {
   }
 });
 
-Deno.test("Integration - Template validation workflow", async () => {
+Deno.test("Integration - Template validation workflow", () => {
   const template = `{
     "user": "{profile.name}",
     "settings": "{config.theme}",
@@ -239,7 +242,7 @@ Deno.test("Integration - Template validation workflow", async () => {
   const data = {
     profile: { name: "Alice" },
     config: { theme: "dark" },
-    items: ["first", "second"]
+    items: ["first", "second"],
   };
 
   const processor = createTemplateProcessor();
@@ -250,7 +253,7 @@ Deno.test("Integration - Template validation workflow", async () => {
     "config.theme",
     "items[0]",
     "not.found",
-    "profile.name"
+    "profile.name",
   ]);
 
   // Test variable validation
@@ -259,7 +262,7 @@ Deno.test("Integration - Template validation workflow", async () => {
   assertEquals(validation.availableVariables.sort(), [
     "config.theme",
     "items[0]",
-    "profile.name"
+    "profile.name",
   ]);
   assertEquals(validation.missingVariables, ["not.found"]);
 });
@@ -274,7 +277,7 @@ Deno.test("Integration - Performance with large data structures", async () => {
       c3: `target${i}`,
       title: `Command ${i}`,
       description: `Description for command ${i}`,
-      data: Array(50).fill(null).map((_, j) => ({ id: j, value: `value${j}` }))
+      data: Array(50).fill(null).map((_, j) => ({ id: j, value: `value${j}` })),
     });
   }
 
@@ -284,10 +287,10 @@ Deno.test("Integration - Performance with large data structures", async () => {
     commands,
     metadata: {
       totalCommands: commands.length,
-      categories: commands.map(c => c.c1),
+      categories: commands.map((c) => c.c1),
       firstCommand: commands[0],
-      lastCommand: commands[commands.length - 1]
-    }
+      lastCommand: commands[commands.length - 1],
+    },
   };
 
   const template = `{
@@ -317,17 +320,21 @@ Deno.test("Integration - Performance with large data structures", async () => {
         total: 100,
         first: "Command 0",
         last: "Command 99",
-        sampleData: "value25"
-      }
+        sampleData: "value25",
+      },
     });
 
     // Performance should be reasonable (less than 100ms for this size)
     const processingTime = endTime - startTime;
-    console.log(`Processing time for large data: ${processingTime.toFixed(2)}ms`);
+    console.log(
+      `Processing time for large data: ${processingTime.toFixed(2)}ms`,
+    );
 
     // This is a soft assertion - adjust threshold based on actual performance needs
     if (processingTime > 1000) {
-      console.warn(`Performance warning: Processing took ${processingTime.toFixed(2)}ms`);
+      console.warn(
+        `Performance warning: Processing took ${processingTime.toFixed(2)}ms`,
+      );
     }
   } finally {
     await cleanup(tempFile);

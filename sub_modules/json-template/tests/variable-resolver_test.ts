@@ -2,9 +2,12 @@
  * Tests for VariableResolver
  */
 
-import { assertEquals, assertThrows } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { VariableResolver } from '../src/variable-resolver.ts';
-import { VariableNotFoundError } from '../src/errors.ts';
+import {
+  assertEquals,
+  assertThrows,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { VariableResolver } from "../src/variable-resolver.ts";
+import { VariableNotFoundError } from "../src/errors.ts";
 
 Deno.test("VariableResolver - simple property access", () => {
   const data = { name: "test", version: "1.0.0" };
@@ -19,9 +22,9 @@ Deno.test("VariableResolver - dot notation access", () => {
     user: {
       profile: {
         name: "John Doe",
-        age: 30
-      }
-    }
+        age: 30,
+      },
+    },
   };
   const resolver = new VariableResolver(data);
 
@@ -34,8 +37,8 @@ Deno.test("VariableResolver - array access", () => {
     items: ["apple", "banana", "cherry"],
     users: [
       { name: "Alice", id: 1 },
-      { name: "Bob", id: 2 }
-    ]
+      { name: "Bob", id: 2 },
+    ],
   };
   const resolver = new VariableResolver(data);
 
@@ -56,11 +59,11 @@ Deno.test("VariableResolver - complex nested access", () => {
           title: "Create Git Issue",
           options: {
             input: ["file", "stdin"],
-            output: ["console"]
-          }
-        }
-      ]
-    }
+            output: ["console"],
+          },
+        },
+      ],
+    },
   };
   const resolver = new VariableResolver(data);
 
@@ -76,7 +79,7 @@ Deno.test("VariableResolver - handle different value types", () => {
     booleanValue: true,
     nullValue: null,
     arrayValue: [1, 2, 3],
-    objectValue: { nested: "value" }
+    objectValue: { nested: "value" },
   };
   const resolver = new VariableResolver(data);
 
@@ -93,7 +96,10 @@ Deno.test("VariableResolver - throws VariableNotFoundError for missing paths", (
   const resolver = new VariableResolver(data);
 
   assertThrows(() => resolver.resolve("missing"), VariableNotFoundError);
-  assertThrows(() => resolver.resolve("existing.missing"), VariableNotFoundError);
+  assertThrows(
+    () => resolver.resolve("existing.missing"),
+    VariableNotFoundError,
+  );
   assertThrows(() => resolver.resolve("existing[0]"), VariableNotFoundError);
 });
 
@@ -115,7 +121,7 @@ Deno.test("VariableResolver - exists method", () => {
   const data = {
     existing: "value",
     nested: { prop: "value" },
-    array: ["item"]
+    array: ["item"],
   };
   const resolver = new VariableResolver(data);
 
@@ -128,7 +134,8 @@ Deno.test("VariableResolver - exists method", () => {
 });
 
 Deno.test("VariableResolver - extractVariables static method", () => {
-  const template = '{"name": "{user.name}", "items": "{items[0]}", "count": "{count}"}';
+  const template =
+    '{"name": "{user.name}", "items": "{items[0]}", "count": "{count}"}';
   const variables = VariableResolver.extractVariables(template);
 
   assertEquals(variables.sort(), ["count", "items[0]", "user.name"]);
@@ -142,7 +149,8 @@ Deno.test("VariableResolver - extractVariables handles empty template", () => {
 });
 
 Deno.test("VariableResolver - extractVariables handles multiple occurrences", () => {
-  const template = '{"first": "{name}", "second": "{name}", "other": "{value}"}';
+  const template =
+    '{"first": "{name}", "second": "{name}", "other": "{value}"}';
   const variables = VariableResolver.extractVariables(template);
 
   assertEquals(variables.sort(), ["name", "value"]);
@@ -152,9 +160,9 @@ Deno.test("VariableResolver - parsePath handles complex paths", () => {
   const data = {
     a: {
       b: [
-        { c: [{ d: "value" }] }
-      ]
-    }
+        { c: [{ d: "value" }] },
+      ],
+    },
   };
   const resolver = new VariableResolver(data);
 

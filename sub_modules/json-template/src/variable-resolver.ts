@@ -2,8 +2,8 @@
  * Variable resolution with support for dot notation and array access
  */
 
-import { VariableNotFoundError } from './errors.ts';
-import type { VariableValue } from './types.ts';
+import { VariableNotFoundError } from "./errors.ts";
+import type { VariableValue } from "./types.ts";
 
 export class VariableResolver {
   constructor(private readonly data: unknown) {}
@@ -36,7 +36,7 @@ export class VariableResolver {
     }
 
     // Handle simple property access (no dots or brackets)
-    if (!path.includes('.') && !path.includes('[')) {
+    if (!path.includes(".") && !path.includes("[")) {
       return this.getProperty(obj, path) as VariableValue;
     }
 
@@ -61,28 +61,28 @@ export class VariableResolver {
 
   private parsePath(path: string): string[] {
     const segments: string[] = [];
-    let current = '';
+    let current = "";
     let inBrackets = false;
 
     for (let i = 0; i < path.length; i++) {
       const char = path[i];
 
-      if (char === '[') {
+      if (char === "[") {
         if (current) {
           segments.push(current);
-          current = '';
+          current = "";
         }
         inBrackets = true;
-      } else if (char === ']') {
+      } else if (char === "]") {
         if (inBrackets && current) {
           segments.push(current);
-          current = '';
+          current = "";
         }
         inBrackets = false;
-      } else if (char === '.' && !inBrackets) {
+      } else if (char === "." && !inBrackets) {
         if (current) {
           segments.push(current);
-          current = '';
+          current = "";
         }
       } else {
         current += char;
@@ -107,7 +107,7 @@ export class VariableResolver {
 
     // Handle array access with numeric index or length
     if (Array.isArray(obj)) {
-      if (key === 'length') {
+      if (key === "length") {
         return obj.length;
       }
       const index = parseInt(key, 10);
@@ -119,7 +119,7 @@ export class VariableResolver {
     }
 
     // Handle object property access
-    if (typeof obj === 'object' && obj !== null) {
+    if (typeof obj === "object" && obj !== null) {
       const objRecord = obj as Record<string, unknown>;
       if (!(key in objRecord)) {
         throw new VariableNotFoundError(key);

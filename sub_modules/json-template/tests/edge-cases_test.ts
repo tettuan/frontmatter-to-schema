@@ -3,11 +3,11 @@
  */
 
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { createTemplateProcessor, VariableResolver } from '../src/mod.ts';
+import { createTemplateProcessor, VariableResolver } from "../src/mod.ts";
 
 // Helper to create temporary test files
 async function createTempFile(content: string): Promise<string> {
-  const tempFile = await Deno.makeTempFile({ suffix: '.json' });
+  const tempFile = await Deno.makeTempFile({ suffix: ".json" });
   await Deno.writeTextFile(tempFile, content);
   return tempFile;
 }
@@ -24,7 +24,7 @@ Deno.test("Edge Case - Special characters in variable values", async () => {
   const template = '{"message": "{message}", "json": "{json}"}';
   const data = {
     message: 'Hello "World" with \\backslashes and \n newlines',
-    json: { special: 'chars "quotes" and \\backslashes' }
+    json: { special: 'chars "quotes" and \\backslashes' },
   };
 
   const tempFile = await createTempFile(template);
@@ -35,7 +35,7 @@ Deno.test("Edge Case - Special characters in variable values", async () => {
 
     assertEquals(result, {
       message: 'Hello "World" with \\backslashes and \n newlines',
-      json: { special: 'chars "quotes" and \\backslashes' }
+      json: { special: 'chars "quotes" and \\backslashes' },
     });
   } finally {
     await cleanup(tempFile);
@@ -46,7 +46,7 @@ Deno.test("Edge Case - Unicode characters", async () => {
   const template = '{"unicode": "{unicode}", "emoji": "{emoji}"}';
   const data = {
     unicode: "こんにちは世界",
-    emoji: "🚀 🎉 ⚡"
+    emoji: "🚀 🎉 ⚡",
   };
 
   const tempFile = await createTempFile(template);
@@ -57,7 +57,7 @@ Deno.test("Edge Case - Unicode characters", async () => {
 
     assertEquals(result, {
       unicode: "こんにちは世界",
-      emoji: "🚀 🎉 ⚡"
+      emoji: "🚀 🎉 ⚡",
     });
   } finally {
     await cleanup(tempFile);
@@ -65,7 +65,11 @@ Deno.test("Edge Case - Unicode characters", async () => {
 });
 
 Deno.test("Edge Case - Very long variable paths", async () => {
-  const deepData = { a: { b: { c: { d: { e: { f: { g: { h: { i: { j: "deep value" } } } } } } } } } };
+  const deepData = {
+    a: {
+      b: { c: { d: { e: { f: { g: { h: { i: { j: "deep value" } } } } } } } },
+    },
+  };
   const template = '{"deep": "{a.b.c.d.e.f.g.h.i.j}"}';
 
   const tempFile = await createTempFile(template);
@@ -81,9 +85,13 @@ Deno.test("Edge Case - Very long variable paths", async () => {
 });
 
 Deno.test("Edge Case - Large arrays", async () => {
-  const largeArray = Array(1000).fill(null).map((_, i) => ({ id: i, value: `item${i}` }));
+  const largeArray = Array(1000).fill(null).map((_, i) => ({
+    id: i,
+    value: `item${i}`,
+  }));
   const data = { items: largeArray };
-  const template = '{"first": "{items[0].value}", "middle": "{items[500].value}", "last": "{items[999].value}"}';
+  const template =
+    '{"first": "{items[0].value}", "middle": "{items[500].value}", "last": "{items[999].value}"}';
 
   const tempFile = await createTempFile(template);
 
@@ -94,7 +102,7 @@ Deno.test("Edge Case - Large arrays", async () => {
     assertEquals(result, {
       first: "item0",
       middle: "item500",
-      last: "item999"
+      last: "item999",
     });
   } finally {
     await cleanup(tempFile);
@@ -115,7 +123,7 @@ Deno.test("Edge Case - Empty and null values", async () => {
     empty_array: [],
     empty_object: {},
     null_value: null,
-    undefined_value: undefined
+    undefined_value: undefined,
   };
 
   const tempFile = await createTempFile(template);
@@ -129,7 +137,7 @@ Deno.test("Edge Case - Empty and null values", async () => {
       empty_array: [],
       empty_object: {},
       null_value: null,
-      undefined_becomes_null: null
+      undefined_becomes_null: null,
     });
   } finally {
     await cleanup(tempFile);
@@ -141,7 +149,7 @@ Deno.test("Edge Case - Numeric keys and values", async () => {
     "123": "numeric key",
     numbers: [42, 3.14, -17, 0],
     scientific: 1.23e-4,
-    large: 9007199254740991 // Number.MAX_SAFE_INTEGER
+    large: 9007199254740991, // Number.MAX_SAFE_INTEGER
   };
 
   const template = `{
@@ -167,7 +175,7 @@ Deno.test("Edge Case - Numeric keys and values", async () => {
       negative: -17,
       zero: 0,
       scientific: 1.23e-4,
-      large: 9007199254740991
+      large: 9007199254740991,
     });
   } finally {
     await cleanup(tempFile);
@@ -178,7 +186,7 @@ Deno.test("Edge Case - Boolean corner cases", async () => {
   const data = {
     truthy: [true, 1, "true", "yes", {}],
     falsy: [false, 0, "", null],
-    explicit: { true: true, false: false }
+    explicit: { true: true, false: false },
   };
 
   const template = `{
@@ -198,7 +206,7 @@ Deno.test("Edge Case - Boolean corner cases", async () => {
       true_bool: true,
       false_bool: false,
       truthy_object: {},
-      zero: 0
+      zero: 0,
     });
   } finally {
     await cleanup(tempFile);
@@ -214,8 +222,8 @@ Deno.test("Edge Case - Mixed array types", async () => {
       null,
       { nested: "object" },
       ["nested", "array"],
-      undefined
-    ]
+      undefined,
+    ],
   };
 
   const template = `{
@@ -241,7 +249,7 @@ Deno.test("Edge Case - Mixed array types", async () => {
       null: null,
       object: { nested: "object" },
       array: ["nested", "array"],
-      undefined: null
+      undefined: null,
     });
   } finally {
     await cleanup(tempFile);
@@ -255,7 +263,7 @@ Deno.test("Edge Case - Variable names that look like other constructs", () => {
     "function": "method",
     "123abc": "starts with number",
     "$special": "starts with dollar",
-    "_underscore": "starts with underscore"
+    "_underscore": "starts with underscore",
   };
 
   const resolver = new VariableResolver(data);
@@ -280,8 +288,8 @@ Deno.test("Edge Case - Malformed variable references", async () => {
 
     // Should process successfully, as only valid variables are replaced
     assertEquals(result, {
-      incomplete: "{missing_brace",  // Not a valid variable pattern, so left as-is
-      valid: "value"
+      incomplete: "{missing_brace", // Not a valid variable pattern, so left as-is
+      valid: "value",
     });
   } finally {
     await cleanup(tempFile);
@@ -318,14 +326,17 @@ Deno.test("Edge Case - Very large template file", async () => {
 
   const template = templateParts.join("");
   const data = {
-    data: Array(1000).fill(null).map((_, i) => ({ value: `value${i}` }))
+    data: Array(1000).fill(null).map((_, i) => ({ value: `value${i}` })),
   };
 
   const tempFile = await createTempFile(template);
 
   try {
     const processor = createTemplateProcessor();
-    const result = await processor.process(data, tempFile) as Record<string, unknown>;
+    const result = await processor.process(data, tempFile) as Record<
+      string,
+      unknown
+    >;
 
     // Verify a few random fields
     assertEquals(result.field0, "value0");
@@ -340,7 +351,7 @@ Deno.test("Edge Case - Path parsing edge cases", () => {
   const data = {
     "simpleKey": "simple value",
     "array": [{ "bracket_key": "bracket in key" }],
-    "": "empty key"
+    "": "empty key",
   };
 
   const resolver = new VariableResolver(data);
@@ -359,18 +370,18 @@ Deno.test("Edge Case - Extreme nesting with mixed access patterns", () => {
           level3: [
             {
               level4: {
-                items: [{ final: "deeply nested value" }]
-              }
-            }
-          ]
-        }
-      }
-    ]
+                items: [{ final: "deeply nested value" }],
+              },
+            },
+          ],
+        },
+      },
+    ],
   };
 
   const resolver = new VariableResolver(data);
   assertEquals(
     resolver.resolve("level1[0].level2.level3[0].level4.items[0].final"),
-    "deeply nested value"
+    "deeply nested value",
   );
 });

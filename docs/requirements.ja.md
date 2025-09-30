@@ -289,6 +289,46 @@ Schemaのroot階層は、"x-template" と並列の"properties"を起点とする
 
 である。
 
+### テンプレート処理実装: sub_modules/json-template モジュールの使用
+
+`x-template-items`で指定されたテンプレートファイルの変数置換処理には、`sub_modules/json-template`モジュールを使用する。
+
+#### モジュールの責任範囲
+
+**json-templateモジュール:**
+
+- `{variable.path}` 形式の変数置換
+- ドット記法による階層データアクセス
+- 配列要素への直接アクセス (`{items[0].name}`)
+- テンプレートファイルの読み込みとJSON解析
+- 変数解決エラーの詳細な報告
+
+**フロントマターシステム:**
+
+- `{@items}` 記法による配列展開制御
+- `x-frontmatter-part: true` データの統合処理
+- 各配列要素へのテンプレート適用反復
+- 最終的な出力フォーマット統合
+
+#### 統合処理の流れ
+
+1. **データ準備**: `x-frontmatter-part: true`配列から統合データを生成
+2. **個別処理**: 各配列要素に対して：
+   ```typescript
+   import { createTemplateProcessor } from "./sub_modules/json-template/mod.ts";
+   const processor = createTemplateProcessor();
+   const result = await processor.process(itemData, templateFilePath);
+   ```
+3. **結果統合**: 全ての処理結果を`{@items}`位置に挿入
+
+#### 制約事項
+
+- **テンプレートはファイル形式必須**: インメモリ文字列テンプレートは未対応
+- **JSON出力限定**: テンプレート結果は有効なJSON構造である必要
+- **`{@items}`は外部実装**: json-templateモジュール自体は配列展開機能を持たない
+
+この設計により、汎用的なテンプレート処理機能を再利用しつつ、フロントマター固有の要件を満たすことができる。
+
 ## データ抽出・変換ディレクティブ
 
 Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス。

@@ -13,10 +13,10 @@ export class JsonTemplateError extends Error {
     code: string,
     templatePath?: string,
     variablePath?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     super(message);
-    this.name = 'JsonTemplateError';
+    this.name = "JsonTemplateError";
     this.code = code;
     this.templatePath = templatePath;
     this.variablePath = variablePath;
@@ -26,15 +26,24 @@ export class JsonTemplateError extends Error {
 
 export class TemplateNotFoundError extends JsonTemplateError {
   constructor(templatePath: string) {
-    super(`Template file not found: ${templatePath}`, 'TEMPLATE_NOT_FOUND', templatePath);
-    this.name = 'TemplateNotFoundError';
+    super(
+      `Template file not found: ${templatePath}`,
+      "TEMPLATE_NOT_FOUND",
+      templatePath,
+    );
+    this.name = "TemplateNotFoundError";
   }
 }
 
 export class VariableNotFoundError extends JsonTemplateError {
   constructor(variablePath: string, templatePath?: string) {
-    super(`Variable not found: ${variablePath}`, 'VARIABLE_NOT_FOUND', templatePath, variablePath);
-    this.name = 'VariableNotFoundError';
+    super(
+      `Variable not found: ${variablePath}`,
+      "VARIABLE_NOT_FOUND",
+      templatePath,
+      variablePath,
+    );
+    this.name = "VariableNotFoundError";
   }
 }
 
@@ -42,12 +51,12 @@ export class InvalidJsonError extends JsonTemplateError {
   constructor(templatePath: string, originalError: Error) {
     super(
       `Invalid JSON after template processing: ${originalError.message}`,
-      'INVALID_JSON',
+      "INVALID_JSON",
       templatePath,
       undefined,
-      originalError
+      originalError,
     );
-    this.name = 'InvalidJsonError';
+    this.name = "InvalidJsonError";
   }
 }
 
@@ -55,11 +64,11 @@ export class TemplateReadError extends JsonTemplateError {
   constructor(templatePath: string, originalError: Error) {
     super(
       `Failed to read template file: ${originalError.message}`,
-      'TEMPLATE_READ_ERROR',
+      "TEMPLATE_READ_ERROR",
       templatePath,
       undefined,
-      originalError
+      originalError,
     );
-    this.name = 'TemplateReadError';
+    this.name = "TemplateReadError";
   }
 }

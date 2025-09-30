@@ -44,4 +44,10 @@ export interface ProcessingResult {
   readonly error?: TemplateProcessingError;
 }
 
-export type VariableValue = string | number | boolean | null | unknown[] | Record<string, unknown>;
+export type VariableValue =
+  | string
+  | number
+  | boolean
+  | null
+  | unknown[]
+  | Record<string, unknown>;

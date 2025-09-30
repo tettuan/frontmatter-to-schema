@@ -2,14 +2,17 @@
  * Tests for custom error classes
  */
 
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import {
+  assertEquals,
+  assertInstanceOf,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import {
+  InvalidJsonError,
   JsonTemplateError,
   TemplateNotFoundError,
+  TemplateReadError,
   VariableNotFoundError,
-  InvalidJsonError,
-  TemplateReadError
-} from '../src/errors.ts';
+} from "../src/errors.ts";
 
 Deno.test("JsonTemplateError - basic functionality", () => {
   const error = new JsonTemplateError("Test message", "TEST_CODE");
@@ -31,7 +34,7 @@ Deno.test("JsonTemplateError - with all parameters", () => {
     "TEST_CODE",
     "/path/to/template.json",
     "variable.path",
-    originalError
+    originalError,
   );
 
   assertEquals(error.message, "Test message");
@@ -44,7 +47,10 @@ Deno.test("JsonTemplateError - with all parameters", () => {
 Deno.test("TemplateNotFoundError", () => {
   const error = new TemplateNotFoundError("/path/to/template.json");
 
-  assertEquals(error.message, "Template file not found: /path/to/template.json");
+  assertEquals(
+    error.message,
+    "Template file not found: /path/to/template.json",
+  );
   assertEquals(error.code, "TEMPLATE_NOT_FOUND");
   assertEquals(error.name, "TemplateNotFoundError");
   assertEquals(error.templatePath, "/path/to/template.json");
@@ -65,7 +71,10 @@ Deno.test("VariableNotFoundError - without template path", () => {
 });
 
 Deno.test("VariableNotFoundError - with template path", () => {
-  const error = new VariableNotFoundError("user.name", "/path/to/template.json");
+  const error = new VariableNotFoundError(
+    "user.name",
+    "/path/to/template.json",
+  );
 
   assertEquals(error.message, "Variable not found: user.name");
   assertEquals(error.code, "VARIABLE_NOT_FOUND");
@@ -78,7 +87,10 @@ Deno.test("InvalidJsonError", () => {
   const originalError = new SyntaxError("Unexpected token");
   const error = new InvalidJsonError("/path/to/template.json", originalError);
 
-  assertEquals(error.message, "Invalid JSON after template processing: Unexpected token");
+  assertEquals(
+    error.message,
+    "Invalid JSON after template processing: Unexpected token",
+  );
   assertEquals(error.code, "INVALID_JSON");
   assertEquals(error.name, "InvalidJsonError");
   assertEquals(error.templatePath, "/path/to/template.json");
@@ -91,7 +103,10 @@ Deno.test("TemplateReadError", () => {
   const originalError = new Error("Permission denied");
   const error = new TemplateReadError("/path/to/template.json", originalError);
 
-  assertEquals(error.message, "Failed to read template file: Permission denied");
+  assertEquals(
+    error.message,
+    "Failed to read template file: Permission denied",
+  );
   assertEquals(error.code, "TEMPLATE_READ_ERROR");
   assertEquals(error.name, "TemplateReadError");
   assertEquals(error.templatePath, "/path/to/template.json");
@@ -113,11 +128,15 @@ Deno.test("Error codes are unique", () => {
     new TemplateNotFoundError("path"),
     new VariableNotFoundError("path"),
     new InvalidJsonError("path", new Error()),
-    new TemplateReadError("path", new Error())
+    new TemplateReadError("path", new Error()),
   ];
 
-  const codes = errors.map(e => e.code);
+  const codes = errors.map((e) => e.code);
   const uniqueCodes = new Set(codes);
 
-  assertEquals(codes.length, uniqueCodes.size, "All error codes should be unique");
+  assertEquals(
+    codes.length,
+    uniqueCodes.size,
+    "All error codes should be unique",
+  );
 });

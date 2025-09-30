@@ -2,17 +2,20 @@
  * Tests for JsonTemplateProcessorImpl
  */
 
-import { assertEquals, assertThrows, assertRejects } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { JsonTemplateProcessorImpl } from '../src/template-processor.ts';
 import {
+  assertEquals,
+  assertRejects,
+} from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { JsonTemplateProcessorImpl } from "../src/template-processor.ts";
+import {
+  InvalidJsonError,
   TemplateNotFoundError,
   VariableNotFoundError,
-  InvalidJsonError
-} from '../src/errors.ts';
+} from "../src/errors.ts";
 
 // Helper to create temporary test files
 async function createTempFile(content: string): Promise<string> {
-  const tempFile = await Deno.makeTempFile({ suffix: '.json' });
+  const tempFile = await Deno.makeTempFile({ suffix: ".json" });
   await Deno.writeTextFile(tempFile, content);
   return tempFile;
 }
@@ -37,7 +40,7 @@ Deno.test("JsonTemplateProcessorImpl - basic variable substitution", async () =>
 
     assertEquals(result, {
       name: "test-app",
-      version: "1.0.0"
+      version: "1.0.0",
     });
   } finally {
     await cleanup(tempFile);
@@ -45,14 +48,15 @@ Deno.test("JsonTemplateProcessorImpl - basic variable substitution", async () =>
 });
 
 Deno.test("JsonTemplateProcessorImpl - dot notation substitution", async () => {
-  const template = '{"userName": "{user.profile.name}", "userAge": "{user.profile.age}"}';
+  const template =
+    '{"userName": "{user.profile.name}", "userAge": "{user.profile.age}"}';
   const data = {
     user: {
       profile: {
         name: "John Doe",
-        age: 30
-      }
-    }
+        age: 30,
+      },
+    },
   };
 
   const tempFile = await createTempFile(template);
@@ -63,7 +67,7 @@ Deno.test("JsonTemplateProcessorImpl - dot notation substitution", async () => {
 
     assertEquals(result, {
       userName: "John Doe",
-      userAge: 30
+      userAge: 30,
     });
   } finally {
     await cleanup(tempFile);
@@ -71,13 +75,14 @@ Deno.test("JsonTemplateProcessorImpl - dot notation substitution", async () => {
 });
 
 Deno.test("JsonTemplateProcessorImpl - array access substitution", async () => {
-  const template = '{"firstItem": "{items[0]}", "secondUser": "{users[1].name}"}';
+  const template =
+    '{"firstItem": "{items[0]}", "secondUser": "{users[1].name}"}';
   const data = {
     items: ["apple", "banana"],
     users: [
       { name: "Alice" },
-      { name: "Bob" }
-    ]
+      { name: "Bob" },
+    ],
   };
 
   const tempFile = await createTempFile(template);
@@ -88,7 +93,7 @@ Deno.test("JsonTemplateProcessorImpl - array access substitution", async () => {
 
     assertEquals(result, {
       firstItem: "apple",
-      secondUser: "Bob"
+      secondUser: "Bob",
     });
   } finally {
     await cleanup(tempFile);
@@ -111,9 +116,9 @@ Deno.test("JsonTemplateProcessorImpl - complex template", async () => {
     tools: {
       availableConfigs: ["git", "test"],
       commands: [
-        { title: "Git Command", c1: "git" }
-      ]
-    }
+        { title: "Git Command", c1: "git" },
+      ],
+    },
   };
 
   const tempFile = await createTempFile(template);
@@ -127,8 +132,8 @@ Deno.test("JsonTemplateProcessorImpl - complex template", async () => {
       description: "Test application",
       tools: {
         availableConfigs: ["git", "test"],
-        firstCommand: "Git Command"
-      }
+        firstCommand: "Git Command",
+      },
     });
   } finally {
     await cleanup(tempFile);
@@ -151,7 +156,7 @@ Deno.test("JsonTemplateProcessorImpl - handles different value types", async () 
     booleanVal: true,
     nullVal: null,
     arrayVal: [1, 2, 3],
-    objectVal: { nested: "value" }
+    objectVal: { nested: "value" },
   };
 
   const tempFile = await createTempFile(template);
@@ -166,7 +171,7 @@ Deno.test("JsonTemplateProcessorImpl - handles different value types", async () 
       booleanVal: true,
       nullVal: null,
       arrayVal: [1, 2, 3],
-      objectVal: { nested: "value" }
+      objectVal: { nested: "value" },
     });
   } finally {
     await cleanup(tempFile);
@@ -178,7 +183,7 @@ Deno.test("JsonTemplateProcessorImpl - throws TemplateNotFoundError for missing 
 
   await assertRejects(
     () => processor.process({}, "/non/existent/file.json"),
-    TemplateNotFoundError
+    TemplateNotFoundError,
   );
 });
 
@@ -193,7 +198,7 @@ Deno.test("JsonTemplateProcessorImpl - throws VariableNotFoundError for missing 
 
     await assertRejects(
       () => processor.process(data, tempFile),
-      VariableNotFoundError
+      VariableNotFoundError,
     );
   } finally {
     await cleanup(tempFile);
@@ -211,7 +216,7 @@ Deno.test("JsonTemplateProcessorImpl - throws InvalidJsonError for malformed res
 
     await assertRejects(
       () => processor.process(data, tempFile),
-      InvalidJsonError
+      InvalidJsonError,
     );
   } finally {
     await cleanup(tempFile);
@@ -228,10 +233,11 @@ Deno.test("JsonTemplateProcessorImpl - validateTemplate method", () => {
 
 Deno.test("JsonTemplateProcessorImpl - validateVariables method", () => {
   const processor = new JsonTemplateProcessorImpl();
-  const template = '{"name": "{user.name}", "missing": "{missing.var}", "count": "{count}"}';
+  const template =
+    '{"name": "{user.name}", "missing": "{missing.var}", "count": "{count}"}';
   const data = {
     user: { name: "John" },
-    count: 5
+    count: 5,
   };
 
   const result = processor.validateVariables(template, data);
@@ -246,7 +252,7 @@ Deno.test("JsonTemplateProcessorImpl - validateVariables with all variables avai
   const template = '{"name": "{user.name}", "count": "{count}"}';
   const data = {
     user: { name: "John" },
-    count: 5
+    count: 5,
   };
 
   const result = processor.validateVariables(template, data);
@@ -260,7 +266,7 @@ Deno.test("JsonTemplateProcessorImpl - handles whitespace in variable names", as
   const template = '{"value": "{ user.name }", "count": "{  count  }"}';
   const data = {
     user: { name: "John" },
-    count: 5
+    count: 5,
   };
 
   const tempFile = await createTempFile(template);
@@ -271,7 +277,7 @@ Deno.test("JsonTemplateProcessorImpl - handles whitespace in variable names", as
 
     assertEquals(result, {
       value: "John",
-      count: 5
+      count: 5,
     });
   } finally {
     await cleanup(tempFile);
@@ -279,7 +285,7 @@ Deno.test("JsonTemplateProcessorImpl - handles whitespace in variable names", as
 });
 
 Deno.test("JsonTemplateProcessorImpl - handles empty template", async () => {
-  const template = '{}';
+  const template = "{}";
   const data = { anything: "value" };
 
   const tempFile = await createTempFile(template);
