@@ -277,6 +277,7 @@ export class SchemaDirectiveProcessor {
 
   /**
    * Extracts values from a path expression like "commands[].c1" or "tools.commands[].c1".
+   * Flattens nested arrays to support cases like articles[].topics where topics is an array.
    */
   private extractValuesFromPath(
     data: Record<string, unknown>,
@@ -312,7 +313,16 @@ export class SchemaDirectiveProcessor {
               propertyPath,
             );
             if (value !== undefined && value !== null) {
-              values.push(String(value));
+              // Flatten arrays: if value is an array, add each element separately
+              if (Array.isArray(value)) {
+                for (const element of value) {
+                  if (element !== undefined && element !== null) {
+                    values.push(String(element));
+                  }
+                }
+              } else {
+                values.push(String(value));
+              }
             }
           }
         }

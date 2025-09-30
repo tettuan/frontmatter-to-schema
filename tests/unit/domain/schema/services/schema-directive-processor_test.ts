@@ -504,3 +504,53 @@ Deno.test("SchemaDirectiveProcessor - complex directive processing", () => {
   // Check default value
   assertEquals(processed.version, "1.0.0");
 });
+
+Deno.test("SchemaDirectiveProcessor - flatten nested arrays in x-derived-from (Issue #1217)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  // Simulate articles with topics array (Issue #1217 scenario)
+  const data = {
+    articles: [
+      { title: "Article 1", topics: ["claudecode", "DDD", "totality"] },
+      { title: "Article 2", topics: ["climpt", "C3L"] },
+      { title: "Article 3", topics: ["cursor", "AI"] },
+      { title: "Article 4", topics: ["claudecode", "hooks"] }, // duplicate "claudecode"
+    ],
+  };
+
+  const schema = {
+    properties: {
+      topics: {
+        "x-derived-from": "articles[].topics",
+        "x-derived-unique": true,
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+
+  // Should flatten nested arrays and apply uniqueness
+  assertEquals(Array.isArray(processed.topics), true);
+  const topics = processed.topics as string[];
+
+  // Each individual topic should be a separate array element
+  assertEquals(topics.includes("claudecode"), true);
+  assertEquals(topics.includes("DDD"), true);
+  assertEquals(topics.includes("totality"), true);
+  assertEquals(topics.includes("climpt"), true);
+  assertEquals(topics.includes("C3L"), true);
+  assertEquals(topics.includes("cursor"), true);
+  assertEquals(topics.includes("AI"), true);
+  assertEquals(topics.includes("hooks"), true);
+
+  // Should have exactly 8 unique topics (not comma-separated strings)
+  assertEquals(topics.length, 8);
+
+  // Should NOT contain comma-separated strings like "claudecode,DDD,totality"
+  assertEquals(topics.some((t) => t.includes(",")), false);
+});
