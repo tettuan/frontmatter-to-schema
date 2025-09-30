@@ -4,10 +4,10 @@
 set -e
 
 # Run CI and capture output
-if deno task ci; then
-    echo "✅ CI passed successfully"
+if deno task ci >/dev/null 2>&1; then
+    # echo "✅ CI passed successfully"
     exit 0
 else
-    echo "❌ CI failed"
+    # echo "❌ CI failed"
     exit 1
 fi

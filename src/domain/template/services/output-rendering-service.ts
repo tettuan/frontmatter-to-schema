@@ -356,10 +356,19 @@ export class OutputRenderingService {
 
       if (typeof value === "string") {
         // Handle multi-line strings and special characters
-        if (
-          value.includes("\n") || value.includes(":") || value.includes("-")
-        ) {
-          return `"${value.replace(/"/g, '\\"')}"`;
+        // Check if string needs quoting (contains YAML special characters)
+        const needsQuoting = value.includes("\n") ||
+          value.includes(":") ||
+          value.includes("-") ||
+          value.includes("#") ||
+          value.includes('"') ||
+          value.includes("'") ||
+          value.startsWith(" ") ||
+          value.endsWith(" ");
+
+        if (needsQuoting) {
+          // Use YAML-style quote escaping (double the quotes, not backslash)
+          return `"${value.replace(/"/g, '""')}"`;
         }
         return value;
       }

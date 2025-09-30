@@ -149,10 +149,29 @@ export class FrontmatterParsingService {
         const colonIndex = line.indexOf(":");
         if (colonIndex > 0) {
           const key = line.substring(0, colonIndex).trim();
-          const value = line.substring(colonIndex + 1).trim();
-          // Remove quotes if present
-          const cleanValue = value.replace(/^["']|["']$/g, "");
-          frontmatter[key] = cleanValue;
+          let value = line.substring(colonIndex + 1).trim();
+
+          // Handle YAML comments: remove everything after # (but only if not inside quotes)
+          // Check if value starts with a quote
+          const startsWithQuote = value.startsWith('"') ||
+            value.startsWith("'");
+          if (startsWithQuote) {
+            const quoteChar = value[0];
+            // Find the matching closing quote
+            const endQuoteIndex = value.indexOf(quoteChar, 1);
+            if (endQuoteIndex > 0) {
+              // Extract just the quoted value (excluding the quotes)
+              value = value.substring(1, endQuoteIndex);
+            }
+          } else {
+            // No quotes, so check for comment and remove it
+            const commentIndex = value.indexOf("#");
+            if (commentIndex >= 0) {
+              value = value.substring(0, commentIndex).trim();
+            }
+          }
+
+          frontmatter[key] = value;
         }
       }
 
