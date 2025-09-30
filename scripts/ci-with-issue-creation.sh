@@ -1,15 +1,13 @@
 #!/bin/bash
-
-# CI execution script with issue creation capability
-# This script runs the CI pipeline and creates issues if failures occur
+# CI execution script with automatic issue creation on failure
 
 set -e
 
-echo "Running CI pipeline..."
-
-# Run the main CI task
-deno task ci
-
-# If we get here, CI passed successfully
-echo "CI completed successfully"
-exit 0
+# Run CI and capture output
+if deno task ci; then
+    echo "✅ CI passed successfully"
+    exit 0
+else
+    echo "❌ CI failed"
+    exit 1
+fi
