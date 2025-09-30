@@ -151,3 +151,83 @@ Deno.test("SchemaId - validation trims whitespace", () => {
   assertEquals(result.isOk(), true);
   assertEquals(result.unwrap().getValue(), "test_schema");
 });
+
+Deno.test("SchemaId - toString returns string value", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+
+  assertEquals(id.toString(), "test_schema");
+});
+
+Deno.test("Schema - getPath returns schema path", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+
+  assertEquals(schema.getPath(), path);
+});
+
+Deno.test("Schema - getData returns schema data for resolved schema", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schemaData = {
+    type: "object",
+    properties: { name: { type: "string" } },
+  };
+  const schema = Schema.create(id, path).markAsResolved(schemaData);
+
+  assertEquals(schema.getData(), schemaData);
+});
+
+Deno.test("Schema - getData throws error for unresolved schema", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+
+  let errorThrown = false;
+  try {
+    schema.getData();
+  } catch (error) {
+    errorThrown = true;
+    assertEquals((error as Error).message.includes("not resolved"), true);
+  }
+  assertEquals(errorThrown, true);
+});
+
+Deno.test("Schema - hasExtractFromDirectives returns false for unresolved schema", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schema = Schema.create(id, path);
+
+  assertEquals(schema.hasExtractFromDirectives(), false);
+});
+
+Deno.test("Schema - hasExtractFromDirectives handles schema without properties", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schemaData = { type: "string" };
+  const schema = Schema.create(id, path).markAsResolved(schemaData);
+
+  assertEquals(schema.hasExtractFromDirectives(), false);
+});
+
+Deno.test("Schema - hasExtractFromDirectives handles nested properties with x-frontmatter-part", () => {
+  const id = SchemaId.create("test_schema").unwrap();
+  const path = SchemaPath.create("test_schema.json").unwrap();
+  const schemaData = {
+    type: "object",
+    properties: {
+      metadata: {
+        type: "object",
+        properties: {
+          tags: {
+            type: "array",
+            "x-frontmatter-part": true,
+          },
+        },
+      },
+    },
+  };
+  const schema = Schema.create(id, path).markAsResolved(schemaData);
+
+  assertEquals(schema.hasExtractFromDirectives(), true);
+});
