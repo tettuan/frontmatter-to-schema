@@ -5,6 +5,7 @@ import {
   ItemsDetectionResult,
   ItemsDetector,
 } from "../services/items-detector.ts";
+import { VariableResolver } from "../../../../sub_modules/json-template/src/variable-resolver.ts";
 
 /**
  * Template content types supported by the system
@@ -192,13 +193,15 @@ export class Template {
 
   /**
    * Creates a new template with resolved variables.
-   * Variables are in the format ${variable.path} or ${variable}.
+   * Uses sub_modules/json-template for variable substitution.
+   * Variables are in the format {variable.path} or ${variable.path}.
    */
   resolveVariables(
     variables: Record<string, unknown>,
   ): Result<Template, TemplateError> {
     try {
-      const resolvedContent = this.resolveObject(this.data.content, variables);
+      const resolver = new VariableResolver(variables);
+      const resolvedContent = this.resolveObject(this.data.content, resolver);
       const resolvedData: TemplateData = {
         content: resolvedContent as Record<string, unknown>,
         format: this.data.format,
@@ -265,20 +268,20 @@ export class Template {
   }
 
   /**
-   * Recursively resolves variables in an object.
+   * Recursively resolves variables in an object using VariableResolver.
    */
   private resolveObject(
     obj: unknown,
-    variables: Record<string, unknown>,
+    resolver: VariableResolver,
   ): unknown {
     if (typeof obj === "string") {
-      const resolved = this.resolveStringVariables(obj, variables);
+      const resolved = this.resolveStringVariables(obj, resolver);
       // resolveStringVariables can return non-string for {@items}
       return resolved;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.resolveObject(item, variables));
+      return obj.map((item) => this.resolveObject(item, resolver));
     }
 
     if (this.isValidObject(obj)) {
@@ -286,7 +289,7 @@ export class Template {
       for (
         const [key, value] of Object.entries(obj)
       ) {
-        resolved[key] = this.resolveObject(value, variables);
+        resolved[key] = this.resolveObject(value, resolver);
       }
       return resolved;
     }
@@ -295,17 +298,21 @@ export class Template {
   }
 
   /**
-   * Resolves variables in a string using both {variable.path} and ${variable.path} syntax.
-   * Supports template examples which use {variable} format.
+   * Resolves variables in a string using VariableResolver from json-template module.
+   * Supports both {variable.path} and ${variable.path} syntax.
    * Special handling for {@items} which is replaced with items array.
    */
   private resolveStringVariables(
     str: string,
-    variables: Record<string, unknown>,
+    resolver: VariableResolver,
   ): string | unknown {
-    // Special handling for {@items} - replace with actual array
-    if (str === "{@items}" && "items" in variables) {
-      return variables.items;
+    // Special handling for {@items} - check if "items" exists in the data
+    if (str === "{@items}") {
+      try {
+        return resolver.resolve("items");
+      } catch {
+        return str; // Keep original if items not found
+      }
     }
 
     // Check if the entire string is a single variable placeholder
@@ -315,85 +322,48 @@ export class Template {
       const variablePath = singleVarMatch[2].trim();
 
       // Special handling for @items
-      if (variablePath === "@items" && "items" in variables) {
-        return variables.items;
+      if (variablePath === "@items") {
+        try {
+          return resolver.resolve("items");
+        } catch {
+          return str; // Keep original if items not found
+        }
       }
 
-      const result = this.getVariableValue(variablePath, variables);
-      if (result.isOk()) {
-        const value = result.unwrap();
+      try {
+        const value = resolver.resolve(variablePath);
         // If using ${} syntax, always convert to string (template literal behavior)
         // If using {} syntax without $, preserve type for JSON templates
         if (dollarPrefix === "$") {
-          return value !== undefined ? String(value) : str;
+          return value !== undefined && value !== null ? String(value) : str;
         } else {
           // Return the raw value to preserve its type (array, object, etc.)
           return value !== undefined ? value : str;
         }
+      } catch {
+        return str; // Keep original if variable resolution fails
       }
-      return str; // Keep original if variable resolution fails
     }
 
     // For strings with embedded variables, replace them with string representations
     return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
       // Skip @items pattern in embedded context
       if (variablePath.trim() === "@items") {
-        if ("items" in variables) {
-          const items = variables.items;
+        try {
+          const items = resolver.resolve("items");
           return Array.isArray(items) ? JSON.stringify(items) : match;
+        } catch {
+          return match;
         }
-        return match;
       }
 
-      const result = this.getVariableValue(variablePath.trim(), variables);
-      if (result.isOk()) {
-        const value = result.unwrap();
-        return value !== undefined ? String(value) : match;
+      try {
+        const value = resolver.resolve(variablePath.trim());
+        return value !== undefined && value !== null ? String(value) : match;
+      } catch {
+        return match; // Keep original if variable resolution fails
       }
-      return match; // Keep original if variable resolution fails
     });
   }
 
-  /**
-   * Gets a variable value using dot notation.
-   * Returns Result<T,E> following the Totality principle.
-   */
-  private getVariableValue(
-    path: string,
-    variables: Record<string, unknown>,
-  ): Result<unknown, TemplateError> {
-    if (!path || path.trim().length === 0) {
-      return Result.error(
-        new TemplateError(
-          "Variable path cannot be empty",
-          "INVALID_VARIABLE_PATH",
-          { path: this.path.toString(), variablePath: path },
-        ),
-      );
-    }
-
-    const segments = path.split(".");
-    let current: unknown = variables;
-
-    for (const segment of segments) {
-      if (!this.isValidObject(current)) {
-        return Result.error(
-          new TemplateError(
-            `Cannot access variable '${segment}' on non-object value`,
-            "INVALID_VARIABLE_ACCESS",
-            {
-              path: this.path.toString(),
-              variablePath: path,
-              segment,
-              currentType: typeof current,
-            },
-          ),
-        );
-      }
-
-      current = current[segment];
-    }
-
-    return Result.ok(current);
-  }
 }
