@@ -35,7 +35,9 @@
     "exclude": [
       "tests/e2e/test-output/**/*",
       "tests/**/*.disabled.ts",
-      "tmp/**/*"
+      "tmp/**/*",
+      "tests/utils/**/*",
+      "tests/helpers/**/*"
     ]
   },
   "tasks": {
@@ -48,8 +50,8 @@
     "test:integration": "deno test --allow-all tests/integration/ --jobs=4",
     "test:e2e": "deno test --allow-all tests/e2e/ --jobs=1",
     "test:performance": "deno test --allow-all tests/performance/ --jobs=1",
-    "test:coverage": "deno test --allow-all --coverage=tmp/coverage",
-    "coverage:report": "deno coverage tmp/coverage --lcov --output=tmp/coverage.lcov"
+    "test:coverage": "deno test --allow-all --coverage=tmp/coverage && deno coverage tmp/coverage --exclude='(tests/(utils|helpers)/|sub_modules/)'",
+    "coverage:report": "deno coverage tmp/coverage --exclude='(tests/(utils|helpers)/|sub_modules/)' --lcov --output=tmp/coverage.lcov"
   },
   "imports": {
     "@anthropic-ai/claude-code": "npm:@anthropic-ai/claude-code@^1.0.89",
