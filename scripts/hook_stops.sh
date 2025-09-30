@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ci status check
-scripts/ci-with-issue-creation.sh
+scripts/ci-with-issue-creation.sh &>/dev/null
 ci_status=$?
 # Check if CI script was successful
 if [ $ci_status -ne 0 ]; then
@@ -10,7 +10,7 @@ if [ $ci_status -ne 0 ]; then
 fi
 
 # github status check
-scripts/check-github-status.sh
+scripts/check-github-status.sh &>/dev/null
 exit_status=$?
 
 if [ $exit_status -eq 2 ]; then
@@ -18,3 +18,4 @@ if [ $exit_status -eq 2 ]; then
 else
     echo '{"continue": false, "stopReason": "No Issue and PR. CI passed.", "suppressOutput": true}'
 fi
+exit 2
