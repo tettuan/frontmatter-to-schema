@@ -5,6 +5,7 @@ import { DocumentId, MarkdownDocument } from "../entities/markdown-document.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
+import { extract as extractYaml } from "jsr:@std/front-matter/yaml";
 
 /**
  * Domain service for parsing frontmatter from markdown documents.
@@ -129,54 +130,30 @@ export class FrontmatterParsingService {
       );
     }
 
-    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-    const match = content.match(frontmatterRegex);
-
-    if (!match) {
-      return Result.ok({ content });
-    }
-
     try {
-      // Simple YAML parsing - in production would use proper YAML parser
-      const yamlContent = match[1];
-      const markdownContent = match[2];
+      // Use proper YAML parser from @std/front-matter
+      const extracted = extractYaml(content);
 
-      // Basic key-value parsing (simplified)
-      const frontmatter: Record<string, unknown> = {};
-      const lines = yamlContent.split("\n");
+      // Return frontmatter and content (even if frontmatter is empty)
+      const frontmatter =
+        (extracted.attrs && Object.keys(extracted.attrs).length > 0)
+          ? extracted.attrs as Record<string, unknown>
+          : undefined;
 
-      for (const line of lines) {
-        const colonIndex = line.indexOf(":");
-        if (colonIndex > 0) {
-          const key = line.substring(0, colonIndex).trim();
-          let value = line.substring(colonIndex + 1).trim();
+      return Result.ok({
+        frontmatter,
+        content: extracted.body,
+      });
+    } catch (error) {
+      // If extraction fails, try to return content without frontmatter
+      const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+      const match = content.match(frontmatterRegex);
 
-          // Handle YAML comments: remove everything after # (but only if not inside quotes)
-          // Check if value starts with a quote
-          const startsWithQuote = value.startsWith('"') ||
-            value.startsWith("'");
-          if (startsWithQuote) {
-            const quoteChar = value[0];
-            // Find the matching closing quote
-            const endQuoteIndex = value.indexOf(quoteChar, 1);
-            if (endQuoteIndex > 0) {
-              // Extract just the quoted value (excluding the quotes)
-              value = value.substring(1, endQuoteIndex);
-            }
-          } else {
-            // No quotes, so check for comment and remove it
-            const commentIndex = value.indexOf("#");
-            if (commentIndex >= 0) {
-              value = value.substring(0, commentIndex).trim();
-            }
-          }
-
-          frontmatter[key] = value;
-        }
+      if (!match) {
+        // No frontmatter at all, just return the content
+        return Result.ok({ content });
       }
 
-      return Result.ok({ frontmatter, content: markdownContent });
-    } catch (error) {
       return Result.error(
         new ProcessingError(
           `Failed to parse YAML frontmatter: ${

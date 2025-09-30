@@ -100,9 +100,19 @@ export function createTestDocument(
   const frontmatterYaml = Object.entries(frontmatter)
     .map(([key, value]) => {
       if (typeof value === "string") {
-        return `${key}: "${value}"`;
+        // Escape backslashes and double quotes for YAML
+        const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        return `${key}: "${escaped}"`;
       } else if (Array.isArray(value)) {
-        return `${key}: [${value.map((v) => `"${v}"`).join(", ")}]`;
+        return `${key}: [${
+          value.map((v) => {
+            if (typeof v === "string") {
+              const escaped = v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+              return `"${escaped}"`;
+            }
+            return `"${v}"`;
+          }).join(", ")
+        }]`;
       } else {
         return `${key}: ${value}`;
       }

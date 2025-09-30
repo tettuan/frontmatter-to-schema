@@ -156,7 +156,8 @@ Content here.`;
   const parsed = result.unwrap();
   assertEquals(parsed.frontmatter?.title, "Quoted Title");
   assertEquals(parsed.frontmatter?.description, "Single quoted description");
-  assertEquals(parsed.frontmatter?.number, "42");
+  // Unquoted numbers in YAML are parsed as numbers, not strings
+  assertEquals(parsed.frontmatter?.number, 42);
 });
 
 Deno.test("FrontmatterParsingService - parseFrontmatter fails with non-string input", () => {
