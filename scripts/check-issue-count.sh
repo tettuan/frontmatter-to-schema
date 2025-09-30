@@ -14,15 +14,15 @@ THRESHOLD=5
 if RESULT=$(timeout 20s gh issue list --state open --limit 100 --json number 2>/dev/null); then
     # Count the number of issues
     COUNT=$(echo "$RESULT" | jq '. | length')
-    
+
     if [ "$COUNT" -ge "$THRESHOLD" ]; then
-        echo "Found $COUNT open issues (threshold: $THRESHOLD)"
+        # echo "Found $COUNT open issues (threshold: $THRESHOLD)"
         exit 0  # true - 5 or more issues
     else
-        echo "Found $COUNT open issues (threshold: $THRESHOLD)"
+        # echo "Found $COUNT open issues (threshold: $THRESHOLD)"
         exit 1  # false - less than 5 issues
     fi
 else
-    echo "Error: Failed to fetch issues from GitHub"
+    # echo "Error: Failed to fetch issues from GitHub"
     exit 2  # error
 fi

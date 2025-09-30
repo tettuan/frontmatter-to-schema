@@ -1,283 +1,151 @@
-{
-  "generated_at": "",
-  "articles": [
-    {
-      "title": "AI自動開発は、YouTuber型とNetflixオリジナル型に分かれそう",
-      "emoji": "📝",
-      "type": "idea",
-      "topics": [
-        "AI",
-        "Cursor",
-        "Claude",
-        "Cline",
-        "Devin",
-      ],
-      "published": false,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "[実験的]AI自動開発のための開発指示書作成",
-      "emoji": "😽",
-      "type": "tech",
-      "topics": [
-        "AI",
-        "Cursor",
-        "Cline",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "Cursor、テストコードでログ出力しまくって上手くいった話",
-      "emoji": "😊",
-      "type": "tech",
-      "topics": [
-        "cursor",
-        "ai自動開発",
-      ],
-      "published": false,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "100%ピュアAI開発の成果物から学んだ20のこと",
-      "emoji": "🏆",
-      "type": "tech",
-      "topics": [
-        "Cursor",
-        "AI開発",
-        "Deno",
-      ],
-      "published": true,
-      "published_at": "2025-04-21 07:00",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "Claude Codeで活躍！プロンプト連鎖を生み出す Deno CLI `breakdown`",
-      "emoji": "🐥",
-      "type": "tech",
-      "topics": [
-        "contest2025ts",
-        "claudecode",
-        "Claude",
-        "Deno",
-      ],
-      "published": true,
-      "published_at": "2025-06-23 11:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "AI出力コードを収束させる方法： ドメイン駆動設計 & 全域性 & テスト駆動 & Claude Code Company",
-      "emoji": "📘",
-      "type": "tech",
-      "topics": [
-        "claudecode",
-        "ドメイン駆動設計",
-        "全域関数",
-      ],
-      "published": true,
-      "published_at": "2025-07-07 11:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]",
-      "emoji": "🚗",
-      "type": "idea",
-      "topics": [
-        "tmux",
-        "claudecode",
-      ],
-      "published": true,
-      "published_at": "2025-07-12 11:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "Sub Agentsにも最適。Claude Codeから動的にプロンプト実行する CLI Prompt 管理ツール - Climpt",
-      "emoji": "📚",
-      "type": "tech",
-      "topics": [
-        "claudecode",
-        "codingagents",
-        "aidevtool",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "C3LとClaude hooksの破壊力 - 永久開発機関の完成",
-      "emoji": "🌟",
-      "type": "tech",
-      "topics": [
-        "C3L",
-        "claudecode",
-        "hooks",
-      ],
-      "published": true,
-      "published_at": "2025-08-16 18:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "第二幕：Agentic Coding 完全自動化 → 要件定義の自動化へ",
-      "emoji": "🐥",
-      "type": "idea",
-      "topics": [
-        "c3l",
-        "claudecode",
-        "climpt",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "MCP対応 - プロンプト呼び出しのClimpt",
-      "emoji": "💭",
-      "type": "tech",
-      "topics": [
-        "ClaudeCode",
-        "MCP",
-        "Climpt",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "プロジェクトごとの「自然文な開発言語」を作る",
-      "emoji": "💎",
-      "type": "idea",
-      "topics": [
-        "codingagents",
-        "claudecode",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "課題発見と実装修正を並行実行するClaude Code活用術",
-      "emoji": "⛳",
-      "type": "tech",
-      "topics": [
-        "claudecode",
-        "c3l",
-        "climpt",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "Agentの自然言語を多言語化する - 開発と仕様とテストとetc",
-      "emoji": "⛳",
-      "type": "tech",
-      "topics": [
-        "claudecode",
-        "c3l",
-        "climpt",
-      ],
-      "published": false,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "アプリケーションを意味的にアップデートし続ける「仕様書言語」の案",
-      "emoji": "📕",
-      "type": "idea",
-      "topics": [
-        "c3l",
-        "claudecode",
-        "docs",
-      ],
-      "published": true,
-      "published_at": "2025-09-08 09:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "1行もコードを書かずにAIだけで作れた先に思う事",
-      "emoji": "🚀",
-      "type": "idea",
-      "topics": [
-        "Cursor",
-        "AI開発",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "Claude Code Company 組成で、Cursor辞めた",
-      "emoji": "💬",
-      "type": "tech",
-      "topics": [
-        "cursor",
-        "claude",
-        "claudecode",
-        "automation",
-      ],
-      "published": true,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "プロジェクト固有のAI呼び出し言語 - C3L",
-      "emoji": "🗣️",
-      "type": "tech",
-      "topics": [
-        "climpt",
-        "claudecode",
-        "C3L",
-      ],
-      "published": true,
-      "published_at": "2025-08-15 09:30",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "要求を仕様化することは、発見のプロセスである",
-      "emoji": "",
-      "type": "tech",
-      "topics": [],
-      "published": false,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-    {
-      "title": "[実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題",
-      "emoji": "🐷",
-      "type": "tech",
-      "topics": [
-        "AI",
-        "Cursor",
-        "Cline",
-      ],
-      "published": false,
-      "published_at": "",
-      "filename": "",
-      "created_date": "",
-    },
-  ],
-  "topics": "",
-  "types": "",
-}
+generated_at: "2025-09-30T15:24:58.882Z"
+articles:
+  - 
+    title: AI出力コードを収束させる方法： ドメイン駆動設計 & 全域性 & テスト駆動 & Claude Code Company
+    emoji: 📘
+    type: tech
+    topics: [claudecode,ドメイン駆動設計,全域関数]
+    published: true
+    published_at: "2025-07-07 11:30"
+  - 
+    title: "プロジェクト固有のAI呼び出し言語 - C3L"
+    emoji: 🗣️
+    type: tech
+    topics: [climpt,claudecode,C3L]
+    published: true
+    published_at: "2025-08-15 09:30"
+  - 
+    title: 1行もコードを書かずにAIだけで作れた先に思う事
+    emoji: 🚀
+    type: idea
+    topics: [Cursor,AI開発]
+    published: true
+  - 
+    title: アプリケーションを意味的にアップデートし続ける「仕様書言語」の案
+    emoji: 📕
+    type: idea
+    topics: [c3l,claudecode,docs]
+    published: true
+    published_at: "2025-09-08 09:30"
+  - 
+    title: "MCP対応 - プロンプト呼び出しのClimpt"
+    emoji: 💭
+    type: tech
+    topics: [ClaudeCode,MCP,Climpt]
+    published: true
+  - 
+    title: プロジェクトごとの「自然文な開発言語」を作る
+    emoji: 💎
+    type: idea
+    topics: [codingagents,claudecode]
+    published: true
+  - 
+    title: "Sub Agentsにも最適。Claude Codeから動的にプロンプト実行する CLI Prompt 管理ツール - Climpt"
+    emoji: 📚
+    type: tech
+    topics: [claudecode,codingagents,aidevtool]
+    published: true
+  - 
+    title: [実験的]AI自動開発のための開発指示書作成
+    emoji: 😽
+    type: tech
+    topics: "[""AI"",""Cursor"",""Cline""]"
+    published: true
+  - 
+    title: 第二幕：Agentic Coding 完全自動化 → 要件定義の自動化へ
+    emoji: 🐥
+    type: idea
+    topics: [c3l,claudecode,climpt]
+    published: true
+  - 
+    title: 100%ピュアAI開発の成果物から学んだ20のこと
+    emoji: 🏆
+    type: tech
+    topics: [Cursor,AI開発,Deno]
+    published: true
+    published_at: "2025-04-21 07:00"
+  - 
+    title: "Agentの自然言語を多言語化する - 開発と仕様とテストとetc"
+    emoji: ⛳
+    type: tech
+    topics: [claudecode,c3l,climpt]
+    published: false
+  - 
+    title: 課題発見と実装修正を並行実行するClaude Code活用術
+    emoji: ⛳
+    type: tech
+    topics: [claudecode,c3l,climpt]
+    published: true
+  - 
+    title: "5 hours 連続稼働を実現する、Claude Code Companyのモニタリングツール[tmux-monitor]"
+    emoji: 🚗
+    type: idea
+    topics: [tmux,claudecode]
+    published: true
+    published_at: "2025-07-12 11:30"
+  - 
+    title: Claude Codeで活躍！プロンプト連鎖を生み出す Deno CLI `breakdown`
+    emoji: 🐥
+    type: tech
+    topics: 
+    published: true
+    published_at: "2025-06-23 11:30"
+  - 
+    title: AI自動開発は、YouTuber型とNetflixオリジナル型に分かれそう
+    emoji: 📝
+    type: idea
+    topics: [AI,Cursor,Claude,Cline,Devin]
+    published: false
+  - 
+    title: Claude Code Company 組成で、Cursor辞めた
+    emoji: 💬
+    type: tech
+    topics: [cursor, claude, claudecode, automation]
+    published: true
+  - 
+    title: "C3LとClaude hooksの破壊力 - 永久開発機関の完成"
+    emoji: 🌟
+    type: tech
+    topics: [C3L,claudecode,hooks]
+    published: true
+    published_at: "2025-08-16 18:30"
+  - 
+    title: [実践]プロンプトでJSON記載のタスクを実行させるが、時々サボる問題
+    emoji: 🐷
+    type: tech
+    topics: "[""AI"",""Cursor"",""Cline""]"
+    published: false
+  - 
+    title: Cursor、テストコードでログ出力しまくって上手くいった話
+    emoji: 😊
+    type: tech
+    topics: [cursor,ai自動開発,]
+    published: false
+  - 
+    title: 要求を仕様化することは、発見のプロセスである
+    emoji: 
+    type: tech
+    topics: []
+    published: false
+topics:
+  - 
+  - "[""AI"",""Cursor"",""Cline""]"
+  - [AI,Cursor,Claude,Cline,Devin]
+  - [C3L,claudecode,hooks]
+  - [ClaudeCode,MCP,Climpt]
+  - [Cursor,AI開発,Deno]
+  - [Cursor,AI開発]
+  - []
+  - [c3l,claudecode,climpt]
+  - [c3l,claudecode,docs]
+  - [claudecode,c3l,climpt]
+  - [claudecode,codingagents,aidevtool]
+  - [claudecode,ドメイン駆動設計,全域関数]
+  - [climpt,claudecode,C3L]
+  - [codingagents,claudecode]
+  - [cursor, claude, claudecode, automation]
+  - [cursor,ai自動開発,]
+  - [tmux,claudecode]
+types:
+  - idea
+  - tech
