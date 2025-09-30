@@ -3,12 +3,22 @@
 # Article Index Generator
 # Processes markdown files in docs/ directory to create an article index
 
+set -e
+
 echo "=== Article Index Generation ==="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CLI="$PROJECT_ROOT/cli.ts"
+
+# Change to project root for execution
+cd "$PROJECT_ROOT"
+
 # Configuration
-SCHEMA_FILE="./examples/1.articles/articles_schema.json"
-OUTPUT_FILE="./examples/1.articles/articles-index-output.yml"
-DOCS_DIR="./examples/1.articles/docs"
+SCHEMA_FILE="examples/1.articles/articles_schema.json"
+OUTPUT_FILE="examples/1.articles/articles-index-output.yml"
+DOCS_DIR="examples/1.articles/docs"
 
 # Create tmp directory if it doesn't exist
 mkdir -p tmp
@@ -20,9 +30,9 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command
-./cli.ts \
+"$CLI" \
   "$SCHEMA_FILE" \
-  "$DOCS_DIR/**/*.md" \
+  "$DOCS_DIR" \
   "$OUTPUT_FILE" \
   --verbose
 
