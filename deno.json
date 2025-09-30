@@ -28,6 +28,16 @@
       ".agent/**/*template*.yml"
     ]
   },
+  "test": {
+    "include": [
+      "tests/**/*_test.ts"
+    ],
+    "exclude": [
+      "tests/e2e/test-output/**/*",
+      "tests/**/*.disabled.ts",
+      "tmp/**/*"
+    ]
+  },
   "tasks": {
     "ci": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
     "ci:dirty": "deno run --allow-read --allow-write --allow-run --allow-env jsr:@aidevtool/ci --allow-dirty",
@@ -38,7 +48,7 @@
     "test:integration": "deno test --allow-all tests/integration/ --jobs=4",
     "test:e2e": "deno test --allow-all tests/e2e/ --jobs=1",
     "test:performance": "deno test --allow-all tests/performance/ --jobs=1",
-    "test:coverage": "deno test --allow-all --coverage=tmp/coverage --config=deno.test.json",
+    "test:coverage": "deno test --allow-all --coverage=tmp/coverage",
     "coverage:report": "deno coverage tmp/coverage --lcov --output=tmp/coverage.lcov"
   },
   "imports": {
