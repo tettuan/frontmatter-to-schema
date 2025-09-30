@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ci status check
-scripts/ci-with-issue-creation.sh &>/dev/null
+scripts/ci-with-issue-creation.sh
 ci_status=$?
 # Check if CI script was successful
 if [ $ci_status -ne 0 ]; then
@@ -10,7 +10,7 @@ if [ $ci_status -ne 0 ]; then
 fi
 
 # github status check
-scripts/check-github-status.sh &>/dev/null
+scripts/check-github-status.sh
 exit_status=$?
 
 if [ $exit_status -eq 2 ]; then
