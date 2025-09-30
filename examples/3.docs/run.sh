@@ -5,24 +5,27 @@
 # This script processes Markdown files in docs/ directory and extracts
 # traceability information from their frontmatter to create index files
 
+set -e
+
 echo "=== Spec-Trace Index Generation ==="
 
-# Configuration
-SPEC_TRACE_DIR="./examples/3.docs"
-DOCS_PATTERN="${SPEC_TRACE_DIR}/docs/**/*.md"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CLI="$PROJECT_ROOT/cli.ts"
 
-# Ensure we're in the project root
-if [ ! -d "./examples/3.docs" ]; then
-    echo "❌ Error: examples/3.docs directory not found"
-    echo "Please run this script from the project root"
-    exit 1
-fi
+# Change to project root for execution
+cd "$PROJECT_ROOT"
+
+# Configuration
+SPEC_TRACE_DIR="examples/3.docs"
+DOCS_DIR="${SPEC_TRACE_DIR}/docs"
 
 # Ensure index directory exists
 mkdir -p "$SPEC_TRACE_DIR/index"
 
 echo "Processing spec-trace levels..."
-echo "Source: $DOCS_PATTERN"
+echo "Source: $DOCS_DIR"
 echo "Target: $SPEC_TRACE_DIR/index/"
 echo
 
@@ -33,9 +36,9 @@ for level in req spec design impl test; do
 
     # Run the frontmatter-to-schema CLI
     # Arguments: <schema> <input> <output>
-    ./cli.ts \
+    "$CLI" \
         "${SPEC_TRACE_DIR}/index_${level}_schema.json" \
-        "$DOCS_PATTERN" \
+        "$DOCS_DIR" \
         "${SPEC_TRACE_DIR}/index/${level}_index.json" \
         --verbose
 
