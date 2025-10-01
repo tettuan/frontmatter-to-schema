@@ -285,6 +285,96 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with non-array property i
   assertEquals(data?.title, "Test Document");
 });
 
+Deno.test("Phase1DirectiveProcessor - x-jmespath-filter filters array data", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    traceability: [
+      { id: { level: "req" }, title: "Requirement 1" },
+      { id: { level: "req" }, title: "Requirement 2" },
+      { id: { level: "design" }, title: "Design 1" },
+      { id: { level: "req" }, title: "Requirement 3" },
+      { id: { level: "design" }, title: "Design 2" },
+      { id: { level: "req" }, title: "Requirement 4" },
+      { id: { level: "req" }, title: "Requirement 5" },
+    ],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      traceability: {
+        type: "array",
+        "x-jmespath-filter": "[?id.level == 'req']",
+        items: { type: "object" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(Array.isArray(data?.traceability), true);
+
+  const filtered = data?.traceability as Array<
+    { id: { level: string }; title: string }
+  >;
+  assertEquals(filtered.length, 5);
+
+  // All items should be 'req' level
+  filtered.forEach((item) => {
+    assertEquals(item.id.level, "req");
+  });
+});
+
+Deno.test("Phase1DirectiveProcessor - x-jmespath-filter with invalid expression returns error", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    items: [{ value: 1 }],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        "x-jmespath-filter": "[?invalid..syntax]",
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isError(), true);
+  const error = result.unwrapError();
+  assertEquals(error.code, "JMESPATH_FILTER_ERROR");
+});
+
+Deno.test("Phase1DirectiveProcessor - x-jmespath-filter without directive returns unchanged", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    items: [{ value: 1 }, { value: 2 }],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        items: { type: "object" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.items, [{ value: 1 }, { value: 2 }]);
+});
+
 Deno.test("Phase1DirectiveProcessor - Totality compliance (never throws)", () => {
   const processor = Phase1DirectiveProcessor.create().unwrap();
 
