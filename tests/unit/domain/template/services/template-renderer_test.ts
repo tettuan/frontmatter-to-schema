@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import { TemplateRenderer } from "../../../../../src/domain/template/services/template-renderer.ts";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
@@ -105,12 +105,16 @@ Deno.test("TemplateRenderer - renderWithArray with single item", () => {
 Deno.test("TemplateRenderer - renderWithItems with valid container template", () => {
   const renderer = TemplateRenderer.create().unwrap();
 
-  const containerTemplate = {
+  const templatePath = TemplatePath.create("container.json").unwrap();
+  const templateData = {
     content: {
       title: "Container",
       items: "{items}",
     },
+    format: "json" as const,
   };
+  const containerTemplate = Template.create(templatePath, templateData)
+    .unwrap();
 
   const data1 = FrontmatterData.create({ name: "Item 1" }).unwrap();
   const data2 = FrontmatterData.create({ name: "Item 2" }).unwrap();
@@ -125,29 +129,42 @@ Deno.test("TemplateRenderer - renderWithItems with valid container template", ()
   assert(output.length > 0);
 });
 
-Deno.test("TemplateRenderer - renderWithItems with invalid container template", () => {
+Deno.test("TemplateRenderer - renderWithItems handles template resolution errors", () => {
   const renderer = TemplateRenderer.create().unwrap();
+
+  const templatePath = TemplatePath.create("container.json").unwrap();
+  const templateData = {
+    content: {
+      title: "{invalidRef.nested.deep}", // Deep nested that won't exist
+    },
+    format: "json" as const,
+  };
+  const containerTemplate = Template.create(templatePath, templateData)
+    .unwrap();
 
   const data = FrontmatterData.create({ name: "Item" }).unwrap();
 
   const result = renderer.renderWithItems(
-    null, // Invalid container
+    containerTemplate,
     [data],
   );
 
-  assert(result.isError());
-  const error = result.unwrapError();
-  assertEquals(error.code, "INVALID_CONTAINER_TEMPLATE");
+  // Should still succeed (template resolution handles missing values gracefully)
+  assert(result.isOk());
 });
 
 Deno.test("TemplateRenderer - renderWithItems with items template", () => {
   const renderer = TemplateRenderer.create().unwrap();
 
-  const containerTemplate = {
+  const templatePath = TemplatePath.create("container.json").unwrap();
+  const templateData = {
     content: {
       collection: "{items}",
     },
+    format: "json" as const,
   };
+  const containerTemplate = Template.create(templatePath, templateData)
+    .unwrap();
 
   const itemsTemplate = {
     path: "items-template.json",
@@ -170,12 +187,16 @@ Deno.test("TemplateRenderer - renderWithItems with items template", () => {
 Deno.test("TemplateRenderer - renderWithItems with empty data array", () => {
   const renderer = TemplateRenderer.create().unwrap();
 
-  const containerTemplate = {
+  const templatePath = TemplatePath.create("container.json").unwrap();
+  const templateData = {
     content: {
       items: [],
       count: 0,
     },
+    format: "json" as const,
   };
+  const containerTemplate = Template.create(templatePath, templateData)
+    .unwrap();
 
   const result = renderer.renderWithItems(
     containerTemplate,

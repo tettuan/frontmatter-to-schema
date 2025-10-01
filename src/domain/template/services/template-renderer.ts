@@ -113,7 +113,7 @@ export class TemplateRenderer {
    * This method coordinates between container and items templates
    */
   renderWithItems(
-    containerTemplate: unknown,
+    containerTemplate: Template,
     data: FrontmatterData[],
     _itemsTemplate?: unknown,
   ): Result<string, TemplateError> {
@@ -124,21 +124,6 @@ export class TemplateRenderer {
       // 2. Combine the results
       // 3. Apply the container template
 
-      if (!containerTemplate || typeof containerTemplate !== "object") {
-        return Result.error(
-          new TemplateError(
-            "Invalid container template provided",
-            "INVALID_CONTAINER_TEMPLATE",
-            { containerTemplate },
-          ),
-        );
-      }
-
-      // Convert template object to Template entity
-      // This is a simplified approach - in reality we'd need proper template loading
-      const templateData = containerTemplate as Record<string, unknown>;
-      const _templatePath = templateData.path as string || "unknown";
-
       // Convert data array to combined object
       const plainObjects = data.map((item) => item.getData());
       const combinedData = {
@@ -147,17 +132,25 @@ export class TemplateRenderer {
         ...(plainObjects.length > 0 ? plainObjects[0] : {}),
       };
 
-      // Simple template processing - replace placeholders
-      let content = JSON.stringify(
-        templateData.content || templateData,
-        null,
-        2,
+      // Use Template entity's resolveVariables() instead of duplicate logic
+      const resolvedTemplate = containerTemplate.resolveVariables(combinedData);
+
+      if (resolvedTemplate.isError()) {
+        return Result.error(
+          new TemplateError(
+            `Template variable resolution failed: ${resolvedTemplate.unwrapError().message}`,
+            "TEMPLATE_RESOLUTION_ERROR",
+            {
+              template: containerTemplate.getPath().toString(),
+              data: combinedData,
+            },
+          ),
+        );
+      }
+
+      return Result.ok(
+        JSON.stringify(resolvedTemplate.unwrap().getContent(), null, 2),
       );
-
-      // Basic variable substitution
-      content = this.substituteVariables(content, combinedData);
-
-      return Result.ok(content);
     } catch (error) {
       return Result.error(
         new TemplateError(
@@ -169,41 +162,5 @@ export class TemplateRenderer {
         ),
       );
     }
-  }
-
-  /**
-   * Simple variable substitution for templates
-   */
-  private substituteVariables(
-    content: string,
-    data: Record<string, unknown>,
-  ): string {
-    // Basic implementation - replace {variable} with values
-    let result = content;
-
-    // Handle nested property access like {items.length}
-    const variableRegex = /\{([^}]+)\}/g;
-
-    result = result.replace(variableRegex, (match, path) => {
-      const value = this.getNestedValue(data, path.trim());
-      if (value !== undefined) {
-        return JSON.stringify(value);
-      }
-      return match; // Keep original if not found
-    });
-
-    return result;
-  }
-
-  /**
-   * Gets nested value from object using dot notation
-   */
-  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    return path.split(".").reduce((current: unknown, key: string): unknown => {
-      if (current && typeof current === "object" && key in current) {
-        return (current as Record<string, unknown>)[key];
-      }
-      return undefined;
-    }, obj as unknown);
   }
 }
