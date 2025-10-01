@@ -1,5 +1,10 @@
 import { Result } from "../types/result.ts";
 import { DomainError } from "../types/errors.ts";
+import { DIRECTIVE_NAMES } from "../../schema/constants/directive-names.ts";
+
+type TemplateSource =
+  | typeof DIRECTIVE_NAMES.TEMPLATE
+  | typeof DIRECTIVE_NAMES.TEMPLATE_ITEMS;
 
 /**
  * Value object representing a template file path with metadata
@@ -8,13 +13,13 @@ export class TemplatePath {
   private constructor(
     private readonly _path: string,
     private readonly _type: "container" | "items",
-    private readonly _source: "x-template" | "x-template-items",
+    private readonly _source: TemplateSource,
   ) {}
 
   static create(
     path: string,
     type: "container" | "items",
-    source: "x-template" | "x-template-items",
+    source: TemplateSource,
   ): Result<TemplatePath, DomainError> {
     if (!path || path.trim().length === 0) {
       return Result.error(
@@ -37,7 +42,7 @@ export class TemplatePath {
     }
 
     // Validate type-source consistency
-    if (type === "container" && source !== "x-template") {
+    if (type === "container" && source !== DIRECTIVE_NAMES.TEMPLATE) {
       return Result.error(
         new DomainError(
           "Container template must use x-template source",
@@ -47,7 +52,7 @@ export class TemplatePath {
       );
     }
 
-    if (type === "items" && source !== "x-template-items") {
+    if (type === "items" && source !== DIRECTIVE_NAMES.TEMPLATE_ITEMS) {
       return Result.error(
         new DomainError(
           "Items template must use x-template-items source",
@@ -68,7 +73,7 @@ export class TemplatePath {
     return this._type;
   }
 
-  get source(): "x-template" | "x-template-items" {
+  get source(): TemplateSource {
     return this._source;
   }
 

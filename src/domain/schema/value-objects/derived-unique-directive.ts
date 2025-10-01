@@ -1,5 +1,6 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-derived-unique directive.
@@ -21,7 +22,11 @@ export class DerivedUniqueDirective {
         new SchemaError(
           "x-derived-unique directive value must be a boolean",
           "INVALID_DIRECTIVE_VALUE",
-          { directive: "x-derived-unique", value, expected: "boolean" },
+          {
+            directive: DIRECTIVE_NAMES.DERIVED_UNIQUE,
+            value,
+            expected: "boolean",
+          },
         ),
       );
     }

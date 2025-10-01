@@ -5,7 +5,7 @@ import { DocumentId, MarkdownDocument } from "../entities/markdown-document.ts";
 import { FrontmatterData } from "../value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
-import { extract as extractYaml } from "jsr:@std/front-matter/yaml";
+import { extract as extractYaml } from "jsr:@std/front-matter@1.0.5/yaml";
 
 /**
  * Domain service for parsing frontmatter from markdown documents.

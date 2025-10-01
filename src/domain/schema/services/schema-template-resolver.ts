@@ -7,6 +7,7 @@ import {
   TemplateHandoffContext,
   TemplateResolutionStrategy,
 } from "../../../application/services/template-schema-coordinator.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Schema Domain - Template Resolution Service
@@ -67,7 +68,7 @@ export class SchemaTemplateResolver {
   private extractContainerTemplate(
     schemaData: Record<string, unknown>,
   ): Result<TemplatePath, DomainError> {
-    const templateRef = schemaData["x-template"];
+    const templateRef = schemaData[DIRECTIVE_NAMES.TEMPLATE];
 
     if (!templateRef || typeof templateRef !== "string") {
       return Result.error(
@@ -79,7 +80,11 @@ export class SchemaTemplateResolver {
       );
     }
 
-    return TemplatePath.create(templateRef, "container", "x-template");
+    return TemplatePath.create(
+      templateRef,
+      "container",
+      DIRECTIVE_NAMES.TEMPLATE,
+    );
   }
 
   /**
@@ -89,7 +94,7 @@ export class SchemaTemplateResolver {
   private extractItemsTemplate(
     schemaData: Record<string, unknown>,
   ): TemplatePath | null {
-    const itemsTemplateRef = schemaData["x-template-items"];
+    const itemsTemplateRef = schemaData[DIRECTIVE_NAMES.TEMPLATE_ITEMS];
 
     if (!itemsTemplateRef || typeof itemsTemplateRef !== "string") {
       return null;
@@ -98,7 +103,7 @@ export class SchemaTemplateResolver {
     const templatePathResult = TemplatePath.create(
       itemsTemplateRef,
       "items",
-      "x-template-items",
+      DIRECTIVE_NAMES.TEMPLATE_ITEMS,
     );
 
     // If template path creation fails, treat as if extension wasn't present
