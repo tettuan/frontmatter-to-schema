@@ -16,7 +16,7 @@ async function setupE2EEnvironment() {
   await ensureDir(TEST_DIR);
   await ensureDir(TEST_FIXTURES_DIR);
 
-  // Create test schema
+  // Create test schema with x-frontmatter-part for multiple document support
   const testSchema = {
     type: "object",
     properties: {
@@ -24,6 +24,19 @@ async function setupE2EEnvironment() {
       author: { type: "string" },
       tags: { type: "array", items: { type: "string" } },
       published: { type: "boolean" },
+      documents: {
+        type: "array",
+        "x-frontmatter-part": true,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            author: { type: "string" },
+            tags: { type: "array", items: { type: "string" } },
+            published: { type: "boolean" },
+          },
+        },
+      },
     },
     required: ["title", "author"],
   };

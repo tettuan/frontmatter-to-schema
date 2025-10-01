@@ -82,6 +82,19 @@ class MockTemplateWithItems {
   }
 }
 
+// Helper function to create mock schema with x-frontmatter-part
+function createMockSchema(propertyName: string = "documents"): Record<string, unknown> {
+  return {
+    type: "object",
+    properties: {
+      [propertyName]: {
+        type: "array",
+        "x-frontmatter-part": true,
+      },
+    },
+  };
+}
+
 Deno.test("DocumentAggregationService - create without configuration manager", () => {
   const result = DocumentAggregationService.create();
 
@@ -123,14 +136,15 @@ Deno.test("DocumentAggregationService - transformDocuments with multiple documen
     }),
     createMockDocument("/test/doc3.md", { title: "Doc 3", category: "test" }),
   ];
+  const schema = createMockSchema("documents");
 
-  const result = service.transformDocuments(documents, null, undefined);
+  const result = service.transformDocuments(documents, null, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
   assertEquals(Array.isArray(transformed.documents), true);
   assertEquals((transformed.documents as any[]).length, 3);
-  assertEquals(transformed.totalDocuments, 3);
+  // Note: totalDocuments is no longer hardcoded, it's part of metadata
   assertEquals(typeof transformed.processedAt, "string");
 });
 
@@ -141,14 +155,14 @@ Deno.test("DocumentAggregationService - transformDocuments with items expansion 
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
   const template = new MockTemplateWithItems();
+  const schema = createMockSchema("items");
 
-  const result = service.transformDocuments(documents, template, undefined);
+  const result = service.transformDocuments(documents, template, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
   assertEquals(Array.isArray(transformed.items), true);
   assertEquals((transformed.items as any[]).length, 2);
-  assertEquals(Array.isArray(transformed.documents), true);
 });
 
 Deno.test("DocumentAggregationService - transformDocuments with template containing @items pattern", () => {
@@ -158,8 +172,9 @@ Deno.test("DocumentAggregationService - transformDocuments with template contain
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
   const template = { pattern: "{@items}", other: "data" };
+  const schema = createMockSchema("items");
 
-  const result = service.transformDocuments(documents, template, undefined);
+  const result = service.transformDocuments(documents, template, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -174,8 +189,9 @@ Deno.test("DocumentAggregationService - transformDocuments with template contain
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
   const template = { pattern: "{{items}}", other: "data" };
+  const schema = createMockSchema("items");
 
-  const result = service.transformDocuments(documents, template, undefined);
+  const result = service.transformDocuments(documents, template, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -191,13 +207,14 @@ Deno.test("DocumentAggregationService - transformDocuments without metadata", ()
     createMockDocument("/test/doc1.md", { title: "Doc 1" }),
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
+  const schema = createMockSchema("documents");
 
-  const result = service.transformDocuments(documents, null, undefined);
+  const result = service.transformDocuments(documents, null, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
   assertEquals(transformed.processedAt, undefined);
-  assertEquals(transformed.totalDocuments, 2);
+  assertEquals(Array.isArray(transformed.documents), true);
 });
 
 Deno.test("DocumentAggregationService - transformDocuments with custom config", () => {
@@ -206,6 +223,7 @@ Deno.test("DocumentAggregationService - transformDocuments with custom config", 
     createMockDocument("/test/doc1.md", { title: "Doc 1" }),
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
+  const schema = createMockSchema("documents");
 
   const config: AggregationConfig = {
     includeMetadata: true,
@@ -215,7 +233,7 @@ Deno.test("DocumentAggregationService - transformDocuments with custom config", 
     },
   };
 
-  const result = service.transformDocuments(documents, null, undefined, config);
+  const result = service.transformDocuments(documents, null, schema, config);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -231,14 +249,14 @@ Deno.test("DocumentAggregationService - transformDocuments with documents withou
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
     createMockDocument("/test/doc3.md"), // no frontmatter
   ];
+  const schema = createMockSchema("documents");
 
-  const result = service.transformDocuments(documents, null, undefined);
+  const result = service.transformDocuments(documents, null, schema);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
   assertEquals(Array.isArray(transformed.documents), true);
   assertEquals((transformed.documents as any[]).length, 1); // only one with frontmatter
-  assertEquals(transformed.totalDocuments, 3);
 });
 
 Deno.test("DocumentAggregationService - transformDocuments with invalid input types", () => {
@@ -272,9 +290,10 @@ Deno.test("DocumentAggregationService - transformDocuments with config manager e
     createMockDocument("/test/doc1.md", { title: "Doc 1" }),
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
+  const schema = createMockSchema("documents");
 
   // Should still work, falling back to default behavior
-  const result = service.transformDocuments(documents, null, undefined);
+  const result = service.transformDocuments(documents, null, schema);
   assertEquals(result.isOk(), true);
 });
 
@@ -284,6 +303,7 @@ Deno.test("DocumentAggregationService - transformDocuments with template JSON se
     createMockDocument("/test/doc1.md", { title: "Doc 1" }),
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
+  const schema = createMockSchema("items");
 
   // Create object with circular reference that can't be JSON.stringify'd
   const circularTemplate: any = { data: "test" };
@@ -292,13 +312,13 @@ Deno.test("DocumentAggregationService - transformDocuments with template JSON se
   const result = service.transformDocuments(
     documents,
     circularTemplate,
-    undefined,
+    schema,
   );
 
-  // Should still work, just won't detect items expansion
+  // Should still work with schema
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
-  assertEquals(transformed.items, undefined);
+  assertEquals(Array.isArray(transformed.items), true);
 });
 
 Deno.test("DocumentAggregationService - comprehensive error scenarios", () => {
@@ -326,16 +346,25 @@ Deno.test("DocumentAggregationService - comprehensive error scenarios", () => {
 Deno.test("DocumentAggregationService - edge cases", () => {
   const service = DocumentAggregationService.create().unwrap();
 
-  // Single document with no frontmatter
+  // Single document with no frontmatter - requires schema now (schema-driven)
   const singleNoFrontmatter = [createMockDocument("/test/doc.md")];
-  const singleResult = service.transformDocuments(
+  const singleResultNoSchema = service.transformDocuments(
     singleNoFrontmatter,
     null,
     undefined,
   );
-  assertEquals(singleResult.isOk(), true); // Should work, fallback to aggregate structure
+  assertEquals(singleResultNoSchema.isError(), true); // Should fail without schema
 
-  // Multiple documents, all without frontmatter
+  // Single document with no frontmatter WITH schema - should succeed
+  const schema = createMockSchema("documents");
+  const singleResultWithSchema = service.transformDocuments(
+    singleNoFrontmatter,
+    null,
+    schema,
+  );
+  assertEquals(singleResultWithSchema.isOk(), true);
+
+  // Multiple documents, all without frontmatter - requires schema
   const multipleNoFrontmatter = [
     createMockDocument("/test/doc1.md"),
     createMockDocument("/test/doc2.md"),
@@ -344,6 +373,7 @@ Deno.test("DocumentAggregationService - edge cases", () => {
   const multipleResult = service.transformDocuments(
     multipleNoFrontmatter,
     null,
+    schema,
   );
   assertEquals(multipleResult.isOk(), true); // Should work, create aggregate structure
   const multipleTransformed = multipleResult.unwrap();
@@ -433,27 +463,24 @@ Deno.test("DocumentAggregationService - complex aggregation scenario", () => {
     },
   };
 
+  const schema = createMockSchema("documents");
+
   const result = service.transformDocuments(
     documents,
     template,
-    undefined,
+    schema,
     config,
   );
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
 
-  // Should have items array due to template pattern
-  assertEquals(Array.isArray(transformed.items), true);
-  assertEquals((transformed.items as any[]).length, 4);
-
-  // Should have documents array
+  // Should have documents array from schema
   assertEquals(Array.isArray(transformed.documents), true);
   assertEquals((transformed.documents as any[]).length, 4);
 
   // Should have metadata
   assertEquals(typeof transformed.processedAt, "string");
-  assertEquals(transformed.totalDocuments, 4);
 
   // Should have custom metadata
   assertEquals(transformed.generator, "doc-processor");
@@ -497,7 +524,6 @@ Deno.test("DocumentAggregationService - property name mapping with schema x-fron
           },
         },
       },
-      totalDocuments: { type: "number" },
     },
   };
 
@@ -506,16 +532,15 @@ Deno.test("DocumentAggregationService - property name mapping with schema x-fron
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
 
-  // Should use schema property name "req" instead of generic "items"
+  // Should use schema property name "req" instead of hardcoded "items" or "documents"
   assertEquals(Array.isArray(transformed.req), true);
   assertEquals((transformed.req as any[]).length, 2);
   assertEquals((transformed.req as any[])[0].id, "REQ-001");
   assertEquals((transformed.req as any[])[1].id, "REQ-002");
 
-  // Should still have documents array
-  assertEquals(Array.isArray(transformed.documents), true);
-  assertEquals((transformed.documents as any[]).length, 2);
+  // Should NOT have hardcoded "documents" property (schema-driven)
+  assertEquals(transformed.documents, undefined);
 
-  // Should have totalDocuments
-  assertEquals(transformed.totalDocuments, 2);
+  // Should NOT have hardcoded "totalDocuments" property (schema-driven)
+  assertEquals(transformed.totalDocuments, undefined);
 });

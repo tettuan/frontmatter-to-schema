@@ -92,7 +92,7 @@ This is test content.`;
     });
 
     it("should handle multiple markdown files in directory", async () => {
-      // Create test schema
+      // Create test schema with x-frontmatter-part for multiple document support
       const schemaPath = `${TEST_DIR}/schema.json`;
       const schema = {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -100,6 +100,17 @@ This is test content.`;
         "properties": {
           "title": { "type": "string" },
           "tags": { "type": "array", "items": { "type": "string" } },
+          "items": {
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "tags": { "type": "array", "items": { "type": "string" } },
+              },
+            },
+          },
         },
       };
       await Deno.writeTextFile(schemaPath, JSON.stringify(schema, null, 2));
