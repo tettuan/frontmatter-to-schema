@@ -24,7 +24,7 @@ class MockFileSystemPort implements FileSystemPort {
   }
 
   private setupDefaultFiles() {
-    // Default schema file
+    // Default schema file with x-frontmatter-part for multiple document support
     this.files.set(
       "/test/schema.json",
       JSON.stringify({
@@ -32,6 +32,17 @@ class MockFileSystemPort implements FileSystemPort {
         properties: {
           title: { type: "string" },
           author: { type: "string" },
+          documents: {
+            type: "array",
+            "x-frontmatter-part": true,
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                author: { type: "string" },
+              },
+            },
+          },
         },
       }),
     );

@@ -144,45 +144,44 @@ export class DocumentAggregationService {
   /**
    * Creates aggregated data structure for multiple documents.
    * Uses schema to determine property names for frontmatter aggregation.
+   * Schema-driven: ALL property names must come from schema, no hardcoded properties.
    */
   private createAggregatedData(
     frontmatterData: Record<string, unknown>[],
-    documents: MarkdownDocument[],
-    template: unknown,
+    _documents: MarkdownDocument[],
+    _template: unknown,
     schema?: Record<string, unknown>,
     config?: AggregationConfig,
   ): Result<Record<string, unknown>, ProcessingError> {
     try {
-      // Determine metadata inclusion from config or configuration manager
-      const includeMetadata = this.shouldIncludeMetadata(config);
+      // Schema is required for schema-driven aggregation
+      const propertyNamesResult = this.getSchemaPropertyNames(schema);
+      if (propertyNamesResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Schema must specify x-frontmatter-part properties: ${propertyNamesResult.unwrapError().message}`,
+            "SCHEMA_REQUIRED_FOR_AGGREGATION",
+            { error: propertyNamesResult.unwrapError() },
+          ),
+        );
+      }
 
-      const aggregatedData: Record<string, unknown> = {
-        documents: frontmatterData,
-        totalDocuments: documents.length,
-      };
+      const aggregatedData: Record<string, unknown> = {};
+
+      // Add frontmatter data using ONLY schema property names
+      const propertyNames = propertyNamesResult.unwrap();
+      for (const propertyName of propertyNames) {
+        aggregatedData[propertyName] = frontmatterData;
+      }
 
       // Add metadata if configured
+      const includeMetadata = this.shouldIncludeMetadata(config);
       if (includeMetadata) {
         const metadataResult = this.generateMetadata(config);
         if (metadataResult.isError()) {
           return Result.error(metadataResult.unwrapError());
         }
         Object.assign(aggregatedData, metadataResult.unwrap());
-      }
-
-      // Add frontmatter data using schema property names if available
-      const propertyNamesResult = this.getSchemaPropertyNames(schema);
-      if (propertyNamesResult.isOk()) {
-        const propertyNames = propertyNamesResult.unwrap();
-        for (const propertyName of propertyNames) {
-          aggregatedData[propertyName] = frontmatterData;
-        }
-      } else {
-        // Fallback: Check if template requires {@items} processing
-        const hasItemsExpansion = this.checkItemsExpansion(template);
-        if (hasItemsExpansion) {
-          aggregatedData.items = frontmatterData;
-        }
       }
 
       return Result.ok(aggregatedData);
@@ -319,36 +318,6 @@ export class DocumentAggregationService {
           { error },
         ),
       );
-    }
-  }
-
-  /**
-   * Checks if template requires items expansion processing.
-   * This is a simplified check - in production would use proper template analysis.
-   */
-  private checkItemsExpansion(template: unknown): boolean {
-    try {
-      if (
-        template && typeof template === "object" &&
-        "hasItemsExpansion" in template
-      ) {
-        const templateWithExpansion = template as {
-          hasItemsExpansion(): boolean;
-        };
-        return templateWithExpansion.hasItemsExpansion();
-      }
-
-      // Fallback: check if template content contains {@items} pattern
-      if (template && typeof template === "object") {
-        const templateString = JSON.stringify(template);
-        return templateString.includes("{@items}") ||
-          templateString.includes("{{items}}");
-      }
-
-      return false;
-    } catch (_error) {
-      // On error, assume no items expansion needed
-      return false;
     }
   }
 }

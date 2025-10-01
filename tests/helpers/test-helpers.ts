@@ -67,6 +67,21 @@ export function createDefaultSchema(): TestSchema {
       published: { type: "boolean" },
       date: { type: "string", format: "date" },
       category: { type: "string" },
+      documents: {
+        type: "array",
+        "x-frontmatter-part": true,
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            author: { type: "string" },
+            tags: { type: "array", items: { type: "string" } },
+            published: { type: "boolean" },
+            date: { type: "string", format: "date" },
+            category: { type: "string" },
+          },
+        },
+      },
     },
     required: ["title", "author"],
   };
