@@ -6,7 +6,7 @@ ci_status=$?
 # Check if CI script was successful
 if [ $ci_status -ne 0 ]; then
     echo '{"decision": "block", "reason": "CI failed. Run deno task ci and please fix the issues and try again."}'
-    exit 2
+    exit 2;
 fi
 
 # github status check

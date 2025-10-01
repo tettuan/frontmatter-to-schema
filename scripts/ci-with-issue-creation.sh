@@ -6,8 +6,8 @@ set -e
 # Run CI and capture output
 if deno task ci >/dev/null 2>&1; then
     # echo "✅ CI passed successfully"
-    exit 0
+    exit 0;
 else
     # echo "❌ CI failed"
-    exit 1
+    exit 1;
 fi
