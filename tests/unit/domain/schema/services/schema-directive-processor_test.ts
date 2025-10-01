@@ -555,3 +555,181 @@ Deno.test("SchemaDirectiveProcessor - flatten nested arrays in x-derived-from (I
   // Should NOT contain comma-separated strings like "claudecode,DDD,totality"
   assertEquals(topics.some((t) => t.includes(",")), false);
 });
+
+Deno.test("SchemaDirectiveProcessor - x-jmespath-filter directive (Issue #1233)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  // Test data with mixed levels
+  const data = {
+    items: [
+      { id: { level: "req" }, title: "Requirement 1" },
+      { id: { level: "req" }, title: "Requirement 2" },
+      { id: { level: "design" }, title: "Design 1" },
+      { id: { level: "req" }, title: "Requirement 3" },
+      { id: { level: "design" }, title: "Design 2" },
+      { id: { level: "req" }, title: "Requirement 4" },
+      { id: { level: "req" }, title: "Requirement 5" },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      req: {
+        "x-jmespath-filter": "[?id.level == 'req']",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(
+    { ...data, req: data.items },
+    schema,
+  );
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+
+  // Should filter to only 'req' level items (5 items)
+  assertEquals(Array.isArray(processed.req), true);
+  const filteredItems = processed.req as Array<{ id: { level: string }; title: string }>;
+  assertEquals(filteredItems.length, 5);
+
+  // All items should be 'req' level
+  filteredItems.forEach((item) => {
+    assertEquals(item.id.level, "req");
+  });
+
+  // Should not contain any 'design' items
+  assertEquals(
+    filteredItems.some((item) => item.id.level === "design"),
+    false,
+  );
+});
+
+Deno.test("SchemaDirectiveProcessor - x-jmespath-filter with invalid expression", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    items: [{ value: 1 }],
+  };
+
+  const schema = {
+    properties: {
+      filtered: {
+        "x-jmespath-filter": "[?invalid..syntax]",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(
+    { ...data, filtered: data.items },
+    schema,
+  );
+
+  // Should return error for invalid JMESPath expression
+  assertEquals(result.isError(), true);
+  const error = result.unwrapError();
+  assertEquals(error.code, "JMESPATH_EVALUATION_ERROR");
+});
+
+Deno.test("SchemaDirectiveProcessor - x-flatten-arrays directive (Issue #1233)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    tags: [[["deep1", "deep2"]], ["nested1", "nested2"], "single"],
+  };
+
+  const schema = {
+    properties: {
+      tags: {
+        "x-flatten-arrays": "tags",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+
+  // Should flatten all nested arrays
+  assertEquals(Array.isArray(processed.tags), true);
+  const flattened = processed.tags as string[];
+  assertEquals(flattened.length, 5);
+  assertEquals(flattened.includes("deep1"), true);
+  assertEquals(flattened.includes("deep2"), true);
+  assertEquals(flattened.includes("nested1"), true);
+  assertEquals(flattened.includes("nested2"), true);
+  assertEquals(flattened.includes("single"), true);
+});
+
+Deno.test("SchemaDirectiveProcessor - x-flatten-arrays with empty value", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const data = {
+    tags: null,
+  };
+
+  const schema = {
+    properties: {
+      tags: {
+        "x-flatten-arrays": "tags",
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+
+  // Should set to empty array when value is null/undefined
+  assertEquals(Array.isArray(processed.tags), true);
+  assertEquals((processed.tags as unknown[]).length, 0);
+});
+
+Deno.test("SchemaDirectiveProcessor - combined directives (Issue #1233)", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  // Test with combined x-derived-from, x-flatten-arrays, and x-jmespath-filter
+  const data = {
+    articles: [
+      { topics: ["A", "B"], priority: "high" },
+      { topics: ["C"], priority: "low" },
+      { topics: ["D", "E"], priority: "high" },
+    ],
+  };
+
+  const schema = {
+    properties: {
+      highPriorityTopics: {
+        "x-derived-from": "articles[].topics",
+        "x-derived-unique": true,
+      },
+    },
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+
+  // Should have derived and flattened topics
+  assertEquals(Array.isArray(processed.highPriorityTopics), true);
+  const topics = processed.highPriorityTopics as string[];
+  assertEquals(topics.length, 5);
+  assertEquals(topics.includes("A"), true);
+  assertEquals(topics.includes("B"), true);
+  assertEquals(topics.includes("C"), true);
+  assertEquals(topics.includes("D"), true);
+  assertEquals(topics.includes("E"), true);
+});

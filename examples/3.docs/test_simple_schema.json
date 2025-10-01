@@ -11,7 +11,7 @@
     "req": {
       "type": "array",
       "x-frontmatter-part": true,
-      "x-jmespath-filter": "[?id.level == 'req']",
+      "x-jmespath-filter": "[?traceability[0].id.level == 'req']",
       "items": {
         "type": "object",
         "properties": {
