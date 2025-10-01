@@ -59,6 +59,7 @@ export class TemplateOutputRenderer {
     data: Record<string, unknown>,
     format: OutputFormat,
     outputPath: string,
+    schema?: Record<string, unknown>,
   ): Promise<Result<void, ProcessingError>> {
     if (!data || typeof data !== "object") {
       return Result.error(
@@ -88,11 +89,12 @@ export class TemplateOutputRenderer {
 
     const templateEntity = templateEntityResult.unwrap();
 
-    // Render using OutputRenderingService
+    // Render using OutputRenderingService with schema
     const renderingResult = this.outputRenderer.renderSimple(
       templateEntity,
       data,
       format,
+      schema,
     );
     if (renderingResult.isError()) {
       return Result.error(

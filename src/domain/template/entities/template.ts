@@ -195,13 +195,24 @@ export class Template {
    * Creates a new template with resolved variables.
    * Uses sub_modules/json-template for variable substitution.
    * Variables are in the format {variable.path} or ${variable.path}.
+   *
+   * @param variables - Data to use for variable resolution
+   * @param schema - Optional JSON Schema to determine frontmatter property name
    */
   resolveVariables(
     variables: Record<string, unknown>,
+    schema?: Record<string, unknown>,
   ): Result<Template, TemplateError> {
     try {
       const resolver = new VariableResolver(variables);
-      const resolvedContent = this.resolveObject(this.data.content, resolver);
+      const frontmatterProperty = schema
+        ? this.findFrontmatterPartProperty(schema)
+        : "items";
+      const resolvedContent = this.resolveObject(
+        this.data.content,
+        resolver,
+        frontmatterProperty,
+      );
       const resolvedData: TemplateData = {
         content: resolvedContent as Record<string, unknown>,
         format: this.data.format,
@@ -220,6 +231,33 @@ export class Template {
         ),
       );
     }
+  }
+
+  /**
+   * Finds the property name marked with x-frontmatter-part: true in schema.
+   * Returns "items" as default if not found or schema is invalid.
+   */
+  private findFrontmatterPartProperty(schema: Record<string, unknown>): string {
+    try {
+      if (!schema.properties || typeof schema.properties !== "object") {
+        return "items";
+      }
+
+      const properties = schema.properties as Record<string, unknown>;
+      for (const [propName, propSchema] of Object.entries(properties)) {
+        if (
+          propSchema &&
+          typeof propSchema === "object" &&
+          "x-frontmatter-part" in propSchema &&
+          propSchema["x-frontmatter-part"] === true
+        ) {
+          return propName;
+        }
+      }
+    } catch {
+      // If any error occurs during schema inspection, fall back to default
+    }
+    return "items";
   }
 
   /**
@@ -273,15 +311,22 @@ export class Template {
   private resolveObject(
     obj: unknown,
     resolver: VariableResolver,
+    frontmatterProperty: string,
   ): unknown {
     if (typeof obj === "string") {
-      const resolved = this.resolveStringVariables(obj, resolver);
+      const resolved = this.resolveStringVariables(
+        obj,
+        resolver,
+        frontmatterProperty,
+      );
       // resolveStringVariables can return non-string for {@items}
       return resolved;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.resolveObject(item, resolver));
+      return obj.map((item) =>
+        this.resolveObject(item, resolver, frontmatterProperty)
+      );
     }
 
     if (this.isValidObject(obj)) {
@@ -289,7 +334,11 @@ export class Template {
       for (
         const [key, value] of Object.entries(obj)
       ) {
-        resolved[key] = this.resolveObject(value, resolver);
+        resolved[key] = this.resolveObject(
+          value,
+          resolver,
+          frontmatterProperty,
+        );
       }
       return resolved;
     }
@@ -300,18 +349,23 @@ export class Template {
   /**
    * Resolves variables in a string using VariableResolver from json-template module.
    * Supports both {variable.path} and ${variable.path} syntax.
-   * Special handling for {@items} which is replaced with items array.
+   * Special handling for {@items} which is replaced with frontmatter property array.
+   *
+   * @param str - String to resolve variables in
+   * @param resolver - VariableResolver instance
+   * @param frontmatterProperty - Property name from schema (e.g., "traceability", "items")
    */
   private resolveStringVariables(
     str: string,
     resolver: VariableResolver,
+    frontmatterProperty: string,
   ): string | unknown {
-    // Special handling for {@items} - check if "items" exists in the data
+    // Special handling for {@items} - use schema property name
     if (str === "{@items}") {
       try {
-        return resolver.resolve("items");
+        return resolver.resolve(frontmatterProperty);
       } catch {
-        return str; // Keep original if items not found
+        return str; // Keep original if property not found
       }
     }
 
@@ -321,12 +375,12 @@ export class Template {
       const dollarPrefix = singleVarMatch[1];
       const variablePath = singleVarMatch[2].trim();
 
-      // Special handling for @items
+      // Special handling for @items - use schema property name
       if (variablePath === "@items") {
         try {
-          return resolver.resolve("items");
+          return resolver.resolve(frontmatterProperty);
         } catch {
-          return str; // Keep original if items not found
+          return str; // Keep original if property not found
         }
       }
 

@@ -24,6 +24,7 @@ export interface RenderingContext {
   readonly template: Template;
   readonly data: Record<string, unknown>;
   readonly config: RenderingConfig;
+  readonly schema?: Record<string, unknown>;
 }
 
 /**
@@ -66,8 +67,11 @@ export class OutputRenderingService {
         return Result.error(contextValidation.unwrapError());
       }
 
-      // Resolve template variables with provided data
-      const resolvedTemplate = context.template.resolveVariables(context.data);
+      // Resolve template variables with provided data and schema
+      const resolvedTemplate = context.template.resolveVariables(
+        context.data,
+        context.schema,
+      );
       if (resolvedTemplate.isError()) {
         return Result.error(
           new TemplateError(
@@ -132,9 +136,10 @@ export class OutputRenderingService {
     template: Template,
     data: Record<string, unknown>,
     format: OutputFormat = "json",
+    schema?: Record<string, unknown>,
   ): Result<string, TemplateError> {
     const config = this.createDefaultConfig(format);
-    const context: RenderingContext = { template, data, config };
+    const context: RenderingContext = { template, data, config, schema };
 
     const result = this.render(context);
     if (result.isError()) {

@@ -23,10 +23,14 @@ export class TemplateRenderer {
   render(
     template: Template,
     data: FrontmatterData,
+    schema?: Record<string, unknown>,
   ): Result<string, TemplateError> {
     try {
       const frontmatterObj = data.getData();
-      const resolvedTemplate = template.resolveVariables(frontmatterObj);
+      const resolvedTemplate = template.resolveVariables(
+        frontmatterObj,
+        schema,
+      );
 
       if (resolvedTemplate.isError()) {
         return Result.error(
@@ -60,6 +64,7 @@ export class TemplateRenderer {
   renderWithArray(
     template: Template,
     dataArray: FrontmatterData[],
+    schema?: Record<string, unknown>,
   ): Result<string, TemplateError> {
     try {
       // Convert array of FrontmatterData to plain objects
@@ -72,7 +77,7 @@ export class TemplateRenderer {
         ...(plainObjects.length > 0 ? plainObjects[0] : {}),
       };
 
-      const resolvedTemplate = template.resolveVariables(combinedData);
+      const resolvedTemplate = template.resolveVariables(combinedData, schema);
 
       if (resolvedTemplate.isError()) {
         return Result.error(
