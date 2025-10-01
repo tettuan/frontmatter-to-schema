@@ -134,20 +134,22 @@ export class Phase1DirectiveProcessor {
       let hasChanges = false;
 
       // Process each property that has x-flatten-arrays directive
-      for (const [propName, propSchema] of Object.entries(properties)) {
+      for (const [_propName, propSchema] of Object.entries(properties)) {
         if (typeof propSchema !== "object" || propSchema === null) {
           continue;
         }
 
         const schemaObj = propSchema as Record<string, unknown>;
 
-        // Check if property has x-flatten-arrays directive
-        if (schemaObj["x-flatten-arrays"] !== true) {
+        // Check if property has x-flatten-arrays directive (must be string)
+        const flattenDirective = schemaObj["x-flatten-arrays"];
+        if (typeof flattenDirective !== "string") {
           continue;
         }
 
-        // Check if property exists in data and is an array
-        const value = processedData[propName];
+        // Directive value IS the frontmatter property name to flatten
+        const frontmatterPropertyName = flattenDirective;
+        const value = processedData[frontmatterPropertyName];
         if (!Array.isArray(value)) {
           continue;
         }
@@ -157,7 +159,7 @@ export class Phase1DirectiveProcessor {
 
         // Only update if changed
         if (!this.arraysEqual(value, flattened)) {
-          processedData[propName] = flattened;
+          processedData[frontmatterPropertyName] = flattened;
           hasChanges = true;
         }
       }
