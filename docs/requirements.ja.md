@@ -392,7 +392,8 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 ### パス解決実装: sub_modules/data-path-resolver モジュールの使用
 
-**重要**: このモジュールは **`x-derived-from`ディレクティブ専用** です。テンプレート変数（`{variable.path}`）の解決には使用しません（json-templateを使用）。
+**重要**: このモジュールは **`x-derived-from`ディレクティブ専用**
+です。テンプレート変数（`{variable.path}`）の解決には使用しません（json-templateを使用）。
 
 `x-derived-from`ディレクティブで指定されたパス式の解決には、`sub_modules/data-path-resolver`モジュールを使用する。
 
@@ -416,17 +417,19 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 #### モジュール責任の明確な区別
 
-| 項目 | data-path-resolver | json-template |
-|------|-------------------|---------------|
-| **適用フェーズ** | フェーズ2（全体統合） | フェーズ3（テンプレート展開） |
-| **処理対象** | `x-derived-from` ディレクティブのパス式 | テンプレート内の `{variable.path}` |
-| **配列展開構文** | ✅ サポート (`items[]`) | ❌ サポート外 |
-| **使用場所** | schema-directive-processor.ts | template.ts (resolveVariables) |
-| **独立性** | 完全独立（他サブモジュールに依存しない） | 完全独立（他サブモジュールに依存しない） |
+| 項目             | data-path-resolver                       | json-template                            |
+| ---------------- | ---------------------------------------- | ---------------------------------------- |
+| **適用フェーズ** | フェーズ2（全体統合）                    | フェーズ3（テンプレート展開）            |
+| **処理対象**     | `x-derived-from` ディレクティブのパス式  | テンプレート内の `{variable.path}`       |
+| **配列展開構文** | ✅ サポート (`items[]`)                  | ❌ サポート外                            |
+| **使用場所**     | schema-directive-processor.ts            | template.ts (resolveVariables)           |
+| **独立性**       | 完全独立（他サブモジュールに依存しない） | 完全独立（他サブモジュールに依存しない） |
 
 **重要な相違点**:
+
 - `x-derived-from: "commands[].c1"` → data-path-resolver が処理（配列展開あり）
-- テンプレート内 `{commands[0].c1}` → json-template が処理（配列展開なし、インデックス指定のみ）
+- テンプレート内 `{commands[0].c1}` → json-template
+  が処理（配列展開なし、インデックス指定のみ）
 
 #### 統合処理の流れ
 
@@ -451,7 +454,9 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 
 3. **結果の統合**: 抽出された値を Schema で指定されたプロパティに設定
 
-**注意**: このプロセスは **フェーズ2（全体統合）専用** です。フェーズ3のテンプレート変数解決（`{variable.path}`）には json-template を使用し、data-path-resolver は使用しません。
+**注意**: このプロセスは **フェーズ2（全体統合）専用**
+です。フェーズ3のテンプレート変数解決（`{variable.path}`）には json-template
+を使用し、data-path-resolver は使用しません。
 
 #### Issue #1217 の解決
 

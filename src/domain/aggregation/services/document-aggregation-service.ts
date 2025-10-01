@@ -148,8 +148,8 @@ export class DocumentAggregationService {
    */
   private createAggregatedData(
     frontmatterData: Record<string, unknown>[],
-    documents: MarkdownDocument[],
-    template: unknown,
+    _documents: MarkdownDocument[],
+    _template: unknown,
     schema?: Record<string, unknown>,
     config?: AggregationConfig,
   ): Result<Record<string, unknown>, ProcessingError> {
@@ -320,5 +320,4 @@ export class DocumentAggregationService {
       );
     }
   }
-
 }

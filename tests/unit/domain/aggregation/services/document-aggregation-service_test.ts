@@ -83,7 +83,9 @@ class MockTemplateWithItems {
 }
 
 // Helper function to create mock schema with x-frontmatter-part
-function createMockSchema(propertyName: string = "documents"): Record<string, unknown> {
+function createMockSchema(
+  propertyName: string = "documents",
+): Record<string, unknown> {
   return {
     type: "object",
     properties: {
