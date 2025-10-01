@@ -1,0 +1,314 @@
+/**
+ * Tests for Phase1DirectiveProcessor.
+ * Verifies Phase 1 per-file directive processing before aggregation.
+ * Tests x-flatten-arrays directive and Totality compliance.
+ */
+
+import { assertEquals } from "jsr:@std/assert@^1.0.14";
+import {
+  DocumentId,
+  MarkdownDocument,
+} from "../../../../../src/domain/frontmatter/entities/markdown-document.ts";
+import { FilePath } from "../../../../../src/domain/shared/value-objects/file-path.ts";
+import { FrontmatterData } from "../../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
+import { Phase1DirectiveProcessor } from "../../../../../src/domain/directives/services/phase1-directive-processor.ts";
+
+// Helper function to create mock MarkdownDocument
+function createMockDocument(
+  path: string,
+  frontmatterData?: Record<string, unknown>,
+): MarkdownDocument {
+  const filePath = FilePath.create(path).unwrap();
+  const documentId = DocumentId.fromPath(filePath);
+  const frontmatter = frontmatterData
+    ? FrontmatterData.create(frontmatterData).unwrap()
+    : undefined;
+  return MarkdownDocument.create(
+    documentId,
+    filePath,
+    "# Test Content",
+    frontmatter,
+  );
+}
+
+Deno.test("Phase1DirectiveProcessor - create returns success", () => {
+  const result = Phase1DirectiveProcessor.create();
+
+  assertEquals(result.isOk(), true);
+});
+
+Deno.test("Phase1DirectiveProcessor - processDocument without directives returns unchanged document", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    title: "Test Document",
+    tags: ["test", "example"],
+  });
+
+  const result = processor.processDocument(document);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  assertEquals(processed.getFrontmatter()?.getData().title, "Test Document");
+});
+
+Deno.test("Phase1DirectiveProcessor - processDocument without frontmatter returns unchanged document", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md");
+
+  const result = processor.processDocument(document);
+
+  assertEquals(result.isOk(), true);
+  assertEquals(result.unwrap().getFrontmatter(), undefined);
+});
+
+Deno.test("Phase1DirectiveProcessor - processDocument with null schema returns unchanged document", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    title: "Test",
+  });
+
+  const result = processor.processDocument(document, undefined);
+
+  assertEquals(result.isOk(), true);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays flattens nested arrays", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    tags: [["web", "frontend"], ["javascript", "typescript"]],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      tags: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(Array.isArray(data?.tags), true);
+  assertEquals(data?.tags, ["web", "frontend", "javascript", "typescript"]);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with deeply nested arrays", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    categories: [[["level1", "level2"]], [["level3"]]],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      categories: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.categories, ["level1", "level2", "level3"]);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays preserves already flat arrays", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    tags: ["react", "vue", "angular"],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      tags: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.tags, ["react", "vue", "angular"]);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays handles empty arrays", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    tags: [[], []],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      tags: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.tags, []);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with mixed nested levels", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    items: ["single", ["nested1", "nested2"], [["deep1"]]],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.items, ["single", "nested1", "nested2", "deep1"]);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays only affects properties with directive", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    flatten: [["a", "b"], ["c"]],
+    noFlatten: [["x", "y"], ["z"]],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      flatten: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+      noFlatten: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.flatten, ["a", "b", "c"]);
+  assertEquals(data?.noFlatten, [["x", "y"], ["z"]]); // unchanged
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with multiple properties", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    tags: [["frontend"], ["backend"]],
+    categories: [["web"], ["mobile"]],
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      tags: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+      categories: {
+        type: "array",
+        "x-flatten-arrays": true,
+        items: { type: "string" },
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.tags, ["frontend", "backend"]);
+  assertEquals(data?.categories, ["web", "mobile"]);
+});
+
+Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with non-array property is unchanged", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+  const document = createMockDocument("/test/doc.md", {
+    title: "Test Document",
+  });
+
+  const schema = {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        "x-flatten-arrays": true, // directive on non-array property
+      },
+    },
+  };
+
+  const result = processor.processDocument(document, schema);
+
+  assertEquals(result.isOk(), true);
+  const processed = result.unwrap();
+  const data = processed.getFrontmatter()?.getData();
+  assertEquals(data?.title, "Test Document");
+});
+
+Deno.test("Phase1DirectiveProcessor - Totality compliance (never throws)", () => {
+  const processor = Phase1DirectiveProcessor.create().unwrap();
+
+  const tests = [
+    () => processor.processDocument(createMockDocument("/test/doc.md")),
+    () =>
+      processor.processDocument(
+        createMockDocument("/test/doc.md", { title: "Test" }),
+      ),
+    () =>
+      processor.processDocument(
+        createMockDocument("/test/doc.md"),
+        undefined,
+      ),
+    () => processor.processDocument(createMockDocument("/test/doc.md"), {}),
+  ];
+
+  for (const test of tests) {
+    try {
+      const result = test();
+      assertEquals(typeof result.isOk, "function");
+      assertEquals(typeof result.isError, "function");
+    } catch (error) {
+      throw new Error(`Method threw exception: ${error}`);
+    }
+  }
+});
