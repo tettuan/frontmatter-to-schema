@@ -4,6 +4,7 @@ import {
   PipelineOrchestrator,
 } from "../../application/services/pipeline-orchestrator.ts";
 import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-system-adapter.ts";
+import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
 
 export interface CLIResponse {
   ok: boolean;
@@ -174,9 +175,9 @@ export class CLI {
       const schemaContent = await Deno.readTextFile(schemaPath);
       const schema = JSON.parse(schemaContent);
 
-      if (schema["x-template"]) {
+      if (schema[DIRECTIVE_NAMES.TEMPLATE]) {
         // If x-template is a relative path, resolve it relative to the schema directory
-        const templatePath = schema["x-template"];
+        const templatePath = schema[DIRECTIVE_NAMES.TEMPLATE];
         if (!templatePath.startsWith("/")) {
           // Relative path - resolve relative to schema directory
           const schemaDir = schemaPath.substring(

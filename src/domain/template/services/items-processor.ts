@@ -8,12 +8,17 @@ import {
   ItemsExpansionContext,
   ItemsExpansionResult,
 } from "./items-expander.ts";
+import { DIRECTIVE_NAMES } from "../../schema/constants/directive-names.ts";
+
+type TemplateSource =
+  | typeof DIRECTIVE_NAMES.TEMPLATE
+  | typeof DIRECTIVE_NAMES.TEMPLATE_ITEMS;
 
 /**
  * Template reference information for {@items} expansion.
  */
 export interface TemplateReference {
-  readonly source: "x-template" | "x-template-items";
+  readonly source: TemplateSource;
   readonly templatePath: string;
   readonly isRequired: boolean;
 }
@@ -261,12 +266,12 @@ export class ItemsProcessor {
    */
   static createTemplateReference(
     templatePath: string,
-    source: "x-template" | "x-template-items" = "x-template-items",
+    source: TemplateSource = DIRECTIVE_NAMES.TEMPLATE_ITEMS,
   ): TemplateReference {
     return {
       source,
       templatePath,
-      isRequired: source === "x-template-items",
+      isRequired: source === DIRECTIVE_NAMES.TEMPLATE_ITEMS,
     };
   }
 

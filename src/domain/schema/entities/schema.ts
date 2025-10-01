@@ -72,9 +72,9 @@ export type SchemaState =
 export interface SchemaData {
   readonly type: string;
   readonly properties?: Record<string, unknown>;
-  readonly "x-template"?: string;
-  readonly "x-template-items"?: string;
-  readonly "x-template-format"?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE]?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE_ITEMS]?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE_FORMAT]?: string;
   [key: string]: unknown;
 }
 

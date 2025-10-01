@@ -57,7 +57,11 @@ export class DerivedFromDirective {
             new SchemaError(
               "All x-derived-from directive array items must be strings",
               "INVALID_DIRECTIVE_VALUE",
-              { directive: "x-derived-from", value: item, expected: "string" },
+              {
+                directive: DIRECTIVE_NAMES.DERIVED_FROM,
+                value: item,
+                expected: "string",
+              },
             ),
           );
         }

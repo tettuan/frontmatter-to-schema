@@ -2,6 +2,7 @@ import { Result } from "../../shared/types/result.ts";
 import { ProcessingError } from "../../shared/types/errors.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Domain service for processing schema directives and transformations.
@@ -160,7 +161,7 @@ export class SchemaDirectiveProcessor {
         const path = [...currentPath, key];
 
         // Check for x-derived-from directive
-        if (schema["x-derived-from"]) {
+        if (schema[DIRECTIVE_NAMES.DERIVED_FROM]) {
           const derivationResult = this.applyDerivedFromDirective(
             result,
             schema,
@@ -209,11 +210,11 @@ export class SchemaDirectiveProcessor {
     path: string[],
   ): Result<Record<string, unknown>, ProcessingError> {
     try {
-      const derivedFrom = schema["x-derived-from"] as string;
+      const derivedFrom = schema[DIRECTIVE_NAMES.DERIVED_FROM] as string;
       const derivedValues = this.extractValuesFromPath(data, derivedFrom);
 
       // Apply x-derived-unique if specified
-      const finalValues = schema["x-derived-unique"]
+      const finalValues = schema[DIRECTIVE_NAMES.DERIVED_UNIQUE]
         ? Array.from(new Set(derivedValues))
         : derivedValues;
 

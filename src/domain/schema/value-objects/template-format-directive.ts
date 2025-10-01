@@ -1,6 +1,7 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
 import type { TemplateFormat } from "../../template/entities/template.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-template-format directive.
@@ -22,7 +23,11 @@ export class TemplateFormatDirective {
         new SchemaError(
           "x-template-format directive value must be a string",
           "INVALID_DIRECTIVE_VALUE",
-          { directive: "x-template-format", value, expected: "string" },
+          {
+            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
+            value,
+            expected: "string",
+          },
         ),
       );
     }
@@ -38,7 +43,7 @@ export class TemplateFormatDirective {
           }`,
           "INVALID_DIRECTIVE_VALUE",
           {
-            directive: "x-template-format",
+            directive: DIRECTIVE_NAMES.TEMPLATE_FORMAT,
             value,
             expected: `one of: ${validFormats.join(", ")}`,
           },
