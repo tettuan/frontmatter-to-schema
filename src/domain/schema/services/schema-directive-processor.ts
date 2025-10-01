@@ -301,11 +301,8 @@ export class SchemaDirectiveProcessor {
         array = data[basePath];
       }
 
-      // If array not found at specified path, try looking in items
-      if (!array && data.items) {
-        array = data.items;
-      }
-
+      // Totality principle: explicitly handle array case only
+      // Do NOT fall back to 'items' - paths must be explicit (Issue #1230)
       if (Array.isArray(array)) {
         for (const item of array) {
           if (item && typeof item === "object") {

@@ -350,7 +350,7 @@ Deno.test("SchemaDirectiveProcessor - applySchemaDirectives with empty schema", 
   assertEquals(processed.test, "value");
 });
 
-Deno.test("SchemaDirectiveProcessor - applySchemaDirectives with items fallback", () => {
+Deno.test("SchemaDirectiveProcessor - no items fallback (Issue #1230)", () => {
   const mockFileSystem = new MockFileSystemPort();
   const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
     .unwrap();
@@ -374,10 +374,11 @@ Deno.test("SchemaDirectiveProcessor - applySchemaDirectives with items fallback"
 
   assertEquals(result.isOk(), true);
   const processed = result.unwrap();
+  // Issue #1230: Should NOT fall back to 'items' array
+  // When path 'nonexistent' doesn't exist, should return empty array
   assertEquals(Array.isArray(processed.toolNames), true);
   const toolNames = processed.toolNames as string[];
-  assertEquals(toolNames.includes("git"), true);
-  assertEquals(toolNames.includes("npm"), true);
+  assertEquals(toolNames.length, 0);
 });
 
 Deno.test("SchemaDirectiveProcessor - comprehensive error handling", async () => {
