@@ -4,13 +4,16 @@
 
 ### 1.1 目的
 
-data-path-resolver は、JSON互換データ構造に対するパス式解決を提供するサブモジュールです。配列展開構文（`items[]`）をサポートし、ネストされたデータ構造からの効率的なデータ抽出を可能にします。
+data-path-resolver
+は、JSON互換データ構造に対するパス式解決を提供するサブモジュールです。配列展開構文（`items[]`）をサポートし、ネストされたデータ構造からの効率的なデータ抽出を可能にします。
 
 ### 1.2 背景
 
-frontmatter-to-schema プロジェクトにおいて、パス解決ロジックが3箇所に重複実装されています：
+frontmatter-to-schema
+プロジェクトにおいて、パス解決ロジックが3箇所に重複実装されています：
 
-1. `schema-directive-processor.ts` - `extractValuesFromPath()` + `getNestedValue()`
+1. `schema-directive-processor.ts` - `extractValuesFromPath()` +
+   `getNestedValue()`
 2. `template-renderer.ts` - `getNestedValue()`
 3. `json-template/variable-resolver.ts` - `resolve()` + `parsePath()`
 
@@ -28,11 +31,11 @@ frontmatter-to-schema プロジェクトにおいて、パス解決ロジック�
 
 ### 2.1 責務の明確化
 
-| 項目 | 説明 |
-|------|------|
-| **入力** | データ構造（JSON互換） + パス式（文字列） |
+| 項目     | 説明                                           |
+| -------- | ---------------------------------------------- |
+| **入力** | データ構造（JSON互換） + パス式（文字列）      |
 | **隠蔽** | パス解析、配列展開、ネスト解決の複雑なロジック |
-| **出力** | `Result<T, E>` による型安全な結果 |
+| **出力** | `Result<T, E>` による型安全な結果              |
 
 ### 2.2 Totality原則の遵守
 
@@ -50,32 +53,32 @@ frontmatter-to-schema プロジェクトにおいて、パス解決ロジック�
 
 #### 必須サポート記法
 
-| 記法 | 例 | 説明 | 返却型 |
-|------|-----|------|--------|
-| **ドット記法** | `user.profile.name` | ネストされたプロパティアクセス | 単一値 |
-| **配列インデックス** | `items[0]` | 特定インデックスの要素 | 単一値 |
-| **配列展開** | `items[]` | 配列の全要素を収集 | 配列 |
-| **プロパティ付き展開** | `items[].name` | 各要素のプロパティを収集 | 配列 |
-| **二重展開** | `items[].tags[]` | ネスト配列をフラット化 | 配列 |
-| **複合パス** | `tools.commands[].options.input[0]` | 複雑な組み合わせ | 値（型による） |
+| 記法                   | 例                                  | 説明                           | 返却型         |
+| ---------------------- | ----------------------------------- | ------------------------------ | -------------- |
+| **ドット記法**         | `user.profile.name`                 | ネストされたプロパティアクセス | 単一値         |
+| **配列インデックス**   | `items[0]`                          | 特定インデックスの要素         | 単一値         |
+| **配列展開**           | `items[]`                           | 配列の全要素を収集             | 配列           |
+| **プロパティ付き展開** | `items[].name`                      | 各要素のプロパティを収集       | 配列           |
+| **二重展開**           | `items[].tags[]`                    | ネスト配列をフラット化         | 配列           |
+| **複合パス**           | `tools.commands[].options.input[0]` | 複雑な組み合わせ               | 値（型による） |
 
 #### 展開動作ルール
 
 ```typescript
 // ルール1: [] は配列を期待する
-"items[]"         // items が配列でなければエラー
+"items[]"; // items が配列でなければエラー
 
 // ルール2: [] は自動的に結果を配列化
-"items[].name"    // 常に配列を返す（要素が1個でも [value]）
+"items[].name"; // 常に配列を返す（要素が1個でも [value]）
 
 // ルール3: 二重 [] は深いフラット化
-"items[].tags[]"  // [[A,B], [C]] → [A,B,C]
+"items[].tags[]"; // [[A,B], [C]] → [A,B,C]
 
 // ルール4: [] なしは単一値
-"items[0].name"   // 配列ではなく単一値
+"items[0].name"; // 配列ではなく単一値
 
 // ルール5: 存在しない要素は無視
-"items[].name"    // name がない要素はスキップ（エラーにしない）
+"items[].name"; // name がない要素はスキップ（エラーにしない）
 ```
 
 ### 3.2 データ型のサポート
@@ -151,6 +154,7 @@ export class DataPathResolver {
 ### 5.1 x-derived-from ディレクティブ処理
 
 **現状の課題**:
+
 ```typescript
 // schema-directive-processor.ts:283-329 (50行)
 private extractValuesFromPath(data: Record<string, unknown>, path: string): string[] {
@@ -162,11 +166,13 @@ private extractValuesFromPath(data: Record<string, unknown>, path: string): stri
 ```
 
 **要求**:
+
 - `commands[].c1` のようなパス式から配列を抽出
 - 結果を必ず配列として返す（単一値も `[value]` に変換）
 - 文字列化が必要（`String(value)`）
 
 **期待動作**:
+
 ```typescript
 const resolver = new DataPathResolver(data);
 const result = resolver.resolveAsArray<unknown>("commands[].c1");
@@ -178,6 +184,7 @@ const result = resolver.resolveAsArray<unknown>("commands[].c1");
 ### 5.2 テンプレート変数解決
 
 **現状の課題**:
+
 ```typescript
 // template-renderer.ts:196-217 (20行)
 private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -188,11 +195,13 @@ private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 ```
 
 **要求**:
+
 - `user.profile.name` のようなドット記法をサポート
 - 配列インデックス `items[0]` をサポート
 - 配列展開 `items[].name` をサポート
 
 **期待動作**:
+
 ```typescript
 const resolver = new DataPathResolver(templateData);
 const result = resolver.resolve("user.profile.name");
@@ -207,6 +216,7 @@ if (result.isOk()) {
 ### 5.3 配列のフラット化（Issue #1217 解決）
 
 **現状の課題**:
+
 ```yaml
 # データ
 articles:
@@ -221,11 +231,13 @@ derived_topics:
 ```
 
 **要求**:
+
 - `articles[].topics[]` のような二重展開構文
 - 自動的にネスト配列をフラット化
 - YAML出力で正しい配列形式
 
 **期待動作**:
+
 ```typescript
 const resolver = new DataPathResolver(data);
 const result = resolver.resolve("articles[].topics[]");
@@ -238,13 +250,13 @@ const result = resolver.resolve("articles[].topics[]");
 
 ### 6.1 エラー分類
 
-| エラーコード | 発生条件 | 推奨対応 |
-|-------------|---------|---------|
-| `PATH_NOT_FOUND` | パスが存在しない | デフォルト値を使用 |
-| `INVALID_PATH_SYNTAX` | パス式の構文エラー | バリデーションエラーとして報告 |
-| `INVALID_STRUCTURE` | データ構造が不正 | データ検証エラーとして報告 |
-| `ARRAY_EXPECTED` | 配列を期待したが違う型 | スキーマ定義エラーとして報告 |
-| `INDEX_OUT_OF_BOUNDS` | インデックスが範囲外 | `PATH_NOT_FOUND` として扱う |
+| エラーコード          | 発生条件               | 推奨対応                       |
+| --------------------- | ---------------------- | ------------------------------ |
+| `PATH_NOT_FOUND`      | パスが存在しない       | デフォルト値を使用             |
+| `INVALID_PATH_SYNTAX` | パス式の構文エラー     | バリデーションエラーとして報告 |
+| `INVALID_STRUCTURE`   | データ構造が不正       | データ検証エラーとして報告     |
+| `ARRAY_EXPECTED`      | 配列を期待したが違う型 | スキーマ定義エラーとして報告   |
+| `INDEX_OUT_OF_BOUNDS` | インデックスが範囲外   | `PATH_NOT_FOUND` として扱う    |
 
 ### 6.2 PathError 構造
 
@@ -270,6 +282,7 @@ class PathError extends Error {
 ### 7.1 ユニットテスト（50+ テスト）
 
 #### Path Parsing (10+ tests)
+
 - 単純なプロパティパス
 - 配列インデックスパス
 - 配列展開パス
@@ -278,6 +291,7 @@ class PathError extends Error {
 - 無効なパス（構文エラー）
 
 #### Resolution (20+ tests)
+
 - ネストされたプロパティ解決
 - 配列要素解決
 - 配列展開解決
@@ -285,12 +299,14 @@ class PathError extends Error {
 - 複合パス解決
 
 #### Error Cases (10+ tests)
+
 - 存在しないパス
 - 無効な配列インデックス
 - 型の不一致
 - null/undefined の扱い
 
 #### Edge Cases (10+ tests)
+
 - 空配列
 - 空オブジェクト
 - 深いネスト（10階層以上）
@@ -356,13 +372,16 @@ Deno.test("Template variables: user.profile.name", ...);
 ## 10. Migration Strategy
 
 ### Phase 1: 基本実装 + schema-directive-processor 統合
+
 - DataPathResolver の実装
 - extractValuesFromPath の置換
 
 ### Phase 2: json-template 統合
+
 - VariableResolver の書き換え
 
 ### Phase 3: template-renderer 統合
+
 - getNestedValue の置換
 
 各フェーズで既存テストが通ることを確認します。

@@ -1,6 +1,9 @@
 # Data Path Resolver
 
-A TypeScript/Deno module for resolving path expressions in data structures with advanced array expansion support. This module provides dot notation, array indexing, and array expansion (`items[]`) for efficient data extraction from complex nested structures.
+A TypeScript/Deno module for resolving path expressions in data structures with
+advanced array expansion support. This module provides dot notation, array
+indexing, and array expansion (`items[]`) for efficient data extraction from
+complex nested structures.
 
 ## Features
 
@@ -31,10 +34,10 @@ const data = {
   user: {
     name: "Alice",
     profile: {
-      email: "alice@example.com"
-    }
+      email: "alice@example.com",
+    },
   },
-  items: ["apple", "banana", "cherry"]
+  items: ["apple", "banana", "cherry"],
 };
 
 const resolver = new DataPathResolver(data);
@@ -61,8 +64,8 @@ if (resolver.exists("user.profile.email")) {
 const data = {
   users: [
     { name: "Alice", age: 30 },
-    { name: "Bob", age: 25 }
-  ]
+    { name: "Bob", age: 25 },
+  ],
 };
 
 const resolver = new DataPathResolver(data);
@@ -82,8 +85,8 @@ console.log(agesResult.unwrap()); // [30, 25]
 const data = {
   articles: [
     { tags: ["AI", "ML"] },
-    { tags: ["Web", "TypeScript"] }
-  ]
+    { tags: ["Web", "TypeScript"] },
+  ],
 };
 
 const resolver = new DataPathResolver(data);
@@ -117,6 +120,7 @@ Resolves a path expression to its value(s).
 - **Returns**: `Result<T, PathError>` containing the resolved value or error
 
 **Behavior**:
+
 - If path contains `[]`, returns array (even for single result)
 - If path doesn't contain `[]`, returns single value
 - If path doesn't exist, returns `PathNotFoundError`
@@ -126,9 +130,11 @@ Resolves a path expression to its value(s).
 Resolves a path and ensures the result is an array.
 
 - **Parameters**: `path` - Path expression
-- **Returns**: `Result<T[], PathError>` containing an array (empty if nothing found)
+- **Returns**: `Result<T[], PathError>` containing an array (empty if nothing
+  found)
 
 **Behavior**:
+
 - `"items[].name"` → returns array as-is
 - `"user.name"` → wraps in array: `[value]`
 - Non-existent path → returns `[]` (empty array)
@@ -144,32 +150,32 @@ Checks if a path exists in the data.
 
 ### Supported Notations
 
-| Notation | Example | Description | Return Type |
-|----------|---------|-------------|-------------|
-| **Dot Notation** | `user.profile.name` | Nested property access | Single value |
-| **Array Index** | `items[0]` | Specific element access | Single value |
-| **Array Expansion** | `items[]` | Collect all elements | Array |
-| **Property Expansion** | `items[].name` | Collect property from each element | Array |
-| **Double Expansion** | `items[].tags[]` | Flatten nested arrays | Array |
-| **Complex Path** | `tools.commands[].options.input[0]` | Combined operations | Value (type varies) |
+| Notation               | Example                             | Description                        | Return Type         |
+| ---------------------- | ----------------------------------- | ---------------------------------- | ------------------- |
+| **Dot Notation**       | `user.profile.name`                 | Nested property access             | Single value        |
+| **Array Index**        | `items[0]`                          | Specific element access            | Single value        |
+| **Array Expansion**    | `items[]`                           | Collect all elements               | Array               |
+| **Property Expansion** | `items[].name`                      | Collect property from each element | Array               |
+| **Double Expansion**   | `items[].tags[]`                    | Flatten nested arrays              | Array               |
+| **Complex Path**       | `tools.commands[].options.input[0]` | Combined operations                | Value (type varies) |
 
 ### Expansion Rules
 
 ```typescript
 // Rule 1: [] expects an array
-"items[]"         // Error if items is not an array
+"items[]"; // Error if items is not an array
 
 // Rule 2: [] always returns an array
-"items[].name"    // Always returns array (even if single element)
+"items[].name"; // Always returns array (even if single element)
 
 // Rule 3: Double [] performs deep flattening
-"items[].tags[]"  // [[A,B], [C]] → [A,B,C]
+"items[].tags[]"; // [[A,B], [C]] → [A,B,C]
 
 // Rule 4: Without [], returns single value
-"items[0].name"   // Returns single value, not array
+"items[0].name"; // Returns single value, not array
 
 // Rule 5: Missing elements are skipped
-"items[].name"    // Skips elements without 'name' property
+"items[].name"; // Skips elements without 'name' property
 ```
 
 ## Error Handling
@@ -195,19 +201,19 @@ if (result.isError()) {
 // Pattern matching style
 result.match({
   ok: (value) => console.log("Found:", value),
-  error: (err) => console.error("Error:", err.message)
+  error: (err) => console.error("Error:", err.message),
 });
 ```
 
 ### Error Codes
 
-| Error Code | Condition | Recommended Action |
-|------------|-----------|-------------------|
-| `PATH_NOT_FOUND` | Path doesn't exist | Use default value |
-| `INVALID_PATH_SYNTAX` | Invalid path syntax | Report validation error |
-| `INVALID_STRUCTURE` | Invalid data structure | Report data validation error |
-| `ARRAY_EXPECTED` | Expected array but got different type | Report schema definition error |
-| `INDEX_OUT_OF_BOUNDS` | Index out of range | Treat as `PATH_NOT_FOUND` |
+| Error Code            | Condition                             | Recommended Action             |
+| --------------------- | ------------------------------------- | ------------------------------ |
+| `PATH_NOT_FOUND`      | Path doesn't exist                    | Use default value              |
+| `INVALID_PATH_SYNTAX` | Invalid path syntax                   | Report validation error        |
+| `INVALID_STRUCTURE`   | Invalid data structure                | Report data validation error   |
+| `ARRAY_EXPECTED`      | Expected array but got different type | Report schema definition error |
+| `INDEX_OUT_OF_BOUNDS` | Index out of range                    | Treat as `PATH_NOT_FOUND`      |
 
 ## Use Cases
 
@@ -218,20 +224,22 @@ import { DataPathResolver } from "./sub_modules/data-path-resolver/mod.ts";
 
 function extractValuesFromPath(
   data: Record<string, unknown>,
-  path: string
+  path: string,
 ): Result<string[], ProcessingError> {
   const resolver = new DataPathResolver(data);
   const result = resolver.resolveAsArray<unknown>(path);
 
   if (result.isError()) {
-    return Result.error(new ProcessingError(
-      `Failed to resolve path '${path}'`,
-      "PATH_RESOLUTION_ERROR"
-    ));
+    return Result.error(
+      new ProcessingError(
+        `Failed to resolve path '${path}'`,
+        "PATH_RESOLUTION_ERROR",
+      ),
+    );
   }
 
   // Convert to strings as required by x-derived-from
-  const values = result.unwrap().map(v => String(v));
+  const values = result.unwrap().map((v) => String(v));
   return Result.ok(values);
 }
 ```
@@ -252,10 +260,12 @@ class TemplateVariableResolver {
     const result = this.resolver.resolve(path);
 
     if (result.isError()) {
-      return Result.error(new TemplateError(
-        `Variable not found: ${path}`,
-        "VARIABLE_NOT_FOUND"
-      ));
+      return Result.error(
+        new TemplateError(
+          `Variable not found: ${path}`,
+          "VARIABLE_NOT_FOUND",
+        ),
+      );
     }
 
     return Result.ok(result.unwrap());
@@ -269,8 +279,8 @@ class TemplateVariableResolver {
 const data = {
   articles: [
     { topics: ["AI", "Cursor"] },
-    { topics: ["Claude"] }
-  ]
+    { topics: ["Claude"] },
+  ],
 };
 
 const resolver = new DataPathResolver(data);
@@ -348,4 +358,5 @@ MIT License - see LICENSE file for details.
 4. Ensure coverage ≥ 90% (`deno task test:coverage`)
 5. Submit a pull request
 
-Please ensure your code follows the existing style and adheres to the Totality principle (no exceptions, use `Result<T, E>`).
+Please ensure your code follows the existing style and adheres to the Totality
+principle (no exceptions, use `Result<T, E>`).

@@ -10,7 +10,7 @@
 
 ### 2.1 DataPathResolver クラス
 
-```typescript
+````typescript
 /**
  * Resolves path expressions in data structures with array expansion support.
  *
@@ -84,16 +84,16 @@ export class DataPathResolver {
    */
   resolveAsArray<T = unknown>(path: string): Result<T[], PathError>;
 }
-```
+````
 
 ### 2.2 API メソッド詳細
 
-| メソッド | 引数 | 返却値 | 用途 |
-|---------|------|--------|------|
-| `constructor(data)` | `unknown` | `DataPathResolver` | インスタンス作成 |
-| `resolve<T>(path)` | `string` | `Result<T, PathError>` | パス解決（配列展開含む） |
-| `resolveAsArray<T>(path)` | `string` | `Result<T[], PathError>` | 配列として解決（x-derived-from用） |
-| `exists(path)` | `string` | `boolean` | パス存在チェック |
+| メソッド                  | 引数      | 返却値                   | 用途                               |
+| ------------------------- | --------- | ------------------------ | ---------------------------------- |
+| `constructor(data)`       | `unknown` | `DataPathResolver`       | インスタンス作成                   |
+| `resolve<T>(path)`        | `string`  | `Result<T, PathError>`   | パス解決（配列展開含む）           |
+| `resolveAsArray<T>(path)` | `string`  | `Result<T[], PathError>` | 配列として解決（x-derived-from用） |
+| `exists(path)`            | `string`  | `boolean`                | パス存在チェック                   |
 
 ---
 
@@ -106,9 +106,9 @@ export class DataPathResolver {
  * Internal representation of path segments (not exported).
  */
 type PathSegment =
-  | { type: "property"; value: string }           // "name"
-  | { type: "arrayIndex"; value: number }         // "[0]"
-  | { type: "arrayExpansion" }                    // "[]"
+  | { type: "property"; value: string } // "name"
+  | { type: "arrayIndex"; value: number } // "[0]"
+  | { type: "arrayExpansion" } // "[]"
   | { type: "arrayExpansionWithPath"; path: PathSegment[] }; // "[].prop"
 ```
 
@@ -127,15 +127,15 @@ export class PathError extends Error {
     code: PathErrorCode,
     message: string,
     path: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
   );
 }
 
 export enum PathErrorCode {
-  PATH_NOT_FOUND = "PATH_NOT_FOUND",           // パスが存在しない
+  PATH_NOT_FOUND = "PATH_NOT_FOUND", // パスが存在しない
   INVALID_PATH_SYNTAX = "INVALID_PATH_SYNTAX", // パス式の構文エラー
-  INVALID_STRUCTURE = "INVALID_STRUCTURE",     // データ構造が不正
-  ARRAY_EXPECTED = "ARRAY_EXPECTED",           // 配列を期待したが違う型
+  INVALID_STRUCTURE = "INVALID_STRUCTURE", // データ構造が不正
+  ARRAY_EXPECTED = "ARRAY_EXPECTED", // 配列を期待したが違う型
   INDEX_OUT_OF_BOUNDS = "INDEX_OUT_OF_BOUNDS", // インデックスが範囲外
 }
 ```
@@ -163,6 +163,7 @@ export enum PathErrorCode {
 **入力**: `"tools.commands[].options.input[0]"`
 
 **処理**:
+
 ```typescript
 private parsePath(path: string): Result<PathSegment[], PathError> {
   // 1. トークン化
@@ -304,13 +305,14 @@ private expandArray(
 ```
 
 **具体例**:
+
 ```typescript
 // データ
 {
   articles: [
-    {tags: ["A", "B"]},
-    {tags: ["C"]}
-  ]
+    { tags: ["A", "B"] },
+    { tags: ["C"] },
+  ];
 }
 
 // "articles[].tags[]" の内部処理
@@ -328,11 +330,13 @@ private expandArray(
 ### 5.1 パス式の解析
 
 ユーザーが書くコード:
+
 ```typescript
-resolver.resolve("tools.commands[].options.input[0]")
+resolver.resolve("tools.commands[].options.input[0]");
 ```
 
 内部で実行される処理（隠蔽）:
+
 - トークン化: 文字列を意味のある単位に分割
 - セグメント分類: 各トークンの種類を判定
 - バリデーション: 構文エラーの検出
@@ -340,11 +344,13 @@ resolver.resolve("tools.commands[].options.input[0]")
 ### 5.2 配列展開の処理
 
 ユーザーが書くコード:
+
 ```typescript
-resolver.resolve("commands[].c1")
+resolver.resolve("commands[].c1");
 ```
 
 内部で実行される処理（隠蔽）:
+
 - 配列の各要素に対してパス解決を実行
 - 結果の収集とフラット化
 - エラーハンドリング（存在しない要素のスキップ）
@@ -352,6 +358,7 @@ resolver.resolve("commands[].c1")
 ### 5.3 エラーハンドリング
 
 ユーザーが書くコード（シンプル）:
+
 ```typescript
 const result = resolver.resolve("user.profile.name");
 if (result.isError()) {
@@ -360,6 +367,7 @@ if (result.isError()) {
 ```
 
 内部で実行される処理（隠蔽）:
+
 - 各ステップでの詳細なエラーチェック
 - エラーコンテキストの構築
 - 適切なエラーコードの選択
@@ -470,7 +478,7 @@ if (result.isError()) {
 // パターンマッチ風
 result.match({
   ok: (value) => console.log("Found:", value),
-  error: (err) => console.error("Error:", err.message)
+  error: (err) => console.error("Error:", err.message),
 });
 ```
 
@@ -502,6 +510,7 @@ export class DataPathResolver {
 ```
 
 **トレードオフ**:
+
 - ✅ 同じパスの繰り返し解決が高速化
 - ❌ メモリ使用量増加
 - ❌ データ更新時にキャッシュクリアが必要
@@ -521,6 +530,7 @@ export class DataPathResolver {
 ### 9.1 例1: x-derived-from での使用
 
 **現在の実装（複雑）**:
+
 ```typescript
 // schema-directive-processor.ts:283-329 (50行)
 private extractValuesFromPath(data: Record<string, unknown>, path: string): string[] {
@@ -532,6 +542,7 @@ private extractValuesFromPath(data: Record<string, unknown>, path: string): stri
 ```
 
 **data-path-resolver 使用後（シンプル）**:
+
 ```typescript
 import { DataPathResolver } from "../../../sub_modules/data-path-resolver/mod.ts";
 
@@ -565,6 +576,7 @@ private extractValuesFromPath(
 ### 9.2 例2: テンプレート変数解決
 
 **現在の実装（重複）**:
+
 ```typescript
 // template-renderer.ts:196-217 (20行)
 private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -575,6 +587,7 @@ private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 ```
 
 **data-path-resolver 使用後（統合）**:
+
 ```typescript
 import { DataPathResolver } from "../../../sub_modules/data-path-resolver/mod.ts";
 
@@ -589,11 +602,13 @@ export class TemplateVariableResolver {
     const result = this.resolver.resolve(path);
 
     if (result.isError()) {
-      return Result.error(new TemplateError(
-        `Variable not found: ${path}`,
-        "VARIABLE_NOT_FOUND",
-        {path, cause: result.unwrapError()}
-      ));
+      return Result.error(
+        new TemplateError(
+          `Variable not found: ${path}`,
+          "VARIABLE_NOT_FOUND",
+          { path, cause: result.unwrapError() },
+        ),
+      );
     }
 
     return Result.ok(result.unwrap());
@@ -613,9 +628,9 @@ export class TemplateVariableResolver {
 // データ
 {
   articles: [
-    {topics: ["AI", "Cursor"]},
-    {topics: ["Claude"]}
-  ]
+    { topics: ["AI", "Cursor"] },
+    { topics: ["Claude"] },
+  ];
 }
 
 // 現在の実装

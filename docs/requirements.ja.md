@@ -390,6 +390,72 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 3. **変数置換**: `{variable.path}`形式の変数を実際の値に置換
 4. **最終出力**: 完成したフォーマットの出力
 
+### パス解決実装: sub_modules/data-path-resolver モジュールの使用
+
+`x-derived-from`ディレクティブで指定されたパス式の解決には、`sub_modules/data-path-resolver`モジュールを使用する。
+
+#### モジュールの責任範囲
+
+**data-path-resolverモジュール:**
+
+- ドット記法によるネストアクセス (`user.profile.name`)
+- 配列インデックスアクセス (`items[0]`)
+- 配列展開構文 (`items[]` - 配列の各要素を収集)
+- プロパティ付き配列展開 (`items[].name` - 各要素のプロパティを収集)
+- 二重展開によるフラット化 (`articles[].tags[]` - ネスト配列を自動フラット化)
+- `Result<T, E>` パターンによる型安全なエラーハンドリング
+
+**フロントマターシステム:**
+
+- `x-derived-from` ディレクティブの処理制御
+- `x-flatten-arrays` によるフロントマター内部の配列フラット化
+- 複数ファイルからのデータ統合
+- `x-derived-unique` による重複削除
+
+#### 統合処理の流れ
+
+フェーズ2（全体統合）の集約処理において、以下のように使用される：
+
+1. **パス式の指定**: Schema内の `x-derived-from` で収集元パスを指定
+   ```json
+   {
+     "availableConfigs": {
+       "type": "array",
+       "x-derived-from": "commands[].c1"
+     }
+   }
+   ```
+
+2. **パス解決の実行**: data-path-resolver がパス式を解析して値を抽出
+   ```typescript
+   import { DataPathResolver } from "./sub_modules/data-path-resolver/mod.ts";
+   const resolver = new DataPathResolver(aggregatedData);
+   const result = resolver.resolveAsArray("commands[].c1");
+   ```
+
+3. **結果の統合**: 抽出された値を Schema で指定されたプロパティに設定
+
+#### Issue #1217 の解決
+
+data-path-resolver の二重展開構文 (`articles[].tags[]`)
+により、YAML配列レンダリング時の配列のフラット化不足問題を解決する。
+
+```typescript
+// データ
+{
+  articles: [
+    { tags: ["AI", "Cursor"] },
+    { tags: ["Claude"] },
+  ];
+}
+
+// パス式: "articles[].tags[]"
+// 結果: ["AI", "Cursor", "Claude"]  ✅ 自動フラット化
+```
+
+この機能により、Schema定義で `"x-derived-from": "articles[].tags[]"`
+と指定するだけで、ネストした配列構造を自動的にフラット化できる。
+
 ### パス記法の詳細
 
 `x-derived-from`で使用可能なパス記法：
