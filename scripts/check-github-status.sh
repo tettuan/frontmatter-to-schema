@@ -11,6 +11,6 @@ if [ "$issue_count" -gt 0 ] || [ "$pr_count" -gt 0 ]; then
     # echo "Found $issue_count open issues and $pr_count open PRs"
     exit 2
 else
-    echo "No open issues or PRs"
+    # echo "No open issues or PRs"
     exit 0
 fi
