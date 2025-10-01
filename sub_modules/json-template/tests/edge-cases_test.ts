@@ -411,7 +411,8 @@ Deno.test("Edge Case - Extreme nesting with mixed access patterns", async () => 
     ],
   };
 
-  const template = '{"result": "{level1[0].level2.level3[0].level4.items[0].final}"}';
+  const template =
+    '{"result": "{level1[0].level2.level3[0].level4.items[0].final}"}';
 
   const tempFile = await createTempFile(template);
 

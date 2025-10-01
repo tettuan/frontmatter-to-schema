@@ -106,10 +106,9 @@ Deno.test("items hierarchy omission - verifies .items[] notation is NOT supporte
 
   const result = processor.applySchemaDirectives(data, schema);
 
-  assertEquals(result.isOk(), true);
-  const processedData = result.unwrap();
-  // This should fail to extract values because .items[] is wrong notation
-  assertEquals(processedData.commandNames, []);
+  // DataPathResolver correctly returns error for invalid path
+  assertEquals(result.isError(), true);
+  assertEquals(result.unwrapError().code, "DERIVED_FROM_RESOLUTION_ERROR");
 });
 
 Deno.test("items hierarchy omission - does NOT use .items fallback", () => {
