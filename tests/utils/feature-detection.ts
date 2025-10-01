@@ -5,6 +5,7 @@
  * based on actual implementation status.
  */
 
+import { ensureDir } from "@std/fs";
 import { PipelineOrchestrator } from "../../src/application/services/pipeline-orchestrator.ts";
 import { DenoFileSystemAdapter } from "../../src/infrastructure/adapters/deno-file-system-adapter.ts";
 
@@ -33,8 +34,8 @@ export class FeatureDetector {
     const fileSystem = DenoFileSystemAdapter.create();
     const testDir = `tmp/feature-detection/${testId}`;
 
-    // Create directory structure by writing a dummy file
-    await fileSystem.writeTextFile(`${testDir}/.gitkeep`, "");
+    // Create directory structure using ensureDir
+    await ensureDir(testDir);
 
     return { fileSystem, testDir };
   }
@@ -78,7 +79,7 @@ export class FeatureDetector {
 
     // Test 3: Template Processing
     try {
-      capabilities.templateProcessing = this.testTemplateProcessing(
+      capabilities.templateProcessing = await this.testTemplateProcessing(
         orchestrator,
       );
     } catch (error) {
@@ -90,7 +91,9 @@ export class FeatureDetector {
 
     // Test 4: Directive Handling
     try {
-      capabilities.directiveHandling = this.testDirectiveHandling(orchestrator);
+      capabilities.directiveHandling = await this.testDirectiveHandling(
+        orchestrator,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
@@ -106,16 +109,24 @@ export class FeatureDetector {
   ): Promise<boolean> {
     const { fileSystem, testDir } = await this.createTestEnvironment("basic");
 
-    // Create minimal test files
-    await fileSystem.writeTextFile(
+    // Create minimal test files with Result error checking
+    const mdResult = await fileSystem.writeTextFile(
       `${testDir}/test.md`,
       `---
 title: "Test"
 ---
 Content`,
     );
+    if (mdResult.isError()) {
+      console.log(
+        `⚠️  Failed to create test.md: ${
+          JSON.stringify(mdResult.unwrapError())
+        }`,
+      );
+      return false;
+    }
 
-    await fileSystem.writeTextFile(
+    const schemaResult = await fileSystem.writeTextFile(
       `${testDir}/schema.json`,
       JSON.stringify({
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -125,13 +136,29 @@ Content`,
         },
       }),
     );
+    if (schemaResult.isError()) {
+      console.log(
+        `⚠️  Failed to create schema.json: ${
+          JSON.stringify(schemaResult.unwrapError())
+        }`,
+      );
+      return false;
+    }
 
-    await fileSystem.writeTextFile(
+    const templateResult = await fileSystem.writeTextFile(
       `${testDir}/template.json`,
       JSON.stringify({
         "title": "{title}",
       }),
     );
+    if (templateResult.isError()) {
+      console.log(
+        `⚠️  Failed to create template.json: ${
+          JSON.stringify(templateResult.unwrapError())
+        }`,
+      );
+      return false;
+    }
 
     const result = await orchestrator.execute({
       schemaPath: `${testDir}/schema.json`,
@@ -149,8 +176,8 @@ Content`,
   ): Promise<boolean> {
     const { testDir } = await this.createTestEnvironment("error");
 
-    // Test with missing schema file
-    const _result = await orchestrator.execute({
+    // Test with missing schema file - should return an error
+    const result = await orchestrator.execute({
       schemaPath: `${testDir}/nonexistent.json`,
       templatePath: `${testDir}/template.json`,
       inputPath: `${testDir}/test.md`,
@@ -158,25 +185,119 @@ Content`,
       outputFormat: "json",
     });
 
-    // For now, consider error handling not fully implemented
-    // until all specific error codes work correctly
-    return false;
+    // Error handling is working if we get an error result (not a crash)
+    return result.isError();
   }
 
-  private static testTemplateProcessing(
-    _orchestrator: PipelineOrchestrator,
-  ): boolean {
-    // This would test template variable substitution
-    // For now, assume not implemented unless basic processing works
-    return false;
+  private static async testTemplateProcessing(
+    orchestrator: PipelineOrchestrator,
+  ): Promise<boolean> {
+    const { fileSystem, testDir } = await this.createTestEnvironment(
+      "template",
+    );
+
+    // Create test files with template variable substitution
+    const mdResult = await fileSystem.writeTextFile(
+      `${testDir}/test.md`,
+      `---
+title: "Template Test"
+value: "Substituted"
+---
+Content`,
+    );
+    if (mdResult.isError()) return false;
+
+    const schemaResult = await fileSystem.writeTextFile(
+      `${testDir}/schema.json`,
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "value": { "type": "string" },
+        },
+      }),
+    );
+    if (schemaResult.isError()) return false;
+
+    const templateResult = await fileSystem.writeTextFile(
+      `${testDir}/template.json`,
+      JSON.stringify({
+        "output": "{value}",
+      }),
+    );
+    if (templateResult.isError()) return false;
+
+    const result = await orchestrator.execute({
+      schemaPath: `${testDir}/schema.json`,
+      templatePath: `${testDir}/template.json`,
+      inputPath: `${testDir}/test.md`,
+      outputPath: `${testDir}/output.json`,
+      outputFormat: "json",
+    });
+
+    if (result.isError()) return false;
+
+    // Check if template variable was substituted by reading output
+    const outputResult = await fileSystem.readTextFile(
+      `${testDir}/output.json`,
+    );
+    if (outputResult.isError()) return false;
+
+    const output = outputResult.unwrap();
+    // Template processing works if the variable {value} was replaced
+    return output.includes('"Substituted"');
   }
 
-  private static testDirectiveHandling(
-    _orchestrator: PipelineOrchestrator,
-  ): boolean {
-    // This would test x-* directive processing
-    // For now, assume not implemented unless basic processing works
-    return false;
+  private static async testDirectiveHandling(
+    orchestrator: PipelineOrchestrator,
+  ): Promise<boolean> {
+    const { fileSystem, testDir } = await this.createTestEnvironment(
+      "directive",
+    );
+
+    // Test x-template directive in schema
+    const mdResult = await fileSystem.writeTextFile(
+      `${testDir}/test.md`,
+      `---
+name: "Directive Test"
+---
+Content`,
+    );
+    if (mdResult.isError()) return false;
+
+    const templateResult = await fileSystem.writeTextFile(
+      `${testDir}/template.json`,
+      JSON.stringify({
+        "item": "{name}",
+      }),
+    );
+    if (templateResult.isError()) return false;
+
+    // Schema with x-template directive
+    const schemaResult = await fileSystem.writeTextFile(
+      `${testDir}/schema.json`,
+      JSON.stringify({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "x-template": "./template.json",
+        "properties": {
+          "name": { "type": "string" },
+        },
+      }),
+    );
+    if (schemaResult.isError()) return false;
+
+    const result = await orchestrator.execute({
+      schemaPath: `${testDir}/schema.json`,
+      templatePath: `${testDir}/template.json`,
+      inputPath: `${testDir}/test.md`,
+      outputPath: `${testDir}/output.json`,
+      outputFormat: "json",
+    });
+
+    // Directive handling works if processing succeeds with x-template directive
+    return result.isOk();
   }
 
   /**
