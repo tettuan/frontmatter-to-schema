@@ -70,7 +70,8 @@ export class Phase1DirectiveProcessor {
       }
 
       // Get frontmatter data
-      let data = frontmatter.getData();
+      const originalData = frontmatter.getData();
+      let data = originalData;
 
       // Apply x-flatten-arrays directive
       const flattenResult = this.applyFlattenArrays(data, schema);
@@ -89,7 +90,7 @@ export class Phase1DirectiveProcessor {
       const processedData = filterResult.unwrap();
 
       // If data unchanged, return original document
-      if (data === processedData) {
+      if (originalData === processedData) {
         return Result.ok(document);
       }
 
