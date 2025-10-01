@@ -206,21 +206,22 @@ export class PipelineOrchestrator implements DocumentLoader {
 
     const result = executionResult.unwrap();
 
-    // Transform documents using document aggregation service
-    const transformedData = this.documentAggregationService.transformDocuments(
-      result.documents,
-      result.template,
-    );
-    if (transformedData.isError()) {
-      return Result.error(transformedData.unwrapError());
-    }
-
-    // Load and process schema with directives
+    // Load schema early to use for property name mapping during aggregation
     const schemaDataResult = await this.schemaDirectiveProcessor.loadSchemaData(
       config.schemaPath,
     );
     if (schemaDataResult.isError()) {
       return Result.error(schemaDataResult.unwrapError());
+    }
+
+    // Transform documents using document aggregation service with schema
+    const transformedData = this.documentAggregationService.transformDocuments(
+      result.documents,
+      result.template,
+      schemaDataResult.unwrap(),
+    );
+    if (transformedData.isError()) {
+      return Result.error(transformedData.unwrapError());
     }
 
     // Apply schema directives (x-derived-from, x-derived-unique, etc.)

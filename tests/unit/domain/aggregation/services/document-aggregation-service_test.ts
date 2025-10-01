@@ -105,7 +105,7 @@ Deno.test("DocumentAggregationService - transformDocuments with single document"
   });
   const documents = [document];
 
-  const result = service.transformDocuments(documents, null);
+  const result = service.transformDocuments(documents, null, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -124,7 +124,7 @@ Deno.test("DocumentAggregationService - transformDocuments with multiple documen
     createMockDocument("/test/doc3.md", { title: "Doc 3", category: "test" }),
   ];
 
-  const result = service.transformDocuments(documents, null);
+  const result = service.transformDocuments(documents, null, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -142,7 +142,7 @@ Deno.test("DocumentAggregationService - transformDocuments with items expansion 
   ];
   const template = new MockTemplateWithItems();
 
-  const result = service.transformDocuments(documents, template);
+  const result = service.transformDocuments(documents, template, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -159,7 +159,7 @@ Deno.test("DocumentAggregationService - transformDocuments with template contain
   ];
   const template = { pattern: "{@items}", other: "data" };
 
-  const result = service.transformDocuments(documents, template);
+  const result = service.transformDocuments(documents, template, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -175,7 +175,7 @@ Deno.test("DocumentAggregationService - transformDocuments with template contain
   ];
   const template = { pattern: "{{items}}", other: "data" };
 
-  const result = service.transformDocuments(documents, template);
+  const result = service.transformDocuments(documents, template, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -192,7 +192,7 @@ Deno.test("DocumentAggregationService - transformDocuments without metadata", ()
     createMockDocument("/test/doc2.md", { title: "Doc 2" }),
   ];
 
-  const result = service.transformDocuments(documents, null);
+  const result = service.transformDocuments(documents, null, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -215,7 +215,7 @@ Deno.test("DocumentAggregationService - transformDocuments with custom config", 
     },
   };
 
-  const result = service.transformDocuments(documents, null, config);
+  const result = service.transformDocuments(documents, null, undefined, config);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -232,7 +232,7 @@ Deno.test("DocumentAggregationService - transformDocuments with documents withou
     createMockDocument("/test/doc3.md"), // no frontmatter
   ];
 
-  const result = service.transformDocuments(documents, null);
+  const result = service.transformDocuments(documents, null, undefined);
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -245,14 +245,18 @@ Deno.test("DocumentAggregationService - transformDocuments with invalid input ty
   const service = DocumentAggregationService.create().unwrap();
 
   // Test with non-array documents
-  const nonArrayResult = service.transformDocuments("invalid" as any, null);
+  const nonArrayResult = service.transformDocuments(
+    "invalid" as any,
+    null,
+    undefined,
+  );
   assertEquals(nonArrayResult.isError(), true);
   const nonArrayError = nonArrayResult.unwrapError();
   assertEquals(nonArrayError instanceof ProcessingError, true);
   assertEquals(nonArrayError.code, "INVALID_DOCUMENTS_TYPE");
 
   // Test with empty array
-  const emptyArrayResult = service.transformDocuments([], null);
+  const emptyArrayResult = service.transformDocuments([], null, undefined);
   assertEquals(emptyArrayResult.isError(), true);
   const emptyArrayError = emptyArrayResult.unwrapError();
   assertEquals(emptyArrayError instanceof ProcessingError, true);
@@ -270,7 +274,7 @@ Deno.test("DocumentAggregationService - transformDocuments with config manager e
   ];
 
   // Should still work, falling back to default behavior
-  const result = service.transformDocuments(documents, null);
+  const result = service.transformDocuments(documents, null, undefined);
   assertEquals(result.isOk(), true);
 });
 
@@ -285,7 +289,11 @@ Deno.test("DocumentAggregationService - transformDocuments with template JSON se
   const circularTemplate: any = { data: "test" };
   circularTemplate.self = circularTemplate;
 
-  const result = service.transformDocuments(documents, circularTemplate);
+  const result = service.transformDocuments(
+    documents,
+    circularTemplate,
+    undefined,
+  );
 
   // Should still work, just won't detect items expansion
   assertEquals(result.isOk(), true);
@@ -306,7 +314,11 @@ Deno.test("DocumentAggregationService - comprehensive error scenarios", () => {
   ];
 
   for (const test of tests) {
-    const result = service.transformDocuments(test.docs as any, null);
+    const result = service.transformDocuments(
+      test.docs as any,
+      null,
+      undefined,
+    );
     assertEquals(result.isError(), true, `Should fail for ${test.desc}`);
   }
 });
@@ -316,7 +328,11 @@ Deno.test("DocumentAggregationService - edge cases", () => {
 
   // Single document with no frontmatter
   const singleNoFrontmatter = [createMockDocument("/test/doc.md")];
-  const singleResult = service.transformDocuments(singleNoFrontmatter, null);
+  const singleResult = service.transformDocuments(
+    singleNoFrontmatter,
+    null,
+    undefined,
+  );
   assertEquals(singleResult.isOk(), true); // Should work, fallback to aggregate structure
 
   // Multiple documents, all without frontmatter
@@ -342,12 +358,16 @@ Deno.test("DocumentAggregationService - totality principle compliance", () => {
 
   // All methods should return Result types, never throw exceptions
   const tests = [
-    () => service.transformDocuments(validDocuments, null),
+    () => service.transformDocuments(validDocuments, null, undefined),
     () =>
-      service.transformDocuments(validDocuments, new MockTemplateWithItems()),
-    () => service.transformDocuments([], null),
-    () => service.transformDocuments("invalid" as any, null),
-    () => service.transformDocuments(null as any, null),
+      service.transformDocuments(
+        validDocuments,
+        new MockTemplateWithItems(),
+        undefined,
+      ),
+    () => service.transformDocuments([], null, undefined),
+    () => service.transformDocuments("invalid" as any, null, undefined),
+    () => service.transformDocuments(null as any, null, undefined),
     () =>
       service.transformDocuments(validDocuments, null, {
         includeMetadata: true,
@@ -413,7 +433,12 @@ Deno.test("DocumentAggregationService - complex aggregation scenario", () => {
     },
   };
 
-  const result = service.transformDocuments(documents, template, config);
+  const result = service.transformDocuments(
+    documents,
+    template,
+    undefined,
+    config,
+  );
 
   assertEquals(result.isOk(), true);
   const transformed = result.unwrap();
@@ -439,4 +464,58 @@ Deno.test("DocumentAggregationService - complex aggregation scenario", () => {
   assertEquals(docs[0].title, "Button Component");
   assertEquals(docs[0].category, "ui");
   assertEquals(docs[2].audience, "developers");
+});
+
+Deno.test("DocumentAggregationService - property name mapping with schema x-frontmatter-part", () => {
+  const service = DocumentAggregationService.create().unwrap();
+  const documents = [
+    createMockDocument("/docs/req1.md", {
+      id: "REQ-001",
+      title: "User Authentication",
+      priority: "high",
+    }),
+    createMockDocument("/docs/req2.md", {
+      id: "REQ-002",
+      title: "Data Encryption",
+      priority: "critical",
+    }),
+  ];
+
+  // Schema with x-frontmatter-part directive specifying property name
+  const schema = {
+    type: "object",
+    properties: {
+      req: {
+        type: "array",
+        "x-frontmatter-part": true,
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            priority: { type: "string" },
+          },
+        },
+      },
+      totalDocuments: { type: "number" },
+    },
+  };
+
+  const result = service.transformDocuments(documents, null, schema);
+
+  assertEquals(result.isOk(), true);
+  const transformed = result.unwrap();
+
+  // Should use schema property name "req" instead of generic "items"
+  assertEquals(Array.isArray(transformed.req), true);
+  assertEquals((transformed.req as any[]).length, 2);
+  assertEquals((transformed.req as any[])[0].id, "REQ-001");
+  assertEquals((transformed.req as any[])[1].id, "REQ-002");
+
+  // Should still have documents array
+  assertEquals(Array.isArray(transformed.documents), true);
+  assertEquals((transformed.documents as any[]).length, 2);
+
+  // Should have totalDocuments
+  assertEquals(transformed.totalDocuments, 2);
 });
