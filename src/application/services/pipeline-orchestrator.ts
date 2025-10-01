@@ -18,6 +18,7 @@ import { FrontmatterParsingService } from "../../domain/frontmatter/index.ts";
 import { SchemaDirectiveProcessor } from "../../domain/schema/index.ts";
 import { DocumentAggregationService } from "../../domain/aggregation/index.ts";
 import { TemplateOutputRenderer } from "../../domain/template/index.ts";
+import { Phase1DirectiveProcessor } from "../../domain/directives/services/phase1-directive-processor.ts";
 
 /**
  * Configuration for pipeline execution
@@ -55,6 +56,7 @@ export class PipelineOrchestrator implements DocumentLoader {
     private readonly configManager: ConfigurationManager,
     private readonly templateSchemaCoordinator: TemplateSchemaCoordinator,
     private readonly frontmatterParsingService: FrontmatterParsingService,
+    private readonly phase1DirectiveProcessor: Phase1DirectiveProcessor,
     private readonly schemaDirectiveProcessor: SchemaDirectiveProcessor,
     private readonly documentAggregationService: DocumentAggregationService,
     private readonly templateOutputRenderer: TemplateOutputRenderer,
@@ -103,6 +105,17 @@ export class PipelineOrchestrator implements DocumentLoader {
           `Failed to create frontmatter parsing service: ${frontmatterParsingServiceResult.unwrapError().message}`,
           "INITIALIZATION_ERROR",
           { error: frontmatterParsingServiceResult.unwrapError() },
+        ),
+      );
+    }
+
+    const phase1DirectiveProcessorResult = Phase1DirectiveProcessor.create();
+    if (phase1DirectiveProcessorResult.isError()) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to create phase 1 directive processor: ${phase1DirectiveProcessorResult.unwrapError().message}`,
+          "INITIALIZATION_ERROR",
+          { error: phase1DirectiveProcessorResult.unwrapError() },
         ),
       );
     }
@@ -161,6 +174,7 @@ export class PipelineOrchestrator implements DocumentLoader {
         configManager,
         templateSchemaCoordinator,
         frontmatterParsingServiceResult.unwrap(),
+        phase1DirectiveProcessorResult.unwrap(),
         schemaDirectiveProcessorResult.unwrap(),
         documentAggregationServiceResult.unwrap(),
         templateOutputRendererResult.unwrap(),
@@ -206,7 +220,7 @@ export class PipelineOrchestrator implements DocumentLoader {
 
     const result = executionResult.unwrap();
 
-    // Load schema early to use for property name mapping during aggregation
+    // Load schema early to use for Phase 1 directive processing and property name mapping
     const schemaDataResult = await this.schemaDirectiveProcessor.loadSchemaData(
       config.schemaPath,
     );
@@ -214,9 +228,22 @@ export class PipelineOrchestrator implements DocumentLoader {
       return Result.error(schemaDataResult.unwrapError());
     }
 
-    // Transform documents using document aggregation service with schema
+    // Phase 1: Apply per-file directives to each document BEFORE aggregation
+    const phase1ProcessedDocuments: MarkdownDocument[] = [];
+    for (const document of result.documents) {
+      const phase1Result = this.phase1DirectiveProcessor.processDocument(
+        document,
+        schemaDataResult.unwrap(),
+      );
+      if (phase1Result.isError()) {
+        return Result.error(phase1Result.unwrapError());
+      }
+      phase1ProcessedDocuments.push(phase1Result.unwrap());
+    }
+
+    // Phase 2: Transform documents using document aggregation service with schema
     const transformedData = this.documentAggregationService.transformDocuments(
-      result.documents,
+      phase1ProcessedDocuments,
       result.template,
       schemaDataResult.unwrap(),
     );
