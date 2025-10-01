@@ -6,6 +6,7 @@
  *
  * Phase 1 Directives:
  * - x-flatten-arrays: Flatten nested array structures in frontmatter
+ * - x-jmespath-filter: Filter frontmatter data using JMESPath expressions
  *
  * This processor executes BEFORE Phase 2 aggregation, operating on each
  * document independently without cross-document information.
@@ -15,6 +16,7 @@ import { Result } from "../../shared/types/result.ts";
 import { ProcessingError } from "../../shared/types/errors.ts";
 import { MarkdownDocument } from "../../frontmatter/entities/markdown-document.ts";
 import { FrontmatterData } from "../../frontmatter/value-objects/frontmatter-data.ts";
+import { JmesPath } from "@halvardm/jmespath";
 
 /**
  * Phase 1 Directive Processor Service
@@ -68,7 +70,8 @@ export class Phase1DirectiveProcessor {
       }
 
       // Get frontmatter data
-      const data = frontmatter.getData();
+      const originalData = frontmatter.getData();
+      let data = originalData;
 
       // Apply x-flatten-arrays directive
       const flattenResult = this.applyFlattenArrays(data, schema);
@@ -76,10 +79,18 @@ export class Phase1DirectiveProcessor {
         return Result.error(flattenResult.unwrapError());
       }
 
-      const processedData = flattenResult.unwrap();
+      data = flattenResult.unwrap();
+
+      // Apply x-jmespath-filter directive
+      const filterResult = this.applyJmesPathFilter(data, schema);
+      if (filterResult.isError()) {
+        return Result.error(filterResult.unwrapError());
+      }
+
+      const processedData = filterResult.unwrap();
 
       // If data unchanged, return original document
-      if (data === processedData) {
+      if (originalData === processedData) {
         return Result.ok(document);
       }
 
@@ -218,5 +229,83 @@ export class Phase1DirectiveProcessor {
     }
 
     return true;
+  }
+
+  /**
+   * Apply x-jmespath-filter directive to data
+   *
+   * Filters properties that have x-jmespath-filter in the schema.
+   * Applies JMESPath expression to filter array values per-file before aggregation.
+   *
+   * @param data - Frontmatter data object
+   * @param schema - JSON Schema with directive annotations
+   * @returns Result containing processed data or error
+   */
+  private applyJmesPathFilter(
+    data: Record<string, unknown>,
+    schema: Record<string, unknown>,
+  ): Result<Record<string, unknown>, ProcessingError> {
+    try {
+      // Check if schema has properties
+      if (!schema.properties || typeof schema.properties !== "object") {
+        return Result.ok(data);
+      }
+
+      const properties = schema.properties as Record<string, unknown>;
+      const processedData = { ...data };
+      let hasChanges = false;
+
+      // Process each property that has x-jmespath-filter directive
+      for (const [propName, propSchema] of Object.entries(properties)) {
+        if (typeof propSchema !== "object" || propSchema === null) {
+          continue;
+        }
+
+        const schemaObj = propSchema as Record<string, unknown>;
+
+        // Check if property has x-jmespath-filter directive (must be string)
+        const filterExpression = schemaObj["x-jmespath-filter"];
+        if (typeof filterExpression !== "string") {
+          continue;
+        }
+
+        // Check if property exists in data
+        const value = processedData[propName];
+        if (value === undefined || value === null) {
+          continue;
+        }
+
+        // Apply JMESPath filter
+        try {
+          // deno-lint-ignore no-explicit-any
+          const jmesPath = new JmesPath(value as any);
+          const filteredValue = jmesPath.search(filterExpression);
+          processedData[propName] = filteredValue;
+          hasChanges = true;
+        } catch (jmesPathError) {
+          return Result.error(
+            new ProcessingError(
+              `JMESPath filter evaluation failed for property '${propName}': ${
+                jmesPathError instanceof Error
+                  ? jmesPathError.message
+                  : String(jmesPathError)
+              }`,
+              "JMESPATH_FILTER_ERROR",
+              { propName, filterExpression, jmesPathError },
+            ),
+          );
+        }
+      }
+
+      return Result.ok(hasChanges ? processedData : data);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to apply jmespath filter: ${error}`,
+          "JMESPATH_FILTER_ERROR",
+          { error },
+        ),
+      );
+    }
   }
 }

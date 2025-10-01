@@ -556,86 +556,11 @@ Deno.test("SchemaDirectiveProcessor - flatten nested arrays in x-derived-from (I
   assertEquals(topics.some((t) => t.includes(",")), false);
 });
 
-Deno.test("SchemaDirectiveProcessor - x-jmespath-filter directive (Issue #1233)", () => {
-  const mockFileSystem = new MockFileSystemPort();
-  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
-    .unwrap();
-
-  // Test data with mixed levels
-  const data = {
-    items: [
-      { id: { level: "req" }, title: "Requirement 1" },
-      { id: { level: "req" }, title: "Requirement 2" },
-      { id: { level: "design" }, title: "Design 1" },
-      { id: { level: "req" }, title: "Requirement 3" },
-      { id: { level: "design" }, title: "Design 2" },
-      { id: { level: "req" }, title: "Requirement 4" },
-      { id: { level: "req" }, title: "Requirement 5" },
-    ],
-  };
-
-  const schema = {
-    properties: {
-      req: {
-        "x-jmespath-filter": "[?id.level == 'req']",
-      },
-    },
-  };
-
-  const result = processor.applySchemaDirectives(
-    { ...data, req: data.items },
-    schema,
-  );
-
-  assertEquals(result.isOk(), true);
-  const processed = result.unwrap();
-
-  // Should filter to only 'req' level items (5 items)
-  assertEquals(Array.isArray(processed.req), true);
-  const filteredItems = processed.req as Array<
-    { id: { level: string }; title: string }
-  >;
-  assertEquals(filteredItems.length, 5);
-
-  // All items should be 'req' level
-  filteredItems.forEach((item) => {
-    assertEquals(item.id.level, "req");
-  });
-
-  // Should not contain any 'design' items
-  assertEquals(
-    filteredItems.some((item) => item.id.level === "design"),
-    false,
-  );
-});
-
-Deno.test("SchemaDirectiveProcessor - x-jmespath-filter with invalid expression", () => {
-  const mockFileSystem = new MockFileSystemPort();
-  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
-    .unwrap();
-
-  const data = {
-    items: [{ value: 1 }],
-  };
-
-  const schema = {
-    properties: {
-      filtered: {
-        "x-jmespath-filter": "[?invalid..syntax]",
-      },
-    },
-  };
-
-  const result = processor.applySchemaDirectives(
-    { ...data, filtered: data.items },
-    schema,
-  );
-
-  // Should return error for invalid JMESPath expression
-  assertEquals(result.isError(), true);
-  const error = result.unwrapError();
-  assertEquals(error.code, "JMESPATH_EVALUATION_ERROR");
-});
+// NOTE: x-jmespath-filter tests moved to Phase1DirectiveProcessor tests
+// Per requirements.ja.md line 376, x-jmespath-filter is a Phase 1 directive
+// that runs per-file before aggregation, not in Phase 2 SchemaDirectiveProcessor.
+//
+// See: tests/unit/domain/directives/services/phase1-directive-processor_test.ts
 
 Deno.test("SchemaDirectiveProcessor - x-flatten-arrays directive (Issue #1233)", () => {
   const mockFileSystem = new MockFileSystemPort();

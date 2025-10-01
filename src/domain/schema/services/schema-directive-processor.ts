@@ -3,14 +3,12 @@ import { ProcessingError } from "../../shared/types/errors.ts";
 import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.ts";
 import { createFileError } from "../../shared/types/file-errors.ts";
 import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
-import { JmesPathFilterDirective } from "../value-objects/jmespath-filter-directive.ts";
 import { FlattenArraysDirective } from "../value-objects/flatten-arrays-directive.ts";
-import { JmesPath } from "@halvardm/jmespath";
 
 /**
  * Domain service for processing schema directives and transformations.
- * Handles x-derived-from, x-derived-unique, x-flatten-arrays, x-jmespath-filter,
- * and other schema extensions.
+ * Phase 2: Handles x-derived-from, x-derived-unique, x-flatten-arrays (Phase 2 only).
+ * Note: x-jmespath-filter moved to Phase1DirectiveProcessor (per requirements).
  * Follows totality principles with comprehensive Result-based error handling.
  */
 export class SchemaDirectiveProcessor {
@@ -190,18 +188,7 @@ export class SchemaDirectiveProcessor {
           result = flattenResult.unwrap();
         }
 
-        // Check for x-jmespath-filter directive
-        if (schema[DIRECTIVE_NAMES.JMESPATH_FILTER]) {
-          const filterResult = this.applyJmesPathFilterDirective(
-            result,
-            schema,
-            path,
-          );
-          if (filterResult.isError()) {
-            return Result.error(filterResult.unwrapError());
-          }
-          result = filterResult.unwrap();
-        }
+        // Note: x-jmespath-filter moved to Phase1DirectiveProcessor (per requirements.ja.md line 376)
 
         // Recursively process nested properties
         if (schema.properties) {
@@ -301,71 +288,6 @@ export class SchemaDirectiveProcessor {
             error instanceof Error ? error.message : String(error)
           }`,
           "FLATTEN_ARRAYS_ERROR",
-          { path, schema, error },
-        ),
-      );
-    }
-  }
-
-  /**
-   * Applies x-jmespath-filter directive.
-   */
-  private applyJmesPathFilterDirective(
-    data: Record<string, unknown>,
-    schema: Record<string, unknown>,
-    path: string[],
-  ): Result<Record<string, unknown>, ProcessingError> {
-    try {
-      const directiveValue = schema[DIRECTIVE_NAMES.JMESPATH_FILTER];
-      const directiveResult = JmesPathFilterDirective.create(directiveValue);
-
-      if (directiveResult.isError()) {
-        return Result.error(
-          new ProcessingError(
-            `Failed to create jmespath-filter directive: ${directiveResult.unwrapError().message}`,
-            "JMESPATH_FILTER_ERROR",
-            { path, schema, error: directiveResult.unwrapError() },
-          ),
-        );
-      }
-
-      const directive = directiveResult.unwrap();
-      const currentValue = this.getNestedValue(data, path.join("."));
-
-      if (currentValue !== undefined && currentValue !== null) {
-        try {
-          const jmesPath = new JmesPath(currentValue as any);
-          const filteredValue = jmesPath.search(directive.getExpression());
-          const result = { ...data };
-          this.setNestedValue(result, path, filteredValue);
-          return Result.ok(result);
-        } catch (jmesPathError) {
-          return Result.error(
-            new ProcessingError(
-              `JMESPath evaluation failed: ${
-                jmesPathError instanceof Error
-                  ? jmesPathError.message
-                  : String(jmesPathError)
-              }`,
-              "JMESPATH_EVALUATION_ERROR",
-              {
-                path,
-                expression: directive.getExpression(),
-                error: jmesPathError,
-              },
-            ),
-          );
-        }
-      }
-
-      return Result.ok(data);
-    } catch (error) {
-      return Result.error(
-        new ProcessingError(
-          `Failed to apply jmespath-filter directive: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          "JMESPATH_FILTER_ERROR",
           { path, schema, error },
         ),
       );
