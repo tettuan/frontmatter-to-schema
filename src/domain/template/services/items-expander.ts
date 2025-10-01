@@ -10,6 +10,7 @@ export interface ItemsExpansionContext {
   readonly itemsTemplate: Template;
   readonly containerTemplate: Template;
   readonly globalVariables: Record<string, unknown>;
+  readonly schema?: Record<string, unknown>;
 }
 
 /**
@@ -66,6 +67,7 @@ export class ItemsExpander {
         context.arrayData,
         context.itemsTemplate,
         context.globalVariables,
+        context.schema,
       );
 
       if (expandedItems.isError()) {
@@ -187,6 +189,7 @@ export class ItemsExpander {
     arrayData: readonly unknown[],
     itemsTemplate: Template,
     globalVariables: Record<string, unknown>,
+    schema?: Record<string, unknown>,
   ): Result<unknown[], ItemsExpansionError> {
     const processedItems: unknown[] = [];
 
@@ -199,8 +202,11 @@ export class ItemsExpander {
         itemContext.$last = true;
       }
 
-      // Resolve variables in items template with item context
-      const resolvedTemplate = itemsTemplate.resolveVariables(itemContext);
+      // Resolve variables in items template with item context and schema
+      const resolvedTemplate = itemsTemplate.resolveVariables(
+        itemContext,
+        schema,
+      );
       if (resolvedTemplate.isError()) {
         return Result.error({
           kind: "TemplateProcessingError",

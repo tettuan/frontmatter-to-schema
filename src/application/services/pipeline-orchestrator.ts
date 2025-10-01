@@ -261,12 +261,13 @@ export class PipelineOrchestrator implements DocumentLoader {
       return Result.error(directivesResult.unwrapError());
     }
 
-    // Render output using template output renderer
+    // Render output using template output renderer with schema
     const renderingResult = await this.templateOutputRenderer.renderOutput(
       result.template,
       directivesResult.unwrap(),
       result.outputFormat as "json" | "yaml" | "xml" | "markdown",
       config.outputPath,
+      schemaDataResult.unwrap(),
     );
     if (renderingResult.isError()) {
       return Result.error(renderingResult.unwrapError());
