@@ -1,8 +1,8 @@
 import { assertEquals } from "@std/assert";
 import {
   DirectiveHandler,
-  DirectiveProcessor,
-} from "../../../../../src/domain/schema/services/directive-processor.ts";
+  DirectiveValidationService,
+} from "../../../../../src/domain/schema/services/directive-validation-service.ts";
 import { SchemaData } from "../../../../../src/domain/schema/entities/schema.ts";
 import { Result } from "../../../../../src/domain/shared/types/result.ts";
 
@@ -99,15 +99,15 @@ const schemaWithTemplateDirectives: SchemaData = {
   "x-template-items": "items_template.json",
 };
 
-Deno.test("DirectiveProcessor - create instance", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - create instance", () => {
+  const processor = DirectiveValidationService.create();
 
   assertEquals(typeof processor, "object");
-  assertEquals(processor.constructor.name, "DirectiveProcessor");
+  assertEquals(processor.constructor.name, "DirectiveValidationService");
 });
 
-Deno.test("DirectiveProcessor - process schema without directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - process schema without directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(schemaWithoutDirectives);
 
@@ -118,8 +118,8 @@ Deno.test("DirectiveProcessor - process schema without directives", () => {
   assertEquals(processingResult.processedSchema.type, "object");
 });
 
-Deno.test("DirectiveProcessor - process schema with frontmatter-part directive", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - process schema with frontmatter-part directive", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(
     schemaWithFrontmatterPartDirective,
@@ -142,8 +142,8 @@ Deno.test("DirectiveProcessor - process schema with frontmatter-part directive",
   assertEquals(titleProperty.type, "string");
 });
 
-Deno.test("DirectiveProcessor - process schema with multiple directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - process schema with multiple directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(schemaWithMultipleDirectives);
 
@@ -167,8 +167,8 @@ Deno.test("DirectiveProcessor - process schema with multiple directives", () => 
   assertEquals(templateFormatDirective?.value, "json");
 });
 
-Deno.test("DirectiveProcessor - process schema with nested directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - process schema with nested directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(schemaWithNestedDirectives);
 
@@ -189,8 +189,8 @@ Deno.test("DirectiveProcessor - process schema with nested directives", () => {
   assertEquals(Array.isArray(derivedFromDirective?.value), true);
 });
 
-Deno.test("DirectiveProcessor - detect conflicting directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - detect conflicting directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.validateDirectives(schemaWithConflictingDirectives);
 
@@ -198,8 +198,8 @@ Deno.test("DirectiveProcessor - detect conflicting directives", () => {
   assertEquals(result.unwrapError().code, "CONFLICTING_DIRECTIVES");
 });
 
-Deno.test("DirectiveProcessor - handle invalid directive value", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - handle invalid directive value", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(schemaWithInvalidDirective);
 
@@ -207,8 +207,8 @@ Deno.test("DirectiveProcessor - handle invalid directive value", () => {
   assertEquals(result.unwrapError().code, "INVALID_DIRECTIVE_VALUE");
 });
 
-Deno.test("DirectiveProcessor - extract directives without processing", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - extract directives without processing", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.extractDirectives(schemaWithMultipleDirectives);
 
@@ -222,8 +222,8 @@ Deno.test("DirectiveProcessor - extract directives without processing", () => {
   assertEquals(directiveTypes.includes("x-template-format"), true);
 });
 
-Deno.test("DirectiveProcessor - validate directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - validate directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const validResult = processor.validateDirectives(
     schemaWithMultipleDirectives,
@@ -236,8 +236,8 @@ Deno.test("DirectiveProcessor - validate directives", () => {
   assertEquals(invalidResult.isError(), true);
 });
 
-Deno.test("DirectiveProcessor - register custom handler", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - register custom handler", () => {
+  const processor = DirectiveValidationService.create();
 
   const customHandler: DirectiveHandler = {
     directiveType: "x-frontmatter-part",
@@ -261,8 +261,8 @@ Deno.test("DirectiveProcessor - register custom handler", () => {
   assertEquals(result.unwrapError().code, "HANDLER_ALREADY_REGISTERED");
 });
 
-Deno.test("DirectiveProcessor - process template directives", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - process template directives", () => {
+  const processor = DirectiveValidationService.create();
 
   const result = processor.processDirectives(schemaWithTemplateDirectives);
 
@@ -284,7 +284,7 @@ Deno.test("DirectiveProcessor - process template directives", () => {
   });
 });
 
-Deno.test("DirectiveProcessor - handle x-derived-from with string value", () => {
+Deno.test("DirectiveValidationService - handle x-derived-from with string value", () => {
   const schemaWithDerivedFrom: SchemaData = {
     type: "object",
     properties: {
@@ -295,7 +295,7 @@ Deno.test("DirectiveProcessor - handle x-derived-from with string value", () => 
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schemaWithDerivedFrom);
 
   assertEquals(result.isOk(), true);
@@ -313,7 +313,7 @@ Deno.test("DirectiveProcessor - handle x-derived-from with string value", () => 
   assertEquals(titleProperty.type, "string");
 });
 
-Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
+Deno.test("DirectiveValidationService - handle x-derived-from with array value", () => {
   const schemaWithDerivedFromArray: SchemaData = {
     type: "object",
     properties: {
@@ -325,7 +325,7 @@ Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schemaWithDerivedFromArray);
 
   assertEquals(result.isOk(), true);
@@ -345,7 +345,7 @@ Deno.test("DirectiveProcessor - handle x-derived-from with array value", () => {
   assertEquals(tagsProperty.type, "array");
 });
 
-Deno.test("DirectiveProcessor - validate x-template-format values", () => {
+Deno.test("DirectiveValidationService - validate x-template-format values", () => {
   const validSchemaYaml: SchemaData = {
     type: "object",
     "x-template-format": "yaml",
@@ -366,7 +366,7 @@ Deno.test("DirectiveProcessor - validate x-template-format values", () => {
     "x-template-format": "txt", // Invalid format
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
 
   const validResultYaml = processor.validateDirectives(validSchemaYaml);
   assertEquals(validResultYaml.isOk(), true);
@@ -382,12 +382,12 @@ Deno.test("DirectiveProcessor - validate x-template-format values", () => {
   assertEquals(invalidResult.unwrapError().code, "INVALID_DIRECTIVE_VALUE");
 });
 
-Deno.test("DirectiveProcessor - handle empty schema", () => {
+Deno.test("DirectiveValidationService - handle empty schema", () => {
   const emptySchema: SchemaData = {
     type: "object",
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(emptySchema);
 
   assertEquals(result.isOk(), true);
@@ -396,7 +396,7 @@ Deno.test("DirectiveProcessor - handle empty schema", () => {
   assertEquals(processingResult.extractedDirectives.length, 0);
 });
 
-Deno.test("DirectiveProcessor - handle complex nested structure", () => {
+Deno.test("DirectiveValidationService - handle complex nested structure", () => {
   const complexSchema: SchemaData = {
     type: "object",
     properties: {
@@ -420,7 +420,7 @@ Deno.test("DirectiveProcessor - handle complex nested structure", () => {
     "x-template": "complex_template.json",
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(complexSchema);
 
   assertEquals(result.isOk(), true);
@@ -438,7 +438,7 @@ Deno.test("DirectiveProcessor - handle complex nested structure", () => {
   assertEquals(paths.includes("level1.level2.data"), true);
 });
 
-Deno.test("DirectiveProcessor - handle unsupported directive in extraction", () => {
+Deno.test("DirectiveValidationService - handle unsupported directive in extraction", () => {
   const schemaWithUnsupported: SchemaData = {
     type: "object",
     properties: {
@@ -449,7 +449,7 @@ Deno.test("DirectiveProcessor - handle unsupported directive in extraction", () 
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.extractDirectives(schemaWithUnsupported);
 
   // Should succeed but not extract the unsupported directive
@@ -458,8 +458,8 @@ Deno.test("DirectiveProcessor - handle unsupported directive in extraction", () 
   assertEquals(directives.length, 0);
 });
 
-Deno.test("DirectiveProcessor - preserve schema structure", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - preserve schema structure", () => {
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schemaWithMultipleDirectives);
 
   assertEquals(result.isOk(), true);
@@ -486,7 +486,7 @@ Deno.test("DirectiveProcessor - preserve schema structure", () => {
   );
 });
 
-Deno.test("DirectiveProcessor - handle x-derived-unique with boolean value", () => {
+Deno.test("DirectiveValidationService - handle x-derived-unique with boolean value", () => {
   const schemaWithDerivedUnique: SchemaData = {
     type: "object",
     properties: {
@@ -498,7 +498,7 @@ Deno.test("DirectiveProcessor - handle x-derived-unique with boolean value", () 
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schemaWithDerivedUnique);
 
   assertEquals(result.isOk(), true);
@@ -516,7 +516,7 @@ Deno.test("DirectiveProcessor - handle x-derived-unique with boolean value", () 
   assertEquals(tagsProperty.type, "array");
 });
 
-Deno.test("DirectiveProcessor - validate x-derived-unique values", () => {
+Deno.test("DirectiveValidationService - validate x-derived-unique values", () => {
   const validSchemaTrue: SchemaData = {
     type: "object",
     properties: {
@@ -547,7 +547,7 @@ Deno.test("DirectiveProcessor - validate x-derived-unique values", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
 
   const validResultTrue = processor.validateDirectives(validSchemaTrue);
   assertEquals(validResultTrue.isOk(), true);
@@ -560,8 +560,8 @@ Deno.test("DirectiveProcessor - validate x-derived-unique values", () => {
   assertEquals(invalidResult.unwrapError().code, "INVALID_DIRECTIVE_VALUE");
 });
 
-Deno.test("DirectiveProcessor - handle directive context", () => {
-  const processor = DirectiveProcessor.create();
+Deno.test("DirectiveValidationService - handle directive context", () => {
+  const processor = DirectiveValidationService.create();
   const result = processor.extractDirectives(schemaWithNestedDirectives);
 
   assertEquals(result.isOk(), true);

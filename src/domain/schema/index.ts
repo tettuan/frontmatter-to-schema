@@ -16,13 +16,13 @@ export type {
   SchemaLoader,
   SchemaReference,
 } from "./services/ref-resolver.ts";
-export { DirectiveProcessor } from "./services/directive-processor.ts";
+export { DirectiveValidationService } from "./services/directive-validation-service.ts";
 export type {
   DirectiveContext,
   DirectiveHandler,
   ExtractedDirective,
   ProcessingResult,
-} from "./services/directive-processor.ts";
+} from "./services/directive-validation-service.ts";
 export { DirectiveValueObjectFactory } from "./services/directive-value-object-factory.ts";
 export type { DirectiveValueObject } from "./services/directive-value-object-factory.ts";
 export { DirectiveOrderingStrategy } from "./value-objects/directive-ordering-strategy.ts";

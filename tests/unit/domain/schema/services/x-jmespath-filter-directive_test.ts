@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { DirectiveProcessor } from "../../../../../src/domain/schema/services/directive-processor.ts";
+import { DirectiveValidationService } from "../../../../../src/domain/schema/services/directive-validation-service.ts";
 import { SchemaData } from "../../../../../src/domain/schema/entities/schema.ts";
 
 const validSchemaWithJMESPathFilter: SchemaData = {
@@ -26,7 +26,7 @@ const invalidSchemaWithJMESPathFilter: SchemaData = {
 };
 
 Deno.test("x-jmespath-filter - validate accepts valid JMESPath string", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(validSchemaWithJMESPathFilter);
 
   assertEquals(result.isOk(), true);
@@ -52,7 +52,7 @@ Deno.test("x-jmespath-filter - validate accepts simple property filter", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isOk(), true);
@@ -77,7 +77,7 @@ Deno.test("x-jmespath-filter - validate accepts complex nested filter", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isOk(), true);
@@ -93,7 +93,7 @@ Deno.test("x-jmespath-filter - validate accepts complex nested filter", () => {
 });
 
 Deno.test("x-jmespath-filter - validate rejects number value", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(invalidSchemaWithJMESPathFilter);
 
   assertEquals(result.isError(), true);
@@ -114,7 +114,7 @@ Deno.test("x-jmespath-filter - validate rejects empty string", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isError(), true);
@@ -135,7 +135,7 @@ Deno.test("x-jmespath-filter - validate rejects whitespace-only string", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isError(), true);
@@ -156,7 +156,7 @@ Deno.test("x-jmespath-filter - validate rejects boolean value", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isError(), true);
@@ -166,7 +166,7 @@ Deno.test("x-jmespath-filter - validate rejects boolean value", () => {
 });
 
 Deno.test("x-jmespath-filter - directive processed and extracted", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(validSchemaWithJMESPathFilter);
 
   assertEquals(result.isOk(), true);
@@ -198,7 +198,7 @@ Deno.test("x-jmespath-filter - works with other directives", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isOk(), true);

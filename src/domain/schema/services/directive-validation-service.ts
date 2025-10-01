@@ -9,7 +9,7 @@ import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 import { DirectiveValueObjectFactory } from "./directive-value-object-factory.ts";
 
 /**
- * Directive processing context for maintaining state during processing.
+ * Directive validation context for maintaining state during validation.
  */
 export interface DirectiveContext {
   readonly currentPath: string[];
@@ -76,10 +76,11 @@ export interface DirectiveHandler {
 }
 
 /**
- * Service for processing x-directives in JSON schemas.
+ * Service for validating x-directives in JSON schemas.
+ * Responsibility: Schema-level directive syntax validation only (no processing/transformation).
  * Implements totality principle with comprehensive error handling.
  */
-export class DirectiveProcessor {
+export class DirectiveValidationService {
   private readonly handlers: Map<DirectiveType, DirectiveHandler> = new Map();
   private readonly orderingStrategy: DirectiveOrderingStrategy;
   private readonly valueObjectFactory: DirectiveValueObjectFactory;
@@ -92,12 +93,12 @@ export class DirectiveProcessor {
   }
 
   /**
-   * Creates a DirectiveProcessor with default handlers and ordering.
+   * Creates a DirectiveValidationService with default handlers and ordering.
    */
   static create(
     orderingStrategy?: DirectiveOrderingStrategy,
-  ): DirectiveProcessor {
-    return new DirectiveProcessor(orderingStrategy);
+  ): DirectiveValidationService {
+    return new DirectiveValidationService(orderingStrategy);
   }
 
   /**

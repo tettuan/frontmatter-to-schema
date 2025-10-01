@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { DirectiveProcessor } from "../../../../../src/domain/schema/services/directive-processor.ts";
+import { DirectiveValidationService } from "../../../../../src/domain/schema/services/directive-validation-service.ts";
 import { SchemaData } from "../../../../../src/domain/schema/entities/schema.ts";
 
 const validSchemaWithDerivedUnique: SchemaData = {
@@ -26,7 +26,7 @@ const invalidSchemaWithDerivedUnique: SchemaData = {
 };
 
 Deno.test("x-derived-unique - validate accepts boolean true", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(validSchemaWithDerivedUnique);
 
   assertEquals(result.isOk(), true);
@@ -52,7 +52,7 @@ Deno.test("x-derived-unique - validate accepts boolean false", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isOk(), true);
@@ -65,7 +65,7 @@ Deno.test("x-derived-unique - validate accepts boolean false", () => {
 });
 
 Deno.test("x-derived-unique - validate rejects string value", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(invalidSchemaWithDerivedUnique);
 
   assertEquals(result.isError(), true);
@@ -86,7 +86,7 @@ Deno.test("x-derived-unique - validate rejects number value", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isError(), true);
@@ -107,7 +107,7 @@ Deno.test("x-derived-unique - validate rejects null value", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isError(), true);
@@ -117,7 +117,7 @@ Deno.test("x-derived-unique - validate rejects null value", () => {
 });
 
 Deno.test("x-derived-unique - directive processed and extracted", () => {
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(validSchemaWithDerivedUnique);
 
   assertEquals(result.isOk(), true);
@@ -150,7 +150,7 @@ Deno.test("x-derived-unique - works with multiple directives", () => {
     },
   };
 
-  const processor = DirectiveProcessor.create();
+  const processor = DirectiveValidationService.create();
   const result = processor.processDirectives(schema);
 
   assertEquals(result.isOk(), true);
