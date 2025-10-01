@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import {
   Schema,
   SchemaId,
@@ -175,22 +175,21 @@ Deno.test("Schema - getData returns schema data for resolved schema", () => {
   };
   const schema = Schema.create(id, path).markAsResolved(schemaData);
 
-  assertEquals(schema.getData(), schemaData);
+  const result = schema.getData();
+  assert(result.isOk());
+  assertEquals(result.unwrap(), schemaData);
 });
 
-Deno.test("Schema - getData throws error for unresolved schema", () => {
+Deno.test("Schema - getData returns error for unresolved schema", () => {
   const id = SchemaId.create("test_schema").unwrap();
   const path = SchemaPath.create("test_schema.json").unwrap();
   const schema = Schema.create(id, path);
 
-  let errorThrown = false;
-  try {
-    schema.getData();
-  } catch (error) {
-    errorThrown = true;
-    assertEquals((error as Error).message.includes("not resolved"), true);
-  }
-  assertEquals(errorThrown, true);
+  const result = schema.getData();
+  assert(result.isError());
+  const error = result.unwrapError();
+  assertEquals(error.code, "INVALID_STATE");
+  assert(error.message.includes("not resolved"));
 });
 
 Deno.test("Schema - hasExtractFromDirectives returns false for unresolved schema", () => {
