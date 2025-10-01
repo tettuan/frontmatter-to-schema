@@ -4,6 +4,7 @@ import { FileSystemPort } from "../../../infrastructure/ports/file-system-port.t
 import { createFileError } from "../../shared/types/file-errors.ts";
 import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 import { FlattenArraysDirective } from "../value-objects/flatten-arrays-directive.ts";
+import { DataPathResolver } from "../../../../sub_modules/data-path-resolver/src/data-path-resolver.ts";
 
 /**
  * Domain service for processing schema directives and transformations.
@@ -226,15 +227,34 @@ export class SchemaDirectiveProcessor {
     schema: Record<string, unknown>,
     path: string[],
   ): Result<Record<string, unknown>, ProcessingError> {
+    const derivedFrom = schema[DIRECTIVE_NAMES.DERIVED_FROM] as string;
+
+    // Use DataPathResolver for path resolution with array expansion support
+    const resolver = new DataPathResolver(data);
+    const resolveResult = resolver.resolveAsArray<unknown>(derivedFrom);
+
+    if (resolveResult.isError()) {
+      const pathError = resolveResult.unwrapError();
+      return Result.error(
+        new ProcessingError(
+          `Failed to resolve x-derived-from path "${derivedFrom}": ${pathError.message}`,
+          "DERIVED_FROM_RESOLUTION_ERROR",
+          { derivedFrom, error: pathError },
+        ),
+      );
+    }
+
+    // Filter out null/undefined and convert resolved values to strings
+    const derivedValues = resolveResult.unwrap()
+      .filter((v) => v !== null && v !== undefined)
+      .map((v) => String(v));
+
+    // Apply x-derived-unique if specified
+    const finalValues = schema[DIRECTIVE_NAMES.DERIVED_UNIQUE]
+      ? Array.from(new Set(derivedValues))
+      : derivedValues;
+
     try {
-      const derivedFrom = schema[DIRECTIVE_NAMES.DERIVED_FROM] as string;
-      const derivedValues = this.extractValuesFromPath(data, derivedFrom);
-
-      // Apply x-derived-unique if specified
-      const finalValues = schema[DIRECTIVE_NAMES.DERIVED_UNIQUE]
-        ? Array.from(new Set(derivedValues))
-        : derivedValues;
-
       // Set the derived values
       const result = { ...data };
       this.setNestedValue(result, path, finalValues.sort());
@@ -332,78 +352,6 @@ export class SchemaDirectiveProcessor {
         ),
       );
     }
-  }
-
-  /**
-   * Extracts values from a path expression like "commands[].c1" or "tools.commands[].c1".
-   * Flattens nested arrays to support cases like articles[].topics where topics is an array.
-   */
-  private extractValuesFromPath(
-    data: Record<string, unknown>,
-    path: string,
-  ): string[] {
-    const values: string[] = [];
-
-    // Handle nested array notation like "tools.commands[].c1"
-    const nestedMatch = path.match(/^(.+?)\[\]\.(.+)$/);
-    if (nestedMatch) {
-      const [, basePath, propertyPath] = nestedMatch;
-
-      // Navigate to the array
-      let array: unknown;
-      if (basePath.includes(".")) {
-        // Handle nested path like "tools.commands"
-        array = this.getNestedValue(data, basePath);
-      } else {
-        // Simple field name
-        array = data[basePath];
-      }
-
-      // Totality principle: explicitly handle array case only
-      // Do NOT fall back to 'items' - paths must be explicit (Issue #1230)
-      if (Array.isArray(array)) {
-        for (const item of array) {
-          if (item && typeof item === "object") {
-            const value = this.getNestedValue(
-              item as Record<string, unknown>,
-              propertyPath,
-            );
-            if (value !== undefined && value !== null) {
-              // Flatten arrays: if value is an array, add each element separately
-              if (Array.isArray(value)) {
-                for (const element of value) {
-                  if (element !== undefined && element !== null) {
-                    values.push(String(element));
-                  }
-                }
-              } else {
-                values.push(String(value));
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return values;
-  }
-
-  /**
-   * Gets a nested value from an object using dot notation.
-   */
-  private getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-    const segments = path.split(".");
-    let current: unknown = obj;
-
-    for (const segment of segments) {
-      if (current && typeof current === "object") {
-        current = (current as Record<string, unknown>)[segment];
-      } else {
-        return undefined;
-      }
-    }
-
-    return current;
   }
 
   /**

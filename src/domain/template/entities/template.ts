@@ -5,7 +5,6 @@ import {
   ItemsDetectionResult,
   ItemsDetector,
 } from "../services/items-detector.ts";
-import { VariableResolver } from "../../../../sub_modules/json-template/src/variable-resolver.ts";
 
 /**
  * Template content types supported by the system
@@ -193,7 +192,6 @@ export class Template {
 
   /**
    * Creates a new template with resolved variables.
-   * Uses sub_modules/json-template for variable substitution.
    * Variables are in the format {variable.path} or ${variable.path}.
    *
    * @param variables - Data to use for variable resolution
@@ -204,13 +202,12 @@ export class Template {
     schema?: Record<string, unknown>,
   ): Result<Template, TemplateError> {
     try {
-      const resolver = new VariableResolver(variables);
       const frontmatterProperty = schema
         ? this.findFrontmatterPartProperty(schema)
         : "items";
       const resolvedContent = this.resolveObject(
         this.data.content,
-        resolver,
+        variables,
         frontmatterProperty,
       );
       const resolvedData: TemplateData = {
@@ -306,17 +303,17 @@ export class Template {
   }
 
   /**
-   * Recursively resolves variables in an object using VariableResolver.
+   * Recursively resolves variables in an object.
    */
   private resolveObject(
     obj: unknown,
-    resolver: VariableResolver,
+    variables: Record<string, unknown>,
     frontmatterProperty: string,
   ): unknown {
     if (typeof obj === "string") {
       const resolved = this.resolveStringVariables(
         obj,
-        resolver,
+        variables,
         frontmatterProperty,
       );
       // resolveStringVariables can return non-string for {@items}
@@ -325,7 +322,7 @@ export class Template {
 
     if (Array.isArray(obj)) {
       return obj.map((item) =>
-        this.resolveObject(item, resolver, frontmatterProperty)
+        this.resolveObject(item, variables, frontmatterProperty)
       );
     }
 
@@ -336,7 +333,7 @@ export class Template {
       ) {
         resolved[key] = this.resolveObject(
           value,
-          resolver,
+          variables,
           frontmatterProperty,
         );
       }
@@ -347,26 +344,23 @@ export class Template {
   }
 
   /**
-   * Resolves variables in a string using VariableResolver from json-template module.
+   * Resolves variables in a string.
    * Supports both {variable.path} and ${variable.path} syntax.
    * Special handling for {@items} which is replaced with frontmatter property array.
    *
    * @param str - String to resolve variables in
-   * @param resolver - VariableResolver instance
+   * @param variables - Variable data
    * @param frontmatterProperty - Property name from schema (e.g., "traceability", "items")
    */
   private resolveStringVariables(
     str: string,
-    resolver: VariableResolver,
+    variables: Record<string, unknown>,
     frontmatterProperty: string,
   ): string | unknown {
     // Special handling for {@items} - use schema property name
     if (str === "{@items}") {
-      try {
-        return resolver.resolve(frontmatterProperty);
-      } catch {
-        return str; // Keep original if property not found
-      }
+      const value = this.resolveVariablePath(variables, frontmatterProperty);
+      return value !== undefined ? value : str;
     }
 
     // Check if the entire string is a single variable placeholder
@@ -377,25 +371,18 @@ export class Template {
 
       // Special handling for @items - use schema property name
       if (variablePath === "@items") {
-        try {
-          return resolver.resolve(frontmatterProperty);
-        } catch {
-          return str; // Keep original if property not found
-        }
+        const value = this.resolveVariablePath(variables, frontmatterProperty);
+        return value !== undefined ? value : str;
       }
 
-      try {
-        const value = resolver.resolve(variablePath);
-        // If using ${} syntax, always convert to string (template literal behavior)
-        // If using {} syntax without $, preserve type for JSON templates
-        if (dollarPrefix === "$") {
-          return value !== undefined && value !== null ? String(value) : str;
-        } else {
-          // Return the raw value to preserve its type (array, object, etc.)
-          return value !== undefined ? value : str;
-        }
-      } catch {
-        return str; // Keep original if variable resolution fails
+      const value = this.resolveVariablePath(variables, variablePath);
+      // If using ${} syntax, always convert to string (template literal behavior)
+      // If using {} syntax without $, preserve type for JSON templates
+      if (dollarPrefix === "$") {
+        return value !== undefined && value !== null ? String(value) : str;
+      } else {
+        // Return the raw value to preserve its type (array, object, etc.)
+        return value !== undefined ? value : str;
       }
     }
 
@@ -403,20 +390,102 @@ export class Template {
     return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
       // Skip @items pattern in embedded context
       if (variablePath.trim() === "@items") {
-        try {
-          const items = resolver.resolve("items");
-          return Array.isArray(items) ? JSON.stringify(items) : match;
-        } catch {
-          return match;
-        }
+        const items = this.resolveVariablePath(variables, "items");
+        return Array.isArray(items) ? JSON.stringify(items) : match;
       }
 
-      try {
-        const value = resolver.resolve(variablePath.trim());
-        return value !== undefined && value !== null ? String(value) : match;
-      } catch {
-        return match; // Keep original if variable resolution fails
-      }
+      const value = this.resolveVariablePath(variables, variablePath.trim());
+      return value !== undefined && value !== null ? String(value) : match;
     });
+  }
+
+  /**
+   * Resolves a variable path to its value.
+   * Supports dot notation (object.property) and array access (array[0]).
+   *
+   * @param data - Data object to resolve from
+   * @param path - Variable path (e.g., "user.name", "items[0].title")
+   * @returns The resolved value or undefined if not found
+   */
+  private resolveVariablePath(
+    data: unknown,
+    path: string,
+  ): unknown {
+    if (!path || data === null || data === undefined) {
+      return undefined;
+    }
+
+    // Handle simple property access (no dots or brackets)
+    if (!path.includes(".") && !path.includes("[")) {
+      return this.isValidObject(data) ? data[path] : undefined;
+    }
+
+    // Parse path segments
+    const segments = this.parseVariablePath(path);
+    let current: unknown = data;
+
+    for (const segment of segments) {
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+
+      if (Array.isArray(current)) {
+        const index = parseInt(segment, 10);
+        if (isNaN(index) || index < 0 || index >= current.length) {
+          return undefined;
+        }
+        current = current[index];
+      } else if (this.isValidObject(current)) {
+        current = current[segment];
+      } else {
+        return undefined;
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Parses a variable path into segments.
+   * Supports dot notation and array brackets.
+   *
+   * @param path - Path string (e.g., "user.items[0].name")
+   * @returns Array of path segments
+   */
+  private parseVariablePath(path: string): string[] {
+    const segments: string[] = [];
+    let current = "";
+    let inBrackets = false;
+
+    for (let i = 0; i < path.length; i++) {
+      const char = path[i];
+
+      if (char === "[") {
+        if (current) {
+          segments.push(current);
+          current = "";
+        }
+        inBrackets = true;
+      } else if (char === "]") {
+        if (inBrackets && current) {
+          segments.push(current);
+          current = "";
+        }
+        inBrackets = false;
+      } else if (char === "." && !inBrackets) {
+        if (current) {
+          segments.push(current);
+          current = "";
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      segments.push(current);
+    }
+
+    return segments;
   }
 }

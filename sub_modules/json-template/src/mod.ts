@@ -3,10 +3,22 @@
  *
  * A module for processing JSON templates with variable substitution support.
  * Supports dot notation and array access for complex data structures.
+ *
+ * Public API:
+ * - createTemplateProcessor(): Factory function to create a processor instance
+ * - JsonTemplateProcessor: Interface for the processor
+ * - Error classes: For error handling
+ * - Type definitions: For TypeScript support
+ *
+ * Internal implementation classes (JsonTemplateProcessorImpl, VariableResolver)
+ * are not exported to maintain proper encapsulation.
  */
 
-export { JsonTemplateProcessorImpl } from "./template-processor.ts";
-export { VariableResolver } from "./variable-resolver.ts";
+// Internal imports - not exported
+import type { JsonTemplateProcessor } from "./types.ts";
+import { JsonTemplateProcessorImpl } from "./template-processor.ts";
+
+// Public API: Error classes
 export {
   InvalidJsonError,
   JsonTemplateError,
@@ -14,6 +26,8 @@ export {
   TemplateReadError,
   VariableNotFoundError,
 } from "./errors.ts";
+
+// Public API: Type definitions
 export type {
   JsonTemplateProcessor,
   ProcessingResult,
@@ -21,11 +35,7 @@ export type {
   VariableValue,
 } from "./types.ts";
 
-// Import for internal use
-import type { JsonTemplateProcessor } from "./types.ts";
-import { JsonTemplateProcessorImpl } from "./template-processor.ts";
-
-// Convenience factory function
+// Public API: Factory function (recommended entry point)
 export function createTemplateProcessor(): JsonTemplateProcessor {
   return new JsonTemplateProcessorImpl();
 }
