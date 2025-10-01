@@ -26,7 +26,11 @@ export class SchemaTemplateResolver {
     schema: Schema,
   ): Result<TemplateHandoffContext, DomainError> {
     try {
-      const schemaData = schema.getData();
+      const schemaDataResult = schema.getData();
+      if (schemaDataResult.isError()) {
+        return Result.error(schemaDataResult.unwrapError());
+      }
+      const schemaData = schemaDataResult.unwrap();
 
       // Extract template references from root level
       const containerTemplateResult = this.extractContainerTemplate(schemaData);

@@ -124,15 +124,20 @@ export class Schema {
   }
 
   /**
-   * Returns the schema data if resolved, otherwise throws an error.
+   * Returns the schema data if resolved, otherwise returns an error.
+   * Follows the Totality Principle by returning Result<T, E>.
    */
-  getData(): SchemaData {
+  getData(): Result<SchemaData, SchemaError> {
     if (this.state.kind !== "Resolved") {
-      throw new Error(
-        `Schema is not resolved (current state: ${this.state.kind})`,
+      return Result.error(
+        new SchemaError(
+          `Schema is not resolved (current state: ${this.state.kind})`,
+          "INVALID_STATE",
+          { state: this.state.kind },
+        ),
       );
     }
-    return this.state.schema;
+    return Result.ok(this.state.schema);
   }
 
   /**
