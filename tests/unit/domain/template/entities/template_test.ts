@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import {
   Template,
   TemplateData,
@@ -104,11 +104,27 @@ Deno.test("Template - getNestedProperty retrieves nested values", () => {
   const data = createValidTemplateData();
   const template = Template.create(path, data).unwrap();
 
-  assertEquals(template.getNestedProperty("title"), "Test Template");
-  assertEquals(template.getNestedProperty("metadata.version"), "1.0");
-  assertEquals(template.getNestedProperty("metadata.author"), "Test Author");
-  assertEquals(template.getNestedProperty("nonexistent"), undefined);
-  assertEquals(template.getNestedProperty("metadata.nonexistent"), undefined);
+  const titleResult = template.getNestedProperty("title");
+  assertEquals(titleResult.isOk(), true);
+  assertEquals(titleResult.unwrap(), "Test Template");
+
+  const versionResult = template.getNestedProperty("metadata.version");
+  assertEquals(versionResult.isOk(), true);
+  assertEquals(versionResult.unwrap(), "1.0");
+
+  const authorResult = template.getNestedProperty("metadata.author");
+  assertEquals(authorResult.isOk(), true);
+  assertEquals(authorResult.unwrap(), "Test Author");
+
+  const nonexistentResult = template.getNestedProperty("nonexistent");
+  assertEquals(nonexistentResult.isOk(), true);
+  assertEquals(nonexistentResult.unwrap(), undefined);
+
+  const metaNonexistentResult = template.getNestedProperty(
+    "metadata.nonexistent",
+  );
+  assertEquals(metaNonexistentResult.isOk(), true);
+  assertEquals(metaNonexistentResult.unwrap(), undefined);
 });
 
 Deno.test("Template - hasItemsExpansion detects {@items} patterns", () => {
@@ -162,13 +178,13 @@ Deno.test("Template - resolveVariables substitutes variables correctly", () => {
   assertEquals(result.isOk(), true);
   const resolved = result.unwrap();
 
-  assertEquals(resolved.getNestedProperty("title"), "Resolved Title");
+  assertEquals(resolved.getNestedProperty("title").unwrap(), "Resolved Title");
   assertEquals(
-    resolved.getNestedProperty("description"),
+    resolved.getNestedProperty("description").unwrap(),
     "Template for TestEntity",
   );
-  assertEquals(resolved.getNestedProperty("config.version"), "2.0.1");
-  assertEquals(resolved.getNestedProperty("config.debug"), "true");
+  assertEquals(resolved.getNestedProperty("config.version").unwrap(), "2.0.1");
+  assertEquals(resolved.getNestedProperty("config.debug").unwrap(), "true");
 });
 
 Deno.test("Template - resolveVariables handles missing variables gracefully", () => {
@@ -186,12 +202,15 @@ Deno.test("Template - resolveVariables handles missing variables gracefully", ()
   assertEquals(result.isOk(), true);
   const resolved = result.unwrap();
 
-  assertEquals(resolved.getNestedProperty("title"), "Resolved Title");
+  assertEquals(resolved.getNestedProperty("title").unwrap(), "Resolved Title");
   assertEquals(
-    resolved.getNestedProperty("description"),
+    resolved.getNestedProperty("description").unwrap(),
     "Template for ${entity.name}",
   );
-  assertEquals(resolved.getNestedProperty("config.version"), "${app.version}");
+  assertEquals(
+    resolved.getNestedProperty("config.version").unwrap(),
+    "${app.version}",
+  );
 });
 
 Deno.test("Template - resolveVariables handles nested arrays", () => {
@@ -217,7 +236,7 @@ Deno.test("Template - resolveVariables handles nested arrays", () => {
   assertEquals(result.isOk(), true);
   const resolved = result.unwrap();
 
-  const items = resolved.getNestedProperty("items") as unknown[];
+  const items = resolved.getNestedProperty("items").unwrap() as unknown[];
   assertEquals(items[0], "TestItem");
   assertEquals((items[1] as any).type, "string");
   assertEquals((items[1] as any).value, "test_value");
@@ -314,14 +333,20 @@ Deno.test("Template - complex variable resolution scenario", () => {
   assertEquals(result.isOk(), true);
   const resolved = result.unwrap();
 
-  assertEquals(resolved.getNestedProperty("header.title"), "Complex Document");
-  assertEquals(resolved.getNestedProperty("header.metadata.version"), "3.0.0");
   assertEquals(
-    resolved.getNestedProperty("header.metadata.created"),
+    resolved.getNestedProperty("header.title").unwrap(),
+    "Complex Document",
+  );
+  assertEquals(
+    resolved.getNestedProperty("header.metadata.version").unwrap(),
+    "3.0.0",
+  );
+  assertEquals(
+    resolved.getNestedProperty("header.metadata.created").unwrap(),
     "2024-01-01T00:00:00Z",
   );
 
-  const body = resolved.getNestedProperty("body") as unknown[];
+  const body = resolved.getNestedProperty("body").unwrap() as unknown[];
   assertEquals((body[0] as any).section, "Introduction");
   assertEquals((body[0] as any).content, "Welcome to the document");
   assertEquals(body[1], "Static content");

@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Check if there are any RELEASE branch issues
-scripts/check-release-issue.sh > /dev/null 2>&1
+scripts/check-release-issue.sh
 exit_status=$?
 
 # Check if there are 5 or more open issues
-scripts/check-issue-count.sh > /dev/null 2>&1
+scripts/check-issue-count.sh
 issue_count_status=$?
 
 
@@ -19,3 +19,4 @@ else
     # No release issue and less than 5 issues - block with instruction
     echo '{"decision": "block", "reason": "Run `inspector-debug analyze-deep project-issues`. After running the inspector-debug, follow the instruction."}'
 fi
+exit 2

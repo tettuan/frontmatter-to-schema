@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 import { ItemsDetector } from "../../../../../src/domain/template/services/items-detector.ts";

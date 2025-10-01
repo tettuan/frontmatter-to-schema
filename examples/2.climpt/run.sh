@@ -3,12 +3,22 @@
 # Climpt Registry Example Runner
 # Processes .agent/climpt/prompts with climpt registry schema
 
+set -e
+
 echo "=== Climpt Registry Processing ==="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CLI="$PROJECT_ROOT/cli.ts"
+
+# Change to project root for execution
+cd "$PROJECT_ROOT"
+
 # Test configuration
-REGISTRY_SCHEMA="./examples/2.climpt/registry_schema.json"
-OUTPUT_FILE="./examples/2.climpt/climpt-registry-output.json"
-PROMPTS_DIR="./examples/2.climpt/prompts"
+REGISTRY_SCHEMA="examples/2.climpt/registry_schema.json"
+OUTPUT_FILE="examples/2.climpt/climpt-registry-output.json"
+PROMPTS_DIR="examples/2.climpt/prompts"
 
 # Create tmp directory if it doesn't exist
 mkdir -p tmp
@@ -20,9 +30,9 @@ echo "Output: $OUTPUT_FILE"
 echo
 
 # Execute frontmatter-to-schema command with new CLI interface
-FRONTMATTER_TO_SCHEMA_TEST_MODE=true ./cli.ts \
+FRONTMATTER_TO_SCHEMA_TEST_MODE=true "$CLI" \
   "$REGISTRY_SCHEMA" \
-  "$PROMPTS_DIR/**/*.md" \
+  "$PROMPTS_DIR" \
   "$OUTPUT_FILE" \
   --verbose
 

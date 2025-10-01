@@ -1,77 +1,104 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { FlattenArraysDirective } from "../../../../../src/domain/schema/value-objects/flatten-arrays-directive.ts";
 
-Deno.test("FlattenArraysDirective - create with valid properties", () => {
-  const result = FlattenArraysDirective.create("items", "traceability");
+Deno.test("FlattenArraysDirective - create with valid property name", () => {
+  const result = FlattenArraysDirective.create("traceability");
 
   assertEquals(result.isOk(), true);
   const directive = result.unwrap();
-  assertEquals(directive.getTargetPropertyName(), "items");
-  assertEquals(directive.getSourcePropertyName(), "traceability");
+  assertEquals(directive.getPropertyName(), "traceability");
 });
 
-Deno.test("FlattenArraysDirective - reject empty target property", () => {
-  const result = FlattenArraysDirective.create("", "traceability");
+Deno.test("FlattenArraysDirective - reject empty property name", () => {
+  const result = FlattenArraysDirective.create("");
 
   assertEquals(result.isError(), true);
-  assertEquals(result.unwrapError().code, "EMPTY_TARGET_PROPERTY");
+  assertEquals(result.unwrapError().code, "EMPTY_PROPERTY_NAME");
 });
 
-Deno.test("FlattenArraysDirective - reject empty source property", () => {
-  const result = FlattenArraysDirective.create("items", "");
+Deno.test("FlattenArraysDirective - reject whitespace-only property name", () => {
+  const result = FlattenArraysDirective.create("  ");
 
   assertEquals(result.isError(), true);
-  assertEquals(result.unwrapError().code, "EMPTY_SOURCE_PROPERTY");
+  assertEquals(result.unwrapError().code, "EMPTY_PROPERTY_NAME");
 });
 
-Deno.test("FlattenArraysDirective - reject whitespace-only properties", () => {
-  const targetResult = FlattenArraysDirective.create("  ", "traceability");
-  const sourceResult = FlattenArraysDirective.create("items", "  ");
+Deno.test("FlattenArraysDirective - apply flattens nested arrays", () => {
+  const directive = FlattenArraysDirective.create("traceability").unwrap();
 
-  assertEquals(targetResult.isError(), true);
-  assertEquals(sourceResult.isError(), true);
+  const data = {
+    title: "Test",
+    traceability: ["A", ["B", "C"], [["D"]]],
+  };
+
+  const result = directive.apply(data);
+  assertEquals(result.traceability, ["A", "B", "C", "D"]);
+  assertEquals(result.title, "Test");
 });
 
-Deno.test("FlattenArraysDirective - isApplicable returns true for valid directive", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability")
-    .unwrap();
+Deno.test("FlattenArraysDirective - apply wraps single value in array", () => {
+  const directive = FlattenArraysDirective.create("traceability").unwrap();
 
-  assertEquals(directive.isApplicable(), true);
+  const data = {
+    title: "Test",
+    traceability: "single-value",
+  };
+
+  const result = directive.apply(data);
+  assertEquals(result.traceability, ["single-value"]);
+  assertEquals(result.title, "Test");
 });
 
-Deno.test("FlattenArraysDirective - createOptional creates optional directive", () => {
-  const result = FlattenArraysDirective.createOptional("items", "traceability");
+Deno.test("FlattenArraysDirective - apply handles undefined property", () => {
+  const directive = FlattenArraysDirective.create("traceability").unwrap();
 
-  assertEquals(result.isOk(), true);
-  const directive = result.unwrap();
-  assertEquals(directive.isOptional(), true);
+  const data = {
+    title: "Test",
+  };
+
+  const result = directive.apply(data);
+  assertEquals(result.traceability, []);
+  assertEquals(result.title, "Test");
 });
 
-Deno.test("FlattenArraysDirective - default directive is not optional", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability")
-    .unwrap();
+Deno.test("FlattenArraysDirective - apply handles null property", () => {
+  const directive = FlattenArraysDirective.create("traceability").unwrap();
 
-  assertEquals(directive.isOptional(), false);
+  const data = {
+    title: "Test",
+    traceability: null,
+  };
+
+  const result = directive.apply(data);
+  assertEquals(result.traceability, []);
+  assertEquals(result.title, "Test");
+});
+
+Deno.test("FlattenArraysDirective - apply handles already flat array", () => {
+  const directive = FlattenArraysDirective.create("items").unwrap();
+
+  const data = {
+    items: ["A", "B", "C"],
+  };
+
+  const result = directive.apply(data);
+  assertEquals(result.items, ["A", "B", "C"]);
 });
 
 Deno.test("FlattenArraysDirective - equals compares directives correctly", () => {
-  const directive1 = FlattenArraysDirective.create("items", "traceability")
-    .unwrap();
-  const directive2 = FlattenArraysDirective.create("items", "traceability")
-    .unwrap();
-  const directive3 = FlattenArraysDirective.create("items", "different")
-    .unwrap();
+  const directive1 = FlattenArraysDirective.create("traceability").unwrap();
+  const directive2 = FlattenArraysDirective.create("traceability").unwrap();
+  const directive3 = FlattenArraysDirective.create("items").unwrap();
 
   assertEquals(directive1.equals(directive2), true);
   assertEquals(directive1.equals(directive3), false);
 });
 
 Deno.test("FlattenArraysDirective - toString provides readable representation", () => {
-  const directive = FlattenArraysDirective.create("items", "traceability")
-    .unwrap();
+  const directive = FlattenArraysDirective.create("traceability").unwrap();
 
   assertEquals(
     directive.toString(),
-    "FlattenArraysDirective(target: items, source: traceability, optional: false)",
+    'x-flatten-arrays: "traceability"',
   );
 });

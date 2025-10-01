@@ -151,15 +151,6 @@ gh issue list --state open --label "high-priority" --json number | jq length
 
 ## Integration
 
-### Pre-commit Hook
-
-```bash
-# Add to .git/hooks/pre-commit
-#!/bin/bash
-cd docs/tests/debugs
-./01-quality-assurance/01-false-resolution-detection.workflow.md
-```
-
 ### GitHub Actions
 
 ```yaml
@@ -178,9 +169,8 @@ jobs:
 
 ### Development Workflow
 
-1. **Before commit**: Run quality assurance workflows
-2. **Before merge**: Run architecture compliance workflows
-3. **Before release**: Run feature implementation workflows
+1. **Before merge**: Run architecture compliance workflows
+2. **Before release**: Run feature implementation workflows
 
 ## Output Locations
 

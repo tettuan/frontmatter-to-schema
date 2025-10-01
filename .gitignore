@@ -157,3 +157,4 @@ cov_profile/
 # Examples output files
 examples/**/output.json
 examples/**/*output*.json
+

@@ -41,6 +41,9 @@ export class Result<T, E> {
   /**
    * Unwraps the success value. Throws if this is an error result.
    * Use this only when you're certain the result is successful.
+   *
+   * @deprecated For totality compliance, use unwrapOr(), unwrapOrElse(), or getValue() instead.
+   * This method violates totality principles by throwing exceptions.
    */
   unwrap(): T {
     if (!this._isOk) {
@@ -52,12 +55,59 @@ export class Result<T, E> {
   /**
    * Unwraps the error value. Throws if this is a success result.
    * Use this only when you're certain the result is an error.
+   *
+   * @deprecated For totality compliance, use getError() instead.
+   * This method violates totality principles by throwing exceptions.
    */
   unwrapError(): E {
     if (this._isOk) {
       throw new Error("Result is not an error");
     }
     return this._error!;
+  }
+
+  /**
+   * Safely unwraps the success value, returning the provided default if this is an error.
+   * This method complies with totality principles and never throws.
+   */
+  unwrapOr(defaultValue: T): T {
+    if (this._isOk) {
+      return this._value!;
+    }
+    return defaultValue;
+  }
+
+  /**
+   * Safely unwraps the success value, computing a default using the provided function if this is an error.
+   * This method complies with totality principles and never throws.
+   */
+  unwrapOrElse(fn: (error: E) => T): T {
+    if (this._isOk) {
+      return this._value!;
+    }
+    return fn(this._error!);
+  }
+
+  /**
+   * Safely attempts to get the success value. Returns undefined if this is an error.
+   * This method complies with totality principles and never throws.
+   */
+  getValue(): T | undefined {
+    if (this._isOk) {
+      return this._value!;
+    }
+    return undefined;
+  }
+
+  /**
+   * Safely attempts to get the error value. Returns undefined if this is a success.
+   * This method complies with totality principles and never throws.
+   */
+  getError(): E | undefined {
+    if (!this._isOk) {
+      return this._error!;
+    }
+    return undefined;
   }
 
   /**

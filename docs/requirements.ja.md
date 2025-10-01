@@ -289,6 +289,46 @@ Schemaのroot階層は、"x-template" と並列の"properties"を起点とする
 
 である。
 
+### テンプレート処理実装: sub_modules/json-template モジュールの使用
+
+`x-template-items`で指定されたテンプレートファイルの変数置換処理には、`sub_modules/json-template`モジュールを使用する。
+
+#### モジュールの責任範囲
+
+**json-templateモジュール:**
+
+- `{variable.path}` 形式の変数置換
+- ドット記法による階層データアクセス
+- 配列要素への直接アクセス (`{items[0].name}`)
+- テンプレートファイルの読み込みとJSON解析
+- 変数解決エラーの詳細な報告
+
+**フロントマターシステム:**
+
+- `{@items}` 記法による配列展開制御
+- `x-frontmatter-part: true` データの統合処理
+- 各配列要素へのテンプレート適用反復
+- 最終的な出力フォーマット統合
+
+#### 統合処理の流れ
+
+1. **データ準備**: `x-frontmatter-part: true`配列から統合データを生成
+2. **個別処理**: 各配列要素に対して：
+   ```typescript
+   import { createTemplateProcessor } from "./sub_modules/json-template/mod.ts";
+   const processor = createTemplateProcessor();
+   const result = await processor.process(itemData, templateFilePath);
+   ```
+3. **結果統合**: 全ての処理結果を`{@items}`位置に挿入
+
+#### 制約事項
+
+- **テンプレートはファイル形式必須**: インメモリ文字列テンプレートは未対応
+- **JSON出力限定**: テンプレート結果は有効なJSON構造である必要
+- **`{@items}`は外部実装**: json-templateモジュール自体は配列展開機能を持たない
+
+この設計により、汎用的なテンプレート処理機能を再利用しつつ、フロントマター固有の要件を満たすことができる。
+
 ## データ抽出・変換ディレクティブ
 
 Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス。
@@ -349,6 +389,95 @@ Schemaで使用可能な`x-*`ディレクティブの完全なリファレンス
 2. **アイテム展開**: `{@items}`を`x-template-items`で展開
 3. **変数置換**: `{variable.path}`形式の変数を実際の値に置換
 4. **最終出力**: 完成したフォーマットの出力
+
+### パス解決実装: sub_modules/data-path-resolver モジュールの使用
+
+**重要**: このモジュールは **`x-derived-from`ディレクティブ専用**
+です。テンプレート変数（`{variable.path}`）の解決には使用しません（json-templateを使用）。
+
+`x-derived-from`ディレクティブで指定されたパス式の解決には、`sub_modules/data-path-resolver`モジュールを使用する。
+
+#### モジュールの責任範囲
+
+**data-path-resolverモジュール:**
+
+- ドット記法によるネストアクセス (`user.profile.name`)
+- 配列インデックスアクセス (`items[0]`)
+- 配列展開構文 (`items[]` - 配列の各要素を収集)
+- プロパティ付き配列展開 (`items[].name` - 各要素のプロパティを収集)
+- 二重展開によるフラット化 (`articles[].tags[]` - ネスト配列を自動フラット化)
+- `Result<T, E>` パターンによる型安全なエラーハンドリング
+
+**フロントマターシステム:**
+
+- `x-derived-from` ディレクティブの処理制御
+- `x-flatten-arrays` によるフロントマター内部の配列フラット化
+- 複数ファイルからのデータ統合
+- `x-derived-unique` による重複削除
+
+#### モジュール責任の明確な区別
+
+| 項目             | data-path-resolver                       | json-template                            |
+| ---------------- | ---------------------------------------- | ---------------------------------------- |
+| **適用フェーズ** | フェーズ2（全体統合）                    | フェーズ3（テンプレート展開）            |
+| **処理対象**     | `x-derived-from` ディレクティブのパス式  | テンプレート内の `{variable.path}`       |
+| **配列展開構文** | ✅ サポート (`items[]`)                  | ❌ サポート外                            |
+| **使用場所**     | schema-directive-processor.ts            | template.ts (resolveVariables)           |
+| **独立性**       | 完全独立（他サブモジュールに依存しない） | 完全独立（他サブモジュールに依存しない） |
+
+**重要な相違点**:
+
+- `x-derived-from: "commands[].c1"` → data-path-resolver が処理（配列展開あり）
+- テンプレート内 `{commands[0].c1}` → json-template
+  が処理（配列展開なし、インデックス指定のみ）
+
+#### 統合処理の流れ
+
+フェーズ2（全体統合）の集約処理において、以下のように使用される：
+
+1. **パス式の指定**: Schema内の `x-derived-from` で収集元パスを指定
+   ```json
+   {
+     "availableConfigs": {
+       "type": "array",
+       "x-derived-from": "commands[].c1"
+     }
+   }
+   ```
+
+2. **パス解決の実行**: data-path-resolver がパス式を解析して値を抽出
+   ```typescript
+   import { DataPathResolver } from "./sub_modules/data-path-resolver/mod.ts";
+   const resolver = new DataPathResolver(aggregatedData);
+   const result = resolver.resolveAsArray("commands[].c1");
+   ```
+
+3. **結果の統合**: 抽出された値を Schema で指定されたプロパティに設定
+
+**注意**: このプロセスは **フェーズ2（全体統合）専用**
+です。フェーズ3のテンプレート変数解決（`{variable.path}`）には json-template
+を使用し、data-path-resolver は使用しません。
+
+#### Issue #1217 の解決
+
+data-path-resolver の二重展開構文 (`articles[].tags[]`)
+により、YAML配列レンダリング時の配列のフラット化不足問題を解決する。
+
+```typescript
+// データ
+{
+  articles: [
+    { tags: ["AI", "Cursor"] },
+    { tags: ["Claude"] },
+  ];
+}
+
+// パス式: "articles[].tags[]"
+// 結果: ["AI", "Cursor", "Claude"]  ✅ 自動フラット化
+```
+
+この機能により、Schema定義で `"x-derived-from": "articles[].tags[]"`
+と指定するだけで、ネストした配列構造を自動的にフラット化できる。
 
 ### パス記法の詳細
 

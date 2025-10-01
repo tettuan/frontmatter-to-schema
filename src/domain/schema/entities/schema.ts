@@ -1,4 +1,7 @@
 import { SchemaPath } from "../value-objects/schema-path.ts";
+import { Result } from "../../shared/types/result.ts";
+import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Schema identifier value object.
@@ -6,8 +9,39 @@ import { SchemaPath } from "../value-objects/schema-path.ts";
 export class SchemaId {
   private constructor(private readonly value: string) {}
 
-  static create(name: string): SchemaId {
-    return new SchemaId(name);
+  static create(name: string): Result<SchemaId, SchemaError> {
+    if (!name || typeof name !== "string") {
+      return Result.error(
+        new SchemaError(
+          "Schema ID must be a non-empty string",
+          "INVALID_SCHEMA_ID",
+          { name, type: typeof name },
+        ),
+      );
+    }
+
+    const trimmed = name.trim();
+    if (trimmed.length === 0) {
+      return Result.error(
+        new SchemaError(
+          "Schema ID cannot be empty or whitespace only",
+          "INVALID_SCHEMA_ID",
+          { name, trimmed },
+        ),
+      );
+    }
+
+    if (trimmed.length < 3) {
+      return Result.error(
+        new SchemaError(
+          "Schema ID must be at least 3 characters long",
+          "INVALID_SCHEMA_ID",
+          { name, length: trimmed.length, minimum: 3 },
+        ),
+      );
+    }
+
+    return Result.ok(new SchemaId(trimmed));
   }
 
   getValue(): string {
@@ -38,9 +72,9 @@ export type SchemaState =
 export interface SchemaData {
   readonly type: string;
   readonly properties?: Record<string, unknown>;
-  readonly "x-template"?: string;
-  readonly "x-template-items"?: string;
-  readonly "x-template-format"?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE]?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE_ITEMS]?: string;
+  readonly [DIRECTIVE_NAMES.TEMPLATE_FORMAT]?: string;
   [key: string]: unknown;
 }
 
@@ -80,6 +114,30 @@ export class Schema {
    */
   isLoaded(): boolean {
     return this.state.kind === "Resolved";
+  }
+
+  /**
+   * Returns the schema path.
+   */
+  getPath(): SchemaPath {
+    return this.state.path;
+  }
+
+  /**
+   * Returns the schema data if resolved, otherwise returns an error.
+   * Follows the Totality Principle by returning Result<T, E>.
+   */
+  getData(): Result<SchemaData, SchemaError> {
+    if (this.state.kind !== "Resolved") {
+      return Result.error(
+        new SchemaError(
+          `Schema is not resolved (current state: ${this.state.kind})`,
+          "INVALID_STATE",
+          { state: this.state.kind },
+        ),
+      );
+    }
+    return Result.ok(this.state.schema);
   }
 
   /**
@@ -140,12 +198,12 @@ export class Schema {
       }
 
       // Check nested properties
-      if (typeof property === "object" && property !== null) {
-        const propObj = property as Record<string, unknown>;
+      if (this.isValidPropertyObject(property)) {
         if (
-          propObj.properties &&
+          property.properties &&
+          this.isValidPropertyObject(property.properties) &&
           this.hasXFrontmatterPartInProperties(
-            propObj.properties as Record<string, unknown>,
+            property.properties,
           )
         ) {
           return true;
@@ -157,14 +215,23 @@ export class Schema {
   }
 
   /**
+   * Type guard to check if a value is a valid property object.
+   */
+  private isValidPropertyObject(
+    property: unknown,
+  ): property is Record<string, unknown> {
+    return property !== null && typeof property === "object" &&
+      !Array.isArray(property);
+  }
+
+  /**
    * Checks if a property object has x-frontmatter-part directive.
    */
   private isPropertyWithDirective(property: unknown): boolean {
-    if (typeof property !== "object" || property === null) {
+    if (!this.isValidPropertyObject(property)) {
       return false;
     }
 
-    const propObj = property as Record<string, unknown>;
-    return propObj["x-frontmatter-part"] === true;
+    return property[DIRECTIVE_NAMES.FRONTMATTER_PART] === true;
   }
 }

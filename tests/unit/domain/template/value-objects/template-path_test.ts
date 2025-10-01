@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 
 Deno.test("TemplatePath - create with valid JSON template path", () => {
@@ -15,11 +15,17 @@ Deno.test("TemplatePath - create with absolute path", () => {
   assertEquals(result.unwrap().toString(), "/absolute/path/template.json");
 });
 
-Deno.test("TemplatePath - reject non-JSON extension", () => {
-  const result = TemplatePath.create("template.yaml");
+Deno.test("TemplatePath - accept JSON and YAML extensions", () => {
+  const jsonResult = TemplatePath.create("template.json");
+  const yamlResult = TemplatePath.create("template.yaml");
+  const ymlResult = TemplatePath.create("template.yml");
+  const invalidResult = TemplatePath.create("template.txt");
 
-  assertEquals(result.isError(), true);
-  assertEquals(result.unwrapError().code, "INVALID_EXTENSION");
+  assertEquals(jsonResult.isOk(), true);
+  assertEquals(yamlResult.isOk(), true);
+  assertEquals(ymlResult.isOk(), true);
+  assertEquals(invalidResult.isError(), true);
+  assertEquals(invalidResult.unwrapError().code, "INVALID_EXTENSION");
 });
 
 Deno.test("TemplatePath - reject empty path", () => {

@@ -9,7 +9,7 @@ import {
 /**
  * Template content types supported by the system
  */
-export type TemplateFormat = "json" | "yaml";
+export type TemplateFormat = "json" | "yaml" | "xml" | "markdown";
 
 /**
  * Raw template data as loaded from file
@@ -74,29 +74,66 @@ export class Template {
    * Checks if the template contains a specific property.
    */
   hasProperty(propertyPath: string): boolean {
-    return this.getNestedProperty(propertyPath) !== undefined;
+    const result = this.getNestedProperty(propertyPath);
+    return result.isOk() && result.unwrap() !== undefined;
   }
 
   /**
    * Gets a nested property using dot notation (e.g., "metadata.title").
+   * Returns Result<T,E> following the Totality principle.
    */
-  getNestedProperty(propertyPath: string): unknown {
+  getNestedProperty(propertyPath: string): Result<unknown, TemplateError> {
+    if (!propertyPath || propertyPath.trim().length === 0) {
+      return Result.error(
+        new TemplateError(
+          "Property path cannot be empty",
+          "INVALID_PROPERTY_PATH",
+          { path: this.path.toString(), propertyPath },
+        ),
+      );
+    }
+
     const segments = propertyPath.split(".");
     let current: unknown = this.data.content;
 
     for (const segment of segments) {
-      if (
-        current === null ||
-        current === undefined ||
-        typeof current !== "object"
-      ) {
-        return undefined;
+      // Handle array indices
+      if (Array.isArray(current)) {
+        const index = parseInt(segment, 10);
+        if (isNaN(index) || index < 0 || index >= current.length) {
+          return Result.error(
+            new TemplateError(
+              `Invalid array index '${segment}' for array of length ${current.length}`,
+              "INVALID_ARRAY_INDEX",
+              {
+                path: this.path.toString(),
+                propertyPath,
+                segment,
+                arrayLength: current.length,
+              },
+            ),
+          );
+        }
+        current = current[index];
+      } else if (this.isValidObject(current)) {
+        current = current[segment];
+      } else {
+        return Result.error(
+          new TemplateError(
+            `Cannot access property '${segment}' on non-object value`,
+            "INVALID_PROPERTY_ACCESS",
+            {
+              path: this.path.toString(),
+              propertyPath,
+              segment,
+              currentType: typeof current,
+            },
+          ),
+        );
       }
-
-      current = (current as Record<string, unknown>)[segment];
     }
 
-    return current;
+    return Result.ok(current);
   }
 
   /**
@@ -155,13 +192,24 @@ export class Template {
 
   /**
    * Creates a new template with resolved variables.
-   * Variables are in the format ${variable.path} or ${variable}.
+   * Variables are in the format {variable.path} or ${variable.path}.
+   *
+   * @param variables - Data to use for variable resolution
+   * @param schema - Optional JSON Schema to determine frontmatter property name
    */
   resolveVariables(
     variables: Record<string, unknown>,
+    schema?: Record<string, unknown>,
   ): Result<Template, TemplateError> {
     try {
-      const resolvedContent = this.resolveObject(this.data.content, variables);
+      const frontmatterProperty = schema
+        ? this.findFrontmatterPartProperty(schema)
+        : "items";
+      const resolvedContent = this.resolveObject(
+        this.data.content,
+        variables,
+        frontmatterProperty,
+      );
       const resolvedData: TemplateData = {
         content: resolvedContent as Record<string, unknown>,
         format: this.data.format,
@@ -183,6 +231,33 @@ export class Template {
   }
 
   /**
+   * Finds the property name marked with x-frontmatter-part: true in schema.
+   * Returns "items" as default if not found or schema is invalid.
+   */
+  private findFrontmatterPartProperty(schema: Record<string, unknown>): string {
+    try {
+      if (!schema.properties || typeof schema.properties !== "object") {
+        return "items";
+      }
+
+      const properties = schema.properties as Record<string, unknown>;
+      for (const [propName, propSchema] of Object.entries(properties)) {
+        if (
+          propSchema &&
+          typeof propSchema === "object" &&
+          "x-frontmatter-part" in propSchema &&
+          propSchema["x-frontmatter-part"] === true
+        ) {
+          return propName;
+        }
+      }
+    } catch {
+      // If any error occurs during schema inspection, fall back to default
+    }
+    return "items";
+  }
+
+  /**
    * Returns a string representation of the template.
    */
   toString(): string {
@@ -200,6 +275,13 @@ export class Template {
   }
 
   /**
+   * Type guard to check if a value is a valid object for property access.
+   */
+  private isValidObject(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  /**
    * Recursively checks if an object contains {@items} patterns.
    */
   private containsItemsPattern(obj: unknown): boolean {
@@ -211,8 +293,8 @@ export class Template {
       return obj.some((item) => this.containsItemsPattern(item));
     }
 
-    if (obj && typeof obj === "object") {
-      return Object.values(obj as Record<string, unknown>).some((value) =>
+    if (this.isValidObject(obj)) {
+      return Object.values(obj).some((value) =>
         this.containsItemsPattern(value)
       );
     }
@@ -226,21 +308,34 @@ export class Template {
   private resolveObject(
     obj: unknown,
     variables: Record<string, unknown>,
+    frontmatterProperty: string,
   ): unknown {
     if (typeof obj === "string") {
-      return this.resolveStringVariables(obj, variables);
+      const resolved = this.resolveStringVariables(
+        obj,
+        variables,
+        frontmatterProperty,
+      );
+      // resolveStringVariables can return non-string for {@items}
+      return resolved;
     }
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.resolveObject(item, variables));
+      return obj.map((item) =>
+        this.resolveObject(item, variables, frontmatterProperty)
+      );
     }
 
-    if (obj && typeof obj === "object") {
+    if (this.isValidObject(obj)) {
       const resolved: Record<string, unknown> = {};
       for (
-        const [key, value] of Object.entries(obj as Record<string, unknown>)
+        const [key, value] of Object.entries(obj)
       ) {
-        resolved[key] = this.resolveObject(value, variables);
+        resolved[key] = this.resolveObject(
+          value,
+          variables,
+          frontmatterProperty,
+        );
       }
       return resolved;
     }
@@ -249,41 +344,148 @@ export class Template {
   }
 
   /**
-   * Resolves variables in a string using both {variable.path} and ${variable.path} syntax.
-   * Supports template examples which use {variable} format.
+   * Resolves variables in a string.
+   * Supports both {variable.path} and ${variable.path} syntax.
+   * Special handling for {@items} which is replaced with frontmatter property array.
+   *
+   * @param str - String to resolve variables in
+   * @param variables - Variable data
+   * @param frontmatterProperty - Property name from schema (e.g., "traceability", "items")
    */
   private resolveStringVariables(
     str: string,
     variables: Record<string, unknown>,
-  ): string {
+    frontmatterProperty: string,
+  ): string | unknown {
+    // Special handling for {@items} - use schema property name
+    if (str === "{@items}") {
+      const value = this.resolveVariablePath(variables, frontmatterProperty);
+      return value !== undefined ? value : str;
+    }
+
+    // Check if the entire string is a single variable placeholder
+    const singleVarMatch = str.match(/^(\$)?\{([^}]+)\}$/);
+    if (singleVarMatch) {
+      const dollarPrefix = singleVarMatch[1];
+      const variablePath = singleVarMatch[2].trim();
+
+      // Special handling for @items - use schema property name
+      if (variablePath === "@items") {
+        const value = this.resolveVariablePath(variables, frontmatterProperty);
+        return value !== undefined ? value : str;
+      }
+
+      const value = this.resolveVariablePath(variables, variablePath);
+      // If using ${} syntax, always convert to string (template literal behavior)
+      // If using {} syntax without $, preserve type for JSON templates
+      if (dollarPrefix === "$") {
+        return value !== undefined && value !== null ? String(value) : str;
+      } else {
+        // Return the raw value to preserve its type (array, object, etc.)
+        return value !== undefined ? value : str;
+      }
+    }
+
+    // For strings with embedded variables, replace them with string representations
     return str.replace(/\$?\{([^}]+)\}/g, (match, variablePath) => {
-      const value = this.getVariableValue(variablePath.trim(), variables);
-      return value !== undefined ? String(value) : match;
+      // Skip @items pattern in embedded context
+      if (variablePath.trim() === "@items") {
+        const items = this.resolveVariablePath(variables, "items");
+        return Array.isArray(items) ? JSON.stringify(items) : match;
+      }
+
+      const value = this.resolveVariablePath(variables, variablePath.trim());
+      return value !== undefined && value !== null ? String(value) : match;
     });
   }
 
   /**
-   * Gets a variable value using dot notation.
+   * Resolves a variable path to its value.
+   * Supports dot notation (object.property) and array access (array[0]).
+   *
+   * @param data - Data object to resolve from
+   * @param path - Variable path (e.g., "user.name", "items[0].title")
+   * @returns The resolved value or undefined if not found
    */
-  private getVariableValue(
+  private resolveVariablePath(
+    data: unknown,
     path: string,
-    variables: Record<string, unknown>,
   ): unknown {
-    const segments = path.split(".");
-    let current: unknown = variables;
+    if (!path || data === null || data === undefined) {
+      return undefined;
+    }
+
+    // Handle simple property access (no dots or brackets)
+    if (!path.includes(".") && !path.includes("[")) {
+      return this.isValidObject(data) ? data[path] : undefined;
+    }
+
+    // Parse path segments
+    const segments = this.parseVariablePath(path);
+    let current: unknown = data;
 
     for (const segment of segments) {
-      if (
-        current === null ||
-        current === undefined ||
-        typeof current !== "object"
-      ) {
+      if (current === null || current === undefined) {
         return undefined;
       }
 
-      current = (current as Record<string, unknown>)[segment];
+      if (Array.isArray(current)) {
+        const index = parseInt(segment, 10);
+        if (isNaN(index) || index < 0 || index >= current.length) {
+          return undefined;
+        }
+        current = current[index];
+      } else if (this.isValidObject(current)) {
+        current = current[segment];
+      } else {
+        return undefined;
+      }
     }
 
     return current;
+  }
+
+  /**
+   * Parses a variable path into segments.
+   * Supports dot notation and array brackets.
+   *
+   * @param path - Path string (e.g., "user.items[0].name")
+   * @returns Array of path segments
+   */
+  private parseVariablePath(path: string): string[] {
+    const segments: string[] = [];
+    let current = "";
+    let inBrackets = false;
+
+    for (let i = 0; i < path.length; i++) {
+      const char = path[i];
+
+      if (char === "[") {
+        if (current) {
+          segments.push(current);
+          current = "";
+        }
+        inBrackets = true;
+      } else if (char === "]") {
+        if (inBrackets && current) {
+          segments.push(current);
+          current = "";
+        }
+        inBrackets = false;
+      } else if (char === "." && !inBrackets) {
+        if (current) {
+          segments.push(current);
+          current = "";
+        }
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      segments.push(current);
+    }
+
+    return segments;
   }
 }

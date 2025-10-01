@@ -31,3 +31,7 @@ export type {
   ItemsTemplateLoader,
   TemplateReference,
 } from "./services/items-processor.ts";
+
+// Template Processing Services
+export { TemplateRenderer } from "./services/template-renderer.ts";
+export { TemplateOutputRenderer } from "./services/template-output-renderer.ts";

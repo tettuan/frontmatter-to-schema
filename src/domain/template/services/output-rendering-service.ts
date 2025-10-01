@@ -5,7 +5,7 @@ import { Template } from "../entities/template.ts";
 /**
  * Output format types for rendering
  */
-export type OutputFormat = "json" | "yaml";
+export type OutputFormat = "json" | "yaml" | "xml" | "markdown";
 
 /**
  * Rendering configuration options
@@ -24,6 +24,7 @@ export interface RenderingContext {
   readonly template: Template;
   readonly data: Record<string, unknown>;
   readonly config: RenderingConfig;
+  readonly schema?: Record<string, unknown>;
 }
 
 /**
@@ -66,8 +67,11 @@ export class OutputRenderingService {
         return Result.error(contextValidation.unwrapError());
       }
 
-      // Resolve template variables with provided data
-      const resolvedTemplate = context.template.resolveVariables(context.data);
+      // Resolve template variables with provided data and schema
+      const resolvedTemplate = context.template.resolveVariables(
+        context.data,
+        context.schema,
+      );
       if (resolvedTemplate.isError()) {
         return Result.error(
           new TemplateError(
@@ -132,9 +136,10 @@ export class OutputRenderingService {
     template: Template,
     data: Record<string, unknown>,
     format: OutputFormat = "json",
+    schema?: Record<string, unknown>,
   ): Result<string, TemplateError> {
     const config = this.createDefaultConfig(format);
-    const context: RenderingContext = { template, data, config };
+    const context: RenderingContext = { template, data, config, schema };
 
     const result = this.render(context);
     if (result.isError()) {
@@ -196,6 +201,10 @@ export class OutputRenderingService {
           return this.renderToJson(content, config);
         case "yaml":
           return this.renderToYaml(content, config);
+        case "xml":
+          return this.renderToXml(content, config);
+        case "markdown":
+          return this.renderToMarkdown(content, config);
         default: {
           const exhaustiveCheck: never = config.format;
           return Result.error(
@@ -278,6 +287,60 @@ export class OutputRenderingService {
   }
 
   /**
+   * Renders content to XML format.
+   */
+  private renderToXml(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const xmlResult = this.stringifyXml(content, {
+        indent: config.indent || 2,
+        sortKeys: config.sortKeys || false,
+      });
+      return Result.ok(xmlResult);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `XML rendering failed: ${errorMessage}`,
+          "XML_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Renders content to Markdown format.
+   */
+  private renderToMarkdown(
+    content: Record<string, unknown>,
+    config: RenderingConfig,
+  ): Result<string, TemplateError> {
+    try {
+      const markdownResult = this.stringifyMarkdown(content, {
+        indent: config.indent || 2,
+        sortKeys: config.sortKeys || false,
+      });
+      return Result.ok(markdownResult);
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Unknown error";
+      return Result.error(
+        new TemplateError(
+          `Markdown rendering failed: ${errorMessage}`,
+          "MARKDOWN_ERROR",
+          { content, error },
+        ),
+      );
+    }
+  }
+
+  /**
    * YAML stringify implementation (simplified).
    * In production, would use @std/yaml library.
    */
@@ -298,10 +361,19 @@ export class OutputRenderingService {
 
       if (typeof value === "string") {
         // Handle multi-line strings and special characters
-        if (
-          value.includes("\n") || value.includes(":") || value.includes("-")
-        ) {
-          return `"${value.replace(/"/g, '\\"')}"`;
+        // Check if string needs quoting (contains YAML special characters)
+        const needsQuoting = value.includes("\n") ||
+          value.includes(":") ||
+          value.includes("-") ||
+          value.includes("#") ||
+          value.includes('"') ||
+          value.includes("'") ||
+          value.startsWith(" ") ||
+          value.endsWith(" ");
+
+        if (needsQuoting) {
+          // Use YAML-style quote escaping (double the quotes, not backslash)
+          return `"${value.replace(/"/g, '""')}"`;
         }
         return value;
       }
@@ -318,16 +390,15 @@ export class OutputRenderingService {
         return "\n" + arrayLines.join("\n");
       }
 
-      if (typeof value === "object" && value !== null) {
-        const obj = value as Record<string, unknown>;
+      if (this.isObject(value)) {
         const keys = options.sortKeys
-          ? Object.keys(obj).sort()
-          : Object.keys(obj);
+          ? Object.keys(value).sort()
+          : Object.keys(value);
 
         if (keys.length === 0) return "{}";
 
         const objectLines = keys.map((key) => {
-          const val = obj[key];
+          const val = value[key];
           const processedValue = processValue(val, depth + 1);
 
           if (typeof val === "object" && val !== null && !Array.isArray(val)) {
@@ -360,14 +431,191 @@ export class OutputRenderingService {
       if (Array.isArray(obj)) {
         count += obj.length;
         obj.forEach(countRecursive);
-      } else if (obj && typeof obj === "object") {
-        const record = obj as Record<string, unknown>;
-        count += Object.keys(record).length;
-        Object.values(record).forEach(countRecursive);
+      } else if (this.isObject(obj)) {
+        count += Object.keys(obj).length;
+        Object.values(obj).forEach(countRecursive);
       }
     };
 
     countRecursive(data);
     return count;
+  }
+
+  /**
+   * XML stringify implementation (simplified).
+   * In production, would use a proper XML library.
+   */
+  private stringifyXml(
+    obj: Record<string, unknown>,
+    options: { indent: number; sortKeys: boolean },
+  ): string {
+    const indent = " ".repeat(options.indent);
+
+    const processValue = (value: unknown, key: string, depth = 0): string => {
+      const currentIndent = indent.repeat(depth);
+
+      if (value === null || value === undefined) {
+        return `${currentIndent}<${key}></${key}>`;
+      }
+
+      if (
+        typeof value === "string" || typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        const escaped = String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+        return `${currentIndent}<${key}>${escaped}</${key}>`;
+      }
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${currentIndent}<${key}></${key}>`;
+        }
+        const arrayItems = value.map((item, index) => {
+          if (this.isObject(item)) {
+            // Recursively process object items
+            const objectKeys = Object.keys(item);
+            const objectLines = objectKeys.map((objKey) =>
+              processValue(item[objKey], objKey, depth + 2)
+            );
+            return `${currentIndent}  <item index="${index}">\n${
+              objectLines.join("\n")
+            }\n${currentIndent}  </item>`;
+          } else {
+            const escaped = typeof item === "string"
+              ? item.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;")
+              : String(item);
+            return `${currentIndent}  <item index="${index}">${escaped}</item>`;
+          }
+        });
+        return `${currentIndent}<${key}>\n${
+          arrayItems.join("\n")
+        }\n${currentIndent}</${key}>`;
+      }
+
+      if (this.isObject(value)) {
+        const keys = options.sortKeys
+          ? Object.keys(value).sort()
+          : Object.keys(value);
+
+        if (keys.length === 0) {
+          return `${currentIndent}<${key}></${key}>`;
+        }
+
+        const objectLines = keys.map((childKey) =>
+          processValue(value[childKey], childKey, depth + 1)
+        );
+
+        return `${currentIndent}<${key}>\n${
+          objectLines.join("\n")
+        }\n${currentIndent}</${key}>`;
+      }
+
+      return `${currentIndent}<${key}>${String(value)}</${key}>`;
+    };
+
+    const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
+    const rootElements = keys.map((key) => processValue(obj[key], key));
+
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<root>\n${
+      rootElements.join("\n")
+    }\n</root>`;
+  }
+
+  /**
+   * Markdown stringify implementation (simplified).
+   * Converts object structure to Markdown format.
+   */
+  private stringifyMarkdown(
+    obj: Record<string, unknown>,
+    options: { indent: number; sortKeys: boolean },
+  ): string {
+    const processValue = (value: unknown, key: string, depth = 0): string => {
+      const headerLevel = Math.min(depth + 1, 6);
+      const header = "#".repeat(headerLevel);
+      const indent = "  ".repeat(depth);
+
+      if (value === null || value === undefined) {
+        // Null/undefined values always use bold key format
+        return `**${key}**: _null_\n`;
+      }
+
+      if (
+        typeof value === "string" || typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        // Escape markdown special characters (but not for simple key-value format)
+        const escaped = String(value)
+          .replace(/\*/g, "\\*")
+          .replace(/_/g, "\\_")
+          .replace(/\[/g, "\\[")
+          .replace(/\]/g, "\\]")
+          .replace(/`/g, "\\`");
+
+        // Simple values always use bold key format regardless of depth
+        if (typeof value === "string" && value.includes("\n")) {
+          return `**${key}**:\n\n\`\`\`\n${value}\n\`\`\`\n`;
+        }
+        return `**${key}**: ${escaped}\n`;
+      }
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return `${header} ${key}\n\n_empty array_\n`;
+        }
+        const listItems = value.map((item, index) => {
+          if (this.isObject(item)) {
+            // Recursively process object items
+            const objectKeys = Object.keys(item);
+            const objectSections = objectKeys.map((objKey) =>
+              `  ${indent}**${objKey}**: ${item[objKey]}`
+            );
+            return `${indent}- Item ${index}:\n${objectSections.join("\n")}`;
+          }
+          return `${indent}- ${String(item)}`;
+        });
+        return `${header} ${key}\n\n${listItems.join("\n")}\n`;
+      }
+
+      if (this.isObject(value)) {
+        const keys = options.sortKeys
+          ? Object.keys(value).sort()
+          : Object.keys(value);
+
+        if (keys.length === 0) {
+          return `${header} ${key}\n\n_empty object_\n`;
+        }
+
+        const childSections = keys.map((childKey) =>
+          processValue(value[childKey], childKey, depth + 1)
+        );
+
+        return `${header} ${key}\n\n${childSections.join("\n")}`;
+      }
+
+      return `${header} ${key}\n\n${String(value)}\n`;
+    };
+
+    const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
+    const sections = keys.map((key) => processValue(obj[key], key));
+
+    return sections.join("\n");
+  }
+
+  /**
+   * Type guard to check if a value is a plain object.
+   */
+  private isObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value);
   }
 }

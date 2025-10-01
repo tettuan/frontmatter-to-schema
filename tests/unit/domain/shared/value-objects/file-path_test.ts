@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { FilePath } from "../../../../../src/domain/shared/value-objects/file-path.ts";
 
 Deno.test("FilePath - create with valid path", () => {
@@ -77,4 +77,16 @@ Deno.test("FilePath - equals compares paths correctly", () => {
 
   assertEquals(path1.equals(path2), true);
   assertEquals(path1.equals(path3), false);
+});
+
+Deno.test("FilePath - getDirectory handles root path", () => {
+  const filePath = FilePath.create("/file.json").unwrap();
+
+  assertEquals(filePath.getDirectory(), "/");
+});
+
+Deno.test("FilePath - getDirectory handles file without directory", () => {
+  const filePath = FilePath.create("file.json").unwrap();
+
+  assertEquals(filePath.getDirectory(), ".");
 });

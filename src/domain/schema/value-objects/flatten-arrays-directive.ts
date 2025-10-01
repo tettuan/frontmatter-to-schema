@@ -1,114 +1,124 @@
 import { Result } from "../../shared/types/result.ts";
 import { SchemaError } from "../../shared/types/errors.ts";
+import { DIRECTIVE_NAMES } from "../constants/directive-names.ts";
 
 /**
  * Value object representing the x-flatten-arrays directive.
- * Manages array flattening configuration for frontmatter processing.
+ * Specifies a property name whose array values should be flattened.
  */
 export class FlattenArraysDirective {
   private constructor(
-    private readonly targetPropertyName: string,
-    private readonly sourcePropertyName: string,
-    private readonly optional: boolean = false,
+    private readonly propertyName: string,
   ) {}
 
   /**
-   * Creates a required FlattenArraysDirective.
-   * Both target and source property names must be non-empty.
+   * Creates a FlattenArraysDirective from a property name.
+   * The property name must be non-empty.
    */
   static create(
-    targetProperty: string,
-    sourceProperty: string,
+    value: unknown,
   ): Result<FlattenArraysDirective, SchemaError> {
-    const trimmedTarget = targetProperty.trim();
-    const trimmedSource = sourceProperty.trim();
-
-    if (trimmedTarget.length === 0) {
+    if (typeof value !== "string") {
       return Result.error(
         new SchemaError(
-          "Target property name cannot be empty",
-          "EMPTY_TARGET_PROPERTY",
-          { targetProperty },
+          `${DIRECTIVE_NAMES.FLATTEN_ARRAYS} directive value must be a string`,
+          "INVALID_DIRECTIVE_VALUE",
+          {
+            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
+            value,
+            expected: "string (property name to flatten)",
+          },
         ),
       );
     }
 
-    if (trimmedSource.length === 0) {
+    const trimmedName = value.trim();
+
+    if (trimmedName.length === 0) {
       return Result.error(
         new SchemaError(
-          "Source property name cannot be empty",
-          "EMPTY_SOURCE_PROPERTY",
-          { sourceProperty },
+          `${DIRECTIVE_NAMES.FLATTEN_ARRAYS} directive property name cannot be empty`,
+          "EMPTY_PROPERTY_NAME",
+          {
+            directive: DIRECTIVE_NAMES.FLATTEN_ARRAYS,
+            value,
+            expected: "non-empty string (property name to flatten)",
+          },
         ),
       );
     }
 
     return Result.ok(
-      new FlattenArraysDirective(trimmedTarget, trimmedSource, false),
+      new FlattenArraysDirective(trimmedName),
     );
   }
 
   /**
-   * Creates an optional FlattenArraysDirective.
-   * This directive will be applied only if the source property exists.
+   * Returns the property name to be flattened.
    */
-  static createOptional(
-    targetProperty: string,
-    sourceProperty: string,
-  ): Result<FlattenArraysDirective, SchemaError> {
-    return this.create(targetProperty, sourceProperty)
-      .map((directive) =>
-        new FlattenArraysDirective(
-          directive.targetPropertyName,
-          directive.sourcePropertyName,
-          true,
-        )
-      );
+  getPropertyName(): string {
+    return this.propertyName;
   }
 
   /**
-   * Returns the target property name where flattened data will be stored.
+   * Flattens the specified property in the given data object.
+   * - If the property contains nested arrays, flattens them recursively
+   * - If the property contains a single value, wraps it in an array
+   * - If the property is undefined or null, returns an empty array
    */
-  getTargetPropertyName(): string {
-    return this.targetPropertyName;
+  apply(data: Record<string, unknown>): Record<string, unknown> {
+    const value = data[this.propertyName];
+
+    if (value === undefined || value === null) {
+      return {
+        ...data,
+        [this.propertyName]: [],
+      };
+    }
+
+    if (!Array.isArray(value)) {
+      return {
+        ...data,
+        [this.propertyName]: [value],
+      };
+    }
+
+    // Flatten nested arrays recursively
+    const flattened = this.flattenArray(value);
+    return {
+      ...data,
+      [this.propertyName]: flattened,
+    };
   }
 
   /**
-   * Returns the source property name to be flattened.
+   * Recursively flattens a nested array structure.
    */
-  getSourcePropertyName(): string {
-    return this.sourcePropertyName;
-  }
+  private flattenArray(arr: unknown[]): unknown[] {
+    const result: unknown[] = [];
 
-  /**
-   * Returns true if this directive is optional.
-   */
-  isOptional(): boolean {
-    return this.optional;
-  }
+    for (const item of arr) {
+      if (Array.isArray(item)) {
+        result.push(...this.flattenArray(item));
+      } else {
+        result.push(item);
+      }
+    }
 
-  /**
-   * Returns true if this directive should be applied.
-   * For required directives, always returns true.
-   * For optional directives, could implement additional logic.
-   */
-  isApplicable(): boolean {
-    return true; // Basic implementation - could be enhanced with data context
+    return result;
   }
 
   /**
    * Compares this directive with another for equality.
    */
   equals(other: FlattenArraysDirective): boolean {
-    return this.targetPropertyName === other.targetPropertyName &&
-      this.sourcePropertyName === other.sourcePropertyName &&
-      this.optional === other.optional;
+    return this.propertyName === other.propertyName;
   }
 
   /**
    * Returns a string representation of this directive.
    */
   toString(): string {
-    return `FlattenArraysDirective(target: ${this.targetPropertyName}, source: ${this.sourcePropertyName}, optional: ${this.optional})`;
+    return `${DIRECTIVE_NAMES.FLATTEN_ARRAYS}: "${this.propertyName}"`;
   }
 }

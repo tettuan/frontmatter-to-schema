@@ -3,14 +3,14 @@ import { TemplateError } from "../../shared/types/errors.ts";
 
 /**
  * Value object representing a template file path.
- * Ensures the path points to a valid JSON template file.
+ * Ensures the path points to a valid template file (JSON or YAML).
  */
 export class TemplatePath {
   private constructor(private readonly value: string) {}
 
   /**
    * Creates a TemplatePath from a string path.
-   * Validates that the path has a .json extension and is not empty.
+   * Validates that the path has a valid template extension and is not empty.
    */
   static create(path: string): Result<TemplatePath, TemplateError> {
     const trimmedPath = path.trim();
@@ -23,12 +23,17 @@ export class TemplatePath {
       );
     }
 
-    if (!trimmedPath.endsWith(".json")) {
+    const validExtensions = [".json", ".yml", ".yaml"];
+    const hasValidExtension = validExtensions.some((ext) =>
+      trimmedPath.endsWith(ext)
+    );
+
+    if (!hasValidExtension) {
       return Result.error(
         new TemplateError(
-          "Template path must have .json extension",
+          "Template path must have .json, .yml, or .yaml extension",
           "INVALID_EXTENSION",
-          { path },
+          { path, validExtensions },
         ),
       );
     }
@@ -59,11 +64,16 @@ export class TemplatePath {
   }
 
   /**
-   * Returns the template name without the .json extension.
+   * Returns the template name without the extension.
    */
   getTemplateName(): string {
     const basename = this.getBasename();
-    return basename.substring(0, basename.length - 5); // Remove ".json"
+    // Remove extension (.json, .yml, or .yaml)
+    const lastDotIndex = basename.lastIndexOf(".");
+    if (lastDotIndex > 0) {
+      return basename.substring(0, lastDotIndex);
+    }
+    return basename;
   }
 
   /**

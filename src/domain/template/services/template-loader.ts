@@ -10,10 +10,11 @@ import { TemplatePath } from "../value-objects/template-path.ts";
 /**
  * File system operations interface for template loading.
  * This allows for dependency injection and testing.
+ * Updated to support Result pattern for totality compliance.
  */
 export interface FileSystemOperations {
-  readTextFile(path: string): Promise<string>;
-  exists(path: string): Promise<boolean>;
+  readTextFile(path: string): Promise<Result<string, Error>>;
+  exists(path: string): Promise<Result<boolean, Error>>;
 }
 
 /**
@@ -40,9 +41,19 @@ export class TemplateLoader {
     try {
       // Check if file exists
       const pathString = templatePath.toString();
-      const exists = await this.fileSystem.exists(pathString);
+      const existsResult = await this.fileSystem.exists(pathString);
 
-      if (!exists) {
+      if (existsResult.isError()) {
+        return Result.error(
+          new TemplateError(
+            `Failed to check if template file exists: ${existsResult.unwrapError().message}`,
+            "FILE_ACCESS_ERROR",
+            { path: pathString, originalError: existsResult.unwrapError() },
+          ),
+        );
+      }
+
+      if (!existsResult.unwrap()) {
         return Result.error(
           new TemplateError(
             `Template file not found: ${pathString}`,
@@ -53,7 +64,19 @@ export class TemplateLoader {
       }
 
       // Read file content
-      const content = await this.fileSystem.readTextFile(pathString);
+      const contentResult = await this.fileSystem.readTextFile(pathString);
+
+      if (contentResult.isError()) {
+        return Result.error(
+          new TemplateError(
+            `Failed to read template file: ${contentResult.unwrapError().message}`,
+            "FILE_READ_ERROR",
+            { path: pathString, originalError: contentResult.unwrapError() },
+          ),
+        );
+      }
+
+      const content = contentResult.unwrap();
 
       if (content.trim().length === 0) {
         return Result.error(
@@ -206,13 +229,11 @@ export class TemplateLoader {
     try {
       const parsed = JSON.parse(content);
 
-      if (
-        typeof parsed !== "object" || parsed === null || Array.isArray(parsed)
-      ) {
+      if (!this.isValidTemplateObject(parsed)) {
         return Result.error(new Error("JSON template must be an object"));
       }
 
-      return Result.ok(parsed as Record<string, unknown>);
+      return Result.ok(parsed);
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
@@ -229,5 +250,16 @@ export class TemplateLoader {
     _content: string,
   ): Result<Record<string, unknown>, Error> {
     return Result.error(new Error("YAML template support not yet implemented"));
+  }
+
+  /**
+   * Type guard to check if a parsed value is a valid template object.
+   */
+  private isValidTemplateObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
+    return typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value);
   }
 }

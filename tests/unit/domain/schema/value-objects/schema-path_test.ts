@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "@std/assert";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 
 Deno.test("SchemaPath - create with valid JSON schema path", () => {
