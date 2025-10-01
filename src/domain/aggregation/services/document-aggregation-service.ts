@@ -43,10 +43,12 @@ export class DocumentAggregationService {
   /**
    * Transforms documents into aggregated data structure.
    * Uses configuration strategy for metadata generation.
+   * Consults schema to determine property names for x-frontmatter-part directives.
    */
   transformDocuments(
     documents: MarkdownDocument[],
     template: unknown,
+    schema?: Record<string, unknown>,
     config?: AggregationConfig,
   ): Result<Record<string, unknown>, ProcessingError> {
     if (!Array.isArray(documents)) {
@@ -88,6 +90,7 @@ export class DocumentAggregationService {
         allFrontmatterData,
         documents,
         template,
+        schema,
         config,
       );
       if (aggregationResult.isError()) {
@@ -140,11 +143,13 @@ export class DocumentAggregationService {
 
   /**
    * Creates aggregated data structure for multiple documents.
+   * Uses schema to determine property names for frontmatter aggregation.
    */
   private createAggregatedData(
     frontmatterData: Record<string, unknown>[],
     documents: MarkdownDocument[],
     template: unknown,
+    schema?: Record<string, unknown>,
     config?: AggregationConfig,
   ): Result<Record<string, unknown>, ProcessingError> {
     try {
@@ -165,10 +170,19 @@ export class DocumentAggregationService {
         Object.assign(aggregatedData, metadataResult.unwrap());
       }
 
-      // Check if template requires {@items} processing
-      const hasItemsExpansion = this.checkItemsExpansion(template);
-      if (hasItemsExpansion) {
-        aggregatedData.items = frontmatterData;
+      // Add frontmatter data using schema property names if available
+      const propertyNamesResult = this.getSchemaPropertyNames(schema);
+      if (propertyNamesResult.isOk()) {
+        const propertyNames = propertyNamesResult.unwrap();
+        for (const propertyName of propertyNames) {
+          aggregatedData[propertyName] = frontmatterData;
+        }
+      } else {
+        // Fallback: Check if template requires {@items} processing
+        const hasItemsExpansion = this.checkItemsExpansion(template);
+        if (hasItemsExpansion) {
+          aggregatedData.items = frontmatterData;
+        }
       }
 
       return Result.ok(aggregatedData);
@@ -179,6 +193,71 @@ export class DocumentAggregationService {
             error instanceof Error ? error.message : String(error)
           }`,
           "AGGREGATION_ERROR",
+          { error },
+        ),
+      );
+    }
+  }
+
+  /**
+   * Extracts property names from schema that have x-frontmatter-part: true.
+   * These properties indicate where aggregated frontmatter data should be placed.
+   */
+  private getSchemaPropertyNames(
+    schema?: Record<string, unknown>,
+  ): Result<string[], ProcessingError> {
+    if (!schema || typeof schema !== "object") {
+      return Result.error(
+        new ProcessingError(
+          "Schema not provided or invalid",
+          "SCHEMA_NOT_PROVIDED",
+        ),
+      );
+    }
+
+    try {
+      const propertyNames: string[] = [];
+      const properties = schema.properties as
+        | Record<string, unknown>
+        | undefined;
+
+      if (!properties || typeof properties !== "object") {
+        return Result.error(
+          new ProcessingError(
+            "Schema properties not found",
+            "SCHEMA_PROPERTIES_NOT_FOUND",
+          ),
+        );
+      }
+
+      // Find properties with x-frontmatter-part: true
+      for (const [propName, propSchema] of Object.entries(properties)) {
+        if (
+          propSchema && typeof propSchema === "object" &&
+          "x-frontmatter-part" in propSchema &&
+          propSchema["x-frontmatter-part"] === true
+        ) {
+          propertyNames.push(propName);
+        }
+      }
+
+      if (propertyNames.length === 0) {
+        return Result.error(
+          new ProcessingError(
+            "No properties with x-frontmatter-part found in schema",
+            "NO_FRONTMATTER_PROPERTIES",
+          ),
+        );
+      }
+
+      return Result.ok(propertyNames);
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to extract schema property names: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "SCHEMA_PROPERTY_EXTRACTION_ERROR",
           { error },
         ),
       );
