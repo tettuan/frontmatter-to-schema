@@ -592,7 +592,9 @@ Deno.test("SchemaDirectiveProcessor - x-jmespath-filter directive (Issue #1233)"
 
   // Should filter to only 'req' level items (5 items)
   assertEquals(Array.isArray(processed.req), true);
-  const filteredItems = processed.req as Array<{ id: { level: string }; title: string }>;
+  const filteredItems = processed.req as Array<
+    { id: { level: string }; title: string }
+  >;
   assertEquals(filteredItems.length, 5);
 
   // All items should be 'req' level

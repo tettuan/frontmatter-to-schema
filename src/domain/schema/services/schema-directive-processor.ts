@@ -281,9 +281,7 @@ export class SchemaDirectiveProcessor {
       if (directiveResult.isError()) {
         return Result.error(
           new ProcessingError(
-            `Failed to create flatten-arrays directive: ${
-              directiveResult.unwrapError().message
-            }`,
+            `Failed to create flatten-arrays directive: ${directiveResult.unwrapError().message}`,
             "FLATTEN_ARRAYS_ERROR",
             { path, schema, error: directiveResult.unwrapError() },
           ),
@@ -324,9 +322,7 @@ export class SchemaDirectiveProcessor {
       if (directiveResult.isError()) {
         return Result.error(
           new ProcessingError(
-            `Failed to create jmespath-filter directive: ${
-              directiveResult.unwrapError().message
-            }`,
+            `Failed to create jmespath-filter directive: ${directiveResult.unwrapError().message}`,
             "JMESPATH_FILTER_ERROR",
             { path, schema, error: directiveResult.unwrapError() },
           ),
