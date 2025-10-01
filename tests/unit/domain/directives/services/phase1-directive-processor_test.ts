@@ -83,7 +83,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays flattens nested arrays", 
     properties: {
       tags: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "tags",
         items: { type: "string" },
       },
     },
@@ -109,7 +109,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with deeply nested arrays
     properties: {
       categories: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "categories",
         items: { type: "string" },
       },
     },
@@ -134,7 +134,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays preserves already flat ar
     properties: {
       tags: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "tags",
         items: { type: "string" },
       },
     },
@@ -159,7 +159,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays handles empty arrays", ()
     properties: {
       tags: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "tags",
         items: { type: "string" },
       },
     },
@@ -184,7 +184,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with mixed nested levels"
     properties: {
       items: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "items",
         items: { type: "string" },
       },
     },
@@ -210,7 +210,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays only affects properties w
     properties: {
       flatten: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "flatten",
         items: { type: "string" },
       },
       noFlatten: {
@@ -241,12 +241,12 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with multiple properties"
     properties: {
       tags: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "tags",
         items: { type: "string" },
       },
       categories: {
         type: "array",
-        "x-flatten-arrays": true,
+        "x-flatten-arrays": "categories",
         items: { type: "string" },
       },
     },
@@ -272,7 +272,7 @@ Deno.test("Phase1DirectiveProcessor - x-flatten-arrays with non-array property i
     properties: {
       title: {
         type: "string",
-        "x-flatten-arrays": true, // directive on non-array property
+        "x-flatten-arrays": "tags", // directive on non-array property
       },
     },
   };
