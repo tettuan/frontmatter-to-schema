@@ -3,7 +3,7 @@
  */
 
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { createTemplateProcessor, VariableResolver } from "../src/mod.ts";
+import { createTemplateProcessor } from "../src/mod.ts";
 
 // Helper to create temporary test files
 async function createTempFile(content: string): Promise<string> {
@@ -256,7 +256,7 @@ Deno.test("Edge Case - Mixed array types", async () => {
   }
 });
 
-Deno.test("Edge Case - Variable names that look like other constructs", () => {
+Deno.test("Edge Case - Variable names that look like other constructs", async () => {
   const data = {
     "if": "conditional",
     "for": "loop",
@@ -266,14 +266,32 @@ Deno.test("Edge Case - Variable names that look like other constructs", () => {
     "_underscore": "starts with underscore",
   };
 
-  const resolver = new VariableResolver(data);
+  const template = `{
+    "if": "{if}",
+    "for": "{for}",
+    "function": "{function}",
+    "123abc": "{123abc}",
+    "$special": "{$special}",
+    "_underscore": "{_underscore}"
+  }`;
 
-  assertEquals(resolver.resolve("if"), "conditional");
-  assertEquals(resolver.resolve("for"), "loop");
-  assertEquals(resolver.resolve("function"), "method");
-  assertEquals(resolver.resolve("123abc"), "starts with number");
-  assertEquals(resolver.resolve("$special"), "starts with dollar");
-  assertEquals(resolver.resolve("_underscore"), "starts with underscore");
+  const tempFile = await createTempFile(template);
+
+  try {
+    const processor = createTemplateProcessor();
+    const result = await processor.process(data, tempFile);
+
+    assertEquals(result, {
+      "if": "conditional",
+      "for": "loop",
+      "function": "method",
+      "123abc": "starts with number",
+      "$special": "starts with dollar",
+      "_underscore": "starts with underscore",
+    });
+  } finally {
+    await cleanup(tempFile);
+  }
 });
 
 Deno.test("Edge Case - Malformed variable references", async () => {
@@ -347,22 +365,36 @@ Deno.test("Edge Case - Very large template file", async () => {
   }
 });
 
-Deno.test("Edge Case - Path parsing edge cases", () => {
+Deno.test("Edge Case - Path parsing edge cases", async () => {
   const data = {
     "simpleKey": "simple value",
     "array": [{ "bracket_key": "bracket in key" }],
     "": "empty key",
   };
 
-  const resolver = new VariableResolver(data);
+  const template = `{
+    "simple": "{simpleKey}",
+    "nested": "{array[0].bracket_key}",
+    "empty": "{}"
+  }`;
 
-  // These should work
-  assertEquals(resolver.resolve("simpleKey"), "simple value");
-  assertEquals(resolver.resolve("array[0].bracket_key"), "bracket in key");
-  assertEquals(resolver.resolve(""), "empty key");
+  const tempFile = await createTempFile(template);
+
+  try {
+    const processor = createTemplateProcessor();
+    const result = await processor.process(data, tempFile);
+
+    assertEquals(result, {
+      "simple": "simple value",
+      "nested": "bracket in key",
+      "empty": "empty key",
+    });
+  } finally {
+    await cleanup(tempFile);
+  }
 });
 
-Deno.test("Edge Case - Extreme nesting with mixed access patterns", () => {
+Deno.test("Edge Case - Extreme nesting with mixed access patterns", async () => {
   const data = {
     level1: [
       {
@@ -379,9 +411,18 @@ Deno.test("Edge Case - Extreme nesting with mixed access patterns", () => {
     ],
   };
 
-  const resolver = new VariableResolver(data);
-  assertEquals(
-    resolver.resolve("level1[0].level2.level3[0].level4.items[0].final"),
-    "deeply nested value",
-  );
+  const template = '{"result": "{level1[0].level2.level3[0].level4.items[0].final}"}';
+
+  const tempFile = await createTempFile(template);
+
+  try {
+    const processor = createTemplateProcessor();
+    const result = await processor.process(data, tempFile);
+
+    assertEquals(result, {
+      result: "deeply nested value",
+    });
+  } finally {
+    await cleanup(tempFile);
+  }
 });
