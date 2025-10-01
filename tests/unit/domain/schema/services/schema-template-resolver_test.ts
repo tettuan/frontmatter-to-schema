@@ -1,6 +1,9 @@
 import { assert, assertEquals } from "@std/assert";
 import { SchemaTemplateResolver } from "../../../../../src/domain/schema/services/schema-template-resolver.ts";
-import { Schema, SchemaId } from "../../../../../src/domain/schema/entities/schema.ts";
+import {
+  Schema,
+  SchemaId,
+} from "../../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../../src/domain/schema/value-objects/schema-path.ts";
 import { DIRECTIVE_NAMES } from "../../../../../src/domain/schema/constants/directive-names.ts";
 
@@ -15,8 +18,8 @@ Deno.test("SchemaTemplateResolver - resolveTemplateContext with valid x-template
     type: "object",
     [DIRECTIVE_NAMES.TEMPLATE]: "templates/container.json",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   };
 
   const resolvedSchema = schema.markAsResolved(schemaData);
@@ -45,9 +48,9 @@ Deno.test("SchemaTemplateResolver - resolveTemplateContext with x-template and x
     properties: {
       items: {
         type: "array",
-        items: { type: "object" }
-      }
-    }
+        items: { type: "object" },
+      },
+    },
   };
 
   const resolvedSchema = schema.markAsResolved(schemaData);
@@ -73,8 +76,8 @@ Deno.test("SchemaTemplateResolver - resolveTemplateContext fails without x-templ
   const schemaData = {
     type: "object",
     properties: {
-      title: { type: "string" }
-    }
+      title: { type: "string" },
+    },
   };
 
   const resolvedSchema = schema.markAsResolved(schemaData);
@@ -96,7 +99,7 @@ Deno.test("SchemaTemplateResolver - resolveTemplateContext fails with invalid x-
   const schemaData = {
     type: "object",
     [DIRECTIVE_NAMES.TEMPLATE]: 123 as unknown, // Invalid: not a string
-    properties: {}
+    properties: {},
   } as any;
 
   const resolvedSchema = schema.markAsResolved(schemaData);
@@ -135,7 +138,7 @@ Deno.test("SchemaTemplateResolver - extracts all x-* extensions", () => {
     [DIRECTIVE_NAMES.TEMPLATE_ITEMS]: "templates/items.json",
     [DIRECTIVE_NAMES.TEMPLATE_FORMAT]: "yaml",
     "x-custom": "custom-value",
-    properties: {}
+    properties: {},
   };
 
   const resolvedSchema = schema.markAsResolved(schemaData);
@@ -146,10 +149,22 @@ Deno.test("SchemaTemplateResolver - extracts all x-* extensions", () => {
   const context = result.unwrap();
   assert(context.schemaContext);
   assert(context.schemaContext.resolvedExtensions);
-  assertEquals(context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE], "templates/container.json");
-  assertEquals(context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE_ITEMS], "templates/items.json");
-  assertEquals(context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE_FORMAT], "yaml");
-  assertEquals(context.schemaContext.resolvedExtensions["x-custom"], "custom-value");
+  assertEquals(
+    context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE],
+    "templates/container.json",
+  );
+  assertEquals(
+    context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE_ITEMS],
+    "templates/items.json",
+  );
+  assertEquals(
+    context.schemaContext.resolvedExtensions[DIRECTIVE_NAMES.TEMPLATE_FORMAT],
+    "yaml",
+  );
+  assertEquals(
+    context.schemaContext.resolvedExtensions["x-custom"],
+    "custom-value",
+  );
 });
 
 Deno.test("SchemaTemplateResolver - handles invalid x-template-items gracefully", () => {
@@ -163,7 +178,7 @@ Deno.test("SchemaTemplateResolver - handles invalid x-template-items gracefully"
     type: "object",
     [DIRECTIVE_NAMES.TEMPLATE]: "templates/container.json",
     [DIRECTIVE_NAMES.TEMPLATE_ITEMS]: "invalid-no-extension", // Invalid: no .json extension
-    properties: {}
+    properties: {},
   };
 
   const resolvedSchema = schema.markAsResolved(schemaData);

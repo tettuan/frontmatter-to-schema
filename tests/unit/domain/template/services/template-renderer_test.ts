@@ -16,15 +16,15 @@ Deno.test("TemplateRenderer - render with simple template and data", () => {
   const templateData = {
     content: {
       title: "{title}",
-      description: "{description}"
+      description: "{description}",
     },
-    format: "json" as const
+    format: "json" as const,
   };
   const template = Template.create(templatePath, templateData).unwrap();
 
   const frontmatterData = FrontmatterData.create({
     title: "Test Title",
-    description: "Test Description"
+    description: "Test Description",
   }).unwrap();
 
   const result = renderer.render(template, frontmatterData);
@@ -41,9 +41,9 @@ Deno.test("TemplateRenderer - renderWithArray combines multiple frontmatter data
   const templateData = {
     content: {
       items: "{items}",
-      count: "{items.length}"
+      count: "{items.length}",
     },
-    format: "json" as const
+    format: "json" as const,
   };
   const template = Template.create(templatePath, templateData).unwrap();
 
@@ -66,9 +66,9 @@ Deno.test("TemplateRenderer - renderWithArray with empty array", () => {
   const templateData = {
     content: {
       items: [],
-      count: 0
+      count: 0,
     },
-    format: "json" as const
+    format: "json" as const,
   };
   const template = Template.create(templatePath, templateData).unwrap();
 
@@ -86,13 +86,14 @@ Deno.test("TemplateRenderer - renderWithArray with single item", () => {
   const templateData = {
     content: {
       title: "{title}",
-      items: "{items}"
+      items: "{items}",
     },
-    format: "json" as const
+    format: "json" as const,
   };
   const template = Template.create(templatePath, templateData).unwrap();
 
-  const data = FrontmatterData.create({ title: "Single Item", value: 42 }).unwrap();
+  const data = FrontmatterData.create({ title: "Single Item", value: 42 })
+    .unwrap();
 
   const result = renderer.renderWithArray(template, [data]);
 
@@ -107,8 +108,8 @@ Deno.test("TemplateRenderer - renderWithItems with valid container template", ()
   const containerTemplate = {
     content: {
       title: "Container",
-      items: "{items}"
-    }
+      items: "{items}",
+    },
   };
 
   const data1 = FrontmatterData.create({ name: "Item 1" }).unwrap();
@@ -116,7 +117,7 @@ Deno.test("TemplateRenderer - renderWithItems with valid container template", ()
 
   const result = renderer.renderWithItems(
     containerTemplate,
-    [data1, data2]
+    [data1, data2],
   );
 
   assert(result.isOk());
@@ -131,7 +132,7 @@ Deno.test("TemplateRenderer - renderWithItems with invalid container template", 
 
   const result = renderer.renderWithItems(
     null, // Invalid container
-    [data]
+    [data],
   );
 
   assert(result.isError());
@@ -144,15 +145,15 @@ Deno.test("TemplateRenderer - renderWithItems with items template", () => {
 
   const containerTemplate = {
     content: {
-      collection: "{items}"
-    }
+      collection: "{items}",
+    },
   };
 
   const itemsTemplate = {
     path: "items-template.json",
     content: {
-      name: "{name}"
-    }
+      name: "{name}",
+    },
   };
 
   const data = FrontmatterData.create({ name: "Test Item" }).unwrap();
@@ -160,7 +161,7 @@ Deno.test("TemplateRenderer - renderWithItems with items template", () => {
   const result = renderer.renderWithItems(
     containerTemplate,
     [data],
-    itemsTemplate
+    itemsTemplate,
   );
 
   assert(result.isOk());
@@ -172,13 +173,13 @@ Deno.test("TemplateRenderer - renderWithItems with empty data array", () => {
   const containerTemplate = {
     content: {
       items: [],
-      count: 0
-    }
+      count: 0,
+    },
   };
 
   const result = renderer.renderWithItems(
     containerTemplate,
-    []
+    [],
   );
 
   assert(result.isOk());
@@ -196,16 +197,16 @@ Deno.test("TemplateRenderer - render handles template resolution error", () => {
       // Template structure that might cause resolution issues
       nested: {
         deep: {
-          value: "{nonexistent}"
-        }
-      }
+          value: "{nonexistent}",
+        },
+      },
     },
-    format: "json" as const
+    format: "json" as const,
   };
   const template = Template.create(templatePath, templateData).unwrap();
 
   const frontmatterData = FrontmatterData.create({
-    title: "Test"
+    title: "Test",
   }).unwrap();
 
   const result = renderer.render(template, frontmatterData);
@@ -215,7 +216,7 @@ Deno.test("TemplateRenderer - render handles template resolution error", () => {
     const error = result.unwrapError();
     assert(
       error.code === "TEMPLATE_RESOLUTION_ERROR" ||
-      error.code === "TEMPLATE_RENDERING_ERROR"
+        error.code === "TEMPLATE_RENDERING_ERROR",
     );
   } else {
     assert(result.isOk());
