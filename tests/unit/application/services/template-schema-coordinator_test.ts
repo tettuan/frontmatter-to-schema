@@ -2,12 +2,19 @@ import { assertEquals, assertExists } from "@std/assert";
 import { TemplateSchemaCoordinator } from "../../../../src/application/services/template-schema-coordinator.ts";
 import { SchemaTemplateResolver } from "../../../../src/domain/schema/services/schema-template-resolver.ts";
 import { TemplateRenderer } from "../../../../src/domain/template/services/template-renderer.ts";
-import { Schema, SchemaId } from "../../../../src/domain/schema/entities/schema.ts";
+import {
+  Schema,
+  SchemaId,
+} from "../../../../src/domain/schema/entities/schema.ts";
 import { SchemaPath } from "../../../../src/domain/schema/value-objects/schema-path.ts";
 import { FrontmatterData } from "../../../../src/domain/frontmatter/value-objects/frontmatter-data.ts";
 import { Result } from "../../../../src/domain/shared/types/result.ts";
 import { FileSystemPort } from "../../../../src/infrastructure/ports/file-system-port.ts";
-import { DirectoryEntry, FileError, FileInfo } from "../../../../src/domain/shared/types/file-errors.ts";
+import {
+  DirectoryEntry,
+  FileError,
+  FileInfo,
+} from "../../../../src/domain/shared/types/file-errors.ts";
 
 // Mock FileSystemPort
 class MockFileSystem implements FileSystemPort {
@@ -17,36 +24,39 @@ class MockFileSystem implements FileSystemPort {
     this.files.set(path, content);
   }
 
-  async readTextFile(path: string): Promise<Result<string, FileError>> {
+  readTextFile(path: string): Promise<Result<string, FileError>> {
     const content = this.files.get(path);
     if (!content) {
-      return Result.error({
+      return Promise.resolve(Result.error({
         kind: "FileNotFound",
         path,
-      });
+      }));
     }
-    return Result.ok(content);
+    return Promise.resolve(Result.ok(content));
   }
 
-  async writeTextFile(_path: string, _content: string): Promise<Result<void, FileError>> {
-    return Result.ok(undefined);
+  writeTextFile(
+    _path: string,
+    _content: string,
+  ): Promise<Result<void, FileError>> {
+    return Promise.resolve(Result.ok(undefined));
   }
 
-  async stat(_path: string): Promise<Result<FileInfo, FileError>> {
-    return Result.ok({
+  stat(_path: string): Promise<Result<FileInfo, FileError>> {
+    return Promise.resolve(Result.ok({
       isFile: true,
       isDirectory: false,
       size: 0,
       mtime: null,
-    });
+    }));
   }
 
-  async exists(_path: string): Promise<Result<boolean, FileError>> {
-    return Result.ok(true);
+  exists(_path: string): Promise<Result<boolean, FileError>> {
+    return Promise.resolve(Result.ok(true));
   }
 
-  async readDir(_path: string): Promise<Result<DirectoryEntry[], FileError>> {
-    return Result.ok([]);
+  readDir(_path: string): Promise<Result<DirectoryEntry[], FileError>> {
+    return Promise.resolve(Result.ok([]));
   }
 }
 
@@ -54,14 +64,21 @@ Deno.test("TemplateSchemaCoordinator - processes with schema templates successfu
   const mockFileSystem = new MockFileSystem();
 
   // Setup mock template files
-  mockFileSystem.setFile("container.json", JSON.stringify({
-    type: "template",
-    content: "Title: {@title}"
-  }));
+  mockFileSystem.setFile(
+    "container.json",
+    JSON.stringify({
+      type: "template",
+      content: "Title: {@title}",
+    }),
+  );
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   // Create schema with x-template
   const schemaId = SchemaId.create("test_schema").unwrap();
@@ -69,7 +86,7 @@ Deno.test("TemplateSchemaCoordinator - processes with schema templates successfu
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "container.json"
+    "x-template": "container.json",
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
@@ -78,7 +95,9 @@ Deno.test("TemplateSchemaCoordinator - processes with schema templates successfu
   const frontmatterData = frontmatterDataResult.unwrap();
 
   // Process
-  const result = await coordinator.processWithSchemaTemplates(schema, [frontmatterData]);
+  const result = await coordinator.processWithSchemaTemplates(schema, [
+    frontmatterData,
+  ]);
 
   assertEquals(result.isOk(), true);
   const output = result.unwrap();
@@ -92,7 +111,11 @@ Deno.test("TemplateSchemaCoordinator - handles missing container template", asyn
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   // Create schema with x-template pointing to non-existent file
   const schemaId = SchemaId.create("test_schema").unwrap();
@@ -100,14 +123,16 @@ Deno.test("TemplateSchemaCoordinator - handles missing container template", asyn
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "missing.json"
+    "x-template": "missing.json",
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
   const frontmatterDataResult = FrontmatterData.create({ title: "Test" });
   const frontmatterData = frontmatterDataResult.unwrap();
 
-  const result = await coordinator.processWithSchemaTemplates(schema, [frontmatterData]);
+  const result = await coordinator.processWithSchemaTemplates(schema, [
+    frontmatterData,
+  ]);
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
@@ -122,21 +147,27 @@ Deno.test("TemplateSchemaCoordinator - handles invalid template JSON", async () 
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
   const schemaPath = SchemaPath.create("test_schema.json").unwrap();
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "invalid.json"
+    "x-template": "invalid.json",
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
   const frontmatterDataResult = FrontmatterData.create({ title: "Test" });
   const frontmatterData = frontmatterDataResult.unwrap();
 
-  const result = await coordinator.processWithSchemaTemplates(schema, [frontmatterData]);
+  const result = await coordinator.processWithSchemaTemplates(schema, [
+    frontmatterData,
+  ]);
 
   assertEquals(result.isError(), true);
   const error = result.unwrapError();
@@ -146,18 +177,28 @@ Deno.test("TemplateSchemaCoordinator - handles invalid template JSON", async () 
 Deno.test("TemplateSchemaCoordinator - processes with items template", async () => {
   const mockFileSystem = new MockFileSystem();
 
-  mockFileSystem.setFile("container.json", JSON.stringify({
-    type: "template",
-    content: "Documents: {@items}"
-  }));
-  mockFileSystem.setFile("items.json", JSON.stringify({
-    type: "template",
-    content: "- {@title}"
-  }));
+  mockFileSystem.setFile(
+    "container.json",
+    JSON.stringify({
+      type: "template",
+      content: "Documents: {@items}",
+    }),
+  );
+  mockFileSystem.setFile(
+    "items.json",
+    JSON.stringify({
+      type: "template",
+      content: "- {@title}",
+    }),
+  );
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
   const schemaPath = SchemaPath.create("test_schema.json").unwrap();
@@ -165,14 +206,17 @@ Deno.test("TemplateSchemaCoordinator - processes with items template", async () 
     type: "object",
     properties: { title: { type: "string" } },
     "x-template": "container.json",
-    "x-template-items": "items.json"
+    "x-template-items": "items.json",
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
   const data1 = FrontmatterData.create({ title: "Item 1" }).unwrap();
   const data2 = FrontmatterData.create({ title: "Item 2" }).unwrap();
 
-  const result = await coordinator.processWithSchemaTemplates(schema, [data1, data2]);
+  const result = await coordinator.processWithSchemaTemplates(schema, [
+    data1,
+    data2,
+  ]);
 
   assertEquals(result.isOk(), true);
   const output = result.unwrap();
@@ -184,14 +228,21 @@ Deno.test("TemplateSchemaCoordinator - processes with items template", async () 
 Deno.test("TemplateSchemaCoordinator - handles missing items template", async () => {
   const mockFileSystem = new MockFileSystem();
 
-  mockFileSystem.setFile("container.json", JSON.stringify({
-    type: "template",
-    content: "Documents"
-  }));
+  mockFileSystem.setFile(
+    "container.json",
+    JSON.stringify({
+      type: "template",
+      content: "Documents",
+    }),
+  );
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
   const schemaPath = SchemaPath.create("test_schema.json").unwrap();
@@ -199,7 +250,7 @@ Deno.test("TemplateSchemaCoordinator - handles missing items template", async ()
     type: "object",
     properties: { title: { type: "string" } },
     "x-template": "container.json",
-    "x-template-items": "missing_items.json"
+    "x-template-items": "missing_items.json",
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
@@ -217,13 +268,17 @@ Deno.test("TemplateSchemaCoordinator - handles schema without x-template", async
 
   const resolver = new SchemaTemplateResolver();
   const renderer = TemplateRenderer.create().unwrap();
-  const coordinator = new TemplateSchemaCoordinator(renderer, resolver, mockFileSystem);
+  const coordinator = new TemplateSchemaCoordinator(
+    renderer,
+    resolver,
+    mockFileSystem,
+  );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
   const schemaPath = SchemaPath.create("test_schema.json").unwrap();
   const schemaData = {
     type: "object",
-    properties: { title: { type: "string" } }
+    properties: { title: { type: "string" } },
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 

@@ -6,7 +6,7 @@ Deno.test("TemplatePath - creates container template path", () => {
   const result = TemplatePath.create(
     "templates/container.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   );
 
   assert(result.isOk());
@@ -22,7 +22,7 @@ Deno.test("TemplatePath - creates items template path", () => {
   const result = TemplatePath.create(
     "templates/items.json",
     "items",
-    DIRECTIVE_NAMES.TEMPLATE_ITEMS
+    DIRECTIVE_NAMES.TEMPLATE_ITEMS,
   );
 
   assert(result.isOk());
@@ -38,7 +38,7 @@ Deno.test("TemplatePath - rejects empty path", () => {
   const result = TemplatePath.create(
     "",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   );
 
   assert(result.isError());
@@ -51,7 +51,7 @@ Deno.test("TemplatePath - rejects whitespace-only path", () => {
   const result = TemplatePath.create(
     "   ",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   );
 
   assert(result.isError());
@@ -63,7 +63,7 @@ Deno.test("TemplatePath - rejects path without .json extension", () => {
   const result = TemplatePath.create(
     "template.txt",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   );
 
   assert(result.isError());
@@ -76,7 +76,7 @@ Deno.test("TemplatePath - rejects container type with wrong source", () => {
   const result = TemplatePath.create(
     "template.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE_ITEMS
+    DIRECTIVE_NAMES.TEMPLATE_ITEMS,
   );
 
   assert(result.isError());
@@ -89,7 +89,7 @@ Deno.test("TemplatePath - rejects items type with wrong source", () => {
   const result = TemplatePath.create(
     "template.json",
     "items",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   );
 
   assert(result.isError());
@@ -102,13 +102,13 @@ Deno.test("TemplatePath - equals returns true for same paths", () => {
   const path1 = TemplatePath.create(
     "template.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   const path2 = TemplatePath.create(
     "template.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   assert(path1.equals(path2));
@@ -118,13 +118,13 @@ Deno.test("TemplatePath - equals returns false for different paths", () => {
   const path1 = TemplatePath.create(
     "template1.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   const path2 = TemplatePath.create(
     "template2.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   assert(!path1.equals(path2));
@@ -134,13 +134,13 @@ Deno.test("TemplatePath - equals returns false for different types", () => {
   const path1 = TemplatePath.create(
     "template.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   const path2 = TemplatePath.create(
     "template.json",
     "items",
-    DIRECTIVE_NAMES.TEMPLATE_ITEMS
+    DIRECTIVE_NAMES.TEMPLATE_ITEMS,
   ).unwrap();
 
   assert(!path1.equals(path2));
@@ -150,7 +150,7 @@ Deno.test("TemplatePath - toString returns formatted string", () => {
   const templatePath = TemplatePath.create(
     "template.json",
     "container",
-    DIRECTIVE_NAMES.TEMPLATE
+    DIRECTIVE_NAMES.TEMPLATE,
   ).unwrap();
 
   const str = templatePath.toString();
