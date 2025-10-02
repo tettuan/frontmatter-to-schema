@@ -63,12 +63,32 @@ class MockFileSystem implements FileSystemPort {
 Deno.test("TemplateSchemaCoordinator - processes with schema templates successfully", async () => {
   const mockFileSystem = new MockFileSystem();
 
+  // Create real template file for json-template
+  const templatePath =
+    `${Deno.cwd()}/tmp/test-templates/coordinator-container.json`;
+  try {
+    Deno.mkdirSync("tmp/test-templates", { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+  Deno.writeTextFileSync(
+    templatePath,
+    JSON.stringify(
+      {
+        type: "template",
+        content: "Title: {title}",
+      },
+      null,
+      2,
+    ),
+  );
+
   // Setup mock template files
   mockFileSystem.setFile(
-    "container.json",
+    templatePath,
     JSON.stringify({
       type: "template",
-      content: "Title: {@title}",
+      content: "Title: {title}",
     }),
   );
 
@@ -80,13 +100,13 @@ Deno.test("TemplateSchemaCoordinator - processes with schema templates successfu
     mockFileSystem,
   );
 
-  // Create schema with x-template
+  // Create schema with x-template (use a schema path with directory)
   const schemaId = SchemaId.create("test_schema").unwrap();
-  const schemaPath = SchemaPath.create("test_schema.json").unwrap();
+  const schemaPath = SchemaPath.create("schemas/test_schema.json").unwrap();
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "container.json",
+    "x-template": templatePath, // Use absolute path
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
@@ -102,7 +122,7 @@ Deno.test("TemplateSchemaCoordinator - processes with schema templates successfu
   assertEquals(result.isOk(), true);
   const output = result.unwrap();
   assertExists(output.content);
-  assertEquals(output.metadata.templateUsed, "container.json");
+  assertEquals(output.metadata.templateUsed, templatePath);
   assertEquals(output.metadata.itemCount, 1);
 });
 
@@ -177,18 +197,53 @@ Deno.test("TemplateSchemaCoordinator - handles invalid template JSON", async () 
 Deno.test("TemplateSchemaCoordinator - processes with items template", async () => {
   const mockFileSystem = new MockFileSystem();
 
+  // Create real template files for json-template
+  const containerPath =
+    `${Deno.cwd()}/tmp/test-templates/coordinator-container-items.json`;
+  const itemsPath = `${Deno.cwd()}/tmp/test-templates/coordinator-items.json`;
+
+  try {
+    Deno.mkdirSync("tmp/test-templates", { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+
+  Deno.writeTextFileSync(
+    containerPath,
+    JSON.stringify(
+      {
+        type: "template",
+        content: "Documents: {@items}",
+      },
+      null,
+      2,
+    ),
+  );
+
+  Deno.writeTextFileSync(
+    itemsPath,
+    JSON.stringify(
+      {
+        type: "template",
+        content: "- {title}",
+      },
+      null,
+      2,
+    ),
+  );
+
   mockFileSystem.setFile(
-    "container.json",
+    containerPath,
     JSON.stringify({
       type: "template",
       content: "Documents: {@items}",
     }),
   );
   mockFileSystem.setFile(
-    "items.json",
+    itemsPath,
     JSON.stringify({
       type: "template",
-      content: "- {@title}",
+      content: "- {title}",
     }),
   );
 
@@ -201,12 +256,12 @@ Deno.test("TemplateSchemaCoordinator - processes with items template", async () 
   );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
-  const schemaPath = SchemaPath.create("test_schema.json").unwrap();
+  const schemaPath = SchemaPath.create("schemas/test_schema.json").unwrap();
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "container.json",
-    "x-template-items": "items.json",
+    "x-template": containerPath, // Use absolute path
+    "x-template-items": itemsPath, // Use absolute path
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 
@@ -220,16 +275,37 @@ Deno.test("TemplateSchemaCoordinator - processes with items template", async () 
 
   assertEquals(result.isOk(), true);
   const output = result.unwrap();
-  assertEquals(output.metadata.templateUsed, "container.json");
-  assertEquals(output.metadata.itemsTemplateUsed, "items.json");
+  assertEquals(output.metadata.templateUsed, containerPath);
+  assertEquals(output.metadata.itemsTemplateUsed, itemsPath);
   assertEquals(output.metadata.itemCount, 2);
 });
 
 Deno.test("TemplateSchemaCoordinator - handles missing items template", async () => {
   const mockFileSystem = new MockFileSystem();
 
+  // Create real container template file
+  const containerPath =
+    `${Deno.cwd()}/tmp/test-templates/coordinator-container-missing-items.json`;
+  try {
+    Deno.mkdirSync("tmp/test-templates", { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+
+  Deno.writeTextFileSync(
+    containerPath,
+    JSON.stringify(
+      {
+        type: "template",
+        content: "Documents",
+      },
+      null,
+      2,
+    ),
+  );
+
   mockFileSystem.setFile(
-    "container.json",
+    containerPath,
     JSON.stringify({
       type: "template",
       content: "Documents",
@@ -245,12 +321,12 @@ Deno.test("TemplateSchemaCoordinator - handles missing items template", async ()
   );
 
   const schemaId = SchemaId.create("test_schema").unwrap();
-  const schemaPath = SchemaPath.create("test_schema.json").unwrap();
+  const schemaPath = SchemaPath.create("schemas/test_schema.json").unwrap();
   const schemaData = {
     type: "object",
     properties: { title: { type: "string" } },
-    "x-template": "container.json",
-    "x-template-items": "missing_items.json",
+    "x-template": containerPath, // Use absolute path
+    "x-template-items": "missing_items.json", // This should fail
   };
   const schema = Schema.create(schemaId, schemaPath).markAsResolved(schemaData);
 

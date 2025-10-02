@@ -199,7 +199,7 @@ export class ItemsProcessor {
     };
 
     // Perform expansion
-    const expansionResult = this.expander.expandItems(expansionContext);
+    const expansionResult = await this.expander.expandItems(expansionContext);
     if (expansionResult.isError()) {
       return Result.error(expansionResult.unwrapError());
     }

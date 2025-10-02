@@ -80,10 +80,16 @@ export class TemplateSchemaCoordinator {
 
       const templateContext = templateContextResult.unwrap();
 
-      // 2. Load container template
-      const containerTemplate = await this.loadTemplate(
+      // Get schema directory for resolving relative template paths
+      const schemaPath = schema.getPath().toString();
+      const schemaDir = schemaPath.substring(0, schemaPath.lastIndexOf("/"));
+
+      // 2. Load container template (resolve relative to schema directory)
+      const containerTemplatePath = this.resolveTemplatePath(
         templateContext.containerTemplate.path,
+        schemaDir,
       );
+      const containerTemplate = await this.loadTemplate(containerTemplatePath);
 
       if (containerTemplate.isError()) {
         return Result.error(
@@ -98,12 +104,14 @@ export class TemplateSchemaCoordinator {
         );
       }
 
-      // 3. Load items template if available
+      // 3. Load items template if available (resolve relative to schema directory)
       let itemsTemplate: Template | null = null;
       if (templateContext.itemsTemplate) {
-        const itemsTemplateResult = await this.loadTemplate(
+        const itemsTemplatePath = this.resolveTemplatePath(
           templateContext.itemsTemplate.path,
+          schemaDir,
         );
+        const itemsTemplateResult = await this.loadTemplate(itemsTemplatePath);
 
         if (itemsTemplateResult.isError()) {
           return Result.error(
@@ -163,6 +171,22 @@ export class TemplateSchemaCoordinator {
         ),
       );
     }
+  }
+
+  /**
+   * Resolves template path relative to schema directory
+   *
+   * If templatePath is already absolute (starts with /), returns as-is.
+   * Otherwise, joins it with schemaDir.
+   */
+  private resolveTemplatePath(templatePath: string, schemaDir: string): string {
+    // If path is already absolute, return as-is
+    if (templatePath.startsWith("/")) {
+      return templatePath;
+    }
+
+    // Resolve relative path from schema directory
+    return `${schemaDir}/${templatePath}`;
   }
 
   /**
