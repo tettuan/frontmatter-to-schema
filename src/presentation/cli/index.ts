@@ -5,6 +5,7 @@ import {
 } from "../../application/services/pipeline-orchestrator.ts";
 import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-system-adapter.ts";
 import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
+import denoConfig from "../../../deno.json" with { type: "json" };
 
 export interface CLIResponse {
   ok: boolean;
@@ -309,7 +310,7 @@ EXAMPLES:
   }
 
   private showVersion(): CLIResponse {
-    const version = "1.0.0"; // In production, read from deno.json
+    const version = denoConfig.version;
     const versionInfo = `frontmatter-to-schema ${version}`;
 
     console.log(versionInfo);
