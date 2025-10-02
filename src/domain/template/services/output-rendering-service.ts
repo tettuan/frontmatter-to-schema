@@ -372,8 +372,11 @@ export class OutputRenderingService {
           value.endsWith(" ");
 
         if (needsQuoting) {
-          // Use YAML-style quote escaping (double the quotes, not backslash)
-          return `"${value.replace(/"/g, '""')}"`;
+          // YAML spec: use backslash escaping in double-quoted strings
+          const escaped = value
+            .replace(/\\/g, "\\\\") // Escape backslashes first
+            .replace(/"/g, '\\"'); // Then escape quotes
+          return `"${escaped}"`;
         }
         return value;
       }
