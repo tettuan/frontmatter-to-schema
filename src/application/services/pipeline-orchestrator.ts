@@ -1,5 +1,8 @@
 import { Result } from "../../domain/shared/types/result.ts";
-import { ProcessingError } from "../../domain/shared/types/errors.ts";
+import {
+  ProcessingError,
+  TemplateError,
+} from "../../domain/shared/types/errors.ts";
 import { OutputRenderingService } from "../../domain/template/index.ts";
 import {
   MarkdownDocument,
@@ -19,6 +22,84 @@ import { SchemaDirectiveProcessor } from "../../domain/schema/index.ts";
 import { DocumentAggregationService } from "../../domain/aggregation/index.ts";
 import { TemplateOutputRenderer } from "../../domain/template/index.ts";
 import { Phase1DirectiveProcessor } from "../../domain/directives/services/phase1-directive-processor.ts";
+import {
+  ItemsProcessor,
+  ItemsTemplateLoader,
+} from "../../domain/template/services/items-processor.ts";
+import { ItemsDetector } from "../../domain/template/services/items-detector.ts";
+import { ItemsExpander } from "../../domain/template/services/items-expander.ts";
+import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { Template } from "../../domain/template/entities/template.ts";
+import { createFileError } from "../../domain/shared/types/file-errors.ts";
+
+/**
+ * Template loader adapter for ItemsProcessor
+ * Implements ItemsTemplateLoader port using FileSystemPort
+ */
+class FileSystemTemplateLoader implements ItemsTemplateLoader {
+  constructor(private readonly fileSystem: FileSystemPort) {}
+
+  async loadTemplate(
+    path: TemplatePath,
+  ): Promise<Result<Template, TemplateError>> {
+    try {
+      const contentResult = await this.fileSystem.readTextFile(path.toString());
+      if (contentResult.isError()) {
+        return Result.error(
+          new TemplateError(
+            `Failed to read template file: ${
+              createFileError(contentResult.unwrapError()).message
+            }`,
+            "TEMPLATE_READ_ERROR",
+            {
+              templatePath: path.toString(),
+              error: contentResult.unwrapError(),
+            },
+          ),
+        );
+      }
+
+      let templateData: Record<string, unknown>;
+      try {
+        templateData = JSON.parse(contentResult.unwrap());
+      } catch (parseError) {
+        return Result.error(
+          new TemplateError(
+            `Failed to parse template JSON: ${
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError)
+            }`,
+            "TEMPLATE_PARSE_ERROR",
+            { templatePath: path.toString(), error: parseError },
+          ),
+        );
+      }
+
+      const templateDataFormatted = {
+        content: templateData,
+        format: "json" as const,
+      };
+
+      const templateResult = Template.create(path, templateDataFormatted);
+      if (templateResult.isError()) {
+        return Result.error(templateResult.unwrapError());
+      }
+
+      return Result.ok(templateResult.unwrap());
+    } catch (error) {
+      return Result.error(
+        new TemplateError(
+          `Template loading failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "TEMPLATE_LOAD_ERROR",
+          { templatePath: path.toString(), error },
+        ),
+      );
+    }
+  }
+}
 
 /**
  * Configuration for pipeline execution
@@ -83,8 +164,18 @@ export class PipelineOrchestrator implements DocumentLoader {
       );
     }
 
-    // Create template renderer
-    const templateRendererResult = TemplateRenderer.create();
+    // Create ItemsProcessor dependencies
+    const itemsDetector = ItemsDetector.create();
+    const itemsExpander = ItemsExpander.create();
+    const templateLoader = new FileSystemTemplateLoader(fileSystem);
+    const itemsProcessor = ItemsProcessor.create(
+      itemsDetector,
+      itemsExpander,
+      templateLoader,
+    );
+
+    // Create template renderer with ItemsProcessor
+    const templateRendererResult = TemplateRenderer.create(itemsProcessor);
     if (templateRendererResult.isError()) {
       return Result.error(
         new ProcessingError(

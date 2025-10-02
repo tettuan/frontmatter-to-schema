@@ -122,7 +122,7 @@ export class TemplateSchemaCoordinator {
       }
 
       // 4. Template Domain processes with schema context
-      const renderResult = this.templateRenderer.renderWithItems(
+      const renderResult = await this.templateRenderer.renderWithItems(
         containerTemplate.unwrap(),
         data,
         itemsTemplate,
