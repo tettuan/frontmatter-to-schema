@@ -335,7 +335,8 @@ export class SchemaDirectiveProcessor {
         const propDef = propertySchema as Record<string, unknown>;
 
         // Apply default value if property doesn't exist and default is defined
-        if (!result[propertyName] && propDef?.default !== undefined) {
+        // Use 'in' operator to distinguish undefined from falsy values (false, 0, "", [])
+        if (!(propertyName in result) && propDef?.default !== undefined) {
           result[propertyName] = propDef.default;
         }
       }
