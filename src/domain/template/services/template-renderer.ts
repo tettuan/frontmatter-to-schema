@@ -120,14 +120,30 @@ export class TemplateRenderer {
     containerTemplate: Template,
     data: FrontmatterData[],
     itemsTemplate?: Template | null,
+    frontmatterPartProperty?: string | null,
   ): Promise<Result<string, TemplateError>> {
     try {
       // Convert data array to plain objects
       const plainObjects = data.map((item) => item.getData());
-      const combinedData = {
-        items: plainObjects,
-        // For single item compatibility
-        ...(plainObjects.length > 0 ? plainObjects[0] : {}),
+
+      // Extract array data for items processing
+      // If frontmatterPartProperty is specified, extract and aggregate those arrays
+      let arrayData: unknown[];
+      if (frontmatterPartProperty) {
+        arrayData = plainObjects.flatMap((obj) => {
+          const value = obj[frontmatterPartProperty];
+          return Array.isArray(value) ? value : [];
+        });
+      } else {
+        // Fallback: use entire data objects
+        arrayData = plainObjects;
+      }
+
+      // Container-level context (should NOT include item data)
+      // Only container-level properties should be here (version, description, etc.)
+      const containerContext = {
+        items: arrayData,
+        // TODO: Add actual container-level properties from schema directives
       };
 
       // If ItemsProcessor is available and itemsTemplate provided, use it for {@items} expansion
@@ -137,8 +153,8 @@ export class TemplateRenderer {
           itemsTemplateRef: ItemsProcessor.createTemplateReference(
             itemsTemplate.getPath().toString(),
           ),
-          arrayData: plainObjects,
-          globalVariables: combinedData,
+          arrayData,
+          globalVariables: containerContext,
         };
 
         const processingResult = await this.itemsProcessor.processItems(
@@ -156,7 +172,7 @@ export class TemplateRenderer {
 
         // Resolve variables in the processed template
         const resolvedTemplate = templateToRender.resolveVariables(
-          combinedData,
+          containerContext,
         );
 
         if (resolvedTemplate.isError()) {
@@ -166,7 +182,7 @@ export class TemplateRenderer {
               "TEMPLATE_RESOLUTION_ERROR",
               {
                 template: templateToRender.getPath().toString(),
-                data: combinedData,
+                data: containerContext,
               },
             ),
           );
@@ -178,7 +194,9 @@ export class TemplateRenderer {
       }
 
       // Fallback: No ItemsProcessor or no itemsTemplate - use simple variable resolution
-      const resolvedTemplate = containerTemplate.resolveVariables(combinedData);
+      const resolvedTemplate = containerTemplate.resolveVariables(
+        containerContext,
+      );
 
       if (resolvedTemplate.isError()) {
         return Result.error(
@@ -187,7 +205,7 @@ export class TemplateRenderer {
             "TEMPLATE_RESOLUTION_ERROR",
             {
               template: containerTemplate.getPath().toString(),
-              data: combinedData,
+              data: containerContext,
             },
           ),
         );

@@ -138,11 +138,18 @@ export class ItemsExpander {
     itemIndex: number,
     globalVariables: Record<string, unknown>,
   ): Record<string, unknown> {
+    // Priority: arrayItem data > globalVariables (container-level)
+    // Array item data should NOT be overridden by global variables
+    const itemData = this.isObject(arrayItem)
+      ? arrayItem
+      : { value: arrayItem };
+
     const itemContext: Record<string, unknown> = {
+      // Container-level variables (e.g., version, description)
       ...globalVariables,
-      // Array item data becomes the root context
-      ...(this.isObject(arrayItem) ? arrayItem : { value: arrayItem }),
-      // Add array context variables
+      // Array item data takes precedence
+      ...itemData,
+      // Array context variables (always added)
       $index: itemIndex,
       $first: itemIndex === 0,
       $last: false, // Will be set by caller if needed

@@ -23,6 +23,7 @@ export interface SchemaContext {
   readonly sourceSchema: Schema;
   readonly resolvedExtensions: Record<string, unknown>;
   readonly templateResolutionStrategy: TemplateResolutionStrategy;
+  readonly frontmatterPartProperty?: string | null;
 }
 
 export type TemplateResolutionStrategy = "absolute" | "relative";
@@ -61,6 +62,12 @@ export class TemplateSchemaCoordinator {
     data: FrontmatterData[],
   ): Promise<Result<ProcessedOutput, ProcessingError>> {
     try {
+      // Filter out empty frontmatter data (files without frontmatter)
+      const nonEmptyData = data.filter((item) => {
+        const itemData = item.getData();
+        return itemData && Object.keys(itemData).length > 0;
+      });
+
       // 1. Extract template references from Schema Domain
       const templateContextResult = this.schemaTemplateResolver
         .resolveTemplateContext(schema);
@@ -129,11 +136,12 @@ export class TemplateSchemaCoordinator {
         itemsTemplate = itemsTemplateResult.unwrap();
       }
 
-      // 4. Template Domain processes with schema context
+      // 4. Template Domain processes with schema context (use filtered data)
       const renderResult = await this.templateRenderer.renderWithItems(
         containerTemplate.unwrap(),
-        data,
+        nonEmptyData,
         itemsTemplate,
+        templateContext.schemaContext.frontmatterPartProperty,
       );
 
       if (renderResult.isError()) {
@@ -157,7 +165,7 @@ export class TemplateSchemaCoordinator {
         metadata: {
           templateUsed: templateContext.containerTemplate.path,
           itemsTemplateUsed: templateContext.itemsTemplate?.path,
-          itemCount: data.length,
+          itemCount: nonEmptyData.length,
         },
       });
     } catch (error) {
