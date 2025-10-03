@@ -17,6 +17,7 @@
     "jsr:@std/path@^1.1.2": "1.1.2",
     "jsr:@std/testing@*": "1.0.15",
     "jsr:@std/testing@^1.0.15": "1.0.15",
+    "jsr:@std/yaml@1.0.5": "1.0.5",
     "jsr:@std/yaml@^1.0.5": "1.0.9",
     "jsr:@tettuan/breakdownlogger@1": "1.0.8",
     "npm:@anthropic-ai/claude-code@^1.0.89": "1.0.127"
@@ -40,7 +41,7 @@
     "@std/front-matter@1.0.5": {
       "integrity": "abddc64030a33eb5bc524b8c73e7c417cea09177aaeb4abf75a56b540c4b6e60",
       "dependencies": [
-        "jsr:@std/yaml"
+        "jsr:@std/yaml@^1.0.5"
       ]
     },
     "@std/fs@1.0.8": {
@@ -64,6 +65,9 @@
         "jsr:@std/assert@^1.0.13",
         "jsr:@std/internal"
       ]
+    },
+    "@std/yaml@1.0.5": {
+      "integrity": "71ba3d334305ee2149391931508b2c293a8490f94a337eef3a09cade1a2a2742"
     },
     "@std/yaml@1.0.9": {
       "integrity": "6bad3dc766dd85b4b37eabcba81b6aa4eac7a392792ae29abcfb0f90602d55bb"

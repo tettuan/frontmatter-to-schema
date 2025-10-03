@@ -464,13 +464,8 @@ No frontmatter here`,
         outputFormat: "json",
       });
 
-      // Currently returns error when no frontmatter present
-      // TODO: Enhance to handle empty frontmatter gracefully
-      assertEquals(result.isError(), true);
-      assertEquals(
-        result.unwrapError().code,
-        "SCHEMA_REQUIRED_FOR_AGGREGATION",
-      );
+      // Empty frontmatter is now handled gracefully
+      assertEquals(result.isOk(), true);
     });
   });
 

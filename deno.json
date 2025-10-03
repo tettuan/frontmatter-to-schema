@@ -61,6 +61,7 @@
     "@std/path": "jsr:@std/path@^1.1.2",
     "@std/testing": "jsr:@std/testing@^1.0.15",
     "@std/testing/bdd": "jsr:@std/testing@^1.0.15/bdd",
+    "@std/yaml": "jsr:@std/yaml@1.0.5",
     "@tettuan/breakdownlogger": "jsr:@tettuan/breakdownlogger@^1.0.0",
     "jsr:@std/fs": "jsr:@std/fs@1.0.8",
     "jsr:@std/yaml": "jsr:@std/yaml@1.0.5",
