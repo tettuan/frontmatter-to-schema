@@ -8,13 +8,11 @@
   "properties": {
     "version": {
       "type": "string",
-      "description": "Registry version",
-      "default": "1.0.0"
+      "description": "Registry version"
     },
     "description": {
       "type": "string",
-      "description": "Overall registry description",
-      "default": "Command Registry"
+      "description": "Overall registry description"
     },
     "tools": {
       "type": "object",

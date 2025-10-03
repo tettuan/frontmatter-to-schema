@@ -6,7 +6,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "default": "1.0.0"
+      "x-derived-from": "version"
     },
     "req": {
       "type": "array",
