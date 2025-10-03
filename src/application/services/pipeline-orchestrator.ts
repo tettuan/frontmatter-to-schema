@@ -1,9 +1,13 @@
 import { Result } from "../../domain/shared/types/result.ts";
-import { ProcessingError } from "../../domain/shared/types/errors.ts";
+import {
+  ProcessingError,
+  TemplateError,
+} from "../../domain/shared/types/errors.ts";
 import { OutputRenderingService } from "../../domain/template/index.ts";
 import {
   MarkdownDocument,
 } from "../../domain/frontmatter/entities/markdown-document.ts";
+import { FrontmatterData } from "../../domain/frontmatter/value-objects/frontmatter-data.ts";
 import { FileSystemPort } from "../../infrastructure/ports/file-system-port.ts";
 import {
   UniversalPipeline,
@@ -19,6 +23,84 @@ import { SchemaDirectiveProcessor } from "../../domain/schema/index.ts";
 import { DocumentAggregationService } from "../../domain/aggregation/index.ts";
 import { TemplateOutputRenderer } from "../../domain/template/index.ts";
 import { Phase1DirectiveProcessor } from "../../domain/directives/services/phase1-directive-processor.ts";
+import {
+  ItemsProcessor,
+  ItemsTemplateLoader,
+} from "../../domain/template/services/items-processor.ts";
+import { ItemsDetector } from "../../domain/template/services/items-detector.ts";
+import { ItemsExpander } from "../../domain/template/services/items-expander.ts";
+import { TemplatePath } from "../../domain/template/value-objects/template-path.ts";
+import { Template } from "../../domain/template/entities/template.ts";
+import { createFileError } from "../../domain/shared/types/file-errors.ts";
+
+/**
+ * Template loader adapter for ItemsProcessor
+ * Implements ItemsTemplateLoader port using FileSystemPort
+ */
+class FileSystemTemplateLoader implements ItemsTemplateLoader {
+  constructor(private readonly fileSystem: FileSystemPort) {}
+
+  async loadTemplate(
+    path: TemplatePath,
+  ): Promise<Result<Template, TemplateError>> {
+    try {
+      const contentResult = await this.fileSystem.readTextFile(path.toString());
+      if (contentResult.isError()) {
+        return Result.error(
+          new TemplateError(
+            `Failed to read template file: ${
+              createFileError(contentResult.unwrapError()).message
+            }`,
+            "TEMPLATE_READ_ERROR",
+            {
+              templatePath: path.toString(),
+              error: contentResult.unwrapError(),
+            },
+          ),
+        );
+      }
+
+      let templateData: Record<string, unknown>;
+      try {
+        templateData = JSON.parse(contentResult.unwrap());
+      } catch (parseError) {
+        return Result.error(
+          new TemplateError(
+            `Failed to parse template JSON: ${
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError)
+            }`,
+            "TEMPLATE_PARSE_ERROR",
+            { templatePath: path.toString(), error: parseError },
+          ),
+        );
+      }
+
+      const templateDataFormatted = {
+        content: templateData,
+        format: "json" as const,
+      };
+
+      const templateResult = Template.create(path, templateDataFormatted);
+      if (templateResult.isError()) {
+        return Result.error(templateResult.unwrapError());
+      }
+
+      return Result.ok(templateResult.unwrap());
+    } catch (error) {
+      return Result.error(
+        new TemplateError(
+          `Template loading failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          "TEMPLATE_LOAD_ERROR",
+          { templatePath: path.toString(), error },
+        ),
+      );
+    }
+  }
+}
 
 /**
  * Configuration for pipeline execution
@@ -83,8 +165,18 @@ export class PipelineOrchestrator implements DocumentLoader {
       );
     }
 
-    // Create template renderer
-    const templateRendererResult = TemplateRenderer.create();
+    // Create ItemsProcessor dependencies
+    const itemsDetector = ItemsDetector.create();
+    const itemsExpander = ItemsExpander.create();
+    const templateLoader = new FileSystemTemplateLoader(fileSystem);
+    const itemsProcessor = ItemsProcessor.create(
+      itemsDetector,
+      itemsExpander,
+      templateLoader,
+    );
+
+    // Create template renderer with ItemsProcessor
+    const templateRendererResult = TemplateRenderer.create(itemsProcessor);
     if (templateRendererResult.isError()) {
       return Result.error(
         new ProcessingError(
@@ -228,7 +320,7 @@ export class PipelineOrchestrator implements DocumentLoader {
       return Result.error(schemaDataResult.unwrapError());
     }
 
-    // Phase 1: Apply per-file directives to each document BEFORE aggregation
+    // Phase 1: Apply per-file directives to each document BEFORE template processing
     const phase1ProcessedDocuments: MarkdownDocument[] = [];
     for (const document of result.documents) {
       const phase1Result = this.phase1DirectiveProcessor.processDocument(
@@ -241,36 +333,150 @@ export class PipelineOrchestrator implements DocumentLoader {
       phase1ProcessedDocuments.push(phase1Result.unwrap());
     }
 
-    // Phase 2: Transform documents using document aggregation service with schema
-    const transformedData = this.documentAggregationService.transformDocuments(
-      phase1ProcessedDocuments,
-      result.template,
-      schemaDataResult.unwrap(),
-    );
-    if (transformedData.isError()) {
-      return Result.error(transformedData.unwrapError());
-    }
+    // Phase 2: Check if schema has x-template to determine processing path
+    const schemaData = schemaDataResult.unwrap();
+    const hasXTemplate = schemaData["x-template"];
 
-    // Apply schema directives (x-derived-from, x-derived-unique, etc.)
-    const directivesResult = this.schemaDirectiveProcessor
-      .applySchemaDirectives(
-        transformedData.unwrap(),
-        schemaDataResult.unwrap(),
+    // Branch: Use coordinator if x-template exists, otherwise use traditional flow
+    if (hasXTemplate) {
+      // === COORDINATOR PATH (for schemas with x-template) ===
+      // Extract FrontmatterData from documents for coordinator
+      // Documents without frontmatter get empty FrontmatterData
+      const frontmatterDataArray: FrontmatterData[] = [];
+      for (const doc of phase1ProcessedDocuments) {
+        const frontmatter = doc.getFrontmatter();
+        if (frontmatter) {
+          frontmatterDataArray.push(frontmatter);
+        } else {
+          // Create empty FrontmatterData for documents without frontmatter
+          const emptyDataResult = FrontmatterData.create({});
+          if (emptyDataResult.isError()) {
+            return Result.error(
+              new ProcessingError(
+                `Failed to create empty frontmatter data: ${emptyDataResult.unwrapError().message}`,
+                "FRONTMATTER_CREATION_ERROR",
+                { error: emptyDataResult.unwrapError() },
+              ),
+            );
+          }
+          frontmatterDataArray.push(emptyDataResult.unwrap());
+        }
+      }
+
+      // Mark schema as resolved with loaded data
+      const resolvedSchema = result.schema.markAsResolved(
+        schemaData as Record<string, unknown> & { type: string },
       );
-    if (directivesResult.isError()) {
-      return Result.error(directivesResult.unwrapError());
-    }
 
-    // Render output using template output renderer with schema
-    const renderingResult = await this.templateOutputRenderer.renderOutput(
-      result.template,
-      directivesResult.unwrap(),
-      result.outputFormat as "json" | "yaml" | "xml" | "markdown",
-      config.outputPath,
-      schemaDataResult.unwrap(),
-    );
-    if (renderingResult.isError()) {
-      return Result.error(renderingResult.unwrapError());
+      // Use TemplateSchemaCoordinator for template rendering with ItemsProcessor
+      const coordinatorResult = await this.templateSchemaCoordinator
+        .processWithSchemaTemplates(
+          resolvedSchema,
+          frontmatterDataArray,
+        );
+      if (coordinatorResult.isError()) {
+        return Result.error(coordinatorResult.unwrapError());
+      }
+
+      // Parse coordinator output to apply schema directives
+      const outputContent = coordinatorResult.unwrap().content;
+      let outputData: Record<string, unknown>;
+      try {
+        outputData = JSON.parse(outputContent);
+      } catch (parseError) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to parse coordinator output: ${
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError)
+            }`,
+            "COORDINATOR_OUTPUT_PARSE_ERROR",
+            { error: parseError },
+          ),
+        );
+      }
+
+      // Apply schema directives (x-derived-from, x-derived-unique, etc.)
+      const directivesResult = this.schemaDirectiveProcessor
+        .applySchemaDirectives(
+          outputData,
+          schemaData,
+        );
+      if (directivesResult.isError()) {
+        return Result.error(directivesResult.unwrapError());
+      }
+
+      // Format conversion and output writing
+      const outputFormat = result.outputFormat as
+        | "json"
+        | "yaml"
+        | "xml"
+        | "markdown";
+      let finalOutput: string;
+
+      if (outputFormat === "json") {
+        finalOutput = JSON.stringify(directivesResult.unwrap(), null, 2);
+      } else if (outputFormat === "yaml") {
+        const { stringify } = await import("@std/yaml");
+        finalOutput = stringify(directivesResult.unwrap());
+      } else {
+        // For now, fall back to JSON for xml and markdown
+        finalOutput = JSON.stringify(directivesResult.unwrap(), null, 2);
+      }
+
+      const finalWriteResult = await this.fileSystem.writeTextFile(
+        config.outputPath,
+        finalOutput,
+      );
+      if (finalWriteResult.isError()) {
+        return Result.error(
+          new ProcessingError(
+            `Failed to write final output: ${
+              createFileError(finalWriteResult.unwrapError()).message
+            }`,
+            "OUTPUT_WRITE_ERROR",
+            {
+              outputPath: config.outputPath,
+              error: finalWriteResult.unwrapError(),
+            },
+          ),
+        );
+      }
+    } else {
+      // === TRADITIONAL PATH (for schemas without x-template) ===
+      // Phase 2: Transform documents using document aggregation service with schema
+      const transformedData = this.documentAggregationService
+        .transformDocuments(
+          phase1ProcessedDocuments,
+          result.template,
+          schemaData,
+        );
+      if (transformedData.isError()) {
+        return Result.error(transformedData.unwrapError());
+      }
+
+      // Apply schema directives (x-derived-from, x-derived-unique, etc.)
+      const directivesResult = this.schemaDirectiveProcessor
+        .applySchemaDirectives(
+          transformedData.unwrap(),
+          schemaData,
+        );
+      if (directivesResult.isError()) {
+        return Result.error(directivesResult.unwrapError());
+      }
+
+      // Render output using template output renderer with schema
+      const renderingResult = await this.templateOutputRenderer.renderOutput(
+        result.template,
+        directivesResult.unwrap(),
+        result.outputFormat as "json" | "yaml" | "xml" | "markdown",
+        config.outputPath,
+        schemaData,
+      );
+      if (renderingResult.isError()) {
+        return Result.error(renderingResult.unwrapError());
+      }
     }
 
     return Result.ok({

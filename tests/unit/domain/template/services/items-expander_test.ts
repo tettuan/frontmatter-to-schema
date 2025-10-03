@@ -3,12 +3,28 @@ import { ItemsExpander } from "../../../../../src/domain/template/services/items
 import { Template } from "../../../../../src/domain/template/entities/template.ts";
 import { TemplatePath } from "../../../../../src/domain/template/value-objects/template-path.ts";
 
-// Helper function to create test templates
+let templateCounter = 0;
+
+// Helper function to create test templates with actual files
 function createTestTemplate(
   content: Record<string, unknown>,
   format: "json" | "yaml" = "json",
 ) {
-  const pathResult = TemplatePath.create("test-template.json");
+  // Create a unique temporary file for each template
+  const tempFilePath =
+    `tmp/test-templates/test-template-${templateCounter++}.json`;
+
+  // Ensure directory exists
+  try {
+    Deno.mkdirSync("tmp/test-templates", { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+
+  // Write template content to file
+  Deno.writeTextFileSync(tempFilePath, JSON.stringify(content, null, 2));
+
+  const pathResult = TemplatePath.create(tempFilePath);
   if (pathResult.isError()) {
     throw new Error("Failed to create test template path");
   }
@@ -31,7 +47,7 @@ Deno.test("ItemsExpander - create instance", () => {
   assertEquals(expander.constructor.name, "ItemsExpander");
 });
 
-Deno.test("ItemsExpander - expand simple {@items} with array data", () => {
+Deno.test("ItemsExpander - expand simple {@items} with array data", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -41,8 +57,8 @@ Deno.test("ItemsExpander - expand simple {@items} with array data", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    id: "${id}",
-    name: "${name}",
+    id: "{id}",
+    name: "{name}",
   });
 
   const arrayData = [
@@ -57,7 +73,7 @@ Deno.test("ItemsExpander - expand simple {@items} with array data", () => {
     globalVariables: { version: "1.0" },
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -76,7 +92,7 @@ Deno.test("ItemsExpander - expand simple {@items} with array data", () => {
   assertEquals(commands[1].name, "Second Command");
 });
 
-Deno.test("ItemsExpander - expand with array context variables", () => {
+Deno.test("ItemsExpander - expand with array context variables", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -84,10 +100,10 @@ Deno.test("ItemsExpander - expand with array context variables", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    index: "${$index}",
-    isFirst: "${$first}",
-    isLast: "${$last}",
-    value: "${value}",
+    index: "{$index}",
+    isFirst: "{$first}",
+    isLast: "{$last}",
+    value: "{value}",
   });
 
   const arrayData = ["apple", "banana", "cherry"];
@@ -99,7 +115,7 @@ Deno.test("ItemsExpander - expand with array context variables", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -107,26 +123,26 @@ Deno.test("ItemsExpander - expand with array context variables", () => {
   const items = expansion.expandedContent.items as any[];
   assertEquals(items.length, 3);
 
-  // Check first item
-  assertEquals(items[0].index, "0");
-  assertEquals(items[0].isFirst, "true");
-  assertEquals(items[0].isLast, "false");
+  // Check first item (json-template preserves types)
+  assertEquals(items[0].index, 0);
+  assertEquals(items[0].isFirst, true);
+  assertEquals(items[0].isLast, false);
   assertEquals(items[0].value, "apple");
 
   // Check middle item
-  assertEquals(items[1].index, "1");
-  assertEquals(items[1].isFirst, "false");
-  assertEquals(items[1].isLast, "false");
+  assertEquals(items[1].index, 1);
+  assertEquals(items[1].isFirst, false);
+  assertEquals(items[1].isLast, false);
   assertEquals(items[1].value, "banana");
 
   // Check last item
-  assertEquals(items[2].index, "2");
-  assertEquals(items[2].isFirst, "false");
-  assertEquals(items[2].isLast, "true");
+  assertEquals(items[2].index, 2);
+  assertEquals(items[2].isFirst, false);
+  assertEquals(items[2].isLast, true);
   assertEquals(items[2].value, "cherry");
 });
 
-Deno.test("ItemsExpander - expand with object array data", () => {
+Deno.test("ItemsExpander - expand with object array data", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -134,9 +150,9 @@ Deno.test("ItemsExpander - expand with object array data", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    userName: "${name}",
-    userEmail: "${email}",
-    globalVersion: "${version}",
+    userName: "{name}",
+    userEmail: "{email}",
+    globalVersion: "{version}",
   });
 
   const arrayData = [
@@ -151,7 +167,7 @@ Deno.test("ItemsExpander - expand with object array data", () => {
     globalVariables: { version: "2.0" },
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -168,7 +184,7 @@ Deno.test("ItemsExpander - expand with object array data", () => {
   assertEquals(users[1].globalVersion, "2.0");
 });
 
-Deno.test("ItemsExpander - expand with nested {@items} patterns", () => {
+Deno.test("ItemsExpander - expand with nested {@items} patterns", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -182,8 +198,8 @@ Deno.test("ItemsExpander - expand with nested {@items} patterns", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    command: "${cmd}",
-    description: "${desc}",
+    command: "{cmd}",
+    description: "{desc}",
   });
 
   const arrayData = [
@@ -198,7 +214,7 @@ Deno.test("ItemsExpander - expand with nested {@items} patterns", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -274,7 +290,7 @@ Deno.test("ItemsExpander - create item context with primitive data", () => {
   assertEquals(context.$last, false);
 });
 
-Deno.test("ItemsExpander - handle empty array data", () => {
+Deno.test("ItemsExpander - handle empty array data", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -282,7 +298,7 @@ Deno.test("ItemsExpander - handle empty array data", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    value: "${value}",
+    value: "{value}",
   });
 
   const context = {
@@ -292,7 +308,7 @@ Deno.test("ItemsExpander - handle empty array data", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -303,7 +319,7 @@ Deno.test("ItemsExpander - handle empty array data", () => {
   assertEquals(items.length, 0);
 });
 
-Deno.test("ItemsExpander - handle invalid array data", () => {
+Deno.test("ItemsExpander - handle invalid array data", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -311,7 +327,7 @@ Deno.test("ItemsExpander - handle invalid array data", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    value: "${value}",
+    value: "{value}",
   });
 
   const context = {
@@ -321,13 +337,13 @@ Deno.test("ItemsExpander - handle invalid array data", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isError(), true);
   assertEquals(result.unwrapError().code, "INVALID_ARRAY_DATA");
 });
 
-Deno.test("ItemsExpander - handle template without {@items}", () => {
+Deno.test("ItemsExpander - handle template without {@items}", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -336,7 +352,7 @@ Deno.test("ItemsExpander - handle template without {@items}", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    value: "${value}",
+    value: "{value}",
   });
 
   const context = {
@@ -346,13 +362,13 @@ Deno.test("ItemsExpander - handle template without {@items}", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isError(), true);
   assertEquals(result.unwrapError().code, "EXPANSION_CONTEXT_ERROR");
 });
 
-Deno.test("ItemsExpander - handle missing items template", () => {
+Deno.test("ItemsExpander - handle missing items template", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -366,13 +382,13 @@ Deno.test("ItemsExpander - handle missing items template", () => {
     globalVariables: {},
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isError(), true);
   assertEquals(result.unwrapError().code, "EXPANSION_CONTEXT_ERROR");
 });
 
-Deno.test("ItemsExpander - handle complex nested object data", () => {
+Deno.test("ItemsExpander - handle complex nested object data", async () => {
   const expander = ItemsExpander.create();
 
   const containerTemplate = createTestTemplate({
@@ -380,10 +396,10 @@ Deno.test("ItemsExpander - handle complex nested object data", () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    service: "${service.name}",
-    port: "${service.port}",
-    environment: "${env}",
-    tags: "${metadata.tags}",
+    service: "{service.name}",
+    port: "{service.port}",
+    environment: "{env}",
+    tags: "{metadata.tags}",
   });
 
   const arrayData = [
@@ -406,7 +422,7 @@ Deno.test("ItemsExpander - handle complex nested object data", () => {
     globalVariables: { cluster: "prod-1" },
   };
 
-  const result = expander.expandItems(context);
+  const result = await expander.expandItems(context);
 
   assertEquals(result.isOk(), true);
   const expansion = result.unwrap();
@@ -415,10 +431,13 @@ Deno.test("ItemsExpander - handle complex nested object data", () => {
   assertEquals(configurations.length, 2);
 
   assertEquals(configurations[0].service, "web");
-  assertEquals(configurations[0].port, "8080");
+  assertEquals(configurations[0].port, 8080); // json-template preserves number type
   assertEquals(configurations[0].environment, "production");
-  assertEquals(configurations[0].tags, "frontend,api");
+  assertEquals(
+    JSON.stringify(configurations[0].tags),
+    JSON.stringify(["frontend", "api"]),
+  ); // arrays are preserved
 
   assertEquals(configurations[1].service, "db");
-  assertEquals(configurations[1].port, "5432");
+  assertEquals(configurations[1].port, 5432); // json-template preserves number type
 });

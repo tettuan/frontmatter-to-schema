@@ -1,9 +1,10 @@
 ---
+version: "1.0.0"
+description: "Basic command registry example"
 c1: git
 c2: create
 c3: branch
 title: Create Git Branch
-description: Create a new git branch for feature development
 usage: "git checkout -b feature/new-feature"
 options:
   input: ["string"]

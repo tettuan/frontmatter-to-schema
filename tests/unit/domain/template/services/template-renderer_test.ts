@@ -102,7 +102,7 @@ Deno.test("TemplateRenderer - renderWithArray with single item", () => {
   assert(output.includes("Single Item") || output.includes("{title}"));
 });
 
-Deno.test("TemplateRenderer - renderWithItems with valid container template", () => {
+Deno.test("TemplateRenderer - renderWithItems with valid container template", async () => {
   const renderer = TemplateRenderer.create().unwrap();
 
   const templatePath = TemplatePath.create("container.json").unwrap();
@@ -119,7 +119,7 @@ Deno.test("TemplateRenderer - renderWithItems with valid container template", ()
   const data1 = FrontmatterData.create({ name: "Item 1" }).unwrap();
   const data2 = FrontmatterData.create({ name: "Item 2" }).unwrap();
 
-  const result = renderer.renderWithItems(
+  const result = await renderer.renderWithItems(
     containerTemplate,
     [data1, data2],
   );
@@ -129,7 +129,7 @@ Deno.test("TemplateRenderer - renderWithItems with valid container template", ()
   assert(output.length > 0);
 });
 
-Deno.test("TemplateRenderer - renderWithItems handles template resolution errors", () => {
+Deno.test("TemplateRenderer - renderWithItems handles template resolution errors", async () => {
   const renderer = TemplateRenderer.create().unwrap();
 
   const templatePath = TemplatePath.create("container.json").unwrap();
@@ -144,7 +144,7 @@ Deno.test("TemplateRenderer - renderWithItems handles template resolution errors
 
   const data = FrontmatterData.create({ name: "Item" }).unwrap();
 
-  const result = renderer.renderWithItems(
+  const result = await renderer.renderWithItems(
     containerTemplate,
     [data],
   );
@@ -153,7 +153,7 @@ Deno.test("TemplateRenderer - renderWithItems handles template resolution errors
   assert(result.isOk());
 });
 
-Deno.test("TemplateRenderer - renderWithItems with items template", () => {
+Deno.test("TemplateRenderer - renderWithItems with items template", async () => {
   const renderer = TemplateRenderer.create().unwrap();
 
   const templatePath = TemplatePath.create("container.json").unwrap();
@@ -166,16 +166,19 @@ Deno.test("TemplateRenderer - renderWithItems with items template", () => {
   const containerTemplate = Template.create(templatePath, templateData)
     .unwrap();
 
-  const itemsTemplate = {
-    path: "items-template.json",
+  const itemsTemplatePath = TemplatePath.create("items-template.json").unwrap();
+  const itemsTemplateData = {
     content: {
       name: "{name}",
     },
+    format: "json" as const,
   };
+  const itemsTemplate = Template.create(itemsTemplatePath, itemsTemplateData)
+    .unwrap();
 
   const data = FrontmatterData.create({ name: "Test Item" }).unwrap();
 
-  const result = renderer.renderWithItems(
+  const result = await renderer.renderWithItems(
     containerTemplate,
     [data],
     itemsTemplate,
@@ -184,7 +187,7 @@ Deno.test("TemplateRenderer - renderWithItems with items template", () => {
   assert(result.isOk());
 });
 
-Deno.test("TemplateRenderer - renderWithItems with empty data array", () => {
+Deno.test("TemplateRenderer - renderWithItems with empty data array", async () => {
   const renderer = TemplateRenderer.create().unwrap();
 
   const templatePath = TemplatePath.create("container.json").unwrap();
@@ -198,7 +201,7 @@ Deno.test("TemplateRenderer - renderWithItems with empty data array", () => {
   const containerTemplate = Template.create(templatePath, templateData)
     .unwrap();
 
-  const result = renderer.renderWithItems(
+  const result = await renderer.renderWithItems(
     containerTemplate,
     [],
   );

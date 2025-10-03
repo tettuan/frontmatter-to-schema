@@ -81,11 +81,17 @@ export class DocumentAggregationService {
       const allFrontmatterData = extractionResult.unwrap();
 
       // Single document processing: return frontmatter directly for variable resolution
+      // Exception: if schema has NESTED x-frontmatter-part paths (e.g., "tools.commands"),
+      // must use createAggregatedData to build the nested structure
       if (documents.length === 1 && allFrontmatterData.length === 1) {
-        return Result.ok(allFrontmatterData[0]);
+        const hasNestedPaths = schema &&
+          this.hasNestedFrontmatterPartPaths(schema);
+        if (!hasNestedPaths) {
+          return Result.ok(allFrontmatterData[0]);
+        }
       }
 
-      // Multiple document processing: create aggregate data structure
+      // Multiple document OR nested-path schema processing: create aggregate data structure
       const aggregationResult = this.createAggregatedData(
         allFrontmatterData,
         documents,
@@ -168,10 +174,10 @@ export class DocumentAggregationService {
 
       const aggregatedData: Record<string, unknown> = {};
 
-      // Add frontmatter data using ONLY schema property names
-      const propertyNames = propertyNamesResult.unwrap();
-      for (const propertyName of propertyNames) {
-        aggregatedData[propertyName] = frontmatterData;
+      // Add frontmatter data using ONLY schema property paths (supports nested paths)
+      const propertyPaths = propertyNamesResult.unwrap();
+      for (const propertyPath of propertyPaths) {
+        this.setNestedValue(aggregatedData, propertyPath, frontmatterData);
       }
 
       // Add metadata if configured
@@ -199,8 +205,9 @@ export class DocumentAggregationService {
   }
 
   /**
-   * Extracts property names from schema that have x-frontmatter-part: true.
+   * Extracts property paths from schema that have x-frontmatter-part: true.
    * These properties indicate where aggregated frontmatter data should be placed.
+   * Recursively searches nested properties and returns dot-notation paths.
    */
   private getSchemaPropertyNames(
     schema?: Record<string, unknown>,
@@ -215,7 +222,6 @@ export class DocumentAggregationService {
     }
 
     try {
-      const propertyNames: string[] = [];
       const properties = schema.properties as
         | Record<string, unknown>
         | undefined;
@@ -229,18 +235,10 @@ export class DocumentAggregationService {
         );
       }
 
-      // Find properties with x-frontmatter-part: true
-      for (const [propName, propSchema] of Object.entries(properties)) {
-        if (
-          propSchema && typeof propSchema === "object" &&
-          "x-frontmatter-part" in propSchema &&
-          propSchema["x-frontmatter-part"] === true
-        ) {
-          propertyNames.push(propName);
-        }
-      }
+      // Recursively find properties with x-frontmatter-part: true
+      const propertyPaths = this.findFrontmatterPartProperties(properties, "");
 
-      if (propertyNames.length === 0) {
+      if (propertyPaths.length === 0) {
         return Result.error(
           new ProcessingError(
             "No properties with x-frontmatter-part found in schema",
@@ -249,7 +247,7 @@ export class DocumentAggregationService {
         );
       }
 
-      return Result.ok(propertyNames);
+      return Result.ok(propertyPaths);
     } catch (error) {
       return Result.error(
         new ProcessingError(
@@ -260,6 +258,98 @@ export class DocumentAggregationService {
           { error },
         ),
       );
+    }
+  }
+
+  /**
+   * Checks if schema has any nested x-frontmatter-part paths (containing dots).
+   * Returns true if paths like "tools.commands" exist, false for top-level paths like "documents".
+   */
+  private hasNestedFrontmatterPartPaths(
+    schema: Record<string, unknown>,
+  ): boolean {
+    try {
+      const properties = schema.properties as
+        | Record<string, unknown>
+        | undefined;
+
+      if (!properties || typeof properties !== "object") {
+        return false;
+      }
+
+      const paths = this.findFrontmatterPartProperties(properties, "");
+      return paths.some((path) => path.includes("."));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Recursively finds properties with x-frontmatter-part: true.
+   * Returns dot-notation paths (e.g., "tools.commands").
+   */
+  private findFrontmatterPartProperties(
+    properties: Record<string, unknown>,
+    currentPath: string,
+  ): string[] {
+    const results: string[] = [];
+
+    for (const [propName, propSchema] of Object.entries(properties)) {
+      const fullPath = currentPath ? `${currentPath}.${propName}` : propName;
+
+      if (propSchema && typeof propSchema === "object") {
+        // Check if this property has x-frontmatter-part: true
+        if (
+          "x-frontmatter-part" in propSchema &&
+          propSchema["x-frontmatter-part"] === true
+        ) {
+          results.push(fullPath);
+        }
+
+        // Recursively search nested properties
+        const nestedProperties = (propSchema as Record<string, unknown>)
+          .properties as Record<string, unknown> | undefined;
+        if (nestedProperties && typeof nestedProperties === "object") {
+          const nestedResults = this.findFrontmatterPartProperties(
+            nestedProperties,
+            fullPath,
+          );
+          results.push(...nestedResults);
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Sets a value at a nested path in an object using dot notation.
+   * Creates intermediate objects as needed.
+   * @param obj - Target object
+   * @param path - Dot-notation path (e.g., "tools.commands")
+   * @param value - Value to set
+   */
+  private setNestedValue(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): void {
+    const segments = path.split(".");
+    let current = obj;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const segment = segments[i];
+      if (!segment) continue;
+
+      if (!(segment in current) || typeof current[segment] !== "object") {
+        current[segment] = {};
+      }
+      current = current[segment] as Record<string, unknown>;
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    if (lastSegment) {
+      current[lastSegment] = value;
     }
   }
 

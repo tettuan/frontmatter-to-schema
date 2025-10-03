@@ -546,3 +546,129 @@ Deno.test("DocumentAggregationService - property name mapping with schema x-fron
   // Should NOT have hardcoded "totalDocuments" property (schema-driven)
   assertEquals(transformed.totalDocuments, undefined);
 });
+
+Deno.test("DocumentAggregationService - nested x-frontmatter-part in schema", () => {
+  const service = DocumentAggregationService.create().unwrap();
+  const documents = [
+    createMockDocument("/docs/cmd1.md", {
+      c1: "analyze",
+      c2: "quality-metrics",
+      description: "Analyze code quality",
+    }),
+    createMockDocument("/docs/cmd2.md", {
+      c1: "review",
+      c2: "security",
+      description: "Security review",
+    }),
+  ];
+
+  // Schema with nested x-frontmatter-part (tools.commands)
+  const schema = {
+    type: "object",
+    properties: {
+      version: {
+        type: "string",
+        default: "1.0.0",
+      },
+      tools: {
+        type: "object",
+        properties: {
+          commands: {
+            type: "array",
+            "x-frontmatter-part": true,
+            items: {
+              type: "object",
+              properties: {
+                c1: { type: "string" },
+                c2: { type: "string" },
+                description: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const result = service.transformDocuments(
+    documents,
+    null,
+    schema,
+    { includeMetadata: false },
+  );
+
+  assertEquals(result.isOk(), true);
+  const transformed = result.unwrap();
+
+  // Should create nested structure with tools.commands
+  assertEquals(typeof transformed.tools, "object");
+  assertEquals(Array.isArray((transformed.tools as any).commands), true);
+  assertEquals(((transformed.tools as any).commands as any[]).length, 2);
+  assertEquals(
+    ((transformed.tools as any).commands as any[])[0].c1,
+    "analyze",
+  );
+  assertEquals(
+    ((transformed.tools as any).commands as any[])[1].c1,
+    "review",
+  );
+});
+
+Deno.test("DocumentAggregationService - deeply nested x-frontmatter-part", () => {
+  const service = DocumentAggregationService.create().unwrap();
+  const documents = [
+    createMockDocument("/docs/item1.md", {
+      id: "ITEM-001",
+      name: "First Item",
+    }),
+  ];
+
+  // Schema with deeply nested x-frontmatter-part (a.b.c.items)
+  const schema = {
+    type: "object",
+    properties: {
+      a: {
+        type: "object",
+        properties: {
+          b: {
+            type: "object",
+            properties: {
+              c: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    "x-frontmatter-part": true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const result = service.transformDocuments(
+    documents,
+    null,
+    schema,
+    { includeMetadata: false },
+  );
+
+  assertEquals(result.isOk(), true);
+  const transformed = result.unwrap();
+
+  // Should create deeply nested structure
+  assertEquals(typeof transformed.a, "object");
+  assertEquals(typeof (transformed.a as any).b, "object");
+  assertEquals(typeof ((transformed.a as any).b as any).c, "object");
+  assertEquals(
+    Array.isArray((((transformed.a as any).b as any).c as any).items),
+    true,
+  );
+  assertEquals(
+    ((((transformed.a as any).b as any).c as any).items as any[])[0].id,
+    "ITEM-001",
+  );
+});

@@ -45,12 +45,28 @@ class MockTemplateLoader implements ItemsTemplateLoader {
   }
 }
 
-// Helper function to create test templates
+let templateCounter = 0;
+
+// Helper function to create test templates with actual files
 function createTestTemplate(
   content: Record<string, unknown>,
-  path = "test-template.json",
+  customPath?: string,
 ) {
-  const pathResult = TemplatePath.create(path);
+  // Use custom path or create a unique temporary file
+  const tempFilePath = customPath ||
+    `tmp/test-templates/items-processor-test-${templateCounter++}.json`;
+
+  // Ensure directory exists
+  try {
+    Deno.mkdirSync("tmp/test-templates", { recursive: true });
+  } catch {
+    // Directory may already exist
+  }
+
+  // Write template content to file
+  Deno.writeTextFileSync(tempFilePath, JSON.stringify(content, null, 2));
+
+  const pathResult = TemplatePath.create(tempFilePath);
   if (pathResult.isError()) {
     throw new Error("Failed to create test template path");
   }
@@ -115,14 +131,14 @@ Deno.test("ItemsProcessor - process template with {@items} and x-template-items"
   }, "container.json");
 
   const itemsTemplate = createTestTemplate({
-    id: "${id}",
-    name: "${name}",
-  }, "item-template.json");
+    id: "{id}",
+    name: "{name}",
+  }, "tmp/test-templates/item-template.json");
 
-  loader.addTemplate("item-template.json", itemsTemplate);
+  loader.addTemplate("tmp/test-templates/item-template.json", itemsTemplate);
 
   const itemsTemplateRef = ItemsProcessor.createTemplateReference(
-    "item-template.json",
+    "tmp/test-templates/item-template.json",
   );
 
   const context = {
@@ -300,15 +316,15 @@ Deno.test("ItemsProcessor - handle complex nested {@items} processing", async ()
   });
 
   const itemsTemplate = createTestTemplate({
-    cmd: "${command}",
-    desc: "${description}",
-    index: "${$index}",
-  }, "command-item.json");
+    cmd: "{command}",
+    desc: "{description}",
+    index: "{$index}",
+  }, "tmp/test-templates/command-item.json");
 
-  loader.addTemplate("command-item.json", itemsTemplate);
+  loader.addTemplate("tmp/test-templates/command-item.json", itemsTemplate);
 
   const itemsTemplateRef = ItemsProcessor.createTemplateReference(
-    "command-item.json",
+    "tmp/test-templates/command-item.json",
   );
 
   const context = {
@@ -333,7 +349,7 @@ Deno.test("ItemsProcessor - handle complex nested {@items} processing", async ()
   const commands = sections.commands as any[];
   assertEquals(commands.length, 2);
   assertEquals(commands[0].cmd, "ls");
-  assertEquals(commands[0].index, "0");
+  assertEquals(commands[0].index, 0); // json-template preserves number type
   assertEquals(commands[1].desc, "Change directory");
 });
 
@@ -348,8 +364,8 @@ Deno.test("ItemsProcessor - handle empty array data", async () => {
   });
 
   const itemsTemplate = createTestTemplate({
-    value: "${value}",
-  }, "empty-items.json");
+    value: "{value}",
+  }, "tmp/test-templates/empty-items.json");
 
   loader.addTemplate("empty-items.json", itemsTemplate);
 

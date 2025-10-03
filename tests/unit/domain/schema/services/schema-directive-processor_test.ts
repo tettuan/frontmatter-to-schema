@@ -272,6 +272,52 @@ Deno.test("SchemaDirectiveProcessor - applySchemaDirectives with existing values
   assertEquals(processed.description, "Custom description"); // existing value preserved
 });
 
+Deno.test("SchemaDirectiveProcessor - should NOT overwrite falsy values with defaults", () => {
+  const mockFileSystem = new MockFileSystemPort();
+  const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)
+    .unwrap();
+
+  const schema = {
+    properties: {
+      enabled: { type: "boolean", default: true },
+      count: { type: "number", default: 10 },
+      name: { type: "string", default: "default" },
+      tags: { type: "array", default: ["default"] },
+    },
+  };
+
+  // Input data with legitimate falsy values
+  const data = {
+    enabled: false, // Explicitly false - should NOT become true
+    count: 0, // Explicitly 0 - should NOT become 10
+    name: "", // Explicitly empty - should NOT become "default"
+    tags: [], // Explicitly empty array - should NOT become ["default"]
+  };
+
+  const result = processor.applySchemaDirectives(data, schema);
+  assertEquals(result.isOk(), true);
+
+  const processed = result.unwrap();
+
+  // These SHOULD remain falsy - fix for issue #1260
+  assertEquals(
+    processed.enabled,
+    false,
+    "false should not be overwritten by default",
+  );
+  assertEquals(processed.count, 0, "0 should not be overwritten by default");
+  assertEquals(
+    processed.name,
+    "",
+    "empty string should not be overwritten by default",
+  );
+  assertEquals(
+    Array.isArray(processed.tags) && processed.tags.length === 0,
+    true,
+    "empty array should not be overwritten by default",
+  );
+});
+
 Deno.test("SchemaDirectiveProcessor - applySchemaDirectives with nested properties", () => {
   const mockFileSystem = new MockFileSystemPort();
   const processor = SchemaDirectiveProcessor.create(mockFileSystem as any)

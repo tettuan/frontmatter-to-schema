@@ -1,6 +1,13 @@
 import { Result } from "../../shared/types/result.ts";
 import { TemplateError } from "../../shared/types/errors.ts";
 import { Template } from "../entities/template.ts";
+import {
+  createTemplateProcessor,
+  InvalidJsonError,
+  TemplateNotFoundError,
+  TemplateReadError,
+  VariableNotFoundError,
+} from "../../../../sub_modules/json-template/src/mod.ts";
 
 /**
  * Context for {@items} expansion containing data and template information.
@@ -48,9 +55,9 @@ export class ItemsExpander {
   /**
    * Expands {@items} patterns in template content using provided context.
    */
-  expandItems(
+  async expandItems(
     context: ItemsExpansionContext,
-  ): Result<ItemsExpansionResult, TemplateError> {
+  ): Promise<Result<ItemsExpansionResult, TemplateError>> {
     try {
       // Validate expansion context
       const contextValidation = this.validateExpansionContext(context);
@@ -63,7 +70,7 @@ export class ItemsExpander {
       }
 
       // Process each array item with the items template
-      const expandedItems = this.processArrayItems(
+      const expandedItems = await this.processArrayItems(
         context.arrayData,
         context.itemsTemplate,
         context.globalVariables,
@@ -131,11 +138,18 @@ export class ItemsExpander {
     itemIndex: number,
     globalVariables: Record<string, unknown>,
   ): Record<string, unknown> {
+    // Priority: arrayItem data > globalVariables (container-level)
+    // Array item data should NOT be overridden by global variables
+    const itemData = this.isObject(arrayItem)
+      ? arrayItem
+      : { value: arrayItem };
+
     const itemContext: Record<string, unknown> = {
+      // Container-level variables (e.g., version, description)
       ...globalVariables,
-      // Array item data becomes the root context
-      ...(this.isObject(arrayItem) ? arrayItem : { value: arrayItem }),
-      // Add array context variables
+      // Array item data takes precedence
+      ...itemData,
+      // Array context variables (always added)
       $index: itemIndex,
       $first: itemIndex === 0,
       $last: false, // Will be set by caller if needed
@@ -185,13 +199,15 @@ export class ItemsExpander {
   /**
    * Processes array items using the items template.
    */
-  private processArrayItems(
+  private async processArrayItems(
     arrayData: readonly unknown[],
     itemsTemplate: Template,
     globalVariables: Record<string, unknown>,
-    schema?: Record<string, unknown>,
-  ): Result<unknown[], ItemsExpansionError> {
+    _schema?: Record<string, unknown>,
+  ): Promise<Result<unknown[], ItemsExpansionError>> {
     const processedItems: unknown[] = [];
+    const processor = createTemplateProcessor();
+    const templatePath = itemsTemplate.getPath().toString();
 
     for (let i = 0; i < arrayData.length; i++) {
       const arrayItem = arrayData[i];
@@ -202,20 +218,18 @@ export class ItemsExpander {
         itemContext.$last = true;
       }
 
-      // Resolve variables in items template with item context and schema
-      const resolvedTemplate = itemsTemplate.resolveVariables(
-        itemContext,
-        schema,
-      );
-      if (resolvedTemplate.isError()) {
-        return Result.error({
-          kind: "TemplateProcessingError",
-          template: itemsTemplate.getPath().toString(),
-          error: resolvedTemplate.unwrapError().message,
-        });
+      // Use json-template processor for variable resolution
+      try {
+        const resolvedContent = await processor.process(
+          itemContext,
+          templatePath,
+        );
+        processedItems.push(resolvedContent);
+      } catch (error) {
+        return Result.error(
+          this.convertJsonTemplateError(error, templatePath),
+        );
       }
-
-      processedItems.push(resolvedTemplate.unwrap().getContent());
     }
 
     return Result.ok(processedItems);
@@ -315,6 +329,59 @@ export class ItemsExpander {
     return typeof value === "object" &&
       value !== null &&
       !Array.isArray(value);
+  }
+
+  /**
+   * Converts json-template errors to ItemsExpansionError.
+   */
+  private convertJsonTemplateError(
+    error: unknown,
+    templatePath: string,
+  ): ItemsExpansionError {
+    if (error instanceof VariableNotFoundError) {
+      return {
+        kind: "VariableResolutionError",
+        variable: (error as VariableNotFoundError).variablePath || "unknown",
+        context: templatePath,
+      };
+    }
+
+    if (error instanceof TemplateNotFoundError) {
+      return {
+        kind: "TemplateProcessingError",
+        template: templatePath,
+        error: `Template file not found: ${templatePath}`,
+      };
+    }
+
+    if (error instanceof InvalidJsonError) {
+      return {
+        kind: "TemplateProcessingError",
+        template: templatePath,
+        error: `Invalid JSON in template: ${
+          (error as InvalidJsonError).message
+        }`,
+      };
+    }
+
+    if (error instanceof TemplateReadError) {
+      return {
+        kind: "TemplateProcessingError",
+        template: templatePath,
+        error: `Failed to read template: ${
+          (error as TemplateReadError).message
+        }`,
+      };
+    }
+
+    const errorMessage = error instanceof Error
+      ? error.message
+      : "Unknown error";
+    return {
+      kind: "TemplateProcessingError",
+      template: templatePath,
+      error: errorMessage,
+    };
   }
 
   /**

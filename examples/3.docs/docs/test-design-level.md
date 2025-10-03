@@ -10,6 +10,8 @@ traceability:
     summary: Dashboard UI layout design specification
     description: Responsive dashboard layout with widget management system
     author: design-team
+    derived_from: []
+    trace_to: []
     status: draft
     tags: [ui-design, dashboard, responsive-layout]
 title: Dashboard UI Design Specification

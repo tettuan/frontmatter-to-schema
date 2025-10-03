@@ -1,6 +1,5 @@
 {
   "version": "1.0.0",
   "description": "Specification level traceability IDs",
-  "req": [],
-  "traceability": []
+  "req": "{@items}"
 }

@@ -5,6 +5,8 @@ import {
 } from "../../application/services/pipeline-orchestrator.ts";
 import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-system-adapter.ts";
 import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
+import denoConfig from "../../../deno.json" with { type: "json" };
+import { dirname, isAbsolute, join } from "@std/path";
 
 export interface CLIResponse {
   ok: boolean;
@@ -178,13 +180,10 @@ export class CLI {
       if (schema[DIRECTIVE_NAMES.TEMPLATE]) {
         // If x-template is a relative path, resolve it relative to the schema directory
         const templatePath = schema[DIRECTIVE_NAMES.TEMPLATE];
-        if (!templatePath.startsWith("/")) {
-          // Relative path - resolve relative to schema directory
-          const schemaDir = schemaPath.substring(
-            0,
-            schemaPath.lastIndexOf("/"),
-          );
-          return `${schemaDir}/${templatePath}`;
+        if (!isAbsolute(templatePath)) {
+          // Relative path - resolve relative to schema directory using cross-platform path utilities
+          const schemaDir = dirname(schemaPath);
+          return join(schemaDir, templatePath);
         }
         return templatePath;
       }
@@ -309,7 +308,7 @@ EXAMPLES:
   }
 
   private showVersion(): CLIResponse {
-    const version = "1.0.0"; // In production, read from deno.json
+    const version = denoConfig.version;
     const versionInfo = `frontmatter-to-schema ${version}`;
 
     console.log(versionInfo);
