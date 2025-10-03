@@ -121,6 +121,7 @@ export class TemplateRenderer {
     data: FrontmatterData[],
     itemsTemplate?: Template | null,
     frontmatterPartProperty?: string | null,
+    containerProperties?: string[],
   ): Promise<Result<string, TemplateError>> {
     try {
       // Convert data array to plain objects
@@ -139,11 +140,29 @@ export class TemplateRenderer {
         arrayData = plainObjects;
       }
 
+      // Extract container-level properties from ALL frontmatter files
+      // Try to find these values in any file, preferring first occurrence
+      const containerData: Record<string, unknown> = {};
+      if (
+        containerProperties && containerProperties.length > 0 &&
+        plainObjects.length > 0
+      ) {
+        for (const propName of containerProperties) {
+          // Search through all files to find this property
+          for (const obj of plainObjects) {
+            if (propName in obj) {
+              containerData[propName] = obj[propName];
+              break; // Use first occurrence
+            }
+          }
+        }
+      }
+
       // Container-level context (should NOT include item data)
       // Only container-level properties should be here (version, description, etc.)
       const containerContext = {
+        ...containerData,
         items: arrayData,
-        // TODO: Add actual container-level properties from schema directives
       };
 
       // If ItemsProcessor is available and itemsTemplate provided, use it for {@items} expansion

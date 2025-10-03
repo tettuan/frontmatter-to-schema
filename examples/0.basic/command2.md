@@ -1,9 +1,10 @@
 ---
+version: "1.0.0"
+description: "Basic command registry example"
 c1: spec
 c2: analyze
 c3: quality-metrics
 title: Analyze Quality Metrics
-description: Analyze code quality metrics from specifications
 usage: "climpt spec analyze quality-metrics --input=spec.md"
 options:
   input: ["file", "stdin"]

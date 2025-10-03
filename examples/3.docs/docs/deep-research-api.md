@@ -1,4 +1,7 @@
 ---
+version: "1.0.0"
+description: "Spec-trace index"
+level: "req"
 traceability:
   - id:
       full: req:api:deepresearch-3f8d2a#20250909

@@ -24,6 +24,7 @@ export interface SchemaContext {
   readonly resolvedExtensions: Record<string, unknown>;
   readonly templateResolutionStrategy: TemplateResolutionStrategy;
   readonly frontmatterPartProperty?: string | null;
+  readonly containerProperties?: string[];
 }
 
 export type TemplateResolutionStrategy = "absolute" | "relative";
@@ -142,6 +143,7 @@ export class TemplateSchemaCoordinator {
         nonEmptyData,
         itemsTemplate,
         templateContext.schemaContext.frontmatterPartProperty,
+        templateContext.schemaContext.containerProperties,
       );
 
       if (renderResult.isError()) {
