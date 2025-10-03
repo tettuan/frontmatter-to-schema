@@ -43,14 +43,12 @@ export class SchemaTemplateResolver {
       const frontmatterPartProperty = this.extractFrontmatterPartProperty(
         schemaData,
       );
-      const containerProperties = this.extractContainerProperties(schemaData);
 
       const schemaContext: SchemaContext = {
         sourceSchema: schema,
         resolvedExtensions: this.extractExtensions(schemaData),
         templateResolutionStrategy: this.getResolutionStrategy(schema),
         frontmatterPartProperty,
-        containerProperties,
       };
 
       // x-template-items is optional - without it, {@items} won't be expanded
@@ -143,36 +141,6 @@ export class SchemaTemplateResolver {
     }
 
     return null;
-  }
-
-  /**
-   * Extracts container-level property names (properties without x-frontmatter-part)
-   * These are properties that should be resolved at container level, not item level
-   */
-  private extractContainerProperties(
-    schemaData: Record<string, unknown>,
-  ): string[] {
-    const properties = schemaData.properties;
-    if (!properties || typeof properties !== "object") {
-      return [];
-    }
-
-    const containerProps: string[] = [];
-
-    for (const [propName, propSchema] of Object.entries(properties)) {
-      if (typeof propSchema === "object" && propSchema !== null) {
-        const schema = propSchema as Record<string, unknown>;
-        // Skip properties with x-frontmatter-part or that are objects (like "tools")
-        if (
-          !schema[DIRECTIVE_NAMES.FRONTMATTER_PART] &&
-          schema.type === "string"
-        ) {
-          containerProps.push(propName);
-        }
-      }
-    }
-
-    return containerProps;
   }
 
   /**
