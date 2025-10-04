@@ -2,7 +2,7 @@
  * Basic functionality tests for DataPathResolver.
  */
 
-import { assertEquals, assertExists } from "jsr:@std/assert@^1.0.14";
+import { assertEquals, assertExists } from "@std/assert";
 import { DataPathResolver, PathErrorCode } from "../src/mod.ts";
 
 Deno.test("DataPathResolver - simple property access", () => {

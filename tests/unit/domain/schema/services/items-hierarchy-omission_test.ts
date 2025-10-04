@@ -4,7 +4,7 @@
  * instead of commands.items[].c1 notation.
  */
 
-import { assertEquals } from "jsr:@std/assert@^1.0.14";
+import { assertEquals } from "@std/assert";
 import { SchemaDirectiveProcessor } from "../../../../../src/domain/schema/services/schema-directive-processor.ts";
 
 // Mock FileSystemPort for testing

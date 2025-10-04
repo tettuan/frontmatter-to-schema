@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@halvardm/jmespath@*": "0.17.0",
     "jsr:@halvardm/jmespath@0.17": "0.17.0",
     "jsr:@std/assert@*": "1.0.14",
     "jsr:@std/assert@1": "1.0.14",
