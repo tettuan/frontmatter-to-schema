@@ -145,14 +145,34 @@ export class TemplateSchemaCoordinator {
       );
 
       if (renderResult.isError()) {
+        const error = renderResult.unwrapError();
+
+        // In verbose mode, add available data keys to error message
+        let errorMessage = `Template rendering failed: ${error.message}`;
+        if (typeof Deno !== "undefined" && Deno.env.get("VERBOSE")) {
+          if (nonEmptyData.length > 0) {
+            const sampleData = nonEmptyData[0].getData();
+            const availableKeys = Object.keys(sampleData);
+            errorMessage += `\n\nSample data keys available: ${
+              availableKeys.join(", ")
+            }`;
+            errorMessage += `\nSample data: ${
+              JSON.stringify(sampleData, null, 2).substring(0, 500)
+            }...`;
+          }
+        }
+
         return Result.error(
           new ProcessingError(
-            `Template rendering failed: ${renderResult.unwrapError().message}`,
+            errorMessage,
             "TEMPLATE_RENDERING_ERROR",
             {
               containerTemplate: templateContext.containerTemplate.path,
               itemsTemplate: templateContext.itemsTemplate?.path,
-              error: renderResult.unwrapError(),
+              error: error,
+              availableDataKeys: nonEmptyData.length > 0
+                ? Object.keys(nonEmptyData[0].getData())
+                : [],
             },
           ),
         );

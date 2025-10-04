@@ -35,7 +35,12 @@ export interface ItemsExpansionResult {
 export type ItemsExpansionError =
   | { kind: "InvalidArrayData"; reason: string }
   | { kind: "TemplateProcessingError"; template: string; error: string }
-  | { kind: "VariableResolutionError"; variable: string; context: string }
+  | {
+    kind: "VariableResolutionError";
+    variable: string;
+    context: string;
+    availableKeys?: string[];
+  }
   | { kind: "ExpansionContextError"; reason: string };
 
 /**
@@ -405,9 +410,16 @@ export class ItemsExpander {
         );
       case "VariableResolutionError":
         return new TemplateError(
-          `Variable resolution error for ${error.variable} in context ${error.context}`,
+          `Variable resolution error for ${error.variable} in context ${error.context}` +
+            (error.availableKeys
+              ? `\nAvailable keys: ${error.availableKeys.join(", ")}`
+              : ""),
           "VARIABLE_RESOLUTION_ERROR",
-          { variable: error.variable, context: error.context },
+          {
+            variable: error.variable,
+            context: error.context,
+            availableKeys: error.availableKeys,
+          },
         );
       case "ExpansionContextError":
         return new TemplateError(

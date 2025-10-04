@@ -158,6 +158,11 @@ export class CLI {
       };
     }
 
+    // Set VERBOSE environment variable if --verbose flag is present
+    if (hasVerbose && typeof Deno !== "undefined") {
+      Deno.env.set("VERBOSE", "1");
+    }
+
     const config: PipelineConfig = {
       schemaPath,
       templatePath,
@@ -167,6 +172,11 @@ export class CLI {
     };
 
     const result = await this.orchestrator.execute(config);
+
+    // Clear VERBOSE environment variable after execution
+    if (hasVerbose && typeof Deno !== "undefined") {
+      Deno.env.delete("VERBOSE");
+    }
 
     if (result.isError()) {
       return {
