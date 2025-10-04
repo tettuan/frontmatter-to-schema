@@ -236,8 +236,12 @@ export class ItemsExpander {
           error,
           templatePath,
         );
+
+        // Create item identifier from data
+        const itemIdentifier = this.createItemIdentifier(arrayItem, i);
+
         console.error(
-          `⚠️  Warning: Failed to process item ${i} with template ${templatePath}: ${
+          `⚠️  Warning: Failed to process item ${i} (${itemIdentifier}) with template ${templatePath}: ${
             convertedError.kind === "VariableResolutionError"
               ? `Variable '${convertedError.variable}' not found`
               : convertedError.kind === "TemplateProcessingError"
@@ -338,6 +342,34 @@ export class ItemsExpander {
     } catch {
       return `[${items.length} items]`;
     }
+  }
+
+  /**
+   * Creates a human-readable identifier for an array item to help with debugging.
+   * Tries common identifying fields like title, name, c1/c2/c3, or shows preview of data.
+   */
+  private createItemIdentifier(arrayItem: unknown, index: number): string {
+    if (!this.isObject(arrayItem)) {
+      return `index ${index}`;
+    }
+
+    // Try common identifying fields
+    if (arrayItem.title) {
+      return `title: "${arrayItem.title}"`;
+    }
+    if (arrayItem.name) {
+      return `name: "${arrayItem.name}"`;
+    }
+    if (arrayItem.c1 && arrayItem.c2 && arrayItem.c3) {
+      return `c1-c2-c3: ${arrayItem.c1}/${arrayItem.c2}/${arrayItem.c3}`;
+    }
+    if (arrayItem.c1) {
+      return `c1: ${arrayItem.c1}`;
+    }
+
+    // Show first few keys as fallback
+    const keys = Object.keys(arrayItem).slice(0, 3);
+    return `keys: ${keys.join(", ")}`;
   }
 
   /**
