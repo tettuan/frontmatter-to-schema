@@ -151,6 +151,65 @@ export class RawFrontmatter {
 }
 
 /**
+ * Schema変換統合 (yaml-schema-mapper)
+ */
+
+/**
+ * FrontmatterData生成時のSchema変換プロセス
+ *
+ * 処理フロー:
+ * 1. Raw YAML extraction (@std/front-matter)
+ * 2. Schema transformation (yaml-schema-mapper)
+ * 3. Create FrontmatterData with schema-compliant data
+ */
+
+/**
+ * Schema変換統合の実装例
+ *
+ * @example
+ * ```typescript
+ * // 1. Raw YAML extraction
+ * const rawYaml = extractYaml(markdownContent);
+ *
+ * // 2. Schema transformation (yaml-schema-mapper)
+ * import { mapDataToSchema } from "sub_modules/yaml-schema-mapper/mod.ts";
+ *
+ * const transformResult = mapDataToSchema({
+ *   schema: schemaDefinition,
+ *   data: rawYaml.attrs,
+ *   options: {
+ *     coerceTypes: true,
+ *     validateTypes: true,
+ *     strict: false
+ *   }
+ * });
+ *
+ * if (!transformResult.isOk()) {
+ *   return Result.error(new FrontmatterError("Schema transformation failed"));
+ * }
+ *
+ * const { data, warnings, metadata } = transformResult.unwrap();
+ *
+ * // 3. Create FrontmatterData with schema-compliant data
+ * const frontmatterData = FrontmatterData.create(data);
+ * ```
+ *
+ * 統合ポイント:
+ * - FrontmatterData.create() の前に yaml-schema-mapper を実行
+ * - Schema準拠データのみを FrontmatterData として保持
+ * - 警告（warnings）は別途ログ出力
+ *
+ * 変換の責任:
+ * - yaml-schema-mapper: Property mapping, Type coercion, Schema validation
+ * - FrontmatterData: Schema準拠データの保持と参照
+ *
+ * モジュール独立性:
+ * - yaml-schema-mapper は Frontmatter ドメインに依存しない
+ * - 汎用的な YAML → Schema 変換モジュールとして設計
+ */
+}
+
+/**
  * パース済みフロントマターデータ
  */
 export class ParsedFrontmatter {

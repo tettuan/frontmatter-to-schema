@@ -143,9 +143,9 @@ export class TemplateRenderer {
           return [];
         });
 
-        // If extraction succeeded (non-empty), use extracted data
-        // Otherwise, fall back to using plainObjects (case: property doesn't exist in frontmatter)
-        arrayData = extracted.length > 0 ? extracted : plainObjects;
+        // Use extracted data (even if empty array)
+        // Empty array is valid result from x-jmespath-filter
+        arrayData = extracted;
       } else {
         // No frontmatterPartProperty: use entire frontmatter objects for {@items}
         arrayData = plainObjects;

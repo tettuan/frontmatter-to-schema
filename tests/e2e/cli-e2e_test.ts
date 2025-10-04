@@ -680,7 +680,6 @@ published: false
     properties: {
       documents: {
         type: "array",
-        "x-frontmatter-part": true,
         items: {
           type: "object",
           properties: {
@@ -788,7 +787,6 @@ category: "backend"
     properties: {
       documents: {
         type: "array",
-        "x-frontmatter-part": true,
         items: { type: "object" },
       },
     },

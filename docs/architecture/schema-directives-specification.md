@@ -4,9 +4,15 @@
 
 ## 1. ディレクティブの分類
 
-### 1.1 処理ステージによる分類（実装準拠の7段階）
+### 1.1 処理ステージによる分類（実装準拠の8段階）
 
-Schema定義のディレクティブは、実装（`src/domain/schema/directive-order.ts`）に基づく7つのステージで処理されます：
+Schema定義のディレクティブは、実装に基づく8つのステージで処理されます：
+
+0. **Stage 0: Schema変換** ← ★ yaml-schema-mapper による前処理
+   - プロパティ名マッピング（`x-map-from` ディレクティブの処理）
+   - 型変換（array ↔ single value, string → number/boolean など）
+   - Schema検証（required, enum, pattern など）
+   - **重要**: 全ディレクティブ処理の前に実行される
 
 1. **Stage 1: 対象配列の特定**
    - `x-frontmatter-part` - 処理対象の配列を識別
@@ -81,6 +87,56 @@ Schema定義のディレクティブは、実装（`src/domain/schema/directive-
 **重要**: 本システムはデフォルト値の生成や補完を行いません。JSON
 Schemaの`default`プロパティも使用しません。ただし、値が存在しない場合は
 明示的に`null`に置換されます。
+
+### 1.4 Sub-Module Integration
+
+本システムは3つの独立したサブモジュールを使用してディレクティブ処理を実現：
+
+#### Stage 0: yaml-schema-mapper
+
+- **責任範囲**: 生フロントマター → Schema準拠データへの変換
+- **処理内容**: Property mapping, Type coercion, Schema validation
+- **適用タイミング**: フロントマター抽出直後、全ディレクティブ処理の前
+- **モジュールパス**: `sub_modules/yaml-schema-mapper/`
+
+**x-map-from の処理**:
+
+- yaml-schema-mapper が Stage 0 で処理
+- Schema定義内の `x-map-from` ディレクティブを解釈
+- string | string[] (fallback) 形式をサポート
+
+**変換例**:
+
+```yaml
+# Input (raw frontmatter)
+file: [false]
+stdin: [true]
+
+# Schema
+properties:
+  input_file: { type: "boolean", x-map-from: "file" }
+  stdin: { type: "boolean" }
+
+# Output (after Stage 0)
+input_file: false
+stdin: true
+```
+
+#### Stage 4: data-path-resolver
+
+- **責任範囲**: `x-derived-from` のパス式解決
+- **処理内容**: 配列展開構文 (`items[]`) による値の集約
+- **適用タイミング**: Stage 4（全体統合フェーズ）
+- **モジュールパス**: `sub_modules/data-path-resolver/`
+
+#### Stage 7: json-template
+
+- **責任範囲**: テンプレート変数 `{variable.path}` の置換
+- **処理内容**: 階層データアクセス、配列インデックス指定
+- **適用タイミング**: Stage 7（テンプレート展開フェーズ）
+- **モジュールパス**: `sub_modules/json-template/`
+
+**モジュール独立性**: 各サブモジュールは完全に独立し、相互依存なし
 
 ## 2. 各ディレクティブの詳細
 

@@ -1,6 +1,6 @@
 {
-  "version": "{version}",
-  "description": "{description}",
+  "version": "1.0.0",
+  "description": "Basic command registry example",
   "tools": {
     "availableConfigs": "{tools.availableConfigs}",
     "commands": "{@items}"
