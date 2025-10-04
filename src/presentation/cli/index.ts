@@ -7,6 +7,7 @@ import { DenoFileSystemAdapter } from "../../infrastructure/adapters/deno-file-s
 import { DIRECTIVE_NAMES } from "../../domain/schema/constants/directive-names.ts";
 import denoConfig from "../../../deno.json" with { type: "json" };
 import { dirname, isAbsolute, join } from "@std/path";
+import { expandGlob } from "@std/fs/expand-glob";
 
 export interface CLIResponse {
   ok: boolean;
@@ -96,6 +97,30 @@ export class CLI {
       arg.endsWith(".yml");
   }
 
+  /**
+   * Checks if a string contains glob pattern characters
+   */
+  private isGlobPattern(path: string): boolean {
+    return /[*?{\[]/.test(path);
+  }
+
+  /**
+   * Expands glob pattern to file paths
+   * Returns the first match for single-file operations
+   */
+  private async expandGlobPattern(pattern: string): Promise<string | null> {
+    try {
+      for await (const entry of expandGlob(pattern)) {
+        if (entry.isFile) {
+          return entry.path;
+        }
+      }
+      return null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
   private async processDirectInvocation(args: string[]): Promise<CLIResponse> {
     // Direct invocation expects: <schema> <input> <output> [options]
     if (args.length < 3) {
@@ -109,7 +134,23 @@ export class CLI {
       };
     }
 
-    const [schemaPath, inputPath, outputPath, ...options] = args;
+    let [schemaPath, inputPath, outputPath, ...options] = args;
+
+    // Expand glob pattern if present in inputPath
+    if (this.isGlobPattern(inputPath)) {
+      const expandedPath = await this.expandGlobPattern(inputPath);
+      if (!expandedPath) {
+        return {
+          ok: false,
+          error: new ProcessingError(
+            `No files matched glob pattern: ${inputPath}`,
+            "GLOB_NO_MATCH",
+            { pattern: inputPath },
+          ),
+        };
+      }
+      inputPath = expandedPath;
+    }
 
     // Try to extract template from schema's x-template directive
     const templatePath = await this.extractTemplateFromSchema(schemaPath);

@@ -317,4 +317,64 @@ Content without title`;
       assertExists(response.data);
     });
   });
+
+  describe("glob pattern support", () => {
+    it("should detect glob patterns correctly", () => {
+      const cli = CLI.create();
+      assertEquals(cli.ok, true);
+      const cliInstance = cli.data!;
+
+      // Access private method via type assertion for testing
+      const isGlobPattern = (cliInstance as any).isGlobPattern.bind(
+        cliInstance,
+      );
+
+      assertEquals(isGlobPattern("file.md"), false);
+      assertEquals(isGlobPattern("*.md"), true);
+      assertEquals(isGlobPattern("**/*.md"), true);
+      assertEquals(isGlobPattern("file?.md"), true);
+      assertEquals(isGlobPattern("file[123].md"), true);
+      assertEquals(isGlobPattern("path/to/file.md"), false);
+    });
+
+    it("should expand glob pattern to first matching file", async () => {
+      // Create test files
+      await Deno.writeTextFile(
+        `${TEST_DIR}/glob-test-1.md`,
+        "---\ntitle: Test 1\n---\n# Content 1",
+      );
+      await Deno.writeTextFile(
+        `${TEST_DIR}/glob-test-2.md`,
+        "---\ntitle: Test 2\n---\n# Content 2",
+      );
+
+      const cli = CLI.create();
+      const cliInstance = cli.data!;
+
+      // Access private method for testing
+      const expandGlobPattern = (cliInstance as any).expandGlobPattern.bind(
+        cliInstance,
+      );
+
+      const result = await expandGlobPattern(`${TEST_DIR}/glob-test-*.md`);
+      assertExists(result);
+      assertEquals(typeof result, "string");
+      assertEquals(result.includes("glob-test-"), true);
+      assertEquals(result.endsWith(".md"), true);
+    });
+
+    it("should return null for non-matching glob pattern", async () => {
+      const cli = CLI.create();
+      const cliInstance = cli.data!;
+
+      const expandGlobPattern = (cliInstance as any).expandGlobPattern.bind(
+        cliInstance,
+      );
+
+      const result = await expandGlobPattern(
+        `${TEST_DIR}/non-existent-*.md`,
+      );
+      assertEquals(result, null);
+    });
+  });
 });

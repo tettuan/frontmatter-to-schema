@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import { ensureDir } from "@std/fs";
 import { join } from "@std/path";
 import { CLI } from "../../src/presentation/cli/index.ts";
@@ -200,6 +200,82 @@ Deno.test("CLI E2E - insufficient arguments for process command", async () => {
   assertEquals(result.ok, false);
   assertEquals(result.error?.code, "INVALID_ARGUMENTS");
   assertStringIncludes(result.error?.message || "", "Insufficient arguments");
+});
+
+Deno.test("CLI E2E - glob pattern expansion with quoted patterns", async () => {
+  await setupE2EEnvironment();
+
+  // Create multiple test documents
+  const doc1Content = `---
+title: "Glob Test Doc 1"
+author: "Test Author 1"
+tags: ["test", "glob"]
+published: true
+---
+# Glob Test Document 1`;
+
+  const doc2Content = `---
+title: "Glob Test Doc 2"
+author: "Test Author 2"
+tags: ["test", "glob", "pattern"]
+published: true
+---
+# Glob Test Document 2`;
+
+  await Deno.writeTextFile(
+    join(TEST_FIXTURES_DIR, "glob-test-1.md"),
+    doc1Content,
+  );
+  await Deno.writeTextFile(
+    join(TEST_FIXTURES_DIR, "glob-test-2.md"),
+    doc2Content,
+  );
+
+  const cli = CLI.create();
+  assertEquals(cli.ok, true);
+  const cliInstance = cli.data!;
+
+  // Create schema with x-template directive (use relative filename only)
+  const schemaWithTemplate = {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      author: { type: "string" },
+    },
+    "x-template": "template.json",
+  };
+  const schemaPath = join(TEST_FIXTURES_DIR, "schema-with-template.json");
+  await Deno.writeTextFile(
+    schemaPath,
+    JSON.stringify(schemaWithTemplate, null, 2),
+  );
+
+  const outputPath = join(TEST_DIR, "glob-output.json");
+
+  // Test glob pattern (simulates quoted pattern from command line)
+  const globPattern = join(TEST_FIXTURES_DIR, "glob-test-*.md");
+  const result = await cliInstance.run([
+    schemaPath,
+    globPattern,
+    outputPath,
+    "--verbose",
+  ]);
+
+  assertEquals(result.ok, true, "Glob pattern should be expanded successfully");
+
+  // Verify output file was created
+  const outputExists = await Deno.stat(outputPath).then(() => true).catch(() =>
+    false
+  );
+  assertEquals(outputExists, true);
+
+  // Verify output was generated (glob expansion succeeded)
+  // Note: The template uses ${} syntax which gets processed by the template engine
+  const outputContent = await Deno.readTextFile(outputPath);
+  const outputJson = JSON.parse(outputContent);
+  assertExists(outputJson.output, "Output should contain processed data");
+
+  await cleanupE2EEnvironment();
 });
 
 Deno.test("CLI E2E - successful single file processing", async () => {
