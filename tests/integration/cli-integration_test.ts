@@ -319,26 +319,34 @@ Content without title`;
   });
 
   describe("glob pattern support", () => {
-    it("should detect glob patterns correctly", () => {
-      const cli = CLI.create();
-      assertEquals(cli.ok, true);
-      const cliInstance = cli.data!;
+    it("should process glob pattern and match multiple files", async () => {
+      // Create test schema with x-frontmatter-part
+      const schemaPath = `${TEST_DIR}/schema.json`;
+      const schema = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+              },
+            },
+          },
+        },
+      };
+      await Deno.writeTextFile(schemaPath, JSON.stringify(schema, null, 2));
 
-      // Access private method via type assertion for testing
-      const isGlobPattern = (cliInstance as any).isGlobPattern.bind(
-        cliInstance,
-      );
+      const templatePath = `${TEST_DIR}/template.json`;
+      const template = {
+        "documents": [],
+      };
+      await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
 
-      assertEquals(isGlobPattern("file.md"), false);
-      assertEquals(isGlobPattern("*.md"), true);
-      assertEquals(isGlobPattern("**/*.md"), true);
-      assertEquals(isGlobPattern("file?.md"), true);
-      assertEquals(isGlobPattern("file[123].md"), true);
-      assertEquals(isGlobPattern("path/to/file.md"), false);
-    });
-
-    it("should expand glob pattern to first matching file", async () => {
-      // Create test files
+      // Create test markdown files
       await Deno.writeTextFile(
         `${TEST_DIR}/glob-test-1.md`,
         "---\ntitle: Test 1\n---\n# Content 1",
@@ -348,33 +356,65 @@ Content without title`;
         "---\ntitle: Test 2\n---\n# Content 2",
       );
 
+      const outputPath = `${TEST_DIR}/output.json`;
       const cli = CLI.create();
       const cliInstance = cli.data!;
 
-      // Access private method for testing
-      const expandGlobPattern = (cliInstance as any).expandGlobPattern.bind(
-        cliInstance,
-      );
+      // Use glob pattern to match multiple files
+      const result = await cliInstance.run([
+        "process",
+        schemaPath,
+        templatePath,
+        `${TEST_DIR}/glob-test-*.md`,
+        outputPath,
+      ]);
 
-      const result = await expandGlobPattern(`${TEST_DIR}/glob-test-*.md`);
-      assertExists(result);
-      assertEquals(typeof result, "string");
-      assertEquals(result.includes("glob-test-"), true);
-      assertEquals(result.endsWith(".md"), true);
+      assertEquals(result.ok, true);
+      assertExists(result.data);
+
+      // Verify output file was created
+      const outputExists = await Deno.stat(outputPath).then(() => true).catch(
+        () => false,
+      );
+      assertEquals(outputExists, true);
     });
 
-    it("should return null for non-matching glob pattern", async () => {
+    it("should fail gracefully when glob pattern matches no files", async () => {
+      const schemaPath = `${TEST_DIR}/schema.json`;
+      const schema = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "x-frontmatter-part": true,
+            "items": {
+              "type": "object",
+              "properties": { "title": { "type": "string" } },
+            },
+          },
+        },
+      };
+      await Deno.writeTextFile(schemaPath, JSON.stringify(schema, null, 2));
+
+      const templatePath = `${TEST_DIR}/template.json`;
+      const template = { "documents": [] };
+      await Deno.writeTextFile(templatePath, JSON.stringify(template, null, 2));
+
+      const outputPath = `${TEST_DIR}/output.json`;
       const cli = CLI.create();
       const cliInstance = cli.data!;
 
-      const expandGlobPattern = (cliInstance as any).expandGlobPattern.bind(
-        cliInstance,
-      );
-
-      const result = await expandGlobPattern(
+      const result = await cliInstance.run([
+        "process",
+        schemaPath,
+        templatePath,
         `${TEST_DIR}/non-existent-*.md`,
-      );
-      assertEquals(result, null);
+        outputPath,
+      ]);
+
+      assertEquals(result.ok, false);
+      assertEquals(result.error?.code, "NO_GLOB_MATCHES");
     });
   });
 });

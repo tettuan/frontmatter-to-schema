@@ -362,9 +362,10 @@ Deno.test("InputProcessingStrategyFactory - createDefaultStrategies", () => {
     mockFilter,
   );
 
-  assertEquals(strategies.length, 2);
-  assertEquals(strategies[0].strategyType, "single-file");
-  assertEquals(strategies[1].strategyType, "directory");
+  assertEquals(strategies.length, 3);
+  assertEquals(strategies[0].strategyType, "glob-pattern");
+  assertEquals(strategies[1].strategyType, "single-file");
+  assertEquals(strategies[2].strategyType, "directory");
 });
 
 Deno.test("InputProcessingStrategyFactory - selectStrategy file", async () => {

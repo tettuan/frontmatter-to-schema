@@ -130,6 +130,78 @@ export class DirectoryStrategy implements InputProcessingStrategy {
 }
 
 /**
+ * Strategy for processing glob patterns.
+ * Expands glob patterns and processes all matching markdown files.
+ */
+export class GlobPatternStrategy implements InputProcessingStrategy {
+  readonly strategyType = "glob-pattern";
+
+  constructor(private readonly documentFilter: DocumentFilter) {}
+
+  canProcess(
+    inputPath: string,
+    _fileSystem: FileSystemPort,
+  ): Promise<Result<boolean, ProcessingError>> {
+    // Check if the path contains glob pattern characters
+    const hasGlobChars = /[*?{\[]/.test(inputPath);
+    return Promise.resolve(Result.ok(hasGlobChars));
+  }
+
+  async processInput(
+    inputPath: string,
+    _fileSystem: FileSystemPort,
+    documentLoader: DocumentLoader,
+  ): Promise<Result<MarkdownDocument[], ProcessingError>> {
+    const documents: MarkdownDocument[] = [];
+
+    try {
+      // Use Deno's expandGlob to expand the pattern
+      const { expandGlob } = await import("@std/fs/expand-glob");
+
+      for await (const entry of expandGlob(inputPath)) {
+        // Check if it's a file and passes the document filter
+        if (entry.isFile) {
+          const shouldProcess = await this.documentFilter.shouldProcess(
+            { name: entry.name, isFile: true },
+            "", // basePath not needed for glob results
+          );
+
+          if (shouldProcess) {
+            const document = await documentLoader.loadMarkdownDocument(
+              entry.path,
+            );
+            if (document.isOk()) {
+              documents.push(document.unwrap());
+            }
+            // Continue processing other files even if one fails
+          }
+        }
+      }
+    } catch (error) {
+      return Result.error(
+        new ProcessingError(
+          `Failed to expand glob pattern: ${inputPath}`,
+          "GLOB_EXPANSION_ERROR",
+          { inputPath, error },
+        ),
+      );
+    }
+
+    if (documents.length === 0) {
+      return Result.error(
+        new ProcessingError(
+          `No matching files found for glob pattern: ${inputPath}`,
+          "NO_GLOB_MATCHES",
+          { inputPath },
+        ),
+      );
+    }
+
+    return Result.ok(documents);
+  }
+}
+
+/**
  * Document filter interface for filtering files in directories.
  */
 export interface DocumentFilter {
@@ -175,6 +247,7 @@ export class InputProcessingStrategyFactory {
     documentFilter: DocumentFilter,
   ): InputProcessingStrategy[] {
     return [
+      new GlobPatternStrategy(documentFilter),
       new SingleFileStrategy(),
       new DirectoryStrategy(documentFilter),
     ];
@@ -197,7 +270,16 @@ export class InputProcessingStrategyFactory {
     inputPath: string,
     fileSystem: FileSystemPort,
   ): Promise<Result<InputProcessingStrategy, ProcessingError>> {
-    // First check if input path exists - preserve original error behavior
+    // Try strategies first before stat check
+    // This allows glob patterns to be processed without requiring file existence
+    for (const strategy of strategies) {
+      const canProcessResult = await strategy.canProcess(inputPath, fileSystem);
+      if (canProcessResult.isOk() && canProcessResult.unwrap()) {
+        return Result.ok(strategy);
+      }
+    }
+
+    // If no strategy matched, check if input path exists for better error message
     const statResult = await fileSystem.stat(inputPath);
     if (statResult.isError()) {
       return Result.error(
@@ -209,13 +291,6 @@ export class InputProcessingStrategyFactory {
           { inputPath, error: statResult.unwrapError() },
         ),
       );
-    }
-
-    for (const strategy of strategies) {
-      const canProcessResult = await strategy.canProcess(inputPath, fileSystem);
-      if (canProcessResult.isOk() && canProcessResult.unwrap()) {
-        return Result.ok(strategy);
-      }
     }
 
     return Result.error(
