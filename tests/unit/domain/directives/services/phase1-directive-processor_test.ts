@@ -4,7 +4,7 @@
  * Tests x-flatten-arrays directive and Totality compliance.
  */
 
-import { assertEquals } from "jsr:@std/assert@^1.0.14";
+import { assertEquals } from "@std/assert";
 import {
   DocumentId,
   MarkdownDocument,

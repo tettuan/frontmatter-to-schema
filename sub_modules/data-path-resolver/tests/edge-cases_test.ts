@@ -2,7 +2,7 @@
  * Edge cases tests for DataPathResolver.
  */
 
-import { assertEquals } from "jsr:@std/assert@^1.0.14";
+import { assertEquals } from "@std/assert";
 import { DataPathResolver, PathErrorCode } from "../src/mod.ts";
 
 Deno.test("DataPathResolver - empty array", () => {
